@@ -96,6 +96,14 @@ jobs:
       - name: Assert PostgreSQL B-01 invariants
         run: node dist/scripts/assert-b01.js
 
+      - name: Upload API diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vethelp-api-log
+          path: /tmp/vethelp-api.log
+          if-no-files-found: ignore
+
       - name: Show API log on failure
         if: failure()
         run: cat /tmp/vethelp-api.log || true
