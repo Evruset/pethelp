@@ -14,6 +14,7 @@ export const DomainErrors = {
   holdExpired: () => new DomainException(HttpStatus.UNPROCESSABLE_ENTITY, 'HOLD_EXPIRED', 'Hold expired'),
   invalidTransition: () => new DomainException(HttpStatus.UNPROCESSABLE_ENTITY, 'INVALID_STATE_TRANSITION', 'Transition is not allowed'),
   holdOwnerMismatch: () => new DomainException(HttpStatus.FORBIDDEN, 'HOLD_OWNER_MISMATCH', 'Owner mismatch'),
+  petOwnershipMismatch: () => new DomainException(HttpStatus.FORBIDDEN, 'PET_OWNERSHIP_MISMATCH', 'Pet ownership mismatch'),
   clinicScopeMismatch: () => new DomainException(HttpStatus.FORBIDDEN, 'CLINIC_SCOPE_MISMATCH', 'Clinic scope mismatch'),
   idempotencyInProgress: () => new DomainException(425, 'IDEMPOTENCY_IN_PROGRESS', 'Command is in progress'),
   workerUnauthorized: () => new DomainException(HttpStatus.FORBIDDEN, 'WORKER_UNAUTHORIZED', 'Worker key is invalid'),

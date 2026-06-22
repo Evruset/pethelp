@@ -6,6 +6,7 @@ import { JwtPayload, Role } from '../auth/auth.types';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { DomainErrors } from '../common/domain-error';
+import { BookingHoldCreationService } from './booking-hold-creation.service';
 import { BookingSecurityService } from './booking-security.service';
 import { BookingService } from './booking.service';
 import { CreateHoldDto } from './dto/create-hold.dto';
@@ -22,6 +23,7 @@ function requiredUuid(value: string | undefined, field: string): string {
 export class BookingController {
   constructor(
     private readonly bookingService: BookingService,
+    private readonly holdCreationService: BookingHoldCreationService,
     private readonly bookingSecurityService: BookingSecurityService,
   ) {}
 
@@ -40,7 +42,7 @@ export class BookingController {
     @Headers('idempotency-key') idempotencyKey?: string,
     @Headers('x-correlation-id') correlationHeader?: string,
   ) {
-    return this.bookingService.createLocalHold({
+    return this.holdCreationService.createLocalHold({
       slotId: requiredUuid(dto.slotId, 'slotId'),
       petId: requiredUuid(dto.petId, 'petId'),
       ownerId: owner.sub,
