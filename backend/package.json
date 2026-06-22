@@ -8,8 +8,9 @@
     "start:dev": "ts-node src/main.ts",
     "test": "jest --runInBand --passWithNoTests",
     "migrate:create": "node-pg-migrate create --migrations-dir migrations/node-pg --migration-file-language js",
-    "migrate:up": "node-pg-migrate up --migrations-dir migrations/node-pg --migrations-schema public --migrations-table schema_migrations --single-transaction",
+    "migrate:up": "node-pg-migrate up --migrations-dir migrations/node-pg --migrations-schema public --migrations-table schema_migrations --single-transaction && node scripts/verify-migration-checksums.cjs --write-missing",
     "migrate:down": "node-pg-migrate down --migrations-dir migrations/node-pg --migrations-schema public --migrations-table schema_migrations --single-transaction",
+    "migrate:verify": "node scripts/verify-migration-checksums.cjs",
     "seed": "ts-node scripts/seed.ts",
     "check": "npm run build && npm test"
   },
