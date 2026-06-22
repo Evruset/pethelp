@@ -4,12 +4,22 @@ import { DomainErrors, DomainException } from '../common/domain-error';
 import { config } from '../config';
 import { DatabaseService } from '../database/database.service';
 import { BookingRepository } from './booking.repository';
-import { CreateHoldResult, HoldRow } from './booking.types';
+import { CreateHoldResult, HoldRow, HoldState } from './booking.types';
 
 interface IdempotencyRow {
   status: 'PROCESSING' | 'COMPLETED';
   response_status: number | null;
   response_body: Record<string, unknown> | null;
+}
+
+interface PetOwnershipRow {
+  owner_id: string;
+  external_patient_id: string | null;
+}
+
+interface ClinicMisRow {
+  clinic_id: string;
+  mis_type: string | null;
 }
 
 @Injectable()
@@ -32,15 +42,13 @@ export class BookingHoldCreationService {
       return await this.database.withTransaction(async (client) => {
         await this.setInteractiveTransactionLimits(client);
 
-        // Global interactive lock order: pet first, then slot.
-        const pet = await client.query<{ owner_id: string }>(`
-          SELECT owner_id
+        // Global interactive lock order: pet, then slot.
+        const pet = await client.query<PetOwnershipRow>(`
+          SELECT owner_id, external_patient_id
           FROM pet_schema.pets
           WHERE id = $1
           FOR SHARE
         `, [input.petId]);
-
-        // Do not disclose whether a foreign pet exists.
         if (!pet.rows[0] || pet.rows[0].owner_id !== input.ownerId) {
           throw DomainErrors.petOwnershipMismatch();
         }
@@ -61,18 +69,39 @@ export class BookingHoldCreationService {
           throw DomainErrors.slotAlreadyTaken();
         }
 
+        const clinic = await client.query<ClinicMisRow>(`
+          SELECT c.id AS clinic_id, c.mis_type
+          FROM clinic_schema.clinic_locations l
+          JOIN clinic_schema.clinics c ON c.id = l.clinic_id
+          WHERE l.id = $1::uuid
+        `, [slot.clinic_location_id]);
+        if (!clinic.rows[0]) throw DomainErrors.slotNotFound();
+
+        const requiresMisReservation = Boolean(clinic.rows[0].mis_type);
+        if (requiresMisReservation && !pet.rows[0].external_patient_id) {
+          throw new DomainException(
+            HttpStatus.UNPROCESSABLE_ENTITY,
+            'EXTERNAL_PATIENT_MAPPING_REQUIRED',
+            'Pet is not mapped to an external MIS patient',
+          );
+        }
+
+        const initialState: HoldState = requiresMisReservation
+          ? 'MIS_RESERVATION_PENDING'
+          : 'MANUAL_CONFIRM_PENDING';
+
         const hold = await client.query<HoldRow>(`
           INSERT INTO booking_schema.booking_holds (
             slot_id, owner_id, pet_id, state, expires_at
           )
           VALUES (
-            $1, $2, $3, 'MANUAL_CONFIRM_PENDING',
-            clock_timestamp() + ($4::text || ' minutes')::interval
+            $1, $2, $3, $4,
+            clock_timestamp() + ($5::text || ' minutes')::interval
           )
           RETURNING
             id, slot_id, owner_id, pet_id, state,
             expires_at, state_changed_at, version, created_at
-        `, [input.slotId, input.ownerId, input.petId, config.holdTtlMinutes]);
+        `, [input.slotId, input.ownerId, input.petId, initialState, config.holdTtlMinutes]);
 
         await client.query(`
           UPDATE clinic_schema.appointment_slots
@@ -84,46 +113,50 @@ export class BookingHoldCreationService {
 
         const result: CreateHoldResult = {
           holdId: hold.rows[0].id,
-          state: 'MANUAL_CONFIRM_PENDING',
+          state: initialState,
           slotId: input.slotId,
           expiresAt: hold.rows[0].expires_at.toISOString(),
           correlationId: input.correlationId,
         };
 
-        await client.query(`
-          INSERT INTO booking_schema.outbox_events (
-            event_type, correlation_id, aggregate_type,
-            aggregate_id, aggregate_version, payload_json, deduplication_key
-          )
-          VALUES ($1, $2::uuid, 'booking_hold', $3::uuid, $4, $5::jsonb, $6)
-        `, [
-          'booking.hold.created.v1',
-          input.correlationId,
-          hold.rows[0].id,
-          hold.rows[0].version,
-          JSON.stringify({
-            holdId: hold.rows[0].id,
-            slotId: input.slotId,
-            ownerId: input.ownerId,
-            petId: input.petId,
-            expiresAt: result.expiresAt,
-          }),
-          `booking.hold.created.v1:${hold.rows[0].id}:${hold.rows[0].version}`,
-        ]);
+        await this.writeOutbox(client, 'booking.hold.created.v1', input.correlationId, hold.rows[0].id, hold.rows[0].version, {
+          holdId: hold.rows[0].id,
+          slotId: input.slotId,
+          ownerId: input.ownerId,
+          petId: input.petId,
+          state: initialState,
+          expiresAt: result.expiresAt,
+        });
+
+        if (requiresMisReservation) {
+          await this.writeOutbox(
+            client,
+            'mis.reservation.requested.v1',
+            input.correlationId,
+            hold.rows[0].id,
+            hold.rows[0].version,
+            {
+              holdId: hold.rows[0].id,
+              slotId: input.slotId,
+              clinicId: clinic.rows[0].clinic_id,
+              externalPatientId: pet.rows[0].external_patient_id,
+              correlationId: input.correlationId,
+            },
+          );
+        }
 
         await client.query(`
           INSERT INTO audit_schema.audit_log (
             actor_type, actor_id, action, aggregate_type,
             aggregate_id, correlation_id, payload_json
-          )
-          VALUES ($1, $2, $3, 'booking_hold', $4::uuid, $5::uuid, $6::jsonb)
+          ) VALUES ($1, $2, $3, 'booking_hold', $4::uuid, $5::uuid, $6::jsonb)
         `, [
           'OWNER',
           input.ownerId,
           'booking.hold.created',
           hold.rows[0].id,
           input.correlationId,
-          JSON.stringify({ slotId: input.slotId, petId: input.petId }),
+          JSON.stringify({ slotId: input.slotId, petId: input.petId, state: initialState }),
         ]);
 
         await this.completeIdempotency(
@@ -197,6 +230,29 @@ export class BookingHoldCreationService {
           updated_at = clock_timestamp()
       WHERE scope = $1 AND idempotency_key = $2::uuid
     `, [scope, idempotencyKey, status, JSON.stringify(response)]);
+  }
+
+  private async writeOutbox(
+    client: PoolClient,
+    eventType: string,
+    correlationId: string,
+    aggregateId: string,
+    aggregateVersion: number,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
+    await client.query(`
+      INSERT INTO booking_schema.outbox_events (
+        event_type, correlation_id, aggregate_type,
+        aggregate_id, aggregate_version, payload_json, deduplication_key
+      ) VALUES ($1, $2::uuid, 'booking_hold', $3::uuid, $4, $5::jsonb, $6)
+    `, [
+      eventType,
+      correlationId,
+      aggregateId,
+      aggregateVersion,
+      JSON.stringify(payload),
+      `${eventType}:${aggregateId}:${aggregateVersion}`,
+    ]);
   }
 
   private mapPgError(error: unknown): unknown {

@@ -5,7 +5,15 @@ export class HoldDto {
   holdId!: string;
 
   @ApiProperty({
-    enum: ['MANUAL_CONFIRM_PENDING', 'CONFIRMED', 'EXPIRED', 'RELEASED'],
+    enum: [
+      'MANUAL_CONFIRM_PENDING',
+      'MIS_RESERVATION_PENDING',
+      'MIS_HELD',
+      'CONFIRMED',
+      'EXPIRED',
+      'RELEASED',
+      'MIS_BOOKING_FAILED',
+    ],
     example: 'MANUAL_CONFIRM_PENDING',
   })
   state!: string;
