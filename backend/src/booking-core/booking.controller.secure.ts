@@ -111,7 +111,7 @@ export class BookingController {
 
   @Get('booking-holds/:holdId')
   @ApiOperation({ summary: 'Получение текущего статуса hold' })
-  @ApiParam({ name: 'holdId', schema: { type: 'string', format: 'uuid' } })
+  @ApiParam({ name: 'holdId', type: 'string', format: 'uuid' })
   @ApiNotFoundResponse({ description: 'HOLD_NOT_FOUND.', type: ApiErrorDto })
   async getHold(@Param('holdId') holdId: string) {
     if (!isUuid(holdId)) throw DomainErrors.holdNotFound();
@@ -124,7 +124,7 @@ export class BookingController {
   @Roles(Role.OWNER, Role.SYSTEM_WORKER)
   @ApiBearerAuth(SWAGGER_BEARER_AUTH)
   @ApiOperation({ summary: 'Освобождение hold владельцем или системным worker' })
-  @ApiParam({ name: 'holdId', schema: { type: 'string', format: 'uuid' } })
+  @ApiParam({ name: 'holdId', type: 'string', format: 'uuid' })
   @ApiHeader({ name: 'Idempotency-Key', required: true, schema: { type: 'string', format: 'uuid' } })
   @ApiOkResponse({ description: 'Hold освобождён.', type: ReleaseHoldDto })
   @ApiForbiddenResponse({ description: 'HOLD_OWNER_MISMATCH.', type: ApiErrorDto })
@@ -152,7 +152,7 @@ export class BookingController {
     summary: 'Подтверждение удержания сотрудником клиники',
     description: 'Доступно только CLINIC_RECEPTIONIST и CLINIC_ADMIN. Scope проверяется по JWT и employee_location_memberships внутри транзакции.',
   })
-  @ApiParam({ name: 'holdId', schema: { type: 'string', format: 'uuid' } })
+  @ApiParam({ name: 'holdId', type: 'string', format: 'uuid' })
   @ApiHeader({ name: 'Idempotency-Key', required: true, schema: { type: 'string', format: 'uuid' } })
   @ApiHeader({ name: 'X-Correlation-ID', required: false, schema: { type: 'string', format: 'uuid' } })
   @ApiOkResponse({ description: 'Hold подтверждён, appointment создан.', type: ConfirmHoldDto })
