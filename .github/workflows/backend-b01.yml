@@ -68,6 +68,8 @@ jobs:
           NODE
           node dist/scripts/create-b01-jwt.js > /tmp/b01-owner.jwt
           echo "B01_OWNER_TOKEN=$(cat /tmp/b01-owner.jwt)" >> "$GITHUB_ENV"
+          B01_OWNER_ID=33333333-3333-4333-8333-333333333333 node dist/scripts/create-b01-jwt.js > /tmp/b01-foreign-owner.jwt
+          echo "FOREIGN_OWNER_TOKEN=$(cat /tmp/b01-foreign-owner.jwt)" >> "$GITHUB_ENV"
 
       - name: Start API
         run: |
@@ -81,6 +83,18 @@ jobs:
           done
           cat /tmp/vethelp-api.log
           exit 1
+
+      - name: Verify pet ownership guard
+        run: |
+          status=$(curl -sS -o /tmp/pet-ownership-response.json -w '%{http_code}' \
+            -X POST http://127.0.0.1:3000/v1/booking-holds \
+            -H "Authorization: Bearer ${FOREIGN_OWNER_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            -H 'Idempotency-Key: 33333333-3333-4333-8333-333333333333' \
+            -H 'X-Correlation-ID: 44444444-4444-4444-8444-444444444444' \
+            --data "{\"slotId\":\"${B01_SLOT_ID}\",\"petId\":\"${B01_PET_ID}\"}")
+          test "$status" = '403'
+          node -e "const b=require('/tmp/pet-ownership-response.json'); if(b.code!=='PET_OWNERSHIP_MISMATCH') process.exit(1)"
 
       - name: Run B-01 k6 concurrency test
         run: |
@@ -105,6 +119,7 @@ jobs:
           path: |
             /tmp/vethelp-api.log
             /tmp/b01-k6.log
+            /tmp/pet-ownership-response.json
           if-no-files-found: ignore
 
       - name: Show API log on failure
