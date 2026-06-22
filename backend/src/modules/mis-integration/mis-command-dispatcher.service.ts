@@ -3,6 +3,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import type { PoolClient } from 'pg';
 import { DatabaseService } from '../../database/database.service';
 import {
+  IMisAdapter,
   MisConfigurationError,
   MisNetworkError,
   MisReservationResult,
@@ -56,7 +57,7 @@ export class MisCommandDispatcherService {
       return;
     }
 
-    let adapter;
+    let adapter: IMisAdapter;
     try {
       adapter = this.adapterFactory.getAdapter(context.mis_type);
     } catch (error) {
