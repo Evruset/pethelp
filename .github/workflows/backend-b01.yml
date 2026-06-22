@@ -72,6 +72,9 @@ jobs:
           npm run migrate:up
           npm run migrate:verify
 
+      - name: Run MIS integration tests
+        run: npm test -- test/mis-integration.integration-spec.ts
+
       - name: Prepare deterministic B-01 fixture
         run: |
           node dist/scripts/b01-fixture.js > /tmp/b01-fixture.json
