@@ -54,8 +54,10 @@ jobs:
       - name: Build backend
         run: npm run build
 
-      - name: Apply PostgreSQL migrations
-        run: node dist/scripts/migrate.js
+      - name: Apply and verify PostgreSQL migrations
+        run: |
+          npm run migrate:up
+          npm run migrate:verify
 
       - name: Prepare deterministic B-01 fixture
         run: |
