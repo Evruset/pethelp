@@ -7,7 +7,9 @@
     "start": "node dist/src/main.js",
     "start:dev": "ts-node src/main.ts",
     "test": "jest --runInBand --passWithNoTests",
-    "migration:run": "ts-node scripts/migrate.ts",
+    "migrate:create": "node-pg-migrate create --migrations-dir migrations/node-pg --migration-file-language js",
+    "migrate:up": "node-pg-migrate up --migrations-dir migrations/node-pg --migrations-schema public --migrations-table schema_migrations --single-transaction",
+    "migrate:down": "node-pg-migrate down --migrations-dir migrations/node-pg --migrations-schema public --migrations-table schema_migrations --single-transaction",
     "seed": "ts-node scripts/seed.ts",
     "check": "npm run build && npm test"
   },
@@ -28,6 +30,7 @@
     "@types/node": "^24.10.1",
     "@types/pg": "^8.15.6",
     "jest": "^30.2.0",
+    "node-pg-migrate": "^8.0.4",
     "ts-jest": "^29.4.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
