@@ -9,6 +9,8 @@ export interface AppConfig {
   readonly jwtIssuer: string;
   readonly jwtAudience: string;
   readonly workerServiceToken: string;
+  readonly misVetManagerBaseUrl?: string;
+  readonly misVetManagerApiKey?: string;
 }
 
 function intEnv(name: string, fallback: number): number {
@@ -25,6 +27,11 @@ function requiredEnv(name: string): string {
   return value;
 }
 
+function optionalEnv(name: string): string | undefined {
+  const value = process.env[name]?.trim();
+  return value || undefined;
+}
+
 export const config: AppConfig = Object.freeze({
   port: intEnv('PORT', 3000),
   databaseUrl: process.env.DATABASE_URL ?? 'postgres://vethelp:vethelp@localhost:5432/vethelp',
@@ -36,4 +43,6 @@ export const config: AppConfig = Object.freeze({
   jwtIssuer: requiredEnv('JWT_ISSUER'),
   jwtAudience: requiredEnv('JWT_AUDIENCE'),
   workerServiceToken: requiredEnv('WORKER_SERVICE_TOKEN'),
+  misVetManagerBaseUrl: optionalEnv('MIS_VET_MANAGER_BASE_URL'),
+  misVetManagerApiKey: optionalEnv('MIS_VET_MANAGER_API_KEY'),
 });
