@@ -12,7 +12,7 @@ jest.mock('node:timers/promises', () => ({
 }));
 
 const VET_MANAGER_BASE_URL = 'https://vetmanager.test';
-const mockedRetryDelay = retryDelay as jest.MockedFunction<typeof retryDelay>;
+const mockedRetryDelay = retryDelay as unknown as jest.Mock;
 
 interface Fixture {
   clinicId: string;
@@ -119,7 +119,7 @@ describe('MisCommandDispatcherService integration', () => {
     await expectAuditAction(database, fixture.holdId, 'mis.reservation.held');
     await expectHeldCount(database, fixture.slotId, 1);
     expect(scope.isDone()).toBe(true);
-    expect(mockedRetryDelay.mock.calls.map(([milliseconds]) => milliseconds)).toEqual([1_000, 2_000]);
+    expect(mockedRetryDelay.mock.calls.map((call) => call[0])).toEqual([1_000, 2_000]);
   });
 
   it('marks the hold MIS_BOOKING_FAILED and compensates held_count after all network attempts fail', async () => {
@@ -137,7 +137,7 @@ describe('MisCommandDispatcherService integration', () => {
     await expectHeldCount(database, fixture.slotId, 0);
     await expectAuditAction(database, fixture.holdId, 'mis.reservation.failed');
     expect(scope.isDone()).toBe(true);
-    expect(mockedRetryDelay.mock.calls.map(([milliseconds]) => milliseconds)).toEqual([1_000, 2_000]);
+    expect(mockedRetryDelay.mock.calls.map((call) => call[0])).toEqual([1_000, 2_000]);
   });
 
   it('does not retry a non-retryable VetManager 400 and compensates immediately', async () => {
@@ -154,7 +154,7 @@ describe('MisCommandDispatcherService integration', () => {
   });
 });
 
-function reserveScope(fixture: Fixture): nock.Scope {
+function reserveScope(fixture: Fixture): ReturnType<typeof nock> {
   return nock(VET_MANAGER_BASE_URL)
     .matchHeader('idempotency-key', fixture.holdId)
     .matchHeader('x-api-key', 'mis-test-key')
