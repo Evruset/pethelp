@@ -8,6 +8,6 @@ import { WorkerAuthGuard } from './worker-auth.guard';
 @Module({
   imports: [JwtModule.register({})],
   providers: [JwtAuthGuard, RolesGuard, WorkerAuthGuard],
-  exports: [JwtAuthGuard, RolesGuard, WorkerAuthGuard],
+  exports: [JwtModule, JwtAuthGuard, RolesGuard, WorkerAuthGuard],
 })
 export class AuthModule {}
