@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f766e" />
+  <title>VetHelp — сайт и кабинеты · v7</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: '#17332d',
+            canvas: '#f5f8f7',
+            line: '#d9e5e0',
+            primary: '#0f766e',
+            primarydark: '#115e59',
+            mint: '#e8f7f1',
+            muted: '#66756f',
+            danger: '#b7433d',
+            warning: '#a96812'
+          },
+          boxShadow: {
+            card: '0 8px 22px rgba(21,55,46,.07)',
+            soft: '0 18px 45px rgba(14,63,52,.11)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root { color-scheme: light; }
+    html, body { min-height: 100%; background: #f5f8f7; }
+    body { min-width: 320px; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+    .safe-top { padding-top: max(12px, env(safe-area-inset-top)); }
+    .safe-bottom { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .touch { min-height: 44px; min-width: 44px; }
+    .tap { transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease, border-color .16s ease; }
+    .tap:active { transform: scale(.985); }
+    .offline-dim { filter: grayscale(.7); opacity: .5; pointer-events: none; user-select: none; }
+    .slide-in { animation: slide-in .24s ease both; }
+    @keyframes slide-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .network-toggle { position: relative; width: 46px; height: 27px; border-radius: 999px; transition: background .2s ease; }
+    .network-toggle::after { content:''; position:absolute; top:3px; left:3px; width:21px; height:21px; border-radius:50%; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,.18); transition: transform .2s ease; }
+    .network-toggle.is-on::after { transform: translateX(19px); }
+    .vet-map { height: min(48vh, 430px); min-height: 330px; width: 100%; border-radius: 24px; overflow: hidden; background: #e8f7f1; }
+    .leaflet-container { font-family: inherit; }
+    .leaflet-popup-content-wrapper { border-radius: 16px; box-shadow: 0 12px 30px rgba(21,55,46,.16); }
+    .leaflet-popup-content { margin: 12px 14px; }
+    .map-pin-label { font-weight: 800; color: #17332d; }
+    .map-pin-address { margin-top: 2px; color: #66756f; font-size: 12px; }
+    @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior:auto !important; } }
+  </style>
+</head>
+<body class="bg-canvas text-ink">
+  <main class="min-h-[100dvh] bg-canvas">
+    <header class="safe-top sticky top-0 z-40 border-b border-line/80 bg-white/90 px-4 pb-3 backdrop-blur">
+      <div class="mx-auto flex max-w-6xl items-center justify-between gap-3">
+        <button data-action="home" class="tap flex min-w-0 items-center gap-2 text-left" aria-label="На главный экран">
+          <span class="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary text-lg font-black text-white shadow-card">✚</span>
+          <span class="min-w-0">
+            <span class="block text-[18px] font-extrabold tracking-tight">Vet<span class="text-primary">Help</span></span>
+            <span id="roleCaption" class="block truncate text-[11px] font-medium text-slate-500">Новый пользователь</span>
+          </span>
+        </button>
+        <button id="connectionButton" class="tap touch inline-flex items-center gap-2 rounded-2xl border border-line bg-white px-2.5 py-2 text-xs font-bold shadow-sm" aria-label="Переключить соединение">
+          <span id="connectionDot" class="h-2 w-2 rounded-full bg-emerald-500"></span>
+          <span id="connectionText">Онлайн</span>
+          <span id="connectionToggle" class="network-toggle is-on bg-primary" aria-hidden="true"></span>
+        </button>
+      </div>
+    </header>
+
+    <section class="sticky top-[67px] z-30 border-b border-line/70 bg-canvas/95 px-4 py-3 backdrop-blur">
+      <div class="mx-auto flex max-w-6xl gap-2 overflow-x-auto no-scrollbar" role="tablist" aria-label="Режим просмотра">
+        <button class="role-tab tap shrink-0 rounded-full bg-primary px-3.5 py-2 text-xs font-bold text-white" data-role="guest" role="tab" aria-selected="true">Новый пользователь</button>
+        <button class="role-tab tap shrink-0 rounded-full border border-line bg-white px-3.5 py-2 text-xs font-bold text-slate-600" data-role="owner" role="tab" aria-selected="false">Зарегистрированный пользователь</button>
+        <button class="role-tab tap shrink-0 rounded-full border border-line bg-white px-3.5 py-2 text-xs font-bold text-slate-600" data-role="clinic" role="tab" aria-selected="false">Клиника</button>
+      </div>
+    </section>
+
+    <div id="content" class="mx-auto max-w-6xl pb-28 md:pb-10"></div>
+    <nav id="bottomNav" class="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-line bg-white/95 px-2 pt-2 backdrop-blur md:hidden" aria-label="Нижняя навигация"></nav>
+
+    <div id="offlineOverlay" class="hidden fixed inset-0 z-50 items-end bg-slate-950/40 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur-[2px] sm:items-center sm:justify-center" role="alertdialog" aria-modal="true" aria-labelledby="offlineTitle">
+      <section class="slide-in w-full max-w-md rounded-[28px] bg-white p-5 shadow-soft">
+        <div class="flex items-start gap-3"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-amber-100 text-xl">⌁</span><div><p class="text-xs font-bold uppercase tracking-[.15em] text-warning">Офлайн</p><h2 id="offlineTitle" class="mt-1 text-xl font-extrabold">Нет соединения</h2><p class="mt-2 text-sm leading-6 text-muted">Новые записи, сообщения и подтверждения временно недоступны. Уже загруженные данные остаются на экране.</p></div></div>
+        <div class="mt-4 rounded-2xl bg-slate-100 px-3 py-3 text-sm leading-5 text-slate-600"><b class="text-ink">Доступно:</b> просмотр информации и сохранённых записей. Изменения отправятся после восстановления сети.</div>
+        <button id="restoreButton" class="tap touch mt-4 w-full rounded-2xl bg-primary px-4 py-3 text-sm font-extrabold text-white shadow-card">Восстановить соединение</button>
+      </section>
+    </div>
+    <div id="toast" class="pointer-events-none fixed left-1/2 top-24 z-[60] hidden w-[min(92vw,480px)] -translate-x-1/2 rounded-2xl bg-ink px-4 py-3 text-sm font-bold text-white shadow-soft" role="status" aria-live="polite"></div>
+  </main>
+
+<script>
+  const state = {
+    role: 'guest',
+    page: 'home',
+    online: true,
+    selectedClinic: 0,
+    mapClinic: 0,
+    selectedSlot: 'Сегодня, 18:30',
+    channel: 'MAX',
+    consultation: { price: 790, status: 'idle', eta: '8–12 минут' },
+    insurance: { status: 'none', plan: null },
+    clinicSlots: { '14:30':'occupied', '16:00':'pending', '18:30':'open', '20:00':'open' },
+    alternativeFor: null,
+    booking: {
+      id: 'VH-4107',
+      pet: 'Барсик',
+      kind: 'кот, 4 года',
+      source: 'VK',
+      receivedAt: '3 мин назад',
+      description: 'Вялость, плохо ест с утра. Красные флаги не отмечены.',
+      requestedTime: '16:00',
+      proposedTime: null,
+      confirmedTime: null,
+      status: 'pending'
+    }
+  };
+
+  const clinics = [
+    {
+      name:'Пульс', initials:'П',
+      address:'Раменское, Северное шоссе, 50',
+      meta:'Северное шоссе, 50 · 1,5 км',
+      type:'Круглосуточная ветеринарная клиника',
+      hours:'Круглосуточно',
+      lat:55.581317, lng:38.218321,
+      slots:['Сегодня, 18:30','Сегодня, 19:20','Завтра, 10:00'],
+      demoAvailability:'Демо: есть запись сегодня'
+    },
+    {
+      name:'Четыре Лапы', initials:'4Л',
+      address:'Раменское, Дергаевская улица, 34',
+      meta:'Дергаевская улица, 34 · 2,4 км',
+      type:'Ветеринарная клиника',
+      hours:'Круглосуточно',
+      lat:55.580849, lng:38.243644,
+      slots:['Сегодня, 20:00','Завтра, 09:30','Завтра, 12:00'],
+      demoAvailability:'Демо: 2 окна на сегодня'
+    },
+    {
+      name:'Ветмастер', initials:'ВМ',
+      address:'Раменское, Донинское шоссе, 4/2',
+      meta:'Донинское шоссе, 4/2 · 2,7 км',
+      type:'Ветеринарный центр',
+      hours:'Круглосуточно',
+      lat:55.577241, lng:38.241327,
+      slots:['Сегодня, 21:00','Завтра, 10:30','Завтра, 13:00'],
+      demoAvailability:'Демо: есть запись сегодня'
+    }
+  ];
+
+  let vetMapInstance = null;
+  let vetMapMarkers = [];
+
+  function routeUrl(clinic){
+    return `https://yandex.ru/maps/?rtext=~${clinic.lat},${clinic.lng}&rtt=auto`;
+  }
+
+  function mapDetailsCard(){
+    const c=clinics[state.mapClinic];
+    return `<article class="rounded-[22px] border border-line bg-white p-4 shadow-card"><div class="flex items-start gap-3"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-mint text-xs font-black text-primary">${c.initials}</span><div class="min-w-0 flex-1"><div class="flex items-center justify-between gap-2"><h2 class="truncate text-base font-extrabold">${c.name}</h2><span class="rounded-full bg-mint px-2 py-1 text-[10px] font-extrabold text-primarydark">${c.hours}</span></div><p class="mt-1 text-sm text-slate-600">${c.address}</p><p class="mt-2 text-xs leading-5 text-slate-500">${c.demoAvailability}. Доступность и запись в прототипе не отражают фактическую интеграцию.</p></div></div><div class="mt-4 grid grid-cols-2 gap-2"><a href="${routeUrl(c)}" target="_blank" rel="noopener" class="tap touch inline-flex items-center justify-center gap-2 rounded-2xl border border-line bg-white px-3 py-3 text-sm font-extrabold text-ink">${icon('map','h-5 w-5')} Маршрут</a>${button('Выбрать время',`guest:clinic:${state.mapClinic}`,'primary','w-full')}</div></article>`;
+  }
+
+  function renderMapDetails(){
+    const root=document.getElementById('mapDetails');
+    if(root) root.innerHTML=mapDetailsCard();
+    if(vetMapInstance){
+      const c=clinics[state.mapClinic];
+      vetMapInstance.flyTo([c.lat,c.lng],15,{duration:.45});
+    }
+  }
+
+  function initVetMap(){
+    const mapEl=document.getElementById('vetMap');
+    if(!mapEl) return;
+    if(!window.L){
+      mapEl.innerHTML='<div class="grid h-full place-items-center p-6 text-center text-sm leading-6 text-slate-600">Не удалось загрузить интерактивную карту. Проверьте подключение к интернету.</div>';
+      return;
+    }
+    if(vetMapInstance){ vetMapInstance.remove(); vetMapInstance=null; vetMapMarkers=[]; }
+    vetMapInstance=L.map(mapEl,{zoomControl:true,attributionControl:true}).setView([55.5792,38.2332],14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      maxZoom:19,
+      attribution:'&copy; OpenStreetMap contributors'
+    }).addTo(vetMapInstance);
+
+    clinics.forEach((clinic,index)=>{
+      const marker=L.marker([clinic.lat,clinic.lng]).addTo(vetMapInstance);
+      marker.bindPopup(`<div class="map-pin-label">${clinic.name}</div><div class="map-pin-address">${clinic.address}</div>`);
+      marker.on('click',()=>{ state.mapClinic=index; renderMapDetails(); });
+      vetMapMarkers.push(marker);
+    });
+    const group=L.featureGroup(vetMapMarkers);
+    vetMapInstance.fitBounds(group.getBounds().pad(.22));
+    setTimeout(()=>vetMapInstance.invalidateSize(),50);
+  }
+
+  function bookingTime(){
+    if(state.booking.status==='confirmed') return state.booking.confirmedTime;
+    if(state.booking.status==='alternative') return state.booking.proposedTime;
+    return state.booking.requestedTime;
+  }
+
+  function bookingStatus(){
+    const b=state.booking;
+    if(b.status==='confirmed') return {label:'Подтверждено клиникой', tone:'bg-mint text-primarydark', note:'Приём сегодня в '+b.confirmedTime};
+    if(b.status==='alternative') return {label:'Клиника предложила другое время', tone:'bg-amber-50 text-amber-800', note:'Нужно ответить на предложение: '+b.proposedTime};
+    return {label:'Клиника подтверждает время', tone:'bg-amber-50 text-amber-800', note:'Ожидаем ответ в течение 12 минут'};
+  }
+
+  function slotState(time){
+    const value=state.clinicSlots[time];
+    const meta={
+      occupied:{label:'Занято', sub:'Визит подтверждён', cls:'border-slate-200 bg-slate-100 text-slate-600'},
+      pending:{label:'Новый запрос', sub:'Барсик ждёт решения', cls:'border-amber-200 bg-amber-50 text-amber-800'},
+      held:{label:'Время предложено', sub:'Ждём ответ владельца', cls:'border-violet-200 bg-violet-50 text-violet-800'},
+      open:{label:'Свободно', sub:'Видно новым пользователям', cls:'border-primary bg-mint text-primarydark'},
+      closed:{label:'Скрыто', sub:'Не показывается пользователям', cls:'border-line bg-white text-slate-600'}
+    };
+    return meta[value] || meta.closed;
+  }
+
+  function activeOpenSlots(){ return Object.entries(state.clinicSlots).filter(([,value])=>value==='open').map(([time])=>time); }
+
+  function bookingRequestCard(){
+    const b=state.booking;
+    const status=bookingStatus();
+    const isPending=b.status==='pending';
+    const isAlternative=b.status==='alternative';
+    const isConfirmed=b.status==='confirmed';
+    const alternativeSlots=activeOpenSlots().filter(time=>time!==b.requestedTime);
+    const proposedPanel=state.alternativeFor==='Барсик' && isPending ? `<div class="mt-3 rounded-2xl bg-slate-50 p-3"><p class="text-xs font-extrabold text-slate-700">Выберите время, которое предложите владельцу</p><p class="mt-1 text-[11px] leading-4 text-slate-500">После отправки исходное время освободится, а выбранное будет удержано до решения владельца.</p><div class="mt-3 flex flex-wrap gap-2">${alternativeSlots.map(time=>`<button data-action="clinic:propose:Барсик|${time}" class="tap rounded-xl border border-line bg-white px-3 py-2 text-xs font-extrabold text-ink">${time}</button>`).join('') || '<span class="text-xs text-slate-500">Нет свободных окон на сегодня.</span>'}</div></div>` : '';
+    const actionBlock=isConfirmed ? `<div class="mt-3 rounded-2xl bg-mint px-3 py-3 text-xs font-bold text-primarydark">✓ Запись подтверждена на ${b.confirmedTime}. Она уже находится в расписании.</div>` : isAlternative ? `<div class="mt-3 rounded-2xl bg-violet-50 px-3 py-3 text-xs leading-5 text-violet-900"><b>Предложено ${b.proposedTime}.</b> Владелец получил уведомление в ${state.channel}; удерживаем окно до его ответа.</div>` : `<div class="mt-3 flex flex-wrap items-center justify-between gap-3"><span class="text-xs font-extrabold text-danger">Ответьте в течение 12 минут</span><div class="flex gap-2"><button data-action="clinic:alternative:Барсик" class="tap rounded-xl border border-line bg-white px-2.5 py-2 text-[11px] font-extrabold">Предложить другое</button><button data-action="clinic:accept:Барсик|${b.requestedTime}" class="tap rounded-xl bg-ink px-2.5 py-2 text-[11px] font-extrabold text-white">Подтвердить ${b.requestedTime}</button></div></div>`;
+    return `<article class="request-card rounded-[22px] border ${isPending?'border-rose-200':'border-line'} bg-white p-4 shadow-card"><div class="flex items-start justify-between gap-3"><div class="flex min-w-0 items-center gap-3"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${isPending?'bg-rose-50':'bg-mint'} text-lg">🐈</span><div class="min-w-0"><h3 class="truncate text-sm font-extrabold">${b.pet} · ${b.kind}</h3><p class="mt-0.5 text-xs text-slate-500">${b.source} · ${b.receivedAt}</p></div></div><span class="shrink-0 rounded-full ${status.tone} px-2 py-1 text-[11px] font-bold">${status.label}</span></div><p class="mt-3 text-sm leading-5 text-slate-700">${b.description}</p>${actionBlock}${proposedPanel}</article>`;
+  }
+
+
+  const icon = (name, cls='h-5 w-5') => {
+    const set = {
+      home:`<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>`,
+      calendar:`<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>`,
+      paw:`<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 14c-3.3-4.2-6.8-3.3-7.7-.8-.8 2.2 1.4 4.1 3.6 4.3 1.8.1 2.9-.6 4.1-1.9 1.2 1.3 2.3 2 4.1 1.9 2.2-.2 4.4-2.1 3.6-4.3-.9-2.5-4.4-3.4-7.7.8Z"/><circle cx="6.5" cy="8" r="1.5"/><circle cx="10" cy="5.5" r="1.5"/><circle cx="14" cy="5.5" r="1.5"/><circle cx="17.5" cy="8" r="1.5"/></svg>`,
+      chat:`<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a8 8 0 0 1-8 8H6l-3 2 1-4.3A8 8 0 1 1 21 12Z"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg>`,
+      chevron:`<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>`,
+      clock:`<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg>`,
+      phone:`<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.4-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9Z"/></svg>`,
+      check:`<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>`,
+      video:`<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="12" height="12" rx="2"/><path d="m15 10 5-3v10l-5-3"/></svg>`,
+      map:`<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"/><path d="M9 3v15M15 6v15"/></svg>`,
+      inbox:`<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4h18v16H3z"/><path d="M3 14h5l2 3h4l2-3h5"/></svg>`,
+      signal:`<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20v-5M9 20v-9M14 20V7M19 20V3"/></svg>`,
+      plus:`<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>`,
+      bell:`<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>`,
+      shield:`<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 5 6v5c0 5 3.2 8.8 7 10.8 3.8-2 7-5.8 7-10.8V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg>`
+    };
+    return set[name] || '';
+  };
+
+  const card = (html, extra='') => `<article class="rounded-[24px] border border-line bg-white p-4 shadow-card ${extra}">${html}</article>`;
+  const button = (label, action, tone='primary', extra='') => {
+    const tones = {
+      primary:'bg-primary text-white shadow-card hover:bg-primarydark',
+      secondary:'border border-line bg-white text-ink hover:bg-slate-50',
+      danger:'bg-danger text-white hover:bg-rose-700',
+      soft:'bg-mint text-primarydark hover:bg-emerald-100'
+    };
+    return `<button data-action="${action}" class="tap touch inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-extrabold focus:outline-none focus:ring-4 focus:ring-primary/20 ${tones[tone]} ${extra}">${label}</button>`;
+  };
+  const title = (eyebrow, heading, text='') => `<section class="px-4 pt-5"><p class="text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">${eyebrow}</p><h1 class="mt-1 text-[28px] font-extrabold leading-[1.08] tracking-[-.04em]">${heading}</h1>${text?`<p class="mt-2 text-sm leading-6 text-slate-500">${text}</p>`:''}</section>`;
+
+  function renderGuestHome(){
+    return `<div class="mx-auto max-w-[560px] slide-in">${title('VetHelp','Помощь питомцу — без лишних звонков','Начните без регистрации. Выберите подходящий путь: срочно, онлайн-консультация, клиника или страховка.')}
+      <section class="space-y-3 px-4 pt-5">
+        <button data-action="guest:emergency" class="tap w-full rounded-[24px] border border-rose-200 bg-gradient-to-br from-rose-50 to-white p-4 text-left shadow-card"><div class="flex gap-3"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-rose-100 text-xl">⚠</span><span><b class="block text-[15px]">Нужна срочная помощь</b><small class="mt-1 block text-sm leading-5 text-slate-500">Питомцу плохо сейчас: покажем клиники и быстрый способ связаться.</small></span>${icon('chevron','ml-auto h-5 w-5 self-center text-rose-500')}</div></button>
+
+        <button data-action="guest:consult" class="tap w-full overflow-hidden rounded-[24px] border border-violet-200 bg-gradient-to-br from-violet-50 via-white to-mint p-4 text-left shadow-card"><div class="flex gap-3"><span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-violet-100 text-violet-700">${icon('video','h-6 w-6')}</span><span class="min-w-0 flex-1"><span class="flex items-center justify-between gap-2"><b class="text-[15px]">Ветеринар онлайн</b><span class="rounded-full bg-violet-100 px-2 py-1 text-[11px] font-extrabold text-violet-800">790 ₽</span></span><small class="mt-1 block text-sm leading-5 text-slate-600">Разберём симптомы, анализы или назначения. Подключение обычно через 8–12 минут.</small><span class="mt-3 inline-flex items-center gap-1 text-xs font-extrabold text-primary">Начать консультацию ${icon('chevron','h-4 w-4')}</span></span></div></button>
+
+        <div class="grid grid-cols-2 gap-3"><button data-action="guest:check" class="tap rounded-[22px] border border-line bg-white p-4 text-left shadow-card"><span class="grid h-10 w-10 place-items-center rounded-2xl bg-mint text-primary">♡</span><b class="mt-4 block text-sm">Проверить симптомы</b><small class="mt-1 block text-xs leading-4 text-slate-500">Несколько простых вопросов</small></button><button data-action="guest:service" class="tap rounded-[22px] border border-line bg-white p-4 text-left shadow-card"><span class="grid h-10 w-10 place-items-center rounded-2xl bg-sky-50 text-sky-700">${icon('calendar')}</span><b class="mt-4 block text-sm">Записаться в клинику</b><small class="mt-1 block text-xs leading-4 text-slate-500">Услуга, клиника и время</small></button></div>
+
+        <button data-action="guest:insurance" class="tap w-full rounded-[24px] border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-4 text-left shadow-card"><div class="flex gap-3"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-100 text-primary">${icon('shield','h-6 w-6')}</span><span class="min-w-0 flex-1"><b class="block text-[15px]">Страховка питомца</b><small class="mt-1 block text-sm leading-5 text-slate-600">Подберите полис или проверьте, покрывает ли текущий полис предстоящий визит.</small></span>${icon('chevron','ml-auto h-5 w-5 self-center text-primary')}</div></button>
+      </section>
+      <section class="px-4 pt-5">${card(`<div class="flex gap-3"><span class="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-primary">${icon('check')}</span><div><b class="text-sm">Без регистрации на старте</b><p class="mt-1 text-sm leading-5 text-slate-500">Телефон понадобится только для оплаты консультации, подтверждения записи или создания личного кабинета.</p></div></div>`)}</section>
+      <section class="px-4 pt-4"><p class="mb-2 text-xs font-bold text-slate-500">Доступно в привычных каналах</p><div class="flex flex-wrap gap-2"><span class="rounded-full border border-line bg-white px-3 py-1.5 text-xs font-bold">Сайт</span><span class="rounded-full border border-line bg-white px-3 py-1.5 text-xs font-bold">VK</span><span class="rounded-full border border-line bg-white px-3 py-1.5 text-xs font-bold">MAX</span><span class="rounded-full border border-line bg-white px-3 py-1.5 text-xs font-bold">Telegram</span><span class="rounded-full border border-line bg-white px-3 py-1.5 text-xs font-bold">WhatsApp</span></div></section>
+    </div>`;
+  }
+
+  function renderGuestCheck(){
+    return `<div class="mx-auto max-w-[560px] slide-in px-4 pt-5"><button data-action="guest:home" class="mb-4 text-sm font-bold text-slate-600">← Назад</button><p class="text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Шаг 1 из 3</p><div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-200"><div class="h-full w-1/3 rounded-full bg-primary"></div></div><h1 class="mt-5 text-[27px] font-extrabold tracking-[-.035em]">Расскажите о питомце</h1><p class="mt-2 text-sm leading-6 text-slate-500">Это займёт меньше минуты и поможет подобрать безопасный маршрут.</p><div class="mt-5 space-y-3"><label class="block text-sm font-bold">Кто ваш питомец?<select class="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3.5 text-sm font-medium outline-none"><option>Кот</option><option>Собака</option><option>Другое животное</option></select></label><label class="block text-sm font-bold">Возраст<input value="4 года" class="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3.5 text-sm font-medium outline-none"/></label><label class="block text-sm font-bold">Что вас беспокоит?<textarea class="mt-2 min-h-[112px] w-full rounded-2xl border border-line bg-white px-4 py-3.5 text-sm font-medium outline-none">Питомец стал вялым и хуже ест.</textarea></label>${button('Продолжить','guest:check2','primary','w-full')}</div></div>`;
+  }
+
+  function renderGuestCheck2(){
+    return `<div class="mx-auto max-w-[560px] slide-in px-4 pt-5"><button data-action="guest:check" class="mb-4 text-sm font-bold text-slate-600">← Назад</button><p class="text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Шаг 2 из 3</p><div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-200"><div class="h-full w-2/3 rounded-full bg-primary"></div></div><h1 class="mt-5 text-[27px] font-extrabold tracking-[-.035em]">Есть ли опасные признаки?</h1><p class="mt-2 text-sm leading-6 text-slate-500">Нам важно не задерживать очную помощь, когда она нужна прямо сейчас.</p><div class="mt-5 space-y-3"><button data-action="guest:emergency" class="tap w-full rounded-[22px] border border-rose-200 bg-rose-50 p-4 text-left"><b class="block">Да, есть тревожный признак</b><span class="mt-1 block text-sm leading-5 text-slate-600">Судороги, сильное кровотечение, потеря сознания, трудное дыхание или сильная боль.</span></button><button data-action="guest:results" class="tap w-full rounded-[22px] border border-line bg-white p-4 text-left shadow-card"><b class="block">Нет, состояние стабильное</b><span class="mt-1 block text-sm leading-5 text-slate-500">Нужна консультация или ближайшее свободное время.</span></button></div></div>`;
+  }
+
+  function clinicList(emergency=false){
+    return clinics.map((c,i)=>`<button data-action="guest:clinic:${i}" class="tap w-full rounded-[22px] border border-line bg-white p-4 text-left shadow-card"><div class="flex gap-3"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-mint text-xs font-black text-primary">${c.initials}</span><span class="min-w-0 flex-1"><span class="flex items-center justify-between gap-2"><b class="truncate text-sm">${c.name}</b><span class="rounded-full bg-mint px-2 py-1 text-[10px] font-extrabold text-primarydark">${c.hours}</span></span><small class="mt-1 block text-xs leading-5 text-slate-500">${c.address}</small><span class="mt-2 inline-flex items-center gap-1 rounded-full ${emergency?'bg-rose-50 text-rose-700':'bg-slate-100 text-slate-600'} px-2 py-1 text-[11px] font-bold">${icon('map','h-3 w-3')} ${emergency?'Открыть маршрут':'Посмотреть детали и время'}</span></span>${icon('chevron','h-5 w-5 shrink-0 self-center text-slate-400')}</div></button>`).join('');
+  }
+
+  function renderGuestEmergency(){
+    return `<div class="mx-auto max-w-[560px] slide-in px-4 pt-5"><button data-action="guest:home" class="mb-4 text-sm font-bold text-slate-600">← На главную</button><div class="rounded-[24px] border border-rose-200 bg-rose-50 p-4"><div class="flex gap-3"><span class="text-2xl">⚠</span><div><h1 class="text-xl font-extrabold">Нужен очный осмотр сейчас</h1><p class="mt-1 text-sm leading-5 text-rose-800">Не ждите ответа в сообщениях. Откройте карту, выберите клинику и постройте маршрут или позвоните напрямую.</p></div></div></div><div class="mt-5 flex items-center justify-between"><h2 class="text-lg font-extrabold">Клиники на карте</h2><button data-action="guest:map" class="tap text-xs font-extrabold text-primary">${icon('map','inline h-4 w-4')} Открыть карту</button></div><div class="mt-3 space-y-3">${clinicList(true)}</div><p class="mt-4 rounded-2xl bg-slate-100 px-3 py-3 text-xs leading-5 text-slate-600"><b>Важно:</b> точки и адреса реальные; расписание и доступность в этом прототипе демонстрационные.</p></div>`;
+  }
+
+  function renderGuestResults(){
+    return `<div class="mx-auto max-w-[560px] slide-in px-4 pt-5"><button data-action="guest:check2" class="mb-4 text-sm font-bold text-slate-600">← Назад</button><p class="text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Рекомендуемый шаг</p><h1 class="mt-1 text-[27px] font-extrabold tracking-[-.035em]">Запишитесь на осмотр сегодня</h1><p class="mt-2 text-sm leading-6 text-slate-500">По вашим ответам нет отмеченных опасных признаков, но лучше показать питомца врачу в ближайшее доступное время.</p>${button(icon('map','h-5 w-5')+' Посмотреть клиники на карте','guest:map','secondary','mt-5 w-full')}<div class="mt-4 space-y-3">${clinicList()}</div>${button(icon('video','h-5 w-5')+' Сначала спросить ветеринара онлайн','guest:consult','secondary','mt-4 w-full')}</div>`;
+  }
+
+  function renderGuestMap(){
+    return `<div class="mx-auto max-w-[720px] slide-in px-4 pt-5"><button data-action="guest:results" class="mb-4 text-sm font-bold text-slate-600">← К списку клиник</button><p class="text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Раменское</p><h1 class="mt-1 text-[27px] font-extrabold tracking-[-.035em]">Клиники на карте</h1><p class="mt-2 text-sm leading-6 text-slate-500">Нажмите на точку, чтобы увидеть адрес и построить маршрут. Масштаб и положение карты можно менять жестами.</p><div id="vetMap" class="vet-map mt-5 border border-line shadow-card" aria-label="Интерактивная карта ветеринарных клиник Раменского"></div><div id="mapDetails" class="mt-4">${mapDetailsCard()}</div><div class="mt-4 rounded-[20px] border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900"><b>Демо-карта:</b> названия, адреса и координаты — реальные. Доступные слоты, скорость ответа и возможность записаться через VetHelp в текущем прототипе не подтверждают фактическое партнёрство или интеграцию с клиниками.</div></div>`;
+  }
+
+  function renderGuestService(){
+    const services=['Вакцинация','Анализы','Стерилизация','Чекап','Стоматология','Повторный приём'];
+    return `<div class="mx-auto max-w-[560px] slide-in px-4 pt-5"><button data-action="guest:home" class="mb-4 text-sm font-bold text-slate-600">← Назад</button><p class="text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Плановая помощь</p><h1 class="mt-1 text-[27px] font-extrabold tracking-[-.035em]">На что записываемся?</h1><p class="mt-2 text-sm leading-6 text-slate-500">Выберите услугу — покажем доступные клиники и время.</p><div class="mt-5 grid grid-cols-2 gap-3">${services.map(s=>`<button data-action="guest:results" class="tap rounded-[22px] border border-line bg-white p-4 text-left shadow-card"><span class="mb-3 block text-xl">${s==='Вакцинация'?'💉':s==='Анализы'?'◌':s==='Стерилизация'?'✚':'♡'}</span><b class="text-sm">${s}</b></button>`).join('')}</div></div>`;
+  }
+
+  function renderGuestClinic(){
+    const c=clinics[state.selectedClinic];
+    return `<div class="mx-auto max-w-[560px] slide-in px-4 pt-5"><button data-action="guest:results" class="mb-4 text-sm font-bold text-slate-600">← К выбору клиники</button><div class="flex gap-3"><span class="grid h-14 w-14 shrink-0 place-items-center rounded-[20px] bg-mint text-sm font-black text-primary">${c.initials}</span><div class="min-w-0"><h1 class="text-2xl font-extrabold">${c.name}</h1><p class="mt-1 text-sm leading-5 text-slate-500">${c.address}</p><p class="mt-2 inline-flex rounded-full bg-mint px-2 py-1 text-xs font-bold text-primarydark">${c.hours}</p></div></div><div class="mt-5 rounded-[22px] bg-slate-100 p-4"><div class="flex items-center gap-2 text-sm font-extrabold text-ink">${icon('map','h-5 w-5 text-primary')} Адрес подтверждён открытыми источниками</div><p class="mt-1 text-sm leading-5 text-slate-600">Время и статус записи ниже — демонстрационные: VetHelp пока не подключён к этой клинике.</p><a href="${routeUrl(c)}" target="_blank" rel="noopener" class="tap mt-3 inline-flex touch items-center gap-2 rounded-xl border border-line bg-white px-3 py-2 text-xs font-extrabold text-ink">${icon('map','h-4 w-4')} Построить маршрут</a></div><h2 class="mt-6 text-lg font-extrabold">Демо: выберите время</h2><p class="mt-1 text-xs leading-5 text-slate-500">Проверяем пользовательский путь до запроса записи — не реальные свободные слоты клиники.</p><div class="mt-3 grid gap-2">${c.slots.map(slot=>`<button data-action="guest:slot:${slot}" aria-pressed="${state.selectedSlot===slot?'true':'false'}" class="tap flex items-center justify-between rounded-2xl border ${state.selectedSlot===slot?'border-primary bg-mint shadow-[0_0_0_3px_rgba(15,118,110,.14)]':'border-line bg-white'} px-4 py-3.5 text-left"><span class="text-sm font-bold">${slot}</span>${state.selectedSlot===slot?icon('check','h-5 w-5 text-primary'):''}</button>`).join('')}</div>${button('Продолжить по демо-сценарию','guest:booking','primary','mt-5 w-full')}<p class="mt-3 text-center text-xs leading-5 text-slate-500">В настоящем продукте этот шаг появится только после прямой интеграции или подтверждения клиникой.</p></div>`;
+  }
+
+  function renderGuestConsult(){
+    return `<div class="mx-auto max-w-[560px] slide-in px-4 pt-5"><button data-action="guest:home" class="mb-4 text-sm font-bold text-slate-600">← На главную</button><p class="text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Онлайн-консультация</p><h1 class="mt-1 text-[27px] font-extrabold tracking-[-.035em]">Ветеринар онлайн, когда нужен понятный следующий шаг</h1><p class="mt-2 text-sm leading-6 text-slate-500">Подходит для оценки состояния, разбора анализов, второго мнения и контроля после лечения. При тревожных признаках сразу направим к очной помощи.</p>${card(`<div class="flex items-start gap-3"><span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-violet-100 text-violet-700">${icon('video','h-6 w-6')}</span><div class="min-w-0 flex-1"><div class="flex items-center justify-between gap-3"><b class="text-sm">Ближайший ветеринар</b><b class="text-base">790 ₽</b></div><p class="mt-1 text-sm leading-5 text-slate-500">Подключение обычно через 8–12 минут. Чат и файлы — в защищённом кабинете на сайте VetHelp.</p></div></div>`,'mt-5')}<div class="mt-4 space-y-2">${card(`<div class="flex gap-3"><span class="text-lg">1</span><p class="text-sm text-slate-600"><b class="text-ink">Коротко опишите вопрос.</b> Можно приложить фото или результаты анализов.</p></div>`)}${card(`<div class="flex gap-3"><span class="text-lg">2</span><p class="text-sm text-slate-600"><b class="text-ink">Оплатите консультацию.</b> Затем откроется защищённый чат с ветеринаром.</p></div>`)}${card(`<div class="flex gap-3"><span class="text-lg">3</span><p class="text-sm text-slate-600"><b class="text-ink">Получите маршрут.</b> При необходимости врач предложит подходящую очную запись.</p></div>`)}</div>${button('Продолжить · 790 ₽','guest:consultCheckout','primary','mt-5 w-full')}<p class="mt-3 rounded-2xl bg-rose-50 px-3 py-3 text-xs leading-5 text-rose-800"><b>Важно:</b> при судорогах, потере сознания, затруднённом дыхании, сильном кровотечении или выраженной боли выберите «Нужна срочная помощь».</p></div>`;
+  }
+
+  function renderGuestConsultCheckout(){
+    return `<div class="mx-auto max-w-[560px] slide-in px-4 pt-5"><button data-action="guest:consult" class="mb-4 text-sm font-bold text-slate-600">← Назад</button><p class="text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Оформление консультации</p><h1 class="mt-1 text-[27px] font-extrabold tracking-[-.035em]">Подключим ветеринара онлайн</h1>${card(`<div class="flex items-center justify-between"><div><p class="text-xs font-bold text-slate-500">Консультация ветеринара</p><p class="mt-1 text-sm font-extrabold">Чат + возможность приложить файлы</p><p class="mt-1 text-xs text-slate-500">Ожидаемое подключение: ${state.consultation.eta}</p></div><b class="text-lg">${state.consultation.price} ₽</b></div>`,'mt-5')}<div class="mt-5 space-y-3"><label class="block text-sm font-bold">Номер телефона<input type="tel" placeholder="+7 900 000-00-00" class="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3.5 text-sm outline-none" /></label><label class="block text-sm font-bold">Опишите вопрос<textarea class="mt-2 min-h-[100px] w-full rounded-2xl border border-line bg-white px-4 py-3.5 text-sm outline-none" placeholder="Например: кот вялый, плохо ест с утра; приложу результаты анализов."></textarea></label></div>${button('Оплатить ${state.consultation.price} ₽ и начать','guest:consultConfirmed','primary','mt-5 w-full')}<p class="mt-3 text-center text-xs leading-5 text-slate-500">В прототипе оплата не списывается. В рабочем сервисе здесь будет безопасная платёжная форма.</p></div>`;
+  }
+
+  function renderGuestConsultConfirmed(){
+    return `<div class="mx-auto max-w-[560px] slide-in px-4 pt-10 text-center"><span class="mx-auto grid h-16 w-16 place-items-center rounded-[24px] bg-violet-100 text-violet-700">${icon('check','h-9 w-9')}</span><p class="mt-5 text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Консультация создана</p><h1 class="mt-1 text-[28px] font-extrabold tracking-[-.04em]">Ветеринар подключится в чате</h1><p class="mt-3 text-sm leading-6 text-slate-500">Ориентировочно через ${state.consultation.eta}. Мы отправим нейтральное уведомление в ${state.channel}; детали обращения доступны только в защищённом кабинете.</p>${card(`<p class="text-xs font-bold text-slate-500">Следующий шаг</p><p class="mt-1 text-sm font-extrabold">Откройте личный кабинет, чтобы продолжить чат и сохранить историю для питомца.</p>`,'mt-6 text-left')}${button('Открыть личный кабинет','owner:consult','primary','mt-5 w-full')}</div>`;
+  }
+
+  function renderGuestInsurance(){
+    return `<div class="mx-auto max-w-[560px] slide-in px-4 pt-5"><button data-action="guest:home" class="mb-4 text-sm font-bold text-slate-600">← На главную</button><p class="text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Страховка питомца</p><h1 class="mt-1 text-[27px] font-extrabold tracking-[-.035em]">Защитите непредвиденные расходы</h1><p class="mt-2 text-sm leading-6 text-slate-500">Здесь можно подобрать полис для питомца или заранее проверить покрытие перед визитом. Условия зависят от страховщика и выбранной программы.</p><div class="mt-5 space-y-3"><button data-action="guest:insuranceQuote" class="tap w-full rounded-[24px] border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-4 text-left shadow-card"><div class="flex gap-3"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-100 text-primary">${icon('shield')}</span><span class="flex-1"><b class="block text-[15px]">Подобрать полис</b><small class="mt-1 block text-sm leading-5 text-slate-600">Укажите питомца и нужный уровень защиты — покажем варианты партнёров.</small></span>${icon('chevron','h-5 w-5 self-center text-primary')}</div></button><button data-action="guest:insuranceCheck" class="tap w-full rounded-[24px] border border-line bg-white p-4 text-left shadow-card"><div class="flex gap-3"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sky-50 text-sky-700">${icon('check')}</span><span class="flex-1"><b class="block text-[15px]">Проверить действующий полис</b><small class="mt-1 block text-sm leading-5 text-slate-600">Поймёте, какие документы и услуги могут потребоваться для обращения.</small></span>${icon('chevron','h-5 w-5 self-center text-primary')}</div></button></div>${card(`<p class="text-sm leading-6 text-slate-600"><b class="text-ink">Важно:</b> страховой полис не заменяет экстренную помощь. При опасных признаках сначала выбирайте срочный маршрут.</p>`,'mt-5')}</div>`;
+  }
+
+  function renderGuestInsuranceQuote(){
+    return `<div class="mx-auto max-w-[560px] slide-in px-4 pt-5"><button data-action="guest:insurance" class="mb-4 text-sm font-bold text-slate-600">← Назад</button><p class="text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Подбор полиса</p><h1 class="mt-1 text-[27px] font-extrabold tracking-[-.035em]">Расскажите о питомце</h1><p class="mt-2 text-sm leading-6 text-slate-500">Соберём только данные, нужные для подбора. Финальные условия и цена будут показаны до оформления.</p><div class="mt-5 space-y-3"><label class="block text-sm font-bold">Вид питомца<select class="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3.5 text-sm outline-none"><option>Кот</option><option>Собака</option><option>Другое животное</option></select></label><label class="block text-sm font-bold">Возраст<input value="4 года" class="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3.5 text-sm outline-none" /></label><label class="block text-sm font-bold">Что важно защитить<select class="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3.5 text-sm outline-none"><option>Непредвиденное лечение</option><option>Плановые услуги</option><option>Максимально широкое покрытие</option></select></label></div>${button('Показать варианты','guest:insuranceQuoteResult','primary','mt-5 w-full')}</div>`;
+  }
+
+  function renderGuestInsuranceQuoteResult(){
+    return `<div class="mx-auto max-w-[560px] slide-in px-4 pt-5"><button data-action="guest:insuranceQuote" class="mb-4 text-sm font-bold text-slate-600">← Изменить данные</button><p class="text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Предварительный подбор</p><h1 class="mt-1 text-[27px] font-extrabold tracking-[-.035em]">Варианты страховой защиты</h1><p class="mt-2 text-sm leading-6 text-slate-500">Это демонстрационный экран: конкретные предложения, цена, исключения и условия будут поступать от подключённых страховых партнёров.</p><div class="mt-5 space-y-3">${card(`<div class="flex items-start justify-between gap-3"><div><b class="text-sm">Базовая защита</b><p class="mt-1 text-xs leading-5 text-slate-500">Неотложные обращения и диагностика — перечень зависит от партнёра.</p></div><span class="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600">Демо</span></div>${button('Оставить заявку на полис','guest:insuranceLead','secondary','mt-4 w-full')}`)}${card(`<div class="flex items-start justify-between gap-3"><div><b class="text-sm">Расширенная защита</b><p class="mt-1 text-xs leading-5 text-slate-500">Больше сценариев лечения и сервисное сопровождение — условия уточняются при оформлении.</p></div><span class="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600">Демо</span></div>${button('Оставить заявку на полис','guest:insuranceLead','secondary','mt-4 w-full')}`)}</div></div>`;
+  }
+
+  function renderGuestInsuranceCheck(){
+    return `<div class="mx-auto max-w-[560px] slide-in px-4 pt-5"><button data-action="guest:insurance" class="mb-4 text-sm font-bold text-slate-600">← Назад</button><p class="text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Проверка покрытия</p><h1 class="mt-1 text-[27px] font-extrabold tracking-[-.035em]">Проверим полис перед визитом</h1><p class="mt-2 text-sm leading-6 text-slate-500">В рабочем сервисе можно будет подтянуть полис через партнёра или загрузить документ. Сейчас это демонстрация процесса.</p><div class="mt-5 space-y-3"><label class="block text-sm font-bold">Номер полиса<input placeholder="Например, PET-000000" class="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3.5 text-sm outline-none" /></label><label class="block text-sm font-bold">Что планируется<select class="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3.5 text-sm outline-none"><option>Очный приём</option><option>Онлайн-консультация</option><option>Диагностика / анализы</option><option>Лечение</option></select></label></div>${button('Проверить покрытие','guest:insuranceCheckResult','primary','mt-5 w-full')}</div>`;
+  }
+
+  function renderGuestInsuranceCheckResult(){
+    return `<div class="mx-auto max-w-[560px] slide-in px-4 pt-10 text-center"><span class="mx-auto grid h-16 w-16 place-items-center rounded-[24px] bg-emerald-100 text-primary">${icon('shield','h-9 w-9')}</span><p class="mt-5 text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Демо-проверка</p><h1 class="mt-1 text-[28px] font-extrabold tracking-[-.04em]">Нужна связь со страховщиком</h1><p class="mt-3 text-sm leading-6 text-slate-500">В реальном продукте здесь будет статус покрытия, список документов, возможная сумма сооплаты и дальнейшие шаги. В прототипе запрос не уходит в страховую.</p>${button('Вернуться к страховке','guest:insurance','primary','mt-6 w-full')}</div>`;
+  }
+
+  function renderGuestBooking(){
+    const c=clinics[state.selectedClinic];
+    return `<div class="mx-auto max-w-[560px] slide-in px-4 pt-5"><button data-action="guest:clinic:${state.selectedClinic}" class="mb-4 text-sm font-bold text-slate-600">← Назад</button><p class="text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Почти готово</p><h1 class="mt-1 text-[27px] font-extrabold tracking-[-.035em]">Куда прислать подтверждение?</h1><p class="mt-2 text-sm leading-6 text-slate-500">Создадим личный кабинет и сохраним запись — вы сможете вернуться к ней с любого устройства.</p>${card(`<div class="flex items-center justify-between"><div><p class="text-xs font-bold text-slate-500">Вы выбрали</p><p class="mt-1 text-sm font-extrabold">${c.name}</p><p class="mt-1 text-sm text-slate-500">${state.selectedSlot}</p></div>${icon('calendar','h-7 w-7 text-primary')}</div>`,'mt-5')}<div class="mt-5 space-y-4"><label class="block text-sm font-bold">Номер телефона<input type="tel" placeholder="+7 900 000-00-00" class="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3.5 text-sm outline-none"/></label><div><p class="text-sm font-bold">Канал для уведомлений</p><div class="mt-2 grid grid-cols-2 gap-2">${['MAX','VK','Telegram','WhatsApp'].map(ch=>`<button data-action="guest:channel:${ch}" class="tap rounded-2xl border ${state.channel===ch?'border-primary bg-mint text-primarydark':'border-line bg-white text-slate-600'} px-3 py-3 text-sm font-bold">${ch}</button>`).join('')}</div></div></div>${button('Подтвердить и создать кабинет','guest:confirmed','primary','mt-5 w-full')}<p class="mt-3 text-center text-xs leading-5 text-slate-500">Продолжая, вы соглашаетесь на обработку данных для оформления обращения.</p></div>`;
+  }
+
+  function renderGuestConfirmed(){
+    const c=clinics[state.selectedClinic];
+    return `<div class="mx-auto max-w-[560px] slide-in px-4 pt-10 text-center"><div class="mx-auto grid h-16 w-16 place-items-center rounded-[24px] bg-mint text-primary">${icon('check','h-9 w-9')}</div><p class="mt-5 text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Запись создана</p><h1 class="mt-1 text-[28px] font-extrabold tracking-[-.04em]">Осталось дождаться подтверждения</h1><p class="mt-3 text-sm leading-6 text-slate-500">${c.name} получит заявку и подтвердит ${state.selectedSlot.toLowerCase()} или предложит другой вариант.</p>${card(`<p class="text-xs font-bold text-slate-500">Уведомление придёт в ${state.channel}</p><p class="mt-1 text-sm font-extrabold">Номер и личный кабинет созданы</p><p class="mt-2 text-sm text-slate-500">В личном кабинете будет история обращения, запись и карточка питомца.</p>`,'mt-6 text-left')}${button('Открыть личный кабинет','owner:home','primary','mt-5 w-full')}</div>`;
+  }
+
+  function renderOwnerHome(){
+    const b=state.booking, status=bookingStatus();
+    const primaryTitle=b.status==='confirmed' ? 'Запись подтверждена' : b.status==='alternative' ? 'Клиника предложила другое время' : 'Ждём подтверждения клиники';
+    const primaryBody=b.status==='confirmed' ? `Сегодня · ${b.confirmedTime} · ВетПлюс` : b.status==='alternative' ? `Новое время: сегодня · ${b.proposedTime}` : `Запрос на сегодня · ${b.requestedTime}`;
+    const action=b.status==='alternative' ? button(`Подтвердить ${b.proposedTime}`,'owner:acceptAlternative','primary','mt-4') : button('Открыть запись','owner:appointment','secondary','mt-4 bg-white text-primary border-0');
+    return `<div class="mx-auto max-w-[560px] slide-in">${title('Добрый день, Евгений','Как Барсик сегодня?','Записи, консультации, страховка и история питомца — в одном месте.')}<section class="px-4 pt-5"><div class="rounded-[26px] bg-gradient-to-br from-primary to-primarydark p-5 text-white shadow-soft"><div class="flex items-start justify-between gap-3"><div><p class="text-xs font-bold text-white/70">${primaryTitle}</p><h2 class="mt-1 text-[22px] font-extrabold">${primaryBody}</h2><p class="mt-1 text-sm text-white/80">${status.note}</p></div><span class="grid h-11 w-11 place-items-center rounded-2xl bg-white/15">${icon('calendar','h-6 w-6')}</span></div>${action}</div>
+      <button data-action="owner:consult" class="tap mt-5 w-full rounded-[24px] border border-violet-200 bg-gradient-to-br from-violet-50 via-white to-mint p-4 text-left shadow-card"><div class="flex gap-3"><span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-violet-100 text-violet-700">${icon('video','h-6 w-6')}</span><span class="flex-1"><span class="flex items-center justify-between gap-2"><b class="text-[15px]">Ветеринар онлайн</b><span class="rounded-full bg-violet-100 px-2 py-1 text-[11px] font-extrabold text-violet-800">790 ₽</span></span><small class="mt-1 block text-sm leading-5 text-slate-600">Если нужны разъяснения до визита или после него — подключим ветеринара обычно за 8–12 минут.</small></span>${icon('chevron','h-5 w-5 self-center text-primary')}</div></button>
+      <div class="mt-3 grid grid-cols-2 gap-3"><button data-action="owner:book" class="tap rounded-[22px] border border-line bg-white p-4 text-left shadow-card"><span class="grid h-10 w-10 place-items-center rounded-2xl bg-mint text-primary">${icon('calendar')}</span><b class="mt-4 block text-sm">Записаться</b><small class="mt-1 block text-xs leading-4 text-slate-500">Клиника, услуга и время</small></button><button data-action="owner:insurance" class="tap rounded-[22px] border border-emerald-200 bg-emerald-50 p-4 text-left shadow-card"><span class="grid h-10 w-10 place-items-center rounded-2xl bg-emerald-100 text-primary">${icon('shield')}</span><b class="mt-4 block text-sm">Страховка</b><small class="mt-1 block text-xs leading-4 text-slate-600">Полис и покрытие визита</small></button></div>
+      <h2 class="mt-6 text-lg font-extrabold">Питомцы</h2>${card(`<div class="flex items-center gap-3"><span class="grid h-12 w-12 place-items-center rounded-2xl bg-amber-100 text-xl">🐈</span><div class="flex-1"><b class="text-sm">Барсик</b><p class="mt-1 text-xs text-slate-500">Кот · 4 года · 5,7 кг</p></div><button data-action="owner:pet" class="text-xs font-bold text-primary">Карточка</button></div>`,'mt-3')}<h2 class="mt-6 text-lg font-extrabold">Напоминания</h2>${card(`<div class="flex gap-3"><span class="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-sky-50 text-sky-700">${icon('bell')}</span><div><b class="text-sm">Вакцинация через 18 дней</b><p class="mt-1 text-xs leading-5 text-slate-500">Можно сразу выбрать удобную дату в ближайшей клинике.</p></div></div>`,'mt-3')}</section></div>`;
+  }
+
+  function renderOwnerAppointment(){
+    const b=state.booking, status=bookingStatus();
+    const headline=b.status==='confirmed' ? `Сегодня · ${b.confirmedTime}` : b.status==='alternative' ? `Новое время: сегодня · ${b.proposedTime}` : `Запрос на сегодня · ${b.requestedTime}`;
+    const action=b.status==='alternative' ? `<div class="mt-4 grid grid-cols-2 gap-3">${button(`Подтвердить ${b.proposedTime}`,'owner:acceptAlternative','primary','w-full')}${button('Связаться с клиникой','toast:В полной версии откроется чат с клиникой','secondary','w-full')}</div>` : b.status==='pending' ? `${card(`<div class="flex gap-3"><span class="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-amber-100">${icon('clock','h-5 w-5 text-amber-800')}</span><div><b class="text-sm">Клиника проверяет доступность</b><p class="mt-1 text-xs leading-5 text-slate-500">Мы сообщим в ${state.channel}, когда время подтвердят или предложат альтернативу.</p></div></div>`,'mt-4')}` : `<div class="mt-4 grid grid-cols-2 gap-3">${button('Построить маршрут','toast:В полной версии откроется маршрут в картах','secondary','w-full')}${button('Перенести','toast:В полной версии откроется выбор другого слота','secondary','w-full')}</div>`;
+    return `<div class="mx-auto max-w-[560px] slide-in px-4 pt-5"><button data-action="owner:home" class="mb-4 text-sm font-bold text-slate-600">← Назад</button><p class="text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Запись № ${b.id}</p><h1 class="mt-1 text-[27px] font-extrabold tracking-[-.035em]">${headline}</h1>${card(`<div class="flex gap-3"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-mint text-primary">ВП</span><div><b class="text-sm">ВетПлюс</b><p class="mt-1 text-sm text-slate-500">Раменское · 1,2 км</p><p class="mt-2 inline-flex rounded-full ${status.tone} px-2 py-1 text-xs font-bold">${status.label}</p></div></div>`,'mt-5')}${action}${card(`<div class="flex gap-3"><span class="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-amber-100">🐈</span><div><b class="text-sm">Барсик</b><p class="mt-1 text-xs leading-5 text-slate-500">Причина обращения: вялость и снижение аппетита.</p></div></div>`,'mt-5')}</div>`;
+  }
+
+  function renderOwnerPet(){ return `<div class="mx-auto max-w-[560px] slide-in px-4 pt-5"><button data-action="owner:home" class="mb-4 text-sm font-bold text-slate-600">← Назад</button><div class="flex items-center gap-4"><span class="grid h-16 w-16 place-items-center rounded-[24px] bg-amber-100 text-3xl">🐈</span><div><p class="text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Карточка питомца</p><h1 class="mt-1 text-[28px] font-extrabold">Барсик</h1><p class="mt-1 text-sm text-slate-500">Кот · 4 года · 5,7 кг</p></div></div><div class="mt-6 grid grid-cols-2 gap-3">${card('<p class="text-xs font-bold text-slate-500">Аллергии</p><p class="mt-1 text-sm font-extrabold">Не указаны</p>')}${card('<p class="text-xs font-bold text-slate-500">Последняя вакцинация</p><p class="mt-1 text-sm font-extrabold">12.07.2025</p>')}</div><h2 class="mt-6 text-lg font-extrabold">История</h2><div class="mt-3 space-y-3">${card('<p class="text-xs font-bold text-slate-500">Сегодня</p><p class="mt-1 text-sm font-extrabold">Запись в ВетПлюс</p><p class="mt-1 text-xs text-slate-500">Статус записи синхронизируется с клиникой</p>')}${card('<p class="text-xs font-bold text-slate-500">03.05.2026</p><p class="mt-1 text-sm font-extrabold">Профилактический чекап</p><p class="mt-1 text-xs text-slate-500">ВетПлюс · рекомендации сохранены</p>')}</div></div>`; }
+  function renderOwnerConsult(){
+    const done=state.consultation.status==='requested';
+    return `<div class="mx-auto max-w-[560px] slide-in px-4 pt-5"><button data-action="owner:home" class="mb-4 text-sm font-bold text-slate-600">← Назад</button><p class="text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Онлайн-консультация</p><h1 class="mt-1 text-[27px] font-extrabold tracking-[-.035em]">Спросить ветеринара</h1><p class="mt-2 text-sm leading-6 text-slate-500">Опишите вопрос — ветеринар ответит в защищённом чате VetHelp и при необходимости предложит очную запись.</p>${card(`<div class="flex gap-3"><span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-violet-100 text-violet-700">${icon('video','h-6 w-6')}</span><div class="flex-1"><div class="flex items-center justify-between gap-3"><b class="text-sm">Подключение через ${state.consultation.eta}</b><b class="text-base">${state.consultation.price} ₽</b></div><p class="mt-1 text-xs leading-5 text-slate-500">Можно приложить фото и результаты анализов. Экстренные случаи не ведём в чате.</p></div></div>`,'mt-5')}${done ? card(`<div class="flex gap-3"><span class="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-mint text-primary">${icon('check')}</span><div><b class="text-sm">Консультация ожидает подключения</b><p class="mt-1 text-xs leading-5 text-slate-500">Уведомление придёт в ${state.channel}; чат откроется в личном кабинете.</p></div></div>`,'mt-4') : button('Оплатить и начать · '+state.consultation.price+' ₽','owner:consultConfirmed','primary','mt-4 w-full')}</div>`;
+  }
+
+  function renderOwnerInsurance(){
+    return `<div class="mx-auto max-w-[560px] slide-in px-4 pt-5"><button data-action="owner:home" class="mb-4 text-sm font-bold text-slate-600">← Назад</button><p class="text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Страховка Барсика</p><h1 class="mt-1 text-[27px] font-extrabold tracking-[-.035em]">Страховая защита питомца</h1>${card(`<div class="flex items-start gap-3"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-100 text-primary">${icon('shield')}</span><div><b class="text-sm">Полис пока не подключён</b><p class="mt-1 text-xs leading-5 text-slate-500">Можно подобрать программу или добавить действующий полис для проверки покрытия перед визитами.</p></div></div>`,'mt-5')}<div class="mt-4 space-y-3">${button('Подобрать полис','owner:insuranceQuote','primary','w-full')}${button('Добавить действующий полис','owner:insuranceCheck','secondary','w-full')}</div><p class="mt-4 rounded-2xl bg-slate-100 px-3 py-3 text-xs leading-5 text-slate-600">Финальные условия, исключения, лимиты и цена показываются в предложении страховой компании до оформления.</p></div>`;
+  }
+
+  function renderOwnerInsuranceQuote(){
+    return `<div class="mx-auto max-w-[560px] slide-in px-4 pt-5"><button data-action="owner:insurance" class="mb-4 text-sm font-bold text-slate-600">← Назад</button><p class="text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Подбор полиса</p><h1 class="mt-1 text-[27px] font-extrabold tracking-[-.035em]">Предложения для Барсика</h1><p class="mt-2 text-sm leading-6 text-slate-500">В демо нет цен и реальных страховщиков. В рабочем сервисе здесь будут актуальные предложения подключённых партнёров.</p><div class="mt-5 space-y-3">${card(`<b class="text-sm">Базовая защита</b><p class="mt-1 text-xs leading-5 text-slate-500">Для непредвиденных обращений — покрытие определяется условиями выбранной программы.</p>${button('Оставить заявку','owner:insuranceLead','secondary','mt-4 w-full')}`)}${card(`<b class="text-sm">Расширенная защита</b><p class="mt-1 text-xs leading-5 text-slate-500">Более широкий набор сценариев, диагностики и лечения — по условиям страхового партнёра.</p>${button('Оставить заявку','owner:insuranceLead','secondary','mt-4 w-full')}`)}</div></div>`;
+  }
+
+  function renderOwnerInsuranceCheck(){
+    return `<div class="mx-auto max-w-[560px] slide-in px-4 pt-5"><button data-action="owner:insurance" class="mb-4 text-sm font-bold text-slate-600">← Назад</button><p class="text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Действующий полис</p><h1 class="mt-1 text-[27px] font-extrabold tracking-[-.035em]">Добавьте данные полиса</h1><p class="mt-2 text-sm leading-6 text-slate-500">Проверим, какие услуги и документы могут потребоваться. В прототипе информация не отправляется страховщику.</p><label class="mt-5 block text-sm font-bold">Номер полиса<input placeholder="PET-000000" class="mt-2 w-full rounded-2xl border border-line bg-white px-4 py-3.5 text-sm outline-none" /></label>${button('Проверить полис','owner:insuranceCheckResult','primary','mt-5 w-full')}</div>`;
+  }
+
+  function renderOwnerInsuranceCheckResult(){
+    return `<div class="mx-auto max-w-[560px] slide-in px-4 pt-10 text-center"><span class="mx-auto grid h-16 w-16 place-items-center rounded-[24px] bg-emerald-100 text-primary">${icon('shield','h-9 w-9')}</span><p class="mt-5 text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Демо-проверка</p><h1 class="mt-1 text-[28px] font-extrabold tracking-[-.04em]">Полис добавится после связи с партнёром</h1><p class="mt-3 text-sm leading-6 text-slate-500">Реальная интеграция вернёт статус покрытия и инструкции по обращению. В этом прототипе данные не обрабатываются.</p>${button('К страховке','owner:insurance','primary','mt-6 w-full')}</div>`;
+  }
+
+  function staticRequestCard(pet, kind, description, source, age, time, type='plan'){
+    const chat=type==='chat';
+    return `<article class="rounded-[22px] border border-line bg-white p-4 shadow-card"><div class="flex items-start justify-between gap-3"><div class="flex min-w-0 items-center gap-3"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${chat?'bg-violet-50':'bg-mint'} text-lg">${pet==='Боня'?'🐕':'🐈'}</span><div class="min-w-0"><h3 class="truncate text-sm font-extrabold">${pet} · ${kind}</h3><p class="mt-0.5 text-xs text-slate-500">${source} · ${age}</p></div></div><span class="shrink-0 rounded-full ${chat?'bg-violet-50 text-violet-800':'bg-mint text-primarydark'} px-2 py-1 text-[11px] font-bold">${chat?'Онлайн':'Плановая'}</span></div><p class="mt-3 text-sm leading-5 text-slate-700">${description}</p><div class="mt-3 flex items-center justify-between gap-3"><span class="text-xs font-bold text-slate-500">${chat?'Ответ в чате':'Свободное время: '+time}</span><button data-action="toast:${chat?'Откроется чат с владельцем':'Запись подтверждена на '+time}" class="tap rounded-xl bg-ink px-2.5 py-2 text-[11px] font-extrabold text-white">${chat?'Открыть чат':'Подтвердить '+time}</button></div></article>`;
+  }
+
+  function renderAvailabilityGrid(){
+    return ['14:30','16:00','18:30','20:00'].map(time=>{
+      const stateMeta=slotState(time), value=state.clinicSlots[time], editable=value==='open'||value==='closed';
+      const root=editable ? 'button data-action="clinic:availability:'+time+'"' : 'div';
+      const close=editable ? 'button' : 'div';
+      const action=editable ? (value==='open'?'Закрыть':'Открыть') : stateMeta.label;
+      return `<${root} class="tap rounded-2xl border p-3 text-left ${stateMeta.cls} ${editable?'cursor-pointer':''}"><span class="block text-sm font-extrabold">${time}</span><span class="mt-1 block text-[11px] font-bold leading-4">${stateMeta.sub}</span><span class="mt-2 inline-flex rounded-lg bg-white/65 px-2 py-1 text-[10px] font-extrabold">${action}</span></${close}>`;
+    }).join('');
+  }
+
+  function renderClinicHome(){
+    const b=state.booking;
+    const openCount=activeOpenSlots().length;
+    const pending=b.status==='pending';
+    const nextAction=pending ? `Подтвердите ${b.requestedTime} для Барсика` : b.status==='alternative' ? `Ждём ответ Барсика на ${b.proposedTime}` : `Запись Барсика подтверждена`;
+    const nextText=pending ? 'Если время не подходит, предложите одно из свободных окон. Пользователь получит уведомление сразу.' : b.status==='alternative' ? 'Окно удержано и не показывается другим владельцам до решения пользователя.' : 'Приём уже добавлен в расписание клиники.';
+    return `<div class="slide-in px-4 pt-5 md:px-6"><section class="grid gap-4 md:grid-cols-[1.45fr_.9fr]"><article class="relative overflow-hidden rounded-[26px] bg-ink p-5 text-white shadow-soft md:p-6"><div class="absolute -right-16 -top-20 h-52 w-52 rounded-full bg-primary/40 blur-2xl"></div><div class="relative flex flex-wrap items-start justify-between gap-4"><div><p class="text-xs font-bold text-white/60">Понедельник, 22 июня</p><h1 class="mt-2 text-2xl font-extrabold tracking-tight md:text-3xl">Смена под контролем</h1><p class="mt-2 max-w-md text-sm leading-6 text-white/70">${pending?'Есть новая заявка: Барсик ждёт решения по времени.':'Статус Барсика синхронизирован с личным кабинетом владельца.'}</p></div>${button(icon('plus','h-5 w-5')+' Расписание','clinic:schedule','secondary','bg-white text-ink border-0')}</div><div class="relative mt-5 grid grid-cols-3 divide-x divide-white/10 rounded-2xl border border-white/10 bg-white/[.06]"><div class="px-3 py-3"><p class="text-xl font-bold">${pending?3:2}</p><p class="mt-1 text-[11px] text-white/55">новых обращений</p></div><div class="px-3 py-3"><p class="text-xl font-bold">6 мин</p><p class="mt-1 text-[11px] text-white/55">средний ответ</p></div><div class="px-3 py-3"><p class="text-xl font-bold">91%</p><p class="mt-1 text-[11px] text-white/55">ответов ≤15 мин</p></div></div></article><article class="rounded-[26px] border border-line bg-white p-5 shadow-card"><div class="flex items-start justify-between gap-3"><div><p class="text-xs font-bold uppercase tracking-[.14em] text-muted">Доступность для новых обращений</p><h2 class="mt-1 text-lg font-extrabold">Сегодня</h2><p class="mt-1 text-xs leading-4 text-slate-500">Свободные окна видят владельцы. Удержанные и занятые менять нельзя.</p></div><span class="shrink-0 rounded-full bg-mint px-2.5 py-1 text-xs font-bold text-primarydark">${openCount} свободных</span></div><div class="mt-4 grid grid-cols-2 gap-2">${renderAvailabilityGrid()}</div><div class="mt-3 rounded-2xl bg-slate-50 px-3 py-3 text-xs leading-5 text-slate-600"><b class="text-ink">Легенда:</b> «Свободно» — доступно для выбора; «Скрыто» — не публикуется; «Новый запрос» и «Время предложено» — временно зарезервированы.</div>${button('Открыть полное расписание','clinic:schedule','secondary','mt-4 w-full')}</article></section><section class="mt-6"><div class="flex items-end justify-between gap-4"><div><p class="text-xs font-bold uppercase tracking-[.14em] text-muted">Входящий поток</p><h2 class="mt-1 text-xl font-extrabold">Новые обращения</h2></div><button data-action="clinic:requests" class="text-xs font-bold text-primary">Все заявки</button></div><div class="mt-4 grid gap-3 lg:grid-cols-3">${bookingRequestCard()}${staticRequestCard('Боня','собака, 7 лет','Вакцинация. Пользователь готов прийти завтра утром.','MAX','9 мин назад','10:00')}${staticRequestCard('Молли','кошка, 2 года','Нужна консультация по анализам. Прикреплены два файла.','Сайт','12 мин назад','', 'chat')}</div></section><section class="mt-6 grid gap-4 md:grid-cols-[1.1fr_.9fr]"><article class="rounded-[26px] border border-line bg-white p-5 shadow-card"><div class="flex items-start justify-between gap-3"><div><p class="text-xs font-bold uppercase tracking-[.14em] text-muted">Операционная дисциплина</p><h2 class="mt-1 text-lg font-extrabold">Реакция на новые обращения</h2></div><span class="rounded-full bg-mint px-2.5 py-1 text-xs font-bold text-primarydark">цель ≥85%</span></div><div class="mt-5 grid grid-cols-3 gap-2"><div class="rounded-2xl bg-mint p-3"><p class="text-xl font-extrabold text-primarydark">91%</p><p class="mt-1 text-[11px] font-bold leading-4 text-slate-600">ответов<br>≤15 мин</p></div><div class="rounded-2xl bg-slate-50 p-3"><p class="text-xl font-extrabold">6 мин</p><p class="mt-1 text-[11px] font-bold leading-4 text-slate-600">среднее время<br>первого ответа</p></div><div class="rounded-2xl bg-amber-50 p-3"><p class="text-xl font-extrabold text-amber-800">${pending?1:0}</p><p class="mt-1 text-[11px] font-bold leading-4 text-slate-600">заявок ждут<br>решения</p></div></div><p class="mt-4 text-sm leading-6 text-muted">Это внутренние операционные показатели: помогают команде вовремя отвечать владельцам. Ранжирование и рекламные позиции здесь не используются.</p></article><article class="rounded-[26px] border border-line bg-white p-5 shadow-card"><p class="text-xs font-bold uppercase tracking-[.14em] text-muted">Следующее действие</p><h2 class="mt-1 text-lg font-extrabold">${nextAction}</h2><p class="mt-2 text-sm leading-6 text-muted">${nextText}</p>${button(pending?'Открыть заявку Барсика':'Открыть расписание',pending?'clinic:requests':'clinic:schedule','primary','mt-4')}</article></section></div>`;
+  }
+
+  function renderClinicRequests(){
+    const b=state.booking;
+    const titleCopy=b.status==='pending'?'Новые заявки':b.status==='alternative'?'Ожидаем ответ владельца':'Подтверждённые записи';
+    const textCopy=b.status==='pending'?'Подтвердите время или предложите альтернативу. Срок ответа относится к заявке, а не к времени приёма.':b.status==='alternative'?'Клиника уже предложила другое время. До ответа владельца это окно удерживается.':'Заявка Барсика подтверждена и перемещена в расписание.';
+    return `<div class="mx-auto max-w-6xl slide-in px-4 pt-5 md:px-6"><button data-action="clinic:home" class="mb-4 text-sm font-bold text-slate-600">← Назад</button><p class="text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Входящий поток</p><h1 class="mt-1 text-[28px] font-extrabold tracking-[-.04em]">${titleCopy}</h1><p class="mt-2 max-w-xl text-sm leading-6 text-slate-500">${textCopy}</p><div class="mt-5 grid gap-3 lg:grid-cols-3">${bookingRequestCard()}${staticRequestCard('Боня','собака, 7 лет','Вакцинация. Пользователь готов прийти завтра утром.','MAX','9 мин назад','10:00')}${staticRequestCard('Марс','кот, 2 года','Повторный осмотр после лечения.','Сайт','19 мин назад','12:00')}</div></div>`;
+  }
+
+  function renderClinicSchedule(){
+    const slots=['10:00','12:00','14:30','16:00','18:30','20:00'];
+    const b=state.booking;
+    const fixed={
+      '10:00':'Вакцинация · Боня',
+      '12:00':'Повторный осмотр · Марс',
+      '14:30':'Приём · занят',
+      '16:00':state.clinicSlots['16:00']==='occupied'?'Первичный приём · Барсик':state.clinicSlots['16:00']==='pending'?'Запрос Барсика · ждёт решения':'Свободное окно',
+      '18:30':state.clinicSlots['18:30']==='occupied'?'Первичный приём · Барсик':state.clinicSlots['18:30']==='held'?'Предложено Барсику · ждём ответ':'Свободное окно',
+      '20:00':'Свободное окно'
+    };
+    return `<div class="mx-auto max-w-3xl slide-in px-4 pt-5"><button data-action="clinic:home" class="mb-4 text-sm font-bold text-slate-600">← Назад</button><p class="text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Расписание</p><h1 class="mt-1 text-[28px] font-extrabold tracking-[-.04em]">Сегодня · 22 июня</h1><p class="mt-2 text-sm leading-6 text-slate-500">Управляйте только свободными окнами. Занятые и удержанные слоты защищены от случайного изменения.</p><div class="mt-5 space-y-3">${slots.map(time=>{const value=state.clinicSlots[time] || 'occupied';const meta=slotState(time);const editable=value==='open'||value==='closed';return card(`<div class="flex items-center gap-3"><span class="w-11 text-xs font-extrabold text-primary">${time}</span><div class="h-9 w-px bg-line"></div><div class="min-w-0 flex-1"><p class="text-sm font-extrabold">${fixed[time]}</p><p class="mt-1 text-xs text-slate-500">${meta.label} · ${meta.sub}</p></div>${editable?`<button data-action="clinic:availability:${time}" class="tap rounded-xl ${value==='open'?'bg-mint text-primarydark':'border border-line bg-white text-slate-700'} px-3 py-2 text-xs font-extrabold">${value==='open'?'Скрыть':'Открыть'}</button>`:''}</div>`)}).join('')}</div>${button(icon('plus','h-5 w-5')+' Добавить слот на завтра','clinic:tomorrow','primary','mt-5 w-full')}</div>`;
+  }
+
+  function renderClinicAnalytics(){ return `<div class="mx-auto max-w-3xl slide-in px-4 pt-5"><p class="text-[11px] font-extrabold uppercase tracking-[.16em] text-primary">Результат за 7 дней</p><h1 class="mt-1 text-[28px] font-extrabold tracking-[-.04em]">Воронка VetHelp</h1><div class="mt-5 grid grid-cols-2 gap-3">${[['14','Новых обращений'],['12','Подтверждённых'],['9','Дошедших'],['6 мин','Средний ответ']].map(x=>card(`<p class="text-2xl font-extrabold">${x[0]}</p><p class="mt-1 text-xs font-bold text-slate-500">${x[1]}</p>`)).join('')}</div>${card(`<h2 class="text-sm font-extrabold">Как читать показатели</h2><ul class="mt-3 space-y-2 text-sm leading-5 text-slate-600"><li>• <b>Новые обращения</b> — заявки, которые платформа передала клинике.</li><li>• <b>Подтверждённые</b> — клиника зафиксировала время и пользователь получил уведомление.</li><li>• <b>Дошедшие</b> — визиты со статусом «состоялся».</li><li>• <b>Средний ответ</b> — время до первой реакции команды.</li></ul><p class="mt-3 text-xs leading-5 text-slate-500">Эти показатели служат для управления работой клиники. Они не являются рекламным рейтингом.</p>`,'mt-5')}</div>`; }
+
+
+  function renderContent(){
+    let view='';
+    if(state.role==='guest') {
+      const pages={home:renderGuestHome,check:renderGuestCheck,check2:renderGuestCheck2,emergency:renderGuestEmergency,results:renderGuestResults,map:renderGuestMap,service:renderGuestService,clinic:renderGuestClinic,consult:renderGuestConsult,consultCheckout:renderGuestConsultCheckout,consultConfirmed:renderGuestConsultConfirmed,insurance:renderGuestInsurance,insuranceQuote:renderGuestInsuranceQuote,insuranceQuoteResult:renderGuestInsuranceQuoteResult,insuranceCheck:renderGuestInsuranceCheck,insuranceCheckResult:renderGuestInsuranceCheckResult,booking:renderGuestBooking,confirmed:renderGuestConfirmed};
+      view=(pages[state.page]||renderGuestHome)();
+    }
+    if(state.role==='owner') {
+      const pages={home:renderOwnerHome,appointment:renderOwnerAppointment,pet:renderOwnerPet,consult:renderOwnerConsult,insurance:renderOwnerInsurance,insuranceQuote:renderOwnerInsuranceQuote,insuranceCheck:renderOwnerInsuranceCheck,insuranceCheckResult:renderOwnerInsuranceCheckResult};
+      view=(pages[state.page]||renderOwnerHome)();
+    }
+    if(state.role==='clinic') {
+      const pages={home:renderClinicHome,requests:renderClinicRequests,schedule:renderClinicSchedule,analytics:renderClinicAnalytics};
+      view=(pages[state.page]||renderClinicHome)();
+    }
+    document.getElementById('content').innerHTML=view;
+    renderNavigation();
+    updateHeader();
+    applyConnection();
+    if(state.role==='guest' && state.page==='map') setTimeout(initVetMap,0);
+    else if(vetMapInstance){ vetMapInstance.remove(); vetMapInstance=null; vetMapMarkers=[]; }
+  }
+
+  function navItem(label, iconName, action, active=false, badge=''){
+    return `<button data-action="${action}" class="tap relative flex min-w-[48px] flex-1 flex-col items-center gap-1 rounded-xl py-1.5 text-[10px] font-bold ${active?'text-primary':'text-slate-500'}">${icon(iconName,'h-5 w-5')}${badge?`<span class="absolute right-[18%] top-0 grid h-4 min-w-4 place-items-center rounded-full bg-rose-500 px-1 text-[9px] text-white">${badge}</span>`:''}<span>${label}</span></button>`;
+  }
+
+  function renderNavigation(){
+    let links='';
+    if(state.role==='guest') links=navItem('Главная','home','guest:home',state.page==='home')+navItem('Записаться','calendar','guest:service',['service','results','map','clinic','booking'].includes(state.page))+navItem('Онлайн','chat','guest:consult',['consult','consultCheckout','consultConfirmed'].includes(state.page))+navItem('Страховка','shield','guest:insurance',['insurance','insuranceQuote','insuranceQuoteResult','insuranceCheck','insuranceCheckResult'].includes(state.page));
+    if(state.role==='owner') links=navItem('Главная','home','owner:home',state.page==='home')+navItem('Записи','calendar','owner:appointment',state.page==='appointment')+navItem('Питомец','paw','owner:pet',state.page==='pet')+navItem('Онлайн','chat','owner:consult',state.page==='consult','2')+navItem('Страховка','shield','owner:insurance',['insurance','insuranceQuote','insuranceCheck','insuranceCheckResult'].includes(state.page));
+    if(state.role==='clinic') links=navItem('Главная','home','clinic:home',state.page==='home')+navItem('Заявки','inbox','clinic:requests',state.page==='requests','3')+navItem('Расписание','calendar','clinic:schedule',state.page==='schedule')+navItem('Аналитика','signal','clinic:analytics',state.page==='analytics');
+    document.getElementById('bottomNav').innerHTML=`<div class="mx-auto flex max-w-md items-center justify-around gap-1">${links}</div>`;
+  }
+
+  function updateHeader(){
+    const captions={guest:'Новый пользователь',owner:'Личный кабинет владельца',clinic:'Кабинет клиники'};
+    document.getElementById('roleCaption').textContent=captions[state.role];
+    document.getElementById('connectionText').textContent=state.online?'Онлайн':'Офлайн';
+    document.getElementById('connectionDot').className='h-2 w-2 rounded-full '+(state.online?'bg-emerald-500':'bg-amber-500');
+    document.getElementById('connectionToggle').className='network-toggle '+(state.online?'is-on bg-primary':'bg-slate-300');
+  }
+  function applyConnection(){
+    document.getElementById('offlineOverlay').classList.toggle('hidden',state.online);
+    document.getElementById('offlineOverlay').classList.toggle('flex',!state.online);
+    document.getElementById('content').classList.toggle('offline-dim',!state.online);
+    document.getElementById('bottomNav').classList.toggle('offline-dim',!state.online);
+  }
+  function setRole(role){
+    state.role=role; state.page='home';
+    document.querySelectorAll('.role-tab').forEach(tab=>{
+      const on=tab.dataset.role===role;
+      tab.className='role-tab tap shrink-0 rounded-full px-3.5 py-2 text-xs font-bold '+(on?'bg-primary text-white':'border border-line bg-white text-slate-600');
+      tab.setAttribute('aria-selected',String(on));
+    });
+    renderContent();
+  }
+  function showToast(message){
+    const el=document.getElementById('toast');el.textContent=message;el.classList.remove('hidden');clearTimeout(window.__toast);window.__toast=setTimeout(()=>el.classList.add('hidden'),2800);
+  }
+  function handleAction(action){
+    if(!state.online) return;
+    if(action==='home'){state.page='home';renderContent();return;}
+    if(action.startsWith('toast:')){showToast(action.slice(6));return;}
+    // Аргумент действия может содержать ':' (например, время "Сегодня, 18:30").
+    // Собираем остаток обратно, чтобы не терять минуты и корректно подсветить выбранный слот.
+    const [scope, cmd, ...parts] = action.split(':');
+    const arg = parts.join(':');
+    if(scope==='guest'){
+      if(cmd==='insuranceLead'){showToast('Заявка на полис сохранена. В рабочем сервисе её примет страховой партнёр.');return;}
+      if(cmd==='clinic'){state.selectedClinic=Number(arg);state.page='clinic';}
+      else if(cmd==='slot'){state.selectedSlot=arg;showToast('Выбрано время: '+arg);renderContent();return;}
+      else if(cmd==='channel'){state.channel=arg;renderContent();return;}
+      else if(['home','check','check2','emergency','results','map','service','consult','consultCheckout','consultConfirmed','insurance','insuranceQuote','insuranceQuoteResult','insuranceCheck','insuranceCheckResult','booking','confirmed'].includes(cmd)){ if(cmd==='consultConfirmed') state.consultation.status='requested'; if(cmd==='insuranceLead') showToast('Заявка на полис сохранена. В рабочем сервисе её примет страховой партнёр.'); state.page=cmd;}
+      renderContent();return;
+    }
+    if(scope==='owner'){
+      if(cmd==='book'){setRole('guest');state.page='results';renderContent();return;}
+      if(cmd==='acceptAlternative'){
+        const b=state.booking;
+        if(b.status==='alternative'){
+          b.status='confirmed';b.confirmedTime=b.proposedTime;
+          state.clinicSlots[b.proposedTime]='occupied';
+          showToast('Новое время '+b.confirmedTime+' подтверждено. Клиника получила ответ.');
+        }
+        state.page='appointment';renderContent();return;
+      }
+      if(cmd==='consultConfirmed'){state.consultation.status='requested'; showToast('Консультация создана. Ветеринар подключится в чате.'); state.page='consult'; renderContent(); return;}
+      if(cmd==='insuranceLead'){showToast('Заявка на полис сохранена.');return;}
+      if(['home','appointment','pet','consult','insurance','insuranceQuote','insuranceCheck','insuranceCheckResult'].includes(cmd))state.page=cmd;
+      renderContent();return;
+    }
+    if(scope==='clinic'){
+      if(cmd==='accept'){
+        const [pet,time]=(arg||'').split('|');
+        if(pet==='Барсик'){
+          const b=state.booking;
+          b.status='confirmed';b.confirmedTime=time;b.proposedTime=null;
+          Object.keys(state.clinicSlots).forEach(slot=>{if(state.clinicSlots[slot]==='pending'||state.clinicSlots[slot]==='held') state.clinicSlots[slot]='open';});
+          state.clinicSlots[time]='occupied';
+          showToast('Время '+time+' подтверждено. Владельцу отправлено уведомление в '+state.channel+'.');
+          state.alternativeFor=null;renderContent();return;
+        }
+        showToast('Запись подтверждена на '+time+'.');return;
+      }
+      if(cmd==='alternative'){state.alternativeFor=state.alternativeFor===arg?null:arg;renderContent();return;}
+      if(cmd==='propose'){
+        const [pet,time]=(arg||'').split('|');
+        if(pet==='Барсик'){
+          const b=state.booking;
+          state.clinicSlots[b.requestedTime]='open';
+          b.status='alternative';b.proposedTime=time;
+          state.clinicSlots[time]='held';
+          state.alternativeFor=null;
+          showToast('Владельцу предложено время '+time+'. Окно удержано до ответа.');
+          renderContent();return;
+        }
+      }
+      if(cmd==='availability'){
+        const current=state.clinicSlots[arg];
+        if(current==='open'||current==='closed'){
+          state.clinicSlots[arg]=current==='open'?'closed':'open';
+          showToast('Окно '+arg+' '+(state.clinicSlots[arg]==='open'?'открыто для новых записей':'скрыто от новых обращений')+'.');
+          renderContent();
+        }
+        return;
+      }
+      if(cmd==='tomorrow'){showToast('Добавлено окно на завтра: 09:30');return;}
+      if(['home','requests','schedule','analytics'].includes(cmd))state.page=cmd;
+      renderContent();return;
+    }
+  }
+
+  document.addEventListener('click',event=>{
+    const role=event.target.closest('.role-tab');
+    if(role){setRole(role.dataset.role);return;}
+    const action=event.target.closest('[data-action]');
+    if(action){handleAction(action.dataset.action);}
+  });
+  document.getElementById('connectionButton').addEventListener('click',()=>{state.online=!state.online;updateHeader();applyConnection();if(state.online)showToast('Соединение восстановлено. Данные синхронизированы.');});
+  document.getElementById('restoreButton').addEventListener('click',()=>{state.online=true;updateHeader();applyConnection();showToast('Соединение восстановлено. Данные синхронизированы.');});
+  renderContent();
+</script>
+</body>
+</html>
