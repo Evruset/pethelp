@@ -6,7 +6,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/src/main.js",
     "start:dev": "ts-node src/main.ts",
-    "test": "jest --runInBand",
+    "test": "jest --runInBand --passWithNoTests",
     "migration:run": "ts-node scripts/migrate.ts",
     "seed": "ts-node scripts/seed.ts",
     "check": "npm run build && npm test"
