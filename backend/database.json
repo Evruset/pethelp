@@ -1,0 +1,8 @@
+{
+  "migrationTool": "node-pg-migrate",
+  "databaseUrlEnvironmentVariable": "DATABASE_URL",
+  "migrationsDirectory": "migrations/node-pg",
+  "migrationsSchema": "public",
+  "migrationsTable": "schema_migrations",
+  "note": "Informational only. node-pg-migrate reads DATABASE_URL from the process environment and does not load database.json."
+}
