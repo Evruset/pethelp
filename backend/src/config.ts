@@ -5,7 +5,10 @@ export interface AppConfig {
   readonly workersEnabled: boolean;
   readonly outboxPollIntervalMs: number;
   readonly outboxBatchSize: number;
-  readonly devWorkerKey: string;
+  readonly jwtSecret: string;
+  readonly jwtIssuer: string;
+  readonly jwtAudience: string;
+  readonly workerServiceToken: string;
 }
 
 function intEnv(name: string, fallback: number): number {
@@ -16,6 +19,12 @@ function intEnv(name: string, fallback: number): number {
   return value;
 }
 
+function requiredEnv(name: string): string {
+  const value = process.env[name]?.trim();
+  if (!value) throw new Error(`${name} must be configured`);
+  return value;
+}
+
 export const config: AppConfig = Object.freeze({
   port: intEnv('PORT', 3000),
   databaseUrl: process.env.DATABASE_URL ?? 'postgres://vethelp:vethelp@localhost:5432/vethelp',
@@ -23,5 +32,8 @@ export const config: AppConfig = Object.freeze({
   workersEnabled: (process.env.WORKERS_ENABLED ?? 'true').toLowerCase() === 'true',
   outboxPollIntervalMs: intEnv('OUTBOX_POLL_INTERVAL_MS', 3000),
   outboxBatchSize: intEnv('OUTBOX_BATCH_SIZE', 20),
-  devWorkerKey: process.env.DEV_WORKER_KEY ?? 'change-me-before-public-use',
+  jwtSecret: requiredEnv('JWT_SECRET'),
+  jwtIssuer: requiredEnv('JWT_ISSUER'),
+  jwtAudience: requiredEnv('JWT_AUDIENCE'),
+  workerServiceToken: requiredEnv('WORKER_SERVICE_TOKEN'),
 });
