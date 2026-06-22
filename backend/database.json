@@ -1,0 +1,11 @@
+{
+  "db": {
+    "migrations-dir": "migrations/node-pg",
+    "migrations-schema": "public",
+    "migrations-table": "schema_migrations",
+    "schema": "public",
+    "check-order": true,
+    "verbose": true
+  },
+  "databaseUrlEnvironmentVariable": "DATABASE_URL"
+}
