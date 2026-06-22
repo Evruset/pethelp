@@ -28,7 +28,9 @@ interface LockedReservation {
 @Injectable()
 export class MisCommandDispatcherService {
   private readonly logger = new Logger(MisCommandDispatcherService.name);
-  private readonly retryDelaysMs = [1_000, 2_000, 4_000] as const;
+  /** Initial request plus two isolated retry attempts: 1s, then 2s. */
+  private readonly retryDelaysMs = [1_000, 2_000] as const;
+  private readonly maxNetworkAttempts = 3;
 
   constructor(
     private readonly database: DatabaseService,
@@ -65,7 +67,7 @@ export class MisCommandDispatcherService {
       return;
     }
 
-    for (let attempt = 0; attempt <= this.retryDelaysMs.length; attempt += 1) {
+    for (let attempt = 0; attempt < this.maxNetworkAttempts; attempt += 1) {
       try {
         const result = await adapter.reserve({
           internalHoldId: payload.holdId,
@@ -83,7 +85,7 @@ export class MisCommandDispatcherService {
         return;
       } catch (error) {
         const retryable = error instanceof MisNetworkError;
-        const lastAttempt = attempt === this.retryDelaysMs.length;
+        const lastAttempt = attempt === this.maxNetworkAttempts - 1;
         if (!retryable || lastAttempt) {
           await this.commitFailure(payload, this.errorMessage(error));
           return;
