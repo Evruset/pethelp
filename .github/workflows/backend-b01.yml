@@ -54,6 +54,19 @@ jobs:
       - name: Build backend
         run: npm run build
 
+      - name: Export and validate OpenAPI contract
+        run: |
+          npm run openapi:export
+          node scripts/assert-openapi.cjs artifacts/openapi/swagger.json
+
+      - name: Upload OpenAPI contract
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vethelp-openapi
+          path: backend/artifacts/openapi/swagger.json
+          if-no-files-found: ignore
+
       - name: Apply and verify PostgreSQL migrations
         run: |
           npm run migrate:up
