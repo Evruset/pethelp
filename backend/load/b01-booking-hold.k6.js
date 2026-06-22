@@ -28,7 +28,7 @@ export const options = {
   },
 };
 
-function requestUuid(vu: number, discriminator: string): string {
+function requestUuid(vu, discriminator) {
   return `00000000-0000-4000-8000-${discriminator}${String(vu).padStart(11, '0')}`;
 }
 
@@ -48,7 +48,7 @@ export default function () {
     },
   );
 
-  const body = response.json() ?? {};
+  const body = response.json() || {};
   const isAllowedConflict = response.status === 409 &&
     (body.code === 'SLOT_ALREADY_TAKEN' || body.code === 'SLOT_LOCKED_RETRY');
   const isExpected = response.status === 201 || isAllowedConflict;
