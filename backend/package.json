@@ -11,6 +11,8 @@
     "migrate:up": "node-pg-migrate up --migrations-dir migrations/node-pg --migrations-schema public --migrations-table schema_migrations --single-transaction && node scripts/verify-migration-checksums.cjs --write-missing",
     "migrate:down": "node-pg-migrate down --migrations-dir migrations/node-pg --migrations-schema public --migrations-table schema_migrations --single-transaction",
     "migrate:verify": "node scripts/verify-migration-checksums.cjs",
+    "openapi:export": "ts-node scripts/export-openapi.ts",
+    "openapi:generate": "npm run build && npm run openapi:export",
     "seed": "ts-node scripts/seed.ts",
     "check": "npm run build && npm test"
   },
@@ -19,6 +21,7 @@
     "@nestjs/core": "^11.1.27",
     "@nestjs/jwt": "^11.0.1",
     "@nestjs/platform-express": "^11.1.27",
+    "@nestjs/swagger": "^11.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "pg": "^8.22.0",
@@ -26,6 +29,7 @@
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
+    "@nestjs/cli": "^11.0.0",
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.10.1",
