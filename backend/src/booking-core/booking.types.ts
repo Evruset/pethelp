@@ -40,7 +40,7 @@ export interface HoldRow {
 
 export interface CreateHoldResult {
   holdId: string;
-  state: MvpHoldState;
+  state: HoldState;
   slotId: string;
   expiresAt: string;
   correlationId: string;
