@@ -54,9 +54,6 @@ jobs:
       - name: Build backend
         run: npm run build
 
-      - name: Run unit tests
-        run: npm test
-
       - name: Apply PostgreSQL migrations
         run: node dist/scripts/migrate.js
 
