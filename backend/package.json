@@ -11,6 +11,8 @@
     "migrate:up": "node-pg-migrate up --migrations-dir migrations/node-pg --migrations-schema public --migrations-table schema_migrations --single-transaction && node scripts/verify-migration-checksums.cjs --write-missing",
     "migrate:down": "node-pg-migrate down --migrations-dir migrations/node-pg --migrations-schema public --migrations-table schema_migrations --single-transaction",
     "migrate:verify": "node scripts/verify-migration-checksums.cjs",
+    "openapi:export": "ts-node scripts/export-openapi.ts",
+    "openapi:generate": "npm run build && npm run openapi:export",
     "seed": "ts-node scripts/seed.ts",
     "check": "npm run build && npm test"
   },
