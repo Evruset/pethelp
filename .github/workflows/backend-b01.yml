@@ -84,6 +84,7 @@ jobs:
 
       - name: Run B-01 k6 concurrency test
         run: |
+          set -o pipefail
           docker run --rm --network host \
             -e BASE_URL=http://127.0.0.1:3000 \
             -e B01_SLOT_ID \
@@ -91,17 +92,19 @@ jobs:
             -e B01_PET_ID \
             -e B01_OWNER_TOKEN \
             -v "$GITHUB_WORKSPACE/backend/load:/load:ro" \
-            grafana/k6:0.54.0 run /load/b01-booking-hold.k6.js
+            grafana/k6:0.54.0 run /load/b01-booking-hold.k6.js 2>&1 | tee /tmp/b01-k6.log
 
       - name: Assert PostgreSQL B-01 invariants
         run: node dist/scripts/assert-b01.js
 
-      - name: Upload API diagnostics
+      - name: Upload B-01 diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: vethelp-api-log
-          path: /tmp/vethelp-api.log
+          name: b01-diagnostics
+          path: |
+            /tmp/vethelp-api.log
+            /tmp/b01-k6.log
           if-no-files-found: ignore
 
       - name: Show API log on failure
