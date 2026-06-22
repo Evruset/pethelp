@@ -74,7 +74,7 @@ exports.up = (pgm) => {
     CREATE TABLE IF NOT EXISTS booking_schema.booking_holds (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       slot_id uuid NOT NULL REFERENCES clinic_schema.appointment_slots(id),
-      owner_id uuid NOT NULL REFERENCES identity_schema.users(id) NOT VALID,
+      owner_id uuid NOT NULL,
       pet_id uuid NOT NULL,
       state text NOT NULL CHECK (state IN (
         'MANUAL_CONFIRM_PENDING','CONFIRMED','EXPIRED','RELEASED',
@@ -95,7 +95,7 @@ exports.up = (pgm) => {
     CREATE TABLE IF NOT EXISTS booking_schema.appointments (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       hold_id uuid NOT NULL UNIQUE REFERENCES booking_schema.booking_holds(id),
-      owner_id uuid NOT NULL REFERENCES identity_schema.users(id) NOT VALID,
+      owner_id uuid NOT NULL,
       pet_id uuid NOT NULL,
       clinic_location_id uuid NOT NULL REFERENCES clinic_schema.clinic_locations(id),
       slot_id uuid NOT NULL REFERENCES clinic_schema.appointment_slots(id),
@@ -104,6 +104,19 @@ exports.up = (pgm) => {
       created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
       updated_at timestamptz NOT NULL DEFAULT clock_timestamp()
     );
+
+    DO $$ BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'booking_holds_owner_id_fkey') THEN
+        ALTER TABLE booking_schema.booking_holds
+          ADD CONSTRAINT booking_holds_owner_id_fkey
+          FOREIGN KEY (owner_id) REFERENCES identity_schema.users(id) NOT VALID;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'appointments_owner_id_fkey') THEN
+        ALTER TABLE booking_schema.appointments
+          ADD CONSTRAINT appointments_owner_id_fkey
+          FOREIGN KEY (owner_id) REFERENCES identity_schema.users(id) NOT VALID;
+      END IF;
+    END $$;
 
     CREATE TABLE IF NOT EXISTS booking_schema.appointment_events (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
