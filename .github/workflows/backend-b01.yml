@@ -1,0 +1,110 @@
+name: Backend B-01
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-b01.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-b01.yml'
+  workflow_dispatch:
+
+jobs:
+  build-and-b01:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: vethelp
+          POSTGRES_USER: vethelp
+          POSTGRES_PASSWORD: vethelp
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vethelp -d vethelp"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://vethelp:vethelp@localhost:5432/vethelp
+      JWT_SECRET: b01-test-jwt-secret-at-least-32-bytes-long
+      JWT_ISSUER: vethelp-ci-auth
+      JWT_AUDIENCE: vethelp-ci-api
+      WORKER_SERVICE_TOKEN: b01-test-worker-service-token
+      WORKERS_ENABLED: 'false'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build backend
+        run: npm run build
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Apply PostgreSQL migrations
+        run: node dist/scripts/migrate.js
+
+      - name: Prepare deterministic B-01 fixture
+        run: |
+          node dist/scripts/b01-fixture.js > /tmp/b01-fixture.json
+          node - <<'NODE' >> "$GITHUB_ENV"
+          const fixture = require('/tmp/b01-fixture.json');
+          console.log(`B01_SLOT_ID=${fixture.slotId}`);
+          console.log(`B01_OWNER_ID=${fixture.ownerId}`);
+          console.log(`B01_PET_ID=${fixture.petId}`);
+          NODE
+          node dist/scripts/create-b01-jwt.js > /tmp/b01-owner.jwt
+          echo "B01_OWNER_TOKEN=$(cat /tmp/b01-owner.jwt)" >> "$GITHUB_ENV"
+
+      - name: Start API
+        run: |
+          nohup npm start > /tmp/vethelp-api.log 2>&1 &
+          echo $! > /tmp/vethelp-api.pid
+          for attempt in {1..40}; do
+            if curl -fsS http://127.0.0.1:3000/health > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/vethelp-api.log
+          exit 1
+
+      - name: Run B-01 k6 concurrency test
+        run: |
+          docker run --rm --network host \
+            -e BASE_URL=http://127.0.0.1:3000 \
+            -e B01_SLOT_ID \
+            -e B01_OWNER_ID \
+            -e B01_PET_ID \
+            -e B01_OWNER_TOKEN \
+            -v "$GITHUB_WORKSPACE/backend/load:/load:ro" \
+            grafana/k6:0.54.0 run /load/b01-booking-hold.k6.js
+
+      - name: Assert PostgreSQL B-01 invariants
+        run: node dist/scripts/assert-b01.js
+
+      - name: Show API log on failure
+        if: failure()
+        run: cat /tmp/vethelp-api.log || true
+
+      - name: Stop API
+        if: always()
+        run: test -f /tmp/vethelp-api.pid && kill "$(cat /tmp/vethelp-api.pid)" || true
