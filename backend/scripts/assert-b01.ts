@@ -22,7 +22,7 @@ async function main(): Promise<void> {
       WHERE slot_id = $1 AND state = 'MANUAL_CONFIRM_PENDING'
     `, [slotId]);
     const outbox = await client.query<{ count: string }>(`SELECT count(*) FROM booking_schema.outbox_events WHERE event_type = 'booking.hold.created.v1'`);
-    const idempotency = await client.query<{ count: string }>(`SELECT count(*) FROM booking_schema.idempotency_records WHERE scope LIKE 'booking.create-local-hold:%'`);
+    const idempotency = await client.query<{ count: string }>(`SELECT count(*) FROM booking_schema.idempotency_records`);
     const idleInTransaction = await client.query<{ count: string }>(`
       SELECT count(*)
       FROM pg_stat_activity
