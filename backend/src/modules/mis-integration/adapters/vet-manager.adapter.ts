@@ -14,7 +14,9 @@ interface VetManagerReservationResponse {
   success?: boolean;
   status?: string;
   externalHoldId?: string;
+  external_hold_id?: string;
   holdId?: string;
+  hold_id?: string;
   id?: string;
   ttlMinutes?: number;
   ttl_minutes?: number;
@@ -68,7 +70,7 @@ export class VetManagerAdapter implements IMisAdapter {
   }
 
   private toReservationResult(body: VetManagerReservationResponse): MisReservationResult {
-    const externalHoldId = body.externalHoldId ?? body.holdId ?? body.id;
+    const externalHoldId = body.externalHoldId ?? body.external_hold_id ?? body.holdId ?? body.hold_id ?? body.id;
     const failed = body.success === false || body.status?.toUpperCase() === 'FAILED';
     if (failed || !externalHoldId) {
       return {
