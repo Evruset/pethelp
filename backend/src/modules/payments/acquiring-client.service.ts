@@ -38,10 +38,7 @@ export class AcquiringClient {
     const response = await firstValueFrom(
       this.http.post<RemoteIntentResponse>(
         `${this.baseUrl()}/v1/payment-intents`,
-        {
-          merchantPaymentId: internalPaymentId,
-          amount,
-        },
+        { merchantPaymentId: internalPaymentId, amount },
         { headers: this.headers(internalPaymentId) },
       ).pipe(
         timeout(AcquiringClient.REQUEST_TIMEOUT_MS),
@@ -119,7 +116,8 @@ export class AcquiringClient {
   }
 
   private baseUrl(): string {
-    const url = process.env.ACQUIRING_API_BASE_URL?.trim().replace(/\/$/, '');
+    const rawUrl = process.env.ACQUIRING_API_BASE_URL?.trim();
+    const url = rawUrl?.replace(/\/$/, '');
     if (!url) throw new AcquiringClientError('ACQUIRING_API_BASE_URL is not configured');
     return url;
   }
