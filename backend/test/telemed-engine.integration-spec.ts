@@ -125,7 +125,7 @@ describe('Telemedicine Engine', () => {
     expect(ledger.rows[0]?.count).toBe('1');
 
     const audit = await database.query<{ count: string; correlation_id: string | null }>(`
-      SELECT COUNT(*)::text AS count, MAX(correlation_id)::text AS correlation_id
+      SELECT COUNT(*)::text AS count, MAX(correlation_id::text) AS correlation_id
       FROM audit_schema.audit_log
       WHERE action = 'TELEMED_DOCTOR_TIMEOUT'
         AND aggregate_id = $1::uuid
