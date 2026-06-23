@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import type { PoolClient } from 'pg';
 import { DatabaseService } from '../../database/database.service';
-import { AcquiringClient, RemotePaymentState } from './acquiring-client.service';
+import { AcquiringClient } from './acquiring-client.service';
 
 interface ReconciliationCandidate {
   id: string;
