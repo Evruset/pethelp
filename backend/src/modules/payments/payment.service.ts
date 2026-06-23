@@ -86,11 +86,11 @@ export class PaymentService {
 
         await this.writeLedger(client, {
           paymentIntentId: inserted.rows[0].id,
-          entryType: 'WEBHOOK_RECEIVED',
+          entryType: 'INTENT_CREATED',
           amount,
           currency: 'RUB',
           idempotencyKey: `payment-intent-created:${inserted.rows[0].id}`,
-          payload: { holdId, holdVersion: hold.rows[0].version, kind: 'payment_intent_created' },
+          payload: { holdId, holdVersion: hold.rows[0].version },
         });
 
         return inserted.rows[0];
