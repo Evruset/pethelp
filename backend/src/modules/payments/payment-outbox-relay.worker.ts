@@ -16,6 +16,7 @@ interface PaymentRow {
   provider_payment_id: string | null;
   amount: string;
   currency: string;
+  status: string;
 }
 
 @Injectable()
@@ -43,10 +44,12 @@ export class PaymentOutboxRelayWorker {
           if (event.event_type === 'payment.acquiring.void.requested.v1') {
             await this.acquiringClient.voidRemoteIntent(payment.provider_payment_id, event.payment_intent_id);
             await this.markProviderCommandSent(event, payment, 'VOID_SENT');
-          } else {
+          } else if (payment.status === 'AUTHORIZED') {
             const captured = await this.acquiringClient.captureRemoteIntent(payment.provider_payment_id, event.payment_intent_id);
             if (!captured) throw new Error('Acquiring provider did not confirm capture request');
             await this.markProviderCommandSent(event, payment, 'CAPTURE_SENT');
+          } else {
+            await this.markSkipped(event.id, `Capture skipped because payment status is ${payment.status}`);
           }
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Payment provider command failed';
@@ -90,7 +93,7 @@ export class PaymentOutboxRelayWorker {
 
   private async loadPayment(paymentIntentId: string): Promise<PaymentRow | undefined> {
     const result = await this.database.query<PaymentRow>(`
-      SELECT provider_payment_id, amount::text AS amount, currency
+      SELECT provider_payment_id, amount::text AS amount, currency, status
       FROM payment_schema.payment_intents
       WHERE id = $1::uuid
     `, [paymentIntentId]);
@@ -105,9 +108,12 @@ export class PaymentOutboxRelayWorker {
     await this.database.withTransaction(async (client) => {
       await this.setCommitTransactionLimits(client);
       const timestampColumn = ledgerEntry === 'VOID_SENT' ? 'void_sent_at' : 'capture_sent_at';
+      const statusClause = ledgerEntry === 'VOID_SENT'
+        ? ", status = CASE WHEN status = 'VOID_REQUESTED' THEN 'VOIDED' ELSE status END"
+        : '';
       await client.query(`
         UPDATE payment_schema.payment_intents
-        SET ${timestampColumn} = COALESCE(${timestampColumn}, clock_timestamp()),
+        SET ${timestampColumn} = COALESCE(${timestampColumn}, clock_timestamp())${statusClause},
             updated_at = clock_timestamp()
         WHERE id = $1::uuid
       `, [event.payment_intent_id]);
@@ -135,6 +141,18 @@ export class PaymentOutboxRelayWorker {
         WHERE id = $1::uuid AND status = 'LEASED'
       `, [event.id]);
     });
+  }
+
+  private async markSkipped(eventId: string, reason: string): Promise<void> {
+    await this.database.query(`
+      UPDATE booking_schema.outbox_events
+      SET status = 'PUBLISHED',
+          processed_at = clock_timestamp(),
+          published_at = clock_timestamp(),
+          lease_until = NULL,
+          last_error = $2
+      WHERE id = $1::uuid AND status = 'LEASED'
+    `, [eventId, reason.slice(0, 1000)]);
   }
 
   private async releaseForRetry(eventId: string, reason: string): Promise<void> {

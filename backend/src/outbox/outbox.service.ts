@@ -28,7 +28,8 @@ export class OutboxService {
             AND event_type NOT IN (
               'mis.reservation.requested.v1',
               'payment.acquiring.void.requested.v1',
-              'payment.acquiring.capture.requested.v1'
+              'payment.acquiring.capture.requested.v1',
+              'telemed.session.start.requested.v1'
             )
             AND available_at <= clock_timestamp()
             AND (lease_until IS NULL OR lease_until < clock_timestamp())
