@@ -25,13 +25,18 @@ interface PaymentRow {
 @Injectable()
 export class PaymentOutboxRelayWorker {
   private running = false;
+  private readonly traceContext: TraceContext;
+  private readonly logger: ContextLoggerService;
 
   constructor(
     private readonly database: DatabaseService,
     private readonly acquiringClient: AcquiringClient,
-    private readonly traceContext: TraceContext,
-    private readonly logger: ContextLoggerService,
-  ) {}
+    traceContext?: TraceContext,
+    logger?: ContextLoggerService,
+  ) {
+    this.traceContext = traceContext ?? new TraceContext();
+    this.logger = logger ?? new ContextLoggerService(this.traceContext);
+  }
 
   @Cron(CronExpression.EVERY_5_SECONDS)
   async relay(): Promise<void> {
