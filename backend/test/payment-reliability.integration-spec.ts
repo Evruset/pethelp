@@ -114,8 +114,8 @@ async function createExpiredPaymentFixture(database: DatabaseService, service: P
 
   const createScope = nock(PROVIDER_URL)
     .matchHeader('authorization', 'Bearer acquiring-test-key')
-    .matchHeader('idempotency-key', (value) => typeof value === 'string' && value.length > 0)
-    .post('/v1/payment-intents', (body) => typeof body?.merchantPaymentId === 'string' && body.amount === 1000)
+    .matchHeader('idempotency-key', (value: string) => value.length > 0)
+    .post('/v1/payment-intents', (body: { merchantPaymentId?: unknown; amount?: unknown }) => typeof body.merchantPaymentId === 'string' && body.amount === 1000)
     .reply(201, { id: PROVIDER_PAYMENT_ID, checkoutUrl: 'https://checkout.test/reliability' });
   const intent = await service.createPaymentIntent(holdId, ownerId);
   expect(createScope.isDone()).toBe(true);
