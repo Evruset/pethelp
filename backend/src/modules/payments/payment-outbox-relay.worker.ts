@@ -2,11 +2,20 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import type { PoolClient } from 'pg';
 import { DatabaseService } from '../../database/database.service';
-import { AcquiringApi } from './acquiring-api';
+import { AcquiringClient } from './acquiring-client.service';
 
-interface VoidOutboxEvent {
+type PaymentProviderEventType = 'payment.acquiring.void.requested.v1' | 'payment.acquiring.capture.requested.v1';
+
+interface PaymentOutboxEvent {
   id: string;
+  event_type: PaymentProviderEventType;
   payment_intent_id: string;
+}
+
+interface PaymentRow {
+  provider_payment_id: string | null;
+  amount: string;
+  currency: string;
 }
 
 @Injectable()
@@ -16,7 +25,7 @@ export class PaymentOutboxRelayWorker {
 
   constructor(
     private readonly database: DatabaseService,
-    private readonly acquiringApi: AcquiringApi,
+    private readonly acquiringClient: AcquiringClient,
   ) {}
 
   @Cron(CronExpression.EVERY_5_SECONDS)
@@ -28,11 +37,20 @@ export class PaymentOutboxRelayWorker {
       const events = await this.claimBatch(10);
       for (const event of events) {
         try {
-          await this.acquiringApi.void(event.payment_intent_id, event.id);
-          await this.markSent(event);
+          const payment = await this.loadPayment(event.payment_intent_id);
+          if (!payment?.provider_payment_id) throw new Error('Payment provider reference is missing');
+
+          if (event.event_type === 'payment.acquiring.void.requested.v1') {
+            await this.acquiringClient.voidRemoteIntent(payment.provider_payment_id, event.payment_intent_id);
+            await this.markProviderCommandSent(event, payment, 'VOID_SENT');
+          } else {
+            const captured = await this.acquiringClient.captureRemoteIntent(payment.provider_payment_id, event.payment_intent_id);
+            if (!captured) throw new Error('Acquiring provider did not confirm capture request');
+            await this.markProviderCommandSent(event, payment, 'CAPTURE_SENT');
+          }
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'Acquiring void command failed';
-          this.logger.error(`Payment void outbox event ${event.id} failed: ${message}`);
+          const message = error instanceof Error ? error.message : 'Payment provider command failed';
+          this.logger.error(`Payment outbox event ${event.id} failed: ${message}`);
           await this.releaseForRetry(event.id, message);
         }
       }
@@ -41,13 +59,16 @@ export class PaymentOutboxRelayWorker {
     }
   }
 
-  private async claimBatch(limit: number): Promise<VoidOutboxEvent[]> {
+  private async claimBatch(limit: number): Promise<PaymentOutboxEvent[]> {
     return this.database.withTransaction(async (client) => {
-      const result = await client.query<VoidOutboxEvent>(`
+      const result = await client.query<PaymentOutboxEvent>(`
         WITH claimed AS (
           SELECT id
           FROM booking_schema.outbox_events
-          WHERE event_type = 'payment.acquiring.void.requested.v1'
+          WHERE event_type IN (
+              'payment.acquiring.void.requested.v1',
+              'payment.acquiring.capture.requested.v1'
+            )
             AND status = 'PENDING'
             AND available_at <= clock_timestamp()
             AND (lease_until IS NULL OR lease_until < clock_timestamp())
@@ -61,26 +82,32 @@ export class PaymentOutboxRelayWorker {
             attempts = attempts + 1
         FROM claimed
         WHERE e.id = claimed.id
-        RETURNING e.id, e.aggregate_id AS payment_intent_id
+        RETURNING e.id, e.event_type, e.aggregate_id AS payment_intent_id
       `, [limit]);
       return result.rows;
     });
   }
 
-  private async markSent(event: VoidOutboxEvent): Promise<void> {
+  private async loadPayment(paymentIntentId: string): Promise<PaymentRow | undefined> {
+    const result = await this.database.query<PaymentRow>(`
+      SELECT provider_payment_id, amount::text AS amount, currency
+      FROM payment_schema.payment_intents
+      WHERE id = $1::uuid
+    `, [paymentIntentId]);
+    return result.rows[0];
+  }
+
+  private async markProviderCommandSent(
+    event: PaymentOutboxEvent,
+    payment: PaymentRow,
+    ledgerEntry: 'VOID_SENT' | 'CAPTURE_SENT',
+  ): Promise<void> {
     await this.database.withTransaction(async (client) => {
       await this.setCommitTransactionLimits(client);
-      const payment = await client.query<{ amount: string; currency: string }>(`
-        SELECT amount::text AS amount, currency
-        FROM payment_schema.payment_intents
-        WHERE id = $1::uuid
-        FOR UPDATE
-      `, [event.payment_intent_id]);
-      if (!payment.rows[0]) return;
-
+      const timestampColumn = ledgerEntry === 'VOID_SENT' ? 'void_sent_at' : 'capture_sent_at';
       await client.query(`
         UPDATE payment_schema.payment_intents
-        SET void_sent_at = COALESCE(void_sent_at, clock_timestamp()),
+        SET ${timestampColumn} = COALESCE(${timestampColumn}, clock_timestamp()),
             updated_at = clock_timestamp()
         WHERE id = $1::uuid
       `, [event.payment_intent_id]);
@@ -88,14 +115,15 @@ export class PaymentOutboxRelayWorker {
         INSERT INTO payment_schema.ledger_entries (
           payment_intent_id, entry_type, amount, currency,
           idempotency_key, payload_json
-        ) VALUES ($1::uuid, 'VOID_SENT', $2::numeric, $3, $4, $5::jsonb)
+        ) VALUES ($1::uuid, $2, $3::numeric, $4, $5, $6::jsonb)
         ON CONFLICT (idempotency_key) DO NOTHING
       `, [
         event.payment_intent_id,
-        payment.rows[0].amount,
-        payment.rows[0].currency,
-        `void-sent:${event.payment_intent_id}`,
-        JSON.stringify({ outboxEventId: event.id }),
+        ledgerEntry,
+        payment.amount,
+        payment.currency,
+        `${ledgerEntry.toLowerCase()}:${event.payment_intent_id}`,
+        JSON.stringify({ outboxEventId: event.id, eventType: event.event_type }),
       ]);
       await client.query(`
         UPDATE booking_schema.outbox_events
@@ -117,7 +145,10 @@ export class PaymentOutboxRelayWorker {
           lease_until = NULL,
           last_error = $2
       WHERE id = $1::uuid
-        AND event_type = 'payment.acquiring.void.requested.v1'
+        AND event_type IN (
+          'payment.acquiring.void.requested.v1',
+          'payment.acquiring.capture.requested.v1'
+        )
         AND status = 'LEASED'
     `, [eventId, reason.slice(0, 1000)]);
   }
