@@ -39,6 +39,9 @@ jobs:
       JWT_ISSUER: vethelp-ci-auth
       JWT_AUDIENCE: vethelp-ci-api
       WORKER_SERVICE_TOKEN: b01-test-worker-service-token
+      LIVEKIT_API_URL: wss://livekit.ci.test
+      LIVEKIT_API_KEY: livekit-ci-api-key
+      LIVEKIT_API_SECRET: livekit-ci-api-secret
       WORKERS_ENABLED: 'false'
 
     steps:
@@ -79,6 +82,8 @@ jobs:
         run: npm test -- test/payment-refund.integration-spec.ts
       - name: Run telemedicine engine tests
         run: npm test -- test/telemed-engine.integration-spec.ts
+      - name: Run native LiveKit webhook tests
+        run: npm test -- test/livekit.integration-spec.ts
       - name: Prepare deterministic B-01 fixture
         run: |
           node dist/scripts/b01-fixture.js > /tmp/b01-fixture.json
