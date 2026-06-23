@@ -25,7 +25,7 @@ exports.up = (pgm) => {
       IF NEW.correlation_id IS NULL THEN
         current_correlation := current_setting('app.correlation_id', true);
         IF current_correlation IS NOT NULL
-          AND current_correlation ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' THEN
+          AND current_correlation ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' THEN
           NEW.correlation_id := current_correlation::uuid;
         END IF;
       END IF;
