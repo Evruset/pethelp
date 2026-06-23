@@ -26,6 +26,32 @@ exports.up = (pgm) => {
     CREATE INDEX IF NOT EXISTS telemed_sessions_state_idx
       ON telemed_schema.telemed_sessions (state, expires_at);
 
+    CREATE OR REPLACE FUNCTION telemed_schema.enqueue_session_start_on_hold_confirmed()
+    RETURNS trigger AS $$
+    BEGIN
+      IF NEW.state = 'CONFIRMED' AND OLD.state IS DISTINCT FROM 'CONFIRMED' THEN
+        INSERT INTO booking_schema.outbox_events (
+          event_type, aggregate_type, aggregate_id,
+          aggregate_version, payload_json, deduplication_key
+        ) VALUES (
+          'telemed.session.start.requested.v1',
+          'booking_hold',
+          NEW.id,
+          NEW.version,
+          jsonb_build_object('bookingHoldId', NEW.id),
+          'telemed.session.start.requested.v1:' || NEW.id::text
+        )
+        ON CONFLICT (deduplication_key) DO NOTHING;
+      END IF;
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+
+    DROP TRIGGER IF EXISTS booking_hold_telemed_start_outbox ON booking_schema.booking_holds;
+    CREATE TRIGGER booking_hold_telemed_start_outbox
+      AFTER UPDATE OF state ON booking_schema.booking_holds
+      FOR EACH ROW EXECUTE FUNCTION telemed_schema.enqueue_session_start_on_hold_confirmed();
+
     ALTER TABLE payment_schema.payment_intents
       DROP CONSTRAINT IF EXISTS payment_intents_status_check;
     ALTER TABLE payment_schema.payment_intents
@@ -64,6 +90,9 @@ exports.up = (pgm) => {
 
 exports.down = (pgm) => {
   pgm.sql(`
+    DROP TRIGGER IF EXISTS booking_hold_telemed_start_outbox ON booking_schema.booking_holds;
+    DROP FUNCTION IF EXISTS telemed_schema.enqueue_session_start_on_hold_confirmed();
+
     ALTER TABLE payment_schema.ledger_entries
       DROP CONSTRAINT IF EXISTS ledger_entries_entry_type_check;
     ALTER TABLE payment_schema.ledger_entries
