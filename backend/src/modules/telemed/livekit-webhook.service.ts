@@ -36,12 +36,20 @@ export class LiveKitWebhookService {
   private async handleParticipantJoined(event: WebhookEvent): Promise<void> {
     const roomName = event.room?.name;
     const participantIdentity = event.participant?.identity;
+    const declaredRole = (event.participant?.attributes as Record<string, string> | undefined)?.role;
     if (!roomName || !participantIdentity) return;
 
     await this.database.withTransaction(async (client) => {
       await this.setShortTransactionLimits(client);
       const session = await this.lockSessionByRoom(client, roomName);
-      if (!session || session.state !== 'CONNECTED' || session.doctor_id !== participantIdentity) {
+      // The token's optional role attribute is a signal only. The authoritative
+      // role check is the server-owned doctor_id attached during connectDoctor.
+      if (
+        !session
+        || session.state !== 'CONNECTED'
+        || session.doctor_id !== participantIdentity
+        || (declaredRole !== undefined && declaredRole !== 'doctor')
+      ) {
         return;
       }
 
@@ -53,7 +61,7 @@ export class LiveKitWebhookService {
           ) VALUES (
             clock_timestamp(), 'DOCTOR', $1, 'TELEMED_DOCTOR_JOINED_LIVEKIT',
             'telemed_session', $2::uuid, $3::uuid,
-            jsonb_build_object('roomName', $4, 'participantIdentity', $1)
+            jsonb_build_object('roomName', $4, 'participantIdentity', $1, 'role', 'doctor')
           )
         `, [participantIdentity, session.id, this.traceContext.getCorrelationId() ?? null, roomName]);
         this.logger.event('log', LiveKitWebhookService.name, 'Doctor joined LiveKit telemedicine room', {
