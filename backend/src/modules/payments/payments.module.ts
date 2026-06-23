@@ -5,6 +5,7 @@ import { AcquiringWebhookVerifier } from './acquiring-webhook-verifier';
 import { PaymentController } from './payment.controller';
 import { PaymentOutboxRelayWorker } from './payment-outbox-relay.worker';
 import { PaymentReconciliationWorker } from './payment-reconciliation.worker';
+import { PaymentRefundService } from './payment-refund.service';
 import { PaymentService } from './payment.service';
 import { PaymentWebhookService } from './payment-webhook.service';
 
@@ -15,10 +16,11 @@ import { PaymentWebhookService } from './payment-webhook.service';
     AcquiringClient,
     AcquiringWebhookVerifier,
     PaymentService,
+    PaymentRefundService,
     PaymentWebhookService,
     PaymentOutboxRelayWorker,
     PaymentReconciliationWorker,
   ],
-  exports: [PaymentService, PaymentWebhookService],
+  exports: [PaymentService, PaymentRefundService, PaymentWebhookService],
 })
 export class PaymentsModule {}
