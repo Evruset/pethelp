@@ -3,7 +3,7 @@ import axios from 'axios';
 import { createHash, createHmac, randomUUID } from 'node:crypto';
 import nock from 'nock';
 import { DatabaseService } from '../src/database/database.service';
-import { AcquiringApi } from '../src/modules/payments/acquiring-api';
+import { AcquiringClient } from '../src/modules/payments/acquiring-client.service';
 import { AcquiringWebhookVerifier } from '../src/modules/payments/acquiring-webhook-verifier';
 import { PaymentOutboxRelayWorker } from '../src/modules/payments/payment-outbox-relay.worker';
 import { PaymentReconciliationWorker } from '../src/modules/payments/payment-reconciliation.worker';
@@ -11,13 +11,14 @@ import { PaymentAuthorizedWebhookCommand, PaymentService } from '../src/modules/
 
 const PROVIDER_URL = 'https://acquiring.test';
 const WEBHOOK_SECRET = 'payment-webhook-test-secret';
+const PROVIDER_PAYMENT_ID = 'provider-payment-reliability';
 
 jest.setTimeout(30_000);
 
 describe('Payment reliability: signed webhook, outbox void and reconciliation', () => {
   let database: DatabaseService;
   let service: PaymentService;
-  let acquiringApi: AcquiringApi;
+  let acquiringClient: AcquiringClient;
   let relay: PaymentOutboxRelayWorker;
   let reconciliation: PaymentReconciliationWorker;
   let verifier: AcquiringWebhookVerifier;
@@ -29,10 +30,10 @@ describe('Payment reliability: signed webhook, outbox void and reconciliation', 
     process.env.ACQUIRING_WEBHOOK_SECRET = WEBHOOK_SECRET;
 
     database = new DatabaseService();
-    service = new PaymentService(database);
-    acquiringApi = new AcquiringApi(new HttpService(axios.create({ proxy: false })));
-    relay = new PaymentOutboxRelayWorker(database, acquiringApi);
-    reconciliation = new PaymentReconciliationWorker(database, acquiringApi);
+    acquiringClient = new AcquiringClient(new HttpService(axios.create({ proxy: false })));
+    service = new PaymentService(database, acquiringClient);
+    relay = new PaymentOutboxRelayWorker(database, acquiringClient);
+    reconciliation = new PaymentReconciliationWorker(database, acquiringClient);
     verifier = new AcquiringWebhookVerifier();
     nock.disableNetConnect();
   });
@@ -58,7 +59,7 @@ describe('Payment reliability: signed webhook, outbox void and reconciliation', 
     const rawPayload = JSON.stringify({
       idempotencyKey: fixture.intent.idempotencyKey,
       eventId: 'provider-event-reliability',
-      providerPaymentId: 'provider-payment-reliability',
+      providerPaymentId: PROVIDER_PAYMENT_ID,
     });
     const signature = createHmac('sha256', WEBHOOK_SECRET).update(Buffer.from(rawPayload)).digest('hex');
     expect(verifier.verify(Buffer.from(rawPayload), `sha256=${signature}`)).toBe(true);
@@ -67,7 +68,7 @@ describe('Payment reliability: signed webhook, outbox void and reconciliation', 
     const command: PaymentAuthorizedWebhookCommand = {
       idempotencyKey: fixture.intent.idempotencyKey,
       providerEventId: 'provider-event-reliability',
-      providerPaymentId: 'provider-payment-reliability',
+      providerPaymentId: PROVIDER_PAYMENT_ID,
       rawPayload,
       payloadSha256: createHash('sha256').update(rawPayload).digest('hex'),
     };
@@ -76,8 +77,9 @@ describe('Payment reliability: signed webhook, outbox void and reconciliation', 
     });
 
     const voidScope = nock(PROVIDER_URL)
-      .matchHeader('x-api-key', 'acquiring-test-key')
-      .post(`/v1/payments/${fixture.intent.id}/void`, { paymentIntentId: fixture.intent.id })
+      .matchHeader('authorization', 'Bearer acquiring-test-key')
+      .matchHeader('idempotency-key', `void:${fixture.intent.id}`)
+      .post(`/v1/payment-intents/${PROVIDER_PAYMENT_ID}/void`, { merchantPaymentId: fixture.intent.id })
       .reply(200, { status: 'PENDING' });
     await relay.relay();
     expect(voidScope.isDone()).toBe(true);
@@ -85,8 +87,8 @@ describe('Payment reliability: signed webhook, outbox void and reconciliation', 
     await expectLedger(database, fixture.intent.id, 'VOID_SENT');
 
     const reconciliationScope = nock(PROVIDER_URL)
-      .matchHeader('x-api-key', 'acquiring-test-key')
-      .get(`/v1/payments/${fixture.intent.id}`)
+      .matchHeader('authorization', 'Bearer acquiring-test-key')
+      .get(`/v1/payment-intents/${PROVIDER_PAYMENT_ID}`)
       .reply(200, { status: 'VOIDED' });
     await reconciliation.reconcile();
     expect(reconciliationScope.isDone()).toBe(true);
@@ -110,7 +112,13 @@ async function createExpiredPaymentFixture(database: DatabaseService, service: P
   await database.query(`INSERT INTO clinic_schema.appointment_slots (id, clinic_location_id, starts_at, ends_at, capacity, held_count) VALUES ($1::uuid, $2::uuid, clock_timestamp() + interval '1 hour', clock_timestamp() + interval '90 minutes', 1, 1)`, [slotId, locationId]);
   await database.query(`INSERT INTO booking_schema.booking_holds (id, slot_id, owner_id, pet_id, state, expires_at) VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, 'MIS_HELD', clock_timestamp() + interval '10 minutes')`, [holdId, slotId, ownerId, petId]);
 
+  const createScope = nock(PROVIDER_URL)
+    .matchHeader('authorization', 'Bearer acquiring-test-key')
+    .matchHeader('idempotency-key', (value) => typeof value === 'string' && value.length > 0)
+    .post('/v1/payment-intents', (body) => typeof body?.merchantPaymentId === 'string' && body.amount === 1000)
+    .reply(201, { id: PROVIDER_PAYMENT_ID, checkoutUrl: 'https://checkout.test/reliability' });
   const intent = await service.createPaymentIntent(holdId, ownerId);
+  expect(createScope.isDone()).toBe(true);
   await database.query(`UPDATE booking_schema.booking_holds SET state = 'EXPIRED', version = version + 1 WHERE id = $1::uuid`, [holdId]);
   return { intent };
 }
@@ -140,9 +148,7 @@ async function expectPaymentTimestamps(
   expected: { void_sent_at: boolean; void_confirmed_at: boolean },
 ): Promise<void> {
   const result = await database.query<{ void_sent_at: Date | null; void_confirmed_at: Date | null }>(
-    `SELECT void_sent_at, void_confirmed_at
-     FROM payment_schema.payment_intents
-     WHERE id = $1::uuid`,
+    `SELECT void_sent_at, void_confirmed_at FROM payment_schema.payment_intents WHERE id = $1::uuid`,
     [paymentIntentId],
   );
   expect(Boolean(result.rows[0]?.void_sent_at)).toBe(expected.void_sent_at);
@@ -151,9 +157,7 @@ async function expectPaymentTimestamps(
 
 async function expectLedger(database: DatabaseService, paymentIntentId: string, type: string): Promise<void> {
   const result = await database.query<{ count: string }>(
-    `SELECT COUNT(*)::text AS count
-     FROM payment_schema.ledger_entries
-     WHERE payment_intent_id = $1::uuid AND entry_type = $2`,
+    `SELECT COUNT(*)::text AS count FROM payment_schema.ledger_entries WHERE payment_intent_id = $1::uuid AND entry_type = $2`,
     [paymentIntentId, type],
   );
   expect(result.rows[0].count).toBe('1');
