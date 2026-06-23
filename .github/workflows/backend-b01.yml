@@ -81,6 +81,9 @@ jobs:
       - name: Run durable payment reliability tests
         run: npm test -- test/payment-reliability.integration-spec.ts
 
+      - name: Run remote intent and capture tests
+        run: npm test -- test/payment-remote-intent-capture.integration-spec.ts
+
       - name: Prepare deterministic B-01 fixture
         run: |
           node dist/scripts/b01-fixture.js > /tmp/b01-fixture.json
