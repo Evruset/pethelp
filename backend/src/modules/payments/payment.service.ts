@@ -29,6 +29,10 @@ interface PaymentWebhookRow {
   hold_current_version: number;
 }
 
+type WebhookOutcome =
+  | { kind: 'AUTHORIZED'; result: PaymentIntentResult }
+  | { kind: 'FENCED'; paymentId: string; code: string; message: string };
+
 @Injectable()
 export class PaymentService {
   private readonly logger = new Logger(PaymentService.name);
@@ -53,11 +57,7 @@ export class PaymentService {
         if (!hold.rows[0]) throw DomainErrors.holdNotFound();
         if (hold.rows[0].owner_id !== ownerId) throw DomainErrors.holdOwnerMismatch();
         if (hold.rows[0].state !== 'MIS_HELD') {
-          throw new DomainException(
-            HttpStatus.UNPROCESSABLE_ENTITY,
-            'PAYMENT_HOLD_NOT_READY',
-            'Payment can be created only for MIS_HELD hold',
-          );
+          throw new DomainException(HttpStatus.UNPROCESSABLE_ENTITY, 'PAYMENT_HOLD_NOT_READY', 'Payment can be created only for MIS_HELD hold');
         }
 
         const idempotencyKey = randomUUID();
@@ -86,103 +86,91 @@ export class PaymentService {
   }
 
   async handlePaymentAuthorized(idempotencyKey: string): Promise<PaymentIntentResult> {
-    let paymentToVoid: string | undefined;
+    const outcome = await this.database.withTransaction(async (client): Promise<WebhookOutcome> => {
+      await this.setInteractiveTransactionLimits(client);
 
-    try {
-      const result = await this.database.withTransaction(async (client) => {
-        await this.setInteractiveTransactionLimits(client);
+      const locked = await client.query<PaymentWebhookRow>(`
+        SELECT
+          p.id,
+          p.hold_id,
+          p.hold_version,
+          p.status AS payment_status,
+          h.state AS hold_state,
+          h.version AS hold_current_version
+        FROM payment_schema.payment_intents p
+        JOIN booking_schema.booking_holds h ON p.hold_id = h.id
+        WHERE p.idempotency_key = $1
+        FOR UPDATE OF p, h
+      `, [idempotencyKey]);
 
-        const locked = await client.query<PaymentWebhookRow>(`
-          SELECT
-            p.id,
-            p.hold_id,
-            p.hold_version,
-            p.status AS payment_status,
-            h.state AS hold_state,
-            h.version AS hold_current_version
-          FROM payment_schema.payment_intents p
-          JOIN booking_schema.booking_holds h ON p.hold_id = h.id
-          WHERE p.idempotency_key = $1
-          FOR UPDATE OF p, h
-        `, [idempotencyKey]);
-
-        const row = locked.rows[0];
-        if (!row) {
-          throw new DomainException(HttpStatus.NOT_FOUND, 'PAYMENT_INTENT_NOT_FOUND', 'Payment intent not found');
-        }
-
-        if (row.payment_status === 'AUTHORIZED') {
-          return this.readPaymentIntent(client, row.id);
-        }
-
-        if (row.hold_state === 'EXPIRED' || row.hold_state === 'MIS_BOOKING_FAILED') {
-          await client.query(`
-            UPDATE payment_schema.payment_intents
-            SET status = 'VOIDED', updated_at = clock_timestamp()
-            WHERE id = $1::uuid AND status <> 'VOIDED'
-          `, [row.id]);
-          paymentToVoid = row.id;
-          throw new DomainException(
-            HttpStatus.UNPROCESSABLE_ENTITY,
-            'PAYMENT_FENCED_SLOT_EXPIRED',
-            'Payment was authorized after hold became terminal',
-          );
-        }
-
-        if (row.hold_state !== 'MIS_HELD') {
-          throw new DomainException(
-            HttpStatus.UNPROCESSABLE_ENTITY,
-            'PAYMENT_HOLD_NOT_READY',
-            'Payment webhook cannot confirm the current hold state',
-          );
-        }
-
-        if (row.hold_current_version !== row.hold_version) {
-          await client.query(`
-            UPDATE payment_schema.payment_intents
-            SET status = 'VOIDED', updated_at = clock_timestamp()
-            WHERE id = $1::uuid AND status <> 'VOIDED'
-          `, [row.id]);
-          paymentToVoid = row.id;
-          throw new DomainException(
-            HttpStatus.UNPROCESSABLE_ENTITY,
-            'PAYMENT_FENCED_HOLD_VERSION_MISMATCH',
-            'Payment fence version does not match current hold version',
-          );
-        }
-
-        await client.query(`
-          UPDATE payment_schema.payment_intents
-          SET status = 'AUTHORIZED', updated_at = clock_timestamp()
-          WHERE id = $1::uuid
-        `, [row.id]);
-
-        await client.query(`
-          UPDATE booking_schema.booking_holds
-          SET state = 'CONFIRMED',
-              state_changed_at = clock_timestamp(),
-              version = version + 1,
-              updated_at = clock_timestamp()
-          WHERE id = $1::uuid AND state = 'MIS_HELD' AND version = $2
-        `, [row.hold_id, row.hold_version]);
-
-        await client.query(`
-          INSERT INTO audit_schema.audit_log (
-            actor_type, actor_id, action, aggregate_type,
-            aggregate_id, payload_json
-          ) VALUES ('SYSTEM', NULL, 'payment.authorized', 'booking_hold', $1::uuid, $2::jsonb)
-        `, [row.hold_id, JSON.stringify({ paymentIntentId: row.id, holdVersion: row.hold_version })]);
-
-        return this.readPaymentIntent(client, row.id);
-      });
-
-      return result;
-    } catch (error) {
-      if (paymentToVoid) {
-        await this.safeVoid(paymentToVoid);
+      const row = locked.rows[0];
+      if (!row) {
+        throw new DomainException(HttpStatus.NOT_FOUND, 'PAYMENT_INTENT_NOT_FOUND', 'Payment intent not found');
       }
-      throw error;
+
+      if (row.payment_status === 'AUTHORIZED') {
+        return { kind: 'AUTHORIZED', result: await this.readPaymentIntent(client, row.id) };
+      }
+
+      if (row.hold_state === 'EXPIRED' || row.hold_state === 'MIS_BOOKING_FAILED') {
+        await this.markVoided(client, row.id);
+        return { kind: 'FENCED', paymentId: row.id, code: 'PAYMENT_FENCED_SLOT_EXPIRED', message: 'Payment was authorized after hold became terminal' };
+      }
+
+      if (row.hold_state !== 'MIS_HELD') {
+        throw new DomainException(HttpStatus.UNPROCESSABLE_ENTITY, 'PAYMENT_HOLD_NOT_READY', 'Payment webhook cannot confirm the current hold state');
+      }
+
+      if (row.hold_current_version !== row.hold_version) {
+        await this.markVoided(client, row.id);
+        return { kind: 'FENCED', paymentId: row.id, code: 'PAYMENT_FENCED_HOLD_VERSION_MISMATCH', message: 'Payment fence version does not match current hold version' };
+      }
+
+      await client.query(`
+        UPDATE payment_schema.payment_intents
+        SET status = 'AUTHORIZED', updated_at = clock_timestamp()
+        WHERE id = $1::uuid
+      `, [row.id]);
+
+      const confirmed = await client.query<{ id: string }>(`
+        UPDATE booking_schema.booking_holds
+        SET state = 'CONFIRMED',
+            state_changed_at = clock_timestamp(),
+            version = version + 1,
+            updated_at = clock_timestamp()
+        WHERE id = $1::uuid AND state = 'MIS_HELD' AND version = $2
+        RETURNING id
+      `, [row.hold_id, row.hold_version]);
+
+      if (!confirmed.rows[0]) {
+        await this.markVoided(client, row.id);
+        return { kind: 'FENCED', paymentId: row.id, code: 'PAYMENT_FENCED_HOLD_VERSION_MISMATCH', message: 'Hold changed before payment authorization commit' };
+      }
+
+      await client.query(`
+        INSERT INTO audit_schema.audit_log (
+          actor_type, actor_id, action, aggregate_type,
+          aggregate_id, payload_json
+        ) VALUES ('SYSTEM', NULL, 'payment.authorized', 'booking_hold', $1::uuid, $2::jsonb)
+      `, [row.hold_id, JSON.stringify({ paymentIntentId: row.id, holdVersion: row.hold_version })]);
+
+      return { kind: 'AUTHORIZED', result: await this.readPaymentIntent(client, row.id) };
+    });
+
+    if (outcome.kind === 'FENCED') {
+      await this.safeVoid(outcome.paymentId);
+      throw new DomainException(HttpStatus.UNPROCESSABLE_ENTITY, outcome.code, outcome.message);
     }
+
+    return outcome.result;
+  }
+
+  private async markVoided(client: PoolClient, paymentId: string): Promise<void> {
+    await client.query(`
+      UPDATE payment_schema.payment_intents
+      SET status = 'VOIDED', updated_at = clock_timestamp()
+      WHERE id = $1::uuid AND status <> 'VOIDED'
+    `, [paymentId]);
   }
 
   private async readPaymentIntent(client: PoolClient, paymentId: string): Promise<PaymentIntentResult> {
@@ -218,9 +206,7 @@ export class PaymentService {
     if (typeof error === 'object' && error !== null && 'code' in error) {
       const pgCode = String((error as { code?: unknown }).code);
       if (pgCode === '55P03' || pgCode === '57014') return DomainErrors.slotLockedRetry();
-      if (pgCode === '23505') {
-        return new DomainException(HttpStatus.CONFLICT, 'PAYMENT_INTENT_ALREADY_EXISTS', 'Payment intent already exists for hold version');
-      }
+      if (pgCode === '23505') return new DomainException(HttpStatus.CONFLICT, 'PAYMENT_INTENT_ALREADY_EXISTS', 'Payment intent already exists for hold version');
     }
     return new DomainException(HttpStatus.SERVICE_UNAVAILABLE, 'PAYMENT_TEMPORARILY_UNAVAILABLE', 'Payment service is temporarily unavailable');
   }
