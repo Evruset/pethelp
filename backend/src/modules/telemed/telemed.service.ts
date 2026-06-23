@@ -3,6 +3,7 @@ import { createHmac, randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { DomainException, DomainErrors } from '../../common/domain-error';
 import { DatabaseService } from '../../database/database.service';
+import { TraceContext } from '../../observability/trace-context.context';
 
 export type TelemedSessionState = 'WAITING_FOR_DOCTOR' | 'CONNECTED' | 'COMPLETED' | 'DOCTOR_TIMEOUT';
 
@@ -35,7 +36,10 @@ export class TelemedService {
   private static readonly WAITING_TTL_MINUTES = 5;
   private static readonly VIDEO_TOKEN_TTL_SECONDS = 30 * 60;
 
-  constructor(private readonly database: DatabaseService) {}
+  constructor(
+    private readonly database: DatabaseService,
+    private readonly traceContext: TraceContext,
+  ) {}
 
   /**
    * Idempotent activation called from the durable CONFIRMED -> telemed outbox path.
@@ -60,16 +64,18 @@ export class TelemedService {
       const roomName = `telemed-${bookingHoldId.replace(/-/g, '')}`;
       const session = await client.query<TelemedSessionResult>(`
         INSERT INTO telemed_schema.telemed_sessions (
-          booking_hold_id, owner_id, state, room_name, expires_at
+          booking_hold_id, owner_id, state, room_name, correlation_id, expires_at
         ) VALUES (
           $1::uuid,
           $2::uuid,
           'WAITING_FOR_DOCTOR',
           $3,
+          $4::uuid,
           clock_timestamp() + interval '${TelemedService.WAITING_TTL_MINUTES} minutes'
         )
         ON CONFLICT (booking_hold_id) DO UPDATE
-        SET booking_hold_id = EXCLUDED.booking_hold_id
+        SET booking_hold_id = EXCLUDED.booking_hold_id,
+            correlation_id = COALESCE(telemed_schema.telemed_sessions.correlation_id, EXCLUDED.correlation_id)
         RETURNING
           id,
           booking_hold_id AS "bookingHoldId",
@@ -80,7 +86,7 @@ export class TelemedService {
           version,
           expires_at AS "expiresAt",
           created_at AS "createdAt"
-      `, [bookingHoldId, holdRow.owner_id, roomName]);
+      `, [bookingHoldId, holdRow.owner_id, roomName, this.traceContext.getCorrelationId() ?? null]);
 
       return session.rows[0];
     });
