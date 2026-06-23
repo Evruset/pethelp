@@ -68,6 +68,8 @@ jobs:
         run: |
           npm run migrate:up
           npm run migrate:verify
+      - name: Run platform E2E smoke test
+        run: npm test -- test/platform-smoke.e2e-spec.ts
       - name: Run observability trace tests
         run: npm test -- test/observability-trace.integration-spec.ts
       - name: Run Marketplace Alpha alternative slot tests
