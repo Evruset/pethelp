@@ -24,14 +24,21 @@ exports.up = (pgm) => {
       ADD CONSTRAINT appointment_slots_integration_mode_check
       CHECK (integration_mode IN ('LEVEL_A', 'LEVEL_B', 'LEVEL_C'));
 
-    UPDATE clinic_schema.appointment_slots
+    /* Existing linked clinics remain Level A; manual clinics become Level C. */
+    UPDATE clinic_schema.appointment_slots s
     SET status = CASE
-      WHEN booked_count >= capacity THEN 'BOOKED'
-      WHEN held_count > 0 THEN 'LOCKED_BY_HOLD'
-      ELSE 'AVAILABLE'
-    END,
-    last_freshness_sync = COALESCE(last_freshness_sync, clock_timestamp()),
-    integration_mode = COALESCE(integration_mode, 'LEVEL_C');
+          WHEN s.booked_count >= s.capacity THEN 'BOOKED'
+          WHEN s.held_count > 0 THEN 'LOCKED_BY_HOLD'
+          ELSE 'AVAILABLE'
+        END,
+        last_freshness_sync = COALESCE(s.last_freshness_sync, clock_timestamp()),
+        integration_mode = CASE
+          WHEN c.mis_type IS NOT NULL THEN 'LEVEL_A'
+          ELSE 'LEVEL_C'
+        END
+    FROM clinic_schema.clinic_locations l
+    JOIN clinic_schema.clinics c ON c.id = l.clinic_id
+    WHERE l.id = s.clinic_location_id;
 
     ALTER TABLE booking_schema.booking_holds
       ADD COLUMN IF NOT EXISTS confirmation_sla_expires_at timestamptz,
