@@ -1,10 +1,12 @@
 import { HoldState } from './booking.types';
 
 const transitions: Record<HoldState, readonly HoldState[]> = {
-  MANUAL_CONFIRM_PENDING: ['CONFIRMED', 'EXPIRED', 'RELEASED'],
+  MANUAL_CONFIRM_PENDING: ['ALTERNATIVE_PENDING', 'CONFIRMED', 'EXPIRED', 'RELEASED', 'SLA_BREACHED'],
+  ALTERNATIVE_PENDING: ['CONFIRMED', 'EXPIRED', 'RELEASED'],
   CONFIRMED: [],
   EXPIRED: [],
   RELEASED: [],
+  SLA_BREACHED: [],
   MIS_RESERVATION_PENDING: ['MIS_HELD', 'MIS_BOOKING_FAILED', 'RELEASED'],
   MIS_HELD: ['PAYMENT_PENDING', 'RELEASED'],
   PAYMENT_PENDING: ['PAYMENT_IN_PROGRESS', 'RELEASED'],
@@ -18,5 +20,5 @@ export function canTransition(from: HoldState, to: HoldState): boolean {
 }
 
 export function isMvpTerminalState(state: HoldState): boolean {
-  return state === 'CONFIRMED' || state === 'EXPIRED' || state === 'RELEASED';
+  return state === 'CONFIRMED' || state === 'EXPIRED' || state === 'RELEASED' || state === 'SLA_BREACHED';
 }
