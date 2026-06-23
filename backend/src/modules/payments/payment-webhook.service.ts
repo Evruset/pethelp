@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { DomainException } from '../../common/domain-error';
 import { ObservabilityMetricsService } from '../../observability/observability.metrics';
+import { PaymentRefundedWebhookCommand, PaymentRefundService } from './payment-refund.service';
 import { PaymentAuthorizedWebhookCommand, PaymentIntentResult, PaymentService } from './payment.service';
 
 @Injectable()
 export class PaymentWebhookService {
   constructor(
     private readonly paymentService: PaymentService,
+    private readonly paymentRefundService: PaymentRefundService,
     private readonly metrics: ObservabilityMetricsService,
   ) {}
 
@@ -26,5 +28,9 @@ export class PaymentWebhookService {
       }
       throw error;
     }
+  }
+
+  async handleRefunded(command: PaymentRefundedWebhookCommand): Promise<void> {
+    return this.paymentRefundService.handlePaymentRefunded(command);
   }
 }

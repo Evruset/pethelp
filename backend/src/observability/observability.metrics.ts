@@ -4,7 +4,8 @@ import { ContextLoggerService } from './context-logger.service';
 export type AlertType =
   | 'MIS_INTEGRATION_TIMEOUT'
   | 'PAYMENT_FENCING_TRIGGERED'
-  | 'SLA_AUTO_VOID_FAILED';
+  | 'SLA_AUTO_VOID_FAILED'
+  | 'REFUND_FAILED';
 
 @Injectable()
 export class ObservabilityMetricsService {

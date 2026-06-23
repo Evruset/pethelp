@@ -18,6 +18,12 @@ interface PaymentAuthorizedWebhookDto {
   providerPaymentId?: string;
 }
 
+interface PaymentRefundedWebhookDto {
+  idempotencyKey?: string;
+  eventId?: string;
+  providerRefundId?: string;
+}
+
 interface RawBodyRequest extends Request {
   rawBody?: Buffer;
 }
@@ -58,11 +64,7 @@ export class PaymentController {
     @Headers('x-acquiring-event-id') providerEventHeader?: string,
     @Headers('idempotency-key') idempotencyHeader?: string,
   ): Promise<PaymentIntentResult> {
-    const rawPayload = request.rawBody;
-    if (!rawPayload || !this.webhookVerifier.verify(rawPayload, signature)) {
-      throw new UnauthorizedException({ code: 'ACQUIRING_WEBHOOK_SIGNATURE_INVALID', message: 'Acquiring webhook signature is invalid' });
-    }
-
+    const rawPayload = this.requireVerifiedRawBody(request, signature);
     return this.paymentWebhookService.handleAuthorized({
       idempotencyKey: body.idempotencyKey ?? idempotencyHeader ?? '',
       providerEventId: body.eventId ?? providerEventHeader ?? '',
@@ -70,5 +72,36 @@ export class PaymentController {
       rawPayload: rawPayload.toString('utf8'),
       payloadSha256: createHash('sha256').update(rawPayload).digest('hex'),
     });
+  }
+
+  @Post('payments/webhooks/refunded')
+  @ApiOperation({ summary: 'Подписанный webhook полного refund: фиксирует REFUNDED и immutable ledger confirmation' })
+  @ApiHeader({ name: 'X-Acquiring-Signature', required: true, schema: { type: 'string' } })
+  @ApiHeader({ name: 'X-Acquiring-Event-Id', required: true, schema: { type: 'string' } })
+  @ApiHeader({ name: 'Idempotency-Key', required: false, schema: { type: 'string' } })
+  @ApiUnauthorizedResponse({ description: 'Подпись эквайринга невалидна.' })
+  async paymentRefunded(
+    @Req() request: RawBodyRequest,
+    @Body() body: PaymentRefundedWebhookDto,
+    @Headers('x-acquiring-signature') signature?: string,
+    @Headers('x-acquiring-event-id') providerEventHeader?: string,
+    @Headers('idempotency-key') idempotencyHeader?: string,
+  ): Promise<void> {
+    const rawPayload = this.requireVerifiedRawBody(request, signature);
+    await this.paymentWebhookService.handleRefunded({
+      idempotencyKey: body.idempotencyKey ?? idempotencyHeader ?? '',
+      providerEventId: body.eventId ?? providerEventHeader ?? '',
+      providerRefundId: body.providerRefundId,
+      rawPayload: rawPayload.toString('utf8'),
+      payloadSha256: createHash('sha256').update(rawPayload).digest('hex'),
+    });
+  }
+
+  private requireVerifiedRawBody(request: RawBodyRequest, signature?: string): Buffer {
+    const rawPayload = request.rawBody;
+    if (!rawPayload || !this.webhookVerifier.verify(rawPayload, signature)) {
+      throw new UnauthorizedException({ code: 'ACQUIRING_WEBHOOK_SIGNATURE_INVALID', message: 'Acquiring webhook signature is invalid' });
+    }
+    return rawPayload;
   }
 }
