@@ -53,8 +53,8 @@ describe('Remote acquiring intent and two-phase capture', () => {
     const fixture = await createFixture(database);
     const createScope = nock(PROVIDER_URL)
       .matchHeader('authorization', `Bearer ${PROVIDER_KEY}`)
-      .matchHeader('idempotency-key', (value) => typeof value === 'string' && value.length > 0)
-      .post('/v1/payment-intents', (body) => typeof body?.merchantPaymentId === 'string' && body.amount === 1000)
+      .matchHeader('idempotency-key', (value: string) => value.length > 0)
+      .post('/v1/payment-intents', (body: { merchantPaymentId?: unknown; amount?: unknown }) => typeof body.merchantPaymentId === 'string' && body.amount === 1000)
       .reply(201, { remoteId: REMOTE_ID, checkoutUrl: 'https://checkout.test/capture-1' });
 
     const intent = await service.createPaymentIntent(fixture.holdId, fixture.ownerId);
