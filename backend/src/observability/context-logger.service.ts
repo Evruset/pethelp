@@ -1,11 +1,15 @@
-import { Injectable, LoggerService } from '@nestjs/common';
+import { Injectable, LoggerService, Optional } from '@nestjs/common';
+import { AlertForwarderService, type JsonLogPayload } from './alert-forwarder.service';
 import { TraceContext } from './trace-context.context';
 
 type LogLevel = 'log' | 'error' | 'warn' | 'debug' | 'verbose' | 'fatal';
 
 @Injectable()
 export class ContextLoggerService implements LoggerService {
-  constructor(private readonly traceContext: TraceContext) {}
+  constructor(
+    private readonly traceContext: TraceContext,
+    @Optional() private readonly alertForwarder?: AlertForwarderService,
+  ) {}
 
   log(message: unknown, ...optionalParams: unknown[]): void {
     this.write('log', message, this.contextFrom(optionalParams));
@@ -44,7 +48,7 @@ export class ContextLoggerService implements LoggerService {
 
   private write(level: LogLevel, message: unknown, context?: string, fields: Record<string, unknown> = {}): void {
     const trace = this.traceContext.get();
-    const payload = {
+    const payload: JsonLogPayload = {
       timestamp: new Date().toISOString(),
       level: level === 'log' ? 'info' : level,
       context: context ?? 'VetHelp',
@@ -57,6 +61,20 @@ export class ContextLoggerService implements LoggerService {
 
     if (level === 'error' || level === 'fatal') console.error(line);
     else console.log(line);
+
+    // Alert transport is intentionally decoupled from the request path. JSON
+    // logging remains the source record even if Telegram/Slack is unavailable.
+    if (this.alertForwarder?.isCriticalAlertPayload(payload)) {
+      void this.alertForwarder.forward(payload).catch((error: unknown) => {
+        console.error(JSON.stringify({
+          timestamp: new Date().toISOString(),
+          level: 'error',
+          context: 'AlertForwarder',
+          message: error instanceof Error ? error.message : 'Alert forwarding failed',
+          correlationId: payload.correlationId,
+        }));
+      });
+    }
   }
 
   private toMessage(message: unknown): string {
