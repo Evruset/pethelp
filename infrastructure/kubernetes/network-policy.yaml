@@ -1,0 +1,83 @@
+# Requires a CNI that enforces Kubernetes NetworkPolicy (for example Calico,
+# Cilium or Antrea). Apply after namespace/pod labels are in place.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vethelp-backend-restricted
+  namespace: internal
+  labels:
+    app.kubernetes.io/name: vethelp-backend
+    app.kubernetes.io/part-of: vethelp
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: vethelp-backend
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Public API and allowlisted webhooks enter only through ingress-nginx.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+              app.kubernetes.io/component: controller
+      ports:
+        - protocol: TCP
+          port: 3000
+    # Internal callers must be explicitly labelled. They call the ClusterIP
+    # Service rather than the public hostname and can reach /internal/*.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: internal
+          podSelector:
+            matchLabels:
+              vethelp.io/internal-caller: "true"
+      ports:
+        - protocol: TCP
+          port: 3000
+  egress:
+    # DNS is required because PostgreSQL/MIS/acquiring are addressed by host.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # PostgreSQL pod. Keep these labels aligned with the actual StatefulSet.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: internal
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgresql
+              app.kubernetes.io/component: database
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Replace TEST-NET CIDRs with the vendor's published egress ranges before
+    # Alpha. Standard NetworkPolicy is CIDR/pod based and cannot safely enforce
+    # FQDN-only egress without CNI-specific FQDN policy or an egress gateway.
+    - to:
+        - ipBlock:
+            cidr: 203.0.113.0/24 # MIS_API_EGRESS_CIDR
+      ports:
+        - protocol: TCP
+          port: 443
+    - to:
+        - ipBlock:
+            cidr: 198.51.100.0/24 # ACQUIRING_API_EGRESS_CIDR
+      ports:
+        - protocol: TCP
+          port: 443
