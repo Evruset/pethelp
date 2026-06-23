@@ -1,21 +1,25 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { DatabaseService } from '../../database/database.service';
+import { ContextLoggerService } from '../../observability/context-logger.service';
+import { TraceContext } from '../../observability/trace-context.context';
 import { TelemedService } from './telemed.service';
 
 interface StartSessionOutboxEvent {
   id: string;
   booking_hold_id: string;
+  correlation_id: string | null;
 }
 
 @Injectable()
 export class TelemedSessionStartWorker {
-  private readonly logger = new Logger(TelemedSessionStartWorker.name);
   private running = false;
 
   constructor(
     private readonly database: DatabaseService,
     private readonly telemedService: TelemedService,
+    private readonly traceContext: TraceContext,
+    private readonly logger: ContextLoggerService,
   ) {}
 
   @Cron(CronExpression.EVERY_5_SECONDS)
@@ -25,14 +29,24 @@ export class TelemedSessionStartWorker {
     try {
       const events = await this.claimBatch(10);
       for (const event of events) {
-        try {
-          await this.telemedService.startSessionAfterPayment(event.booking_hold_id);
-          await this.markPublished(event.id);
-        } catch (error) {
-          const message = error instanceof Error ? error.message : 'Telemedicine session activation failed';
-          this.logger.error(`Telemedicine outbox event ${event.id} failed: ${message}`);
-          await this.releaseForRetry(event.id, message);
-        }
+        await this.traceContext.run(this.traceContext.workerContext(event.correlation_id), async () => {
+          try {
+            await this.telemedService.startSessionAfterPayment(event.booking_hold_id);
+            await this.markPublished(event.id);
+            this.logger.event('debug', TelemedSessionStartWorker.name, 'Telemedicine session started from outbox', {
+              outboxEventId: event.id,
+              bookingHoldId: event.booking_hold_id,
+            });
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Telemedicine session activation failed';
+            this.logger.event('error', TelemedSessionStartWorker.name, 'Telemedicine session activation failed', {
+              outboxEventId: event.id,
+              bookingHoldId: event.booking_hold_id,
+              error: message,
+            });
+            await this.releaseForRetry(event.id, message);
+          }
+        });
       }
     } finally {
       this.running = false;
@@ -59,7 +73,7 @@ export class TelemedSessionStartWorker {
             attempts = attempts + 1
         FROM claimed
         WHERE e.id = claimed.id
-        RETURNING e.id, e.aggregate_id AS booking_hold_id
+        RETURNING e.id, e.aggregate_id AS booking_hold_id, e.correlation_id
       `, [limit]);
       return result.rows;
     });
