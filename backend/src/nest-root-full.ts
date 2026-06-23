@@ -6,11 +6,21 @@ import { DatabaseModule } from './database/database.module';
 import { HealthController } from './health.controller';
 import { MisIntegrationModule } from './modules/mis-integration/mis-integration.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { TelemedModule } from './modules/telemed/telemed.module';
 import { OutboxModule } from './outbox/outbox.module';
 import { WorkersModule } from './workers/workers.module';
 
 @NestModule({
-  imports: [DatabaseModule, AuthModule, BookingCoreModule, OutboxModule, WorkersModule, MisIntegrationModule, PaymentsModule],
+  imports: [
+    DatabaseModule,
+    AuthModule,
+    BookingCoreModule,
+    OutboxModule,
+    WorkersModule,
+    MisIntegrationModule,
+    PaymentsModule,
+    TelemedModule,
+  ],
   controllers: [HealthController],
 })
 export class NestRoot implements NestModuleContract {
