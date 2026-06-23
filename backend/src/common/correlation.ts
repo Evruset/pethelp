@@ -1,20 +1,11 @@
-import { Injectable, NestMiddleware } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
-import type { NextFunction, Request, Response } from 'express';
+import type { Request } from 'express';
+import { TraceContext } from '../observability/trace-context.context';
+import { CORRELATION_ID_HEADER, TraceMiddleware } from '../observability/trace.middleware';
 
-export const CORRELATION_ID_HEADER = 'x-correlation-id';
+export { CORRELATION_ID_HEADER };
+export { TraceMiddleware as CorrelationIdMiddleware };
 
+/** @deprecated Inject TraceContext or rely on TraceMiddleware instead. */
 export function correlationIdFromRequest(request: Request): string {
-  const value = request.header(CORRELATION_ID_HEADER);
-  return value && value.length <= 128 ? value : randomUUID();
-}
-
-@Injectable()
-export class CorrelationIdMiddleware implements NestMiddleware {
-  use(request: Request, response: Response, next: NextFunction): void {
-    const correlationId = correlationIdFromRequest(request);
-    request.headers[CORRELATION_ID_HEADER] = correlationId;
-    response.setHeader('X-Correlation-ID', correlationId);
-    next();
-  }
+  return new TraceContext().correlationIdFromHeader(request.headers[CORRELATION_ID_HEADER]);
 }
