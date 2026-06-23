@@ -10,7 +10,7 @@ import { SWAGGER_BEARER_AUTH } from '../openapi/openapi';
 import { AlternativeSlotService } from './alternative-slot.service';
 import { ProposeAlternativeSlotDto } from './dto/propose-alternative-slot.dto';
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function holdIdOrThrow(value: string): string {
   if (!UUID.test(value)) throw DomainErrors.holdNotFound();
