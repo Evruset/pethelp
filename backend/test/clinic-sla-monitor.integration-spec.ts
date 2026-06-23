@@ -19,33 +19,39 @@ describe('ClinicSlaMonitorWorker', () => {
   });
 
   it('marks an overdue Level-C manual hold as SLA_BREACHED and releases its slot', async () => {
+    const previousWorkersEnabled = process.env.WORKERS_ENABLED;
+    process.env.WORKERS_ENABLED = 'true';
     const fixture = await createSlaFixture(database);
     const alertSpy = jest.spyOn(metrics, 'critical').mockImplementation();
 
-    await worker.monitorManualConfirmationSla();
+    try {
+      await worker.monitorManualConfirmationSla();
 
-    const result = await database.query<{ state: string; held_count: number; status: string; breached_events: string }>(`
-      SELECT
-        (SELECT state FROM booking_schema.booking_holds WHERE id = $1::uuid) AS state,
-        (SELECT held_count FROM clinic_schema.appointment_slots WHERE id = $2::uuid) AS held_count,
-        (SELECT status FROM clinic_schema.appointment_slots WHERE id = $2::uuid) AS status,
-        (SELECT COUNT(*)::text FROM booking_schema.outbox_events WHERE event_type = 'clinic.sla.breached.v1' AND aggregate_id = $1::uuid) AS breached_events
-    `, [fixture.holdId, fixture.slotId]);
+      const result = await database.query<{ state: string; held_count: number; status: string; breached_events: string }>(`
+        SELECT
+          (SELECT state FROM booking_schema.booking_holds WHERE id = $1::uuid) AS state,
+          (SELECT held_count FROM clinic_schema.appointment_slots WHERE id = $2::uuid) AS held_count,
+          (SELECT status FROM clinic_schema.appointment_slots WHERE id = $2::uuid) AS status,
+          (SELECT COUNT(*)::text FROM booking_schema.outbox_events WHERE event_type = 'clinic.sla.breached.v1' AND aggregate_id = $1::uuid) AS breached_events
+      `, [fixture.holdId, fixture.slotId]);
 
-    expect(result.rows[0]).toMatchObject({
-      state: 'SLA_BREACHED',
-      held_count: 0,
-      status: 'AVAILABLE',
-      breached_events: '1',
-    });
-    expect(alertSpy).toHaveBeenCalledWith(
-      'CLINIC_SLA_BREACHED',
-      ClinicSlaMonitorWorker.name,
-      expect.any(String),
-      expect.objectContaining({ holdId: fixture.holdId, slotId: fixture.slotId }),
-    );
-
-    alertSpy.mockRestore();
+      expect(result.rows[0]).toMatchObject({
+        state: 'SLA_BREACHED',
+        held_count: 0,
+        status: 'AVAILABLE',
+        breached_events: '1',
+      });
+      expect(alertSpy).toHaveBeenCalledWith(
+        'CLINIC_SLA_BREACHED',
+        ClinicSlaMonitorWorker.name,
+        expect.any(String),
+        expect.objectContaining({ holdId: fixture.holdId, slotId: fixture.slotId }),
+      );
+    } finally {
+      alertSpy.mockRestore();
+      if (previousWorkersEnabled === undefined) delete process.env.WORKERS_ENABLED;
+      else process.env.WORKERS_ENABLED = previousWorkersEnabled;
+    }
   });
 });
 
