@@ -1,0 +1,35 @@
+# This path is more specific than /v1 and therefore receives the webhook
+# route in ingress-nginx. Replace these RFC 5737 example values with the
+# published egress CIDRs of the actual acquiring provider before Alpha.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vethelp-acquiring-webhooks
+  namespace: internal
+  labels:
+    app.kubernetes.io/name: vethelp-backend
+    app.kubernetes.io/part-of: vethelp
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "192.0.2.0/24,198.51.100.12/32"
+    nginx.ingress.kubernetes.io/proxy-body-size: "256k"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "5"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "15"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "15"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.alpha.vethelp.example
+      secretName: vethelp-alpha-tls
+  rules:
+    - host: api.alpha.vethelp.example
+      http:
+        paths:
+          - path: /v1/payments/webhooks
+            pathType: Prefix
+            backend:
+              service:
+                name: vethelp-backend-service
+                port:
+                  name: http
