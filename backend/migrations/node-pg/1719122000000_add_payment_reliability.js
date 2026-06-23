@@ -19,6 +19,7 @@ exports.up = (pgm) => {
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       payment_intent_id uuid NOT NULL REFERENCES payment_schema.payment_intents(id),
       entry_type text NOT NULL CHECK (entry_type IN (
+        'INTENT_CREATED',
         'WEBHOOK_RECEIVED',
         'AUTHORIZED',
         'VOID_REQUESTED',
