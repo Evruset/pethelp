@@ -8,7 +8,10 @@ import { BookingErrorFilter } from './common/booking-error.filter';
 import { createOpenApiDocument } from './openapi/openapi';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(NestRoot, { logger: ['log', 'warn', 'error'] });
+  const app = await NestFactory.create(NestRoot, {
+    logger: ['log', 'warn', 'error'],
+    rawBody: true,
+  });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
   app.useGlobalFilters(new BookingErrorFilter());
   app.enableShutdownHooks();

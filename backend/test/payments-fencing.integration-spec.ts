@@ -1,8 +1,7 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { DomainException } from '../src/common/domain-error';
 import { DatabaseService } from '../src/database/database.service';
-import { AcquiringApi } from '../src/modules/payments/acquiring-api';
-import { PaymentService } from '../src/modules/payments/payment.service';
+import { PaymentAuthorizedWebhookCommand, PaymentService } from '../src/modules/payments/payment.service';
 
 interface Fixture {
   ownerId: string;
@@ -17,19 +16,15 @@ jest.setTimeout(30_000);
 
 describe('Payment attempt fencing', () => {
   let database: DatabaseService;
-  let acquiringApi: AcquiringApi;
   let service: PaymentService;
   let fixture: Fixture;
 
   beforeAll(() => {
     database = new DatabaseService();
-    acquiringApi = new AcquiringApi();
-    jest.spyOn(acquiringApi, 'void').mockResolvedValue(undefined);
-    service = new PaymentService(database, acquiringApi);
+    service = new PaymentService(database);
   });
 
   beforeEach(async () => {
-    jest.clearAllMocks();
     await resetDatabase(database);
     fixture = await createFixture(database, 'MIS_HELD');
   });
@@ -38,7 +33,7 @@ describe('Payment attempt fencing', () => {
     await database.onModuleDestroy();
   });
 
-  it('creates one fenced payment intent per hold version', async () => {
+  it('creates one fenced payment intent per hold version and writes immutable intent ledger entry', async () => {
     const first = await service.createPaymentIntent(fixture.holdId, fixture.ownerId);
     const second = await service.createPaymentIntent(fixture.holdId, fixture.ownerId);
 
@@ -50,21 +45,23 @@ describe('Payment attempt fencing', () => {
       [fixture.holdId],
     );
     expect(count.rows[0].count).toBe('1');
+    await expectLedgerEntry(database, first.id, 'INTENT_CREATED');
   });
 
   it('authorizes payment and confirms MIS_HELD hold when the fence matches', async () => {
     const intent = await service.createPaymentIntent(fixture.holdId, fixture.ownerId);
 
-    const result = await service.handlePaymentAuthorized(intent.idempotencyKey);
+    const result = await service.handlePaymentAuthorized(webhookCommand(intent.idempotencyKey));
 
     expect(result.status).toBe('AUTHORIZED');
     const hold = await readHold(database, fixture.holdId);
     expect(hold.state).toBe('CONFIRMED');
     expect(Number(hold.version)).toBe(intent.holdVersion + 1);
     await expectPaymentStatus(database, intent.id, 'AUTHORIZED');
+    await expectLedgerEntry(database, intent.id, 'AUTHORIZED');
   });
 
-  it('voids and rejects a webhook when hold already expired', async () => {
+  it('fences late authorization, records VOID_REQUESTED and emits a durable provider void command', async () => {
     const intent = await service.createPaymentIntent(fixture.holdId, fixture.ownerId);
     await database.query(
       `UPDATE booking_schema.booking_holds
@@ -73,18 +70,67 @@ describe('Payment attempt fencing', () => {
       [fixture.holdId],
     );
 
-    await expect(service.handlePaymentAuthorized(intent.idempotencyKey)).rejects.toMatchObject({
+    const command = webhookCommand(intent.idempotencyKey, 'provider-event-late');
+    await expect(service.handlePaymentAuthorized(command)).rejects.toMatchObject({
       response: expect.objectContaining({ code: 'PAYMENT_FENCED_SLOT_EXPIRED' }),
     } as DomainException);
 
     await expectPaymentStatus(database, intent.id, 'VOIDED');
-    expect(acquiringApi.void).toHaveBeenCalledWith(intent.id);
+    await expectLedgerEntry(database, intent.id, 'VOID_REQUESTED');
+    const outbox = await database.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count
+       FROM booking_schema.outbox_events
+       WHERE event_type = 'payment.acquiring.void.requested.v1'
+         AND aggregate_id = $1::uuid
+         AND status = 'PENDING'`,
+      [intent.id],
+    );
+    expect(outbox.rows[0].count).toBe('1');
+  });
+
+  it('deduplicates a provider webhook event without duplicating ledger or outbox effects', async () => {
+    const intent = await service.createPaymentIntent(fixture.holdId, fixture.ownerId);
+    await database.query(
+      `UPDATE booking_schema.booking_holds
+       SET state = 'EXPIRED', version = version + 1, state_changed_at = clock_timestamp()
+       WHERE id = $1::uuid`,
+      [fixture.holdId],
+    );
+
+    const command = webhookCommand(intent.idempotencyKey, 'provider-event-duplicate');
+    await expect(service.handlePaymentAuthorized(command)).rejects.toMatchObject({
+      response: expect.objectContaining({ code: 'PAYMENT_FENCED_SLOT_EXPIRED' }),
+    } as DomainException);
+    await expect(service.handlePaymentAuthorized(command)).rejects.toMatchObject({
+      response: expect.objectContaining({ code: 'PAYMENT_FENCED_SLOT_EXPIRED' }),
+    } as DomainException);
+
+    const voidLedger = await database.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count
+       FROM payment_schema.ledger_entries
+       WHERE payment_intent_id = $1::uuid AND entry_type = 'VOID_REQUESTED'`,
+      [intent.id],
+    );
+    expect(voidLedger.rows[0].count).toBe('1');
   });
 });
+
+function webhookCommand(idempotencyKey: string, providerEventId = `provider-event-${randomUUID()}`): PaymentAuthorizedWebhookCommand {
+  const rawPayload = JSON.stringify({ idempotencyKey, providerEventId });
+  return {
+    idempotencyKey,
+    providerEventId,
+    providerPaymentId: `provider-payment-${providerEventId}`,
+    rawPayload,
+    payloadSha256: createHash('sha256').update(rawPayload).digest('hex'),
+  };
+}
 
 async function resetDatabase(database: DatabaseService): Promise<void> {
   await database.query(`
     TRUNCATE TABLE
+      payment_schema.provider_webhook_events,
+      payment_schema.ledger_entries,
       payment_schema.payment_intents,
       audit_schema.audit_log,
       booking_schema.outbox_events,
@@ -161,4 +207,14 @@ async function expectPaymentStatus(database: DatabaseService, paymentId: string,
     [paymentId],
   );
   expect(result.rows[0]?.status).toBe(status);
+}
+
+async function expectLedgerEntry(database: DatabaseService, paymentId: string, entryType: string): Promise<void> {
+  const result = await database.query<{ count: string }>(
+    `SELECT COUNT(*)::text AS count
+     FROM payment_schema.ledger_entries
+     WHERE payment_intent_id = $1::uuid AND entry_type = $2`,
+    [paymentId, entryType],
+  );
+  expect(result.rows[0].count).toBe('1');
 }
