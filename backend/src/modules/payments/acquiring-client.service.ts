@@ -14,7 +14,11 @@ export interface RemotePaymentIntent {
   checkoutUrl: string;
 }
 
-export type RemotePaymentState = 'PENDING' | 'VOIDED' | 'CAPTURED' | 'UNKNOWN';
+export interface RemoteRefundResult {
+  refundId: string;
+}
+
+export type RemotePaymentState = 'PENDING' | 'VOIDED' | 'CAPTURED' | 'REFUNDED' | 'UNKNOWN';
 
 interface RemoteIntentResponse {
   remoteId?: string;
@@ -25,6 +29,13 @@ interface RemoteIntentResponse {
 
 interface RemoteCaptureResponse {
   captured?: boolean;
+  status?: string;
+}
+
+interface RemoteRefundResponse {
+  refundId?: string;
+  refund_id?: string;
+  id?: string;
   status?: string;
 }
 
@@ -85,6 +96,25 @@ export class AcquiringClient {
     );
   }
 
+  /** Network call only; callers must run it outside database transactions. */
+  async refundRemoteIntent(remoteId: string, amount: number, internalPaymentId: string): Promise<RemoteRefundResult> {
+    const response = await firstValueFrom(
+      this.http.post<RemoteRefundResponse>(
+        `${this.baseUrl()}/v1/payment-intents/${encodeURIComponent(remoteId)}/refunds`,
+        { merchantPaymentId: internalPaymentId, amount },
+        { headers: this.headers(`refund:${internalPaymentId}`) },
+      ).pipe(
+        timeout(AcquiringClient.REQUEST_TIMEOUT_MS),
+        map((result) => result.data),
+        catchError((error: unknown) => throwError(() => new AcquiringClientError(this.message(error), error))),
+      ),
+    );
+
+    const refundId = response.refundId ?? response.refund_id ?? response.id;
+    if (!refundId) throw new AcquiringClientError('Acquiring provider did not return refund id');
+    return { refundId };
+  }
+
   async getRemoteIntentState(remoteId: string): Promise<RemotePaymentState> {
     const response = await firstValueFrom(
       this.http.get<{ status?: string }>(
@@ -99,6 +129,7 @@ export class AcquiringClient {
 
     if (response === 'VOIDED') return 'VOIDED';
     if (response === 'CAPTURED') return 'CAPTURED';
+    if (response === 'REFUNDED') return 'REFUNDED';
     if (response === 'PENDING' || response === 'AUTHORIZED') return 'PENDING';
     return 'UNKNOWN';
   }
