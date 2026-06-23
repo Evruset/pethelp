@@ -68,11 +68,16 @@ exports.up = (pgm) => {
     CREATE INDEX IF NOT EXISTS appointment_slots_marketplace_status_idx
       ON clinic_schema.appointment_slots (clinic_location_id, status, starts_at)
       WHERE state = 'OPEN';
+
+    CREATE INDEX IF NOT EXISTS outbox_events_booking_hold_correlation_idx
+      ON booking_schema.outbox_events (aggregate_type, aggregate_id, created_at DESC)
+      WHERE aggregate_type = 'booking_hold';
   `);
 };
 
 exports.down = (pgm) => {
   pgm.sql(`
+    DROP INDEX IF EXISTS booking_schema.outbox_events_booking_hold_correlation_idx;
     DROP INDEX IF EXISTS clinic_schema.appointment_slots_marketplace_status_idx;
     DROP INDEX IF EXISTS booking_schema.booking_holds_alternative_expiry_idx;
     DROP INDEX IF EXISTS booking_schema.booking_holds_manual_confirmation_sla_idx;
