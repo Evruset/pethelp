@@ -1,0 +1,67 @@
+# Public API: only /v1/* is routed to the application.
+# The TLS secret and hostname are Alpha-environment values; replace before apply.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vethelp-public-api
+  namespace: internal
+  labels:
+    app.kubernetes.io/name: vethelp-backend
+    app.kubernetes.io/part-of: vethelp
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "1m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "5"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "30"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.alpha.vethelp.example
+      secretName: vethelp-alpha-tls
+  rules:
+    - host: api.alpha.vethelp.example
+      http:
+        paths:
+          - path: /v1
+            pathType: Prefix
+            backend:
+              service:
+                name: vethelp-backend-service
+                port:
+                  name: http
+---
+# Explicit public deny rule. Internal callers use the ClusterIP Service DNS
+# (http://vethelp-backend-service.internal) instead of this ingress.
+# Ingress-NGINX applies whitelist-source-range before proxying and returns 403
+# for non-allowlisted source addresses. 127.0.0.1/32 is intentionally not a
+# routable client range through the load balancer.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vethelp-internal-deny
+  namespace: internal
+  labels:
+    app.kubernetes.io/name: vethelp-backend
+    app.kubernetes.io/part-of: vethelp
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "127.0.0.1/32"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.alpha.vethelp.example
+      secretName: vethelp-alpha-tls
+  rules:
+    - host: api.alpha.vethelp.example
+      http:
+        paths:
+          - path: /internal
+            pathType: Prefix
+            backend:
+              service:
+                name: vethelp-backend-service
+                port:
+                  name: http
