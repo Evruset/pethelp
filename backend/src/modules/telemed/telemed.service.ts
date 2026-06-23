@@ -1,9 +1,9 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { createHmac, randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { DomainException, DomainErrors } from '../../common/domain-error';
 import { DatabaseService } from '../../database/database.service';
 import { TraceContext } from '../../observability/trace-context.context';
+import { LiveKitService } from './livekit.service';
 
 export type TelemedSessionState = 'WAITING_FOR_DOCTOR' | 'CONNECTED' | 'COMPLETED' | 'DOCTOR_TIMEOUT';
 
@@ -23,6 +23,7 @@ export interface DoctorConnectionResult {
   session: TelemedSessionResult;
   accessToken: string;
   tokenExpiresAt: string;
+  livekitUrl: string;
 }
 
 interface BookingHoldRow {
@@ -39,6 +40,7 @@ export class TelemedService {
   constructor(
     private readonly database: DatabaseService,
     private readonly traceContext: TraceContext,
+    private readonly liveKitService: LiveKitService,
   ) {}
 
   /**
@@ -93,7 +95,7 @@ export class TelemedService {
   }
 
   async connectDoctor(sessionId: string, doctorId: string): Promise<DoctorConnectionResult> {
-    return this.database.withTransaction(async (client) => {
+    const connected = await this.database.withTransaction(async (client) => {
       await this.setShortTransactionLimits(client);
       const locked = await client.query<TelemedSessionResult>(`
         SELECT
@@ -140,42 +142,23 @@ export class TelemedService {
           created_at AS "createdAt"
       `, [sessionId, doctorId]);
 
-      const connected = updated.rows[0];
-      if (!connected) {
+      const result = updated.rows[0];
+      if (!result) {
         throw new DomainException(HttpStatus.UNPROCESSABLE_ENTITY, 'TELEMED_DOCTOR_JOIN_TIMEOUT', 'Doctor joined after session SLA deadline');
       }
-
-      const tokenExpiresAt = new Date(Date.now() + TelemedService.VIDEO_TOKEN_TTL_SECONDS * 1000).toISOString();
-      return {
-        session: connected,
-        accessToken: this.createVideoAccessToken({
-          sessionId: connected.id,
-          roomName: connected.roomName,
-          doctorId,
-          exp: Math.floor(new Date(tokenExpiresAt).getTime() / 1000),
-        }),
-        tokenExpiresAt,
-      };
+      return result;
     });
-  }
 
-  private createVideoAccessToken(payload: { sessionId: string; roomName: string; doctorId: string; exp: number }): string {
-    const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
-    const body = Buffer.from(JSON.stringify({
-      iss: 'vethelp-telemed',
-      sub: payload.doctorId,
-      aud: 'vethelp-video-room',
-      jti: randomUUID(),
-      room: payload.roomName,
-      sessionId: payload.sessionId,
-      exp: payload.exp,
-    })).toString('base64url');
-    const secret = process.env.TELEMED_TOKEN_SECRET?.trim() || process.env.JWT_SECRET?.trim();
-    if (!secret) {
-      throw new DomainException(HttpStatus.SERVICE_UNAVAILABLE, 'TELEMED_TOKEN_SECRET_NOT_CONFIGURED', 'Telemedicine token signing secret is not configured');
-    }
-    const signature = createHmac('sha256', secret).update(`${header}.${body}`).digest('base64url');
-    return `${header}.${body}.${signature}`;
+    // Native LiveKit signing is intentionally after the database commit: no
+    // provider SDK work is performed while the session row is locked.
+    const accessToken = await this.liveKitService.generateLiveKitToken(connected.roomName, doctorId, true);
+    const tokenExpiresAt = new Date(Date.now() + TelemedService.VIDEO_TOKEN_TTL_SECONDS * 1000).toISOString();
+    return {
+      session: connected,
+      accessToken,
+      tokenExpiresAt,
+      livekitUrl: this.liveKitService.apiUrl(),
+    };
   }
 
   private async setShortTransactionLimits(client: PoolClient): Promise<void> {
