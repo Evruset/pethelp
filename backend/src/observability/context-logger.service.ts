@@ -7,32 +7,39 @@ type LogLevel = 'log' | 'error' | 'warn' | 'debug' | 'verbose' | 'fatal';
 export class ContextLoggerService implements LoggerService {
   constructor(private readonly traceContext: TraceContext) {}
 
-  log(message: unknown, context?: string): void {
-    this.write('log', message, context);
+  log(message: unknown, ...optionalParams: unknown[]): void {
+    this.write('log', message, this.contextFrom(optionalParams));
   }
 
-  error(message: unknown, trace?: string, context?: string): void {
-    this.write('error', message, context, trace ? { trace } : undefined);
+  error(message: unknown, ...optionalParams: unknown[]): void {
+    const [traceOrContext, context] = optionalParams;
+    const trace = typeof traceOrContext === 'string' && typeof context === 'string' ? traceOrContext : undefined;
+    this.write('error', message, typeof context === 'string' ? context : this.contextFrom(optionalParams), trace ? { trace } : undefined);
   }
 
-  warn(message: unknown, context?: string): void {
-    this.write('warn', message, context);
+  warn(message: unknown, ...optionalParams: unknown[]): void {
+    this.write('warn', message, this.contextFrom(optionalParams));
   }
 
-  debug(message: unknown, context?: string): void {
-    this.write('debug', message, context);
+  debug(message: unknown, ...optionalParams: unknown[]): void {
+    this.write('debug', message, this.contextFrom(optionalParams));
   }
 
-  verbose(message: unknown, context?: string): void {
-    this.write('verbose', message, context);
+  verbose(message: unknown, ...optionalParams: unknown[]): void {
+    this.write('verbose', message, this.contextFrom(optionalParams));
   }
 
-  fatal(message: unknown, context?: string): void {
-    this.write('fatal', message, context);
+  fatal(message: unknown, ...optionalParams: unknown[]): void {
+    this.write('fatal', message, this.contextFrom(optionalParams));
   }
 
   event(level: LogLevel, context: string, message: string, fields: Record<string, unknown> = {}): void {
     this.write(level, message, context, fields);
+  }
+
+  private contextFrom(optionalParams: unknown[]): string | undefined {
+    const candidate = optionalParams.at(-1);
+    return typeof candidate === 'string' ? candidate : undefined;
   }
 
   private write(level: LogLevel, message: unknown, context?: string, fields: Record<string, unknown> = {}): void {
@@ -46,15 +53,8 @@ export class ContextLoggerService implements LoggerService {
       userId: trace?.userId,
       ...fields,
     };
-
-    if (process.env.NODE_ENV === 'production') {
-      const line = JSON.stringify(payload);
-      if (level === 'error' || level === 'fatal') console.error(line);
-      else console.log(line);
-      return;
-    }
-
     const line = JSON.stringify(payload);
+
     if (level === 'error' || level === 'fatal') console.error(line);
     else console.log(line);
   }
