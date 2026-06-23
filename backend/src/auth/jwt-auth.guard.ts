@@ -1,6 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { config } from '../config';
+import { TraceContext } from '../observability/trace-context.context';
 import { AuthenticatedRequest, JwtPayload, Role } from './auth.types';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -8,12 +9,16 @@ const allowedRoles = new Set<string>(Object.values(Role));
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  constructor(private readonly jwt: JwtService) {}
+  constructor(
+    private readonly jwt: JwtService,
+    private readonly traceContext: TraceContext,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     request.user = await this.authenticateRequest(request);
     request.authMode = 'JWT';
+    this.traceContext.setUserId(request.user.sub);
     return true;
   }
 

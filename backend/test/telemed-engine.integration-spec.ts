@@ -1,5 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { DatabaseService } from '../src/database/database.service';
+import { ContextLoggerService } from '../src/observability/context-logger.service';
+import { ObservabilityMetricsService } from '../src/observability/observability.metrics';
+import { TraceContext } from '../src/observability/trace-context.context';
 import { TelemedService } from '../src/modules/telemed/telemed.service';
 import { TelemedSessionStartWorker } from '../src/modules/telemed/telemed-session-start.worker';
 import { TelemedSlaWorker } from '../src/modules/telemed/telemed-sla.worker';
@@ -8,6 +11,9 @@ jest.setTimeout(30_000);
 
 describe('Telemedicine Engine', () => {
   let database: DatabaseService;
+  let traceContext: TraceContext;
+  let logger: ContextLoggerService;
+  let metrics: ObservabilityMetricsService;
   let telemedService: TelemedService;
   let startWorker: TelemedSessionStartWorker;
   let slaWorker: TelemedSlaWorker;
@@ -16,9 +22,12 @@ describe('Telemedicine Engine', () => {
     process.env.WORKERS_ENABLED = 'true';
     process.env.JWT_SECRET = process.env.JWT_SECRET ?? 'telemed-test-jwt-secret-at-least-32-bytes';
     database = new DatabaseService();
-    telemedService = new TelemedService(database);
-    startWorker = new TelemedSessionStartWorker(database, telemedService);
-    slaWorker = new TelemedSlaWorker(database);
+    traceContext = new TraceContext();
+    logger = new ContextLoggerService(traceContext);
+    metrics = new ObservabilityMetricsService(logger);
+    telemedService = new TelemedService(database, traceContext);
+    startWorker = new TelemedSessionStartWorker(database, telemedService, traceContext, logger);
+    slaWorker = new TelemedSlaWorker(database, traceContext, logger, metrics);
   });
 
   beforeEach(async () => {
@@ -31,11 +40,16 @@ describe('Telemedicine Engine', () => {
 
   it('activates a waiting session from CONFIRMED hold outbox event', async () => {
     const fixture = await createFixture(database, 'MIS_HELD');
-    await database.query(`
-      UPDATE booking_schema.booking_holds
-      SET state = 'CONFIRMED', version = version + 1, state_changed_at = clock_timestamp()
-      WHERE id = $1::uuid
-    `, [fixture.holdId]);
+    const correlationId = randomUUID();
+    await traceContext.run({ correlationId }, async () => {
+      await database.withTransaction(async (client) => {
+        await client.query(`
+          UPDATE booking_schema.booking_holds
+          SET state = 'CONFIRMED', version = version + 1, state_changed_at = clock_timestamp()
+          WHERE id = $1::uuid
+        `, [fixture.holdId]);
+      });
+    });
 
     await startWorker.relayConfirmedSessions();
 
@@ -43,14 +57,16 @@ describe('Telemedicine Engine', () => {
     expect(session.state).toBe('WAITING_FOR_DOCTOR');
     expect(session.owner_id).toBe(fixture.ownerId);
     expect(session.room_name).toContain(fixture.holdId.replace(/-/g, ''));
+    expect(session.correlation_id).toBe(correlationId);
 
-    const outbox = await database.query<{ status: string }>(`
-      SELECT status
+    const outbox = await database.query<{ status: string; correlation_id: string | null }>(`
+      SELECT status, correlation_id
       FROM booking_schema.outbox_events
       WHERE event_type = 'telemed.session.start.requested.v1'
         AND aggregate_id = $1::uuid
     `, [fixture.holdId]);
     expect(outbox.rows[0]?.status).toBe('PUBLISHED');
+    expect(outbox.rows[0]?.correlation_id).toBe(correlationId);
   });
 
   it('locks session, assigns doctor and returns a 30-minute video access token', async () => {
@@ -68,7 +84,8 @@ describe('Telemedicine Engine', () => {
 
   it('times out a no-show doctor and atomically requests an SLA automatic void', async () => {
     const fixture = await createFixture(database, 'CONFIRMED');
-    const session = await telemedService.startSessionAfterPayment(fixture.holdId);
+    const correlationId = randomUUID();
+    const session = await traceContext.run({ correlationId }, () => telemedService.startSessionAfterPayment(fixture.holdId));
     const paymentId = randomUUID();
 
     await database.query(`
@@ -107,21 +124,24 @@ describe('Telemedicine Engine', () => {
     `, [paymentId]);
     expect(ledger.rows[0]?.count).toBe('1');
 
-    const audit = await database.query<{ count: string }>(`
-      SELECT COUNT(*)::text AS count
+    const audit = await database.query<{ count: string; correlation_id: string | null }>(`
+      SELECT COUNT(*)::text AS count, MAX(correlation_id::text) AS correlation_id
       FROM audit_schema.audit_log
       WHERE action = 'TELEMED_DOCTOR_TIMEOUT'
         AND aggregate_id = $1::uuid
+      GROUP BY aggregate_id
     `, [session.id]);
     expect(audit.rows[0]?.count).toBe('1');
+    expect(audit.rows[0]?.correlation_id).toBe(correlationId);
 
-    const voidOutbox = await database.query<{ status: string }>(`
-      SELECT status
+    const voidOutbox = await database.query<{ status: string; correlation_id: string | null }>(`
+      SELECT status, correlation_id
       FROM booking_schema.outbox_events
       WHERE event_type = 'payment.acquiring.void.requested.v1'
         AND aggregate_id = $1::uuid
     `, [paymentId]);
     expect(voidOutbox.rows[0]?.status).toBe('PENDING');
+    expect(voidOutbox.rows[0]?.correlation_id).toBe(correlationId);
   });
 });
 
@@ -167,8 +187,8 @@ async function resetDatabase(database: DatabaseService): Promise<void> {
 }
 
 async function readSessionByHold(database: DatabaseService, holdId: string) {
-  const result = await database.query<{ state: string; owner_id: string; room_name: string }>(`
-    SELECT state, owner_id, room_name
+  const result = await database.query<{ state: string; owner_id: string; room_name: string; correlation_id: string | null }>(`
+    SELECT state, owner_id, room_name, correlation_id
     FROM telemed_schema.telemed_sessions
     WHERE booking_hold_id = $1::uuid
   `, [holdId]);

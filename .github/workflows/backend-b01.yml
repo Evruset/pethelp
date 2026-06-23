@@ -72,6 +72,9 @@ jobs:
           npm run migrate:up
           npm run migrate:verify
 
+      - name: Run observability trace tests
+        run: npm test -- test/observability-trace.integration-spec.ts
+
       - name: Run MIS integration tests
         run: npm test -- test/mis-integration.integration-spec.ts
 

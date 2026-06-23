@@ -1,7 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import type { PoolClient } from 'pg';
 import { DatabaseService } from '../../database/database.service';
+import { ContextLoggerService } from '../../observability/context-logger.service';
+import { TraceContext } from '../../observability/trace-context.context';
 import { AcquiringClient } from './acquiring-client.service';
 
 type PaymentProviderEventType = 'payment.acquiring.void.requested.v1' | 'payment.acquiring.capture.requested.v1';
@@ -10,6 +12,7 @@ interface PaymentOutboxEvent {
   id: string;
   event_type: PaymentProviderEventType;
   payment_intent_id: string;
+  correlation_id: string | null;
 }
 
 interface PaymentRow {
@@ -21,13 +24,19 @@ interface PaymentRow {
 
 @Injectable()
 export class PaymentOutboxRelayWorker {
-  private readonly logger = new Logger(PaymentOutboxRelayWorker.name);
   private running = false;
+  private readonly traceContext: TraceContext;
+  private readonly logger: ContextLoggerService;
 
   constructor(
     private readonly database: DatabaseService,
     private readonly acquiringClient: AcquiringClient,
-  ) {}
+    traceContext?: TraceContext,
+    logger?: ContextLoggerService,
+  ) {
+    this.traceContext = traceContext ?? new TraceContext();
+    this.logger = logger ?? new ContextLoggerService(this.traceContext);
+  }
 
   @Cron(CronExpression.EVERY_5_SECONDS)
   async relay(): Promise<void> {
@@ -37,25 +46,37 @@ export class PaymentOutboxRelayWorker {
     try {
       const events = await this.claimBatch(10);
       for (const event of events) {
-        try {
-          const payment = await this.loadPayment(event.payment_intent_id);
-          if (!payment?.provider_payment_id) throw new Error('Payment provider reference is missing');
+        await this.traceContext.run(this.traceContext.workerContext(event.correlation_id), async () => {
+          try {
+            const payment = await this.loadPayment(event.payment_intent_id);
+            if (!payment?.provider_payment_id) throw new Error('Payment provider reference is missing');
 
-          if (event.event_type === 'payment.acquiring.void.requested.v1') {
-            await this.acquiringClient.voidRemoteIntent(payment.provider_payment_id, event.payment_intent_id);
-            await this.markProviderCommandSent(event, payment, 'VOID_SENT');
-          } else if (payment.status === 'AUTHORIZED') {
-            const captured = await this.acquiringClient.captureRemoteIntent(payment.provider_payment_id, event.payment_intent_id);
-            if (!captured) throw new Error('Acquiring provider did not confirm capture request');
-            await this.markProviderCommandSent(event, payment, 'CAPTURE_SENT');
-          } else {
-            await this.markSkipped(event.id, `Capture skipped because payment status is ${payment.status}`);
+            if (event.event_type === 'payment.acquiring.void.requested.v1') {
+              await this.acquiringClient.voidRemoteIntent(payment.provider_payment_id, event.payment_intent_id);
+              await this.markProviderCommandSent(event, payment, 'VOID_SENT');
+            } else if (payment.status === 'AUTHORIZED') {
+              const captured = await this.acquiringClient.captureRemoteIntent(payment.provider_payment_id, event.payment_intent_id);
+              if (!captured) throw new Error('Acquiring provider did not confirm capture request');
+              await this.markProviderCommandSent(event, payment, 'CAPTURE_SENT');
+            } else {
+              await this.markSkipped(event.id, `Capture skipped because payment status is ${payment.status}`);
+            }
+            this.logger.event('debug', PaymentOutboxRelayWorker.name, 'Payment provider outbox event processed', {
+              outboxEventId: event.id,
+              paymentIntentId: event.payment_intent_id,
+              eventType: event.event_type,
+            });
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Payment provider command failed';
+            this.logger.event('error', PaymentOutboxRelayWorker.name, 'Payment provider outbox event failed', {
+              outboxEventId: event.id,
+              paymentIntentId: event.payment_intent_id,
+              eventType: event.event_type,
+              error: message,
+            });
+            await this.releaseForRetry(event.id, message);
           }
-        } catch (error) {
-          const message = error instanceof Error ? error.message : 'Payment provider command failed';
-          this.logger.error(`Payment outbox event ${event.id} failed: ${message}`);
-          await this.releaseForRetry(event.id, message);
-        }
+        });
       }
     } finally {
       this.running = false;
@@ -85,7 +106,7 @@ export class PaymentOutboxRelayWorker {
             attempts = attempts + 1
         FROM claimed
         WHERE e.id = claimed.id
-        RETURNING e.id, e.event_type, e.aggregate_id AS payment_intent_id
+        RETURNING e.id, e.event_type, e.aggregate_id AS payment_intent_id, e.correlation_id
       `, [limit]);
       return result.rows;
     });
