@@ -1,0 +1,39 @@
+# Build context must be the repository root:
+# docker build -f infrastructure/Dockerfile.prod -t vethelp-backend:alpha .
+FROM node:22-alpine AS build
+
+WORKDIR /app
+
+# The repository currently has no package-lock.json, so npm install is used.
+# Once a lockfile is committed, replace this command with npm ci.
+COPY backend/package*.json ./
+RUN npm install --ignore-scripts
+
+COPY backend/ ./
+
+# Produces dist/ and the static OpenAPI artifact consumed by frontend tooling.
+RUN npm run build \
+  && npm run openapi:export \
+  && npm prune --omit=dev
+
+FROM node:22-alpine AS runner
+
+ENV NODE_ENV=production \
+    PORT=3000
+
+WORKDIR /app
+
+# tini-compatible init process forwards SIGTERM/SIGINT and reaps child processes.
+RUN apk add --no-cache dumb-init
+
+COPY --chown=node:node --from=build /app/package.json ./package.json
+COPY --chown=node:node --from=build /app/node_modules ./node_modules
+COPY --chown=node:node --from=build /app/dist ./dist
+COPY --chown=node:node --from=build /app/artifacts/openapi ./artifacts/openapi
+
+USER node
+
+EXPOSE 3000
+
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "dist/src/main.js"]
