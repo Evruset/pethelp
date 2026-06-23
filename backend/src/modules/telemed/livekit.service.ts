@@ -3,10 +3,9 @@ import { AccessToken, type WebhookEvent, WebhookReceiver } from 'livekit-server-
 import { DomainException } from '../../common/domain-error';
 
 export class LiveKitWebhookSignatureError extends Error {
-  constructor(cause?: unknown) {
+  constructor() {
     super('LiveKit webhook signature is invalid');
     this.name = 'LiveKitWebhookSignatureError';
-    this.cause = cause;
   }
 }
 
@@ -34,8 +33,8 @@ export class LiveKitService {
       const credentials = this.credentials();
       const receiver = new WebhookReceiver(credentials.apiKey, credentials.apiSecret);
       return await receiver.receive(rawBody, authorization);
-    } catch (error) {
-      throw new LiveKitWebhookSignatureError(error);
+    } catch {
+      throw new LiveKitWebhookSignatureError();
     }
   }
 
