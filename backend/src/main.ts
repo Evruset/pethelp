@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule } from '@nestjs/swagger';
 import { BookingErrorFilter } from './common/booking-error.filter';
@@ -14,6 +14,7 @@ async function bootstrap(): Promise<void> {
     rawBody: true,
   });
   const logger = app.get(ContextLoggerService);
+  Logger.overrideLogger(logger);
   app.useLogger(logger);
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
   app.useGlobalFilters(new BookingErrorFilter());
