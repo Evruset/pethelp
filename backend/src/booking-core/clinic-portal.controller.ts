@@ -1,5 +1,5 @@
 import { Body, Controller, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiConflictResponse, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConflictResponse, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload, Role } from '../auth/auth.types';
@@ -23,12 +23,12 @@ export class ClinicPortalController {
   constructor(private readonly alternatives: AlternativeSlotService) {}
 
   @Post('clinic/booking-holds/:holdId/alternative-slot')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.CLINIC_RECEPTIONIST, Role.CLINIC_ADMIN)
   @ApiBearerAuth(SWAGGER_BEARER_AUTH)
   @ApiOperation({ summary: 'Клиника предлагает владельцу альтернативный слот без освобождения исходного hold' })
-  @ApiOkResponse({ description: 'Альтернативный слот удержан на 15 минут; исходный слот остаётся удержанным.' })
+  @ApiCreatedResponse({ description: 'Альтернативный слот удержан на 15 минут; исходный слот остаётся удержанным.' })
   @ApiUnauthorizedResponse({ description: 'Требуется JWT сотрудника клиники.' })
   @ApiConflictResponse({ description: 'SLOT_ALREADY_TAKEN или SLOT_LOCKED_RETRY.' })
   @ApiUnprocessableEntityResponse({ description: 'HOLD_EXPIRED или INVALID_STATE_TRANSITION.' })
@@ -45,8 +45,8 @@ export class ClinicPortalController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.OWNER)
   @ApiBearerAuth(SWAGGER_BEARER_AUTH)
-  @ApiOperation({ summary: 'Владелец принимает альтернативный слот и подтверждает перенос' })
-  @ApiOkResponse({ description: 'Исходный слот освобождён, альтернативный слот подтверждён.' })
+  @ApiOperation({ summary: 'Владелец принимает альтернативный слот и переводит hold в ожидание оплаты' })
+  @ApiOkResponse({ description: 'Исходный слот освобождён, альтернативный slot удерживается до оплаты.' })
   @ApiConflictResponse({ description: 'SLOT_LOCKED_RETRY или SLOT_ALREADY_TAKEN.' })
   @ApiUnprocessableEntityResponse({ description: 'HOLD_EXPIRED или INVALID_STATE_TRANSITION.' })
   async acceptAlternativeSlot(
