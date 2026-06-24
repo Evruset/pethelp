@@ -3,7 +3,6 @@ kind: Kustomization
 namespace: vethelp-alpha
 namePrefix: alpha-
 resources:
-  - namespace.yaml
   - ../../base
   - alpha-runtime-config.yaml
   - alpha-ingress-secure.yaml
