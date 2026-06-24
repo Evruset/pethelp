@@ -10,6 +10,7 @@ import { TelemedModule } from './modules/telemed/telemed.module';
 import { ObservabilityModule } from './observability/observability.module';
 import { TraceMiddleware } from './observability/trace.middleware';
 import { OutboxModule } from './outbox/outbox.module';
+import { SandboxFixturesModule } from './sandbox-fixtures/sandbox-fixtures.module';
 import { WorkersModule } from './workers/workers.module';
 
 @NestModule({
@@ -24,6 +25,9 @@ import { WorkersModule } from './workers/workers.module';
     MisIntegrationModule,
     PaymentsModule,
     TelemedModule,
+    // Every controller in this module returns 404 unless NODE_ENV=sandbox-cert
+    // and VETHELP_SANDBOX_CERT_ENABLED=true. It is excluded from OpenAPI.
+    SandboxFixturesModule,
   ],
   controllers: [HealthController],
 })
