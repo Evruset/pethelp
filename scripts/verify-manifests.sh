@@ -18,9 +18,10 @@ fi
 
 for file in $files; do
   while IFS= read -r match; do
+    [ -z "$match" ] && continue
     line_number=${match%%:*}
     value=${match#*:}
-    value=$(printf '%s' "$value" | sed -E 's/^[[:space:]]*image:[[:space:]]*//; s/[[:space:]]+#.*$//; s/^"//; s/"$//; s/^'"'"'//; s/'"'"'$//')
+    value=$(printf '%s' "$value" | sed -E 's/^[[:space:]]*image:[[:space:]]*//; s/[[:space:]]+#.*$//; s/^"//; s/"$//')
 
     if ! printf '%s' "$value" | grep -Eq '^[^[:space:]]+@sha256:[a-f0-9]{64}$'; then
       echo "Immutable-image policy violation: ${file}:${line_number}: ${value}" >&2
