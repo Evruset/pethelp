@@ -11,6 +11,7 @@ export const DomainErrors = {
   holdNotFound: () => new DomainException(HttpStatus.NOT_FOUND, 'HOLD_NOT_FOUND', 'Hold not found'),
   slotAlreadyTaken: () => new DomainException(HttpStatus.CONFLICT, 'SLOT_ALREADY_TAKEN', 'Slot unavailable'),
   slotLockedRetry: () => new DomainException(HttpStatus.CONFLICT, 'SLOT_LOCKED_RETRY', 'Retry shortly'),
+  slotVersionStale: () => new DomainException(HttpStatus.CONFLICT, 'SLOT_VERSION_STALE', 'State changed, refresh and retry'),
   holdExpired: () => new DomainException(HttpStatus.UNPROCESSABLE_ENTITY, 'HOLD_EXPIRED', 'Hold expired'),
   invalidTransition: () => new DomainException(HttpStatus.UNPROCESSABLE_ENTITY, 'INVALID_STATE_TRANSITION', 'Transition is not allowed'),
   holdOwnerMismatch: () => new DomainException(HttpStatus.FORBIDDEN, 'HOLD_OWNER_MISMATCH', 'Owner mismatch'),
