@@ -7,7 +7,9 @@ import { EmergencyOpsController } from './emergency-ops.controller';
 import { EmergencyOpsService } from './emergency-ops.service';
 import { EmergencyProfileService } from './emergency-profile.service';
 import { EmergencyPublicRoutingService } from './emergency-public-routing.service';
+import { EmergencyQueueRepository } from './emergency-queue.repository';
 import { EmergencyReviewCommand } from './emergency-review.command';
+import { EmergencyReviewManagementService } from './emergency-review-management.service';
 import { EmergencyRoutingController } from './emergency-routing.controller';
 import { EmergencyRoutingService } from './emergency-routing.service';
 
@@ -21,8 +23,16 @@ import { EmergencyRoutingService } from './emergency-routing.service';
     EmergencyProfileService,
     EmergencyReviewCommand,
     EmergencyOpsService,
+    EmergencyQueueRepository,
+    EmergencyReviewManagementService,
     EmergencyFreshnessWorker,
   ],
-  exports: [EmergencyRoutingService, EmergencyPublicRoutingService, EmergencyProfileService, EmergencyOpsService],
+  exports: [
+    EmergencyRoutingService,
+    EmergencyPublicRoutingService,
+    EmergencyProfileService,
+    EmergencyOpsService,
+    EmergencyReviewManagementService,
+  ],
 })
 export class EmergencyRoutingModule {}
