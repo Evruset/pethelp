@@ -8,12 +8,15 @@ class OperationIdStore {
   final LocalHiveStore _store;
   final Uuid _uuid;
 
-  String getOrCreate({required String operation, required String aggregateId}) {
+  Future<String> getOrCreate({
+    required String operation,
+    required String aggregateId,
+  }) async {
     final key = 'operation:$operation:$aggregateId';
     final existing = _store.metadataBox().get(key) as String?;
     if (existing != null && existing.isNotEmpty) return existing;
     final created = _uuid.v4();
-    _store.metadataBox().put(key, created);
+    await _store.metadataBox().put(key, created);
     return created;
   }
 
