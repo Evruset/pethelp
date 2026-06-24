@@ -1,0 +1,35 @@
+# Apply this manifest from the Argo CD control-plane namespace after replacing
+# repoURL and targetRevision. The application deploys only the Alpha overlay.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vethelp-alpha
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: vethelp
+    app.kubernetes.io/environment: alpha
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Evruset/pethelp.git
+    targetRevision: main
+    path: infrastructure/k8s/overlays/alpha
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vethelp-alpha
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
