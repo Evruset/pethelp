@@ -10,7 +10,7 @@ Backend-каркас для manual-clinic режима VetHelp.
 - подтверждение клиникой, отмена владельцем и expiration worker;
 - idempotency key, audit log и durable outbox relay;
 - `SKIP LOCKED` только в background worker;
-- read API Level-C очереди ручного подтверждения: строгий FIFO, PostgreSQL `serverNow` для SLA countdown и DB-backed location scope check.
+- read API Level-C очереди ручного подтверждения: строгий FIFO, PostgreSQL `serverNow` для SLA countdown и DB-backed clinic/location scope check.
 
 ## Локальный запуск
 
@@ -37,15 +37,16 @@ curl http://localhost:3000/health
 - `GET /v1/booking-holds/:id`
 - `POST /v1/booking-holds/:id/release`
 - `POST /v1/clinic/booking-holds/:id/confirm`
-- `GET /v1/clinic/locations/:locationId/booking-queue?limit=50` — только `CLINIC_RECEPTIONIST`/`CLINIC_ADMIN`, требуется scope локации и активная membership.
+- `GET /v1/clinic/:clinicId/locations/:locationId/booking-queue?limit=50` — только `CLINIC_RECEPTIONIST`/`CLINIC_ADMIN`; clinic и location проверяются по claims, active membership и связности в БД.
 - `POST /internal/workers/expire-holds` — local/dev only, с `X-Worker-Key`.
 
 ### Контракт очереди Level-C
 
-Endpoint возвращает только заявки в `MANUAL_CONFIRM_PENDING` для конкретной локации.
+Endpoint возвращает только заявки в `MANUAL_CONFIRM_PENDING` для конкретной clinic/location пары.
 
 ```json
 {
+  "clinicId": "uuid",
   "locationId": "uuid",
   "serverNow": "2026-06-24T19:05:00.000Z",
   "items": [
