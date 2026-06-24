@@ -1,5 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { AccessToken, type WebhookEvent, WebhookReceiver } from 'livekit-server-sdk';
+import { AccessToken, RoomServiceClient, type WebhookEvent, WebhookReceiver } from 'livekit-server-sdk';
 import { DomainException } from '../../common/domain-error';
 
 export class LiveKitWebhookSignatureError extends Error {
@@ -20,12 +20,14 @@ export class LiveKitService {
       ttl: LiveKitService.TOKEN_TTL,
       attributes: { role: isDoctor ? 'doctor' : 'owner' },
     });
-    token.addGrant({
-      roomJoin: true,
-      room: roomName,
-      roomAdmin: isDoctor,
-    });
+    token.addGrant({ roomJoin: true, room: roomName, roomAdmin: isDoctor });
     return token.toJwt();
+  }
+
+  async closeRoom(roomName: string): Promise<void> {
+    const credentials = this.credentials();
+    const roomService = new RoomServiceClient(credentials.apiUrl, credentials.apiKey, credentials.apiSecret);
+    await roomService.deleteRoom(roomName);
   }
 
   async receiveWebhook(rawBody: string, authorization?: string): Promise<WebhookEvent> {
