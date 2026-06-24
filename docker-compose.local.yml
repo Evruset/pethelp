@@ -85,16 +85,26 @@ services:
     working_dir: /workspace/backend
     command: >-
       sh -c "npm install && npm run migrate:up && npm run start:dev"
-    env_file:
-      - ${VETHELP_LOCAL_ENV_FILE:-./dev/local/.env}
     environment:
       DATABASE_URL: postgres://vethelp:vethelp@postgres:5432/vethelp
+      JWT_SECRET: local-development-jwt-signing-key-not-for-shared-use
+      JWT_ISSUER: vethelp-local
+      JWT_AUDIENCE: vethelp-api
+      WORKER_SERVICE_TOKEN: local-development-worker-token-not-for-shared-use
       MIS_VET_MANAGER_BASE_URL: http://mock-mis:4101
+      MIS_VET_MANAGER_API_KEY: local-mis-api-key
       ACQUIRING_API_BASE_URL: http://mock-acquiring:4102
+      ACQUIRING_API_KEY: local-acquiring-api-key
+      ACQUIRING_WEBHOOK_SECRET: local-acquiring-webhook-secret
       LIVEKIT_API_URL: ws://localhost:7880
+      LIVEKIT_API_KEY: devkey
+      LIVEKIT_API_SECRET: secret
       PORT: "3000"
       SWAGGER_ENABLED: "true"
       WORKERS_ENABLED: "true"
+      HOLD_TTL_MINUTES: "10"
+      OUTBOX_POLL_INTERVAL_MS: "1000"
+      OUTBOX_BATCH_SIZE: "20"
     ports:
       - "3000:3000"
     volumes:
