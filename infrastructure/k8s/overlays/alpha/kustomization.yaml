@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: vethelp-alpha
+resources:
+  - ../../base
+images:
+  - name: ghcr.io/evruset/pethelp-backend
+    newName: ghcr.io/evruset/pethelp-backend
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
