@@ -36,7 +36,7 @@ rolled_back=false
 do_rollback() {
   if [[ "$rolled_back" == true ]]; then return; fi
   echo "Rolling back ${DEPLOYMENT_NAME}/${CONTAINER_NAME} to known stable digest"
-  "$KUBECTL" -n "$KUBE_NAMESPACE" set image "deployment/${DEPLOYMENT_NAME}" "${CONTAINER_NAME}=${STABLE_IMAGE_DIGEST}" --record=false
+  "$KUBECTL" -n "$KUBE_NAMESPACE" set image "deployment/${DEPLOYMENT_NAME}" "${CONTAINER_NAME}=${STABLE_IMAGE_DIGEST}"
   "$KUBECTL" -n "$KUBE_NAMESPACE" rollout status "deployment/${DEPLOYMENT_NAME}" --timeout=60s
   rolled_back=true
 }
@@ -54,7 +54,7 @@ fi
 echo "Deploying intentionally defective digest for readiness/rollback exercise"
 "$KUBECTL" -n "$KUBE_NAMESPACE" annotate deployment "$DEPLOYMENT_NAME" \
   vethelp.io/rollback-drill-started-at="$started_at" vethelp.io/rollback-drill-defective-digest="$DEFECTIVE_IMAGE_DIGEST" --overwrite
-"$KUBECTL" -n "$KUBE_NAMESPACE" set image "deployment/${DEPLOYMENT_NAME}" "${CONTAINER_NAME}=${DEFECTIVE_IMAGE_DIGEST}" --record=false
+"$KUBECTL" -n "$KUBE_NAMESPACE" set image "deployment/${DEPLOYMENT_NAME}" "${CONTAINER_NAME}=${DEFECTIVE_IMAGE_DIGEST}"
 
 set +e
 "$KUBECTL" -n "$KUBE_NAMESPACE" rollout status "deployment/${DEPLOYMENT_NAME}" --timeout=60s
