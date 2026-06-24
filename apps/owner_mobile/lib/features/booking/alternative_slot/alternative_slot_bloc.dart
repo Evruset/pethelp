@@ -126,7 +126,10 @@ class AlternativeSlotBloc extends Bloc<AlternativeSlotEvent, AlternativeSlotStat
       return;
     }
 
-    final operationId = _operationIds.getOrCreate(operation: 'accept-alternative', aggregateId: _holdId);
+    final operationId = await _operationIds.getOrCreate(
+      operation: 'accept-alternative',
+      aggregateId: _holdId,
+    );
     emit(AlternativeSlotSubmitting(current.model, 'accept'));
     try {
       final result = await _repository.accept(_holdId, current.model.version, operationId);
@@ -148,7 +151,10 @@ class AlternativeSlotBloc extends Bloc<AlternativeSlotEvent, AlternativeSlotStat
       return;
     }
 
-    final operationId = _operationIds.getOrCreate(operation: 'decline-alternative', aggregateId: _holdId);
+    final operationId = await _operationIds.getOrCreate(
+      operation: 'decline-alternative',
+      aggregateId: _holdId,
+    );
     emit(AlternativeSlotSubmitting(current.model, 'decline'));
     try {
       final result = await _repository.decline(_holdId, current.model.version, operationId);
