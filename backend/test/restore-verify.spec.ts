@@ -7,6 +7,7 @@ const enabled = process.env.NODE_ENV === 'restore-verify' && process.env.RESTORE
 const suite = enabled ? describe : describe.skip;
 const databaseUrl = process.env.RESTORE_VERIFY_DATABASE_URL;
 const requiredMigration = process.env.RESTORE_VERIFY_REQUIRED_MIGRATION ?? '1719131000000_add_emergency_ops_reviews';
+const expectedLedgerFingerprint = process.env.RESTORE_VERIFY_LEDGER_FINGERPRINT;
 const migrationsDir = path.resolve(process.cwd(), 'migrations/node-pg');
 
 suite('Post-restore verification drill', () => {
@@ -14,6 +15,7 @@ suite('Post-restore verification drill', () => {
 
   beforeAll(async () => {
     if (!databaseUrl) throw new Error('RESTORE_VERIFY_DATABASE_URL is required for restore verification');
+    if (!expectedLedgerFingerprint) throw new Error('RESTORE_VERIFY_LEDGER_FINGERPRINT must be captured before pg_restore');
     client = new Client({ connectionString: databaseUrl });
     await client.connect();
   });
@@ -61,7 +63,8 @@ suite('Post-restore verification drill', () => {
     expect(invalid.rows).toEqual([]);
   });
 
-  it('restores the immutable ledger trigger definition', async () => {
+  it('keeps ledger records identical to the pre-restore fingerprint and restores immutable trigger', async () => {
+    expect(await ledgerFingerprint(client)).toBe(expectedLedgerFingerprint);
     const trigger = await client.query<{ trigger_definition: string }>(`
       SELECT pg_get_triggerdef(trigger.oid) AS trigger_definition
       FROM pg_trigger trigger
@@ -79,6 +82,17 @@ suite('Post-restore verification drill', () => {
 
 async function localMigrations(): Promise<string[]> {
   return (await readdir(migrationsDir)).filter((name) => /^\d+_.+\.js$/.test(name)).sort();
+}
+
+async function ledgerFingerprint(client: Client): Promise<string> {
+  const rows = await client.query(`
+    SELECT id::text, payment_intent_id::text, entry_type, amount::text, currency,
+           idempotency_key, provider_event_id, correlation_id::text, payload_json,
+           created_at::text
+    FROM payment_schema.ledger_entries
+    ORDER BY id
+  `);
+  return createHash('sha256').update(JSON.stringify(rows.rows)).digest('hex');
 }
 
 function normalize(name: string): string {
