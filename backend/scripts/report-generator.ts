@@ -35,7 +35,8 @@ function mergeJestOutcome(records: ScenarioEvidence[], jest: JestResult | undefi
   return records.map((record) => {
     const assertion = allAssertions.find((candidate) => candidate.fullName?.includes(record.scenario));
     if (assertion?.status === 'failed') {
-      return { ...record, result: 'FAIL' as const, observations: [...record.observations, ...assertion.failureMessages?.map((message) => redactFailure(message)) ?? []] };
+      const messages = (assertion.failureMessages ?? []).map((message) => redactFailure(message));
+      return { ...record, result: 'FAIL' as const, observations: [...record.observations, ...messages] };
     }
     return record;
   });
