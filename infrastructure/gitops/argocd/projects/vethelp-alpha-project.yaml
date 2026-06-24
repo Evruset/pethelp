@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: vethelp-alpha
+  namespace: argocd
+spec:
+  sourceRepos:
+    - https://github.com/Evruset/pethelp.git
+  destinations:
+    - namespace: vethelp-alpha
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
