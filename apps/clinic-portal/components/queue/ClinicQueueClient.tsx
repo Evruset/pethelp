@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ManualConfirmationQueue, ManualConfirmationQueueItem } from '@/lib/api/clinic-queue';
+import { AlternativeSlotDrawer } from './AlternativeSlotDrawer';
 
 type Connectivity = 'live' | 'reconnecting' | 'degraded';
 type ActionState = 'idle' | 'confirming' | 'fenced';
@@ -16,35 +17,24 @@ const SLA_AT_RISK_MS = 3 * 60 * 1000;
 const POLL_INTERVAL_MS = 15 * 1000;
 
 function formatClock(remainingMs: number): string {
-  const totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
-  const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
-  const seconds = (totalSeconds % 60).toString().padStart(2, '0');
-  return `${minutes}:${seconds}`;
+  const total = Math.max(0, Math.ceil(remainingMs / 1000));
+  return `${Math.floor(total / 60).toString().padStart(2, '0')}:${(total % 60).toString().padStart(2, '0')}`;
 }
 
 function formatDateTime(value: string): string {
-  return new Intl.DateTimeFormat('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
+  return new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 }
 
 function formatTimeRange(startsAt: string, endsAt: string): string {
   const format = new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' });
-  return `${format(new Date(startsAt))}–${format(new Date(endsAt))}`;
+  return `${format.format(new Date(startsAt))}–${format.format(new Date(endsAt))}`;
 }
 
 function speciesLabel(value: string): string {
-  const labels: Record<string, string> = {
-    cat: 'Кошка',
-    dog: 'Собака',
-  };
-  return labels[value.toLowerCase()] ?? value;
+  return ({ cat: 'Кошка', dog: 'Собака' } as Record<string, string>)[value.toLowerCase()] ?? value;
 }
 
-function getCorrelationId(): string {
+function correlationId(): string {
   const key = 'vethelp.clinic.correlation-id';
   const existing = window.sessionStorage.getItem(key);
   if (existing) return existing;
@@ -53,8 +43,10 @@ function getCorrelationId(): string {
   return created;
 }
 
-function isApiError(value: unknown): value is { code?: string } {
-  return typeof value === 'object' && value !== null;
+function errorCode(value: unknown): string {
+  return typeof value === 'object' && value !== null && typeof (value as { code?: unknown }).code === 'string'
+    ? (value as { code: string }).code
+    : 'BACKEND_UNAVAILABLE';
 }
 
 export function ClinicQueueClient({ clinicId, locationId, initialQueue }: Props) {
@@ -64,28 +56,26 @@ export function ClinicQueueClient({ clinicId, locationId, initialQueue }: Props)
   const [connectivity, setConnectivity] = useState<Connectivity>('live');
   const [notice, setNotice] = useState<string | null>(null);
   const [actionState, setActionState] = useState<Record<string, ActionState>>({});
+  const [alternativeRequest, setAlternativeRequest] = useState<ManualConfirmationQueueItem | null>(null);
   const commandKeys = useRef(new Map<string, string>());
 
   const refresh = useCallback(async (quiet = false) => {
     if (!quiet) setConnectivity('reconnecting');
     try {
-      const response = await fetch(
-        `/api/clinic/${clinicId}/locations/${locationId}/booking-queue`,
-        { cache: 'no-store' },
-      );
+      const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/booking-queue`, { cache: 'no-store' });
       if (response.status === 403) {
         window.location.assign('/forbidden');
         return;
       }
-      const payload: unknown = await response.json().catch(() => null);
+      const payload = await response.json().catch(() => null);
       if (!response.ok || !payload) {
         setConnectivity('degraded');
         if (!quiet) setNotice('Не удалось обновить очередь. Повторите попытку.');
         return;
       }
-      const nextQueue = payload as ManualConfirmationQueue;
-      setQueue(nextQueue);
-      setOffsetMs(Date.parse(nextQueue.serverNow) - Date.now());
+      const next = payload as ManualConfirmationQueue;
+      setQueue(next);
+      setOffsetMs(Date.parse(next.serverNow) - Date.now());
       setConnectivity('live');
       if (!quiet) setNotice(null);
     } catch {
@@ -104,31 +94,22 @@ export function ClinicQueueClient({ clinicId, locationId, initialQueue }: Props)
     return () => window.clearInterval(poller);
   }, [refresh]);
 
-  const positionByHoldId = useMemo(
-    () => new Map(queue.items.map((item, index) => [item.holdId, index + 1])),
-    [queue.items],
-  );
+  const positions = useMemo(() => new Map(queue.items.map((item, index) => [item.holdId, index + 1])), [queue.items]);
 
   const confirmHold = useCallback(async (holdId: string) => {
-    const current = actionState[holdId] ?? 'idle';
-    if (current !== 'idle') return;
-
-    const idempotencyKey = commandKeys.current.get(holdId) ?? crypto.randomUUID();
-    commandKeys.current.set(holdId, idempotencyKey);
+    if ((actionState[holdId] ?? 'idle') !== 'idle') return;
+    const idempotency = commandKeys.current.get(holdId) ?? crypto.randomUUID();
+    commandKeys.current.set(holdId, idempotency);
     setActionState((state) => ({ ...state, [holdId]: 'confirming' }));
     setNotice(null);
 
     try {
       const response = await fetch(`/api/clinic/booking-holds/${holdId}/confirm`, {
         method: 'POST',
-        headers: {
-          'Idempotency-Key': idempotencyKey,
-          'X-Correlation-ID': getCorrelationId(),
-        },
+        headers: { 'Idempotency-Key': idempotency, 'X-Correlation-ID': correlationId() },
       });
-      const payload: unknown = await response.json().catch(() => null);
-      const code = isApiError(payload) && typeof payload.code === 'string' ? payload.code : 'BACKEND_UNAVAILABLE';
-
+      const payload = await response.json().catch(() => null);
+      const code = errorCode(payload);
       if (response.ok) {
         commandKeys.current.delete(holdId);
         setActionState((state) => ({ ...state, [holdId]: 'idle' }));
@@ -136,21 +117,18 @@ export function ClinicQueueClient({ clinicId, locationId, initialQueue }: Props)
         await refresh(true);
         return;
       }
-
       if (response.status === 409 && code === 'SLOT_LOCKED_RETRY') {
         setActionState((state) => ({ ...state, [holdId]: 'idle' }));
         setNotice('Заявка обновляется. Получаем актуальное состояние очереди.');
         await refresh(true);
         return;
       }
-
-      if (response.status === 422 || response.status === 409 || response.status === 423) {
+      if (response.status === 409 || response.status === 422 || response.status === 423) {
         setActionState((state) => ({ ...state, [holdId]: 'fenced' }));
         setNotice('Заявка уже изменилась или срок подтверждения истёк. Очередь обновлена.');
         await refresh(true);
         return;
       }
-
       setActionState((state) => ({ ...state, [holdId]: 'idle' }));
       setNotice('Не удалось подтвердить запись. Повторите попытку.');
     } catch {
@@ -159,6 +137,12 @@ export function ClinicQueueClient({ clinicId, locationId, initialQueue }: Props)
     }
   }, [actionState, refresh]);
 
+  const closeAlternative = useCallback(() => setAlternativeRequest(null), []);
+  const alternativeFinished = useCallback(() => {
+    setAlternativeRequest(null);
+    void refresh(true);
+  }, [refresh]);
+
   return (
     <main className="min-h-screen px-4 py-6 sm:px-8 lg:px-12">
       <section className="mx-auto max-w-7xl">
@@ -166,147 +150,64 @@ export function ClinicQueueClient({ clinicId, locationId, initialQueue }: Props)
           <div>
             <p className="text-sm font-semibold text-blue-700">VetHelp · Локация клиники</p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">Очередь подтверждения</h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Заявки показаны в строгом порядке поступления. Подтверждайте их последовательно.
-            </p>
+            <p className="mt-2 text-sm text-slate-600">Заявки показаны в строгом порядке поступления. Подтверждайте их последовательно.</p>
           </div>
           <div className="flex items-center gap-3">
-            <span
-              className={[
-                'rounded-full px-3 py-1 text-xs font-semibold',
-                connectivity === 'live' && 'bg-emerald-50 text-emerald-700',
-                connectivity === 'reconnecting' && 'bg-amber-50 text-amber-800',
-                connectivity === 'degraded' && 'bg-red-50 text-red-700',
-              ].filter(Boolean).join(' ')}
-              aria-live="polite"
-            >
+            <span className={['rounded-full px-3 py-1 text-xs font-semibold', connectivity === 'live' && 'bg-emerald-50 text-emerald-700', connectivity === 'reconnecting' && 'bg-amber-50 text-amber-800', connectivity === 'degraded' && 'bg-red-50 text-red-700'].filter(Boolean).join(' ')} aria-live="polite">
               {connectivity === 'live' ? 'Данные синхронизированы' : connectivity === 'reconnecting' ? 'Обновляем очередь' : 'Нет соединения'}
             </span>
-            <button
-              type="button"
-              onClick={() => void refresh(false)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
-            >
-              Обновить
-            </button>
+            <button type="button" onClick={() => void refresh(false)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2">Обновить</button>
           </div>
         </header>
 
-        <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-          SLA отсчитывается от серверного времени VetHelp. Красная строка требует немедленного действия; после истечения срока действия блокируются на backend.
-        </div>
-
-        {notice ? (
-          <div className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700" role="status">
-            {notice}
-          </div>
-        ) : null}
+        <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">SLA отсчитывается от серверного времени VetHelp. Красная строка требует немедленного действия; после истечения срока действия блокируются на backend.</div>
+        {notice ? <div className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700" role="status">{notice}</div> : null}
 
         <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           {queue.items.length === 0 ? (
-            <div className="px-6 py-16 text-center">
-              <p className="text-lg font-semibold text-slate-900">Нет заявок, ожидающих подтверждения</p>
-              <p className="mt-2 text-sm text-slate-600">Новые заявки появятся здесь в порядке поступления.</p>
-            </div>
+            <div className="px-6 py-16 text-center"><p className="text-lg font-semibold text-slate-900">Нет заявок, ожидающих подтверждения</p><p className="mt-2 text-sm text-slate-600">Новые заявки появятся здесь в порядке поступления.</p></div>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full table-fixed border-collapse text-left">
-                <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  <tr>
-                    <th className="w-16 px-4 py-3">№</th>
-                    <th className="w-40 px-4 py-3">Поступила</th>
-                    <th className="w-48 px-4 py-3">Питомец</th>
-                    <th className="w-52 px-4 py-3">Услуга</th>
-                    <th className="w-44 px-4 py-3">Визит</th>
-                    <th className="w-44 px-4 py-3">SLA</th>
-                    <th className="w-36 px-4 py-3">Действие</th>
-                  </tr>
-                </thead>
+                <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"><tr><th className="w-16 px-4 py-3">№</th><th className="w-40 px-4 py-3">Поступила</th><th className="w-48 px-4 py-3">Питомец</th><th className="w-52 px-4 py-3">Услуга</th><th className="w-44 px-4 py-3">Визит</th><th className="w-44 px-4 py-3">SLA</th><th className="w-40 px-4 py-3">Действия</th></tr></thead>
                 <tbody>
-                  {queue.items.map((item) => (
-                    <QueueRow
-                      key={item.holdId}
-                      item={item}
-                      position={positionByHoldId.get(item.holdId) ?? 0}
-                      serverNowMs={now + offsetMs}
-                      actionState={actionState[item.holdId] ?? 'idle'}
-                      onConfirm={confirmHold}
-                    />
-                  ))}
+                  {queue.items.map((item) => <QueueRow key={item.holdId} item={item} position={positions.get(item.holdId) ?? 0} serverNowMs={now + offsetMs} actionState={actionState[item.holdId] ?? 'idle'} onConfirm={confirmHold} onPropose={() => setAlternativeRequest(item)} />)}
                 </tbody>
               </table>
             </div>
           )}
         </div>
       </section>
+      {alternativeRequest ? <AlternativeSlotDrawer clinicId={clinicId} locationId={locationId} request={alternativeRequest} correlationId={correlationId()} onClose={closeAlternative} onSuccess={alternativeFinished} onNotice={setNotice} /> : null}
     </main>
   );
 }
 
-function QueueRow({
-  item,
-  position,
-  serverNowMs,
-  actionState,
-  onConfirm,
-}: {
+function QueueRow({ item, position, serverNowMs, actionState, onConfirm, onPropose }: {
   item: ManualConfirmationQueueItem;
   position: number;
   serverNowMs: number;
   actionState: ActionState;
   onConfirm: (holdId: string) => void;
+  onPropose: () => void;
 }) {
   const remainingMs = Date.parse(item.confirmationSlaExpiresAt) - serverNowMs;
   const breached = remainingMs <= 0;
   const critical = !breached && remainingMs <= SLA_AT_RISK_MS;
   const blocked = breached || actionState === 'fenced';
-
-  const rowClass = breached
-    ? 'bg-red-50 text-red-950'
-    : critical
-      ? 'bg-red-50/70 text-slate-950 motion-safe:animate-pulse'
-      : 'bg-white text-slate-900';
+  const rowClass = breached ? 'bg-red-50 text-red-950' : critical ? 'bg-red-50/70 text-slate-950 motion-safe:animate-pulse' : 'bg-white text-slate-900';
 
   return (
     <tr className={`border-t border-slate-200 ${rowClass}`}>
       <td className="px-4 py-4 align-top text-sm font-semibold">{position}</td>
       <td className="px-4 py-4 align-top text-sm text-slate-700">{formatDateTime(item.manualConfirmPendingAt)}</td>
-      <td className="px-4 py-4 align-top">
-        <p className="text-sm font-semibold">{item.pet.name}</p>
-        <p className="mt-1 text-xs text-slate-600">{speciesLabel(item.pet.species)}</p>
-      </td>
+      <td className="px-4 py-4 align-top"><p className="text-sm font-semibold">{item.pet.name}</p><p className="mt-1 text-xs text-slate-600">{speciesLabel(item.pet.species)}</p></td>
       <td className="px-4 py-4 align-top text-sm text-slate-700">{item.service?.displayName ?? 'Услуга не указана'}</td>
-      <td className="px-4 py-4 align-top">
-        <p className="text-sm font-medium text-slate-800">{formatDateTime(item.slot.startsAt)}</p>
-        <p className="mt-1 text-xs text-slate-600">{formatTimeRange(item.slot.startsAt, item.slot.endsAt)}</p>
-      </td>
-      <td className="px-4 py-4 align-top">
-        <p
-          className={[
-            'inline-flex items-center rounded-full px-2.5 py-1 text-sm font-semibold',
-            breached && 'bg-red-100 text-red-800',
-            critical && 'bg-red-100 text-red-800',
-            !critical && !breached && 'bg-slate-100 text-slate-700',
-          ].filter(Boolean).join(' ')}
-          aria-live={critical || breached ? 'polite' : undefined}
-        >
-          {breached ? 'SLA истёк' : `Осталось ${formatClock(remainingMs)}`}
-        </p>
-        {(critical || breached) ? (
-          <p className="mt-2 text-xs font-medium text-red-800">
-            {breached ? 'Заявка передана в автоматическую обработку.' : 'Срок подтверждения истекает.'}
-          </p>
-        ) : null}
-      </td>
-      <td className="px-4 py-4 align-top">
-        <button
-          type="button"
-          disabled={blocked || actionState === 'confirming'}
-          onClick={() => onConfirm(item.holdId)}
-          className="w-full rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
-        >
-          {actionState === 'confirming' ? 'Подтверждаем…' : blocked ? 'Недоступно' : 'Подтвердить'}
-        </button>
+      <td className="px-4 py-4 align-top"><p className="text-sm font-medium text-slate-800">{formatDateTime(item.slot.startsAt)}</p><p className="mt-1 text-xs text-slate-600">{formatTimeRange(item.slot.startsAt, item.slot.endsAt)}</p></td>
+      <td className="px-4 py-4 align-top"><p className={['inline-flex items-center rounded-full px-2.5 py-1 text-sm font-semibold', (breached || critical) && 'bg-red-100 text-red-800', !critical && !breached && 'bg-slate-100 text-slate-700'].filter(Boolean).join(' ')} aria-live={critical || breached ? 'polite' : undefined}>{breached ? 'SLA истёк' : `Осталось ${formatClock(remainingMs)}`}</p>{(critical || breached) ? <p className="mt-2 text-xs font-medium text-red-800">{breached ? 'Заявка передана в автоматическую обработку.' : 'Срок подтверждения истекает.'}</p> : null}</td>
+      <td className="space-y-2 px-4 py-4 align-top">
+        <button type="button" disabled={blocked || actionState === 'confirming'} onClick={() => onConfirm(item.holdId)} className="w-full rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">{actionState === 'confirming' ? 'Подтверждаем…' : blocked ? 'Недоступно' : 'Подтвердить'}</button>
+        <button type="button" disabled={blocked || actionState === 'confirming'} onClick={onPropose} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Предложить время</button>
       </td>
     </tr>
   );
