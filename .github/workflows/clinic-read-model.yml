@@ -1,0 +1,49 @@
+name: Clinic Read Models
+
+on:
+  pull_request:
+    paths:
+      - 'backend/src/booking-core/**'
+      - 'backend/test/clinic-*.integration-spec.ts'
+      - '.github/workflows/clinic-read-model.yml'
+  workflow_dispatch:
+
+jobs:
+  read-models:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: vethelp
+          POSTGRES_USER: vethelp
+          POSTGRES_PASSWORD: vethelp
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U vethelp -d vethelp"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://vethelp:vethelp@localhost:5432/vethelp
+      JWT_SECRET: clinic-read-model-test-secret-at-least-32-bytes
+      JWT_ISSUER: vethelp-ci-auth
+      JWT_AUDIENCE: vethelp-ci-api
+      WORKER_SERVICE_TOKEN: clinic-read-model-worker-token
+      LIVEKIT_API_URL: wss://livekit.ci.test
+      LIVEKIT_API_KEY: livekit-ci-api-key
+      LIVEKIT_API_SECRET: livekit-ci-api-secret
+      WORKERS_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+      - run: npm run build
+      - run: npm run migrate:up
+      - run: npm test -- test/clinic-queue.integration-spec.ts test/clinic-available-slots.integration-spec.ts
