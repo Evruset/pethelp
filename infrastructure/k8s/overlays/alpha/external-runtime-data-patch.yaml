@@ -1,0 +1,8 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: vethelp-backend-runtime
+spec:
+  dataFrom:
+    - extract:
+        key: alpha/runtime/external
