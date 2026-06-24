@@ -10,12 +10,14 @@ import { BookingSecurityService } from './booking-security.service';
 import { BookingService } from './booking.service';
 import { ClinicEmployeeAccessService } from './clinic-employee-access.service';
 import { ClinicPortalService } from './clinic-portal.service';
+import { ClinicQueueController } from './clinic-queue.controller';
+import { ClinicQueueService } from './clinic-queue.service';
 import { ClinicSlaMonitorWorker } from './clinic-sla-monitor.worker';
 import { ClinicPortalController } from './clinic-portal.controller';
 
 @NestModule({
   imports: [AuthModule],
-  controllers: [BookingController, ClinicPortalController],
+  controllers: [BookingController, ClinicPortalController, ClinicQueueController],
   providers: [
     BookingRepository,
     BookingService,
@@ -24,10 +26,11 @@ import { ClinicPortalController } from './clinic-portal.controller';
     BookingSecurityService,
     ClinicEmployeeAccessService,
     ClinicPortalService,
+    ClinicQueueService,
     ClinicSlaMonitorWorker,
     AlternativeSlotService,
     AlternativeSlotExpirationWorker,
   ],
-  exports: [BookingService, ClinicPortalService, AlternativeSlotService],
+  exports: [BookingService, ClinicPortalService, AlternativeSlotService, ClinicQueueService],
 })
 export class BookingCoreModule {}
