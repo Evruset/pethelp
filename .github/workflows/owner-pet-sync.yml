@@ -1,0 +1,51 @@
+name: Owner Pet Sync
+
+on:
+  pull_request:
+    paths:
+      - 'backend/src/modules/pets/**'
+      - 'backend/test/owner-pet-sync.integration-spec.ts'
+      - 'backend/migrations/node-pg/1719142000000_pet_sync.js'
+      - 'apps/owner_mobile/lib/core/offline/**'
+      - '.github/workflows/owner-pet-sync.yml'
+  workflow_dispatch:
+
+jobs:
+  sync-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: vethelp
+          POSTGRES_USER: vethelp
+          POSTGRES_PASSWORD: vethelp
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U vethelp -d vethelp"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://vethelp:vethelp@localhost:5432/vethelp
+      JWT_SECRET: owner-pet-sync-test-secret-at-least-32-bytes
+      JWT_ISSUER: vethelp-ci-auth
+      JWT_AUDIENCE: vethelp-ci-api
+      WORKER_SERVICE_TOKEN: owner-pet-sync-worker-token
+      LIVEKIT_API_URL: wss://livekit.ci.test
+      LIVEKIT_API_KEY: owner-pet-sync-key
+      LIVEKIT_API_SECRET: owner-pet-sync-secret
+      WORKERS_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+      - run: npm run build
+      - run: npm run migrate:up
+      - run: npm test -- test/owner-pet-sync.integration-spec.ts
