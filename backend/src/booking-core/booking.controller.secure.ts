@@ -23,6 +23,7 @@ import { Roles } from '../auth/roles.decorator';
 import { DomainErrors } from '../common/domain-error';
 import { SWAGGER_BEARER_AUTH } from '../openapi/openapi';
 import { BookingHoldCreationService } from './booking-hold-creation.service';
+import { BookingHoldReadService } from './booking-hold-read.service';
 import { BookingSecurityService } from './booking-security.service';
 import { BookingService } from './booking.service';
 import {
@@ -47,6 +48,7 @@ export class BookingController {
   constructor(
     private readonly bookingService: BookingService,
     private readonly holdCreationService: BookingHoldCreationService,
+    private readonly holdReadService: BookingHoldReadService,
     private readonly bookingSecurityService: BookingSecurityService,
   ) {}
 
@@ -110,12 +112,15 @@ export class BookingController {
   }
 
   @Get('booking-holds/:holdId')
-  @ApiOperation({ summary: 'Получение текущего статуса hold' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.OWNER, Role.CLINIC_RECEPTIONIST, Role.CLINIC_ADMIN, Role.SYSTEM_WORKER)
+  @ApiBearerAuth(SWAGGER_BEARER_AUTH)
+  @ApiOperation({ summary: 'Получение текущего статуса hold авторизованным участником' })
   @ApiParam({ name: 'holdId', type: 'string', format: 'uuid' })
   @ApiNotFoundResponse({ description: 'HOLD_NOT_FOUND.', type: ApiErrorDto })
-  async getHold(@Param('holdId') holdId: string) {
-    if (!isUuid(holdId)) throw DomainErrors.holdNotFound();
-    return this.bookingService.findHold(holdId);
+  @ApiForbiddenResponse({ description: 'HOLD_OWNER_MISMATCH или CLINIC_SCOPE_MISMATCH.', type: ApiErrorDto })
+  async getHold(@Param('holdId') holdId: string, @CurrentUser() actor: JwtPayload) {
+    return this.holdReadService.readForActor(requiredUuid(holdId, 'holdId'), actor);
   }
 
   @Post('booking-holds/:holdId/release')
