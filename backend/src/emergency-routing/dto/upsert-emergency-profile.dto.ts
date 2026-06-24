@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
 import { ArrayMaxSize, IsArray, IsBoolean, IsISO8601, IsOptional, IsString, Matches, ValidateNested } from 'class-validator';
-import { EMERGENCY_STATUSES, EMERGENCY_VERIFICATION_STATUSES, EMERGENCY_SPECIES } from '../emergency-routing.types';
+import { EMERGENCY_STATUSES, EMERGENCY_SPECIES } from '../emergency-routing.types';
 
 export class EmergencyCapabilityDto {
   @IsString()
@@ -21,12 +21,10 @@ export class EmergencyCapabilityDto {
   evidenceReference?: string;
 }
 
+/** Clinic-owned declaration. Every material update resets independent verification. */
 export class UpsertEmergencyProfileDto {
   @IsString()
   emergencyStatus!: (typeof EMERGENCY_STATUSES)[number];
-
-  @IsString()
-  verificationStatus!: (typeof EMERGENCY_VERIFICATION_STATUSES)[number];
 
   @IsISO8601()
   validUntil!: string;
