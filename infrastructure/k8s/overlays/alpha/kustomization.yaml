@@ -17,3 +17,4 @@ images:
 patches:
   - path: alpha-sandbox-cert-patch.yaml
   - path: external-secret-ownership-patch.yaml
+  - path: external-runtime-data-patch.yaml
