@@ -1,0 +1,50 @@
+name: Deploy Immutable Alpha Artifact
+
+on:
+  workflow_run:
+    workflows: ['Backend CI and Immutable Release']
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      artifact_run_id:
+        description: 'Successful Backend CI run ID containing vethelp-alpha-immutable-manifest'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  deploy:
+    if: >-
+      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') &&
+      vars.VETHELP_ALPHA_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: alpha
+    steps:
+      - name: Resolve source run
+        id: source
+        run: |
+          echo "run_id=${{ inputs.artifact_run_id || github.event.workflow_run.id }}" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          name: vethelp-alpha-immutable-manifest
+          run-id: ${{ steps.source.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: artifacts/release
+      - uses: azure/setup-kubectl@v4
+      - name: Configure Kubernetes client
+        env:
+          KUBECONFIG_DATA: ${{ secrets.VETHELP_ALPHA_KUBECONFIG }}
+        run: |
+          test -n "$KUBECONFIG_DATA"
+          echo "$KUBECONFIG_DATA" | base64 --decode > "$RUNNER_TEMP/kubeconfig"
+          chmod 600 "$RUNNER_TEMP/kubeconfig"
+          echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig" >> "$GITHUB_ENV"
+      - name: Apply digest-pinned release
+        run: |
+          grep -Eq 'image: .+@sha256:[0-9a-f]{64}$' artifacts/release/vethelp-alpha.yaml
+          kubectl apply -f artifacts/release/vethelp-alpha.yaml
+          kubectl -n vethelp-alpha rollout status deployment/vethelp-backend --timeout=180s
