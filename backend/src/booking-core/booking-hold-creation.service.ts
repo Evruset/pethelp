@@ -62,9 +62,10 @@ export class BookingHoldCreationService {
 
         const now = await this.repository.now(client);
         if (
-          slot.state !== 'OPEN' ||
-          slot.starts_at <= now ||
-          slot.capacity - slot.booked_count - slot.held_count <= 0
+          slot.state !== 'OPEN'
+          || slot.status === 'BOOKED'
+          || slot.starts_at <= now
+          || slot.capacity - slot.booked_count - slot.held_count <= 0
         ) {
           throw DomainErrors.slotAlreadyTaken();
         }
@@ -77,7 +78,8 @@ export class BookingHoldCreationService {
         `, [slot.clinic_location_id]);
         if (!clinic.rows[0]) throw DomainErrors.slotNotFound();
 
-        const requiresMisReservation = Boolean(clinic.rows[0].mis_type);
+        const integrationMode = slot.integration_mode ?? (clinic.rows[0].mis_type ? 'LEVEL_A' : 'LEVEL_C');
+        const requiresMisReservation = integrationMode !== 'LEVEL_C';
         if (requiresMisReservation && !pet.rows[0].external_patient_id) {
           throw new DomainException(
             HttpStatus.UNPROCESSABLE_ENTITY,
@@ -90,25 +92,39 @@ export class BookingHoldCreationService {
           ? 'MIS_RESERVATION_PENDING'
           : 'MANUAL_CONFIRM_PENDING';
 
+        /*
+         * The 15-minute clinic SLA is set atomically with the Level-C hold.
+         * A one-minute grace on expires_at guarantees the SLA worker wins the
+         * race against the generic TTL worker and can record SLA_BREACHED.
+         */
         const hold = await client.query<HoldRow>(`
           INSERT INTO booking_schema.booking_holds (
-            slot_id, owner_id, pet_id, state, expires_at
+            slot_id, owner_id, pet_id, state, expires_at, confirmation_sla_expires_at
           )
           VALUES (
-            $1, $2, $3, $4,
-            clock_timestamp() + ($5::text || ' minutes')::interval
+            $1::uuid, $2::uuid, $3::uuid, $4,
+            CASE
+              WHEN $4 = 'MANUAL_CONFIRM_PENDING' THEN clock_timestamp() + interval '16 minutes'
+              ELSE clock_timestamp() + ($5::text || ' minutes')::interval
+            END,
+            CASE
+              WHEN $4 = 'MANUAL_CONFIRM_PENDING' THEN clock_timestamp() + interval '15 minutes'
+              ELSE NULL
+            END
           )
           RETURNING
-            id, slot_id, owner_id, pet_id, state,
-            expires_at, state_changed_at, version, created_at
+            id, slot_id, owner_id, pet_id, state, expires_at,
+            confirmation_sla_expires_at, alternative_slot_id, alternative_expires_at,
+            state_changed_at, version, created_at
         `, [input.slotId, input.ownerId, input.petId, initialState, config.holdTtlMinutes]);
 
         await client.query(`
           UPDATE clinic_schema.appointment_slots
           SET held_count = held_count + 1,
+              status = 'LOCKED_BY_HOLD',
               version = version + 1,
               updated_at = clock_timestamp()
-          WHERE id = $1
+          WHERE id = $1::uuid
         `, [input.slotId]);
 
         const result: CreateHoldResult = {
@@ -125,7 +141,9 @@ export class BookingHoldCreationService {
           ownerId: input.ownerId,
           petId: input.petId,
           state: initialState,
+          integrationMode,
           expiresAt: result.expiresAt,
+          confirmationSlaExpiresAt: hold.rows[0].confirmation_sla_expires_at?.toISOString() ?? null,
         });
 
         if (requiresMisReservation) {
@@ -156,7 +174,13 @@ export class BookingHoldCreationService {
           'booking.hold.created',
           hold.rows[0].id,
           input.correlationId,
-          JSON.stringify({ slotId: input.slotId, petId: input.petId, state: initialState }),
+          JSON.stringify({
+            slotId: input.slotId,
+            petId: input.petId,
+            state: initialState,
+            integrationMode,
+            confirmationSlaExpiresAt: hold.rows[0].confirmation_sla_expires_at?.toISOString() ?? null,
+          }),
         ]);
 
         await this.completeIdempotency(
@@ -176,7 +200,7 @@ export class BookingHoldCreationService {
 
   private async setInteractiveTransactionLimits(client: PoolClient): Promise<void> {
     await client.query("SET LOCAL lock_timeout = '50ms'");
-    await client.query("SET LOCAL statement_timeout = '250ms'");
+    await client.query("SET LOCAL statement_timeout = '50ms'");
   }
 
   private async acquireIdempotency(

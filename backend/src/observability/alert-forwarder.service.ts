@@ -6,7 +6,8 @@ export type VetHelpAlertType =
   | 'MIS_INTEGRATION_TIMEOUT'
   | 'PAYMENT_FENCING_TRIGGERED'
   | 'SLA_AUTO_VOID_FAILED'
-  | 'REFUND_FAILED';
+  | 'REFUND_FAILED'
+  | 'CLINIC_SLA_BREACHED';
 
 type AlertChannel = 'telegram' | 'slack';
 
@@ -37,6 +38,7 @@ export class AlertForwarderService {
     'PAYMENT_FENCING_TRIGGERED',
     'SLA_AUTO_VOID_FAILED',
     'REFUND_FAILED',
+    'CLINIC_SLA_BREACHED',
   ]);
 
   /** Explicit allowlist prevents accidental PII or raw provider payload export. */
