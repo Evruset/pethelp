@@ -5,9 +5,10 @@ import { ClinicEmployeeAccessService } from '../booking-core/clinic-employee-acc
 import { EmergencyFreshnessWorker } from './emergency-freshness.worker';
 import { EmergencyOpsController } from './emergency-ops.controller';
 import { EmergencyOpsService } from './emergency-ops.service';
+import { EmergencyProfileService } from './emergency-profile.service';
+import { EmergencyPublicRoutingService } from './emergency-public-routing.service';
 import { EmergencyReviewCommand } from './emergency-review.command';
 import { EmergencyRoutingController } from './emergency-routing.controller';
-import { EmergencyProfileService } from './emergency-profile.service';
 import { EmergencyRoutingService } from './emergency-routing.service';
 
 @Module({
@@ -16,11 +17,12 @@ import { EmergencyRoutingService } from './emergency-routing.service';
   providers: [
     ClinicEmployeeAccessService,
     EmergencyRoutingService,
+    EmergencyPublicRoutingService,
     EmergencyProfileService,
     EmergencyReviewCommand,
     EmergencyOpsService,
     EmergencyFreshnessWorker,
   ],
-  exports: [EmergencyRoutingService, EmergencyProfileService, EmergencyOpsService],
+  exports: [EmergencyRoutingService, EmergencyPublicRoutingService, EmergencyProfileService, EmergencyOpsService],
 })
 export class EmergencyRoutingModule {}
