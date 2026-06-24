@@ -3,11 +3,14 @@ kind: Kustomization
 namespace: vethelp-alpha
 namePrefix: alpha-
 resources:
+  - namespace.yaml
   - ../../base
   - alpha-runtime-config.yaml
   - alpha-ingress-secure.yaml
   - external-secret-alpha.yaml
   - alpha-network-policy.yaml
+  - resource-governance.yaml
+  - pod-disruption-budget.yaml
 images:
   - name: ghcr.io/evruset/pethelp-backend
     newName: ghcr.io/evruset/pethelp-backend
