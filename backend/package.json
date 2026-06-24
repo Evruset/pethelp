@@ -15,7 +15,7 @@
     "openapi:generate": "npm run build && npm run openapi:export",
     "seed": "ts-node scripts/seed.ts",
     "cert:sandbox:report": "ts-node scripts/report-generator.ts",
-    "cert:sandbox": "set +e; NODE_ENV=sandbox-cert SANDBOX_CERT_ENABLED=true jest --runInBand test/sandbox-cert.spec.ts --json --outputFile artifacts/sandbox-certification/jest-results.json; test_status=$?; npm run cert:sandbox:report; report_status=$?; test $test_status -eq 0 && test $report_status -eq 0",
+    "cert:sandbox": "set +e; NODE_ENV=sandbox-cert SANDBOX_CERT_ENABLED=true jest --runInBand test/sandbox-cert-production.spec.ts --json --outputFile artifacts/sandbox-certification/jest-results.json; test_status=$?; npm run cert:sandbox:report; report_status=$?; test $test_status -eq 0 && test $report_status -eq 0",
     "restore:fingerprint": "ts-node scripts/capture-ledger-fingerprint.ts",
     "check": "npm run build && npm test"
   },
