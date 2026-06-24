@@ -1,0 +1,134 @@
+name: vethelp-local
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: vethelp
+      POSTGRES_USER: vethelp
+      POSTGRES_PASSWORD: vethelp
+    ports:
+      - "5432:5432"
+    volumes:
+      - vethelp-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vethelp -d vethelp"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mock-mis:
+    image: node:22-alpine
+    working_dir: /app
+    command: ["node", "mis-server.mjs"]
+    environment:
+      PORT: "4101"
+      MOCK_MIS_API_KEY: local-mis-api-key
+    ports:
+      - "4101:4101"
+    volumes:
+      - ./dev/mocks:/app:ro
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:4101/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mock-acquiring:
+    image: node:22-alpine
+    working_dir: /app
+    command: ["node", "acquiring-server.mjs"]
+    environment:
+      PORT: "4102"
+      MOCK_ACQUIRING_API_KEY: local-acquiring-api-key
+      MOCK_ACQUIRING_WEBHOOK_SECRET: local-acquiring-webhook-secret
+      VETHELP_WEBHOOK_TARGET: http://backend:3000/v1/payments/webhooks/authorized
+    ports:
+      - "4102:4102"
+    volumes:
+      - ./dev/mocks:/app:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:4102/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mock-cloud:
+    image: node:22-alpine
+    working_dir: /app
+    command: ["node", "cloud-server.mjs"]
+    environment:
+      PORT: "4103"
+    ports:
+      - "4103:4103"
+    volumes:
+      - ./dev/mocks:/app:ro
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:4103/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  livekit:
+    image: livekit/livekit-server:latest
+    command: ["--dev", "--bind", "0.0.0.0"]
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7882:7882/udp"
+
+  backend:
+    image: node:22-alpine
+    working_dir: /workspace/backend
+    command: >-
+      sh -c "npm install && npm run migrate:up && npm run start:dev"
+    env_file:
+      - ${VETHELP_LOCAL_ENV_FILE:-./dev/local/.env}
+    environment:
+      DATABASE_URL: postgres://vethelp:vethelp@postgres:5432/vethelp
+      MIS_VET_MANAGER_BASE_URL: http://mock-mis:4101
+      ACQUIRING_API_BASE_URL: http://mock-acquiring:4102
+      LIVEKIT_API_URL: ws://localhost:7880
+      PORT: "3000"
+      SWAGGER_ENABLED: "true"
+      WORKERS_ENABLED: "true"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./:/workspace:delegated
+      - vethelp-backend-node-modules:/workspace/backend/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mock-mis:
+        condition: service_healthy
+      mock-cloud:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/v1/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  seed:
+    profiles: ["setup"]
+    image: node:22-alpine
+    working_dir: /workspace/backend
+    command: >-
+      sh -c "npm install && npm run migrate:up && npm run seed &&
+      node -e \"const { Client } = require('pg'); const client = new Client({ connectionString: process.env.DATABASE_URL }); client.connect().then(() => client.query(\\\"UPDATE clinic_schema.clinics SET mis_type = 'VET_MANAGER_API' WHERE public_name = 'VetHelp Pilot'\\\")).then(() => client.end()).catch(async error => { console.error(error); await client.end(); process.exit(1); })\""
+    environment:
+      DATABASE_URL: postgres://vethelp:vethelp@postgres:5432/vethelp
+    volumes:
+      - ./:/workspace:delegated
+      - vethelp-backend-node-modules:/workspace/backend/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  vethelp-postgres-data:
+  vethelp-backend-node-modules:
