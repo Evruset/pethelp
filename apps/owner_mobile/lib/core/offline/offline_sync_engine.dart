@@ -48,20 +48,25 @@ class OfflineSyncEngine {
         continue;
       }
 
-      switch (response.statusCode) {
-        case 401:
-          await _outbox.updateState(command, OfflineCommandState.pending, errorCode: 'UNAUTHENTICATED');
-          return;
-        case 403:
-          await _outbox.updateState(command, OfflineCommandState.denied, errorCode: response.errorCode ?? 'SCOPE_DENIED');
-        case 409:
-          await _outbox.updateState(command, OfflineCommandState.conflicted, errorCode: response.errorCode ?? 'ENTITY_CONFLICT');
-        case 422:
-          await _outbox.updateState(command, OfflineCommandState.fencedSchema, errorCode: response.errorCode ?? 'INVALID_MUTATION');
-        default:
-          await _outbox.updateState(command, OfflineCommandState.pending, errorCode: response.errorCode ?? 'SYNC_RETRY');
-          return;
+      if (response.statusCode == 401) {
+        await _outbox.updateState(command, OfflineCommandState.pending, errorCode: 'UNAUTHENTICATED');
+        return;
       }
+      if (response.statusCode == 403) {
+        await _outbox.updateState(command, OfflineCommandState.denied, errorCode: response.errorCode ?? 'SCOPE_DENIED');
+        continue;
+      }
+      if (response.statusCode == 409) {
+        await _outbox.updateState(command, OfflineCommandState.conflicted, errorCode: response.errorCode ?? 'ENTITY_CONFLICT');
+        continue;
+      }
+      if (response.statusCode == 422) {
+        await _outbox.updateState(command, OfflineCommandState.fencedSchema, errorCode: response.errorCode ?? 'INVALID_MUTATION');
+        continue;
+      }
+
+      await _outbox.updateState(command, OfflineCommandState.pending, errorCode: response.errorCode ?? 'SYNC_RETRY');
+      return;
     }
   }
 }
