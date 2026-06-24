@@ -25,6 +25,11 @@ export class EmergencyProfileService {
       `, [clinicLocationId]);
       if (!location.rows[0]) throw new NotFoundException({ code: 'CLINIC_LOCATION_NOT_FOUND', message: 'Clinic location not found' });
 
+      const timeValidation = await client.query<{ is_future: boolean }>(`
+        SELECT $1::timestamptz > clock_timestamp() AS is_future
+      `, [validUntil.toISOString()]);
+      if (!timeValidation.rows[0]?.is_future) throw new BadRequestException('validUntil must be in the future');
+
       const profile = await client.query<{ id: string }>(`
         INSERT INTO clinic_schema.emergency_capability_profiles (
           clinic_location_id, accepts_emergency_now, emergency_status,
@@ -90,7 +95,7 @@ function validate(dto: UpsertEmergencyProfileDto): void {
   if (!EMERGENCY_VERIFICATION_STATUSES.includes(dto.verificationStatus as never)) throw new BadRequestException('Unsupported verificationStatus');
   if (!dto.capabilityVersion?.trim()) throw new BadRequestException('capabilityVersion is required');
   if (!Array.isArray(dto.capabilities) || dto.capabilities.length === 0) throw new BadRequestException('At least one capability is required');
-  if (Number.isNaN(Date.parse(dto.validUntil)) || new Date(dto.validUntil).getTime() <= Date.now()) throw new BadRequestException('validUntil must be in the future');
+  if (Number.isNaN(Date.parse(dto.validUntil))) throw new BadRequestException('validUntil must be a valid timestamp');
   if (dto.emergencyStatus === 'ACCEPTING_NOW' && dto.verificationStatus !== 'VERIFIED') throw new BadRequestException('An accepting emergency profile must be verified');
 
   const unique = new Set<string>();
