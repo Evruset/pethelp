@@ -26,7 +26,7 @@ export class LiveKitService {
 
   async closeRoom(roomName: string): Promise<void> {
     const credentials = this.credentials();
-    const roomService = new RoomServiceClient(credentials.apiUrl, credentials.apiKey, credentials.apiSecret);
+    const roomService = new RoomServiceClient(this.roomServiceUrl(credentials.apiUrl), credentials.apiKey, credentials.apiSecret);
     await roomService.deleteRoom(roomName);
   }
 
@@ -42,6 +42,12 @@ export class LiveKitService {
 
   apiUrl(): string {
     return this.credentials().apiUrl;
+  }
+
+  private roomServiceUrl(value: string): string {
+    if (value.startsWith('wss://')) return `https://${value.substring('wss://'.length)}`;
+    if (value.startsWith('ws://')) return `http://${value.substring('ws://'.length)}`;
+    return value;
   }
 
   private credentials(): { apiUrl: string; apiKey: string; apiSecret: string } {
