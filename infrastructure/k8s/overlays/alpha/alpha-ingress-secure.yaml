@@ -1,0 +1,60 @@
+# Public Alpha endpoint. Replace alpha.vethelp.example.ru before deployment.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vethelp-public
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "2m"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - alpha.vethelp.example.ru
+      # Certificate secret is created by cert-manager in vethelp-alpha.
+      secretName: alpha-vethelp-public-tls
+  rules:
+    - host: alpha.vethelp.example.ru
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                # Kustomize resolves this base name to alpha-vethelp-backend.
+                name: vethelp-backend
+                port:
+                  name: http
+---
+# Dedicated MIS hostname: mTLS is not applied to the public ingress.
+# Replace mis-alpha.vethelp.example.ru with the approved Alpha DNS record.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vethelp-mis-mtls
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/auth-tls-verify-client: "on"
+    # This CA bundle must be provisioned in vethelp-alpha by platform security.
+    nginx.ingress.kubernetes.io/auth-tls-secret: "vethelp-alpha/mis-client-ca-certs"
+    nginx.ingress.kubernetes.io/auth-tls-verify-depth: "2"
+    nginx.ingress.kubernetes.io/auth-tls-pass-certificate-to-upstream: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - mis-alpha.vethelp.example.ru
+      secretName: alpha-vethelp-mis-tls
+  rules:
+    - host: mis-alpha.vethelp.example.ru
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: vethelp-backend
+                port:
+                  name: http
