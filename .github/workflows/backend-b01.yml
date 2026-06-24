@@ -80,8 +80,12 @@ jobs:
         run: npm test -- test/clinic-sla-monitor.integration-spec.ts
       - name: Run Emergency Ops review lifecycle tests
         run: npm test -- test/emergency-ops.integration-spec.ts
+      - name: Run Emergency reviewer queue and revoke tests
+        run: npm test -- test/emergency-review-management.integration-spec.ts
       - name: Compile sandbox certification suite without provider credentials
         run: npm test -- test/sandbox-cert.spec.ts
+      - name: Compile restore verification suite without restore credentials
+        run: npm test -- test/restore-verify.spec.ts
       - name: Run MIS integration tests
         run: npm test -- test/mis-integration.integration-spec.ts
       - name: Run payment fencing tests
