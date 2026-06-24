@@ -128,23 +128,29 @@ class TelemedBloc extends Bloc<TelemedEvent, TelemedState> {
     try {
       final snapshot = await _repository.read(_sessionId);
       _serverClock.synchronize(snapshot.serverNow.toIso8601String());
-      _startPolling();
-
       switch (snapshot.status) {
         case TelemedSessionStatus.waitingForDoctor:
-          if (state is! TelemedWaitingForDoctor) emit(TelemedWaitingForDoctor(snapshot));
+          _startPolling();
+          emit(TelemedWaitingForDoctor(snapshot));
+          return;
         case TelemedSessionStatus.connected:
+          _startPolling();
           if (state is TelemedEnding) {
             emit(TelemedEnding(snapshot));
           } else if (state is! TelemedInCall && state is! TelemedJoiningRoom) {
             add(const TelemedJoinRequested());
           }
+          return;
         case TelemedSessionStatus.completed:
+          _stopPolling();
           await _media.disconnect();
           emit(const TelemedCompleted());
+          return;
         case TelemedSessionStatus.doctorTimeout:
+          _stopPolling();
           await _media.disconnect();
           emit(TelemedDoctorTimeout(snapshot));
+          return;
       }
     } on TelemedApiFailure catch (failure) {
       emit(TelemedError(_messageFor(failure), snapshot: existing));
@@ -221,6 +227,11 @@ class TelemedBloc extends Bloc<TelemedEvent, TelemedState> {
     _polling ??= Timer.periodic(const Duration(seconds: 5), (_) => add(const TelemedPollRequested()));
   }
 
+  void _stopPolling() {
+    _polling?.cancel();
+    _polling = null;
+  }
+
   String _messageFor(TelemedApiFailure failure) => switch (failure.statusCode) {
         401 => 'Сессия истекла. Войдите в приложение ещё раз.',
         403 => 'Эта консультация недоступна для текущей учётной записи.',
@@ -231,7 +242,7 @@ class TelemedBloc extends Bloc<TelemedEvent, TelemedState> {
 
   @override
   Future<void> close() async {
-    _polling?.cancel();
+    _stopPolling();
     await _mediaSubscription.cancel();
     _media.dispose();
     return super.close();
