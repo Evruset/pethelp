@@ -34,10 +34,10 @@ function sign(raw) {
   return createHmac('sha256', webhookSecret).update(raw).digest('hex');
 }
 
-async function deliverAuthorizedWebhook(intent) {
+async function deliverAuthorizedWebhook(intent, idempotencyKey) {
   if (!webhookTarget) throw new Error('VETHELP_WEBHOOK_TARGET is not configured');
   const payload = {
-    idempotencyKey: intent.merchantPaymentId,
+    idempotencyKey,
     eventId: `mock-event-${randomUUID()}`,
     providerPaymentId: intent.remoteId,
   };
@@ -48,7 +48,7 @@ async function deliverAuthorizedWebhook(intent) {
       'content-type': 'application/json',
       'x-acquiring-signature': `sha256=${sign(raw)}`,
       'x-acquiring-event-id': payload.eventId,
-      'idempotency-key': intent.merchantPaymentId,
+      'idempotency-key': idempotencyKey,
     },
     body: raw,
   });
@@ -71,8 +71,12 @@ const server = http.createServer(async (request, response) => {
     const remoteId = decodeURIComponent(url.pathname.split('/')[3]);
     const intent = intents.get(remoteId);
     if (!intent) return send(response, 404, { error: 'payment intent not found' });
+    const command = await readJson(request);
+    const webhookKey = typeof command.idempotencyKey === 'string' && command.idempotencyKey.trim()
+      ? command.idempotencyKey.trim()
+      : intent.merchantPaymentId;
     try {
-      const delivery = await deliverAuthorizedWebhook(intent);
+      const delivery = await deliverAuthorizedWebhook(intent, webhookKey);
       intent.lastWebhook = delivery;
       return send(response, delivery.status >= 200 && delivery.status < 300 ? 200 : 502, { delivered: delivery });
     } catch (error) {
@@ -84,7 +88,7 @@ const server = http.createServer(async (request, response) => {
     const remoteId = decodeURIComponent(url.pathname.slice('/checkout/'.length));
     const intent = intents.get(remoteId);
     if (!intent) return send(response, 404, 'Unknown mock payment intent', 'text/plain; charset=utf-8');
-    return send(response, 200, `<!doctype html><html><body><h1>Mock payment checkout</h1><p>Intent: ${remoteId}</p><p>Amount: ${intent.amount}</p><p>To simulate authorization, run:</p><pre>curl -X POST http://localhost:${port}/__mock/payment-intents/${remoteId}/authorize</pre></body></html>`, 'text/html; charset=utf-8');
+    return send(response, 200, `<!doctype html><html><body><h1>Mock payment checkout</h1><p>Intent: ${remoteId}</p><p>Amount: ${intent.amount}</p><p>Use the mock authorize endpoint with the idempotencyKey from the payment-intent response.</p><pre>curl -X POST -H 'Content-Type: application/json' -d '{"idempotencyKey":"&lt;payment-intent-idempotencyKey&gt;"}' http://localhost:${port}/__mock/payment-intents/${remoteId}/authorize</pre></body></html>`, 'text/html; charset=utf-8');
   }
 
   if (!url.pathname.startsWith('/v1/payment-intents')) return send(response, 404, { error: 'not found' });

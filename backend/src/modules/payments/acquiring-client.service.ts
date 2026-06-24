@@ -45,12 +45,16 @@ export class AcquiringClient {
 
   constructor(private readonly http: HttpService) {}
 
-  async createRemoteIntent(internalPaymentId: string, amount: number): Promise<RemotePaymentIntent> {
+  async createRemoteIntent(
+    internalPaymentId: string,
+    amount: number,
+    providerIdempotencyKey = internalPaymentId,
+  ): Promise<RemotePaymentIntent> {
     const response = await firstValueFrom(
       this.http.post<RemoteIntentResponse>(
         `${this.baseUrl()}/v1/payment-intents`,
         { merchantPaymentId: internalPaymentId, amount },
-        { headers: this.headers(internalPaymentId) },
+        { headers: this.headers(providerIdempotencyKey) },
       ).pipe(
         timeout(AcquiringClient.REQUEST_TIMEOUT_MS),
         map((result) => result.data),
