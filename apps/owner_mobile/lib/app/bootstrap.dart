@@ -15,6 +15,10 @@ Future<Widget> bootstrap() async {
   final localStore = LocalHiveStore(await CipherMaterial(platformStore).load());
   await localStore.initialize();
   final credentialStore = SecureTokenStore(platformStore);
+  final developmentCredential = config.bootstrapAccessToken;
+  if (developmentCredential != null) {
+    await credentialStore.write(developmentCredential);
+  }
 
   return ProviderScope(
     overrides: <Override>[
