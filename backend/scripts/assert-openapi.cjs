@@ -21,6 +21,12 @@ async function main() {
   required(confirmHold.responses?.['200'], 'Confirm hold must document 200');
   required(confirmHold.responses?.['403'], 'Confirm hold must document 403');
 
+  const manualQueue = document.paths?.['/v1/clinic/{clinicId}/locations/{locationId}/booking-queue']?.get;
+  required(manualQueue, 'GET Level-C manual confirmation queue is missing');
+  required(manualQueue.security?.some((item) => item.bearerAuth), 'Manual queue must require bearerAuth');
+  required(manualQueue.responses?.['200'], 'Manual queue must document 200');
+  required(manualQueue.responses?.['403'], 'Manual queue must document 403');
+
   required(document.components?.securitySchemes?.bearerAuth, 'Bearer security scheme is missing');
   console.log('OpenAPI contract assertion passed');
 }
