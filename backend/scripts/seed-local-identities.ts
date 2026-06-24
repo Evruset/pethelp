@@ -11,12 +11,25 @@ async function main(): Promise<void> {
     await client.query('INSERT INTO identity_schema.users (id) VALUES ($1::uuid) ON CONFLICT (id) DO NOTHING', [ownerId]);
     await client.query(`
       INSERT INTO pet_schema.pets (id, owner_id, name, species, external_patient_id)
-      VALUES ($1::uuid, $2::uuid, 'Demo Pet', 'DOG', 'mock-patient-22222222')
+      VALUES ($1::uuid, $2::uuid, 'Demo Pet', 'DOG', 'mock-patient-222222222222')
       ON CONFLICT (id) DO UPDATE
       SET owner_id = EXCLUDED.owner_id, external_patient_id = EXCLUDED.external_patient_id
     `, [petId, ownerId]);
+    await client.query(`
+      UPDATE clinic_schema.clinics
+      SET mis_type = 'VET_MANAGER_API'
+      WHERE public_name = 'VetHelp Pilot'
+    `);
+    await client.query(`
+      UPDATE clinic_schema.appointment_slots slot
+      SET integration_mode = 'LEVEL_A'
+      FROM clinic_schema.clinic_locations location
+      JOIN clinic_schema.clinics clinic ON clinic.id = location.clinic_id
+      WHERE slot.clinic_location_id = location.id
+        AND clinic.public_name = 'VetHelp Pilot'
+    `);
     await client.query('COMMIT');
-    console.log(JSON.stringify({ ownerId, petId }));
+    console.log(JSON.stringify({ ownerId, petId, integrationMode: 'LEVEL_A' }));
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
