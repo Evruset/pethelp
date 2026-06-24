@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vethelp-backend-config
+data:
+  # Alpha is an external-provider certification environment. The direct env
+  # patch in alpha-sandbox-cert-patch.yaml overrides the base NODE_ENV value.
+  WORKERS_ENABLED: "true"
+  SWAGGER_ENABLED: "false"
+  LOG_LEVEL: "info"
