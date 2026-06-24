@@ -1,0 +1,33 @@
+name: Local Mock Stack
+
+on:
+  pull_request:
+    paths:
+      - docker-compose.local.yml
+      - dev/mocks/**
+      - dev/local/**
+      - .github/workflows/local-mock-stack.yml
+  push:
+    branches: [main]
+    paths:
+      - docker-compose.local.yml
+      - dev/mocks/**
+      - dev/local/**
+      - .github/workflows/local-mock-stack.yml
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate compose model
+        run: docker compose -f docker-compose.local.yml config --quiet
+      - name: Check mock server syntax
+        run: |
+          node --check dev/mocks/mis-server.mjs
+          node --check dev/mocks/acquiring-server.mjs
+          node --check dev/mocks/cloud-server.mjs
+          node --check dev/local/create-owner-token.mjs
