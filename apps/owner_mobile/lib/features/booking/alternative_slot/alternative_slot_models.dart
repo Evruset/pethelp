@@ -1,9 +1,5 @@
 class SlotViewModel {
-  const SlotViewModel({
-    required this.slotId,
-    required this.startsAt,
-    required this.endsAt,
-  });
+  const SlotViewModel({required this.slotId, required this.startsAt, required this.endsAt});
 
   final String slotId;
   final DateTime startsAt;
@@ -41,24 +37,22 @@ class AlternativeSlotViewModel {
 
   factory AlternativeSlotViewModel.fromJson(Map<String, dynamic> json) {
     final alternative = json['alternativeSlot'] as Map<String, dynamic>?;
+    final serverNow = DateTime.parse(json['serverNow'] as String).toUtc();
+    final rawExpiresAt = DateTime.parse(json['expiresAt'] as String).toUtc();
+    final offset = serverNow.difference(DateTime.now().toUtc());
     return AlternativeSlotViewModel(
       holdId: json['holdId'] as String,
       version: json['version'] as int,
       state: json['state'] as String,
-      expiresAt: DateTime.parse(json['expiresAt'] as String).toUtc(),
-      serverNow: DateTime.parse(json['serverNow'] as String).toUtc(),
+      expiresAt: rawExpiresAt.subtract(offset),
+      serverNow: serverNow,
       originalSlot: SlotViewModel.fromJson(json['originalSlot'] as Map<String, dynamic>),
       proposedSlot: alternative == null ? null : SlotViewModel.fromJson(alternative),
     );
   }
 }
 
-enum BookingFenceReason {
-  expired,
-  staleVersion,
-  unavailable,
-  invalidTransition,
-}
+enum BookingFenceReason { expired, staleVersion, unavailable, invalidTransition }
 
 class AlternativeActionResult {
   const AlternativeActionResult({required this.state, this.appointmentId});
