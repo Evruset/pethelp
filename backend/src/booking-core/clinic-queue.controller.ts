@@ -13,7 +13,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
 
-function locationIdOrThrow(value: string): string {
+function idOrThrow(value: string): string {
   if (!UUID.test(value)) throw DomainErrors.clinicScopeMismatch();
   return value;
 }
@@ -30,21 +30,23 @@ function parseLimit(value: string | undefined): number {
 export class ClinicQueueController {
   constructor(private readonly queue: ClinicQueueService) {}
 
-  @Get('clinic/locations/:locationId/booking-queue')
+  @Get('clinic/:clinicId/locations/:locationId/booking-queue')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.CLINIC_RECEPTIONIST, Role.CLINIC_ADMIN)
   @ApiBearerAuth(SWAGGER_BEARER_AUTH)
-  @ApiOperation({ summary: 'FIFO-очередь заявок Level-C, ожидающих ручного подтверждения клиникой' })
-  @ApiOkResponse({ description: 'Очередь возвращается в строгом FIFO-порядке со временем PostgreSQL для SLA countdown.' })
-  @ApiUnauthorizedResponse({ description: 'Требуется JWT сотрудника клиники.' })
-  @ApiForbiddenResponse({ description: 'Локация отсутствует в JWT scope или активной membership сотрудника.' })
+  @ApiOperation({ summary: 'FIFO queue for Level-C manual confirmations' })
+  @ApiOkResponse({ description: 'Strict FIFO response with PostgreSQL server time for the SLA countdown.' })
+  @ApiUnauthorizedResponse({ description: 'Clinic employee JWT is required.' })
+  @ApiForbiddenResponse({ description: 'Clinic and location scope are enforced through JWT claims and active membership.' })
   async getManualConfirmationQueue(
+    @Param('clinicId') clinicId: string,
     @Param('locationId') locationId: string,
     @Query('limit') limit: string | undefined,
     @CurrentUser() employee: JwtPayload,
   ) {
     return this.queue.listManualConfirmationQueue({
-      locationId: locationIdOrThrow(locationId),
+      clinicId: idOrThrow(clinicId),
+      locationId: idOrThrow(locationId),
       employee,
       limit: parseLimit(limit),
     });
