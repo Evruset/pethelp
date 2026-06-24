@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vethelp-alpha
+  labels:
+    app.kubernetes.io/part-of: vethelp
+    app.kubernetes.io/environment: alpha
+    # Required by alpha-network-policy.yaml namespace selectors.
+    kubernetes.io/metadata.name: vethelp-alpha
