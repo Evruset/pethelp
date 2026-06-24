@@ -10,11 +10,18 @@ class ApiFailure implements Exception {
   final String code;
 }
 
-class AlternativeSlotRepository {
+abstract interface class AlternativeSlotDataSource {
+  Future<AlternativeSlotViewModel> read(String holdId);
+  Future<AlternativeActionResult> accept(String holdId, int version, String operationId);
+  Future<AlternativeActionResult> decline(String holdId, int version, String operationId);
+}
+
+class AlternativeSlotRepository implements AlternativeSlotDataSource {
   AlternativeSlotRepository(this._client);
 
   final ApiClient _client;
 
+  @override
   Future<AlternativeSlotViewModel> read(String holdId) async {
     try {
       final response = await _client.get<Map<String, dynamic>>('/v1/booking-holds/$holdId');
@@ -24,10 +31,12 @@ class AlternativeSlotRepository {
     }
   }
 
+  @override
   Future<AlternativeActionResult> accept(String holdId, int version, String operationId) {
     return _submit('/v1/booking-holds/$holdId/alternative-slot/accept', version, operationId);
   }
 
+  @override
   Future<AlternativeActionResult> decline(String holdId, int version, String operationId) {
     return _submit('/v1/booking-holds/$holdId/alternative-slot/decline', version, operationId);
   }
