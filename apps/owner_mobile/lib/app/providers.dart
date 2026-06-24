@@ -14,6 +14,7 @@ import '../core/offline/offline_outbox_repository.dart';
 import '../core/operations/operation_id_store.dart';
 import '../core/trace/journey_trace_context.dart';
 import '../features/booking/alternative_slot/alternative_slot_repository.dart';
+import '../features/telemed/telemed_repository.dart';
 
 final appConfigProvider = Provider<AppConfig>((_) => throw UnimplementedError());
 final localHiveStoreProvider = Provider<LocalHiveStore>((_) => throw UnimplementedError());
@@ -25,20 +26,11 @@ final serverClockProvider = Provider<ServerClock>((_) => ServerClock());
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   final config = ref.read(appConfigProvider);
-  return ApiClient(
-    baseUrl: config.apiBaseUrl,
-    credentialStore: ref.read(secureTokenStoreProvider),
-    traceContext: ref.read(traceContextProvider),
-  );
+  return ApiClient(baseUrl: config.apiBaseUrl, credentialStore: ref.read(secureTokenStoreProvider), traceContext: ref.read(traceContextProvider));
 });
 
 final networkGateProvider = Provider<NetworkGate>((ref) => NetworkGate(Connectivity(), ref.read(apiClientProvider)));
 final operationIdStoreProvider = Provider<OperationIdStore>((ref) => OperationIdStore(ref.read(localHiveStoreProvider), ref.read(uuidProvider)));
-final offlineOutboxProvider = Provider<OfflineOutboxRepository>((ref) {
-  return OfflineOutboxRepository(
-    store: ref.read(localHiveStoreProvider),
-    policy: OfflineActionPolicy(),
-    uuid: ref.read(uuidProvider),
-  );
-});
+final offlineOutboxProvider = Provider<OfflineOutboxRepository>((ref) => OfflineOutboxRepository(store: ref.read(localHiveStoreProvider), policy: OfflineActionPolicy(), uuid: ref.read(uuidProvider)));
 final alternativeSlotRepositoryProvider = Provider<AlternativeSlotRepository>((ref) => AlternativeSlotRepository(ref.read(apiClientProvider)));
+final telemedRepositoryProvider = Provider<TelemedRepository>((ref) => TelemedRepository(ref.read(apiClientProvider), ref.read(uuidProvider)));
