@@ -83,7 +83,7 @@ jobs:
       - name: Run Emergency reviewer queue and revoke tests
         run: npm test -- test/emergency-review-management.integration-spec.ts
       - name: Compile sandbox certification suite without provider credentials
-        run: npm test -- test/sandbox-cert.spec.ts
+        run: npm test -- test/sandbox-cert-production.spec.ts
       - name: Compile restore verification suite without restore credentials
         run: npm test -- test/restore-verify.spec.ts
       - name: Run MIS integration tests
@@ -130,7 +130,7 @@ jobs:
             -H "Authorization: Bearer ${FOREIGN_OWNER_TOKEN}" \
             -H 'Content-Type: application/json' \
             -H 'Idempotency-Key: 33333333-3333-4333-8333-333333333333' \
-            -H 'X-Correlation-ID: 44444444-4444-4444-8444-444444444444' \
+            -H 'X-Correlation-ID: 44444444-4444-8444-8444-444444444444' \
             --data "{\"slotId\":\"${B01_SLOT_ID}\",\"petId\":\"${B01_PET_ID}\"}")
           test "$status" = '403'
           node -e "const b=require('/tmp/pet-ownership-response.json'); if(b.code!=='PET_OWNERSHIP_MISMATCH') process.exit(1)"
