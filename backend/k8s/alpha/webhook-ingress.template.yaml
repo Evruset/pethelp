@@ -1,1 +1,25 @@
-# This template is rendered by render-release.sh.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vethelp-acquiring-webhooks
+  namespace: vethelp-alpha
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/whitelist-source-range: __ACQUIRING_WEBHOOK_CIDR__
+    nginx.ingress.kubernetes.io/limit-rps: "10"
+spec:
+  tls:
+    - hosts: [__PUBLIC_HOST__]
+      secretName: vethelp-alpha-tls
+  rules:
+    - host: __PUBLIC_HOST__
+      http:
+        paths:
+          - path: /v1/payments/webhooks
+            pathType: Prefix
+            backend:
+              service:
+                name: vethelp-backend
+                port:
+                  name: http
