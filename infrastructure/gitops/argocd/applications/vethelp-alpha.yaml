@@ -1,5 +1,4 @@
-# Apply this manifest from the Argo CD control-plane namespace after replacing
-# repoURL and targetRevision. The application deploys only the Alpha overlay.
+# Apply AppProject before this Application.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -9,7 +8,7 @@ metadata:
     app.kubernetes.io/part-of: vethelp
     app.kubernetes.io/environment: alpha
 spec:
-  project: default
+  project: vethelp-alpha
   source:
     repoURL: https://github.com/Evruset/pethelp.git
     targetRevision: main
