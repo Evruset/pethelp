@@ -16,6 +16,10 @@ permissions:
   contents: read
   actions: read
 
+concurrency:
+  group: vethelp-alpha-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     if: >-
@@ -24,6 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: alpha
     steps:
+      - uses: actions/checkout@v4
       - name: Resolve source run
         id: source
         run: |
@@ -39,12 +44,22 @@ jobs:
         env:
           KUBECONFIG_DATA: ${{ secrets.VETHELP_ALPHA_KUBECONFIG }}
         run: |
+          set -euo pipefail
           test -n "$KUBECONFIG_DATA"
           echo "$KUBECONFIG_DATA" | base64 --decode > "$RUNNER_TEMP/kubeconfig"
           chmod 600 "$RUNNER_TEMP/kubeconfig"
           echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig" >> "$GITHUB_ENV"
-      - name: Apply digest-pinned release
+      - name: Apply immutable release
         run: |
+          set -euo pipefail
           grep -Eq 'image: .+@sha256:[0-9a-f]{64}$' artifacts/release/vethelp-alpha.yaml
           kubectl apply -f artifacts/release/vethelp-alpha.yaml
-          kubectl -n vethelp-alpha rollout status deployment/vethelp-backend --timeout=180s
+      - name: Validate Alpha prerequisites and rollout
+        env:
+          DEPLOYMENT_NAME: alpha-vethelp-backend
+          EXTERNAL_SECRET_NAME: alpha-vethelp-backend-runtime
+          RUNTIME_SECRET_NAME: alpha-vethelp-backend-secret
+          PUBLIC_INGRESS_NAME: alpha-vethelp-public
+          MIS_INGRESS_NAME: alpha-vethelp-mis-mtls
+          NETWORK_POLICY_NAME: alpha-vethelp-backend-restricted
+        run: bash scripts/alpha-preflight.sh
