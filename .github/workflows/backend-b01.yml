@@ -78,6 +78,8 @@ jobs:
         run: npm test -- test/marketplace-alpha.integration-spec.ts
       - name: Run Marketplace Alpha clinic SLA tests
         run: npm test -- test/clinic-sla-monitor.integration-spec.ts
+      - name: Run Emergency Ops review lifecycle tests
+        run: npm test -- test/emergency-ops.integration-spec.ts
       - name: Run MIS integration tests
         run: npm test -- test/mis-integration.integration-spec.ts
       - name: Run payment fencing tests
