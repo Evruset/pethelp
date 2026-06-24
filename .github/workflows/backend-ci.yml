@@ -1,0 +1,68 @@
+name: Backend CI and Immutable Release
+
+on:
+  pull_request:
+    paths: ['backend/**', 'infrastructure/k8s/**', 'scripts/**', '.github/workflows/backend-ci.yml']
+  push:
+    branches: [main]
+    paths: ['backend/**', 'infrastructure/k8s/**', 'scripts/**', '.github/workflows/backend-ci.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  verify-manifests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sh scripts/verify-manifests.sh infrastructure/k8s
+      - uses: imranismail/setup-kustomize@v2
+        with:
+          kustomize-version: 5.5.0
+      - name: Render deterministic digest-pinned manifest
+        run: |
+          chmod +x scripts/render-kustomize-release.sh scripts/verify-manifests.sh
+          IMAGE_DIGEST='ghcr.io/evruset/pethelp-backend@sha256:0000000000000000000000000000000000000000000000000000000000000000' scripts/render-kustomize-release.sh artifacts/policy-render
+
+  build-push-render:
+    needs: verify-manifests
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      image_digest: ${{ steps.digest.outputs.image_digest }}
+    env:
+      IMAGE_REPOSITORY: ghcr.io/${{ github.repository_owner }}/pethelp-backend
+      GHCR_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Login to GHCR
+        run: echo "$GHCR_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Build and push image
+        run: |
+          IMAGE_NAME="${IMAGE_REPOSITORY}:sha-${GITHUB_SHA}"
+          docker build --pull -f backend/Dockerfile -t "$IMAGE_NAME" backend
+          docker push "$IMAGE_NAME"
+          echo "IMAGE_NAME=$IMAGE_NAME" >> "$GITHUB_ENV"
+      - name: Resolve immutable digest
+        id: digest
+        run: |
+          IMAGE_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $IMAGE_NAME)
+          test -n "$IMAGE_DIGEST"
+          echo "$IMAGE_DIGEST" | grep -Eq '@sha256:[a-f0-9]{64}$'
+          echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> "$GITHUB_ENV"
+          echo "image_digest=$IMAGE_DIGEST" >> "$GITHUB_OUTPUT"
+      - uses: imranismail/setup-kustomize@v2
+        with:
+          kustomize-version: 5.5.0
+      - name: Render release manifest from pushed digest
+        run: |
+          chmod +x scripts/render-kustomize-release.sh scripts/verify-manifests.sh
+          IMAGE_DIGEST="$IMAGE_DIGEST" scripts/render-kustomize-release.sh artifacts/release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vethelp-alpha-immutable-manifest
+          path: artifacts/release/vethelp-alpha.yaml
+          if-no-files-found: error
