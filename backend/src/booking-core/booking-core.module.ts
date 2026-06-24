@@ -4,6 +4,7 @@ import { AlternativeSlotExpirationWorker } from './alternative-slot-expiration.w
 import { AlternativeSlotService } from './alternative-slot.service';
 import { BookingController } from './booking.controller.secure';
 import { BookingHoldCreationService } from './booking-hold-creation.service';
+import { BookingHoldReadService } from './booking-hold-read.service';
 import { BookingRepository } from './booking.repository';
 import { BookingSecurityService } from './booking-security.service';
 import { BookingService } from './booking.service';
@@ -19,6 +20,7 @@ import { ClinicPortalController } from './clinic-portal.controller';
     BookingRepository,
     BookingService,
     BookingHoldCreationService,
+    BookingHoldReadService,
     BookingSecurityService,
     ClinicEmployeeAccessService,
     ClinicPortalService,
