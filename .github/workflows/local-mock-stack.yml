@@ -31,3 +31,19 @@ jobs:
           node --check dev/mocks/acquiring-server.mjs
           node --check dev/mocks/cloud-server.mjs
           node --check dev/local/create-owner-token.mjs
+      - name: Start local stack
+        run: docker compose -f docker-compose.local.yml up -d --wait --wait-timeout 180
+      - name: Seed local database
+        run: docker compose -f docker-compose.local.yml --profile setup run --rm seed
+      - name: Verify health endpoints
+        run: |
+          curl --fail --silent --show-error http://localhost:3000/v1/health
+          curl --fail --silent --show-error http://localhost:4101/health
+          curl --fail --silent --show-error http://localhost:4102/health
+          curl --fail --silent --show-error http://localhost:4103/health
+      - name: Print service logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.local.yml logs --no-color
+      - name: Stop local stack
+        if: always()
+        run: docker compose -f docker-compose.local.yml down -v
