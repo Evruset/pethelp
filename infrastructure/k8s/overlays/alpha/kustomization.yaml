@@ -16,3 +16,4 @@ images:
     digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
 patches:
   - path: alpha-sandbox-cert-patch.yaml
+  - path: external-secret-ownership-patch.yaml
