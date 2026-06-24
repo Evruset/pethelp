@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vethelp-backend
+spec:
+  template:
+    spec:
+      containers:
+        - name: vethelp-backend
+          env:
+            # Required for SandboxOnlyGuard; deliberately scoped to Alpha only.
+            - name: NODE_ENV
+              value: sandbox-cert
+            - name: VETHELP_SANDBOX_CERT_ENABLED
+              value: "true"
+            # Compatibility with the existing certification runner config.
+            - name: SANDBOX_CERT_ENABLED
+              value: "true"
