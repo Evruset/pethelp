@@ -9,11 +9,13 @@
     "test": "jest --runInBand --passWithNoTests",
     "migrate:create": "node-pg-migrate create --migrations-dir migrations/node-pg --migration-file-language js",
     "migrate:up": "node-pg-migrate up --migrations-dir migrations/node-pg --migrations-schema public --migrations-table schema_migrations --single-transaction && node scripts/verify-migration-checksums.cjs --write-missing",
-    "migrate:down": "node-pg-migrate down --migrations-dir migrations/node-pg --migrations-schema public --migrations-table schema_migrations --single-transaction",
+    "migrate:down": "node-pg-migrate down --migrations-dir migrations/node-pg --migrations-schema public --migrations-table schema_migrations --migrations-schema public --migrations-table schema_migrations --single-transaction",
     "migrate:verify": "node scripts/verify-migration-checksums.cjs",
     "openapi:export": "ts-node scripts/export-openapi.ts",
     "openapi:generate": "npm run build && npm run openapi:export",
     "seed": "ts-node scripts/seed.ts",
+    "cert:sandbox:report": "ts-node scripts/report-generator.ts",
+    "cert:sandbox": "NODE_ENV=sandbox-cert SANDBOX_CERT_ENABLED=true jest --runInBand test/sandbox-cert.spec.ts --json --outputFile artifacts/sandbox-certification/jest-results.json; status=$?; npm run cert:sandbox:report; test $status -eq 0",
     "check": "npm run build && npm test"
   },
   "dependencies": {
