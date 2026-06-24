@@ -21,15 +21,15 @@ export class EmergencyCapabilityDto {
   evidenceReference?: string;
 }
 
-/** Clinic-owned declaration. Database policy resets certification after every submission. */
+/** Clinic-owned declaration. PostgreSQL always resets certification after a submission. */
 export class UpsertEmergencyProfileDto {
   @IsString()
   emergencyStatus!: (typeof EMERGENCY_STATUSES)[number];
 
-  /** Accepted only for wire compatibility; PostgreSQL ignores clinic supplied certification. */
+  /** Kept only for legacy clients. Its value is overridden by the database boundary. */
   @IsOptional()
   @IsString()
-  verificationStatus?: string;
+  verificationStatus: string = 'PENDING';
 
   @IsISO8601()
   validUntil!: string;
