@@ -70,7 +70,7 @@ class AlternativeSlotError extends AlternativeSlotState {
 class AlternativeSlotBloc extends Bloc<AlternativeSlotEvent, AlternativeSlotState> {
   AlternativeSlotBloc({
     required String holdId,
-    required AlternativeSlotRepository repository,
+    required AlternativeSlotDataSource repository,
     required NetworkGate networkGate,
     required ServerClock serverClock,
     required OperationIdStore operationIds,
@@ -87,7 +87,7 @@ class AlternativeSlotBloc extends Bloc<AlternativeSlotEvent, AlternativeSlotStat
   }
 
   final String _holdId;
-  final AlternativeSlotRepository _repository;
+  final AlternativeSlotDataSource _repository;
   final NetworkGate _networkGate;
   final ServerClock _serverClock;
   final OperationIdStore _operationIds;
@@ -115,21 +115,14 @@ class AlternativeSlotBloc extends Bloc<AlternativeSlotEvent, AlternativeSlotStat
     }
   }
 
-  Future<void> _accept(
-    AlternativeSlotAcceptPressed event,
-    Emitter<AlternativeSlotState> emit,
-  ) async {
+  Future<void> _accept(AlternativeSlotAcceptPressed event, Emitter<AlternativeSlotState> emit) async {
     final current = state;
     if (current is! AlternativeSlotActive) return;
     if (await _networkGate.check() != NetworkGateState.online) {
       emit(AlternativeSlotError('No Internet Connection. Action Blocked', model: current.model));
       return;
     }
-
-    final operationId = await _operationIds.getOrCreate(
-      operation: 'accept-alternative',
-      aggregateId: _holdId,
-    );
+    final operationId = await _operationIds.getOrCreate(operation: 'accept-alternative', aggregateId: _holdId);
     emit(AlternativeSlotSubmitting(current.model, 'accept'));
     try {
       final result = await _repository.accept(_holdId, current.model.version, operationId);
@@ -140,21 +133,14 @@ class AlternativeSlotBloc extends Bloc<AlternativeSlotEvent, AlternativeSlotStat
     }
   }
 
-  Future<void> _decline(
-    AlternativeSlotDeclinePressed event,
-    Emitter<AlternativeSlotState> emit,
-  ) async {
+  Future<void> _decline(AlternativeSlotDeclinePressed event, Emitter<AlternativeSlotState> emit) async {
     final current = state;
     if (current is! AlternativeSlotActive) return;
     if (await _networkGate.check() != NetworkGateState.online) {
       emit(AlternativeSlotError('No Internet Connection. Action Blocked', model: current.model));
       return;
     }
-
-    final operationId = await _operationIds.getOrCreate(
-      operation: 'decline-alternative',
-      aggregateId: _holdId,
-    );
+    final operationId = await _operationIds.getOrCreate(operation: 'decline-alternative', aggregateId: _holdId);
     emit(AlternativeSlotSubmitting(current.model, 'decline'));
     try {
       final result = await _repository.decline(_holdId, current.model.version, operationId);
@@ -165,13 +151,8 @@ class AlternativeSlotBloc extends Bloc<AlternativeSlotEvent, AlternativeSlotStat
     }
   }
 
-  Future<void> _handleActionFailure(
-    ApiFailure failure,
-    AlternativeSlotViewModel model,
-    Emitter<AlternativeSlotState> emit,
-  ) async {
-    if (failure.statusCode == 409 &&
-        (failure.code == 'SLOT_LOCKED_RETRY' || failure.code == 'SLOT_VERSION_STALE')) {
+  Future<void> _handleActionFailure(ApiFailure failure, AlternativeSlotViewModel model, Emitter<AlternativeSlotState> emit) async {
+    if (failure.statusCode == 409 && (failure.code == 'SLOT_LOCKED_RETRY' || failure.code == 'SLOT_VERSION_STALE')) {
       emit(AlternativeSlotSoftRetry(model));
       add(const AlternativeSlotRefreshRequested());
       return;
