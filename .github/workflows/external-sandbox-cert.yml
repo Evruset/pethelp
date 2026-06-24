@@ -1,0 +1,82 @@
+name: External Sandbox Certification
+
+# Required GitHub configuration (not expressible in workflow YAML):
+# Settings -> Environments -> external-sandbox -> Required reviewers.
+# This job cannot start until those deployment protection rules approve it.
+on:
+  workflow_dispatch:
+    inputs:
+      acknowledge_external_side_effects:
+        description: 'Type RUN_SANDBOX_CERT to permit sandbox fixtures and provider controls'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vethelp-external-sandbox-certification
+  cancel-in-progress: false
+
+jobs:
+  certify:
+    name: Protected real-provider certification
+    runs-on: ubuntu-latest
+    environment:
+      name: external-sandbox
+    defaults:
+      run:
+        working-directory: backend
+        shell: bash
+    env:
+      NODE_ENV: sandbox-cert
+      VETHELP_SANDBOX_CERT_ENABLED: ${{ vars.VETHELP_SANDBOX_CERT_ENABLED }}
+      SANDBOX_CERT_ENABLED: ${{ vars.VETHELP_SANDBOX_CERT_ENABLED }}
+      SANDBOX_FIXTURES_ENABLED: 'true'
+      SANDBOX_ENVIRONMENT_ID: ${{ vars.SANDBOX_ENVIRONMENT_ID }}
+      SANDBOX_ALLOWED_HOSTS: ${{ vars.SANDBOX_ALLOWED_HOSTS }}
+      SANDBOX_VETHELP_URL: ${{ vars.SANDBOX_VETHELP_URL }}
+      SANDBOX_MIS_URL: ${{ vars.SANDBOX_MIS_URL }}
+      SANDBOX_ACQUIRING_URL: ${{ vars.SANDBOX_ACQUIRING_URL }}
+      SANDBOX_CERTIFICATION_TOKEN: ${{ secrets.SANDBOX_CERTIFICATION_TOKEN }}
+      SANDBOX_OWNER_JWT: ${{ secrets.SANDBOX_OWNER_JWT }}
+      SANDBOX_MIS_AUTH_TOKEN: ${{ secrets.SANDBOX_MIS_AUTH_TOKEN }}
+      SANDBOX_ACQUIRING_SIGN_SECRET: ${{ secrets.SANDBOX_ACQUIRING_SIGN_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Initialize secrets masking and fail-fast validation
+        env:
+          ACK: ${{ inputs.acknowledge_external_side_effects }}
+        run: |
+          set -euo pipefail
+          test "$ACK" = 'RUN_SANDBOX_CERT' || { echo 'External side-effect acknowledgement is invalid.' >&2; exit 2; }
+
+          # Never print values. add-mask protects accidental future echo/curl failures.
+          for secret_name in SANDBOX_CERTIFICATION_TOKEN SANDBOX_OWNER_JWT SANDBOX_MIS_AUTH_TOKEN SANDBOX_ACQUIRING_SIGN_SECRET; do
+            secret_value="${!secret_name:-}"
+            test -n "$secret_value" || { echo "Required secret ${secret_name} is not configured." >&2; exit 2; }
+            echo "::add-mask::$secret_value"
+          done
+
+          for variable_name in VETHELP_SANDBOX_CERT_ENABLED SANDBOX_ENVIRONMENT_ID SANDBOX_ALLOWED_HOSTS SANDBOX_VETHELP_URL SANDBOX_MIS_URL SANDBOX_ACQUIRING_URL; do
+            test -n "${!variable_name:-}" || { echo "Required environment variable ${variable_name} is not configured." >&2; exit 2; }
+          done
+          test "$VETHELP_SANDBOX_CERT_ENABLED" = 'true' || { echo 'VETHELP_SANDBOX_CERT_ENABLED must equal true.' >&2; exit 2; }
+          test "$NODE_ENV" = 'sandbox-cert' || { echo 'NODE_ENV must equal sandbox-cert.' >&2; exit 2; }
+      - name: Install dependencies
+        run: npm install
+      - name: Execute provider certification and build redacted evidence
+        run: npm run cert:sandbox
+      - name: Upload release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandbox-certification-evidence
+          path: |
+            backend/artifacts/SANDBOX_CERTIFICATION_REPORT.md
+            backend/artifacts/sandbox-certification/evidence.json
+            backend/artifacts/sandbox-certification/jest-results.json
+          if-no-files-found: warn
