@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { JwtPayload } from '../auth/auth.types';
@@ -28,6 +28,18 @@ interface LockedSlot {
   held_count: number;
   state: 'OPEN' | 'CLOSED' | 'CANCELLED';
   status: 'AVAILABLE' | 'LOCKED_BY_HOLD' | 'BOOKED';
+  integration_mode: 'LEVEL_A' | 'LEVEL_B' | 'LEVEL_C';
+}
+
+interface IdempotencyRow {
+  status: 'PROCESSING' | 'COMPLETED';
+  response_body: Record<string, unknown> | null;
+}
+
+export interface AlternativeCommandContext {
+  idempotencyKey?: string;
+  correlationId?: string;
+  expectedVersion?: number;
 }
 
 export interface ProposedAlternativeSlot {
@@ -42,14 +54,17 @@ export interface AcceptedAlternativeSlot {
   holdId: string;
   sourceSlotId: string;
   slotId: string;
-  state: 'MIS_HELD';
+  state: 'MIS_HELD' | 'CONFIRMED';
+  appointmentId?: string;
 }
 
-/**
- * A pending alternative holds both slots. On owner acceptance the source slot
- * is released, while the alternative remains held by the booking until payment
- * authorization atomically confirms it.
- */
+export interface DeclinedAlternativeSlot {
+  holdId: string;
+  sourceSlotId: string;
+  alternativeSlotId: string;
+  state: 'RELEASED';
+}
+
 @Injectable()
 export class AlternativeSlotService {
   constructor(
@@ -58,100 +73,189 @@ export class AlternativeSlotService {
     private readonly traceContext: TraceContext,
   ) {}
 
-  async proposeAlternativeSlot(holdId: string, newSlotId: string, employeeContext: JwtPayload): Promise<ProposedAlternativeSlot> {
-    return this.database.withTransaction(async (client) => {
-      await this.setShortTransactionLimits(client);
-      const hold = await this.lockHold(client, holdId);
-      if (!hold) throw DomainErrors.holdNotFound();
-      if (hold.state !== 'MANUAL_CONFIRM_PENDING' && hold.state !== 'ALTERNATIVE_PENDING') throw DomainErrors.invalidTransition();
-      if (hold.slot_id === newSlotId) throw DomainErrors.slotAlreadyTaken();
+  async proposeAlternativeSlot(
+    holdId: string,
+    newSlotId: string,
+    employeeContext: JwtPayload,
+    command: AlternativeCommandContext = {},
+  ): Promise<ProposedAlternativeSlot> {
+    try {
+      return await this.database.withTransaction(async (client) => {
+        await this.setShortTransactionLimits(client);
+        const hold = await this.lockHold(client, holdId);
+        if (!hold) throw DomainErrors.holdNotFound();
+        if (hold.state !== 'MANUAL_CONFIRM_PENDING' && hold.state !== 'ALTERNATIVE_PENDING') throw DomainErrors.invalidTransition();
+        if (hold.slot_id === newSlotId) throw DomainErrors.slotAlreadyTaken();
 
-      const now = await this.databaseNow(client);
-      if (hold.state === 'ALTERNATIVE_PENDING' && hold.alternative_expires_at && hold.alternative_expires_at <= now) {
-        await this.expireAlternativeLocked(client, hold, this.correlationId(), 'proposal-detected-expiry');
-        throw DomainErrors.holdExpired();
-      }
+        const slots = await this.lockSlots(client, [hold.slot_id, newSlotId, hold.alternative_slot_id].filter(Boolean) as string[]);
+        const sourceSlot = slots.get(hold.slot_id);
+        const newSlot = slots.get(newSlotId);
+        if (!sourceSlot || !newSlot) throw DomainErrors.slotNotFound();
+        await this.access.assertLocationAccess(client, employeeContext, sourceSlot.clinic_location_id);
+        if (sourceSlot.clinic_location_id !== newSlot.clinic_location_id || sourceSlot.integration_mode !== newSlot.integration_mode) {
+          throw DomainErrors.clinicScopeMismatch();
+        }
 
-      const slots = await this.lockSlots(client, [hold.slot_id, newSlotId, hold.alternative_slot_id].filter(Boolean) as string[]);
-      const sourceSlot = slots.get(hold.slot_id);
-      const newSlot = slots.get(newSlotId);
-      if (!sourceSlot || !newSlot) throw DomainErrors.slotNotFound();
-      await this.access.assertLocationAccess(client, employeeContext, sourceSlot.clinic_location_id);
-      if (sourceSlot.clinic_location_id !== newSlot.clinic_location_id) throw DomainErrors.clinicScopeMismatch();
+        const scope = `booking.propose-alternative:${employeeContext.sub}`;
+        const replay = command.idempotencyKey ? await this.acquireIdempotency(client, scope, command.idempotencyKey) : null;
+        if (replay) return replay as unknown as ProposedAlternativeSlot;
 
-      if (hold.state === 'ALTERNATIVE_PENDING' && hold.alternative_slot_id === newSlotId && hold.alternative_expires_at) {
-        return { holdId: hold.id, sourceSlotId: hold.slot_id, alternativeSlotId: newSlotId, expiresAt: hold.alternative_expires_at.toISOString(), state: 'ALTERNATIVE_PENDING' };
-      }
-      if (newSlot.state !== 'OPEN' || newSlot.status === 'BOOKED' || newSlot.starts_at <= now || newSlot.capacity - newSlot.booked_count - newSlot.held_count <= 0) {
-        throw DomainErrors.slotAlreadyTaken();
-      }
+        const now = await this.databaseNow(client);
+        if (hold.state === 'ALTERNATIVE_PENDING' && hold.alternative_expires_at && hold.alternative_expires_at <= now) {
+          await this.expireAlternativeLocked(client, hold, this.correlationId(command), 'proposal-detected-expiry');
+          throw DomainErrors.holdExpired();
+        }
+        if (hold.state === 'ALTERNATIVE_PENDING' && hold.alternative_slot_id === newSlotId && hold.alternative_expires_at) {
+          const result: ProposedAlternativeSlot = {
+            holdId: hold.id,
+            sourceSlotId: hold.slot_id,
+            alternativeSlotId: newSlotId,
+            expiresAt: hold.alternative_expires_at.toISOString(),
+            state: 'ALTERNATIVE_PENDING',
+          };
+          await this.completeIdempotency(client, scope, command.idempotencyKey, result, HttpStatus.CREATED);
+          return result;
+        }
+        if (newSlot.state !== 'OPEN' || newSlot.status === 'BOOKED' || newSlot.starts_at <= now || newSlot.capacity - newSlot.booked_count - newSlot.held_count <= 0) {
+          throw DomainErrors.slotAlreadyTaken();
+        }
 
-      if (hold.alternative_slot_id) await this.releaseSlotCounter(client, hold.alternative_slot_id);
-      await client.query(`
-        UPDATE clinic_schema.appointment_slots
-        SET held_count = held_count + 1, status = 'LOCKED_BY_HOLD', version = version + 1, updated_at = clock_timestamp()
-        WHERE id = $1::uuid
-      `, [newSlotId]);
-      const updated = await client.query<{ version: number; alternative_expires_at: Date }>(`
-        UPDATE booking_schema.booking_holds
-        SET state = 'ALTERNATIVE_PENDING', alternative_slot_id = $2::uuid,
-            alternative_expires_at = clock_timestamp() + interval '15 minutes',
-            expires_at = clock_timestamp() + interval '15 minutes',
-            confirmation_sla_expires_at = NULL, state_changed_at = clock_timestamp(),
-            version = version + 1, updated_at = clock_timestamp()
-        WHERE id = $1::uuid
-        RETURNING version, alternative_expires_at
-      `, [hold.id, newSlotId]);
+        if (hold.alternative_slot_id) await this.releaseSlotCounter(client, hold.alternative_slot_id);
+        await client.query(`
+          UPDATE clinic_schema.appointment_slots
+          SET held_count = held_count + 1, status = 'LOCKED_BY_HOLD', version = version + 1, updated_at = clock_timestamp()
+          WHERE id = $1::uuid
+        `, [newSlotId]);
+        const updated = await client.query<{ version: number; alternative_expires_at: Date }>(`
+          UPDATE booking_schema.booking_holds
+          SET state = 'ALTERNATIVE_PENDING', alternative_slot_id = $2::uuid,
+              alternative_expires_at = clock_timestamp() + interval '15 minutes',
+              expires_at = clock_timestamp() + interval '15 minutes',
+              confirmation_sla_expires_at = NULL, state_changed_at = clock_timestamp(),
+              version = version + 1, updated_at = clock_timestamp()
+          WHERE id = $1::uuid
+          RETURNING version, alternative_expires_at
+        `, [hold.id, newSlotId]);
 
-      const correlationId = this.correlationId();
-      const result: ProposedAlternativeSlot = {
-        holdId: hold.id,
-        sourceSlotId: hold.slot_id,
-        alternativeSlotId: newSlotId,
-        expiresAt: updated.rows[0].alternative_expires_at.toISOString(),
-        state: 'ALTERNATIVE_PENDING',
-      };
-      await this.writeOutbox(client, 'booking.alternative.proposed.v1', correlationId, hold.id, updated.rows[0].version, { ...result, employeeId: employeeContext.sub, clinicLocationId: sourceSlot.clinic_location_id });
-      await this.writeAudit(client, 'CLINIC_EMPLOYEE', employeeContext.sub, 'BOOKING_ALTERNATIVE_PROPOSED', hold.id, correlationId, { sourceSlotId: hold.slot_id, alternativeSlotId: newSlotId });
-      return result;
-    });
+        const correlationId = this.correlationId(command);
+        const result: ProposedAlternativeSlot = {
+          holdId: hold.id,
+          sourceSlotId: hold.slot_id,
+          alternativeSlotId: newSlotId,
+          expiresAt: updated.rows[0].alternative_expires_at.toISOString(),
+          state: 'ALTERNATIVE_PENDING',
+        };
+        await this.writeOutbox(client, 'booking.alternative.proposed.v1', correlationId, hold.id, updated.rows[0].version, {
+          ...result,
+          employeeId: employeeContext.sub,
+          clinicLocationId: sourceSlot.clinic_location_id,
+        });
+        await this.writeAudit(client, 'CLINIC_EMPLOYEE', employeeContext.sub, 'BOOKING_ALTERNATIVE_PROPOSED', hold.id, correlationId, {
+          sourceSlotId: hold.slot_id,
+          alternativeSlotId: newSlotId,
+        });
+        await this.completeIdempotency(client, scope, command.idempotencyKey, result, HttpStatus.CREATED);
+        return result;
+      });
+    } catch (error) {
+      throw this.mapPgError(error);
+    }
   }
 
-  async acceptAlternativeSlot(holdId: string, ownerId: string): Promise<AcceptedAlternativeSlot> {
-    return this.database.withTransaction(async (client) => {
-      await this.setShortTransactionLimits(client);
-      const hold = await this.lockHold(client, holdId);
-      if (!hold) throw DomainErrors.holdNotFound();
-      if (hold.owner_id !== ownerId) throw DomainErrors.holdOwnerMismatch();
-      if (hold.state !== 'ALTERNATIVE_PENDING' || !hold.alternative_slot_id || !hold.alternative_expires_at) throw DomainErrors.invalidTransition();
+  async acceptAlternativeSlot(
+    holdId: string,
+    ownerId: string,
+    command: AlternativeCommandContext = {},
+  ): Promise<AcceptedAlternativeSlot> {
+    try {
+      return await this.database.withTransaction(async (client) => {
+        await this.setShortTransactionLimits(client);
+        const hold = await this.lockHold(client, holdId);
+        if (!hold) throw DomainErrors.holdNotFound();
+        if (hold.owner_id !== ownerId) throw DomainErrors.holdOwnerMismatch();
 
-      const slots = await this.lockSlots(client, [hold.slot_id, hold.alternative_slot_id]);
-      const sourceSlot = slots.get(hold.slot_id);
-      const alternativeSlot = slots.get(hold.alternative_slot_id);
-      if (!sourceSlot || !alternativeSlot) throw DomainErrors.slotNotFound();
-      if (hold.alternative_expires_at <= await this.databaseNow(client)) {
-        await this.expireAlternativeLocked(client, hold, this.correlationId(), 'owner-accept-detected-expiry');
-        throw DomainErrors.holdExpired();
-      }
-      if (sourceSlot.held_count <= 0 || alternativeSlot.held_count <= 0) throw DomainErrors.bookingUnavailable();
+        const scope = `booking.accept-alternative:${ownerId}`;
+        const replay = command.idempotencyKey ? await this.acquireIdempotency(client, scope, command.idempotencyKey) : null;
+        if (replay) return replay as unknown as AcceptedAlternativeSlot;
+        if (command.expectedVersion !== undefined && hold.version !== command.expectedVersion) throw DomainErrors.slotVersionStale();
+        if (hold.state !== 'ALTERNATIVE_PENDING' || !hold.alternative_slot_id || !hold.alternative_expires_at) throw DomainErrors.invalidTransition();
 
-      await this.releaseSlotCounter(client, sourceSlot.id);
-      const updated = await client.query<{ version: number }>(`
-        UPDATE booking_schema.booking_holds
-        SET slot_id = $2::uuid, state = 'MIS_HELD', alternative_slot_id = NULL,
-            alternative_expires_at = NULL, confirmation_sla_expires_at = NULL,
-            state_changed_at = clock_timestamp(), version = version + 1, updated_at = clock_timestamp()
-        WHERE id = $1::uuid AND state = 'ALTERNATIVE_PENDING'
-        RETURNING version
-      `, [hold.id, alternativeSlot.id]);
-      if (!updated.rows[0]) throw DomainErrors.invalidTransition();
+        const slots = await this.lockSlots(client, [hold.slot_id, hold.alternative_slot_id]);
+        const sourceSlot = slots.get(hold.slot_id);
+        const alternativeSlot = slots.get(hold.alternative_slot_id);
+        if (!sourceSlot || !alternativeSlot) throw DomainErrors.slotNotFound();
+        if (sourceSlot.integration_mode !== alternativeSlot.integration_mode) throw DomainErrors.invalidTransition();
+        if (hold.alternative_expires_at <= await this.databaseNow(client)) {
+          await this.expireAlternativeLocked(client, hold, this.correlationId(command), 'owner-accept-detected-expiry');
+          throw DomainErrors.holdExpired();
+        }
+        if (sourceSlot.held_count <= 0 || alternativeSlot.held_count <= 0) throw DomainErrors.bookingUnavailable();
 
-      const correlationId = this.correlationId();
-      const result: AcceptedAlternativeSlot = { holdId: hold.id, sourceSlotId: sourceSlot.id, slotId: alternativeSlot.id, state: 'MIS_HELD' };
-      await this.writeOutbox(client, 'booking.alternative.accepted.v1', correlationId, hold.id, updated.rows[0].version, { ...result });
-      await this.writeAudit(client, 'OWNER', ownerId, 'BOOKING_ALTERNATIVE_ACCEPTED', hold.id, correlationId, { ...result });
-      return result;
-    });
+        const correlationId = this.correlationId(command);
+        await this.releaseSlotCounter(client, sourceSlot.id);
+        const result = alternativeSlot.integration_mode === 'LEVEL_C'
+          ? await this.confirmLevelCAlternative(client, hold, sourceSlot, alternativeSlot, ownerId, correlationId)
+          : await this.moveToMisHeld(client, hold, sourceSlot, alternativeSlot, correlationId);
+        await this.completeIdempotency(client, scope, command.idempotencyKey, result, HttpStatus.OK);
+        return result;
+      });
+    } catch (error) {
+      throw this.mapPgError(error);
+    }
+  }
+
+  async declineAlternativeSlot(
+    holdId: string,
+    ownerId: string,
+    command: AlternativeCommandContext = {},
+  ): Promise<DeclinedAlternativeSlot> {
+    try {
+      return await this.database.withTransaction(async (client) => {
+        await this.setShortTransactionLimits(client);
+        const hold = await this.lockHold(client, holdId);
+        if (!hold) throw DomainErrors.holdNotFound();
+        if (hold.owner_id !== ownerId) throw DomainErrors.holdOwnerMismatch();
+
+        const scope = `booking.decline-alternative:${ownerId}`;
+        const replay = command.idempotencyKey ? await this.acquireIdempotency(client, scope, command.idempotencyKey) : null;
+        if (replay) return replay as unknown as DeclinedAlternativeSlot;
+        if (command.expectedVersion !== undefined && hold.version !== command.expectedVersion) throw DomainErrors.slotVersionStale();
+        if (hold.state !== 'ALTERNATIVE_PENDING' || !hold.alternative_slot_id || !hold.alternative_expires_at) throw DomainErrors.invalidTransition();
+
+        const slots = await this.lockSlots(client, [hold.slot_id, hold.alternative_slot_id]);
+        if (!slots.get(hold.slot_id) || !slots.get(hold.alternative_slot_id)) throw DomainErrors.slotNotFound();
+        const correlationId = this.correlationId(command);
+        if (hold.alternative_expires_at <= await this.databaseNow(client)) {
+          await this.expireAlternativeLocked(client, hold, correlationId, 'owner-decline-detected-expiry');
+          throw DomainErrors.holdExpired();
+        }
+
+        await this.releaseSlotCounter(client, hold.slot_id);
+        await this.releaseSlotCounter(client, hold.alternative_slot_id);
+        const updated = await client.query<{ version: number }>(`
+          UPDATE booking_schema.booking_holds
+          SET state = 'RELEASED', alternative_slot_id = NULL, alternative_expires_at = NULL,
+              confirmation_sla_expires_at = NULL, state_changed_at = clock_timestamp(),
+              version = version + 1, updated_at = clock_timestamp()
+          WHERE id = $1::uuid AND state = 'ALTERNATIVE_PENDING'
+          RETURNING version
+        `, [hold.id]);
+        if (!updated.rows[0]) throw DomainErrors.invalidTransition();
+
+        const result: DeclinedAlternativeSlot = {
+          holdId: hold.id,
+          sourceSlotId: hold.slot_id,
+          alternativeSlotId: hold.alternative_slot_id,
+          state: 'RELEASED',
+        };
+        await this.writeOutbox(client, 'booking.alternative.declined.v1', correlationId, hold.id, updated.rows[0].version, result);
+        await this.writeAudit(client, 'OWNER', ownerId, 'BOOKING_ALTERNATIVE_DECLINED', hold.id, correlationId, result);
+        await this.completeIdempotency(client, scope, command.idempotencyKey, result, HttpStatus.OK);
+        return result;
+      });
+    } catch (error) {
+      throw this.mapPgError(error);
+    }
   }
 
   async expireAlternativeHolds(batchSize = 20): Promise<number> {
@@ -176,6 +280,92 @@ export class AlternativeSlotService {
     return expired;
   }
 
+  private async confirmLevelCAlternative(
+    client: PoolClient,
+    hold: AlternativeHold,
+    sourceSlot: LockedSlot,
+    alternativeSlot: LockedSlot,
+    ownerId: string,
+    correlationId: string,
+  ): Promise<AcceptedAlternativeSlot> {
+    const booked = await client.query<{ id: string }>(`
+      UPDATE clinic_schema.appointment_slots
+      SET held_count = held_count - 1,
+          booked_count = booked_count + 1,
+          status = CASE
+            WHEN booked_count + 1 >= capacity THEN 'BOOKED'
+            WHEN held_count - 1 > 0 THEN 'LOCKED_BY_HOLD'
+            ELSE 'AVAILABLE'
+          END,
+          version = version + 1,
+          updated_at = clock_timestamp()
+      WHERE id = $1::uuid AND held_count > 0 AND booked_count < capacity
+      RETURNING id
+    `, [alternativeSlot.id]);
+    if (!booked.rows[0]) throw DomainErrors.bookingUnavailable();
+
+    const updated = await client.query<{ version: number }>(`
+      UPDATE booking_schema.booking_holds
+      SET slot_id = $2::uuid, state = 'CONFIRMED', alternative_slot_id = NULL,
+          alternative_expires_at = NULL, confirmation_sla_expires_at = NULL,
+          state_changed_at = clock_timestamp(), version = version + 1, updated_at = clock_timestamp()
+      WHERE id = $1::uuid AND state = 'ALTERNATIVE_PENDING'
+      RETURNING version
+    `, [hold.id, alternativeSlot.id]);
+    if (!updated.rows[0]) throw DomainErrors.invalidTransition();
+
+    const appointment = await client.query<{ id: string }>(`
+      INSERT INTO booking_schema.appointments (hold_id, owner_id, pet_id, clinic_location_id, slot_id)
+      VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid)
+      RETURNING id
+    `, [hold.id, hold.owner_id, hold.pet_id, alternativeSlot.clinic_location_id, alternativeSlot.id]);
+    const result: AcceptedAlternativeSlot = {
+      holdId: hold.id,
+      sourceSlotId: sourceSlot.id,
+      slotId: alternativeSlot.id,
+      state: 'CONFIRMED',
+      appointmentId: appointment.rows[0].id,
+    };
+    await client.query(`
+      INSERT INTO booking_schema.appointment_events (appointment_id, hold_id, event_type, actor_type, actor_id, correlation_id, payload_json)
+      VALUES ($1::uuid, $2::uuid, 'CONFIRMED', 'OWNER', $3::uuid, $4::uuid, $5::jsonb)
+    `, [result.appointmentId, hold.id, ownerId, correlationId, JSON.stringify({ sourceSlotId: sourceSlot.id, slotId: alternativeSlot.id, reason: 'ALTERNATIVE_ACCEPTED' })]);
+    await this.writeOutbox(client, 'booking.alternative.accepted.v1', correlationId, hold.id, updated.rows[0].version, result);
+    await this.writeOutbox(client, 'booking.confirmed.v1', correlationId, hold.id, updated.rows[0].version, {
+      ...result,
+      clinicLocationId: alternativeSlot.clinic_location_id,
+      reason: 'ALTERNATIVE_ACCEPTED_LEVEL_C',
+    });
+    await this.writeAudit(client, 'OWNER', ownerId, 'BOOKING_ALTERNATIVE_ACCEPTED', hold.id, correlationId, result);
+    return result;
+  }
+
+  private async moveToMisHeld(
+    client: PoolClient,
+    hold: AlternativeHold,
+    sourceSlot: LockedSlot,
+    alternativeSlot: LockedSlot,
+    correlationId: string,
+  ): Promise<AcceptedAlternativeSlot> {
+    const updated = await client.query<{ version: number }>(`
+      UPDATE booking_schema.booking_holds
+      SET slot_id = $2::uuid, state = 'MIS_HELD', alternative_slot_id = NULL,
+          alternative_expires_at = NULL, confirmation_sla_expires_at = NULL,
+          state_changed_at = clock_timestamp(), version = version + 1, updated_at = clock_timestamp()
+      WHERE id = $1::uuid AND state = 'ALTERNATIVE_PENDING'
+      RETURNING version
+    `, [hold.id, alternativeSlot.id]);
+    if (!updated.rows[0]) throw DomainErrors.invalidTransition();
+    const result: AcceptedAlternativeSlot = {
+      holdId: hold.id,
+      sourceSlotId: sourceSlot.id,
+      slotId: alternativeSlot.id,
+      state: 'MIS_HELD',
+    };
+    await this.writeOutbox(client, 'booking.alternative.accepted.v1', correlationId, hold.id, updated.rows[0].version, result);
+    return result;
+  }
+
   private async lockHold(client: PoolClient, holdId: string): Promise<AlternativeHold | undefined> {
     const result = await client.query<AlternativeHold>(`
       SELECT id, slot_id, owner_id, pet_id, state, expires_at, alternative_slot_id, alternative_expires_at, version
@@ -186,7 +376,7 @@ export class AlternativeSlotService {
 
   private async lockSlots(client: PoolClient, ids: string[]): Promise<Map<string, LockedSlot>> {
     const result = await client.query<LockedSlot>(`
-      SELECT id, clinic_location_id, starts_at, capacity, booked_count, held_count, state, status
+      SELECT id, clinic_location_id, starts_at, capacity, booked_count, held_count, state, status, integration_mode
       FROM clinic_schema.appointment_slots
       WHERE id = ANY($1::uuid[]) ORDER BY id FOR UPDATE
     `, [[...new Set(ids)].sort()]);
@@ -197,9 +387,14 @@ export class AlternativeSlotService {
     const result = await client.query<{ id: string }>(`
       UPDATE clinic_schema.appointment_slots
       SET held_count = held_count - 1,
-          status = CASE WHEN booked_count >= capacity THEN 'BOOKED' WHEN held_count - 1 > 0 THEN 'LOCKED_BY_HOLD' ELSE 'AVAILABLE' END,
+          status = CASE
+            WHEN booked_count >= capacity THEN 'BOOKED'
+            WHEN held_count - 1 > 0 THEN 'LOCKED_BY_HOLD'
+            ELSE 'AVAILABLE'
+          END,
           version = version + 1, updated_at = clock_timestamp()
-      WHERE id = $1::uuid AND held_count > 0 RETURNING id
+      WHERE id = $1::uuid AND held_count > 0
+      RETURNING id
     `, [slotId]);
     if (!result.rows[0]) throw DomainErrors.bookingUnavailable();
   }
@@ -214,11 +409,48 @@ export class AlternativeSlotService {
       UPDATE booking_schema.booking_holds
       SET state = 'EXPIRED', alternative_slot_id = NULL, alternative_expires_at = NULL,
           state_changed_at = clock_timestamp(), version = version + 1, updated_at = clock_timestamp()
-      WHERE id = $1::uuid AND state = 'ALTERNATIVE_PENDING' RETURNING version
+      WHERE id = $1::uuid AND state = 'ALTERNATIVE_PENDING'
+      RETURNING version
     `, [hold.id]);
     if (!updated.rows[0]) throw DomainErrors.invalidTransition();
-    await this.writeOutbox(client, 'booking.alternative.expired.v1', correlationId, hold.id, updated.rows[0].version, { holdId: hold.id, sourceSlotId: hold.slot_id, alternativeSlotId: hold.alternative_slot_id, reason });
-    await this.writeAudit(client, 'SYSTEM_WORKER', null, 'BOOKING_ALTERNATIVE_EXPIRED', hold.id, correlationId, { sourceSlotId: hold.slot_id, alternativeSlotId: hold.alternative_slot_id, reason });
+    await this.writeOutbox(client, 'booking.alternative.expired.v1', correlationId, hold.id, updated.rows[0].version, {
+      holdId: hold.id,
+      sourceSlotId: hold.slot_id,
+      alternativeSlotId: hold.alternative_slot_id,
+      reason,
+    });
+    await this.writeAudit(client, 'SYSTEM_WORKER', null, 'BOOKING_ALTERNATIVE_EXPIRED', hold.id, correlationId, {
+      sourceSlotId: hold.slot_id,
+      alternativeSlotId: hold.alternative_slot_id,
+      reason,
+    });
+  }
+
+  private async acquireIdempotency(client: PoolClient, scope: string, key: string): Promise<Record<string, unknown> | null> {
+    const inserted = await client.query(`
+      INSERT INTO booking_schema.idempotency_records (scope, idempotency_key, status)
+      VALUES ($1, $2::uuid, 'PROCESSING')
+      ON CONFLICT (scope, idempotency_key) DO NOTHING
+      RETURNING id
+    `, [scope, key]);
+    if (inserted.rows[0]) return null;
+    const existing = await client.query<IdempotencyRow>(`
+      SELECT status, response_body
+      FROM booking_schema.idempotency_records
+      WHERE scope = $1 AND idempotency_key = $2::uuid
+      FOR UPDATE
+    `, [scope, key]);
+    if (existing.rows[0]?.status === 'COMPLETED' && existing.rows[0].response_body) return existing.rows[0].response_body;
+    throw DomainErrors.idempotencyInProgress();
+  }
+
+  private async completeIdempotency(client: PoolClient, scope: string, key: string | undefined, body: Record<string, unknown>, status: number): Promise<void> {
+    if (!key) return;
+    await client.query(`
+      UPDATE booking_schema.idempotency_records
+      SET status = 'COMPLETED', response_status = $3, response_body = $4::jsonb, updated_at = clock_timestamp()
+      WHERE scope = $1 AND idempotency_key = $2::uuid
+    `, [scope, key, status, JSON.stringify(body)]);
   }
 
   private async databaseNow(client: PoolClient): Promise<Date> {
@@ -226,8 +458,8 @@ export class AlternativeSlotService {
     return result.rows[0].now;
   }
 
-  private correlationId(): string {
-    return this.traceContext.getCorrelationId() ?? randomUUID();
+  private correlationId(command?: AlternativeCommandContext): string {
+    return command?.correlationId ?? this.traceContext.getCorrelationId() ?? randomUUID();
   }
 
   private async writeOutbox(client: PoolClient, eventType: string, correlationId: string, aggregateId: string, version: number, payload: Record<string, unknown>): Promise<void> {
@@ -247,6 +479,14 @@ export class AlternativeSlotService {
 
   private async setShortTransactionLimits(client: PoolClient): Promise<void> {
     await client.query("SET LOCAL lock_timeout = '50ms'");
-    await client.query("SET LOCAL statement_timeout = '50ms'");
+    await client.query("SET LOCAL statement_timeout = '250ms'");
+  }
+
+  private mapPgError(error: unknown): unknown {
+    if (typeof error === 'object' && error !== null && 'code' in error) {
+      const code = (error as { code?: string }).code;
+      if (code === '55P03' || code === '57014') return DomainErrors.slotLockedRetry();
+    }
+    return error;
   }
 }
