@@ -5,7 +5,8 @@ export type AlertType =
   | 'MIS_INTEGRATION_TIMEOUT'
   | 'PAYMENT_FENCING_TRIGGERED'
   | 'SLA_AUTO_VOID_FAILED'
-  | 'REFUND_FAILED';
+  | 'REFUND_FAILED'
+  | 'CLINIC_SLA_BREACHED';
 
 @Injectable()
 export class ObservabilityMetricsService {

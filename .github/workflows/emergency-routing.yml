@@ -1,0 +1,56 @@
+name: Emergency Routing Integration
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/emergency-routing.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/emergency-routing.yml'
+  workflow_dispatch:
+
+jobs:
+  emergency-routing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: vethelp
+          POSTGRES_USER: vethelp
+          POSTGRES_PASSWORD: vethelp
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vethelp -d vethelp"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://vethelp:vethelp@localhost:5432/vethelp
+      JWT_SECRET: emergency-routing-test-jwt-secret-at-least-32-bytes-long
+      JWT_ISSUER: emergency-routing-ci
+      JWT_AUDIENCE: emergency-routing-ci-api
+      WORKER_SERVICE_TOKEN: emergency-routing-ci-worker-token
+      WORKERS_ENABLED: 'false'
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install
+      - name: Apply and verify PostgreSQL migrations
+        run: |
+          npm run migrate:up
+          npm run migrate:verify
+      - name: Run emergency routing integration test
+        run: npm test -- test/emergency-routing.integration-spec.ts

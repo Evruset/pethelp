@@ -2,6 +2,7 @@ import { MiddlewareConsumer, Module as NestModule, NestModule as NestModuleContr
 import { AuthModule } from './auth/auth.module';
 import { BookingCoreModule } from './booking-core/booking-core.module';
 import { DatabaseModule } from './database/database.module';
+import { EmergencyRoutingModule } from './emergency-routing/emergency-routing.module';
 import { HealthController } from './health.controller';
 import { MisIntegrationModule } from './modules/mis-integration/mis-integration.module';
 import { PaymentsModule } from './modules/payments/payments.module';
@@ -17,6 +18,7 @@ import { WorkersModule } from './workers/workers.module';
     DatabaseModule,
     AuthModule,
     BookingCoreModule,
+    EmergencyRoutingModule,
     OutboxModule,
     WorkersModule,
     MisIntegrationModule,
