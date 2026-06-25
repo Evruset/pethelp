@@ -1,4 +1,4 @@
-import { ClinicQueueClient } from '@/components/queue/ClinicQueueClient';
+import { ClinicQueueClientV2 } from '@/components/queue/ClinicQueueClientV2';
 import { ClinicBackendError, getManualConfirmationQueue } from '@/lib/api/clinic-queue';
 import { canAccessClinicLocation, getClinicSession } from '@/lib/auth/clinic-session';
 
@@ -53,7 +53,7 @@ export default async function ClinicQueuePage({ params }: PageProps) {
 
   try {
     const queue = await getManualConfirmationQueue(session, clinicId, locationId);
-    return <ClinicQueueClient clinicId={clinicId} locationId={locationId} initialQueue={queue} />;
+    return <ClinicQueueClientV2 clinicId={clinicId} locationId={locationId} initialQueue={queue} />;
   } catch (error) {
     if (error instanceof ClinicBackendError && error.status === 403) {
       return <AccessDenied />;
