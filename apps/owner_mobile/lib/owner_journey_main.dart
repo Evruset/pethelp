@@ -1,7 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'features/booking/marketplace/booking_marketplace_page.dart';
 import 'features/booking/marketplace/booking_marketplace_repository.dart';
+import 'features/catalog/catalog_models.dart';
+import 'features/catalog/public_catalog_page.dart';
+import 'features/catalog/public_catalog_repository.dart';
 import 'features/owner_journey/owner_journey_page.dart';
 import 'features/owner_journey/phone_entry_page.dart';
 
@@ -30,27 +34,24 @@ class OwnerJourneyEntry extends StatefulWidget {
 }
 
 class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
-  final _apiBaseUrl = const String.fromEnvironment(
-    'VETHELP_API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:3000',
-  );
+  static const _configuredApiBaseUrl = String.fromEnvironment('VETHELP_API_BASE_URL');
   final _ownerJwt = const String.fromEnvironment('VETHELP_OWNER_JWT');
-  final _demoLocationId = const String.fromEnvironment('VETHELP_DEMO_LOCATION_ID');
   final _demoPetId = const String.fromEnvironment(
     'VETHELP_DEMO_PET_ID',
     defaultValue: '22222222-2222-4222-8222-222222222222',
-  );
-  final _demoClinicName = const String.fromEnvironment(
-    'VETHELP_DEMO_CLINIC_NAME',
-    defaultValue: 'VetHelp Pilot',
   );
   final _demoPetName = const String.fromEnvironment(
     'VETHELP_DEMO_PET_NAME',
     defaultValue: 'Питомец',
   );
 
+  String get _apiBaseUrl {
+    if (_configuredApiBaseUrl.isNotEmpty) return _configuredApiBaseUrl;
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return 'http://127.0.0.1:3000';
+    return 'http://10.0.2.2:3000';
+  }
+
   bool get _hasLocalOwner => _ownerJwt.isNotEmpty;
-  bool get _canCreateBooking => _hasLocalOwner && _demoLocationId.isNotEmpty;
 
   Future<String> _token() async {
     if (_ownerJwt.isEmpty) {
@@ -63,13 +64,13 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   Widget build(BuildContext context) {
     if (_hasLocalOwner) {
       return OwnerJourneyPage(
-        onBrowseClinics: _openBooking,
+        onBrowseClinics: _openCatalogForOwner,
         onRequestTelemed: _openTelemedIntake,
       );
     }
     return _GuestStartPage(
       onOpenPhoneEntry: _openPhoneEntry,
-      onBrowseClinics: _openPhoneEntry,
+      onBrowseClinics: _openCatalogForGuest,
       onRequestTelemed: _openPhoneEntry,
     );
   }
@@ -80,18 +81,36 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
     ));
   }
 
-  void _openBooking() {
-    if (!_canCreateBooking) {
-      _showMessage(
-        'Выбор клиники будет подключён к публичному каталогу. Для local smoke передайте VETHELP_DEMO_LOCATION_ID.',
-      );
-      return;
-    }
+  void _openCatalogForGuest() {
+    _openCatalog(onSelected: (location) {
+      Navigator.of(context).pop();
+      _showMessage('Продолжите по номеру телефона, чтобы записать питомца в ${location.clinicName}.');
+      _openPhoneEntry();
+    });
+  }
+
+  void _openCatalogForOwner() {
+    _openCatalog(onSelected: (location) {
+      Navigator.of(context).pop();
+      _openBooking(location);
+    });
+  }
+
+  void _openCatalog({required ValueChanged<CatalogLocation> onSelected}) {
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => PublicCatalogPage(
+        repository: HttpPublicCatalogRepository(baseUrl: Uri.parse(_apiBaseUrl)),
+        onSelected: onSelected,
+      ),
+    ));
+  }
+
+  void _openBooking(CatalogLocation location) {
     Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => BookingMarketplacePage(
-        clinicName: _demoClinicName,
+        clinicName: location.clinicName,
         petName: _demoPetName,
-        clinicLocationId: _demoLocationId,
+        clinicLocationId: location.locationId,
         petId: _demoPetId,
         repository: HttpBookingMarketplaceRepository(
           baseUrl: Uri.parse(_apiBaseUrl),
@@ -162,7 +181,7 @@ class _GuestStartPage extends StatelessWidget {
             _ActionCard(
               icon: Icons.calendar_month_outlined,
               title: 'Записаться в клинику',
-              subtitle: 'Клиника, услуга и время. Финальный статус всегда подтверждает сервер.',
+              subtitle: 'Выберите клинику и время. Финальный статус всегда подтверждает сервер.',
               badge: 'Запись',
               color: colors.primaryContainer,
               onTap: onBrowseClinics,
