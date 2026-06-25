@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 
+import '../booking/marketplace/booking_hold_status_page.dart';
+import '../booking/marketplace/booking_marketplace_repository.dart';
 import 'owner_appointments_repository.dart';
 
 class OwnerAppointmentsPage extends StatefulWidget {
-  const OwnerAppointmentsPage({super.key, required this.repository});
+  const OwnerAppointmentsPage({
+    super.key,
+    required this.repository,
+    required this.statusRepository,
+  });
 
   final OwnerAppointmentsRepository repository;
+  final BookingMarketplaceRepository statusRepository;
 
   @override
   State<OwnerAppointmentsPage> createState() => _OwnerAppointmentsPageState();
@@ -62,16 +69,17 @@ class _OwnerAppointmentsPageState extends State<OwnerAppointmentsPage> {
           );
         }
         final appointments = snapshot.data ?? const <OwnerAppointment>[];
-        if (appointments.isEmpty) {
-          return const _AppointmentsEmpty();
-        }
+        if (appointments.isEmpty) return const _AppointmentsEmpty();
         return RefreshIndicator(
           onRefresh: _refresh,
           child: ListView.separated(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
             itemCount: appointments.length,
             separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (context, index) => _AppointmentCard(appointment: appointments[index]),
+            itemBuilder: (context, index) => _AppointmentCard(
+              appointment: appointments[index],
+              statusRepository: widget.statusRepository,
+            ),
           ),
         );
       },
@@ -101,9 +109,13 @@ class _AppointmentsEmpty extends StatelessWidget {
 }
 
 class _AppointmentCard extends StatelessWidget {
-  const _AppointmentCard({required this.appointment});
+  const _AppointmentCard({
+    required this.appointment,
+    required this.statusRepository,
+  });
 
   final OwnerAppointment appointment;
+  final BookingMarketplaceRepository statusRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -115,25 +127,40 @@ class _AppointmentCard extends StatelessWidget {
     final state = _statePresentation(appointment.state, colors);
 
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(child: Text(appointment.clinicName, style: Theme.of(context).textTheme.titleMedium)),
-                Chip(
-                  avatar: Icon(state.icon, size: 16, color: state.color),
-                  label: Text(state.label),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text('$date · $start–$end'),
-            const SizedBox(height: 4),
-            Text('${appointment.petName} · ${appointment.clinicAddress}', style: Theme.of(context).textTheme.bodySmall),
-          ],
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) => BookingHoldStatusPage(
+            holdId: appointment.holdId,
+            initialState: appointment.state,
+            repository: statusRepository,
+          ),
+        )),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(child: Text(appointment.clinicName, style: Theme.of(context).textTheme.titleMedium)),
+                  Chip(
+                    avatar: Icon(state.icon, size: 16, color: state.color),
+                    label: Text(state.label),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text('$date · $start–$end'),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Expanded(child: Text('${appointment.petName} · ${appointment.clinicAddress}', style: Theme.of(context).textTheme.bodySmall)),
+                  const Icon(Icons.chevron_right),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
