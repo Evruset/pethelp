@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../booking/marketplace/booking_marketplace_repository.dart';
+
 class OwnerAppointment {
   const OwnerAppointment({
     required this.holdId,
@@ -47,6 +49,7 @@ class OwnerAppointmentsApiException implements Exception {
 
 abstract class OwnerAppointmentsRepository {
   Future<List<OwnerAppointment>> list();
+  Future<BookingHoldSnapshot> readHold(String holdId);
 }
 
 class HttpOwnerAppointmentsRepository implements OwnerAppointmentsRepository {
@@ -64,16 +67,33 @@ class HttpOwnerAppointmentsRepository implements OwnerAppointmentsRepository {
 
   @override
   Future<List<OwnerAppointment>> list() async {
-    final token = await _accessToken();
     final response = await _client.get(
       _baseUrl.resolve('v1/owner/appointments'),
-      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+      headers: await _headers(),
     );
     final data = _decode(response);
     if (response.statusCode != 200 || data is! List) {
       throw OwnerAppointmentsApiException(response.statusCode, _errorCode(data));
     }
     return data.whereType<Map<String, dynamic>>().map(OwnerAppointment.fromJson).toList(growable: false);
+  }
+
+  @override
+  Future<BookingHoldSnapshot> readHold(String holdId) async {
+    final response = await _client.get(
+      _baseUrl.resolve('v1/booking-holds/$holdId'),
+      headers: await _headers(),
+    );
+    final data = _decode(response);
+    if (response.statusCode != 200 || data is! Map<String, dynamic>) {
+      throw OwnerAppointmentsApiException(response.statusCode, _errorCode(data));
+    }
+    return BookingHoldSnapshot.fromJson(data);
+  }
+
+  Future<Map<String, String>> _headers() async {
+    final token = await _accessToken();
+    return {'Accept': 'application/json', 'Authorization': 'Bearer $token'};
   }
 
   dynamic _decode(http.Response response) {
