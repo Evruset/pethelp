@@ -2,17 +2,19 @@ import 'package:flutter/material.dart';
 
 import 'booking_marketplace_repository.dart';
 
+typedef BookingHoldReader = Future<BookingHoldSnapshot> Function(String holdId);
+
 class BookingHoldStatusPage extends StatefulWidget {
   const BookingHoldStatusPage({
     super.key,
     required this.holdId,
     required this.initialState,
-    required this.repository,
+    required this.readHold,
   });
 
   final String holdId;
   final String initialState;
-  final BookingMarketplaceRepository repository;
+  final BookingHoldReader readHold;
 
   @override
   State<BookingHoldStatusPage> createState() => _BookingHoldStatusPageState();
@@ -24,11 +26,11 @@ class _BookingHoldStatusPageState extends State<BookingHoldStatusPage> {
   @override
   void initState() {
     super.initState();
-    _snapshot = widget.repository.readHold(widget.holdId);
+    _snapshot = widget.readHold(widget.holdId);
   }
 
   void _refresh() {
-    final request = widget.repository.readHold(widget.holdId);
+    final request = widget.readHold(widget.holdId);
     setState(() {
       _snapshot = request;
     });
@@ -50,17 +52,9 @@ class _BookingHoldStatusPageState extends State<BookingHoldStatusPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(
-                    presentation.icon,
-                    size: 56,
-                    color: presentation.color(context),
-                  ),
+                  Icon(presentation.icon, size: 56, color: presentation.color(context)),
                   const SizedBox(height: 20),
-                  Text(
-                    presentation.title,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
+                  Text(presentation.title, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall),
                   const SizedBox(height: 12),
                   Text(presentation.message, textAlign: TextAlign.center),
                   if (view != null) ...[
@@ -85,10 +79,7 @@ class _BookingHoldStatusPageState extends State<BookingHoldStatusPage> {
                   ],
                   if (snapshot.hasError) ...[
                     const SizedBox(height: 18),
-                    const Text(
-                      'Не удалось обновить статус. Показано последнее подтверждённое состояние.',
-                      textAlign: TextAlign.center,
-                    ),
+                    const Text('Не удалось обновить статус. Показано последнее подтверждённое состояние.', textAlign: TextAlign.center),
                   ],
                   const Spacer(),
                   OutlinedButton.icon(
@@ -112,13 +103,7 @@ class _BookingHoldStatusPageState extends State<BookingHoldStatusPage> {
 }
 
 class _StatusPresentation {
-  const _StatusPresentation({
-    required this.icon,
-    required this.title,
-    required this.message,
-    required this.color,
-  });
-
+  const _StatusPresentation({required this.icon, required this.title, required this.message, required this.color});
   final IconData icon;
   final String title;
   final String message;
@@ -126,42 +111,12 @@ class _StatusPresentation {
 }
 
 _StatusPresentation _presentationFor(String state) => switch (state) {
-      'MANUAL_CONFIRM_PENDING' => _StatusPresentation(
-          icon: Icons.hourglass_top_outlined,
-          title: 'Заявка отправлена в клинику',
-          message: 'Клиника подтвердит запись в течение 15 минут. VetHelp покажет итоговый статус.',
-          color: (context) => Theme.of(context).colorScheme.primary,
-        ),
-      'MIS_RESERVATION_PENDING' || 'MIS_HELD' => _StatusPresentation(
-          icon: Icons.sync_outlined,
-          title: 'Проверяем доступность времени',
-          message: 'Клиника подтверждает возможность записи. Не создавайте повторную заявку на это же время.',
-          color: (context) => Theme.of(context).colorScheme.primary,
-        ),
-      'CONFIRMED' => _StatusPresentation(
-          icon: Icons.check_circle_outline,
-          title: 'Запись подтверждена',
-          message: 'Клиника подтвердила ваше время. Сохраните эту страницу до визита.',
-          color: (context) => Theme.of(context).colorScheme.tertiary,
-        ),
-      'SLA_BREACHED' || 'EXPIRED' => _StatusPresentation(
-          icon: Icons.schedule_outlined,
-          title: 'Время подтверждения истекло',
-          message: 'Клиника не успела подтвердить заявку. Выберите другое доступное время.',
-          color: (context) => Theme.of(context).colorScheme.error,
-        ),
-      'MIS_BOOKING_FAILED' || 'RELEASED' => _StatusPresentation(
-          icon: Icons.event_busy_outlined,
-          title: 'Запись не подтверждена',
-          message: 'Это время больше недоступно. Выберите другое окно.',
-          color: (context) => Theme.of(context).colorScheme.error,
-        ),
-      _ => _StatusPresentation(
-          icon: Icons.info_outline,
-          title: 'Статус обновляется',
-          message: 'VetHelp ожидает подтверждённое состояние от backend.',
-          color: (context) => Theme.of(context).colorScheme.primary,
-        ),
+      'MANUAL_CONFIRM_PENDING' => _StatusPresentation(icon: Icons.hourglass_top_outlined, title: 'Заявка отправлена в клинику', message: 'Клиника подтвердит запись в течение 15 минут. VetHelp покажет итоговый статус.', color: (context) => Theme.of(context).colorScheme.primary),
+      'MIS_RESERVATION_PENDING' || 'MIS_HELD' => _StatusPresentation(icon: Icons.sync_outlined, title: 'Проверяем доступность времени', message: 'Клиника подтверждает возможность записи. Не создавайте повторную заявку на это же время.', color: (context) => Theme.of(context).colorScheme.primary),
+      'CONFIRMED' => _StatusPresentation(icon: Icons.check_circle_outline, title: 'Запись подтверждена', message: 'Клиника подтвердила ваше время. Сохраните эту страницу до визита.', color: (context) => Theme.of(context).colorScheme.tertiary),
+      'SLA_BREACHED' || 'EXPIRED' => _StatusPresentation(icon: Icons.schedule_outlined, title: 'Время подтверждения истекло', message: 'Клиника не успела подтвердить заявку. Выберите другое доступное время.', color: (context) => Theme.of(context).colorScheme.error),
+      'MIS_BOOKING_FAILED' || 'RELEASED' => _StatusPresentation(icon: Icons.event_busy_outlined, title: 'Запись не подтверждена', message: 'Это время больше недоступно. Выберите другое окно.', color: (context) => Theme.of(context).colorScheme.error),
+      _ => _StatusPresentation(icon: Icons.info_outline, title: 'Статус обновляется', message: 'VetHelp ожидает подтверждённое состояние от backend.', color: (context) => Theme.of(context).colorScheme.primary),
     };
 
 String _formatRange(BuildContext context, DateTime startsAt, DateTime endsAt) {
