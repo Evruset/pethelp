@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../appointments/owner_appointments_page.dart';
 import '../appointments/owner_appointments_repository.dart';
-import '../booking/marketplace/booking_marketplace_repository.dart';
 import '../pets/owner_pet.dart';
 import '../pets/owner_pet_repository.dart';
 import '../pets/owner_pets_page.dart';
@@ -14,7 +13,6 @@ class OwnerJourneyPage extends StatefulWidget {
     required this.onRequestTelemed,
     required this.petsRepository,
     required this.appointmentsRepository,
-    required this.bookingRepository,
     required this.selectedPet,
     required this.onPetSelected,
   });
@@ -23,7 +21,6 @@ class OwnerJourneyPage extends StatefulWidget {
   final VoidCallback onRequestTelemed;
   final OwnerPetRepository petsRepository;
   final OwnerAppointmentsRepository appointmentsRepository;
-  final BookingMarketplaceRepository bookingRepository;
   final OwnerPet? selectedPet;
   final ValueChanged<OwnerPet> onPetSelected;
 
@@ -72,10 +69,7 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
             onManagePets: () => setState(() => _index = 2),
             onRequestTelemed: widget.onRequestTelemed,
           ),
-        1 => OwnerAppointmentsPage(
-            repository: widget.appointmentsRepository,
-            statusRepository: widget.bookingRepository,
-          ),
+        1 => OwnerAppointmentsPage(repository: widget.appointmentsRepository),
         2 => OwnerPetsPage(
             repository: widget.petsRepository,
             onPetSelected: (pet) {
@@ -110,10 +104,7 @@ class _OwnerHome extends StatelessWidget {
       children: [
         Text('Помощь питомцу — в одном месте', style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 8),
-        Text(
-          'Запись, онлайн-консультация и история питомца. Страховой контур появится после подключения партнёров.',
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
+        Text('Запись, онлайн-консультация и история питомца. Страховой контур появится после подключения партнёров.', style: Theme.of(context).textTheme.bodyLarge),
         const SizedBox(height: 24),
         Card(
           color: colors.primaryContainer,
@@ -130,9 +121,7 @@ class _OwnerHome extends StatelessWidget {
                     children: [
                       Text('Ближайшая запись', style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: 4),
-                      Text(pet == null
-                          ? 'Сначала добавьте питомца: запись всегда создаётся для конкретного владельца и питомца.'
-                          : 'Питомец для новой записи: ${pet.name}. Выберите клинику и время.'),
+                      Text(pet == null ? 'Сначала добавьте питомца: запись всегда создаётся для конкретного владельца и питомца.' : 'Питомец для новой записи: ${pet.name}. Выберите клинику и время.'),
                       const SizedBox(height: 12),
                       FilledButton.tonalIcon(
                         onPressed: pet == null ? onManagePets : onBrowseClinics,
@@ -196,28 +185,22 @@ class _TelemedLanding extends StatelessWidget {
   final VoidCallback onRequestTelemed;
 
   @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        Text('Ветеринар онлайн', style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 8),
-        const Text('Для стабильного состояния: вопросы по симптомам, анализам, назначениям и контроль после визита.'),
-        const SizedBox(height: 20),
-        const Card(
-          child: ListTile(
-            leading: Icon(Icons.health_and_safety_outlined),
-            title: Text('Важно'),
-            subtitle: Text('При судорогах, потере сознания, тяжёлом дыхании, сильном кровотечении или выраженной боли выбирайте очную срочную помощь.'),
+  Widget build(BuildContext context) => ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Text('Ветеринар онлайн', style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 8),
+          const Text('Для стабильного состояния: вопросы по симптомам, анализам, назначениям и контроль после визита.'),
+          const SizedBox(height: 20),
+          const Card(
+            child: ListTile(
+              leading: Icon(Icons.health_and_safety_outlined),
+              title: Text('Важно'),
+              subtitle: Text('При судорогах, потере сознания, тяжёлом дыхании, сильном кровотечении или выраженной боли выбирайте очную срочную помощь.'),
+            ),
           ),
-        ),
-        const SizedBox(height: 20),
-        FilledButton.icon(
-          onPressed: onRequestTelemed,
-          icon: const Icon(Icons.arrow_forward),
-          label: const Text('Описать вопрос'),
-        ),
-      ],
-    );
-  }
+          const SizedBox(height: 20),
+          FilledButton.icon(onPressed: onRequestTelemed, icon: const Icon(Icons.arrow_forward), label: const Text('Описать вопрос')),
+        ],
+      );
 }
