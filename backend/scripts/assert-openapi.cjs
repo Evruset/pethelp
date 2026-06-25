@@ -33,6 +33,12 @@ async function main() {
   required(alternativeSnapshot.responses?.['200'], 'Alternative snapshot must document 200');
   required(alternativeSnapshot.responses?.['404'], 'Alternative snapshot must document 404');
 
+  const telemedWaiting = document.paths?.['/v1/telemed/sessions/{sessionId}']?.get;
+  required(telemedWaiting, 'GET owner telemed waiting snapshot is missing');
+  required(telemedWaiting.security?.some((item) => item.bearerAuth), 'Telemed waiting snapshot must require bearerAuth');
+  required(telemedWaiting.responses?.['200'], 'Telemed waiting snapshot must document 200');
+  required(telemedWaiting.responses?.['404'], 'Telemed waiting snapshot must document 404');
+
   required(document.components?.securitySchemes?.bearerAuth, 'Bearer security scheme is missing');
   console.log('OpenAPI contract assertion passed');
 }
