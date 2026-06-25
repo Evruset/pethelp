@@ -10,6 +10,8 @@ import 'features/catalog/public_catalog_page.dart';
 import 'features/catalog/public_catalog_repository.dart';
 import 'features/owner_journey/owner_journey_page.dart';
 import 'features/owner_journey/phone_entry_page.dart';
+import 'features/pets/owner_pet.dart';
+import 'features/pets/owner_pet_repository.dart';
 
 void main() {
   runApp(const VetHelpOwnerJourneyApp());
@@ -38,16 +40,9 @@ class OwnerJourneyEntry extends StatefulWidget {
 class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   static const _configuredApiBaseUrl = String.fromEnvironment('VETHELP_API_BASE_URL');
   final _bootstrapOwnerJwt = const String.fromEnvironment('VETHELP_OWNER_JWT');
-  final _demoPetId = const String.fromEnvironment(
-    'VETHELP_DEMO_PET_ID',
-    defaultValue: '22222222-2222-4222-8222-222222222222',
-  );
-  final _demoPetName = const String.fromEnvironment(
-    'VETHELP_DEMO_PET_NAME',
-    defaultValue: 'Питомец',
-  );
 
   OwnerSession? _session;
+  OwnerPet? _selectedPet;
   CatalogLocation? _pendingLocation;
 
   String get _apiBaseUrl {
@@ -72,6 +67,9 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
       return OwnerJourneyPage(
         onBrowseClinics: _openCatalogForOwner,
         onRequestTelemed: _openTelemedIntake,
+        petsRepository: HttpOwnerPetRepository(baseUrl: Uri.parse(_apiBaseUrl), accessToken: _token),
+        selectedPet: _selectedPet,
+        onPetSelected: _selectPet,
       );
     }
     return _GuestStartPage(
@@ -92,12 +90,24 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   }
 
   void _completeAuthentication(OwnerSession session) {
+    final hasPendingLocation = _pendingLocation != null;
+    setState(() => _session = session);
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    if (hasPendingLocation) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _showMessage('Добавьте или выберите питомца: запись всегда создаётся для конкретного питомца.');
+        }
+      });
+    }
+  }
+
+  void _selectPet(OwnerPet pet) {
     final pendingLocation = _pendingLocation;
     setState(() {
-      _session = session;
+      _selectedPet = pet;
       _pendingLocation = null;
     });
-    Navigator.of(context).popUntil((route) => route.isFirst);
     if (pendingLocation != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _openBooking(pendingLocation);
@@ -118,6 +128,10 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   }
 
   void _openCatalogForOwner() {
+    if (_selectedPet == null) {
+      _showMessage('Сначала добавьте или выберите питомца на вкладке «Питомец».');
+      return;
+    }
     _openCatalog(onSelected: (location) {
       Navigator.of(context).pop();
       _openBooking(location);
@@ -134,12 +148,17 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   }
 
   void _openBooking(CatalogLocation location) {
+    final pet = _selectedPet;
+    if (pet == null) {
+      _showMessage('Для записи нужно выбрать питомца.');
+      return;
+    }
     Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => BookingMarketplacePage(
         clinicName: location.clinicName,
-        petName: _demoPetName,
+        petName: pet.name,
         clinicLocationId: location.locationId,
-        petId: _demoPetId,
+        petId: pet.id,
         repository: HttpBookingMarketplaceRepository(
           baseUrl: Uri.parse(_apiBaseUrl),
           accessTokenProvider: _token,
