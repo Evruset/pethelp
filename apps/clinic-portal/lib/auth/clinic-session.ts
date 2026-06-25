@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 
-const SESSION_COOKIE = 'vethelp_clinic_session';
+export const CLINIC_SESSION_COOKIE = 'vethelp_clinic_session';
 
 export type ClinicSession = {
   token: string;
@@ -23,14 +23,10 @@ function signingKey(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-export async function getClinicSession(): Promise<ClinicSession | null> {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  if (!token) return null;
-
+export async function verifyClinicSessionToken(token: string): Promise<ClinicSession | null> {
   try {
     const { payload } = await jwtVerify(token, signingKey(), { algorithms: ['HS256'] });
     if (!payload.sub) return null;
-
     return {
       token,
       userId: payload.sub,
@@ -41,6 +37,11 @@ export async function getClinicSession(): Promise<ClinicSession | null> {
   } catch {
     return null;
   }
+}
+
+export async function getClinicSession(): Promise<ClinicSession | null> {
+  const token = (await cookies()).get(CLINIC_SESSION_COOKIE)?.value;
+  return token ? verifyClinicSessionToken(token) : null;
 }
 
 export function canAccessClinicLocation(
