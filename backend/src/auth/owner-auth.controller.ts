@@ -6,6 +6,7 @@ import { JwtPayload, Role } from './auth.types';
 import { Roles } from './roles.decorator';
 import { RolesGuard } from './roles.guard';
 import { RefreshOwnerSessionDto, RequestOwnerOtpDto, RevokeOwnerSessionDto, VerifyOwnerOtpDto } from './dto/owner-auth.dto';
+import { OwnerAppointmentsService } from './owner-appointments.service';
 import { OwnerAuthService } from './owner-auth.service';
 
 @ApiTags('Owner authentication')
@@ -45,7 +46,10 @@ export class OwnerAuthController {
 @ApiTags('Owner profile')
 @Controller('v1/owner')
 export class OwnerProfileController {
-  constructor(private readonly ownerAuth: OwnerAuthService) {}
+  constructor(
+    private readonly ownerAuth: OwnerAuthService,
+    private readonly appointments: OwnerAppointmentsService,
+  ) {}
 
   @Get('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -56,5 +60,15 @@ export class OwnerProfileController {
   @ApiUnauthorizedResponse({ description: 'Bearer token отсутствует или невалиден.' })
   async profile(@CurrentUser() owner: JwtPayload) {
     return this.ownerAuth.profile(owner);
+  }
+
+  @Get('appointments')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.OWNER)
+  @ApiBearerAuth('bearer')
+  @ApiOperation({ summary: 'Список заявок и записей текущего владельца' })
+  @ApiOkResponse({ description: 'Только заявки и записи владельца из bearer JWT.' })
+  async listAppointments(@CurrentUser() owner: JwtPayload) {
+    return this.appointments.list(owner);
   }
 }
