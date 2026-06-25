@@ -38,8 +38,9 @@ class _OwnerPetsPageState extends State<OwnerPetsPage> {
     try {
       final pet = await widget.repository.create(name: result.name, species: result.species);
       if (!mounted) return;
+      widget.onPetSelected(pet);
       _reload();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${pet.name} добавлен.')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${pet.name} добавлен и выбран для записи.')));
     } on OwnerPetApiException {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Не удалось добавить питомца. Повторите попытку.')));
