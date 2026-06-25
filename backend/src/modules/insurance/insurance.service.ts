@@ -1,6 +1,7 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { DomainException, DomainErrors } from '../../common/domain-error';
 import { DatabaseService } from '../../database/database.service';
+import { TraceContext } from '../../observability/trace-context.context';
 
 export type CoverageCheckState = 'CONSENT_REQUIRED' | 'REQUESTED' | 'PROCESSING' | 'COVERED' | 'NOT_COVERED' | 'MANUAL_REVIEW' | 'FAILED' | 'EXPIRED';
 
@@ -16,7 +17,10 @@ export interface CoverageCheckView {
 
 @Injectable()
 export class InsuranceService {
-  constructor(private readonly database: DatabaseService) {}
+  constructor(
+    private readonly database: DatabaseService,
+    private readonly traceContext: TraceContext,
+  ) {}
 
   async create(input: { ownerId: string; petId: string; partnerCode: string; consentVersion?: string }): Promise<CoverageCheckView> {
     return this.database.withTransaction(async (client) => {
@@ -27,6 +31,7 @@ export class InsuranceService {
         [input.petId, input.ownerId],
       );
       if (!pet.rows[0]) throw DomainErrors.petOwnershipMismatch();
+
       const state: CoverageCheckState = input.consentVersion ? 'REQUESTED' : 'CONSENT_REQUIRED';
       const created = await client.query<{
         id: string; pet_id: string; partner_code: string; state: CoverageCheckState; consent_version: string | null; version: number; server_now: Date;
@@ -35,7 +40,25 @@ export class InsuranceService {
         VALUES ($1::uuid, $2::uuid, $3, $4, $5, CASE WHEN $5::text IS NULL THEN NULL ELSE clock_timestamp() END)
         RETURNING id::text, pet_id::text, partner_code, state, consent_version, version, clock_timestamp() AS server_now
       `, [input.ownerId, input.petId, input.partnerCode.trim(), state, input.consentVersion?.trim() || null]);
-      return this.view(created.rows[0]);
+      const row = created.rows[0];
+
+      if (state === 'REQUESTED') {
+        await client.query(`
+          INSERT INTO booking_schema.outbox_events (
+            event_type, aggregate_type, aggregate_id, aggregate_version, correlation_id, payload_json, deduplication_key
+          ) VALUES (
+            'insurance.coverage.requested.v1', 'insurance_coverage_check', $1::uuid, $2, $3::uuid, $4::jsonb, $5
+          )
+        `, [
+          row.id,
+          row.version,
+          this.traceContext.getCorrelationId() ?? null,
+          JSON.stringify({ coverageCheckId: row.id, ownerId: input.ownerId, petId: row.pet_id, partnerCode: row.partner_code, consentVersion: row.consent_version }),
+          `insurance.coverage.requested.v1:${row.id}:${row.version}`,
+        ]);
+      }
+
+      return this.view(row);
     });
   }
 
