@@ -94,7 +94,7 @@ class AlternativeSlotBloc extends Bloc<AlternativeSlotEvent, AlternativeSlotStat
     final current = state;
     if (current is! AlternativeSlotActive) return;
 
-    if (DateTime.now().toUtc().isAfter(current.snapshot.expiresAt)) {
+    if (current.snapshot.authoritativeNow(DateTime.now().toUtc()).isAfter(current.snapshot.expiresAt)) {
       emit(const AlternativeSlotFencedState('HOLD_EXPIRED'));
       return;
     }
