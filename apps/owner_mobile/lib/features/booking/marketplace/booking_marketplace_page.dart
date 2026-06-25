@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'booking_hold_status_page.dart';
 import 'booking_marketplace_bloc.dart';
 import 'booking_marketplace_repository.dart';
 
@@ -31,6 +32,7 @@ class BookingMarketplacePage extends StatelessWidget {
       child: _BookingMarketplaceView(
         clinicName: clinicName,
         petName: petName,
+        repository: repository,
       ),
     );
   }
@@ -40,10 +42,12 @@ class _BookingMarketplaceView extends StatelessWidget {
   const _BookingMarketplaceView({
     required this.clinicName,
     required this.petName,
+    required this.repository,
   });
 
   final String clinicName;
   final String petName;
+  final BookingMarketplaceRepository repository;
 
   @override
   Widget build(BuildContext context) {
@@ -53,41 +57,34 @@ class _BookingMarketplaceView extends StatelessWidget {
         child: BlocConsumer<BookingMarketplaceBloc, BookingMarketplaceState>(
           listener: (context, state) {
             if (state is BookingMarketplaceHoldCreated) {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute<void>(
-                  builder: (_) => _BookingHoldStatusPage(
-                    hold: state.hold,
-                    repository: context.read<BookingMarketplaceBloc>()
-                        .state is BookingMarketplaceHoldCreated
-                        ? null
-                        : null,
-                  ),
+              Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
+                builder: (_) => BookingHoldStatusPage(
+                  hold: state.hold,
+                  repository: repository,
                 ),
-              );
+              ));
             }
           },
-          builder: (context, state) {
-            return switch (state) {
-              BookingMarketplaceLoading() => const _MarketplaceSkeleton(),
-              BookingMarketplaceReady() => _MarketplaceReady(
-                  clinicName: clinicName,
-                  petName: petName,
-                  state: state,
+          builder: (context, state) => switch (state) {
+            BookingMarketplaceLoading() => const _MarketplaceSkeleton(),
+            BookingMarketplaceReady() => _MarketplaceReady(
+                clinicName: clinicName,
+                petName: petName,
+                state: state,
+              ),
+            BookingMarketplaceCreatingHold() => _MarketplaceReady(
+                clinicName: clinicName,
+                petName: petName,
+                state: BookingMarketplaceReady(
+                  selectedDay: state.selectedDay,
+                  slots: state.slots,
+                  selectedSlot: state.selectedSlot,
+                  notice: 'Отправляем заявку в VetHelp. Не закрывайте экран.',
                 ),
-              BookingMarketplaceCreatingHold() => _MarketplaceReady(
-                  clinicName: clinicName,
-                  petName: petName,
-                  state: BookingMarketplaceReady(
-                    selectedDay: state.selectedDay,
-                    slots: state.slots,
-                    selectedSlot: state.selectedSlot,
-                    notice: 'Отправляем заявку в VetHelp. Не закрывайте экран.',
-                  ),
-                  creatingHold: true,
-                ),
-              BookingMarketplaceError() => _MarketplaceError(state: state),
-              BookingMarketplaceHoldCreated() => const SizedBox.shrink(),
-            };
+                creatingHold: true,
+              ),
+            BookingMarketplaceError() => _MarketplaceError(state: state),
+            BookingMarketplaceHoldCreated() => const SizedBox.shrink(),
           },
         ),
       ),
@@ -111,10 +108,8 @@ class _MarketplaceReady extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<BookingMarketplaceBloc>();
-    final days = List<DateTime>.generate(
-      3,
-      (index) => state.selectedDay.add(Duration(days: index)),
-    );
+    final today = _dayStart(DateTime.now().toUtc());
+    final days = List<DateTime>.generate(3, (index) => today.add(Duration(days: index)));
     final selectedSlot = state.selectedSlot;
 
     return Column(
@@ -135,10 +130,9 @@ class _MarketplaceReady extends StatelessWidget {
                   separatorBuilder: (_, __) => const SizedBox(width: 8),
                   itemBuilder: (_, index) {
                     final day = days[index];
-                    final selected = _sameDay(day, state.selectedDay);
                     return ChoiceChip(
                       label: Text(_dayLabel(day)),
-                      selected: selected,
+                      selected: _sameDay(day, state.selectedDay),
                       onSelected: creatingHold
                           ? null
                           : (_) => bloc.add(BookingMarketplaceDaySelected(day)),
@@ -146,9 +140,9 @@ class _MarketplaceReady extends StatelessWidget {
                   },
                 ),
               ),
-              if (state.notice != null) ...[
+              if (state.notice case final notice?) ...[
                 const SizedBox(height: 16),
-                _Notice(text: state.notice!),
+                _Notice(text: notice),
               ],
               const SizedBox(height: 24),
               Text('Доступное время', style: Theme.of(context).textTheme.titleMedium),
@@ -190,9 +184,7 @@ class _MarketplaceReady extends StatelessWidget {
                     width: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : Text(selectedSlot == null
-                    ? 'Выберите время'
-                    : 'Отправить заявку'),
+                : Text(selectedSlot == null ? 'Выберите время' : 'Отправить заявку'),
           ),
         ),
       ],
@@ -215,8 +207,7 @@ class _MarketplaceError extends StatelessWidget {
             Icon(Icons.cloud_off_outlined,
                 size: 48, color: Theme.of(context).colorScheme.error),
             const SizedBox(height: 16),
-            Text('Не удалось открыть запись',
-                style: Theme.of(context).textTheme.titleLarge),
+            Text('Не удалось открыть запись', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(state.message, textAlign: TextAlign.center),
             const SizedBox(height: 20),
@@ -286,14 +277,13 @@ class _SlotCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final time = TimeOfDay.fromDateTime(slot.startsAt.toLocal()).format(context);
     final end = TimeOfDay.fromDateTime(slot.endsAt.toLocal()).format(context);
-    final colorScheme = Theme.of(context).colorScheme;
-
+    final colors = Theme.of(context).colorScheme;
     return Material(
-      color: selected ? colorScheme.secondaryContainer : colorScheme.surface,
+      color: selected ? colors.secondaryContainer : colors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
         side: BorderSide(
-          color: selected ? colorScheme.primary : Theme.of(context).dividerColor,
+          color: selected ? colors.primary : Theme.of(context).dividerColor,
           width: selected ? 2 : 1,
         ),
       ),
@@ -306,9 +296,7 @@ class _SlotCard extends StatelessWidget {
             children: [
               Icon(selected ? Icons.radio_button_checked : Icons.radio_button_off),
               const SizedBox(width: 12),
-              Expanded(
-                child: Text('$time–$end', style: Theme.of(context).textTheme.titleMedium),
-              ),
+              Expanded(child: Text('$time–$end', style: Theme.of(context).textTheme.titleMedium)),
               Text('Доступно', style: Theme.of(context).textTheme.labelMedium),
             ],
           ),
@@ -406,51 +394,9 @@ class _SkeletonBlock extends StatelessWidget {
       );
 }
 
-class _BookingHoldStatusPage extends StatelessWidget {
-  const _BookingHoldStatusPage({required this.hold, required this.repository});
-  final CreatedBookingHold hold;
-  final BookingMarketplaceRepository? repository;
-
-  @override
-  Widget build(BuildContext context) {
-    final manual = hold.state == 'MANUAL_CONFIRM_PENDING';
-    return Scaffold(
-      appBar: AppBar(title: const Text('Статус записи')),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Icon(
-                manual ? Icons.hourglass_top_outlined : Icons.sync_outlined,
-                size: 56,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(height: 20),
-              Text(
-                manual ? 'Заявка отправлена в клинику' : 'Проверяем доступность времени',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                manual
-                    ? 'Клиника подтвердит запись в течение 15 минут. Мы покажем только итоговый статус VetHelp.'
-                    : 'Клиника подтверждает доступность времени. Не закрывайте приложение, если хотите увидеть обновление сразу.',
-                textAlign: TextAlign.center,
-              ),
-              const Spacer(),
-              OutlinedButton(
-                onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
-                child: const Text('Вернуться к помощи питомцу'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+DateTime _dayStart(DateTime value) {
+  final utc = value.toUtc();
+  return DateTime.utc(utc.year, utc.month, utc.day);
 }
 
 bool _sameDay(DateTime first, DateTime second) {
@@ -459,7 +405,7 @@ bool _sameDay(DateTime first, DateTime second) {
 
 String _dayLabel(DateTime day) {
   final now = DateTime.now().toUtc();
-  final today = DateTime.utc(now.year, now.month, now.day);
+  final today = _dayStart(now);
   if (_sameDay(day, today)) return 'Сегодня';
   if (_sameDay(day, today.add(const Duration(days: 1)))) return 'Завтра';
   return '${day.day.toString().padLeft(2, '0')}.${day.month.toString().padLeft(2, '0')}';
