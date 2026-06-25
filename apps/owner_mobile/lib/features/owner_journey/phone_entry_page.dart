@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
-/// Temporary account boundary for the public journey.
+/// Account boundary for the public journey.
 ///
-/// OTP endpoints are intentionally not simulated here. Until the backend auth
-/// API is available, entering a phone number only explains the next step and
-/// does not create an account or store a token on-device.
+/// OTP endpoints are not simulated. Until the backend auth API is available,
+/// the screen never creates an account or stores a token on-device.
 class PhoneEntryPage extends StatefulWidget {
   const PhoneEntryPage({super.key, required this.onBack});
 
@@ -16,6 +15,7 @@ class PhoneEntryPage extends StatefulWidget {
 
 class _PhoneEntryPageState extends State<PhoneEntryPage> {
   final _controller = TextEditingController();
+  bool _canRequestCode = false;
 
   @override
   void dispose() {
@@ -26,12 +26,18 @@ class _PhoneEntryPageState extends State<PhoneEntryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(leading: BackButton(onPressed: widget.onBack), title: const Text('Вход в VetHelp')),
+      appBar: AppBar(
+        leading: BackButton(onPressed: widget.onBack),
+        title: const Text('Вход в VetHelp'),
+      ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            Text('Сохраним ваши обращения', style: Theme.of(context).textTheme.headlineSmall),
+            Text(
+              'Сохраним ваши обращения',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
             const SizedBox(height: 8),
             const Text(
               'Номер нужен только для подтверждения записи, доступа к кабинету и нейтральных уведомлений. Медицинские детали не передаются в SMS или мессенджерах.',
@@ -41,6 +47,12 @@ class _PhoneEntryPageState extends State<PhoneEntryPage> {
               controller: _controller,
               keyboardType: TextInputType.phone,
               autofillHints: const [AutofillHints.telephoneNumber],
+              onChanged: (value) {
+                final next = value.trim().length >= 5;
+                if (next != _canRequestCode) {
+                  setState(() => _canRequestCode = next);
+                }
+              },
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 labelText: 'Номер телефона',
@@ -49,9 +61,7 @@ class _PhoneEntryPageState extends State<PhoneEntryPage> {
             ),
             const SizedBox(height: 16),
             FilledButton(
-              onPressed: _controller.text.trim().length < 5
-                  ? null
-                  : () => _showAuthUnavailable(context),
+              onPressed: _canRequestCode ? () => _showAuthUnavailable(context) : null,
               child: const Text('Получить код'),
             ),
             const SizedBox(height: 12),
