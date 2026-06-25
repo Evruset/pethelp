@@ -33,7 +33,7 @@ export class OwnerAlternativeAcceptanceService {
           state: 'MIS_HELD',
         };
       }
-      rethrow;
+      throw error;
     }
   }
 }
