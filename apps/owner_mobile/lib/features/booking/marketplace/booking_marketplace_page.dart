@@ -59,7 +59,8 @@ class _BookingMarketplaceView extends StatelessWidget {
             if (state is BookingMarketplaceHoldCreated) {
               Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
                 builder: (_) => BookingHoldStatusPage(
-                  hold: state.hold,
+                  holdId: state.hold.holdId,
+                  initialState: state.hold.state,
                   repository: repository,
                 ),
               ));
@@ -133,9 +134,7 @@ class _MarketplaceReady extends StatelessWidget {
                     return ChoiceChip(
                       label: Text(_dayLabel(day)),
                       selected: _sameDay(day, state.selectedDay),
-                      onSelected: creatingHold
-                          ? null
-                          : (_) => bloc.add(BookingMarketplaceDaySelected(day)),
+                      onSelected: creatingHold ? null : (_) => bloc.add(BookingMarketplaceDaySelected(day)),
                     );
                   },
                 ),
@@ -174,16 +173,10 @@ class _MarketplaceReady extends StatelessWidget {
             border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
           ),
           child: FilledButton(
-            onPressed: selectedSlot == null || creatingHold
-                ? null
-                : () => bloc.add(const BookingMarketplaceHoldRequested()),
+            onPressed: selectedSlot == null || creatingHold ? null : () => bloc.add(const BookingMarketplaceHoldRequested()),
             style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
             child: creatingHold
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
+                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
                 : Text(selectedSlot == null ? 'Выберите время' : 'Отправить заявку'),
           ),
         ),
@@ -204,17 +197,14 @@ class _MarketplaceError extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.cloud_off_outlined,
-                size: 48, color: Theme.of(context).colorScheme.error),
+            Icon(Icons.cloud_off_outlined, size: 48, color: Theme.of(context).colorScheme.error),
             const SizedBox(height: 16),
             Text('Не удалось открыть запись', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(state.message, textAlign: TextAlign.center),
             const SizedBox(height: 20),
             FilledButton.icon(
-              onPressed: () => context
-                  .read<BookingMarketplaceBloc>()
-                  .add(const BookingMarketplaceRefreshRequested()),
+              onPressed: () => context.read<BookingMarketplaceBloc>().add(const BookingMarketplaceRefreshRequested()),
               icon: const Icon(Icons.refresh),
               label: const Text('Повторить'),
             ),
@@ -282,10 +272,7 @@ class _SlotCard extends StatelessWidget {
       color: selected ? colors.secondaryContainer : colors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(
-          color: selected ? colors.primary : Theme.of(context).dividerColor,
-          width: selected ? 2 : 1,
-        ),
+        side: BorderSide(color: selected ? colors.primary : Theme.of(context).dividerColor, width: selected ? 2 : 1),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
@@ -319,13 +306,7 @@ class _Notice extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            const Icon(Icons.info_outline),
-            const SizedBox(width: 10),
-            Expanded(child: Text(text)),
-          ],
-        ),
+        child: Row(children: [const Icon(Icons.info_outline), const SizedBox(width: 10), Expanded(child: Text(text))]),
       ),
     );
   }
@@ -343,13 +324,7 @@ class _EmptySlots extends StatelessWidget {
       ),
       child: const Padding(
         padding: EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Icon(Icons.event_busy_outlined),
-            SizedBox(height: 8),
-            Text('На этот день свободных окон нет.'),
-          ],
-        ),
+        child: Column(children: [Icon(Icons.event_busy_outlined), SizedBox(height: 8), Text('На этот день свободных окон нет.')]),
       ),
     );
   }
@@ -370,13 +345,7 @@ class _MarketplaceSkeleton extends StatelessWidget {
         const SizedBox(height: 12),
         _SkeletonBlock(height: 44, color: color),
         const SizedBox(height: 24),
-        ...List<Widget>.generate(
-          4,
-          (_) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _SkeletonBlock(height: 66, color: color),
-          ),
-        ),
+        ...List<Widget>.generate(4, (_) => Padding(padding: const EdgeInsets.only(bottom: 10), child: _SkeletonBlock(height: 66, color: color))),
       ],
     );
   }
@@ -399,9 +368,7 @@ DateTime _dayStart(DateTime value) {
   return DateTime.utc(utc.year, utc.month, utc.day);
 }
 
-bool _sameDay(DateTime first, DateTime second) {
-  return first.year == second.year && first.month == second.month && first.day == second.day;
-}
+bool _sameDay(DateTime first, DateTime second) => first.year == second.year && first.month == second.month && first.day == second.day;
 
 String _dayLabel(DateTime day) {
   final now = DateTime.now().toUtc();
