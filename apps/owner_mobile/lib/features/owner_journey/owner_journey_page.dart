@@ -2,14 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../appointments/owner_appointments_page.dart';
 import '../appointments/owner_appointments_repository.dart';
+import '../booking/marketplace/booking_marketplace_repository.dart';
 import '../pets/owner_pet.dart';
 import '../pets/owner_pet_repository.dart';
 import '../pets/owner_pets_page.dart';
 
-/// Initial owner-facing shell for the unified VetHelp journey.
-///
-/// Booking and payment remain server-authoritative. The active pet is selected
-/// explicitly and its ID is passed to the booking flow by the parent entry.
 class OwnerJourneyPage extends StatefulWidget {
   const OwnerJourneyPage({
     super.key,
@@ -17,6 +14,7 @@ class OwnerJourneyPage extends StatefulWidget {
     required this.onRequestTelemed,
     required this.petsRepository,
     required this.appointmentsRepository,
+    required this.bookingRepository,
     required this.selectedPet,
     required this.onPetSelected,
   });
@@ -25,6 +23,7 @@ class OwnerJourneyPage extends StatefulWidget {
   final VoidCallback onRequestTelemed;
   final OwnerPetRepository petsRepository;
   final OwnerAppointmentsRepository appointmentsRepository;
+  final BookingMarketplaceRepository bookingRepository;
   final OwnerPet? selectedPet;
   final ValueChanged<OwnerPet> onPetSelected;
 
@@ -36,26 +35,10 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
   int _index = 0;
 
   static const _destinations = <NavigationDestination>[
-    NavigationDestination(
-      icon: Icon(Icons.home_outlined),
-      selectedIcon: Icon(Icons.home),
-      label: 'Главная',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.calendar_month_outlined),
-      selectedIcon: Icon(Icons.calendar_month),
-      label: 'Записи',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.pets_outlined),
-      selectedIcon: Icon(Icons.pets),
-      label: 'Питомец',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.video_call_outlined),
-      selectedIcon: Icon(Icons.video_call),
-      label: 'Онлайн',
-    ),
+    NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Главная'),
+    NavigationDestination(icon: Icon(Icons.calendar_month_outlined), selectedIcon: Icon(Icons.calendar_month), label: 'Записи'),
+    NavigationDestination(icon: Icon(Icons.pets_outlined), selectedIcon: Icon(Icons.pets), label: 'Питомец'),
+    NavigationDestination(icon: Icon(Icons.video_call_outlined), selectedIcon: Icon(Icons.video_call), label: 'Онлайн'),
   ];
 
   @override
@@ -89,7 +72,10 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
             onManagePets: () => setState(() => _index = 2),
             onRequestTelemed: widget.onRequestTelemed,
           ),
-        1 => OwnerAppointmentsPage(repository: widget.appointmentsRepository),
+        1 => OwnerAppointmentsPage(
+            repository: widget.appointmentsRepository,
+            statusRepository: widget.bookingRepository,
+          ),
         2 => OwnerPetsPage(
             repository: widget.petsRepository,
             onPetSelected: (pet) {
@@ -144,11 +130,9 @@ class _OwnerHome extends StatelessWidget {
                     children: [
                       Text('Ближайшая запись', style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: 4),
-                      Text(
-                        pet == null
-                            ? 'Сначала добавьте питомца: запись всегда создаётся для конкретного владельца и питомца.'
-                            : 'Питомец для новой записи: ${pet.name}. Выберите клинику и время.',
-                      ),
+                      Text(pet == null
+                          ? 'Сначала добавьте питомца: запись всегда создаётся для конкретного владельца и питомца.'
+                          : 'Питомец для новой записи: ${pet.name}. Выберите клинику и время.'),
                       const SizedBox(height: 12),
                       FilledButton.tonalIcon(
                         onPressed: pet == null ? onManagePets : onBrowseClinics,
@@ -209,7 +193,6 @@ class _OwnerHome extends StatelessWidget {
 
 class _TelemedLanding extends StatelessWidget {
   const _TelemedLanding({required this.onRequestTelemed});
-
   final VoidCallback onRequestTelemed;
 
   @override
@@ -225,9 +208,7 @@ class _TelemedLanding extends StatelessWidget {
           child: ListTile(
             leading: Icon(Icons.health_and_safety_outlined),
             title: Text('Важно'),
-            subtitle: Text(
-              'При судорогах, потере сознания, тяжёлом дыхании, сильном кровотечении или выраженной боли выбирайте очную срочную помощь.',
-            ),
+            subtitle: Text('При судорогах, потере сознания, тяжёлом дыхании, сильном кровотечении или выраженной боли выбирайте очную срочную помощь.'),
           ),
         ),
         const SizedBox(height: 20),
