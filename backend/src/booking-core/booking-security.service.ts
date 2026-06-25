@@ -78,6 +78,14 @@ export class BookingSecurityService {
           await this.completeIdempotency(client, scope, input.idempotencyKey, DomainErrors.holdExpired().getResponse(), DomainErrors.holdExpired().getStatus());
           throw DomainErrors.holdExpired();
         }
+        if (hold.state === 'MANUAL_CONFIRM_PENDING') {
+          const earlierHoldId = await this.findEarlierActionableQueueHold(client, hold, slot.clinic_location_id, now);
+          if (earlierHoldId) {
+            const error = DomainErrors.queueFifoViolation();
+            await this.completeIdempotency(client, scope, input.idempotencyKey, error.getResponse(), error.getStatus());
+            throw error;
+          }
+        }
         if (!canTransition(hold.state, 'CONFIRMED')) throw DomainErrors.invalidTransition();
 
         const updatedHold = await client.query<HoldRow>(`
@@ -208,6 +216,30 @@ export class BookingSecurityService {
       FOR UPDATE
     `, [holdId]);
     return result.rows[0];
+  }
+
+  private async findEarlierActionableQueueHold(
+    client: PoolClient,
+    hold: HoldRow,
+    clinicLocationId: string,
+    now: Date,
+  ): Promise<string | undefined> {
+    const result = await client.query<{ id: string }>(`
+      SELECT h.id
+      FROM booking_schema.booking_holds h
+      JOIN clinic_schema.appointment_slots s ON s.id = h.slot_id
+      WHERE s.clinic_location_id = $1::uuid
+        AND h.state = 'MANUAL_CONFIRM_PENDING'
+        AND h.confirmation_sla_expires_at > $2::timestamptz
+        AND h.expires_at > $2::timestamptz
+        AND (
+          h.state_changed_at < $3::timestamptz
+          OR (h.state_changed_at = $3::timestamptz AND h.id < $4::uuid)
+        )
+      ORDER BY h.state_changed_at ASC, h.id ASC
+      LIMIT 1
+    `, [clinicLocationId, now.toISOString(), hold.state_changed_at.toISOString(), hold.id]);
+    return result.rows[0]?.id;
   }
 
   private toHold(row: LockedHoldAndSlot): HoldRow {
