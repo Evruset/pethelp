@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'features/auth/owner_auth_repository.dart';
+import 'features/auth/owner_session.dart';
 import 'features/booking/marketplace/booking_marketplace_page.dart';
 import 'features/booking/marketplace/booking_marketplace_repository.dart';
 import 'features/catalog/catalog_models.dart';
@@ -35,7 +37,7 @@ class OwnerJourneyEntry extends StatefulWidget {
 
 class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   static const _configuredApiBaseUrl = String.fromEnvironment('VETHELP_API_BASE_URL');
-  final _ownerJwt = const String.fromEnvironment('VETHELP_OWNER_JWT');
+  final _bootstrapOwnerJwt = const String.fromEnvironment('VETHELP_OWNER_JWT');
   final _demoPetId = const String.fromEnvironment(
     'VETHELP_DEMO_PET_ID',
     defaultValue: '22222222-2222-4222-8222-222222222222',
@@ -45,24 +47,28 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
     defaultValue: 'Питомец',
   );
 
+  OwnerSession? _session;
+  CatalogLocation? _pendingLocation;
+
   String get _apiBaseUrl {
     if (_configuredApiBaseUrl.isNotEmpty) return _configuredApiBaseUrl;
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return 'http://127.0.0.1:3000';
     return 'http://10.0.2.2:3000';
   }
 
-  bool get _hasLocalOwner => _ownerJwt.isNotEmpty;
+  String get _accessToken => _session?.accessToken ?? _bootstrapOwnerJwt;
+  bool get _hasOwnerSession => _accessToken.isNotEmpty;
 
   Future<String> _token() async {
-    if (_ownerJwt.isEmpty) {
+    if (_accessToken.isEmpty) {
       throw StateError('Owner access token is unavailable.');
     }
-    return _ownerJwt;
+    return _accessToken;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_hasLocalOwner) {
+    if (_hasOwnerSession) {
       return OwnerJourneyPage(
         onBrowseClinics: _openCatalogForOwner,
         onRequestTelemed: _openTelemedIntake,
@@ -77,15 +83,37 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
 
   void _openPhoneEntry() {
     Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => PhoneEntryPage(onBack: () => Navigator.of(context).pop()),
+      builder: (_) => PhoneEntryPage(
+        onBack: () => Navigator.of(context).pop(),
+        repository: HttpOwnerAuthRepository(baseUrl: Uri.parse(_apiBaseUrl)),
+        onAuthenticated: _completeAuthentication,
+      ),
     ));
+  }
+
+  void _completeAuthentication(OwnerSession session) {
+    final pendingLocation = _pendingLocation;
+    setState(() {
+      _session = session;
+      _pendingLocation = null;
+    });
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    if (pendingLocation != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _openBooking(pendingLocation);
+      });
+    }
   }
 
   void _openCatalogForGuest() {
     _openCatalog(onSelected: (location) {
+      setState(() => _pendingLocation = location);
       Navigator.of(context).pop();
-      _showMessage('Продолжите по номеру телефона, чтобы записать питомца в ${location.clinicName}.');
-      _openPhoneEntry();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _showMessage('Подтвердите номер телефона, чтобы записать питомца в ${location.clinicName}.');
+        _openPhoneEntry();
+      });
     });
   }
 
