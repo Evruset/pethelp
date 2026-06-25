@@ -27,6 +27,12 @@ async function main() {
   required(manualQueue.responses?.['200'], 'Manual queue must document 200');
   required(manualQueue.responses?.['403'], 'Manual queue must document 403');
 
+  const alternativeSnapshot = document.paths?.['/v1/booking-holds/{holdId}/alternative']?.get;
+  required(alternativeSnapshot, 'GET owner alternative slot snapshot is missing');
+  required(alternativeSnapshot.security?.some((item) => item.bearerAuth), 'Alternative snapshot must require bearerAuth');
+  required(alternativeSnapshot.responses?.['200'], 'Alternative snapshot must document 200');
+  required(alternativeSnapshot.responses?.['404'], 'Alternative snapshot must document 404');
+
   required(document.components?.securitySchemes?.bearerAuth, 'Bearer security scheme is missing');
   console.log('OpenAPI contract assertion passed');
 }
