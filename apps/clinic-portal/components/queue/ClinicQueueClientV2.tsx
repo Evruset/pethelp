@@ -100,6 +100,13 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue }: Prop
         await refresh(true);
         return;
       }
+      if (response.status === 409 && code === 'QUEUE_FIFO_VIOLATION') {
+        commandKeys.current.delete(holdId);
+        setRowState((state) => ({ ...state, [holdId]: 'idle' }));
+        setNotice('Сначала обработайте более раннюю заявку. Очередь обновлена.');
+        await refresh(true);
+        return;
+      }
       if ([409, 422, 423].includes(response.status)) {
         setRowState((state) => ({ ...state, [holdId]: 'fenced' }));
         setNotice('Заявка изменилась или срок действия истёк. Очередь обновлена.');
@@ -113,6 +120,9 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue }: Prop
       setNotice('Нет связи с VetHelp. Подтверждение не отправлено.');
     }
   }, [refresh, rowState]);
+
+  const serverNowMs = now + offsetMs;
+  const firstActionableIndex = queue.items.findIndex((item) => Date.parse(item.confirmationSlaExpiresAt) > serverNowMs);
 
   return (
     <main className="min-h-screen px-4 py-6 sm:px-8 lg:px-12">
@@ -146,7 +156,7 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue }: Prop
                   </tr>
                 </thead>
                 <tbody>
-                  {queue.items.map((item, index) => <QueueRow key={item.holdId} item={item} position={index + 1} serverNowMs={now + offsetMs} state={rowState[item.holdId] ?? 'idle'} onConfirm={confirm} onAlternative={setAlternativeItem} />)}
+                  {queue.items.map((item, index) => <QueueRow key={item.holdId} item={item} position={index + 1} serverNowMs={serverNowMs} state={rowState[item.holdId] ?? 'idle'} canAct={firstActionableIndex === index} onConfirm={confirm} onAlternative={setAlternativeItem} />)}
                 </tbody>
               </table>
             </div>
@@ -162,21 +172,27 @@ function Empty() {
   return <div className="px-6 py-16 text-center"><p className="text-lg font-semibold text-slate-900">Нет заявок, ожидающих подтверждения</p><p className="mt-2 text-sm text-slate-600">Новые заявки появятся здесь в порядке поступления.</p></div>;
 }
 
-function QueueRow({ item, position, serverNowMs, state, onConfirm, onAlternative }: { item: ManualConfirmationQueueItem; position: number; serverNowMs: number; state: RowState; onConfirm: (holdId: string) => void; onAlternative: (item: ManualConfirmationQueueItem) => void }) {
+function QueueRow({ item, position, serverNowMs, state, canAct, onConfirm, onAlternative }: { item: ManualConfirmationQueueItem; position: number; serverNowMs: number; state: RowState; canAct: boolean; onConfirm: (holdId: string) => void; onAlternative: (item: ManualConfirmationQueueItem) => void }) {
   const remainingMs = Date.parse(item.confirmationSlaExpiresAt) - serverNowMs;
   const breached = remainingMs <= 0;
   const critical = !breached && remainingMs <= SLA_CRITICAL_MS;
-  const blocked = breached || state === 'fenced';
-  const rowClass = breached ? 'bg-red-50 text-red-950' : critical ? 'bg-red-50/70 text-slate-950 motion-safe:animate-pulse' : 'bg-white text-slate-900';
+  const blocked = breached || state === 'fenced' || !canAct;
+  const actionLabel = state === 'confirming'
+    ? 'Подтверждаем...'
+    : breached || state === 'fenced'
+      ? 'Недоступно'
+      : !canAct
+        ? 'Ожидает очередь'
+        : 'Подтвердить';
   return (
-    <tr className={`border-t border-slate-200 ${rowClass}`}>
+    <tr className={`border-t border-slate-200 ${breached ? 'bg-red-50 text-red-950' : critical ? 'bg-red-50/70 text-slate-950 motion-safe:animate-pulse' : 'bg-white text-slate-900'}`}>
       <td className="px-4 py-4 align-top text-sm font-semibold">{position}</td>
       <td className="px-4 py-4 align-top text-sm text-slate-700">{dt(item.manualConfirmPendingAt)}</td>
       <td className="px-4 py-4 align-top"><p className="text-sm font-semibold">{item.pet.name}</p><p className="mt-1 text-xs text-slate-600">{species(item.pet.species)}</p></td>
       <td className="px-4 py-4 align-top text-sm text-slate-700">{item.service?.displayName ?? 'Услуга не указана'}</td>
       <td className="px-4 py-4 align-top"><p className="text-sm font-medium text-slate-800">{dt(item.slot.startsAt)}</p><p className="mt-1 text-xs text-slate-600">{tm(item.slot.startsAt)}-{tm(item.slot.endsAt)}</p></td>
-      <td className="px-4 py-4 align-top"><span className={`inline-flex rounded-full px-2.5 py-1 text-sm font-semibold ${(critical || breached) ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'}`} aria-live={critical || breached ? 'polite' : undefined}>{breached ? 'SLA истёк' : `Осталось ${clock(remainingMs)}`}</span>{(critical || breached) ? <p className="mt-2 text-xs font-medium text-red-800">{breached ? 'Заявка передана в автоматическую обработку.' : 'Срок подтверждения истекает.'}</p> : null}</td>
-      <td className="px-4 py-4 align-top"><div className="flex flex-col gap-2"><button type="button" disabled={blocked || state === 'confirming'} onClick={() => onConfirm(item.holdId)} className="w-full rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">{state === 'confirming' ? 'Подтверждаем...' : blocked ? 'Недоступно' : 'Подтвердить'}</button><button type="button" disabled={blocked || state === 'confirming'} onClick={() => onAlternative(item)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Другое время</button></div></td>
+      <td className="px-4 py-4 align-top"><span className={`inline-flex rounded-full px-2.5 py-1 text-sm font-semibold ${(critical || breached) ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'}`} aria-live={critical || breached ? 'polite' : undefined}>{breached ? 'SLA истёк' : `Осталось ${clock(remainingMs)}`}</span>{(critical || breached) ? <p className="mt-2 text-xs font-medium text-red-800">{breached ? 'Заявка передана в автоматическую обработку.' : 'Срок подтверждения истекает.'}</p> : !canAct ? <p className="mt-2 text-xs text-slate-600">Сначала обработайте более раннюю заявку.</p> : null}</td>
+      <td className="px-4 py-4 align-top"><div className="flex flex-col gap-2"><button type="button" disabled={blocked || state === 'confirming'} onClick={() => onConfirm(item.holdId)} className="w-full rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">{actionLabel}</button><button type="button" disabled={blocked || state === 'confirming'} onClick={() => onAlternative(item)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Другое время</button></div></td>
     </tr>
   );
 }
