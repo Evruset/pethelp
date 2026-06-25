@@ -22,7 +22,14 @@ class _OwnerAppointmentsPageState extends State<OwnerAppointmentsPage> {
 
   void _reload() {
     final request = widget.repository.list();
-    setState(() => _request = request);
+    setState(() {
+      _request = request;
+    });
+  }
+
+  Future<void> _refresh() async {
+    _reload();
+    await _request;
   }
 
   @override
@@ -59,7 +66,7 @@ class _OwnerAppointmentsPageState extends State<OwnerAppointmentsPage> {
           return const _AppointmentsEmpty();
         }
         return RefreshIndicator(
-          onRefresh: () async => _reload(),
+          onRefresh: _refresh,
           child: ListView.separated(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
             itemCount: appointments.length,
