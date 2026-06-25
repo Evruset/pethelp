@@ -3,14 +3,16 @@ import { JwtModule } from '@nestjs/jwt';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { OwnerAuthController, OwnerProfileController } from './owner-auth.controller';
 import { OwnerAuthService } from './owner-auth.service';
+import { OwnerPetController } from './owner-pet.controller';
+import { OwnerPetService } from './owner-pet.service';
 import { RolesGuard } from './roles.guard';
 import { WorkerAuthGuard } from './worker-auth.guard';
 
 @Global()
 @Module({
   imports: [JwtModule.register({})],
-  controllers: [OwnerAuthController, OwnerProfileController],
-  providers: [JwtAuthGuard, RolesGuard, WorkerAuthGuard, OwnerAuthService],
-  exports: [JwtModule, JwtAuthGuard, RolesGuard, WorkerAuthGuard, OwnerAuthService],
+  controllers: [OwnerAuthController, OwnerProfileController, OwnerPetController],
+  providers: [JwtAuthGuard, RolesGuard, WorkerAuthGuard, OwnerAuthService, OwnerPetService],
+  exports: [JwtModule, JwtAuthGuard, RolesGuard, WorkerAuthGuard, OwnerAuthService, OwnerPetService],
 })
 export class AuthModule {}
