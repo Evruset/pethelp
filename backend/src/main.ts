@@ -8,6 +8,16 @@ import { NestRoot } from './nest-root-full';
 import { ContextLoggerService } from './observability/context-logger.service';
 import { createOpenApiDocument } from './openapi/openapi';
 
+function corsOrigin(): true | string[] {
+  const configured = process.env.CORS_ALLOWED_ORIGINS
+    ?.split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  if (configured?.length) return configured;
+  if ((process.env.NODE_ENV ?? 'development') !== 'production') return true;
+  throw new Error('CORS_ALLOWED_ORIGINS must be configured in production.');
+}
+
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(NestRoot, {
     logger: ['log', 'warn', 'error'],
@@ -16,6 +26,11 @@ async function bootstrap(): Promise<void> {
   const logger = app.get(ContextLoggerService);
   Logger.overrideLogger(logger);
   app.useLogger(logger);
+  app.enableCors({
+    origin: corsOrigin(),
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Accept', 'Authorization', 'Content-Type', 'Idempotency-Key', 'X-Correlation-ID'],
+  });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
   app.useGlobalFilters(new BookingErrorFilter());
   app.enableShutdownHooks();
