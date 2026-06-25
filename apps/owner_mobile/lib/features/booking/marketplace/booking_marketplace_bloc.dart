@@ -188,7 +188,7 @@ class BookingMarketplaceBloc
       emit(BookingMarketplaceHoldCreated(hold));
     } on BookingMarketplaceApiException catch (error) {
       if (error.retryable) {
-        emit(const BookingMarketplaceLoading(selectedDay: DateTime.utc(2000)));
+        emit(BookingMarketplaceLoading(selectedDay: current.selectedDay));
         await _load(
           emit,
           notice: 'Обновляем доступность. Выбранное время пока не подтверждено.',
@@ -197,7 +197,7 @@ class BookingMarketplaceBloc
       }
       if (error.slotUnavailable) {
         _operationKeysBySlot.remove(selectedSlot.id);
-        emit(const BookingMarketplaceLoading(selectedDay: DateTime.utc(2000)));
+        emit(BookingMarketplaceLoading(selectedDay: current.selectedDay));
         await _load(
           emit,
           notice: 'Это время уже занято. Показываем актуальные окна.',
