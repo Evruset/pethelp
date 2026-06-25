@@ -15,6 +15,7 @@
     "openapi:generate": "npm run build && npm run openapi:export",
     "seed": "ts-node scripts/seed.ts",
     "seed:local:clinic-queue": "ts-node scripts/seed-local-clinic-queue.ts",
+    "seed:local:owner-marketplace": "ts-node scripts/seed-local-owner-marketplace.ts",
     "check": "npm run build && npm test"
   },
   "dependencies": {
@@ -36,7 +37,7 @@
   "devDependencies": {
     "@nestjs/cli": "^11.0.0",
     "@types/express": "^5.0.6",
-    "@types/jest": "^30.0.0",
+    "@types/jest": "^30.0.6",
     "@types/node": "^24.10.1",
     "@types/pg": "^8.15.6",
     "@types/supertest": "^6.0.3",
