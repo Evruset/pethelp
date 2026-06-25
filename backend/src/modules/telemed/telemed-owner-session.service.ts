@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { DomainErrors } from '../../common/domain-error';
+import { HttpStatus, Injectable } from '@nestjs/common';
+import { DomainException } from '../../common/domain-error';
 import { DatabaseService } from '../../database/database.service';
 import { TelemedSessionState } from './telemed.service';
 
@@ -34,7 +34,9 @@ export class TelemedOwnerSessionService {
         AND owner_id = $2::uuid
     `, [sessionId, ownerId]);
     const row = result.rows[0];
-    if (!row) throw DomainErrors.holdNotFound();
+    if (!row) {
+      throw new DomainException(HttpStatus.NOT_FOUND, 'TELEMED_SESSION_NOT_FOUND', 'Telemedicine session not found');
+    }
     return {
       sessionId: row.id,
       state: row.state,
