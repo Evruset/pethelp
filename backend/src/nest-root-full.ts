@@ -11,10 +11,11 @@ import { TelemedModule } from './modules/telemed/telemed.module';
 import { ObservabilityModule } from './observability/observability.module';
 import { TraceMiddleware } from './observability/trace.middleware';
 import { OutboxModule } from './outbox/outbox.module';
+import { PublicCatalogModule } from './public-catalog/public-catalog.module';
 import { WorkersModule } from './workers/workers.module';
 
 @NestModule({
-  imports: [ObservabilityModule, DatabaseModule, AuthModule, BookingCoreModule, EmergencyRoutingModule, OutboxModule, WorkersModule, MisIntegrationModule, PaymentsModule, TelemedModule, InsuranceModule],
+  imports: [ObservabilityModule, DatabaseModule, AuthModule, BookingCoreModule, EmergencyRoutingModule, OutboxModule, WorkersModule, MisIntegrationModule, PaymentsModule, TelemedModule, InsuranceModule, PublicCatalogModule],
   controllers: [HealthController],
 })
 export class NestRoot implements NestModuleContract {
