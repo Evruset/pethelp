@@ -1,18 +1,28 @@
 import 'package:flutter/material.dart';
 
+import '../pets/owner_pet.dart';
+import '../pets/owner_pet_repository.dart';
+import '../pets/owner_pets_page.dart';
+
 /// Initial owner-facing shell for the unified VetHelp journey.
 ///
-/// This view contains no optimistic booking or payment state: every
-/// irreversible action continues to the authoritative backend flow.
+/// Booking and payment remain server-authoritative. The active pet is selected
+/// explicitly and its ID is passed to the booking flow by the parent entry.
 class OwnerJourneyPage extends StatefulWidget {
   const OwnerJourneyPage({
     super.key,
     required this.onBrowseClinics,
     required this.onRequestTelemed,
+    required this.petsRepository,
+    required this.selectedPet,
+    required this.onPetSelected,
   });
 
   final VoidCallback onBrowseClinics;
   final VoidCallback onRequestTelemed;
+  final OwnerPetRepository petsRepository;
+  final OwnerPet? selectedPet;
+  final ValueChanged<OwnerPet> onPetSelected;
 
   @override
   State<OwnerJourneyPage> createState() => _OwnerJourneyPageState();
@@ -74,13 +84,21 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
     switch (_index) {
       case 0:
         return _OwnerHome(
+          selectedPet: widget.selectedPet,
           onBrowseClinics: widget.onBrowseClinics,
+          onManagePets: () => setState(() => _index = 2),
           onRequestTelemed: widget.onRequestTelemed,
         );
       case 1:
         return const _AppointmentsPlaceholder();
       case 2:
-        return const _PetPlaceholder();
+        return OwnerPetsPage(
+          repository: widget.petsRepository,
+          onPetSelected: (pet) {
+            widget.onPetSelected(pet);
+            setState(() => _index = 0);
+          },
+        );
       case 3:
         return _TelemedLanding(onRequestTelemed: widget.onRequestTelemed);
       default:
@@ -91,16 +109,21 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
 
 class _OwnerHome extends StatelessWidget {
   const _OwnerHome({
+    required this.selectedPet,
     required this.onBrowseClinics,
+    required this.onManagePets,
     required this.onRequestTelemed,
   });
 
+  final OwnerPet? selectedPet;
   final VoidCallback onBrowseClinics;
+  final VoidCallback onManagePets;
   final VoidCallback onRequestTelemed;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final pet = selectedPet;
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -132,20 +155,32 @@ class _OwnerHome extends StatelessWidget {
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 4),
-                      const Text(
-                        'Пока нет активных записей. Выберите клинику и время, чтобы создать заявку.',
+                      Text(
+                        pet == null
+                            ? 'Сначала добавьте питомца: запись всегда создаётся для конкретного владельца и питомца.'
+                            : 'Питомец для новой записи: ${pet.name}. Выберите клинику и время.',
                       ),
                       const SizedBox(height: 12),
                       FilledButton.tonalIcon(
-                        onPressed: onBrowseClinics,
-                        icon: const Icon(Icons.search),
-                        label: const Text('Найти клинику'),
+                        onPressed: pet == null ? onManagePets : onBrowseClinics,
+                        icon: Icon(pet == null ? Icons.pets : Icons.search),
+                        label: Text(pet == null ? 'Добавить питомца' : 'Найти клинику'),
                       ),
                     ],
                   ),
                 ),
               ],
             ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: ListTile(
+            leading: const CircleAvatar(child: Icon(Icons.pets)),
+            title: Text(pet?.name ?? 'Питомец ещё не добавлен'),
+            subtitle: Text(pet == null ? 'Добавьте питомца перед записью.' : 'Выбран для новой записи.'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: onManagePets,
           ),
         ),
         const SizedBox(height: 12),
@@ -186,16 +221,6 @@ class _OwnerHome extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 20),
-        Text('Питомцы', style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 8),
-        const Card(
-          child: ListTile(
-            leading: CircleAvatar(child: Icon(Icons.pets)),
-            title: Text('Добавьте питомца'),
-            subtitle: Text('Карточка питомца создаётся после входа по номеру телефона.'),
-          ),
-        ),
       ],
     );
   }
@@ -209,17 +234,6 @@ class _AppointmentsPlaceholder extends StatelessWidget {
         icon: Icons.event_available_outlined,
         title: 'Здесь появятся ваши записи',
         text: 'Статус каждой записи будет приходить с сервера VetHelp.',
-      );
-}
-
-class _PetPlaceholder extends StatelessWidget {
-  const _PetPlaceholder();
-
-  @override
-  Widget build(BuildContext context) => const _EmptyState(
-        icon: Icons.pets_outlined,
-        title: 'Карточка питомца',
-        text: 'Имя, вид, возраст, аллергии и история будут доступны после входа.',
       );
 }
 
@@ -286,4 +300,3 @@ class _EmptyState extends StatelessWidget {
           ),
         ),
       );
-}
