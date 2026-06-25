@@ -9,10 +9,11 @@ type RowState = 'idle' | 'confirming' | 'fenced';
 
 const SLA_CRITICAL_MS = 180000;
 const POLL_MS = 15000;
+const SPECIES_LABELS: Record<string, string> = { cat: 'Кошка', dog: 'Собака' };
 
 const dt = (value: string) => new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 const tm = (value: string) => new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' }).format(new Date(value));
-const species = (value: string) => ({ cat: 'Кошка', dog: 'Собака' }[value.toLowerCase()] ?? value);
+const species = (value: string) => SPECIES_LABELS[value.toLowerCase()] ?? value;
 
 function clock(ms: number): string {
   const sec = Math.max(0, Math.ceil(ms / 1000));
