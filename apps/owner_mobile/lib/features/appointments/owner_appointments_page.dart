@@ -22,7 +22,9 @@ class _OwnerAppointmentsPageState extends State<OwnerAppointmentsPage> {
 
   void _reload() {
     final request = widget.repository.list();
-    setState(() => _request = request);
+    setState(() {
+      _request = request;
+    });
   }
 
   Future<void> _refresh() async {
