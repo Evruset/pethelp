@@ -28,8 +28,8 @@ void main() {
   test('does not queue booking commands offline', () async {
     final outbox = OutboxRepository(InMemoryOfflineCommandStore());
 
-    expect(
-      () => outbox.enqueue(command(id: '1', sequence: 1, aggregateId: 'pet-a', kind: OfflineCommandKind.createHold)),
+    await expectLater(
+      outbox.enqueue(command(id: '1', sequence: 1, aggregateId: 'pet-a', kind: OfflineCommandKind.createHold)),
       throwsA(isA<OfflineActionBlocked>()),
     );
   });
