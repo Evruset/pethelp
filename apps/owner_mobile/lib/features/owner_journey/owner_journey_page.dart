@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../appointments/owner_appointments_page.dart';
+import '../appointments/owner_appointments_repository.dart';
 import '../pets/owner_pet.dart';
 import '../pets/owner_pet_repository.dart';
 import '../pets/owner_pets_page.dart';
@@ -14,6 +16,7 @@ class OwnerJourneyPage extends StatefulWidget {
     required this.onBrowseClinics,
     required this.onRequestTelemed,
     required this.petsRepository,
+    required this.appointmentsRepository,
     required this.selectedPet,
     required this.onPetSelected,
   });
@@ -21,6 +24,7 @@ class OwnerJourneyPage extends StatefulWidget {
   final VoidCallback onBrowseClinics;
   final VoidCallback onRequestTelemed;
   final OwnerPetRepository petsRepository;
+  final OwnerAppointmentsRepository appointmentsRepository;
   final OwnerPet? selectedPet;
   final ValueChanged<OwnerPet> onPetSelected;
 
@@ -63,9 +67,7 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
           IconButton(
             tooltip: 'Уведомления',
             onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Уведомления появятся здесь после входа по номеру телефона.'),
-              ),
+              const SnackBar(content: Text('Уведомления появятся здесь после входа по номеру телефона.')),
             ),
             icon: const Icon(Icons.notifications_none),
           ),
@@ -80,31 +82,24 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
     );
   }
 
-  Widget _body() {
-    switch (_index) {
-      case 0:
-        return _OwnerHome(
-          selectedPet: widget.selectedPet,
-          onBrowseClinics: widget.onBrowseClinics,
-          onManagePets: () => setState(() => _index = 2),
-          onRequestTelemed: widget.onRequestTelemed,
-        );
-      case 1:
-        return const _AppointmentsPlaceholder();
-      case 2:
-        return OwnerPetsPage(
-          repository: widget.petsRepository,
-          onPetSelected: (pet) {
-            widget.onPetSelected(pet);
-            setState(() => _index = 0);
-          },
-        );
-      case 3:
-        return _TelemedLanding(onRequestTelemed: widget.onRequestTelemed);
-      default:
-        return const SizedBox.shrink();
-    }
-  }
+  Widget _body() => switch (_index) {
+        0 => _OwnerHome(
+            selectedPet: widget.selectedPet,
+            onBrowseClinics: widget.onBrowseClinics,
+            onManagePets: () => setState(() => _index = 2),
+            onRequestTelemed: widget.onRequestTelemed,
+          ),
+        1 => OwnerAppointmentsPage(repository: widget.appointmentsRepository),
+        2 => OwnerPetsPage(
+            repository: widget.petsRepository,
+            onPetSelected: (pet) {
+              widget.onPetSelected(pet);
+              setState(() => _index = 0);
+            },
+          ),
+        3 => _TelemedLanding(onRequestTelemed: widget.onRequestTelemed),
+        _ => const SizedBox.shrink(),
+      };
 }
 
 class _OwnerHome extends StatelessWidget {
@@ -127,10 +122,7 @@ class _OwnerHome extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Text(
-          'Помощь питомцу — в одном месте',
-          style: Theme.of(context).textTheme.headlineSmall,
-        ),
+        Text('Помощь питомцу — в одном месте', style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 8),
         Text(
           'Запись, онлайн-консультация и история питомца. Страховой контур появится после подключения партнёров.',
@@ -150,10 +142,7 @@ class _OwnerHome extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Ближайшая запись',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
+                      Text('Ближайшая запись', style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: 4),
                       Text(
                         pet == null
@@ -199,19 +188,11 @@ class _OwnerHome extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Ветеринар онлайн',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
+                        Text('Ветеринар онлайн', style: Theme.of(context).textTheme.titleMedium),
                         const SizedBox(height: 4),
-                        const Text(
-                          'Опишите вопрос, приложите файлы и получите следующий безопасный шаг.',
-                        ),
+                        const Text('Опишите вопрос, приложите файлы и получите следующий безопасный шаг.'),
                         const SizedBox(height: 8),
-                        Text(
-                          'От 790 ₽ · после подтверждения оплаты',
-                          style: Theme.of(context).textTheme.labelMedium,
-                        ),
+                        Text('От 790 ₽ · после подтверждения оплаты', style: Theme.of(context).textTheme.labelMedium),
                       ],
                     ),
                   ),
@@ -226,17 +207,6 @@ class _OwnerHome extends StatelessWidget {
   }
 }
 
-class _AppointmentsPlaceholder extends StatelessWidget {
-  const _AppointmentsPlaceholder();
-
-  @override
-  Widget build(BuildContext context) => const _EmptyState(
-        icon: Icons.event_available_outlined,
-        title: 'Здесь появятся ваши записи',
-        text: 'Статус каждой записи будет приходить с сервера VetHelp.',
-      );
-}
-
 class _TelemedLanding extends StatelessWidget {
   const _TelemedLanding({required this.onRequestTelemed});
 
@@ -249,9 +219,7 @@ class _TelemedLanding extends StatelessWidget {
       children: [
         Text('Ветеринар онлайн', style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 8),
-        const Text(
-          'Для стабильного состояния: вопросы по симптомам, анализам, назначениям и контроль после визита.',
-        ),
+        const Text('Для стабильного состояния: вопросы по симптомам, анализам, назначениям и контроль после визита.'),
         const SizedBox(height: 20),
         const Card(
           child: ListTile(
@@ -271,33 +239,4 @@ class _TelemedLanding extends StatelessWidget {
       ],
     );
   }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({
-    required this.icon,
-    required this.title,
-    required this.text,
-  });
-
-  final IconData icon;
-  final String title;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 48),
-              const SizedBox(height: 12),
-              Text(title, textAlign: TextAlign.center),
-              const SizedBox(height: 8),
-              Text(text, textAlign: TextAlign.center),
-            ],
-          ),
-        ),
-      );
 }
