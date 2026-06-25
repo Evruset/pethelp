@@ -1,5 +1,5 @@
 import { BadRequestException, Controller, Get, Param, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiNotFoundResponse, ApiOperation, ApiParam, ApiTags, ApiUnauthorizedResponse, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiTags, ApiUnauthorizedResponse, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload, Role } from '../auth/auth.types';
@@ -21,6 +21,7 @@ export class OwnerAlternativeSnapshotController {
   @ApiBearerAuth(SWAGGER_BEARER_AUTH)
   @ApiOperation({ summary: 'Authoritative owner snapshot for an alternative slot proposal' })
   @ApiParam({ name: 'holdId', type: 'string', format: 'uuid' })
+  @ApiOkResponse({ description: 'Active alternative proposal with PostgreSQL serverNow and both slot windows.' })
   @ApiNotFoundResponse({ description: 'No active alternative proposal belongs to the owner.' })
   @ApiUnprocessableEntityResponse({ description: 'Alternative proposal is no longer active.' })
   @ApiUnauthorizedResponse({ description: 'Bearer JWT is missing or invalid.' })
