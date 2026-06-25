@@ -3,22 +3,34 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 
+class SlotSnapshot {
+  const SlotSnapshot({required this.id, required this.startsAt, required this.endsAt});
+
+  final String id;
+  final DateTime startsAt;
+  final DateTime endsAt;
+}
+
 class AlternativeSlotSnapshot {
-  const AlternativeSlotSnapshot({
+  AlternativeSlotSnapshot({
     required this.holdId,
-    required this.sourceSlotId,
-    required this.alternativeSlotId,
+    required this.originalSlot,
+    required this.alternativeSlot,
     required this.expiresAt,
     required this.serverNow,
     required this.version,
-  });
+    required DateTime receivedAt,
+  }) : _serverNowOffset = serverNow.difference(receivedAt.toUtc());
 
   final String holdId;
-  final String sourceSlotId;
-  final String alternativeSlotId;
+  final SlotSnapshot originalSlot;
+  final SlotSnapshot alternativeSlot;
   final DateTime expiresAt;
   final DateTime serverNow;
   final int version;
+  final Duration _serverNowOffset;
+
+  DateTime authoritativeNow(DateTime deviceNow) => deviceNow.toUtc().add(_serverNowOffset);
 }
 
 class AlternativeSlotAccepted {
@@ -66,16 +78,16 @@ class AlternativeSlotRepository {
   Future<AlternativeSlotResult<AlternativeSlotSnapshot>> readSnapshot(String holdId) async {
     final token = await accessTokenProvider();
     final response = await _client.get(
-      baseUrl.resolve('/v1/booking-holds/$holdId'),
+      baseUrl.resolve('/v1/booking-holds/$holdId/alternative'),
       headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
     );
     final payload = _json(response);
     if (response.statusCode == 200) {
-      return AlternativeSlotSuccess(_snapshot(payload));
+      return AlternativeSlotSuccess(_snapshot(payload, DateTime.now().toUtc()));
     }
     if (response.statusCode == 401) return const AlternativeSlotFenced('UNAUTHENTICATED');
     if (response.statusCode == 403) return const AlternativeSlotFenced('FORBIDDEN');
-    if (response.statusCode == 422) return AlternativeSlotFenced(_code(payload));
+    if (response.statusCode == 404 || response.statusCode == 422) return AlternativeSlotFenced(_code(payload));
     return const AlternativeSlotFailure('Не удалось получить состояние предложения.');
   }
 
@@ -108,14 +120,25 @@ class AlternativeSlotRepository {
     return const AlternativeSlotFailure('Не удалось принять другое время.');
   }
 
-  AlternativeSlotSnapshot _snapshot(Map<String, dynamic> payload) {
+  AlternativeSlotSnapshot _snapshot(Map<String, dynamic> payload, DateTime receivedAt) {
+    final original = payload['originalSlot'] as Map<String, dynamic>;
+    final alternative = payload['alternativeSlot'] as Map<String, dynamic>;
     return AlternativeSlotSnapshot(
-      holdId: payload['id'] as String,
-      sourceSlotId: payload['slot_id'] as String,
-      alternativeSlotId: payload['alternative_slot_id'] as String,
-      expiresAt: DateTime.parse(payload['alternative_expires_at'] as String),
-      serverNow: DateTime.now().toUtc(),
+      holdId: payload['holdId'] as String,
+      originalSlot: SlotSnapshot(
+        id: original['id'] as String,
+        startsAt: DateTime.parse(original['startsAt'] as String),
+        endsAt: DateTime.parse(original['endsAt'] as String),
+      ),
+      alternativeSlot: SlotSnapshot(
+        id: alternative['id'] as String,
+        startsAt: DateTime.parse(alternative['startsAt'] as String),
+        endsAt: DateTime.parse(alternative['endsAt'] as String),
+      ),
+      expiresAt: DateTime.parse(payload['expiresAt'] as String),
+      serverNow: DateTime.parse(payload['serverNow'] as String),
       version: payload['version'] as int,
+      receivedAt: receivedAt,
     );
   }
 
