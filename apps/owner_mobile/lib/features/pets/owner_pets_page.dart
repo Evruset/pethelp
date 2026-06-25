@@ -26,7 +26,12 @@ class _OwnerPetsPageState extends State<OwnerPetsPage> {
     _reload();
   }
 
-  void _reload() => setState(() => _request = widget.repository.list());
+  void _reload() {
+    final request = widget.repository.list();
+    setState(() {
+      _request = request;
+    });
+  }
 
   Future<void> _createPet() async {
     final result = await showModalBottomSheet<_PetDraft>(
