@@ -69,6 +69,25 @@ describe('ClinicQueueService', () => {
     });
   });
 
+  it('allows the next actionable hold after the queue head SLA has expired', async () => {
+    const fixture = await createQueueFixture(database);
+    await database.query(`
+      UPDATE booking_schema.booking_holds
+      SET confirmation_sla_expires_at = clock_timestamp() - interval '1 second'
+      WHERE id = $1::uuid
+    `, [fixture.firstHoldId]);
+
+    await expect(bookingSecurity.confirmManualHold({
+      holdId: fixture.secondHoldId,
+      employee: fixture.employee,
+      idempotencyKey: randomUUID(),
+      correlationId: randomUUID(),
+    })).resolves.toMatchObject({
+      holdId: fixture.secondHoldId,
+      state: 'CONFIRMED',
+    });
+  });
+
   it('rejects a URL location outside the employee locationIds scope', async () => {
     const fixture = await createQueueFixture(database);
     const employee: JwtPayload = {
