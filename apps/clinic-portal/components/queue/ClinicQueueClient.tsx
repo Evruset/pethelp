@@ -33,7 +33,7 @@ function formatDateTime(value: string): string {
 
 function formatTimeRange(startsAt: string, endsAt: string): string {
   const format = new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' });
-  return `${format(new Date(startsAt))}–${format(new Date(endsAt))}`;
+  return `${format.format(new Date(startsAt))}–${format.format(new Date(endsAt))}`;
 }
 
 function speciesLabel(value: string): string {
