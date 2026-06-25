@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Role, JwtPayload } from '../src/auth/auth.types';
+import { BookingSecurityService } from '../src/booking-core/booking-security.service';
 import { ClinicEmployeeAccessService } from '../src/booking-core/clinic-employee-access.service';
 import { ClinicQueueService } from '../src/booking-core/clinic-queue.service';
 import { DatabaseService } from '../src/database/database.service';
@@ -10,6 +11,7 @@ describe('ClinicQueueService', () => {
   const database = new DatabaseService();
   const access = new ClinicEmployeeAccessService();
   const service = new ClinicQueueService(database, access);
+  const bookingSecurity = new BookingSecurityService(database, access);
 
   afterAll(async () => {
     await database.onModuleDestroy();
@@ -31,6 +33,40 @@ describe('ClinicQueueService', () => {
     expect(result.items.map((item) => item.holdId)).toEqual([fixture.firstHoldId, fixture.secondHoldId]);
     expect(result.items.map((item) => item.pet.name)).toEqual(['Первый', 'Второй']);
     expect(result.items.every((item) => item.confirmationSlaExpiresAt.length > 0)).toBe(true);
+  });
+
+  it('rejects confirmation of a later pending hold until the earlier queue item is resolved', async () => {
+    const fixture = await createQueueFixture(database);
+
+    await expect(bookingSecurity.confirmManualHold({
+      holdId: fixture.secondHoldId,
+      employee: fixture.employee,
+      idempotencyKey: randomUUID(),
+      correlationId: randomUUID(),
+    })).rejects.toMatchObject({
+      response: { code: 'QUEUE_FIFO_VIOLATION' },
+      status: 409,
+    });
+
+    await expect(bookingSecurity.confirmManualHold({
+      holdId: fixture.firstHoldId,
+      employee: fixture.employee,
+      idempotencyKey: randomUUID(),
+      correlationId: randomUUID(),
+    })).resolves.toMatchObject({
+      holdId: fixture.firstHoldId,
+      state: 'CONFIRMED',
+    });
+
+    await expect(bookingSecurity.confirmManualHold({
+      holdId: fixture.secondHoldId,
+      employee: fixture.employee,
+      idempotencyKey: randomUUID(),
+      correlationId: randomUUID(),
+    })).resolves.toMatchObject({
+      holdId: fixture.secondHoldId,
+      state: 'CONFIRMED',
+    });
   });
 
   it('rejects a URL location outside the employee locationIds scope', async () => {
@@ -106,7 +142,7 @@ async function createQueueFixture(database: DatabaseService): Promise<{
       ($1::uuid, $2::uuid, $3::uuid, 'MANUAL_CONFIRM_PENDING', clock_timestamp() + interval '10 minutes', clock_timestamp() + interval '15 minutes', clock_timestamp() - interval '2 minutes'),
       ($4::uuid, $2::uuid, $5::uuid, 'MANUAL_CONFIRM_PENDING', clock_timestamp() + interval '10 minutes', clock_timestamp() + interval '15 minutes', clock_timestamp() - interval '1 minute')
     RETURNING id
-  `, [slots.rows[0].id, ownerId, pets.rows[0].id, slots.rows[1].id, pets.rows[1].id]);
+  `, [slots.rows[0].id, ownerId, pets.rows[0].id, slots.rows[1].id, ownerId, pets.rows[1].id]);
 
   return {
     clinicId: clinic.rows[0].id,
