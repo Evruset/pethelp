@@ -1,0 +1,27 @@
+name: Owner Mobile
+
+on:
+  pull_request:
+    paths:
+      - 'apps/owner_mobile/**'
+      - '.github/workflows/owner-mobile.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/owner_mobile/**'
+      - '.github/workflows/owner-mobile.yml'
+
+jobs:
+  flutter:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/owner_mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test

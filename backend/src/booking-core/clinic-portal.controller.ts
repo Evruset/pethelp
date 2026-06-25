@@ -8,6 +8,7 @@ import { Roles } from '../auth/roles.decorator';
 import { DomainErrors } from '../common/domain-error';
 import { SWAGGER_BEARER_AUTH } from '../openapi/openapi';
 import { AlternativeSlotService } from './alternative-slot.service';
+import { OwnerAlternativeAcceptanceService } from './owner-alternative-acceptance.service';
 import { ProposeAlternativeSlotDto } from './dto/propose-alternative-slot.dto';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -20,7 +21,10 @@ function holdIdOrThrow(value: string): string {
 @ApiTags('Clinic Portal')
 @Controller('v1')
 export class ClinicPortalController {
-  constructor(private readonly alternatives: AlternativeSlotService) {}
+  constructor(
+    private readonly alternatives: AlternativeSlotService,
+    private readonly ownerAcceptance: OwnerAlternativeAcceptanceService,
+  ) {}
 
   @Post('clinic/booking-holds/:holdId/alternative-slot')
   @HttpCode(HttpStatus.CREATED)
@@ -46,13 +50,13 @@ export class ClinicPortalController {
   @Roles(Role.OWNER)
   @ApiBearerAuth(SWAGGER_BEARER_AUTH)
   @ApiOperation({ summary: 'Владелец принимает альтернативный слот и переводит hold в ожидание оплаты' })
-  @ApiOkResponse({ description: 'Исходный слот освобождён, альтернативный slot удерживается до оплаты.' })
+  @ApiOkResponse({ description: 'Исходный слот освобождён, альтернативный slot удерживается до оплаты. Повторный accept возвращает итоговый результат.' })
   @ApiConflictResponse({ description: 'SLOT_LOCKED_RETRY или SLOT_ALREADY_TAKEN.' })
   @ApiUnprocessableEntityResponse({ description: 'HOLD_EXPIRED или INVALID_STATE_TRANSITION.' })
   async acceptAlternativeSlot(
     @Param('holdId') holdId: string,
     @CurrentUser() owner: JwtPayload,
   ) {
-    return this.alternatives.acceptAlternativeSlot(holdIdOrThrow(holdId), owner.sub);
+    return this.ownerAcceptance.accept(holdIdOrThrow(holdId), owner.sub);
   }
 }

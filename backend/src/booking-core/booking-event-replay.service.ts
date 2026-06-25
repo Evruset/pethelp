@@ -1,0 +1,104 @@
+import { Injectable } from '@nestjs/common';
+import { JwtPayload, Role } from '../auth/auth.types';
+import { DomainErrors } from '../common/domain-error';
+import { DatabaseService } from '../database/database.service';
+import { ClinicEmployeeAccessService } from './clinic-employee-access.service';
+
+export interface BookingReplayEvent {
+  eventId: string;
+  eventSequence: string;
+  eventType: string;
+  schemaVersion: number;
+  aggregateVersion: number;
+  occurredAt: string;
+  correlationId: string | null;
+  payload: Record<string, unknown>;
+}
+
+export interface BookingReplayResult {
+  holdId: string;
+  serverNow: string;
+  events: BookingReplayEvent[];
+}
+
+@Injectable()
+export class BookingEventReplayService {
+  constructor(
+    private readonly database: DatabaseService,
+    private readonly clinicAccess: ClinicEmployeeAccessService,
+  ) {}
+
+  async replay(
+    holdId: string,
+    actor: JwtPayload,
+    afterVersion = 0,
+    limit = 50,
+  ): Promise<BookingReplayResult> {
+    return this.database.withTransaction(async (client) => {
+      await client.query("SET LOCAL lock_timeout = '50ms'");
+      await client.query("SET LOCAL statement_timeout = '250ms'");
+
+      const hold = await client.query<{
+        owner_id: string;
+        clinic_location_id: string;
+      }>(`
+        SELECT h.owner_id::text, s.clinic_location_id::text
+        FROM booking_schema.booking_holds h
+        JOIN clinic_schema.appointment_slots s ON s.id = h.slot_id
+        WHERE h.id = $1::uuid
+        FOR SHARE OF h, s
+      `, [holdId]);
+      const scope = hold.rows[0];
+      if (!scope) throw DomainErrors.holdNotFound();
+
+      if (actor.roles.includes(Role.OWNER)) {
+        if (scope.owner_id !== actor.sub) throw DomainErrors.holdOwnerMismatch();
+      } else if (!actor.roles.includes(Role.SYSTEM_WORKER)) {
+        await this.clinicAccess.assertLocationAccess(client, actor, scope.clinic_location_id);
+      }
+
+      const events = await client.query<{
+        id: string;
+        event_sequence: string;
+        event_type: string;
+        schema_version: number;
+        aggregate_version: number;
+        created_at: Date;
+        correlation_id: string | null;
+        payload_json: Record<string, unknown>;
+      }>(`
+        SELECT
+          id::text,
+          event_sequence::text,
+          event_type,
+          schema_version,
+          aggregate_version,
+          created_at,
+          correlation_id::text,
+          payload_json
+        FROM booking_schema.outbox_events
+        WHERE aggregate_type = 'booking_hold'
+          AND aggregate_id = $1::uuid
+          AND aggregate_version > $2
+        ORDER BY aggregate_version ASC, event_sequence ASC
+        LIMIT $3
+      `, [holdId, Math.max(0, afterVersion), Math.min(Math.max(1, limit), 100)]);
+
+      const now = await client.query<{ now: Date }>('SELECT clock_timestamp() AS now');
+      return {
+        holdId,
+        serverNow: now.rows[0].now.toISOString(),
+        events: events.rows.map((event) => ({
+          eventId: event.id,
+          eventSequence: event.event_sequence,
+          eventType: event.event_type,
+          schemaVersion: event.schema_version,
+          aggregateVersion: event.aggregate_version,
+          occurredAt: event.created_at.toISOString(),
+          correlationId: event.correlation_id,
+          payload: event.payload_json,
+        })),
+      };
+    });
+  }
+}
