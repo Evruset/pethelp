@@ -17,6 +17,7 @@ async function main(): Promise<void> {
 
   try {
     await client.query('BEGIN');
+    await client.query("SET LOCAL TIME ZONE 'UTC'");
     const target = await client.query<{
       clinic_id: string;
       location_id: string;
@@ -42,8 +43,12 @@ async function main(): Promise<void> {
 
     const seeded: SeededSlot[] = [];
     for (const dayOffset of daysAhead) {
+      const calendarKey = new Date(Date.now() + dayOffset * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .slice(0, 10)
+        .replaceAll('-', '');
       for (const hour of fixtureTimes) {
-        const externalSlotId = `owner-marketplace-${dayOffset}-${hour}`;
+        const externalSlotId = `owner-marketplace-${calendarKey}-${hour}`;
         const result = await client.query<{ id: string; starts_at: Date }>(`
           WITH fixture_time AS (
             SELECT date_trunc('day', clock_timestamp())
