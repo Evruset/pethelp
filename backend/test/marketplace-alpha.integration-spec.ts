@@ -22,7 +22,10 @@ describe('Marketplace Alpha alternative slots', () => {
     const employee = { sub: fixture.employeeId, roles: [Role.CLINIC_RECEPTIONIST], locationIds: [fixture.locationId] };
 
     await trace.run({ correlationId: randomUUID(), userId: fixture.employeeId }, () =>
-      service.proposeAlternativeSlot(fixture.holdId, fixture.alternativeSlotId, employee),
+      service.proposeAlternativeSlot(fixture.holdId, fixture.alternativeSlotId, employee, {
+        expectedVersion: 1,
+        idempotencyKey: randomUUID(),
+      }),
     );
 
     const beforeAccept = await database.query<{ source_held: number; alternative_held: number }>(`
@@ -33,7 +36,10 @@ describe('Marketplace Alpha alternative slots', () => {
     expect(beforeAccept.rows[0]).toMatchObject({ source_held: 1, alternative_held: 1 });
 
     const accepted = await trace.run({ correlationId: randomUUID(), userId: fixture.ownerId }, () =>
-      service.acceptAlternativeSlot(fixture.holdId, fixture.ownerId),
+      service.acceptAlternativeSlot(fixture.holdId, fixture.ownerId, {
+        expectedVersion: 2,
+        idempotencyKey: randomUUID(),
+      }),
     );
     expect(accepted).toMatchObject({ state: 'MIS_HELD', slotId: fixture.alternativeSlotId });
 
@@ -67,6 +73,21 @@ describe('Marketplace Alpha alternative slots', () => {
       alternative_booked: 0,
       alternative_status: 'LOCKED_BY_HOLD',
       appointments: '0',
+    });
+  });
+
+  it('rejects an alternative proposal when the clinic acts on a stale hold version', async () => {
+    const fixture = await createFixture(database);
+    const employee = { sub: fixture.employeeId, roles: [Role.CLINIC_RECEPTIONIST], locationIds: [fixture.locationId] };
+
+    await expect(trace.run({ correlationId: randomUUID(), userId: fixture.employeeId }, () =>
+      service.proposeAlternativeSlot(fixture.holdId, fixture.alternativeSlotId, employee, {
+        expectedVersion: 2,
+        idempotencyKey: randomUUID(),
+      }),
+    )).rejects.toMatchObject({
+      response: { code: 'SLOT_VERSION_STALE' },
+      status: 409,
     });
   });
 });

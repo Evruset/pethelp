@@ -214,7 +214,9 @@ export class BookingService {
       FROM clinic_schema.appointment_slots s
       WHERE s.clinic_location_id = $1
         AND s.state = 'OPEN'
+        AND s.status = 'AVAILABLE'
         AND s.starts_at > clock_timestamp()
+        AND s.capacity - s.booked_count - s.held_count > 0
         AND ($2::timestamptz IS NULL OR s.starts_at >= $2::timestamptz)
         AND ($3::timestamptz IS NULL OR s.starts_at < $3::timestamptz)
       ORDER BY s.starts_at

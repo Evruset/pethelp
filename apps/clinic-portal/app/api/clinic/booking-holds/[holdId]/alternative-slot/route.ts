@@ -14,8 +14,14 @@ function backendBaseUrl(): string {
   return baseUrl.replace(/\/$/, '');
 }
 
-function requestUuid(value: string | null): string {
-  return value && UUID.test(value) ? value : randomUUID();
+function requiredUuid(value: string | null): string | null {
+  return value && UUID.test(value) ? value : null;
+}
+
+function requiredVersion(value: string | null): string | null {
+  const normalized = value?.trim().replace(/^W\//, '').replace(/^"|"$/g, '');
+  if (!normalized || !/^[1-9][0-9]*$/.test(normalized)) return null;
+  return normalized;
 }
 
 export async function POST(request: Request, context: RouteContext): Promise<NextResponse> {
@@ -32,7 +38,12 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
     return NextResponse.json({ code: 'INVALID_REQUEST' }, { status: 400 });
   }
 
-  const correlationId = requestUuid(request.headers.get('X-Correlation-ID'));
+  const idempotencyKey = requiredUuid(request.headers.get('Idempotency-Key'));
+  const correlationId = requiredUuid(request.headers.get('X-Correlation-ID')) ?? randomUUID();
+  const ifMatch = requiredVersion(request.headers.get('If-Match'));
+  if (!idempotencyKey || !ifMatch) {
+    return NextResponse.json({ code: 'INVALID_REQUEST' }, { status: 400 });
+  }
 
   try {
     const upstream = await fetch(`${backendBaseUrl()}/v1/clinic/booking-holds/${holdId}/alternative-slot`, {
@@ -41,6 +52,8 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
         Authorization: `Bearer ${session.token}`,
         Accept: 'application/json',
         'Content-Type': 'application/json',
+        'Idempotency-Key': idempotencyKey,
+        'If-Match': ifMatch,
         'X-Correlation-ID': correlationId,
       },
       body: JSON.stringify({ newSlotId: body.newSlotId }),

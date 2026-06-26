@@ -124,7 +124,7 @@ jobs:
             -H 'Idempotency-Key: 33333333-3333-4333-8333-333333333333' \
             -H 'X-Correlation-ID: 44444444-4444-4444-8444-444444444444' \
             --data "{\"slotId\":\"${B01_SLOT_ID}\",\"petId\":\"${B01_PET_ID}\"}")
-          test "$status" = '403'
+          test "$status" = '422'
           node -e "const b=require('/tmp/pet-ownership-response.json'); if(b.code!=='PET_OWNERSHIP_MISMATCH') process.exit(1)"
       - name: Run B-01 k6 concurrency test
         run: |

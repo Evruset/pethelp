@@ -4,6 +4,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { VetManagerAdapter } from './adapters/vet-manager.adapter';
 import { MisAdapterFactory } from './mis-adapter.factory';
 import { MisCommandDispatcherService } from './mis-command-dispatcher.service';
+import { MisReconciliationSweeperWorker } from './mis-reconciliation-sweeper.worker';
 import { MisOutboxRelayWorker } from './outbox-relay.worker';
 
 @Module({
@@ -16,7 +17,8 @@ import { MisOutboxRelayWorker } from './outbox-relay.worker';
     MisAdapterFactory,
     MisCommandDispatcherService,
     MisOutboxRelayWorker,
+    MisReconciliationSweeperWorker,
   ],
-  exports: [MisCommandDispatcherService],
+  exports: [MisCommandDispatcherService, MisReconciliationSweeperWorker],
 })
 export class MisIntegrationModule {}

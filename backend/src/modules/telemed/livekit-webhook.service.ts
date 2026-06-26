@@ -59,9 +59,9 @@ export class LiveKitWebhookService {
             occurred_at, actor_type, actor_id, action,
             aggregate_type, aggregate_id, correlation_id, payload_json
           ) VALUES (
-            clock_timestamp(), 'DOCTOR', $1, 'TELEMED_DOCTOR_JOINED_LIVEKIT',
+            clock_timestamp(), 'DOCTOR', $1::text, 'TELEMED_DOCTOR_JOINED_LIVEKIT',
             'telemed_session', $2::uuid, $3::uuid,
-            jsonb_build_object('roomName', $4, 'participantIdentity', $1, 'role', 'doctor')
+            jsonb_build_object('roomName', $4::text, 'participantIdentity', $1::text, 'role', 'doctor')
           )
         `, [participantIdentity, session.id, this.traceContext.getCorrelationId() ?? null, roomName]);
         this.logger.event('log', LiveKitWebhookService.name, 'Doctor joined LiveKit telemedicine room', {

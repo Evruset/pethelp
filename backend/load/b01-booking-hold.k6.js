@@ -7,7 +7,7 @@ const created = new Counter('b01_created');
 const conflicts = new Counter('b01_conflicts');
 const unexpected = new Counter('b01_unexpected');
 
-http.setResponseCallback(http.expectedStatuses(201, 409));
+http.setResponseCallback(http.expectedStatuses(201, 409, 422));
 
 export const options = {
   scenarios: {
@@ -49,8 +49,10 @@ export default function () {
   );
 
   const body = response.json() || {};
-  const isAllowedConflict = response.status === 409 &&
-    (body.code === 'SLOT_ALREADY_TAKEN' || body.code === 'SLOT_LOCKED_RETRY');
+  const isAllowedConflict =
+    (response.status === 409 &&
+      (body.code === 'SLOT_ALREADY_TAKEN' || body.code === 'SLOT_LOCKED_RETRY')) ||
+    (response.status === 422 && body.code === 'HOLD_ALREADY_ACTIVE');
   const isExpected = response.status === 201 || isAllowedConflict;
 
   if (response.status === 201) created.add(1);

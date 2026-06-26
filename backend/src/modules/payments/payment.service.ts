@@ -11,6 +11,8 @@ export interface PaymentIntentResult {
   id: string;
   holdId: string;
   holdVersion: number;
+  paymentAttemptNo: number;
+  paymentFenceToken: string;
   amount: string;
   currency: string;
   status: PaymentIntentStatus;
@@ -37,6 +39,8 @@ interface PaymentWebhookRow {
   id: string;
   hold_id: string;
   hold_version: number;
+  payment_attempt_no: number;
+  payment_fence_token: string;
   amount: string;
   currency: string;
   payment_status: PaymentIntentStatus;
@@ -71,7 +75,7 @@ export class PaymentService {
     }
 
     try {
-      const remoteIntent = await this.acquiringClient.createRemoteIntent(localIntent.id, Number(localIntent.amount));
+      const remoteIntent = await this.acquiringClient.createRemoteIntent(localIntent.id, Number(localIntent.amount), localIntent.paymentFenceToken);
       return await this.persistRemoteIntent(localIntent.id, remoteIntent.remoteId, remoteIntent.checkoutUrl);
     } catch (error) {
       await this.persistProviderFailure(localIntent.id, error instanceof Error ? error.message : 'Acquiring provider request failed');
@@ -92,6 +96,8 @@ export class PaymentService {
           p.id,
           p.hold_id,
           p.hold_version,
+          p.payment_attempt_no,
+          p.payment_fence_token::text AS payment_fence_token,
           p.amount::text AS amount,
           p.currency,
           p.status AS payment_status,
@@ -217,9 +223,18 @@ export class PaymentService {
         }
 
         const result = await client.query<PaymentIntentResult>(`
+          WITH next_attempt AS (
+            SELECT COALESCE(MAX(payment_attempt_no), 0) + 1 AS payment_attempt_no
+            FROM payment_schema.payment_intents
+            WHERE hold_id = $1::uuid
+          )
           INSERT INTO payment_schema.payment_intents (
-            hold_id, hold_version, amount, currency, status, idempotency_key
-          ) VALUES ($1::uuid, $2, 1000.00::numeric, 'RUB', 'PENDING_PROVIDER', $3)
+            hold_id, hold_version, payment_attempt_no, payment_fence_token,
+            amount, currency, status, idempotency_key
+          )
+          SELECT $1::uuid, $2, next_attempt.payment_attempt_no, $3::uuid,
+                 1000.00::numeric, 'RUB', 'PENDING_PROVIDER', $4
+          FROM next_attempt
           ON CONFLICT (hold_id, hold_version) DO UPDATE
           SET status = CASE
                 WHEN payment_schema.payment_intents.status = 'FAILED' THEN 'PENDING_PROVIDER'
@@ -234,13 +249,15 @@ export class PaymentService {
             id,
             hold_id AS "holdId",
             hold_version AS "holdVersion",
+            payment_attempt_no AS "paymentAttemptNo",
+            payment_fence_token::text AS "paymentFenceToken",
             amount::text AS amount,
             currency,
             status,
             idempotency_key AS "idempotencyKey",
             provider_payment_id AS "remoteId",
             checkout_url AS "checkoutUrl"
-        `, [holdId, hold.rows[0].version, randomUUID()]);
+        `, [holdId, hold.rows[0].version, randomUUID(), randomUUID()]);
 
         const payment = result.rows[0];
         await this.writeLedger(client, {
@@ -273,6 +290,8 @@ export class PaymentService {
           id,
           hold_id AS "holdId",
           hold_version AS "holdVersion",
+          payment_attempt_no AS "paymentAttemptNo",
+          payment_fence_token::text AS "paymentFenceToken",
           amount::text AS amount,
           currency,
           status,
@@ -397,7 +416,12 @@ export class PaymentService {
       eventType,
       row.id,
       row.hold_version,
-      JSON.stringify({ paymentIntentId: row.id, ...payload }),
+      JSON.stringify({
+        paymentIntentId: row.id,
+        paymentAttemptNo: row.payment_attempt_no,
+        paymentFenceToken: row.payment_fence_token,
+        ...payload,
+      }),
       `${eventType}:${row.id}`,
     ]);
   }
@@ -433,6 +457,8 @@ export class PaymentService {
       SELECT id,
              hold_id AS "holdId",
              hold_version AS "holdVersion",
+             payment_attempt_no AS "paymentAttemptNo",
+             payment_fence_token::text AS "paymentFenceToken",
              amount::text AS amount,
              currency,
              status,

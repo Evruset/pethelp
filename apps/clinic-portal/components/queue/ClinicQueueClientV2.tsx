@@ -74,7 +74,8 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue }: Prop
     return () => window.clearInterval(poller);
   }, [refresh]);
 
-  const confirm = useCallback(async (holdId: string) => {
+  const confirm = useCallback(async (item: ManualConfirmationQueueItem) => {
+    const holdId = item.holdId;
     if ((rowState[holdId] ?? 'idle') !== 'idle') return;
     const key = commandKeys.current.get(holdId) ?? crypto.randomUUID();
     commandKeys.current.set(holdId, key);
@@ -83,7 +84,7 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue }: Prop
     try {
       const response = await fetch(`/api/clinic/booking-holds/${holdId}/confirm`, {
         method: 'POST',
-        headers: { 'Idempotency-Key': key, 'X-Correlation-ID': correlationId() },
+        headers: { 'Idempotency-Key': key, 'If-Match': String(item.version), 'X-Correlation-ID': correlationId() },
       });
       const payload = await response.json().catch(() => null);
       const code = errorCode(payload);
@@ -172,7 +173,7 @@ function Empty() {
   return <div className="px-6 py-16 text-center"><p className="text-lg font-semibold text-slate-900">Нет заявок, ожидающих подтверждения</p><p className="mt-2 text-sm text-slate-600">Новые заявки появятся здесь в порядке поступления.</p></div>;
 }
 
-function QueueRow({ item, position, serverNowMs, state, canAct, onConfirm, onAlternative }: { item: ManualConfirmationQueueItem; position: number; serverNowMs: number; state: RowState; canAct: boolean; onConfirm: (holdId: string) => void; onAlternative: (item: ManualConfirmationQueueItem) => void }) {
+function QueueRow({ item, position, serverNowMs, state, canAct, onConfirm, onAlternative }: { item: ManualConfirmationQueueItem; position: number; serverNowMs: number; state: RowState; canAct: boolean; onConfirm: (item: ManualConfirmationQueueItem) => void; onAlternative: (item: ManualConfirmationQueueItem) => void }) {
   const remainingMs = Date.parse(item.confirmationSlaExpiresAt) - serverNowMs;
   const breached = remainingMs <= 0;
   const critical = !breached && remainingMs <= SLA_CRITICAL_MS;
@@ -192,7 +193,7 @@ function QueueRow({ item, position, serverNowMs, state, canAct, onConfirm, onAlt
       <td className="px-4 py-4 align-top text-sm text-slate-700">{item.service?.displayName ?? 'Услуга не указана'}</td>
       <td className="px-4 py-4 align-top"><p className="text-sm font-medium text-slate-800">{dt(item.slot.startsAt)}</p><p className="mt-1 text-xs text-slate-600">{tm(item.slot.startsAt)}-{tm(item.slot.endsAt)}</p></td>
       <td className="px-4 py-4 align-top"><span className={`inline-flex rounded-full px-2.5 py-1 text-sm font-semibold ${(critical || breached) ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'}`} aria-live={critical || breached ? 'polite' : undefined}>{breached ? 'SLA истёк' : `Осталось ${clock(remainingMs)}`}</span>{(critical || breached) ? <p className="mt-2 text-xs font-medium text-red-800">{breached ? 'Заявка передана в автоматическую обработку.' : 'Срок подтверждения истекает.'}</p> : !canAct ? <p className="mt-2 text-xs text-slate-600">Сначала обработайте более раннюю заявку.</p> : null}</td>
-      <td className="px-4 py-4 align-top"><div className="flex flex-col gap-2"><button type="button" disabled={blocked || state === 'confirming'} onClick={() => onConfirm(item.holdId)} className="w-full rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">{actionLabel}</button><button type="button" disabled={blocked || state === 'confirming'} onClick={() => onAlternative(item)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Другое время</button></div></td>
+      <td className="px-4 py-4 align-top"><div className="flex flex-col gap-2"><button type="button" disabled={blocked || state === 'confirming'} onClick={() => onConfirm(item)} className="w-full rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">{actionLabel}</button><button type="button" disabled={blocked || state === 'confirming'} onClick={() => onAlternative(item)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Другое время</button></div></td>
     </tr>
   );
 }

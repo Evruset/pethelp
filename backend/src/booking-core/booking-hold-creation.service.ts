@@ -20,7 +20,21 @@ interface PetOwnershipRow {
 interface ClinicMisRow {
   clinic_id: string;
   mis_type: string | null;
+  clinic_status: string;
+  location_status: string;
 }
+
+const ACTIVE_HOLD_STATES: HoldState[] = [
+  'MANUAL_CONFIRM_PENDING',
+  'ALTERNATIVE_PENDING',
+  'MIS_RESERVATION_PENDING',
+  'MIS_RECONCILIATION_PENDING',
+  'MIS_HELD',
+  'PAYMENT_PENDING',
+  'PAYMENT_IN_PROGRESS',
+  'PAYMENT_RECONCILIATION_PENDING',
+  'CONFIRMED',
+];
 
 @Injectable()
 export class BookingHoldCreationService {
@@ -61,22 +75,24 @@ export class BookingHoldCreationService {
         if (!slot) throw DomainErrors.slotNotFound();
 
         const now = await this.repository.now(client);
-        if (
-          slot.state !== 'OPEN'
-          || slot.status === 'BOOKED'
-          || slot.starts_at <= now
-          || slot.capacity - slot.booked_count - slot.held_count <= 0
-        ) {
+
+        await this.assertNoActiveHoldForSlot(client, input.ownerId, input.slotId, now);
+
+        if (slot.state !== 'OPEN' || slot.starts_at <= now) throw DomainErrors.slotUnavailable();
+        if (slot.status === 'BOOKED' || slot.capacity - slot.booked_count - slot.held_count <= 0) {
           throw DomainErrors.slotAlreadyTaken();
         }
 
         const clinic = await client.query<ClinicMisRow>(`
-          SELECT c.id AS clinic_id, c.mis_type
+          SELECT c.id AS clinic_id, c.mis_type, c.status AS clinic_status, l.status AS location_status
           FROM clinic_schema.clinic_locations l
           JOIN clinic_schema.clinics c ON c.id = l.clinic_id
           WHERE l.id = $1::uuid
         `, [slot.clinic_location_id]);
         if (!clinic.rows[0]) throw DomainErrors.slotNotFound();
+        if (clinic.rows[0].clinic_status !== 'ACTIVE' || clinic.rows[0].location_status !== 'ACTIVE') {
+          throw DomainErrors.slotUnavailable();
+        }
 
         const integrationMode = slot.integration_mode ?? (clinic.rows[0].mis_type ? 'LEVEL_A' : 'LEVEL_C');
         const requiresMisReservation = integrationMode !== 'LEVEL_C';
@@ -200,7 +216,25 @@ export class BookingHoldCreationService {
 
   private async setInteractiveTransactionLimits(client: PoolClient): Promise<void> {
     await client.query("SET LOCAL lock_timeout = '50ms'");
-    await client.query("SET LOCAL statement_timeout = '50ms'");
+    await client.query("SET LOCAL statement_timeout = '250ms'");
+  }
+
+  private async assertNoActiveHoldForSlot(
+    client: PoolClient,
+    ownerId: string,
+    slotId: string,
+    now: Date,
+  ): Promise<void> {
+    const existing = await client.query<{ id: string }>(`
+      SELECT id
+      FROM booking_schema.booking_holds
+      WHERE owner_id = $1::uuid
+        AND slot_id = $2::uuid
+        AND state = ANY($3::text[])
+        AND (state = 'CONFIRMED' OR expires_at > $4::timestamptz)
+      LIMIT 1
+    `, [ownerId, slotId, ACTIVE_HOLD_STATES, now]);
+    if (existing.rows[0]) throw DomainErrors.holdAlreadyActive();
   }
 
   private async acquireIdempotency(

@@ -43,6 +43,7 @@ describe('ClinicQueueService', () => {
       employee: fixture.employee,
       idempotencyKey: randomUUID(),
       correlationId: randomUUID(),
+      expectedVersion: 1,
     })).rejects.toMatchObject({
       response: { code: 'QUEUE_FIFO_VIOLATION' },
       status: 409,
@@ -53,6 +54,7 @@ describe('ClinicQueueService', () => {
       employee: fixture.employee,
       idempotencyKey: randomUUID(),
       correlationId: randomUUID(),
+      expectedVersion: 1,
     })).resolves.toMatchObject({
       holdId: fixture.firstHoldId,
       state: 'CONFIRMED',
@@ -63,6 +65,7 @@ describe('ClinicQueueService', () => {
       employee: fixture.employee,
       idempotencyKey: randomUUID(),
       correlationId: randomUUID(),
+      expectedVersion: 1,
     })).resolves.toMatchObject({
       holdId: fixture.secondHoldId,
       state: 'CONFIRMED',
@@ -82,9 +85,25 @@ describe('ClinicQueueService', () => {
       employee: fixture.employee,
       idempotencyKey: randomUUID(),
       correlationId: randomUUID(),
+      expectedVersion: 1,
     })).resolves.toMatchObject({
       holdId: fixture.secondHoldId,
       state: 'CONFIRMED',
+    });
+  });
+
+  it('rejects manual confirmation with a stale aggregate version', async () => {
+    const fixture = await createQueueFixture(database);
+
+    await expect(bookingSecurity.confirmManualHold({
+      holdId: fixture.firstHoldId,
+      employee: fixture.employee,
+      idempotencyKey: randomUUID(),
+      correlationId: randomUUID(),
+      expectedVersion: 2,
+    })).rejects.toMatchObject({
+      response: { code: 'SLOT_VERSION_STALE' },
+      status: 409,
     });
   });
 
@@ -161,7 +180,7 @@ async function createQueueFixture(database: DatabaseService): Promise<{
       ($1::uuid, $2::uuid, $3::uuid, 'MANUAL_CONFIRM_PENDING', clock_timestamp() + interval '10 minutes', clock_timestamp() + interval '15 minutes', clock_timestamp() - interval '2 minutes'),
       ($4::uuid, $2::uuid, $5::uuid, 'MANUAL_CONFIRM_PENDING', clock_timestamp() + interval '10 minutes', clock_timestamp() + interval '15 minutes', clock_timestamp() - interval '1 minute')
     RETURNING id
-  `, [slots.rows[0].id, ownerId, pets.rows[0].id, slots.rows[1].id, ownerId, pets.rows[1].id]);
+  `, [slots.rows[0].id, ownerId, pets.rows[0].id, slots.rows[1].id, pets.rows[1].id]);
 
   return {
     clinicId: clinic.rows[0].id,

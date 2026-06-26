@@ -26,6 +26,9 @@ describe('Owner alternative slot snapshot', () => {
         sub: fixture.employeeId,
         roles: [Role.CLINIC_RECEPTIONIST],
         locationIds: [fixture.locationId],
+      }, {
+        expectedVersion: 1,
+        idempotencyKey: randomUUID(),
       }),
     );
 

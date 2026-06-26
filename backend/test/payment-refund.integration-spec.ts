@@ -111,6 +111,7 @@ describe('Captured payment refund flow', () => {
 async function createCapturedTelemedFixture(database: DatabaseService) {
   const ownerId = randomUUID(); const petId = randomUUID(); const clinicId = randomUUID();
   const locationId = randomUUID(); const slotId = randomUUID(); const holdId = randomUUID();
+  const serviceId = randomUUID();
   const sessionId = randomUUID(); const paymentId = randomUUID(); const correlationId = randomUUID();
   const idempotencyKey = `refund-payment-${paymentId}`;
   const providerPaymentId = 'provider-captured-001';
@@ -119,7 +120,8 @@ async function createCapturedTelemedFixture(database: DatabaseService) {
   await database.query(`INSERT INTO pet_schema.pets (id, owner_id, name, species) VALUES ($1::uuid, $2::uuid, 'Refund Pet', 'DOG')`, [petId, ownerId]);
   await database.query(`INSERT INTO clinic_schema.clinics (id, legal_name, public_name) VALUES ($1::uuid, 'Refund Clinic LLC', 'Refund Clinic')`, [clinicId]);
   await database.query(`INSERT INTO clinic_schema.clinic_locations (id, clinic_id, address) VALUES ($1::uuid, $2::uuid, 'Refund address')`, [locationId, clinicId]);
-  await database.query(`INSERT INTO clinic_schema.appointment_slots (id, clinic_location_id, starts_at, ends_at, capacity, held_count) VALUES ($1::uuid, $2::uuid, clock_timestamp() + interval '1 hour', clock_timestamp() + interval '90 minutes', 1, 1)`, [slotId, locationId]);
+  await database.query(`INSERT INTO clinic_schema.clinic_services (id, clinic_location_id, code, display_name, duration_minutes) VALUES ($1::uuid, $2::uuid, 'REFUND_TEST', 'Refund test', 30)`, [serviceId, locationId]);
+  await database.query(`INSERT INTO clinic_schema.appointment_slots (id, clinic_location_id, service_id, starts_at, ends_at, capacity, held_count) VALUES ($1::uuid, $2::uuid, $3::uuid, clock_timestamp() + interval '1 hour', clock_timestamp() + interval '90 minutes', 1, 1)`, [slotId, locationId, serviceId]);
   await database.query(`INSERT INTO booking_schema.booking_holds (id, slot_id, owner_id, pet_id, state, expires_at) VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, 'CONFIRMED', clock_timestamp() + interval '10 minutes')`, [holdId, slotId, ownerId, petId]);
   await database.query(`
     INSERT INTO telemed_schema.telemed_sessions (id, booking_hold_id, owner_id, state, room_name, correlation_id, expires_at)

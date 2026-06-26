@@ -25,25 +25,31 @@ This stack runs without a cloud account, provider sandbox account, production cr
 From the repository root:
 
 ```bash
-docker compose -f docker-compose.local.yml up -d
+make local-up
 ```
 
 The first start downloads images and installs backend dependencies inside a Docker volume. Watch backend startup:
 
 ```bash
-docker compose -f docker-compose.local.yml logs -f backend
+make local-logs
 ```
 
-When the health check is green, initialize sample clinic, service and slots:
+When the health check is green, initialize sample clinic, service, slots, deterministic owner/pet identities, clinic employee access and the Level-C queue fixture:
 
 ```bash
-docker compose -f docker-compose.local.yml --profile setup run --rm seed
+make local-seed
+```
+
+Run the canonical owner journey smoke:
+
+```bash
+make local-smoke
 ```
 
 Check all containers:
 
 ```bash
-docker compose -f docker-compose.local.yml ps
+make local-status
 ```
 
 ## Obtain a local owner token
@@ -51,7 +57,7 @@ docker compose -f docker-compose.local.yml ps
 The seed script uses owner UUID `11111111-1111-4111-8111-111111111111`. Generate a token valid for eight hours without exposing the signing value to the host shell:
 
 ```bash
-docker compose -f docker-compose.local.yml exec backend \
+docker compose -p vethelp-alpha -f docker-compose.local.yml exec backend \
   node /workspace/dev/local/create-owner-token.mjs | pbcopy
 ```
 
@@ -115,13 +121,13 @@ curl http://localhost:4103/__mock/state
 Stop containers but keep database data:
 
 ```bash
-docker compose -f docker-compose.local.yml down
+make local-down
 ```
 
 Delete all local stack data, including PostgreSQL volume:
 
 ```bash
-docker compose -f docker-compose.local.yml down -v
+docker compose -p vethelp-alpha -f docker-compose.local.yml down -v
 ```
 
 ## Boundaries

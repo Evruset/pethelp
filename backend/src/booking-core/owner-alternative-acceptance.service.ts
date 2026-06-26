@@ -9,9 +9,9 @@ export class OwnerAlternativeAcceptanceService {
     private readonly database: DatabaseService,
   ) {}
 
-  async accept(holdId: string, ownerId: string): Promise<AcceptedAlternativeSlot> {
+  async accept(holdId: string, ownerId: string, command: { expectedVersion: number; idempotencyKey: string }): Promise<AcceptedAlternativeSlot> {
     try {
-      return await this.alternatives.acceptAlternativeSlot(holdId, ownerId);
+      return await this.alternatives.acceptAlternativeSlot(holdId, ownerId, command);
     } catch (error) {
       const replay = await this.database.query<{
         id: string;

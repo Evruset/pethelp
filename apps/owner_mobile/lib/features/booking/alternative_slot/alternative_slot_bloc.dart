@@ -102,6 +102,7 @@ class AlternativeSlotBloc extends Bloc<AlternativeSlotEvent, AlternativeSlotStat
     emit(AlternativeSlotAccepting(current.snapshot));
     final result = await _repository.acceptAlternative(
       holdId: current.snapshot.holdId,
+      version: current.snapshot.version,
       correlationId: current.correlationId,
       idempotencyKey: current.idempotencyKey,
     );

@@ -85,7 +85,12 @@ export function AlternativeSlotDrawer({ locationId, item, onClose, onProposed }:
     try {
       const response = await fetch(`/api/clinic/booking-holds/${item.holdId}/alternative-slot`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Correlation-ID': correlationId() },
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': crypto.randomUUID(),
+          'If-Match': String(item.version),
+          'X-Correlation-ID': correlationId(),
+        },
         body: JSON.stringify({ newSlotId: selectedSlotId }),
       });
       const payload = await response.json().catch(() => null) as { code?: string } | null;

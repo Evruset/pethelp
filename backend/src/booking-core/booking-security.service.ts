@@ -54,7 +54,7 @@ export class BookingSecurityService {
     private readonly clinicAccess: ClinicEmployeeAccessService,
   ) {}
 
-  async confirmManualHold(input: { holdId: string; employee: JwtPayload; idempotencyKey: string; correlationId: string }): Promise<ConfirmHoldResult> {
+  async confirmManualHold(input: { holdId: string; employee: JwtPayload; idempotencyKey: string; correlationId: string; expectedVersion: number }): Promise<ConfirmHoldResult> {
     try {
       return await this.database.withTransaction(async (client) => {
         await this.setInteractiveTransactionLimits(client);
@@ -68,6 +68,7 @@ export class BookingSecurityService {
 
         const hold = this.toHold(locked);
         const slot = this.toSlot(locked);
+        if (hold.version !== input.expectedVersion) throw DomainErrors.slotVersionStale();
         const now = await this.dbNow(client);
         if (hold.confirmation_sla_expires_at && hold.confirmation_sla_expires_at <= now) {
           await this.completeIdempotency(client, scope, input.idempotencyKey, DomainErrors.holdExpired().getResponse(), DomainErrors.holdExpired().getStatus());
@@ -301,7 +302,7 @@ export class BookingSecurityService {
 
   private async setInteractiveTransactionLimits(client: PoolClient): Promise<void> {
     await client.query("SET LOCAL lock_timeout = '50ms'");
-    await client.query("SET LOCAL statement_timeout = '50ms'");
+    await client.query("SET LOCAL statement_timeout = '250ms'");
   }
 
   private async acquireIdempotency(client: PoolClient, scope: string, key: string): Promise<Record<string, unknown> | undefined> {

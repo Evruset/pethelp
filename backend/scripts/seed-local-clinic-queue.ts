@@ -61,6 +61,27 @@ async function main(): Promise<void> {
     const runId = `${Date.now()}-${process.pid}`;
     const created: FixtureItem[] = [];
 
+    await client.query(`
+      DELETE FROM booking_schema.booking_holds hold
+      USING clinic_schema.appointment_slots slot
+      WHERE hold.slot_id = slot.id
+        AND slot.source = $1
+        AND NOT EXISTS (
+          SELECT 1
+          FROM booking_schema.appointments appointment
+          WHERE appointment.hold_id = hold.id
+        )
+    `, [fixtureSource]);
+    await client.query(`
+      DELETE FROM clinic_schema.appointment_slots slot
+      WHERE slot.source = $1
+        AND NOT EXISTS (
+          SELECT 1
+          FROM booking_schema.booking_holds hold
+          WHERE hold.slot_id = slot.id
+        )
+    `, [fixtureSource]);
+
     for (const [index, fixture] of fixturePlan.entries()) {
       const slot = await client.query<{ id: string; starts_at: Date }>(`
         INSERT INTO clinic_schema.appointment_slots (
