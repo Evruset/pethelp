@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:uuid/uuid.dart';
 
 class CoverageCheckView {
   const CoverageCheckView({
@@ -32,22 +33,38 @@ class CoverageCheckRepository {
   final Uri baseUrl;
   final Future<String> Function() accessTokenProvider;
   final http.Client _client;
+  final Uuid _uuid = const Uuid();
 
-  Future<CoverageCheckView> create({required String petId, required String partnerCode, String? consentVersion}) async {
+  Future<CoverageCheckView> create({
+    required String petId,
+    required String partnerCode,
+    required String correlationId,
+    String? consentVersion,
+  }) async {
     final token = await accessTokenProvider();
     final response = await _client.post(
       baseUrl.resolve('/v1/insurance/coverage-checks'),
-      headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json', 'Accept': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Idempotency-Key': _uuid.v4(),
+        'X-Correlation-ID': correlationId,
+      },
       body: jsonEncode({
         'petId': petId,
         'partnerCode': partnerCode,
         if (consentVersion != null) 'consentVersion': consentVersion,
       }),
     );
+    final payload = _decode(response);
     if (response.statusCode != 201) {
-      throw StateError('Unable to create insurance coverage check.');
+      throw CoverageCheckApiException(response.statusCode, _errorCode(payload));
     }
-    return _view(jsonDecode(response.body) as Map<String, dynamic>);
+    if (payload is! Map<String, dynamic>) {
+      throw const CoverageCheckApiException(503, 'BACKEND_UNAVAILABLE');
+    }
+    return _view(payload);
   }
 
   Future<CoverageCheckView> read(String id) async {
@@ -56,10 +73,14 @@ class CoverageCheckRepository {
       baseUrl.resolve('/v1/insurance/coverage-checks/$id'),
       headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
     );
+    final payload = _decode(response);
     if (response.statusCode != 200) {
-      throw StateError('Unable to read insurance coverage check.');
+      throw CoverageCheckApiException(response.statusCode, _errorCode(payload));
     }
-    return _view(jsonDecode(response.body) as Map<String, dynamic>);
+    if (payload is! Map<String, dynamic>) {
+      throw const CoverageCheckApiException(503, 'BACKEND_UNAVAILABLE');
+    }
+    return _view(payload);
   }
 
   CoverageCheckView _view(Map<String, dynamic> payload) {
@@ -73,4 +94,27 @@ class CoverageCheckRepository {
       serverNow: DateTime.parse(payload['serverNow'] as String),
     );
   }
+
+  dynamic _decode(http.Response response) {
+    if (response.body.isEmpty) return null;
+    try {
+      return jsonDecode(response.body);
+    } on FormatException {
+      return null;
+    }
+  }
+
+  String _errorCode(dynamic payload) {
+    if (payload is Map<String, dynamic> && payload['code'] is String) {
+      return payload['code'] as String;
+    }
+    return 'BACKEND_UNAVAILABLE';
+  }
+}
+
+class CoverageCheckApiException implements Exception {
+  const CoverageCheckApiException(this.statusCode, this.code);
+
+  final int statusCode;
+  final String code;
 }
