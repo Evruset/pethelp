@@ -52,6 +52,42 @@ Check all containers:
 make local-status
 ```
 
+## Open the Clinic Portal queue
+
+Start the portal in a second shell:
+
+```bash
+cd apps/clinic-portal
+cp .env.example .env.local
+npm install
+npm run dev -- --port 3001
+```
+
+For local development, `.env.local` must use the same signing secret as the backend container:
+
+```dotenv
+VETHELP_CLINIC_JWT_SECRET=local-development-jwt-signing-key-not-for-shared-use
+VETHELP_API_BASE_URL=http://localhost:3000
+VETHELP_ALLOW_DEV_SESSION=true
+```
+
+Then create or refresh the deterministic clinic employee session:
+
+```bash
+make clinic-portal-session
+```
+
+The command checks backend health, ensures the local employee has access to the seeded VetHelp Pilot location, generates a staff JWT inside the backend container, and prints:
+
+- `sessionUrl` — open this first; it sets the HTTP-only `vethelp_clinic_session` cookie through the dev-only BFF endpoint and redirects to the queue.
+- `queueUrl` — the exact clinic queue route for the current seed.
+
+To open the session URL automatically on macOS/Linux:
+
+```bash
+OPEN=1 make clinic-portal-session
+```
+
 ## Obtain a local owner token
 
 The seed script uses owner UUID `11111111-1111-4111-8111-111111111111`. Generate a token valid for eight hours without exposing the signing value to the host shell:
