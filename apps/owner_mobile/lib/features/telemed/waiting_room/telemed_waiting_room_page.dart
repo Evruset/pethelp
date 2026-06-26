@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'telemed_room_access_repository.dart';
 import 'telemed_waiting_room_bloc.dart';
 
 class TelemedWaitingRoomPage extends StatelessWidget {
@@ -10,15 +11,20 @@ class TelemedWaitingRoomPage extends StatelessWidget {
     super.key,
     required this.sessionId,
     required this.repository,
+    required this.roomAccessRepository,
   });
 
   final String sessionId;
   final TelemedWaitingRepository repository;
+  final TelemedRoomAccessRepository roomAccessRepository;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => TelemedWaitingBloc(repository: repository)..add(TelemedWaitingOpened(sessionId)),
+      create: (_) => TelemedWaitingBloc(
+        repository: repository,
+        roomAccessRepository: roomAccessRepository,
+      )..add(TelemedWaitingOpened(sessionId)),
       child: const _TelemedWaitingRoomView(),
     );
   }
@@ -35,11 +41,15 @@ class _TelemedWaitingRoomView extends StatelessWidget {
         builder: (context, state) {
           return switch (state) {
             TelemedWaitingLoading() => const _WaitingSkeleton(),
-            TelemedWaitingForDoctor(snapshot: final snapshot) => _WaitingForDoctor(snapshot: snapshot),
+            TelemedWaitingForDoctor(snapshot: final snapshot) =>
+              _WaitingForDoctor(snapshot: snapshot),
             TelemedConnectingRoom() => const _ConnectingRoom(),
+            TelemedRoomReady(access: final access) =>
+              _RoomReady(access: access),
             TelemedDoctorTimeout() => const _DoctorTimeout(),
             TelemedCompleted() => const _Completed(),
-            TelemedWaitingError(message: final message) => _Error(message: message),
+            TelemedWaitingError(message: final message) =>
+              _Error(message: message),
           };
         },
       ),
@@ -85,21 +95,29 @@ class _WaitingForDoctor extends StatelessWidget {
                     children: [
                       Icon(Icons.medical_services_outlined, size: 52),
                       SizedBox(height: 12),
-                      Text('Ожидаем подключения врача', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w600)),
+                      Text('Ожидаем подключения врача',
+                          style: TextStyle(
+                              fontSize: 21, fontWeight: FontWeight.w600)),
                       SizedBox(height: 8),
-                      Text('Не закрывайте экран. Мы покажем актуальный статус, как только он изменится.', textAlign: TextAlign.center),
+                      Text(
+                          'Не закрывайте экран. Мы покажем актуальный статус, как только он изменится.',
+                          textAlign: TextAlign.center),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 16),
-              Card(child: Padding(padding: const EdgeInsets.all(16), child: _ServerCountdown(snapshot: snapshot))),
+              Card(
+                  child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: _ServerCountdown(snapshot: snapshot))),
               const SizedBox(height: 16),
               const Card(
                 child: ListTile(
                   leading: Icon(Icons.health_and_safety_outlined),
                   title: Text('Важно'),
-                  subtitle: Text('При ухудшении состояния питомца не ждите консультацию: используйте экстренный маршрут.'),
+                  subtitle: Text(
+                      'При ухудшении состояния питомца не ждите консультацию: используйте экстренный маршрут.'),
                 ),
               ),
             ],
@@ -108,7 +126,9 @@ class _WaitingForDoctor extends StatelessWidget {
         SafeArea(
           minimum: const EdgeInsets.all(16),
           child: OutlinedButton(
-            onPressed: () => context.read<TelemedWaitingBloc>().add(const TelemedWaitingRefreshRequested()),
+            onPressed: () => context
+                .read<TelemedWaitingBloc>()
+                .add(const TelemedWaitingRefreshRequested()),
             child: const Text('Проверить статус'),
           ),
         ),
@@ -150,9 +170,13 @@ class _ServerCountdownState extends State<_ServerCountdown> {
     final critical = totalSeconds <= 30;
     return Row(
       children: [
-        Icon(critical ? Icons.warning_amber_rounded : Icons.timer_outlined, color: critical ? Theme.of(context).colorScheme.error : null),
+        Icon(critical ? Icons.warning_amber_rounded : Icons.timer_outlined,
+            color: critical ? Theme.of(context).colorScheme.error : null),
         const SizedBox(width: 12),
-        Expanded(child: Text(critical ? 'Проверяем статус подключения' : 'Ожидаем врача: $minutes:$seconds')),
+        Expanded(
+            child: Text(critical
+                ? 'Проверяем статус подключения'
+                : 'Ожидаем врача: $minutes:$seconds')),
       ],
     );
   }
@@ -163,7 +187,72 @@ class _ConnectingRoom extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [CircularProgressIndicator(), SizedBox(height: 16), Text('Врач подключился. Готовим консультацию...')]));
+    return const Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+      CircularProgressIndicator(),
+      SizedBox(height: 16),
+      Text('Врач подключился. Готовим консультацию...')
+    ]));
+  }
+}
+
+class _RoomReady extends StatelessWidget {
+  const _RoomReady({required this.access});
+
+  final TelemedRoomAccess access;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        Card(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                const Icon(Icons.video_call_outlined, size: 56),
+                const SizedBox(height: 12),
+                Text('Врач подключился',
+                    style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 8),
+                const Text(
+                  'Комната консультации готова. Статус визита будет обновляться VetHelp.',
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.lock_clock_outlined),
+            title: const Text('Доступ к комнате'),
+            subtitle: Text(
+                'Действует до ${_dateTime(context, access.tokenExpiresAt)}'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.videocam_outlined),
+            title: const Text('Канал связи'),
+            subtitle: const Text('Подключение подготовлено.'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        const Card(
+          child: ListTile(
+            leading: Icon(Icons.health_and_safety_outlined),
+            title: Text('Безопасность'),
+            subtitle: Text(
+                'Онлайн-консультация не заменяет срочную очную помощь при тяжёлых симптомах.'),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -172,7 +261,12 @@ class _DoctorTimeout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('Врач не вышел на связь. Проверяем автоматический возврат средств.', textAlign: TextAlign.center)));
+    return const Center(
+        child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+                'Врач не вышел на связь. Проверяем автоматический возврат средств.',
+                textAlign: TextAlign.center)));
   }
 }
 
@@ -192,8 +286,18 @@ class _Error extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(message, textAlign: TextAlign.center)));
+    return Center(
+        child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(message, textAlign: TextAlign.center)));
   }
+}
+
+String _dateTime(BuildContext context, DateTime value) {
+  final local = value.toLocal();
+  final date = MaterialLocalizations.of(context).formatMediumDate(local);
+  final time = TimeOfDay.fromDateTime(local).format(context);
+  return '$date, $time';
 }
 
 class _PlaceholderCard extends StatelessWidget {
@@ -205,7 +309,9 @@ class _PlaceholderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: height,
-      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(16)),
     );
   }
 }

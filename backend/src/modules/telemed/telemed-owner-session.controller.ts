@@ -15,6 +15,17 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 export class TelemedOwnerSessionController {
   constructor(private readonly sessions: TelemedOwnerSessionService) {}
 
+  @Get('sessions')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.OWNER)
+  @ApiBearerAuth(SWAGGER_BEARER_AUTH)
+  @ApiOperation({ summary: 'List owner telemedicine sessions with server-owned status buckets' })
+  @ApiOkResponse({ description: 'Owner telemedicine sessions ordered by active status and creation time.' })
+  @ApiUnauthorizedResponse({ description: 'Bearer JWT is missing or invalid.' })
+  async list(@CurrentUser() owner: JwtPayload) {
+    return this.sessions.list(owner.sub);
+  }
+
   @Get('sessions/:sessionId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.OWNER)

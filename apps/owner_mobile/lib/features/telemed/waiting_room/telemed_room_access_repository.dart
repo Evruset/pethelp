@@ -23,7 +23,11 @@ class TelemedRoomAccessUnavailable implements Exception {
   final String code;
 }
 
-class HttpTelemedRoomAccessRepository {
+abstract class TelemedRoomAccessRepository {
+  Future<TelemedRoomAccess> createRoomAccess(String sessionId);
+}
+
+class HttpTelemedRoomAccessRepository implements TelemedRoomAccessRepository {
   HttpTelemedRoomAccessRepository({
     required this.baseUrl,
     required this.accessTokenProvider,
@@ -34,6 +38,7 @@ class HttpTelemedRoomAccessRepository {
   final Future<String> Function() accessTokenProvider;
   final http.Client _client;
 
+  @override
   Future<TelemedRoomAccess> createRoomAccess(String sessionId) async {
     final token = await accessTokenProvider();
     final response = await _client.post(
@@ -44,7 +49,8 @@ class HttpTelemedRoomAccessRepository {
         ? <String, dynamic>{}
         : jsonDecode(response.body) as Map<String, dynamic>;
     if (response.statusCode != 200) {
-      throw TelemedRoomAccessUnavailable(payload['code'] as String? ?? 'ROOM_ACCESS_UNAVAILABLE');
+      throw TelemedRoomAccessUnavailable(
+          payload['code'] as String? ?? 'ROOM_ACCESS_UNAVAILABLE');
     }
     return TelemedRoomAccess(
       sessionId: payload['sessionId'] as String,

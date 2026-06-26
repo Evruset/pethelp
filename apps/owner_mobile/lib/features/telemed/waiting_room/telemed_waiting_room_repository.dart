@@ -22,14 +22,18 @@ class HttpTelemedWaitingRepository implements TelemedWaitingRepository {
       baseUrl.resolve('/v1/telemed/sessions/$sessionId'),
       headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
     );
+    final payload = response.body.isEmpty
+        ? <String, dynamic>{}
+        : jsonDecode(response.body) as Map<String, dynamic>;
     if (response.statusCode != 200) {
-      throw StateError('Unable to read telemedicine waiting room state.');
+      throw TelemedWaitingApiException(
+          payload['code'] as String? ?? 'TELEMED_STATUS_UNAVAILABLE');
     }
-    final payload = jsonDecode(response.body) as Map<String, dynamic>;
     return TelemedWaitingSnapshot(
       sessionId: payload['sessionId'] as String,
       state: _state(payload['state'] as String),
-      doctorJoinDeadlineAt: DateTime.parse(payload['doctorJoinDeadlineAt'] as String),
+      doctorJoinDeadlineAt:
+          DateTime.parse(payload['doctorJoinDeadlineAt'] as String),
       serverNow: DateTime.parse(payload['serverNow'] as String),
       version: payload['version'] as int,
     );
@@ -41,7 +45,12 @@ class HttpTelemedWaitingRepository implements TelemedWaitingRepository {
       'CONNECTED' => TelemedWaitingStateKind.connected,
       'DOCTOR_TIMEOUT' => TelemedWaitingStateKind.doctorTimeout,
       'COMPLETED' => TelemedWaitingStateKind.completed,
-      _ => throw StateError('Unknown telemedicine state.'),
+      _ => throw const TelemedWaitingApiException('TELEMED_STATUS_UNKNOWN'),
     };
   }
+}
+
+class TelemedWaitingApiException implements Exception {
+  const TelemedWaitingApiException(this.code);
+  final String code;
 }
