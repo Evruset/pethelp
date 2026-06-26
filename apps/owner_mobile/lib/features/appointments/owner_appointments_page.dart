@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../booking/alternative_slot/alternative_slot_page.dart';
 import '../booking/alternative_slot/alternative_slot_repository.dart';
@@ -31,9 +32,7 @@ class _OwnerAppointmentsPageState extends State<OwnerAppointmentsPage> {
 
   void _reload() {
     final request = widget.repository.list();
-    setState(() {
-      _request = request;
-    });
+    setState(() => _request = request);
   }
 
   Future<void> _refresh() async {
@@ -42,67 +41,88 @@ class _OwnerAppointmentsPageState extends State<OwnerAppointmentsPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Material(
-        type: MaterialType.transparency,
-        child: FutureBuilder<List<OwnerAppointment>>(
-          future: _request,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError) {
-              return Center(
-                child: FilledButton.icon(
-                    onPressed: _reload,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Повторить загрузку')),
-              );
-            }
-            final rows = snapshot.data ?? const <OwnerAppointment>[];
-            final active = rows
-                .where((row) => row.bucket == 'ACTIVE')
-                .toList(growable: false);
-            final history = rows
-                .where((row) => row.bucket != 'ACTIVE')
-                .toList(growable: false);
-            return DefaultTabController(
-              length: 2,
-              child: Column(
-                children: [
-                  const TabBar(
-                    tabs: [
-                      Tab(text: 'Активные'),
-                      Tab(text: 'История'),
+  Widget build(BuildContext context) => FutureBuilder<List<OwnerAppointment>>(
+        future: _request,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return _AppointmentsLoadError(onRetry: _reload);
+          }
+
+          final rows = snapshot.data ?? const <OwnerAppointment>[];
+          final active = rows
+              .where((row) => row.bucket == 'ACTIVE')
+              .toList(growable: false);
+          final history = rows
+              .where((row) => row.bucket == 'HISTORY')
+              .toList(growable: false);
+
+          return DefaultTabController(
+            length: 2,
+            child: Column(
+              children: [
+                const TabBar(tabs: [
+                  Tab(text: 'Активные'),
+                  Tab(text: 'История'),
+                ]),
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      _AppointmentsList(
+                        rows: active,
+                        isHistory: false,
+                        repository: widget.repository,
+                        alternativeSlotRepository:
+                            widget.alternativeSlotRepository,
+                        onRefresh: _refresh,
+                      ),
+                      _AppointmentsList(
+                        rows: history,
+                        isHistory: true,
+                        repository: widget.repository,
+                        alternativeSlotRepository:
+                            widget.alternativeSlotRepository,
+                        onRefresh: _refresh,
+                      ),
                     ],
                   ),
-                  Expanded(
-                    child: TabBarView(
-                      children: [
-                        _AppointmentsList(
-                          rows: active,
-                          emptyText:
-                              'Активных записей нет. Новая заявка появится здесь после отправки в клинику.',
-                          repository: widget.repository,
-                          alternativeSlotRepository:
-                              widget.alternativeSlotRepository,
-                          onRefresh: _refresh,
-                        ),
-                        _AppointmentsList(
-                          rows: history,
-                          emptyText:
-                              'История появится после завершения, отмены или истечения записи.',
-                          repository: widget.repository,
-                          alternativeSlotRepository:
-                              widget.alternativeSlotRepository,
-                          onRefresh: _refresh,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
+              ],
+            ),
+          );
+        },
+      );
+}
+
+class _AppointmentsLoadError extends StatelessWidget {
+  const _AppointmentsLoadError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_off_outlined, size: 44),
+              const SizedBox(height: 12),
+              Text('Не удалось загрузить записи',
+                  style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 6),
+              const Text('Проверьте подключение и повторите попытку.',
+                  textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Повторить'),
               ),
-            );
-          },
+            ],
+          ),
         ),
       );
 }
@@ -110,14 +130,14 @@ class _OwnerAppointmentsPageState extends State<OwnerAppointmentsPage> {
 class _AppointmentsList extends StatelessWidget {
   const _AppointmentsList({
     required this.rows,
-    required this.emptyText,
+    required this.isHistory,
     required this.repository,
     required this.alternativeSlotRepository,
     required this.onRefresh,
   });
 
   final List<OwnerAppointment> rows;
-  final String emptyText;
+  final bool isHistory;
   final OwnerAppointmentsRepository repository;
   final AlternativeSlotRepository? alternativeSlotRepository;
   final Future<void> Function() onRefresh;
@@ -129,14 +149,32 @@ class _AppointmentsList extends StatelessWidget {
         onRefresh: onRefresh,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(24),
           children: [
-            const SizedBox(height: 96),
-            Text(emptyText, textAlign: TextAlign.center),
+            const SizedBox(height: 88),
+            Icon(
+              isHistory ? Icons.history_outlined : Icons.calendar_today_outlined,
+              size: 48,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(height: 14),
+            Text(
+              isHistory ? 'История записей пуста' : 'Активных записей нет',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isHistory
+                  ? 'Здесь останутся отменённые, неподтверждённые и прошедшие записи.'
+                  : 'Новая заявка появится здесь после отправки в клинику.',
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       );
     }
+
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: ListView.separated(
@@ -167,14 +205,16 @@ class _AppointmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    final visual = _presentationVisual(
+      appointment.presentation,
+      Theme.of(context).colorScheme,
+    );
     final date = MaterialLocalizations.of(context)
         .formatMediumDate(appointment.startsAt);
     final start = TimeOfDay.fromDateTime(appointment.startsAt).format(context);
     final end = TimeOfDay.fromDateTime(appointment.endsAt).format(context);
-    final state = _state(appointment.state, colors);
+
     return Card(
-      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
           builder: (_) => OwnerAppointmentDetailPage(
@@ -186,27 +226,41 @@ class _AppointmentCard extends StatelessWidget {
         )),
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Expanded(
-                  child: Text(appointment.clinicName,
-                      style: Theme.of(context).textTheme.titleMedium)),
-              Chip(
-                  avatar: Icon(state.icon, size: 16, color: state.color),
-                  label: Text(state.label)),
-            ]),
-            const SizedBox(height: 8),
-            Text('$date · $start–$end'),
-            const SizedBox(height: 4),
-            Row(children: [
-              Expanded(
-                  child: Text(
-                      '${appointment.petName} · ${appointment.clinicAddress}',
-                      style: Theme.of(context).textTheme.bodySmall)),
-              const Icon(Icons.chevron_right),
-            ]),
-          ]),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      appointment.clinicName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  _StatusPill(visual: visual),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text('$date · $start–$end'),
+              const SizedBox(height: 4),
+              Text(
+                '${appointment.petName} · ${appointment.clinicAddress}',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                appointment.presentation.description,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -271,8 +325,7 @@ class _OwnerAppointmentDetailPageState
       });
       _syncPolling(detail);
     } catch (_) {
-      if (!mounted) return;
-      setState(() => _stale = true);
+      if (mounted) setState(() => _stale = true);
     }
   }
 
@@ -282,31 +335,36 @@ class _OwnerAppointmentDetailPageState
       builder: (dialogContext) => AlertDialog(
         title: const Text('Отменить запись?'),
         content: Text(
-            '${detail.clinicName}\n${_range(context, detail.startsAt, detail.endsAt)}'),
+          '${detail.clinicName}\n${_range(context, detail.startsAt, detail.endsAt)}\n\nЭто действие освободит заявку. Вернуть её автоматически не получится.',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Назад')),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Назад'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Отменить')),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Отменить'),
+          ),
         ],
       ),
     );
     if (confirmed != true || !mounted) return;
+
     setState(() => _cancelling = true);
     try {
       await widget.repository.releaseHold(detail.holdId);
       await _refresh();
       if (!mounted) return;
-      _message(context, 'Запись отменена.');
+      await HapticFeedback.mediumImpact();
+      if (mounted) _message(context, 'Запись отменена.');
     } on OwnerAppointmentsApiException catch (error) {
-      if (!mounted) return;
-      _message(context, _releaseError(error));
+      if (mounted) _message(context, _releaseError(error));
     } catch (_) {
-      if (!mounted) return;
-      _message(context,
-          'Не удалось отменить запись. Проверьте соединение и повторите попытку.');
+      if (mounted) {
+        _message(context,
+            'Не удалось отменить запись. Проверьте соединение и повторите попытку.');
+      }
     } finally {
       if (mounted) setState(() => _cancelling = false);
     }
@@ -330,7 +388,7 @@ class _OwnerAppointmentDetailPageState
   }
 
   void _syncPolling(OwnerAppointmentDetail detail) {
-    final shouldPoll = detail.actions.canRefresh && _activeState(detail.state);
+    final shouldPoll = detail.bucket == 'ACTIVE' && detail.actions.canRefresh;
     if (!shouldPoll) {
       _pollingTimer?.cancel();
       _pollingTimer = null;
@@ -353,18 +411,14 @@ class _OwnerAppointmentDetailPageState
               return const Center(child: CircularProgressIndicator());
             }
             if (detail == null) {
-              return Center(
-                child: FilledButton.icon(
-                    onPressed: _reload,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Повторить загрузку')),
-              );
+              return _AppointmentsLoadError(onRetry: _reload);
             }
             _last = detail;
             _syncPolling(detail);
             return RefreshIndicator(
               onRefresh: _refresh,
               child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                 children: [
                   if (_stale || snapshot.hasError) const _StaleBanner(),
@@ -373,14 +427,20 @@ class _OwnerAppointmentDetailPageState
                   _VisitCard(detail: detail),
                   const SizedBox(height: 12),
                   _TimelineCard(timeline: detail.timeline),
-                  const SizedBox(height: 12),
-                  _ActionCard(
-                    detail: detail,
-                    cancelling: _cancelling,
-                    onRefresh: _refresh,
-                    onReviewAlternative: () => _openAlternative(detail.holdId),
-                    onCancel: () => _cancel(detail),
-                  ),
+                  if (detail.actions.canRefresh ||
+                      detail.actions.canReviewAlternative ||
+                      detail.actions.canOpenRoute ||
+                      detail.actions.canRebook ||
+                      detail.actions.canCancel) ...[
+                    const SizedBox(height: 12),
+                    _ActionCard(
+                      detail: detail,
+                      cancelling: _cancelling,
+                      onRefresh: _refresh,
+                      onReviewAlternative: () => _openAlternative(detail.holdId),
+                      onCancel: () => _cancel(detail),
+                    ),
+                  ],
                 ],
               ),
             );
@@ -399,7 +459,7 @@ class _StaleBanner extends StatelessWidget {
           leading: Icon(Icons.cloud_off_outlined),
           title: Text('Показаны последние полученные данные'),
           subtitle: Text(
-              'Подтяните экран вниз или нажмите обновить, чтобы получить актуальный статус.'),
+              'Потяните экран вниз, чтобы получить актуальный статус.'),
         ),
       );
 }
@@ -411,21 +471,21 @@ class _StatusHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final state = _state(detail.state, colors);
+    final visual = _presentationVisual(detail.presentation, colors);
     return Card(
-      color: colors.primaryContainer,
+      color: visual.background,
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            Icon(state.icon, size: 32, color: state.color),
+            Icon(visual.icon, size: 32, color: visual.foreground),
             const SizedBox(width: 12),
             Expanded(
-                child: Text(state.label,
+                child: Text(detail.presentation.label,
                     style: Theme.of(context).textTheme.titleLarge)),
           ]),
           const SizedBox(height: 8),
-          Text(_statusMessage(detail.state)),
+          Text(detail.presentation.description),
           const SizedBox(height: 8),
           Text('Обновлено: ${_dateTime(context, detail.latestStatusUpdateAt)}',
               style: Theme.of(context).textTheme.bodySmall),
@@ -480,22 +540,36 @@ class _TimelineCard extends StatelessWidget {
   Widget build(BuildContext context) => Card(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('История статуса',
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             if (timeline.isEmpty)
               const Text('VetHelp пока не получил событий по записи.')
             else
-              for (final item in timeline)
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.radio_button_checked, size: 16),
-                  title: Text(item.label),
-                  subtitle: Text(_dateTime(context, item.at)),
-                ),
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: timeline.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  final item = timeline[index];
+                  return Row(children: [
+                    const Icon(Icons.radio_button_checked, size: 16),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(item.label),
+                          Text(_dateTime(context, item.at),
+                              style: Theme.of(context).textTheme.bodySmall),
+                        ],
+                      ),
+                    ),
+                  ]);
+                },
+              ),
           ]),
         ),
       );
@@ -520,30 +594,37 @@ class _ActionCard extends StatelessWidget {
   Widget build(BuildContext context) => Card(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            OutlinedButton.icon(
-                onPressed: onRefresh,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Обновить')),
-            if (detail.actions.canReviewAlternative)
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            if (detail.actions.canRefresh)
+              OutlinedButton.icon(
+                  onPressed: onRefresh,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Обновить')),
+            if (detail.actions.canReviewAlternative) ...[
+              const SizedBox(height: 8),
               FilledButton.tonalIcon(
                   onPressed: onReviewAlternative,
                   icon: const Icon(Icons.swap_horiz),
-                  label: const Text('Посмотреть альтернативу')),
-            if (detail.actions.canOpenRoute)
+                  label: const Text('Посмотреть другое время')),
+            ],
+            if (detail.actions.canOpenRoute) ...[
+              const SizedBox(height: 8),
               FilledButton.tonalIcon(
                   onPressed: () => _message(context,
                       'Маршрут до клиники появится после подключения карт.'),
                   icon: const Icon(Icons.route_outlined),
                   label: const Text('Маршрут')),
-            if (detail.actions.canRebook)
+            ],
+            if (detail.actions.canRebook) ...[
+              const SizedBox(height: 8),
               FilledButton.icon(
                   onPressed: () =>
                       Navigator.of(context).popUntil((route) => route.isFirst),
                   icon: const Icon(Icons.search),
                   label: const Text('Записаться снова')),
-            if (detail.actions.canCancel)
+            ],
+            if (detail.actions.canCancel) ...[
+              const SizedBox(height: 8),
               TextButton.icon(
                 onPressed: cancelling ? null : onCancel,
                 icon: cancelling
@@ -554,9 +635,87 @@ class _ActionCard extends StatelessWidget {
                     : const Icon(Icons.event_busy_outlined),
                 label: Text(cancelling ? 'Отменяем...' : 'Отменить'),
               ),
+            ],
           ]),
         ),
       );
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.visual});
+  final _PresentationVisual visual;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+        decoration: BoxDecoration(
+          color: visual.background,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(visual.icon, size: 15, color: visual.foreground),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(visual.label,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelMedium),
+            ),
+          ]),
+        ),
+      );
+}
+
+class _PresentationVisual {
+  const _PresentationVisual({
+    required this.label,
+    required this.icon,
+    required this.foreground,
+    required this.background,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color foreground;
+  final Color background;
+}
+
+_PresentationVisual _presentationVisual(
+  OwnerAppointmentPresentation presentation,
+  ColorScheme colors,
+) {
+  return switch (presentation.tone) {
+    'success' => _PresentationVisual(
+        label: presentation.label,
+        icon: Icons.check_circle_outline,
+        foreground: colors.primary,
+        background: colors.primaryContainer,
+      ),
+    'warning' => _PresentationVisual(
+        label: presentation.label,
+        icon: Icons.schedule_outlined,
+        foreground: colors.onSecondaryContainer,
+        background: colors.secondaryContainer,
+      ),
+    'danger' => _PresentationVisual(
+        label: presentation.label,
+        icon: Icons.event_busy_outlined,
+        foreground: colors.error,
+        background: colors.errorContainer,
+      ),
+    'neutral' => _PresentationVisual(
+        label: presentation.label,
+        icon: Icons.history_outlined,
+        foreground: colors.onSurfaceVariant,
+        background: colors.surfaceContainerHigh,
+      ),
+    _ => _PresentationVisual(
+        label: presentation.label,
+        icon: Icons.info_outline,
+        foreground: colors.primary,
+        background: colors.primaryContainer,
+      ),
+  };
 }
 
 class _InfoRow extends StatelessWidget {
@@ -574,53 +733,6 @@ class _InfoRow extends StatelessWidget {
         ]),
       );
 }
-
-class _StateView {
-  const _StateView(this.label, this.icon, this.color);
-  final String label;
-  final IconData icon;
-  final Color color;
-}
-
-_StateView _state(String value, ColorScheme colors) => switch (value) {
-      'MANUAL_CONFIRM_PENDING' => _StateView(
-          'Ожидает клинику', Icons.hourglass_top_outlined, colors.primary),
-      'CONFIRMED' =>
-        _StateView('Подтверждена', Icons.check_circle_outline, colors.tertiary),
-      'EXPIRED' ||
-      'SLA_BREACHED' =>
-        _StateView('Не подтверждена', Icons.schedule_outlined, colors.error),
-      'RELEASED' ||
-      'MIS_BOOKING_FAILED' =>
-        _StateView('Отменена', Icons.event_busy_outlined, colors.error),
-      _ => _StateView('Обновляется', Icons.sync_outlined, colors.primary),
-    };
-
-bool _activeState(String value) => switch (value) {
-      'MANUAL_CONFIRM_PENDING' ||
-      'MIS_RESERVATION_PENDING' ||
-      'MIS_RECONCILIATION_PENDING' ||
-      'MIS_HELD' ||
-      'ALTERNATIVE_PENDING' ||
-      'CONFIRMED' =>
-        true,
-      _ => false,
-    };
-
-String _statusMessage(String state) => switch (state) {
-      'CONFIRMED' =>
-        'Клиника подтвердила визит. VetHelp будет обновлять статус.',
-      'ALTERNATIVE_PENDING' =>
-        'Клиника предложила другое время. Откройте предложение и выберите подходящий слот.',
-      'MANUAL_CONFIRM_PENDING' => 'Клиника проверяет возможность записи.',
-      'MIS_HELD' ||
-      'MIS_RESERVATION_PENDING' ||
-      'MIS_RECONCILIATION_PENDING' =>
-        'VetHelp удерживает окно и сверяет его с клиникой.',
-      'EXPIRED' || 'SLA_BREACHED' => 'Клиника не успела подтвердить заявку.',
-      'RELEASED' || 'MIS_BOOKING_FAILED' => 'Это время больше недоступно.',
-      _ => 'Статус обновляется.',
-    };
 
 String _species(String value) => switch (value.toLowerCase()) {
       'cat' => 'кошка',
@@ -648,13 +760,11 @@ void _message(BuildContext context, String text) {
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 }
 
-String _releaseError(OwnerAppointmentsApiException error) {
-  return switch (error.code) {
-    'HOLD_EXPIRED' => 'Заявка уже истекла. Обновите детали записи.',
-    'INVALID_TRANSITION' => 'Эту запись уже нельзя отменить.',
-    'SLOT_LOCKED_RETRY' =>
-      'Клиника обновляет слот. Повторите отмену через несколько секунд.',
-    'UNAUTHENTICATED' => 'Сессия истекла. Войдите снова.',
-    _ => 'Не удалось отменить запись. Повторите попытку.',
-  };
-}
+String _releaseError(OwnerAppointmentsApiException error) => switch (error.code) {
+      'HOLD_EXPIRED' => 'Заявка уже истекла. Обновите детали записи.',
+      'INVALID_TRANSITION' => 'Эту запись уже нельзя отменить.',
+      'SLOT_LOCKED_RETRY' =>
+        'Клиника обновляет слот. Повторите отмену через несколько секунд.',
+      'UNAUTHENTICATED' => 'Сессия истекла. Войдите снова.',
+      _ => 'Не удалось отменить запись. Повторите попытку.',
+    };
