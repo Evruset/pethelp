@@ -207,11 +207,15 @@ export class BookingService {
     return result.rows[0];
   }
 
-  async listSlots(clinicLocationId: string, from?: string, to?: string): Promise<Record<string, unknown>[]> {
+  async listSlots(clinicLocationId: string, from?: string, to?: string, serviceId?: string): Promise<Record<string, unknown>[]> {
     const result = await this.database.query(`
-      SELECT s.id, s.clinic_location_id, s.service_id, s.starts_at, s.ends_at, s.capacity, s.booked_count, s.held_count, s.state, s.version,
+      SELECT s.id, s.clinic_location_id, s.service_id, service.display_name AS service_name,
+             s.starts_at, s.ends_at, s.capacity, s.booked_count, s.held_count, s.state, s.version,
              (s.capacity - s.booked_count - s.held_count) AS remaining_capacity
       FROM clinic_schema.appointment_slots s
+      LEFT JOIN clinic_schema.clinic_services service
+        ON service.id = s.service_id
+       AND service.active = true
       WHERE s.clinic_location_id = $1
         AND s.state = 'OPEN'
         AND s.status = 'AVAILABLE'
@@ -219,8 +223,9 @@ export class BookingService {
         AND s.capacity - s.booked_count - s.held_count > 0
         AND ($2::timestamptz IS NULL OR s.starts_at >= $2::timestamptz)
         AND ($3::timestamptz IS NULL OR s.starts_at < $3::timestamptz)
+        AND ($4::uuid IS NULL OR s.service_id = $4::uuid)
       ORDER BY s.starts_at
-    `, [clinicLocationId, from ?? null, to ?? null]);
+    `, [clinicLocationId, from ?? null, to ?? null, serviceId ?? null]);
     return result.rows;
   }
 

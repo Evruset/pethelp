@@ -31,7 +31,8 @@ class AlternativeSlotLoading extends AlternativeSlotState {
 }
 
 class AlternativeSlotActive extends AlternativeSlotState {
-  const AlternativeSlotActive(this.snapshot, this.correlationId, this.idempotencyKey);
+  const AlternativeSlotActive(
+      this.snapshot, this.correlationId, this.idempotencyKey);
   final AlternativeSlotSnapshot snapshot;
   final String correlationId;
   final String idempotencyKey;
@@ -62,7 +63,8 @@ class AlternativeSlotErrorState extends AlternativeSlotState {
   final String message;
 }
 
-class AlternativeSlotBloc extends Bloc<AlternativeSlotEvent, AlternativeSlotState> {
+class AlternativeSlotBloc
+    extends Bloc<AlternativeSlotEvent, AlternativeSlotState> {
   AlternativeSlotBloc({required AlternativeSlotRepository repository})
       : _repository = repository,
         super(const AlternativeSlotLoading()) {
@@ -77,7 +79,8 @@ class AlternativeSlotBloc extends Bloc<AlternativeSlotEvent, AlternativeSlotStat
   String? _correlationId;
   String? _idempotencyKey;
 
-  Future<void> _onOpened(AlternativeSlotOpened event, Emitter<AlternativeSlotState> emit) async {
+  Future<void> _onOpened(
+      AlternativeSlotOpened event, Emitter<AlternativeSlotState> emit) async {
     _holdId = event.holdId;
     _correlationId ??= _uuid.v4();
     _idempotencyKey ??= _uuid.v4();
@@ -85,19 +88,16 @@ class AlternativeSlotBloc extends Bloc<AlternativeSlotEvent, AlternativeSlotStat
     await _load(emit);
   }
 
-  Future<void> _onRefreshRequested(AlternativeSlotRefreshRequested event, Emitter<AlternativeSlotState> emit) async {
+  Future<void> _onRefreshRequested(AlternativeSlotRefreshRequested event,
+      Emitter<AlternativeSlotState> emit) async {
     emit(const AlternativeSlotLoading());
     await _load(emit);
   }
 
-  Future<void> _onAcceptPressed(AlternativeSlotAcceptPressed event, Emitter<AlternativeSlotState> emit) async {
+  Future<void> _onAcceptPressed(AlternativeSlotAcceptPressed event,
+      Emitter<AlternativeSlotState> emit) async {
     final current = state;
     if (current is! AlternativeSlotActive) return;
-
-    if (current.snapshot.authoritativeNow(DateTime.now().toUtc()).isAfter(current.snapshot.expiresAt)) {
-      emit(const AlternativeSlotFencedState('HOLD_EXPIRED'));
-      return;
-    }
 
     emit(AlternativeSlotAccepting(current.snapshot));
     final result = await _repository.acceptAlternative(
@@ -115,7 +115,9 @@ class AlternativeSlotBloc extends Bloc<AlternativeSlotEvent, AlternativeSlotStat
         await _load(emit);
       case AlternativeSlotFenced<AlternativeSlotAccepted>(reason: final reason):
         emit(AlternativeSlotFencedState(reason));
-      case AlternativeSlotFailure<AlternativeSlotAccepted>(message: final message):
+      case AlternativeSlotFailure<AlternativeSlotAccepted>(
+          message: final message
+        ):
         emit(AlternativeSlotErrorState(message));
     }
   }
@@ -137,7 +139,9 @@ class AlternativeSlotBloc extends Bloc<AlternativeSlotEvent, AlternativeSlotStat
         emit(const AlternativeSlotSoftRetry('Обновляем состояние записи.'));
       case AlternativeSlotFenced<AlternativeSlotSnapshot>(reason: final reason):
         emit(AlternativeSlotFencedState(reason));
-      case AlternativeSlotFailure<AlternativeSlotSnapshot>(message: final message):
+      case AlternativeSlotFailure<AlternativeSlotSnapshot>(
+          message: final message
+        ):
         emit(AlternativeSlotErrorState(message));
     }
   }

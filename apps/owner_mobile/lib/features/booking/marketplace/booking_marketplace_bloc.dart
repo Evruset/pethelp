@@ -60,7 +60,8 @@ class BookingMarketplaceReady extends BookingMarketplaceState {
     return BookingMarketplaceReady(
       selectedDay: selectedDay,
       slots: slots,
-      selectedSlot: clearSelectedSlot ? null : selectedSlot ?? this.selectedSlot,
+      selectedSlot:
+          clearSelectedSlot ? null : selectedSlot ?? this.selectedSlot,
       notice: clearNotice ? null : notice ?? this.notice,
     );
   }
@@ -98,6 +99,7 @@ class BookingMarketplaceBloc
   BookingMarketplaceBloc({
     required BookingMarketplaceRepository repository,
     required this.clinicLocationId,
+    required this.serviceId,
     required this.petId,
     DateTime? initialDay,
   })  : _repository = repository,
@@ -114,6 +116,7 @@ class BookingMarketplaceBloc
 
   final BookingMarketplaceRepository _repository;
   final String clinicLocationId;
+  final String serviceId;
   final String petId;
   final Uuid _uuid = const Uuid();
   final Map<String, String> _operationKeysBySlot = <String, String>{};
@@ -163,7 +166,9 @@ class BookingMarketplaceBloc
     Emitter<BookingMarketplaceState> emit,
   ) async {
     final current = state;
-    if (current is! BookingMarketplaceReady || current.selectedSlot == null) return;
+    if (current is! BookingMarketplaceReady || current.selectedSlot == null) {
+      return;
+    }
 
     final selectedSlot = current.selectedSlot!;
     final correlationId = _correlationId ??= _uuid.v4();
@@ -191,7 +196,8 @@ class BookingMarketplaceBloc
         emit(BookingMarketplaceLoading(selectedDay: current.selectedDay));
         await _load(
           emit,
-          notice: 'Обновляем доступность. Выбранное время пока не подтверждено.',
+          notice:
+              'Обновляем доступность. Выбранное время пока не подтверждено.',
         );
         return;
       }
@@ -211,7 +217,8 @@ class BookingMarketplaceBloc
     } catch (_) {
       emit(BookingMarketplaceError(
         selectedDay: current.selectedDay,
-        message: 'Не удалось создать заявку. Проверьте соединение и повторите попытку.',
+        message:
+            'Не удалось создать заявку. Проверьте соединение и повторите попытку.',
       ));
     }
   }
@@ -224,6 +231,7 @@ class BookingMarketplaceBloc
     try {
       final slots = await _repository.listSlots(
         clinicLocationId: clinicLocationId,
+        serviceId: serviceId,
         from: _selectedDay,
         to: _selectedDay.add(const Duration(days: 1)),
       );
@@ -240,17 +248,22 @@ class BookingMarketplaceBloc
     } catch (_) {
       emit(BookingMarketplaceError(
         selectedDay: _selectedDay,
-        message: 'Не удалось загрузить доступное время. Проверьте соединение и повторите попытку.',
+        message:
+            'Не удалось загрузить доступное время. Проверьте соединение и повторите попытку.',
       ));
     }
   }
 
   String _messageFor(BookingMarketplaceApiException error) {
     return switch (error.code) {
-      'UNAUTHENTICATED' => 'Сессия истекла. Войдите снова и обновите список времени.',
-      'PET_OWNERSHIP_MISMATCH' => 'Не удалось подтвердить доступ к профилю питомца.',
-      'EXTERNAL_PATIENT_MAPPING_REQUIRED' => 'Клиника пока не может принять запись для этого питомца. Выберите другую клинику.',
-      'HOLD_EXPIRED' => 'Время для подтверждения уже истекло. Обновите доступные окна.',
+      'UNAUTHENTICATED' =>
+        'Сессия истекла. Войдите снова и обновите список времени.',
+      'PET_OWNERSHIP_MISMATCH' =>
+        'Не удалось подтвердить доступ к профилю питомца.',
+      'EXTERNAL_PATIENT_MAPPING_REQUIRED' =>
+        'Клиника пока не может принять запись для этого питомца. Выберите другую клинику.',
+      'HOLD_EXPIRED' =>
+        'Время для подтверждения уже истекло. Обновите доступные окна.',
       _ => 'Не удалось выполнить действие. Повторите попытку.',
     };
   }

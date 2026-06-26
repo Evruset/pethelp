@@ -72,9 +72,17 @@ export class BookingController {
 
   @Get('clinic-locations/:clinicLocationId/slots')
   @ApiOperation({ summary: 'Получение доступных слотов клиники' })
-  async listSlots(@Param('clinicLocationId') clinicLocationId: string, @Query('from') from?: string, @Query('to') to?: string) {
+  async listSlots(
+    @Param('clinicLocationId') clinicLocationId: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('serviceId') serviceId?: string,
+  ) {
     if (!isUuid(clinicLocationId)) throw DomainErrors.slotNotFound();
-    return this.bookingService.listSlots(clinicLocationId, from, to);
+    if (serviceId !== undefined && !isUuid(serviceId)) {
+      throw new BadRequestException({ code: 'INVALID_SERVICE_ID', message: 'serviceId must be a UUID.' });
+    }
+    return this.bookingService.listSlots(clinicLocationId, from, to, serviceId);
   }
 
   @Post('booking-holds')

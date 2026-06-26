@@ -416,6 +416,7 @@ class _ClinicDetailBodyState extends State<_ClinicDetailBody> {
   int _selectedLocationIndex = 0;
   String? _selectedServiceId;
   String? _loadedLocationId;
+  DateTime _selectedAvailabilityDay = _todayStart();
   Future<_LocationSnapshot>? _locationRequest;
 
   @override
@@ -487,6 +488,16 @@ class _ClinicDetailBodyState extends State<_ClinicDetailBody> {
                           setState(() => _selectedServiceId = service.id),
                     ),
                     const SizedBox(height: 20),
+                    _AvailabilityDaySelector(
+                      selectedDay: _selectedAvailabilityDay,
+                      onSelected: (day) {
+                        setState(() {
+                          _selectedAvailabilityDay = _dayStart(day);
+                          _locationRequest = _loadLocation(location.locationId);
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
                     _AvailabilitySection(
                       slots: data.slots,
                       service: selectedService,
@@ -535,12 +546,14 @@ class _ClinicDetailBodyState extends State<_ClinicDetailBody> {
 
   Future<_LocationSnapshot> _loadLocation(String locationId) async {
     final now = DateTime.now();
+    final dayStart = _dayStart(_selectedAvailabilityDay);
+    final from = _sameDay(dayStart, _dayStart(now)) ? now : dayStart;
     final results = await Future.wait<Object>([
       widget.repository.listLocationServices(locationId),
       widget.repository.readAvailability(
         locationId: locationId,
-        from: now,
-        to: now.add(const Duration(days: 14)),
+        from: from,
+        to: dayStart.add(const Duration(days: 1)),
       ),
     ]);
     return _LocationSnapshot(
@@ -558,6 +571,92 @@ class _ClinicDetailBodyState extends State<_ClinicDetailBody> {
       }
     }
     return services.first;
+  }
+}
+
+class _AvailabilityDaySelector extends StatelessWidget {
+  const _AvailabilityDaySelector({
+    required this.selectedDay,
+    required this.onSelected,
+  });
+
+  final DateTime selectedDay;
+  final ValueChanged<DateTime> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final today = _todayStart();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('День записи', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 72,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: 7,
+            itemBuilder: (context, index) {
+              final day = today.add(Duration(days: index));
+              final selected = _sameDay(day, selectedDay);
+              return Padding(
+                padding: EdgeInsets.only(right: index == 6 ? 0 : 8),
+                child: _CatalogDayChip(
+                  day: day,
+                  selected: selected,
+                  onTap: () => onSelected(day),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CatalogDayChip extends StatelessWidget {
+  const _CatalogDayChip({
+    required this.day,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final DateTime day;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        width: 88,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? colors.primaryContainer : colors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? colors.primary : Theme.of(context).dividerColor,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(_dayLabel(day),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelMedium),
+            const SizedBox(height: 2),
+            Text('${day.day}', style: Theme.of(context).textTheme.titleMedium),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -711,21 +810,73 @@ class _AvailabilitySection extends StatelessWidget {
       children: [
         Text('Ближайшее время', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: visibleSlots.take(8).map((slot) {
-            final service = slot.serviceName;
-            return InputChip(
-              avatar: const Icon(Icons.schedule, size: 18),
-              label: Text(service == null
-                  ? _shortDateTime(context, slot.startsAt)
-                  : '${_shortDateTime(context, slot.startsAt)} · $service'),
-              onPressed: null,
-            );
-          }).toList(growable: false),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: visibleSlots.length,
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 180,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            childAspectRatio: 1.9,
+          ),
+          itemBuilder: (context, index) => _AvailabilitySlotPreview(
+            slot: visibleSlots[index],
+          ),
         ),
       ],
+    );
+  }
+}
+
+class _AvailabilitySlotPreview extends StatelessWidget {
+  const _AvailabilitySlotPreview({required this.slot});
+
+  final CatalogAvailabilitySlot slot;
+
+  @override
+  Widget build(BuildContext context) {
+    final start = TimeOfDay.fromDateTime(slot.startsAt).format(context);
+    final end = TimeOfDay.fromDateTime(slot.endsAt).format(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.schedule, size: 18),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    start,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text('до $end',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall),
+            if (slot.serviceName != null)
+              Text(slot.serviceName!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -876,6 +1027,22 @@ String _fullDateTime(BuildContext context, DateTime value) {
 DateTime _todayStart() {
   final now = DateTime.now();
   return DateTime(now.year, now.month, now.day);
+}
+
+DateTime _dayStart(DateTime value) =>
+    DateTime(value.year, value.month, value.day);
+
+bool _sameDay(DateTime first, DateTime second) =>
+    first.year == second.year &&
+    first.month == second.month &&
+    first.day == second.day;
+
+String _dayLabel(DateTime day) {
+  final today = _todayStart();
+  if (_sameDay(day, today)) return 'Сегодня';
+  if (_sameDay(day, today.add(const Duration(days: 1)))) return 'Завтра';
+  const names = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+  return names[day.weekday - 1];
 }
 
 String _price(CatalogService service) {

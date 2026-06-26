@@ -2,12 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/services.dart';
 
 import 'alternative_slot_bloc.dart';
 import 'alternative_slot_repository.dart';
 
 class AlternativeSlotPage extends StatelessWidget {
-  const AlternativeSlotPage({super.key, required this.holdId, required this.repository});
+  const AlternativeSlotPage(
+      {super.key, required this.holdId, required this.repository});
 
   final String holdId;
   final AlternativeSlotRepository repository;
@@ -15,7 +17,8 @@ class AlternativeSlotPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => AlternativeSlotBloc(repository: repository)..add(AlternativeSlotOpened(holdId)),
+      create: (_) => AlternativeSlotBloc(repository: repository)
+        ..add(AlternativeSlotOpened(holdId)),
       child: const AlternativeSlotView(),
     );
   }
@@ -28,16 +31,28 @@ class AlternativeSlotView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Другое время')),
-      body: BlocBuilder<AlternativeSlotBloc, AlternativeSlotState>(
+      body: BlocConsumer<AlternativeSlotBloc, AlternativeSlotState>(
+        listener: (context, state) {
+          if (state is AlternativeSlotAcceptedState) {
+            HapticFeedback.mediumImpact();
+          }
+        },
         builder: (context, state) {
           return switch (state) {
-            AlternativeSlotLoading() => const Center(child: CircularProgressIndicator()),
-            AlternativeSlotActive(snapshot: final snapshot) => _Active(snapshot: snapshot),
-            AlternativeSlotAccepting(snapshot: final snapshot) => _Active(snapshot: snapshot, busy: true),
-            AlternativeSlotAcceptedState(result: final result) => _Success(result: result),
-            AlternativeSlotSoftRetry(message: final message) => _Message(message: message, retry: true),
-            AlternativeSlotFencedState(reason: final reason) => _Message(message: _safeReason(reason)),
-            AlternativeSlotErrorState(message: final message) => _Message(message: message, retry: true),
+            AlternativeSlotLoading() =>
+              const Center(child: CircularProgressIndicator()),
+            AlternativeSlotActive(snapshot: final snapshot) =>
+              _Active(snapshot: snapshot),
+            AlternativeSlotAccepting(snapshot: final snapshot) =>
+              _Active(snapshot: snapshot, busy: true),
+            AlternativeSlotAcceptedState(result: final result) =>
+              _Success(result: result),
+            AlternativeSlotSoftRetry(message: final message) =>
+              _Message(message: message, retry: true),
+            AlternativeSlotFencedState(reason: final reason) =>
+              _Message(message: _safeReason(reason)),
+            AlternativeSlotErrorState(message: final message) =>
+              _Message(message: message, retry: true),
           };
         },
       ),
@@ -82,17 +97,30 @@ class _Active extends StatelessWidget {
                   subtitle: Text(_formatRange(snapshot.alternativeSlot)),
                 ),
               ),
-              Card(child: Padding(padding: const EdgeInsets.all(16), child: _ServerCountdown(snapshot: snapshot))),
+              Card(
+                  child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: _ServerCountdown(snapshot: snapshot))),
               const SizedBox(height: 12),
-              const Text('Клиент не подтверждает успех локально: итоговый статус приходит от backend.'),
+              const Text(
+                  'Итоговый статус обновится после ответа VetHelp и клиники.'),
             ],
           ),
         ),
         SafeArea(
           minimum: const EdgeInsets.all(16),
           child: FilledButton(
-            onPressed: busy ? null : () => context.read<AlternativeSlotBloc>().add(const AlternativeSlotAcceptPressed()),
-            child: Text(busy ? 'Принимаем...' : 'Принять новое время'),
+            onPressed: busy
+                ? null
+                : () => context
+                    .read<AlternativeSlotBloc>()
+                    .add(const AlternativeSlotAcceptPressed()),
+            child: busy
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : const Text('Принять новое время'),
           ),
         ),
       ],
@@ -132,16 +160,19 @@ class _ServerCountdownState extends State<_ServerCountdown> {
 
   @override
   Widget build(BuildContext context) {
-    final remaining = widget.snapshot.expiresAt.difference(widget.snapshot.authoritativeNow(DateTime.now().toUtc()));
+    final remaining = widget.snapshot.expiresAt
+        .difference(widget.snapshot.authoritativeNow(DateTime.now().toUtc()));
     final seconds = remaining.inSeconds.clamp(0, 24 * 60 * 60);
     final minutesText = (seconds ~/ 60).toString().padLeft(2, '0');
     final secondsText = (seconds % 60).toString().padLeft(2, '0');
     final critical = seconds <= 60;
     return Row(
       children: [
-        Icon(critical ? Icons.warning_amber_rounded : Icons.timer_outlined, color: critical ? Theme.of(context).colorScheme.error : null),
+        Icon(critical ? Icons.warning_amber_rounded : Icons.timer_outlined,
+            color: critical ? Theme.of(context).colorScheme.error : null),
         const SizedBox(width: 12),
-        Text('Осталось $minutesText:$secondsText', style: Theme.of(context).textTheme.titleMedium),
+        Text('Осталось $minutesText:$secondsText',
+            style: Theme.of(context).textTheme.titleMedium),
       ],
     );
   }
@@ -154,7 +185,39 @@ class _Success extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(child: Text('Новое время принято', textAlign: TextAlign.center));
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0.8, end: 1),
+              duration: const Duration(milliseconds: 180),
+              builder: (context, scale, child) =>
+                  Transform.scale(scale: scale, child: child),
+              child: Icon(Icons.check_circle_outline,
+                  size: 64, color: Theme.of(context).colorScheme.primary),
+            ),
+            const SizedBox(height: 16),
+            Text('Новое время принято',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            const Text(
+              'VetHelp обновит запись и покажет актуальный статус в разделе записей.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.calendar_month_outlined),
+              label: const Text('К записи'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -176,7 +239,9 @@ class _Message extends StatelessWidget {
             if (retry) ...[
               const SizedBox(height: 16),
               OutlinedButton(
-                onPressed: () => context.read<AlternativeSlotBloc>().add(const AlternativeSlotRefreshRequested()),
+                onPressed: () => context
+                    .read<AlternativeSlotBloc>()
+                    .add(const AlternativeSlotRefreshRequested()),
                 child: const Text('Обновить'),
               ),
             ],
