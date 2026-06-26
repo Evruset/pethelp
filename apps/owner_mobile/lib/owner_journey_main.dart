@@ -23,6 +23,7 @@ import 'features/telemed/owner_telemed_page.dart';
 import 'features/telemed/owner_telemed_repository.dart';
 import 'features/telemed/waiting_room/telemed_room_access_repository.dart';
 import 'features/telemed/waiting_room/telemed_waiting_room_repository.dart';
+import 'ui/vethelp_ios_theme.dart';
 
 void main() => runApp(const VetHelpOwnerJourneyApp());
 
@@ -32,7 +33,8 @@ class VetHelpOwnerJourneyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
         title: 'VetHelp',
-        theme: ThemeData(colorSchemeSeed: Colors.teal, useMaterial3: true),
+        theme: VetHelpTheme.light(),
+        builder: VetHelpTheme.frameBuilder,
         locale: const Locale('ru'),
         supportedLocales: const [Locale('ru'), Locale('en')],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -203,7 +205,6 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
           baseUrl: Uri.parse(_apiBaseUrl),
           accessTokenProvider: _token,
         ),
-        onCreateConsultation: _openCatalogForOwner,
       ),
     ));
   }
