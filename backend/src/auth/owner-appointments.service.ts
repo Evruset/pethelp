@@ -2,11 +2,28 @@ import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { JwtPayload } from './auth.types';
 
+export type OwnerAppointmentPresentation = {
+  code:
+    | 'WAITING_FOR_CLINIC'
+    | 'CHECKING_AVAILABILITY'
+    | 'ALTERNATIVE_TIME_REQUIRED'
+    | 'CONFIRMED_UPCOMING'
+    | 'VISIT_TIME_PASSED'
+    | 'NOT_CONFIRMED'
+    | 'CANCELLED'
+    | 'HISTORY_RECORDED'
+    | 'STATUS_SYNCING';
+  label: string;
+  description: string;
+  tone: 'info' | 'success' | 'warning' | 'danger' | 'neutral';
+};
+
 export type OwnerAppointmentSummary = {
   holdId: string;
   appointmentId: string | null;
   state: string;
   bucket: 'ACTIVE' | 'HISTORY';
+  presentation: OwnerAppointmentPresentation;
   startsAt: string;
   endsAt: string;
   clinic: { id: string; name: string; address: string };
@@ -34,13 +51,96 @@ export type OwnerAppointmentDetail = OwnerAppointmentSummary & {
   };
   timeline: Array<{ at: string; type: string; label: string }>;
   actions: {
-    canRefresh: true;
+    canRefresh: boolean;
     canRebook: true;
     canOpenRoute: boolean;
     canReviewAlternative: boolean;
     canCancel: boolean;
   };
 };
+
+/**
+ * Maps an authoritative aggregate state to copy that is safe for an owner.
+ * The client must render this object directly and must not infer a completed
+ * visit from a device clock.
+ */
+export function ownerAppointmentPresentation(
+  state: string,
+  bucket: 'ACTIVE' | 'HISTORY',
+): OwnerAppointmentPresentation {
+  if (bucket === 'HISTORY' && state === 'CONFIRMED') {
+    return {
+      code: 'VISIT_TIME_PASSED',
+      label: 'Время визита прошло',
+      description:
+        'Клиника пока не передала отметку о фактическом визите. Детали записи сохранены в истории.',
+      tone: 'neutral',
+    };
+  }
+
+  switch (state) {
+    case 'MANUAL_CONFIRM_PENDING':
+      return {
+        code: 'WAITING_FOR_CLINIC',
+        label: 'Ожидаем подтверждения',
+        description: 'Клиника проверяет возможность записи.',
+        tone: 'info',
+      };
+    case 'MIS_RESERVATION_PENDING':
+    case 'MIS_RECONCILIATION_PENDING':
+    case 'MIS_HELD':
+      return {
+        code: 'CHECKING_AVAILABILITY',
+        label: 'Проверяем время',
+        description: 'VetHelp сверяет выбранное окно с клиникой.',
+        tone: 'info',
+      };
+    case 'ALTERNATIVE_PENDING':
+      return {
+        code: 'ALTERNATIVE_TIME_REQUIRED',
+        label: 'Нужно выбрать время',
+        description: 'Клиника предложила другое доступное время.',
+        tone: 'warning',
+      };
+    case 'CONFIRMED':
+      return {
+        code: 'CONFIRMED_UPCOMING',
+        label: 'Подтверждена',
+        description: 'Клиника подтвердила визит.',
+        tone: 'success',
+      };
+    case 'EXPIRED':
+    case 'SLA_BREACHED':
+      return {
+        code: 'NOT_CONFIRMED',
+        label: 'Не подтверждена',
+        description: 'Клиника не успела подтвердить заявку.',
+        tone: 'warning',
+      };
+    case 'RELEASED':
+    case 'MIS_BOOKING_FAILED':
+      return {
+        code: 'CANCELLED',
+        label: 'Отменена',
+        description: 'Это время больше недоступно.',
+        tone: 'danger',
+      };
+    default:
+      return bucket === 'HISTORY'
+          ? {
+              code: 'HISTORY_RECORDED',
+              label: 'Запись завершена',
+              description: 'Событие сохранено в истории записи.',
+              tone: 'neutral',
+            }
+          : {
+              code: 'STATUS_SYNCING',
+              label: 'Проверяем статус',
+              description: 'VetHelp получает актуальные данные от клиники.',
+              tone: 'info',
+            };
+  }
+}
 
 @Injectable()
 export class OwnerAppointmentsService {
@@ -120,6 +220,7 @@ export class OwnerAppointmentsService {
       appointmentId: row.appointment_id,
       state: row.state,
       bucket: row.bucket,
+      presentation: ownerAppointmentPresentation(row.state, row.bucket),
       startsAt: row.starts_at.toISOString(),
       endsAt: row.ends_at.toISOString(),
       clinic: {
@@ -219,11 +320,13 @@ export class OwnerAppointmentsService {
     const row = result.rows[0];
     if (!row) return undefined;
     const timeline = await this.timeline(row.hold_id);
+    const presentation = ownerAppointmentPresentation(row.state, row.bucket);
     return {
       holdId: row.hold_id,
       appointmentId: row.appointment_id,
       state: row.state,
       bucket: row.bucket,
+      presentation,
       version: row.version,
       startsAt: row.starts_at.toISOString(),
       endsAt: row.ends_at.toISOString(),
@@ -252,17 +355,20 @@ export class OwnerAppointmentsService {
       pet: { id: row.pet_id, name: row.pet_name, species: row.pet_species },
       timeline,
       actions: {
-        canRefresh: true,
+        canRefresh: row.bucket === 'ACTIVE',
         canRebook: true,
         canOpenRoute: Boolean(row.latitude && row.longitude),
-        canReviewAlternative: row.state === 'ALTERNATIVE_PENDING',
-        canCancel: [
-          'MANUAL_CONFIRM_PENDING',
-          'MIS_RESERVATION_PENDING',
-          'MIS_RECONCILIATION_PENDING',
-          'MIS_HELD',
-          'CONFIRMED',
-        ].includes(row.state),
+        canReviewAlternative:
+            row.bucket === 'ACTIVE' && row.state === 'ALTERNATIVE_PENDING',
+        canCancel:
+            row.bucket === 'ACTIVE' &&
+            [
+              'MANUAL_CONFIRM_PENDING',
+              'MIS_RESERVATION_PENDING',
+              'MIS_RECONCILIATION_PENDING',
+              'MIS_HELD',
+              'CONFIRMED',
+            ].includes(row.state),
       },
     };
   }
