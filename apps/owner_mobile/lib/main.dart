@@ -14,6 +14,7 @@ import 'features/telemed/owner_telemed_repository.dart';
 import 'features/telemed/waiting_room/telemed_waiting_room_page.dart';
 import 'features/telemed/waiting_room/telemed_room_access_repository.dart';
 import 'features/telemed/waiting_room/telemed_waiting_room_repository.dart';
+import 'ui/vethelp_ios_theme.dart';
 
 void main() {
   runApp(const VetHelpOwnerApp());
@@ -26,7 +27,8 @@ class VetHelpOwnerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'VetHelp',
-      theme: ThemeData(colorSchemeSeed: Colors.teal, useMaterial3: true),
+      theme: VetHelpTheme.light(),
+      builder: VetHelpTheme.frameBuilder,
       home: const OwnerJourneyLauncher(),
     );
   }
