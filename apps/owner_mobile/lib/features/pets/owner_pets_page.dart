@@ -52,11 +52,17 @@ class _OwnerPetsPageState extends State<OwnerPetsPage> {
 
   Future<void> _editPet(OwnerPet summary) async {
     if (_busy) return;
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+    });
     try {
       final fresh = await widget.repository.read(summary.id);
-      if (!mounted) return;
-      setState(() => _busy = false);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _busy = false;
+      });
       final updated = await showModalBottomSheet<OwnerPet>(
         context: context,
         isScrollControlled: true,
@@ -74,12 +80,17 @@ class _OwnerPetsPageState extends State<OwnerPetsPage> {
       _reload();
       _message('Профиль ${updated.name} обновлён.');
     } on OwnerPetApiException catch (error) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       _message(error.statusCode == 412
           ? 'Профиль изменился. Откройте его заново.'
           : 'Не удалось сохранить профиль. Повторите попытку.');
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted)
+        setState(() {
+          _busy = false;
+        });
     }
   }
 
@@ -446,7 +457,9 @@ class _PetFormState extends State<_PetForm> {
       _submitError = null;
     });
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    setState(() => _submitState = _PetSubmitState.loading);
+    setState(() {
+      _submitState = _PetSubmitState.loading;
+    });
     try {
       final pet = await widget.onSubmit(OwnerPetProfileInput(
         name: _name.text.trim(),
@@ -467,19 +480,29 @@ class _PetFormState extends State<_PetForm> {
         insurancePolicyLinks: _split(_insuranceLinks.text),
         mutationId: 'owner-mobile-${DateTime.now().microsecondsSinceEpoch}',
       ));
-      if (!mounted) return;
-      setState(() => _submitState = _PetSubmitState.success);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _submitState = _PetSubmitState.success;
+      });
       await HapticFeedback.mediumImpact();
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       Navigator.of(context).pop(pet);
     } on OwnerPetApiException catch (error) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _submitState = _PetSubmitState.failure;
         _submitError = _petError(error);
       });
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _submitState = _PetSubmitState.failure;
         _submitError =

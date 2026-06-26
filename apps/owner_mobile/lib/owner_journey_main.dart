@@ -98,7 +98,9 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
         accessToken: _token,
       ).list();
       if (!mounted || _selectedPet != null || pets.isEmpty) return;
-      setState(() => _selectedPet = pets.first);
+      setState(() {
+        _selectedPet = pets.first;
+      });
     } finally {
       _petBootstrapInFlight = false;
       _petBootstrapCompleted = true;
@@ -173,7 +175,9 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   }
 
   void _openCatalogForGuest() => _openCatalog(onSelected: (selection) {
-        setState(() => _pendingBooking = selection);
+        setState(() {
+          _pendingBooking = selection;
+        });
         Navigator.of(context).pop();
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;

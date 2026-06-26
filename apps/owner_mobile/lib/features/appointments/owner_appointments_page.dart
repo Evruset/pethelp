@@ -32,7 +32,9 @@ class _OwnerAppointmentsPageState extends State<OwnerAppointmentsPage> {
 
   void _reload() {
     final request = widget.repository.list();
-    setState(() => _request = request);
+    setState(() {
+      _request = request;
+    });
   }
 
   Future<void> _refresh() async {
@@ -153,7 +155,9 @@ class _AppointmentsList extends StatelessWidget {
           children: [
             const SizedBox(height: 88),
             Icon(
-              isHistory ? Icons.history_outlined : Icons.calendar_today_outlined,
+              isHistory
+                  ? Icons.history_outlined
+                  : Icons.calendar_today_outlined,
               size: 48,
               color: Theme.of(context).colorScheme.primary,
             ),
@@ -317,7 +321,9 @@ class _OwnerAppointmentDetailPageState
   Future<void> _refresh() async {
     try {
       final detail = await widget.repository.readDetail(widget.holdId);
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _last = detail;
         _request = Future<OwnerAppointmentDetail>.value(detail);
@@ -325,7 +331,10 @@ class _OwnerAppointmentDetailPageState
       });
       _syncPolling(detail);
     } catch (_) {
-      if (mounted) setState(() => _stale = true);
+      if (mounted)
+        setState(() {
+          _stale = true;
+        });
     }
   }
 
@@ -351,11 +360,15 @@ class _OwnerAppointmentDetailPageState
     );
     if (confirmed != true || !mounted) return;
 
-    setState(() => _cancelling = true);
+    setState(() {
+      _cancelling = true;
+    });
     try {
       await widget.repository.releaseHold(detail.holdId);
       await _refresh();
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       await HapticFeedback.mediumImpact();
       if (mounted) _message(context, 'Запись отменена.');
     } on OwnerAppointmentsApiException catch (error) {
@@ -366,7 +379,10 @@ class _OwnerAppointmentDetailPageState
             'Не удалось отменить запись. Проверьте соединение и повторите попытку.');
       }
     } finally {
-      if (mounted) setState(() => _cancelling = false);
+      if (mounted)
+        setState(() {
+          _cancelling = false;
+        });
     }
   }
 
@@ -437,7 +453,8 @@ class _OwnerAppointmentDetailPageState
                       detail: detail,
                       cancelling: _cancelling,
                       onRefresh: _refresh,
-                      onReviewAlternative: () => _openAlternative(detail.holdId),
+                      onReviewAlternative: () =>
+                          _openAlternative(detail.holdId),
                       onCancel: () => _cancel(detail),
                     ),
                   ],
@@ -458,8 +475,8 @@ class _StaleBanner extends StatelessWidget {
         child: const ListTile(
           leading: Icon(Icons.cloud_off_outlined),
           title: Text('Показаны последние полученные данные'),
-          subtitle: Text(
-              'Потяните экран вниз, чтобы получить актуальный статус.'),
+          subtitle:
+              Text('Потяните экран вниз, чтобы получить актуальный статус.'),
         ),
       );
 }
@@ -540,7 +557,8 @@ class _TimelineCard extends StatelessWidget {
   Widget build(BuildContext context) => Card(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('История статуса',
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
@@ -594,7 +612,8 @@ class _ActionCard extends StatelessWidget {
   Widget build(BuildContext context) => Card(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             if (detail.actions.canRefresh)
               OutlinedButton.icon(
                   onPressed: onRefresh,
@@ -760,7 +779,8 @@ void _message(BuildContext context, String text) {
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 }
 
-String _releaseError(OwnerAppointmentsApiException error) => switch (error.code) {
+String _releaseError(OwnerAppointmentsApiException error) =>
+    switch (error.code) {
       'HOLD_EXPIRED' => 'Заявка уже истекла. Обновите детали записи.',
       'INVALID_TRANSITION' => 'Эту запись уже нельзя отменить.',
       'SLOT_LOCKED_RETRY' =>

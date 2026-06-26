@@ -68,8 +68,8 @@ class VetHelpTheme {
     final fieldRadius = BorderRadius.circular(16);
     final tokens = VetHelpSurfaceTokens(
       groupedSurface: colors.surfaceContainerLowest,
-      glassSurface: colors.surface.withOpacity(.86),
-      hairline: colors.outlineVariant.withOpacity(.72),
+      glassSurface: colors.surface.withValues(alpha: .86),
+      hairline: colors.outlineVariant.withValues(alpha: .72),
       desktopBackdrop: colors.surfaceContainerLow,
       contentMaxWidth: 560,
       cardRadius: 22,
@@ -180,7 +180,8 @@ class VetHelpTheme {
         surfaceTintColor: colors.surface,
         showDragHandle: true,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(tokens.cardRadius)),
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(tokens.cardRadius)),
         ),
       ),
       dialogTheme: DialogThemeData(

@@ -102,7 +102,9 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
             repository: widget.petsRepository,
             onPetSelected: (pet) {
               widget.onPetSelected(pet);
-              setState(() => _index = 0);
+              setState(() {
+                _index = 0;
+              });
             },
           ),
         3 => _TelemedLanding(onRequestTelemed: widget.onRequestTelemed),
