@@ -5,9 +5,13 @@ import 'package:vethelp_owner_mobile/features/appointments/owner_appointments_re
 import 'package:vethelp_owner_mobile/features/booking/marketplace/booking_marketplace_repository.dart';
 
 void main() {
-  testWidgets('renders owner appointments without returning a Future from setState', (tester) async {
+  testWidgets(
+      'renders owner appointments without returning a Future from setState',
+      (tester) async {
     await tester.pumpWidget(
-      MaterialApp(home: OwnerAppointmentsPage(repository: _FakeOwnerAppointmentsRepository())),
+      MaterialApp(
+          home: OwnerAppointmentsPage(
+              repository: _FakeOwnerAppointmentsRepository())),
     );
 
     await tester.pumpAndSettle();
@@ -25,6 +29,7 @@ class _FakeOwnerAppointmentsRepository implements OwnerAppointmentsRepository {
           holdId: '11111111-1111-4111-8111-111111111111',
           appointmentId: null,
           state: 'MANUAL_CONFIRM_PENDING',
+          bucket: 'ACTIVE',
           startsAt: DateTime.utc(2026, 6, 26, 10),
           endsAt: DateTime.utc(2026, 6, 26, 10, 30),
           clinicName: 'VetHelp Pilot',
@@ -34,12 +39,58 @@ class _FakeOwnerAppointmentsRepository implements OwnerAppointmentsRepository {
       ];
 
   @override
-  Future<BookingHoldSnapshot> readHold(String holdId) async => BookingHoldSnapshot(
+  Future<OwnerAppointmentDetail> readDetail(String holdId) async =>
+      OwnerAppointmentDetail(
+        holdId: holdId,
+        appointmentId: null,
+        state: 'MANUAL_CONFIRM_PENDING',
+        version: 1,
+        startsAt: DateTime.utc(2026, 6, 26, 10),
+        endsAt: DateTime.utc(2026, 6, 26, 10, 30),
+        expiresAt: DateTime.utc(2026, 6, 25, 20),
+        latestStatusUpdateAt: DateTime.utc(2026, 6, 25, 19),
+        serverNow: DateTime.utc(2026, 6, 25, 19, 5),
+        clinicName: 'VetHelp Pilot',
+        clinicAddress: 'Pilotnaya 1',
+        locationPhone: null,
+        petName: 'Барс',
+        petSpecies: 'CAT',
+        serviceName: 'Первичный приём',
+        priceAmount: '1000.00',
+        currency: 'RUB',
+        timeline: [
+          OwnerAppointmentTimelineItem(
+            at: DateTime.utc(2026, 6, 25, 19),
+            type: 'booking.hold.created',
+            label: 'Заявка создана',
+          ),
+        ],
+        actions: const OwnerAppointmentActions(
+          canRefresh: true,
+          canRebook: true,
+          canOpenRoute: false,
+          canReviewAlternative: false,
+          canCancel: true,
+        ),
+      );
+
+  @override
+  Future<BookingHoldSnapshot> readHold(String holdId) async =>
+      BookingHoldSnapshot(
         holdId: holdId,
         slotId: 'slot-1',
         state: 'MANUAL_CONFIRM_PENDING',
         expiresAt: DateTime.utc(2026, 6, 25, 20),
         startsAt: DateTime.utc(2026, 6, 26, 10),
         endsAt: DateTime.utc(2026, 6, 26, 10, 30),
+      );
+
+  @override
+  Future<ReleasedBookingHold> releaseHold(String holdId) async =>
+      ReleasedBookingHold(
+        holdId: holdId,
+        state: 'RELEASED',
+        slotId: 'slot-1',
+        correlationId: '11111111-1111-4111-8111-111111111112',
       );
 }

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, NotFoundException, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { CurrentUser } from './current-user.decorator';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -70,5 +70,17 @@ export class OwnerProfileController {
   @ApiOkResponse({ description: 'Только заявки и записи владельца из bearer JWT.' })
   async listAppointments(@CurrentUser() owner: JwtPayload) {
     return this.appointments.list(owner);
+  }
+
+  @Get('appointments/:holdId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.OWNER)
+  @ApiBearerAuth('bearer')
+  @ApiOperation({ summary: 'Подробный authoritative snapshot записи владельца' })
+  @ApiOkResponse({ description: 'Статус, клиника, питомец, услуга, timeline и доступные действия.' })
+  async appointmentDetail(@CurrentUser() owner: JwtPayload, @Param('holdId', new ParseUUIDPipe()) holdId: string) {
+    const detail = await this.appointments.read(owner, holdId);
+    if (!detail) throw new NotFoundException({ code: 'OWNER_APPOINTMENT_NOT_FOUND', message: 'Appointment was not found for owner.' });
+    return detail;
   }
 }
