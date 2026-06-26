@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Headers, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Headers, HttpCode, HttpStatus, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -15,6 +15,7 @@ import {
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
 import { randomUUID } from 'node:crypto';
+import type { Request } from 'express';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload, Role } from '../auth/auth.types';
@@ -40,6 +41,23 @@ const isUuid = (value?: string): value is string => Boolean(value && UUID.test(v
 function requiredUuid(value: string | undefined, field: string): string {
   if (!isUuid(value)) throw new BadRequestException({ code: 'INVALID_REQUEST', message: `${field} must be a UUID.` });
   return value;
+}
+
+function requiredVersion(value: string | undefined, field: string): number {
+  const normalized = value?.trim().replace(/^W\//, '').replace(/^"|"$/g, '');
+  const parsed = normalized ? Number.parseInt(normalized, 10) : Number.NaN;
+  if (!Number.isSafeInteger(parsed) || parsed <= 0 || String(parsed) !== normalized) {
+    throw new BadRequestException({ code: 'INVALID_REQUEST', message: `${field} must be a positive aggregate version.` });
+  }
+  return parsed;
+}
+
+function originalHeader(request: Request, field: string): string | undefined {
+  const lowerField = field.toLowerCase();
+  for (let index = 0; index < request.rawHeaders.length - 1; index += 2) {
+    if (request.rawHeaders[index].toLowerCase() === lowerField) return request.rawHeaders[index + 1];
+  }
+  return undefined;
 }
 
 @ApiTags('Booking Core')
@@ -75,17 +93,13 @@ export class BookingController {
   })
   @ApiHeader({
     name: 'X-Correlation-ID',
-    required: false,
+    required: true,
     schema: { type: 'string', format: 'uuid' },
-    description: 'Идентификатор распределённой трассировки. Если отсутствует, сервер генерирует UUID.',
+    description: 'Обязательный идентификатор распределённой трассировки команды.',
   })
   @ApiCreatedResponse({ description: 'Hold создан и ожидает ручного подтверждения клиникой.', type: HoldDto })
-  @ApiBadRequestResponse({ description: 'Некорректный UUID или отсутствует Idempotency-Key.', type: ApiErrorDto })
+  @ApiBadRequestResponse({ description: 'Некорректный UUID или отсутствует Idempotency-Key/X-Correlation-ID.', type: ApiErrorDto })
   @ApiUnauthorizedResponse({ description: 'Bearer JWT отсутствует, истёк или невалиден.', type: ApiErrorDto })
-  @ApiForbiddenResponse({
-    description: 'PET_OWNERSHIP_MISMATCH — питомец отсутствует либо не принадлежит владельцу из JWT.',
-    type: ApiErrorDto,
-  })
   @ApiConflictResponse({
     description: 'SLOT_LOCKED_RETRY или SLOT_ALREADY_TAKEN. Для SLOT_LOCKED_RETRY сервер добавляет Retry-After: 1.',
     type: ApiErrorDto,
@@ -96,18 +110,22 @@ export class BookingController {
       },
     },
   })
+  @ApiUnprocessableEntityResponse({
+    description: 'PET_OWNERSHIP_MISMATCH, HOLD_ALREADY_ACTIVE или SLOT_UNAVAILABLE.',
+    type: ApiErrorDto,
+  })
   async createHold(
     @Body() dto: CreateHoldDto,
     @CurrentUser() owner: JwtPayload,
+    @Req() request: Request,
     @Headers('idempotency-key') idempotencyKey?: string,
-    @Headers('x-correlation-id') correlationHeader?: string,
   ) {
     return this.holdCreationService.createLocalHold({
       slotId: requiredUuid(dto.slotId, 'slotId'),
       petId: requiredUuid(dto.petId, 'petId'),
       ownerId: owner.sub,
       idempotencyKey: requiredUuid(idempotencyKey, 'Idempotency-Key'),
-      correlationId: isUuid(correlationHeader) ? correlationHeader : randomUUID(),
+      correlationId: requiredUuid(originalHeader(request, 'X-Correlation-ID'), 'X-Correlation-ID'),
     });
   }
 
@@ -159,6 +177,7 @@ export class BookingController {
   })
   @ApiParam({ name: 'holdId', type: 'string', format: 'uuid' })
   @ApiHeader({ name: 'Idempotency-Key', required: true, schema: { type: 'string', format: 'uuid' } })
+  @ApiHeader({ name: 'If-Match', required: true, schema: { type: 'string', example: '1' } })
   @ApiHeader({ name: 'X-Correlation-ID', required: false, schema: { type: 'string', format: 'uuid' } })
   @ApiOkResponse({ description: 'Hold подтверждён, appointment создан.', type: ConfirmHoldDto })
   @ApiBadRequestResponse({ description: 'Некорректный UUID или отсутствует Idempotency-Key.', type: ApiErrorDto })
@@ -173,12 +192,14 @@ export class BookingController {
     @Param('holdId') holdId: string,
     @CurrentUser() employee: JwtPayload,
     @Headers('idempotency-key') idempotencyKey?: string,
+    @Headers('if-match') ifMatch?: string,
     @Headers('x-correlation-id') correlationHeader?: string,
   ) {
     return this.bookingSecurityService.confirmManualHold({
       holdId: requiredUuid(holdId, 'holdId'),
       employee,
       idempotencyKey: requiredUuid(idempotencyKey, 'Idempotency-Key'),
+      expectedVersion: requiredVersion(ifMatch, 'If-Match'),
       correlationId: isUuid(correlationHeader) ? correlationHeader : randomUUID(),
     });
   }

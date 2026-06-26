@@ -1,4 +1,4 @@
-name: vethelp-local
+name: vethelp-alpha
 
 services:
   postgres:
@@ -128,7 +128,7 @@ services:
     image: node:22-alpine
     working_dir: /workspace/backend
     command: >-
-      sh -c "npm install && npm run migrate:up && npm run seed &&
+      sh -c "npm run migrate:up && npm run seed &&
       node -e \"const { Client } = require('pg'); const client = new Client({ connectionString: process.env.DATABASE_URL }); client.connect().then(() => client.query(\\\"UPDATE clinic_schema.clinics SET mis_type = 'VET_MANAGER_API' WHERE public_name = 'VetHelp Pilot'\\\")).then(() => client.end()).catch(async error => { console.error(error); await client.end(); process.exit(1); })\""
     environment:
       DATABASE_URL: postgres://vethelp:vethelp@postgres:5432/vethelp

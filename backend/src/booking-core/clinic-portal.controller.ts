@@ -1,5 +1,5 @@
-import { Body, Controller, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiConflictResponse, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
+import { BadRequestException, Body, Controller, Headers, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiConflictResponse, ApiCreatedResponse, ApiHeader, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload, Role } from '../auth/auth.types';
@@ -18,6 +18,20 @@ function holdIdOrThrow(value: string): string {
   return value;
 }
 
+function requiredUuid(value: string | undefined, field: string): string {
+  if (!value || !UUID.test(value)) throw new BadRequestException({ code: 'INVALID_REQUEST', message: `${field} must be a UUID.` });
+  return value;
+}
+
+function requiredVersion(value: string | undefined, field: string): number {
+  const normalized = value?.trim().replace(/^W\//, '').replace(/^"|"$/g, '');
+  const parsed = normalized ? Number.parseInt(normalized, 10) : Number.NaN;
+  if (!Number.isSafeInteger(parsed) || parsed <= 0 || String(parsed) !== normalized) {
+    throw new BadRequestException({ code: 'INVALID_REQUEST', message: `${field} must be a positive aggregate version.` });
+  }
+  return parsed;
+}
+
 @ApiTags('Clinic Portal')
 @Controller('v1')
 export class ClinicPortalController {
@@ -32,6 +46,8 @@ export class ClinicPortalController {
   @Roles(Role.CLINIC_RECEPTIONIST, Role.CLINIC_ADMIN)
   @ApiBearerAuth(SWAGGER_BEARER_AUTH)
   @ApiOperation({ summary: 'Клиника предлагает владельцу альтернативный слот без освобождения исходного hold' })
+  @ApiHeader({ name: 'Idempotency-Key', required: true, schema: { type: 'string', format: 'uuid' } })
+  @ApiHeader({ name: 'If-Match', required: true, schema: { type: 'string', example: '1' } })
   @ApiCreatedResponse({ description: 'Альтернативный слот удержан на 15 минут; исходный слот остаётся удержанным.' })
   @ApiUnauthorizedResponse({ description: 'Требуется JWT сотрудника клиники.' })
   @ApiConflictResponse({ description: 'SLOT_ALREADY_TAKEN или SLOT_LOCKED_RETRY.' })
@@ -40,8 +56,13 @@ export class ClinicPortalController {
     @Param('holdId') holdId: string,
     @Body() dto: ProposeAlternativeSlotDto,
     @CurrentUser() employee: JwtPayload,
+    @Headers('idempotency-key') idempotencyKey?: string,
+    @Headers('if-match') ifMatch?: string,
   ) {
-    return this.alternatives.proposeAlternativeSlot(holdIdOrThrow(holdId), dto.newSlotId, employee);
+    return this.alternatives.proposeAlternativeSlot(holdIdOrThrow(holdId), dto.newSlotId, employee, {
+      idempotencyKey: requiredUuid(idempotencyKey, 'Idempotency-Key'),
+      expectedVersion: requiredVersion(ifMatch, 'If-Match'),
+    });
   }
 
   @Post('booking-holds/:holdId/alternative-slot/accept')
@@ -50,13 +71,20 @@ export class ClinicPortalController {
   @Roles(Role.OWNER)
   @ApiBearerAuth(SWAGGER_BEARER_AUTH)
   @ApiOperation({ summary: 'Владелец принимает альтернативный слот и переводит hold в ожидание оплаты' })
+  @ApiHeader({ name: 'Idempotency-Key', required: true, schema: { type: 'string', format: 'uuid' } })
+  @ApiHeader({ name: 'If-Match', required: true, schema: { type: 'string', example: '1' } })
   @ApiOkResponse({ description: 'Исходный слот освобождён, альтернативный slot удерживается до оплаты. Повторный accept возвращает итоговый результат.' })
   @ApiConflictResponse({ description: 'SLOT_LOCKED_RETRY или SLOT_ALREADY_TAKEN.' })
   @ApiUnprocessableEntityResponse({ description: 'HOLD_EXPIRED или INVALID_STATE_TRANSITION.' })
   async acceptAlternativeSlot(
     @Param('holdId') holdId: string,
     @CurrentUser() owner: JwtPayload,
+    @Headers('idempotency-key') idempotencyKey?: string,
+    @Headers('if-match') ifMatch?: string,
   ) {
-    return this.ownerAcceptance.accept(holdIdOrThrow(holdId), owner.sub);
+    return this.ownerAcceptance.accept(holdIdOrThrow(holdId), owner.sub, {
+      idempotencyKey: requiredUuid(idempotencyKey, 'Idempotency-Key'),
+      expectedVersion: requiredVersion(ifMatch, 'If-Match'),
+    });
   }
 }

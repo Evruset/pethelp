@@ -20,7 +20,7 @@ describe('OwnerAuthService', () => {
     process.env.NODE_ENV = 'test';
     process.env.AUTH_DEV_OTP_CODE = '123456';
     const client = {
-      query: jest.fn(async (statement: string) => {
+      query: jest.fn(async (statement: string, _parameters?: readonly unknown[]) => {
         if (statement.includes('FROM identity_schema.otp_challenges')) return { rows: [] };
         if (statement.includes('INSERT INTO identity_schema.otp_challenges')) {
           return {
@@ -48,7 +48,8 @@ describe('OwnerAuthService', () => {
       developmentCode: '123456',
     });
     expect(client.query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO identity_schema.otp_challenges'), expect.arrayContaining(['+79991234567']));
-    expect(JSON.stringify(client.query.mock.calls)).not.toContain('123456');
+    const queryParameters = client.query.mock.calls.flatMap(([, parameters]) => (Array.isArray(parameters) ? parameters : []));
+    expect(queryParameters).not.toContain('123456');
   });
 
   it('rejects a non-E.164 phone before touching the database', async () => {

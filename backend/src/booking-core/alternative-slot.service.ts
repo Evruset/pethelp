@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { JwtPayload } from '../auth/auth.types';
-import { DomainErrors } from '../common/domain-error';
+import { DomainErrors, DomainException } from '../common/domain-error';
 import { DatabaseService } from '../database/database.service';
 import { TraceContext } from '../observability/trace-context.context';
 import { ClinicEmployeeAccessService } from './clinic-employee-access.service';
@@ -28,6 +28,17 @@ interface LockedSlot {
   held_count: number;
   state: 'OPEN' | 'CLOSED' | 'CANCELLED';
   status: 'AVAILABLE' | 'LOCKED_BY_HOLD' | 'BOOKED';
+}
+
+interface IdempotencyRow {
+  status: 'PROCESSING' | 'COMPLETED';
+  response_status: number | null;
+  response_body: Record<string, unknown> | null;
+}
+
+interface CommandFence {
+  expectedVersion: number;
+  idempotencyKey: string;
 }
 
 export interface ProposedAlternativeSlot {
@@ -58,11 +69,15 @@ export class AlternativeSlotService {
     private readonly traceContext: TraceContext,
   ) {}
 
-  async proposeAlternativeSlot(holdId: string, newSlotId: string, employeeContext: JwtPayload): Promise<ProposedAlternativeSlot> {
+  async proposeAlternativeSlot(holdId: string, newSlotId: string, employeeContext: JwtPayload, command: CommandFence): Promise<ProposedAlternativeSlot> {
     return this.database.withTransaction(async (client) => {
       await this.setShortTransactionLimits(client);
       const hold = await this.lockHold(client, holdId);
       if (!hold) throw DomainErrors.holdNotFound();
+      const scope = `booking.propose-alternative-slot:${employeeContext.sub}`;
+      const replay = await this.acquireIdempotency(client, scope, command.idempotencyKey);
+      if (replay) return replay as unknown as ProposedAlternativeSlot;
+      if (hold.version !== command.expectedVersion) throw DomainErrors.slotVersionStale();
       if (hold.state !== 'MANUAL_CONFIRM_PENDING' && hold.state !== 'ALTERNATIVE_PENDING') throw DomainErrors.invalidTransition();
       if (hold.slot_id === newSlotId) throw DomainErrors.slotAlreadyTaken();
 
@@ -113,16 +128,21 @@ export class AlternativeSlotService {
       };
       await this.writeOutbox(client, 'booking.alternative.proposed.v1', correlationId, hold.id, updated.rows[0].version, { ...result, employeeId: employeeContext.sub, clinicLocationId: sourceSlot.clinic_location_id });
       await this.writeAudit(client, 'CLINIC_EMPLOYEE', employeeContext.sub, 'BOOKING_ALTERNATIVE_PROPOSED', hold.id, correlationId, { sourceSlotId: hold.slot_id, alternativeSlotId: newSlotId });
+      await this.completeIdempotency(client, scope, command.idempotencyKey, result, HttpStatus.CREATED);
       return result;
     });
   }
 
-  async acceptAlternativeSlot(holdId: string, ownerId: string): Promise<AcceptedAlternativeSlot> {
+  async acceptAlternativeSlot(holdId: string, ownerId: string, command: CommandFence): Promise<AcceptedAlternativeSlot> {
     return this.database.withTransaction(async (client) => {
       await this.setShortTransactionLimits(client);
       const hold = await this.lockHold(client, holdId);
       if (!hold) throw DomainErrors.holdNotFound();
       if (hold.owner_id !== ownerId) throw DomainErrors.holdOwnerMismatch();
+      const scope = `booking.accept-alternative-slot:${ownerId}`;
+      const replay = await this.acquireIdempotency(client, scope, command.idempotencyKey);
+      if (replay) return replay as unknown as AcceptedAlternativeSlot;
+      if (hold.version !== command.expectedVersion) throw DomainErrors.slotVersionStale();
       if (hold.state !== 'ALTERNATIVE_PENDING' || !hold.alternative_slot_id || !hold.alternative_expires_at) throw DomainErrors.invalidTransition();
 
       const slots = await this.lockSlots(client, [hold.slot_id, hold.alternative_slot_id]);
@@ -150,6 +170,7 @@ export class AlternativeSlotService {
       const result: AcceptedAlternativeSlot = { holdId: hold.id, sourceSlotId: sourceSlot.id, slotId: alternativeSlot.id, state: 'MIS_HELD' };
       await this.writeOutbox(client, 'booking.alternative.accepted.v1', correlationId, hold.id, updated.rows[0].version, { ...result });
       await this.writeAudit(client, 'OWNER', ownerId, 'BOOKING_ALTERNATIVE_ACCEPTED', hold.id, correlationId, { ...result });
+      await this.completeIdempotency(client, scope, command.idempotencyKey, result, HttpStatus.OK);
       return result;
     });
   }
@@ -245,8 +266,60 @@ export class AlternativeSlotService {
     `, [actorType, actorId, action, holdId, correlationId, JSON.stringify(payload)]);
   }
 
+  private async acquireIdempotency(
+    client: PoolClient,
+    scope: string,
+    idempotencyKey: string,
+  ): Promise<Record<string, unknown> | undefined> {
+    const inserted = await client.query(`
+      INSERT INTO booking_schema.idempotency_records (scope, idempotency_key, status)
+      VALUES ($1, $2::uuid, 'PROCESSING')
+      ON CONFLICT (scope, idempotency_key) DO NOTHING
+      RETURNING id
+    `, [scope, idempotencyKey]);
+    if (inserted.rows[0]) return undefined;
+
+    const existing = await client.query<IdempotencyRow>(`
+      SELECT status, response_status, response_body
+      FROM booking_schema.idempotency_records
+      WHERE scope = $1 AND idempotency_key = $2::uuid
+      FOR UPDATE
+    `, [scope, idempotencyKey]);
+
+    if (!existing.rows[0]) throw DomainErrors.bookingUnavailable();
+    if (existing.rows[0].status !== 'COMPLETED' || !existing.rows[0].response_body) {
+      throw DomainErrors.idempotencyInProgress();
+    }
+    if ((existing.rows[0].response_status ?? 200) >= 400) {
+      const body = existing.rows[0].response_body as { code?: string; message?: string };
+      throw new DomainException(
+        existing.rows[0].response_status ?? HttpStatus.CONFLICT,
+        body.code ?? 'IDEMPOTENT_REQUEST_FAILED',
+        body.message ?? 'Previous request failed',
+      );
+    }
+    return existing.rows[0].response_body;
+  }
+
+  private async completeIdempotency(
+    client: PoolClient,
+    scope: string,
+    idempotencyKey: string,
+    response: unknown,
+    status: number,
+  ): Promise<void> {
+    await client.query(`
+      UPDATE booking_schema.idempotency_records
+      SET status = 'COMPLETED',
+          response_status = $3,
+          response_body = $4::jsonb,
+          updated_at = clock_timestamp()
+      WHERE scope = $1 AND idempotency_key = $2::uuid
+    `, [scope, idempotencyKey, status, JSON.stringify(response)]);
+  }
+
   private async setShortTransactionLimits(client: PoolClient): Promise<void> {
     await client.query("SET LOCAL lock_timeout = '50ms'");
-    await client.query("SET LOCAL statement_timeout = '50ms'");
+    await client.query("SET LOCAL statement_timeout = '250ms'");
   }
 }
