@@ -12,7 +12,7 @@ async function main() {
   required(createHold, 'POST /v1/booking-holds is missing');
   required(createHold.security?.some((item) => item.bearerAuth), 'Create hold must require bearerAuth');
   required(createHold.responses?.['201'], 'Create hold must document 201');
-  required(createHold.responses?.['403'], 'Create hold must document 403');
+  required(createHold.responses?.['422'], 'Create hold must document 422');
   required(createHold.responses?.['409'], 'Create hold must document 409');
 
   const confirmHold = document.paths?.['/v1/clinic/booking-holds/{holdId}/confirm']?.post;
