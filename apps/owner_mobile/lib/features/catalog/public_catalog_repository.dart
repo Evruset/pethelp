@@ -12,7 +12,16 @@ class PublicCatalogApiException implements Exception {
 }
 
 abstract class PublicCatalogRepository {
+  Future<List<CatalogClinic>> listClinics(
+      {String? query, CatalogClinicFilters? filters});
+  Future<CatalogClinicDetail> readClinic(String clinicId);
   Future<List<CatalogLocation>> listLocations({String? query});
+  Future<List<CatalogService>> listLocationServices(String locationId);
+  Future<List<CatalogAvailabilitySlot>> readAvailability({
+    required String locationId,
+    required DateTime from,
+    required DateTime to,
+  });
 }
 
 class HttpPublicCatalogRepository implements PublicCatalogRepository {
@@ -23,6 +32,79 @@ class HttpPublicCatalogRepository implements PublicCatalogRepository {
   final Uri _baseUrl;
   final http.Client _client;
 
+  Uri _uri(String path, [Map<String, String>? queryParameters]) {
+    return _baseUrl.resolve(path).replace(queryParameters: queryParameters);
+  }
+
+  @override
+  Future<List<CatalogClinic>> listClinics(
+      {String? query, CatalogClinicFilters? filters}) async {
+    final parameters = <String, String>{'limit': '20'};
+    final selectedFilters = filters;
+    final value = (selectedFilters?.query ?? query)?.trim();
+    if (value != null && value.isNotEmpty) parameters['q'] = value;
+    final serviceCode = selectedFilters?.serviceCode?.trim();
+    if (serviceCode != null && serviceCode.isNotEmpty) {
+      parameters['serviceCode'] = serviceCode;
+    }
+    final from = selectedFilters?.availableFrom;
+    if (from != null) {
+      parameters['availableFrom'] = from.toUtc().toIso8601String();
+    }
+    final to = selectedFilters?.availableTo;
+    if (to != null) parameters['availableTo'] = to.toUtc().toIso8601String();
+    final openNow = selectedFilters?.openNow;
+    if (openNow != null) parameters['openNow'] = openNow.toString();
+    final sort = selectedFilters?.sort;
+    if (sort != null && sort.isNotEmpty) parameters['sort'] = sort;
+
+    final response = await _client.get(
+      _uri('v1/clinics', parameters),
+      headers: const {'Accept': 'application/json'},
+    );
+    final payload = _decode(response);
+    if (response.statusCode != 200 || payload is! Map<String, dynamic>) {
+      throw PublicCatalogApiException(response.statusCode, _errorCode(payload));
+    }
+
+    final rawClinics = payload['clinics'];
+    if (rawClinics is! List) {
+      throw const PublicCatalogApiException(503, 'BACKEND_UNAVAILABLE');
+    }
+    return rawClinics
+        .whereType<Map<String, dynamic>>()
+        .map(_clinicFromJson)
+        .toList(growable: false);
+  }
+
+  @override
+  Future<CatalogClinicDetail> readClinic(String clinicId) async {
+    final response = await _client.get(
+      _uri('v1/clinics/$clinicId'),
+      headers: const {'Accept': 'application/json'},
+    );
+    final payload = _decode(response);
+    if (response.statusCode != 200 || payload is! Map<String, dynamic>) {
+      throw PublicCatalogApiException(response.statusCode, _errorCode(payload));
+    }
+
+    final rawLocations = payload['locations'];
+    if (rawLocations is! List) {
+      throw const PublicCatalogApiException(503, 'BACKEND_UNAVAILABLE');
+    }
+    return CatalogClinicDetail(
+      id: payload['id'] as String,
+      name: payload['name'] as String,
+      locationCount: (payload['locationCount'] as num?)?.toInt() ?? 0,
+      serviceCount: (payload['serviceCount'] as num?)?.toInt() ?? 0,
+      nextAvailableAt: _optionalDate(payload['nextAvailableAt']),
+      locations: rawLocations
+          .whereType<Map<String, dynamic>>()
+          .map(_locationFromJson)
+          .toList(growable: false),
+    );
+  }
+
   @override
   Future<List<CatalogLocation>> listLocations({String? query}) async {
     final parameters = <String, String>{'limit': '20'};
@@ -30,7 +112,7 @@ class HttpPublicCatalogRepository implements PublicCatalogRepository {
     if (value != null && value.isNotEmpty) parameters['q'] = value;
 
     final response = await _client.get(
-      _baseUrl.resolve('v1/catalog/clinic-locations').replace(queryParameters: parameters),
+      _uri('v1/catalog/clinic-locations', parameters),
       headers: const {'Accept': 'application/json'},
     );
     final payload = _decode(response);
@@ -48,6 +130,69 @@ class HttpPublicCatalogRepository implements PublicCatalogRepository {
         .toList(growable: false);
   }
 
+  @override
+  Future<List<CatalogService>> listLocationServices(String locationId) async {
+    final response = await _client.get(
+      _uri('v1/clinic-locations/$locationId/services'),
+      headers: const {'Accept': 'application/json'},
+    );
+    final payload = _decode(response);
+    if (response.statusCode != 200 || payload is! Map<String, dynamic>) {
+      throw PublicCatalogApiException(response.statusCode, _errorCode(payload));
+    }
+
+    final rawServices = payload['services'];
+    if (rawServices is! List) {
+      throw const PublicCatalogApiException(503, 'BACKEND_UNAVAILABLE');
+    }
+    return rawServices
+        .whereType<Map<String, dynamic>>()
+        .map(_serviceFromJson)
+        .toList(growable: false);
+  }
+
+  @override
+  Future<List<CatalogAvailabilitySlot>> readAvailability({
+    required String locationId,
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    final response = await _client.get(
+      _uri(
+        'v1/clinic-locations/$locationId/availability',
+        <String, String>{
+          'from': from.toUtc().toIso8601String(),
+          'to': to.toUtc().toIso8601String(),
+          'limit': '12',
+        },
+      ),
+      headers: const {'Accept': 'application/json'},
+    );
+    final payload = _decode(response);
+    if (response.statusCode != 200 || payload is! Map<String, dynamic>) {
+      throw PublicCatalogApiException(response.statusCode, _errorCode(payload));
+    }
+
+    final rawSlots = payload['slots'];
+    if (rawSlots is! List) {
+      throw const PublicCatalogApiException(503, 'BACKEND_UNAVAILABLE');
+    }
+    return rawSlots
+        .whereType<Map<String, dynamic>>()
+        .map(_availabilitySlotFromJson)
+        .toList(growable: false);
+  }
+
+  CatalogClinic _clinicFromJson(Map<String, dynamic> json) {
+    return CatalogClinic(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      locationCount: (json['locationCount'] as num?)?.toInt() ?? 0,
+      serviceCount: (json['serviceCount'] as num?)?.toInt() ?? 0,
+      nextAvailableAt: _optionalDate(json['nextAvailableAt']),
+    );
+  }
+
   CatalogLocation _locationFromJson(Map<String, dynamic> json) {
     final clinic = json['clinic'] as Map<String, dynamic>;
     final location = json['location'] as Map<String, dynamic>;
@@ -59,8 +204,38 @@ class HttpPublicCatalogRepository implements PublicCatalogRepository {
       address: location['address'] as String,
       phone: location['phone'] as String?,
       hasOpenSlots: availability['hasOpenSlots'] as bool? ?? false,
-      observedAt: DateTime.parse(availability['observedAt'] as String).toLocal(),
+      observedAt:
+          DateTime.parse(availability['observedAt'] as String).toLocal(),
     );
+  }
+
+  CatalogService _serviceFromJson(Map<String, dynamic> json) {
+    return CatalogService(
+      id: json['id'] as String,
+      code: json['code'] as String,
+      displayName: json['displayName'] as String,
+      durationMinutes: (json['durationMinutes'] as num?)?.toInt() ?? 0,
+      priceAmount: json['priceAmount'] as String,
+      currency: json['currency'] as String,
+    );
+  }
+
+  CatalogAvailabilitySlot _availabilitySlotFromJson(Map<String, dynamic> json) {
+    final service =
+        json['service'] as Map<String, dynamic>? ?? const <String, dynamic>{};
+    return CatalogAvailabilitySlot(
+      id: json['id'] as String,
+      startsAt: DateTime.parse(json['startsAt'] as String).toLocal(),
+      endsAt: DateTime.parse(json['endsAt'] as String).toLocal(),
+      remainingCapacity: (json['remainingCapacity'] as num?)?.toInt() ?? 0,
+      serviceId: service['id'] as String?,
+      serviceName: service['name'] as String?,
+    );
+  }
+
+  DateTime? _optionalDate(dynamic value) {
+    if (value is! String || value.isEmpty) return null;
+    return DateTime.parse(value).toLocal();
   }
 
   dynamic _decode(http.Response response) {
