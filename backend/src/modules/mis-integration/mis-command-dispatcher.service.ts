@@ -34,7 +34,7 @@ export class MisCommandDispatcherService {
       return;
     }
     if (!context.mis_type) {
-      await this.commitFailure(payload, 'Clinic MIS type is not configured');
+      await this.commitReservationFailure(payload, 'Clinic MIS type is not configured');
       return;
     }
 
@@ -42,7 +42,7 @@ export class MisCommandDispatcherService {
     try {
       adapter = this.adapterFactory.getAdapter(context.mis_type);
     } catch (error) {
-      await this.commitFailure(payload, this.errorMessage(error));
+      await this.commitReservationFailure(payload, this.errorMessage(error));
       return;
     }
 
@@ -55,8 +55,8 @@ export class MisCommandDispatcherService {
           externalPatientId: payload.externalPatientId,
           correlationId: payload.correlationId,
         });
-        if (result.status === 'SUCCESS') await this.commitSuccess(payload, result);
-        else await this.commitFailure(payload, result.rawError ?? 'MIS reservation was rejected');
+        if (result.status === 'SUCCESS') await this.commitReservationSuccess(payload, result);
+        else await this.commitReservationFailure(payload, result.rawError ?? 'MIS reservation was rejected');
         return;
       } catch (error) {
         const retryable = error instanceof MisNetworkError;
@@ -66,7 +66,7 @@ export class MisCommandDispatcherService {
             await this.markReconciliationPending(payload, this.errorMessage(error));
             throw error;
           }
-          await this.commitFailure(payload, this.errorMessage(error));
+          await this.commitReservationFailure(payload, this.errorMessage(error));
           return;
         }
         const waitMs = this.retryDelaysMs[attempt];
@@ -88,8 +88,8 @@ export class MisCommandDispatcherService {
     return result.rows[0];
   }
 
-  private async commitSuccess(payload: MisReservationRequestedPayload, result: MisReservationResult): Promise<void> {
-    if (!result.externalHoldId) return this.commitFailure(payload, 'MIS response marked success without external hold id');
+  async commitReservationSuccess(payload: MisReservationRequestedPayload, result: MisReservationResult): Promise<void> {
+    if (!result.externalHoldId) return this.commitReservationFailure(payload, 'MIS response marked success without external hold id');
     await this.database.withTransaction(async (client) => {
       await this.setLimits(client);
       const locked = await this.lockReservation(client, payload.holdId);
@@ -110,7 +110,7 @@ export class MisCommandDispatcherService {
     });
   }
 
-  private async commitFailure(payload: MisReservationRequestedPayload, rawError: string): Promise<void> {
+  async commitReservationFailure(payload: MisReservationRequestedPayload, rawError: string): Promise<void> {
     await this.database.withTransaction(async (client) => {
       await this.setLimits(client);
       const locked = await this.lockReservation(client, payload.holdId);

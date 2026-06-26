@@ -24,8 +24,15 @@ const IDS = {
   service: '66666666-6666-4666-8666-666666666666',
   slot1: '77777777-7777-4777-8777-777777777777',
   slot2: '88888888-8888-4888-8888-888888888888',
+  inactiveLocation: '12121212-1212-4212-8212-121212121212',
+  inactiveSlot: '34343434-3434-4434-8434-343434343434',
   trace: '99999999-9999-4999-8999-999999999999',
   holdCreateKey: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  missingTraceKey: 'abababab-abab-4aba-8aba-abababababab',
+  inactiveSlotHoldKey: 'acacacac-acac-4aca-8aca-acacacacacac',
+  duplicateHoldKey: 'adadadad-adad-4ada-8ada-adadadadadad',
+  proposalKey: 'aeaeaeae-aeae-4aea-8aea-aeaeaeaeaeae',
+  acceptAlternativeKey: 'afafafaf-afaf-4afa-8afa-afafafafafaf',
   providerEvent: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
 };
 
@@ -54,6 +61,7 @@ describe('VetHelp platform smoke: owner → Level C clinic → payment → telem
     process.env.ACQUIRING_API_KEY = 'platform-smoke-acquiring-key';
     process.env.ACQUIRING_WEBHOOK_SECRET = acquiringWebhookSecret;
     nock.disableNetConnect();
+    nock.enableNetConnect(/^(127\.0\.0\.1|localhost)(:\d+)?$/);
 
     app = await NestFactory.create(NestRoot, { rawBody: true, logger: false });
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
@@ -80,6 +88,29 @@ describe('VetHelp platform smoke: owner → Level C clinic → payment → telem
     await app?.close();
   });
 
+  it('rejects create hold without a command correlation id', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/v1/booking-holds')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .set('Idempotency-Key', IDS.missingTraceKey)
+      .send({ slotId: IDS.slot1, petId: IDS.pet })
+      .expect(400);
+
+    expect(response.body).toMatchObject({ code: 'INVALID_REQUEST' });
+  });
+
+  it('rejects slots outside active public clinic locations', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/v1/booking-holds')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .set('Idempotency-Key', IDS.inactiveSlotHoldKey)
+      .set('X-Correlation-ID', IDS.trace)
+      .send({ slotId: IDS.inactiveSlot, petId: IDS.pet })
+      .expect(422);
+
+    expect(response.body).toMatchObject({ code: 'SLOT_UNAVAILABLE' });
+  });
+
   it('keeps slot and audit invariants while preserving correlationId end to end', async () => {
     // Current persisted model materializes Level-C holds directly as
     // MANUAL_CONFIRM_PENDING; LOCAL_HOLD_CREATED is a logical API phase only.
@@ -99,6 +130,15 @@ describe('VetHelp platform smoke: owner → Level C clinic → payment → telem
     expect(created.confirmation_sla_expires_at).not.toBeNull();
     await expectOutboxCorrelation(database, 'booking.hold.created.v1', holdId);
 
+    const duplicate = await request(app.getHttpServer())
+      .post('/v1/booking-holds')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .set('Idempotency-Key', IDS.duplicateHoldKey)
+      .set('X-Correlation-ID', IDS.trace)
+      .send({ slotId: IDS.slot1, petId: IDS.pet })
+      .expect(422);
+    expect(duplicate.body).toMatchObject({ code: 'HOLD_ALREADY_ACTIVE' });
+
     // Generic relay publishes the original durable event; manual queue state is already materialized.
     await app.get(OutboxRelayService).poll();
     const postRelay = await readHold(database, holdId);
@@ -114,6 +154,8 @@ describe('VetHelp platform smoke: owner → Level C clinic → payment → telem
     const proposal = await request(app.getHttpServer())
       .post(`/v1/clinic/booking-holds/${holdId}/alternative-slot`)
       .set('Authorization', `Bearer ${receptionistToken}`)
+      .set('Idempotency-Key', IDS.proposalKey)
+      .set('If-Match', '1')
       .set('X-Correlation-ID', IDS.trace)
       .send({ newSlotId: IDS.slot2 })
       .expect(201);
@@ -145,6 +187,8 @@ describe('VetHelp platform smoke: owner → Level C clinic → payment → telem
     const accepted = await request(app.getHttpServer())
       .post(`/v1/booking-holds/${holdId}/alternative-slot/accept`)
       .set('Authorization', `Bearer ${ownerToken}`)
+      .set('Idempotency-Key', IDS.acceptAlternativeKey)
+      .set('If-Match', '2')
       .set('X-Correlation-ID', IDS.trace)
       .send({})
       .expect(200);
@@ -240,11 +284,11 @@ describe('VetHelp platform smoke: owner → Level C clinic → payment → telem
 async function assertHttpLockBudget(database: DatabaseService): Promise<void> {
   await database.withTransaction(async (client) => {
     await client.query("SET LOCAL lock_timeout = '50ms'");
-    await client.query("SET LOCAL statement_timeout = '50ms'");
+    await client.query("SET LOCAL statement_timeout = '250ms'");
     const settings = await client.query<{ lock_timeout: string; statement_timeout: string }>(`
       SELECT current_setting('lock_timeout') AS lock_timeout, current_setting('statement_timeout') AS statement_timeout
     `);
-    expect(settings.rows[0]).toEqual({ lock_timeout: '50ms', statement_timeout: '50ms' });
+    expect(settings.rows[0]).toEqual({ lock_timeout: '50ms', statement_timeout: '250ms' });
   });
 }
 
@@ -276,13 +320,15 @@ async function resetFixtures(database: DatabaseService): Promise<void> {
   await database.query(`INSERT INTO pet_schema.pets (id, owner_id, name, species) VALUES ($1::uuid, $2::uuid, 'Platform smoke pet', 'DOG')`, [IDS.pet, IDS.owner]);
   await database.query(`INSERT INTO clinic_schema.clinics (id, legal_name, public_name) VALUES ($1::uuid, 'Platform Smoke LLC', 'Platform Smoke Clinic')`, [IDS.clinic]);
   await database.query(`INSERT INTO clinic_schema.clinic_locations (id, clinic_id, address) VALUES ($1::uuid, $2::uuid, 'Smoke street 1')`, [IDS.location, IDS.clinic]);
+  await database.query(`INSERT INTO clinic_schema.clinic_locations (id, clinic_id, address, status) VALUES ($1::uuid, $2::uuid, 'Inactive smoke street 2', 'INACTIVE')`, [IDS.inactiveLocation, IDS.clinic]);
   await database.query(`INSERT INTO clinic_schema.employee_location_memberships (employee_id, clinic_location_id, role) VALUES ($1::uuid, $2::uuid, 'CLINIC_RECEPTIONIST')`, [IDS.receptionist, IDS.location]);
   await database.query(`INSERT INTO clinic_schema.clinic_services (id, clinic_location_id, code, display_name, duration_minutes) VALUES ($1::uuid, $2::uuid, 'SMOKE_VISIT', 'Smoke visit', 30)`, [IDS.service, IDS.location]);
   await database.query(`
     INSERT INTO clinic_schema.appointment_slots (
       id, clinic_location_id, service_id, starts_at, ends_at, capacity, status, integration_mode, last_freshness_sync
     ) VALUES
-      ($1::uuid, $3::uuid, $5::uuid, clock_timestamp() + interval '2 hours', clock_timestamp() + interval '150 minutes', 1, 'AVAILABLE', 'LEVEL_C', clock_timestamp()),
-      ($2::uuid, $3::uuid, $5::uuid, clock_timestamp() + interval '3 hours', clock_timestamp() + interval '210 minutes', 1, 'AVAILABLE', 'LEVEL_C', clock_timestamp())
-  `, [IDS.slot1, IDS.slot2, IDS.location, IDS.clinic, IDS.service]);
+      ($1::uuid, $3::uuid, $4::uuid, clock_timestamp() + interval '2 hours', clock_timestamp() + interval '150 minutes', 1, 'AVAILABLE', 'LEVEL_C', clock_timestamp()),
+      ($2::uuid, $3::uuid, $4::uuid, clock_timestamp() + interval '3 hours', clock_timestamp() + interval '210 minutes', 1, 'AVAILABLE', 'LEVEL_C', clock_timestamp()),
+      ($5::uuid, $6::uuid, $4::uuid, clock_timestamp() + interval '4 hours', clock_timestamp() + interval '270 minutes', 1, 'AVAILABLE', 'LEVEL_C', clock_timestamp())
+  `, [IDS.slot1, IDS.slot2, IDS.location, IDS.service, IDS.inactiveSlot, IDS.inactiveLocation]);
 }

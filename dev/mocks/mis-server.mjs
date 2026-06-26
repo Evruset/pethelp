@@ -79,6 +79,15 @@ const server = http.createServer(async (request, response) => {
     return send(response, 201, result);
   }
 
+  if (request.method === 'GET' && /^\/api\/v1\/reservations\/[^/]+$/.test(url.pathname)) {
+    if (!authorized(request)) return send(response, 401, { error: 'invalid API key' });
+
+    const reservationId = decodeURIComponent(url.pathname.split('/').pop() ?? '');
+    const existing = reservations.get(reservationId);
+    if (!existing) return send(response, 404, { error: 'reservation not found' });
+    return send(response, 200, existing);
+  }
+
   return send(response, 404, { error: 'not found' });
 });
 

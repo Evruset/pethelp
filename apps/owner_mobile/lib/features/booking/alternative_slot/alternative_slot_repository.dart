@@ -93,6 +93,7 @@ class AlternativeSlotRepository {
 
   Future<AlternativeSlotResult<AlternativeSlotAccepted>> acceptAlternative({
     required String holdId,
+    required int version,
     required String correlationId,
     String? idempotencyKey,
   }) async {
@@ -103,6 +104,7 @@ class AlternativeSlotRepository {
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
         'Idempotency-Key': idempotencyKey ?? _uuid.v4(),
+        'If-Match': '$version',
         'X-Correlation-ID': correlationId,
       },
     );

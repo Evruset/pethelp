@@ -49,8 +49,15 @@ describe('Payment attempt fencing', () => {
     expect(first.status).toBe('CREATED');
     expect(first.remoteId).toBeTruthy();
     expect(first.checkoutUrl).toBeTruthy();
+    expect(first.paymentAttemptNo).toBe(1);
+    expect(first.paymentFenceToken).toMatch(/^[0-9a-f-]{36}$/);
+    expect(first.paymentFenceToken).not.toBe(first.id);
+    expect(first.paymentFenceToken).not.toBe(first.idempotencyKey);
     expect(second.id).toBe(first.id);
+    expect(second.paymentAttemptNo).toBe(first.paymentAttemptNo);
+    expect(second.paymentFenceToken).toBe(first.paymentFenceToken);
     expect(acquiringClient.createRemoteIntent).toHaveBeenCalledTimes(1);
+    expect(acquiringClient.createRemoteIntent).toHaveBeenCalledWith(first.id, 1000, first.paymentFenceToken);
 
     const count = await database.query<{ count: string }>(
       'SELECT COUNT(*)::text AS count FROM payment_schema.payment_intents WHERE hold_id = $1::uuid',
@@ -58,6 +65,7 @@ describe('Payment attempt fencing', () => {
     );
     expect(count.rows[0].count).toBe('1');
     await expectLedgerEntry(database, first.id, 'PROVIDER_INTENT_CREATED');
+    await expectPaymentFence(database, first.id, first.paymentAttemptNo, first.paymentFenceToken);
   });
 
   it('authorizes a legitimate hold and queues capture instead of marking it CAPTURED in webhook transaction', async () => {
@@ -92,7 +100,7 @@ describe('Payment attempt fencing', () => {
 
     await expect(service.handlePaymentAuthorized(webhookCommand(intent.idempotencyKey, intent.remoteId ?? undefined))).rejects.toMatchObject({
       response: expect.objectContaining({ code: 'PAYMENT_FENCED_SLOT_EXPIRED' }),
-    } as DomainException);
+    } as unknown as DomainException);
 
     await expectPaymentStatus(database, intent.id, 'VOIDED');
     await expectLedgerEntry(database, intent.id, 'VOID_REQUESTED');
@@ -142,6 +150,7 @@ async function createFixture(database: DatabaseService, holdState: string): Prom
   const petId = randomUUID();
   const clinicId = randomUUID();
   const locationId = randomUUID();
+  const serviceId = randomUUID();
   const slotId = randomUUID();
   const holdId = randomUUID();
 
@@ -149,7 +158,8 @@ async function createFixture(database: DatabaseService, holdState: string): Prom
   await database.query(`INSERT INTO pet_schema.pets (id, owner_id, name, species) VALUES ($1::uuid, $2::uuid, 'Payment Test Pet', 'DOG')`, [petId, ownerId]);
   await database.query(`INSERT INTO clinic_schema.clinics (id, legal_name, public_name) VALUES ($1::uuid, 'Payment Test Clinic LLC', 'Payment Test Clinic')`, [clinicId]);
   await database.query(`INSERT INTO clinic_schema.clinic_locations (id, clinic_id, address) VALUES ($1::uuid, $2::uuid, 'Payment test address')`, [locationId, clinicId]);
-  await database.query(`INSERT INTO clinic_schema.appointment_slots (id, clinic_location_id, starts_at, ends_at, capacity, held_count) VALUES ($1::uuid, $2::uuid, clock_timestamp() + interval '1 hour', clock_timestamp() + interval '90 minutes', 1, 1)`, [slotId, locationId]);
+  await database.query(`INSERT INTO clinic_schema.clinic_services (id, clinic_location_id, code, display_name, duration_minutes) VALUES ($1::uuid, $2::uuid, 'PAYMENT_TEST', 'Payment test', 30)`, [serviceId, locationId]);
+  await database.query(`INSERT INTO clinic_schema.appointment_slots (id, clinic_location_id, service_id, starts_at, ends_at, capacity, held_count) VALUES ($1::uuid, $2::uuid, $3::uuid, clock_timestamp() + interval '1 hour', clock_timestamp() + interval '90 minutes', 1, 1)`, [slotId, locationId, serviceId]);
   await database.query(`INSERT INTO booking_schema.booking_holds (id, slot_id, owner_id, pet_id, state, expires_at) VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, clock_timestamp() + interval '10 minutes')`, [holdId, slotId, ownerId, petId, holdState]);
 
   return { ownerId, petId, clinicId, locationId, slotId, holdId };
@@ -163,6 +173,14 @@ async function readHold(database: DatabaseService, holdId: string): Promise<{ st
 async function expectPaymentStatus(database: DatabaseService, paymentId: string, status: string): Promise<void> {
   const result = await database.query<{ status: string }>('SELECT status FROM payment_schema.payment_intents WHERE id = $1::uuid', [paymentId]);
   expect(result.rows[0]?.status).toBe(status);
+}
+
+async function expectPaymentFence(database: DatabaseService, paymentId: string, paymentAttemptNo: number, paymentFenceToken: string): Promise<void> {
+  const result = await database.query<{ payment_attempt_no: number; payment_fence_token: string }>(
+    'SELECT payment_attempt_no, payment_fence_token::text AS payment_fence_token FROM payment_schema.payment_intents WHERE id = $1::uuid',
+    [paymentId],
+  );
+  expect(result.rows[0]).toEqual({ payment_attempt_no: paymentAttemptNo, payment_fence_token: paymentFenceToken });
 }
 
 async function expectLedgerEntry(database: DatabaseService, paymentId: string, entryType: string): Promise<void> {

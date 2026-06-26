@@ -61,7 +61,9 @@ async function main(): Promise<void> {
             ends_at,
             capacity,
             source,
-            external_slot_id
+            external_slot_id,
+            integration_mode,
+            last_freshness_sync
           )
           SELECT
             $1::uuid,
@@ -70,10 +72,16 @@ async function main(): Promise<void> {
             fixture_time.starts_at + interval '30 minutes',
             1,
             $5,
-            $6
+            $6,
+            'LEVEL_A',
+            clock_timestamp()
           FROM fixture_time
           WHERE fixture_time.starts_at > clock_timestamp() + interval '30 minutes'
-          ON CONFLICT (source, external_slot_id) DO NOTHING
+          ON CONFLICT (source, external_slot_id) DO UPDATE
+          SET service_id = EXCLUDED.service_id,
+              integration_mode = 'LEVEL_A',
+              last_freshness_sync = clock_timestamp(),
+              updated_at = clock_timestamp()
           RETURNING id, starts_at
         `, [
           pilot.location_id,

@@ -26,11 +26,15 @@ describe('Owner alternative acceptance replay', () => {
         sub: fixture.employeeId,
         roles: [Role.CLINIC_RECEPTIONIST],
         locationIds: [fixture.locationId],
+      }, {
+        expectedVersion: 1,
+        idempotencyKey: randomUUID(),
       }),
     );
 
-    const first = await acceptance.accept(fixture.holdId, fixture.ownerId);
-    const replay = await acceptance.accept(fixture.holdId, fixture.ownerId);
+    const idempotencyKey = randomUUID();
+    const first = await acceptance.accept(fixture.holdId, fixture.ownerId, { expectedVersion: 2, idempotencyKey });
+    const replay = await acceptance.accept(fixture.holdId, fixture.ownerId, { expectedVersion: 2, idempotencyKey });
 
     expect(first).toMatchObject({ holdId: fixture.holdId, slotId: fixture.alternativeSlotId, state: 'MIS_HELD' });
     expect(replay).toMatchObject({ holdId: fixture.holdId, slotId: fixture.alternativeSlotId, state: 'MIS_HELD' });

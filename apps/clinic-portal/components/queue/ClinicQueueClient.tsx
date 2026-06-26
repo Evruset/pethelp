@@ -109,7 +109,8 @@ export function ClinicQueueClient({ clinicId, locationId, initialQueue }: Props)
     [queue.items],
   );
 
-  const confirmHold = useCallback(async (holdId: string) => {
+  const confirmHold = useCallback(async (item: ManualConfirmationQueueItem) => {
+    const holdId = item.holdId;
     const current = actionState[holdId] ?? 'idle';
     if (current !== 'idle') return;
 
@@ -123,6 +124,7 @@ export function ClinicQueueClient({ clinicId, locationId, initialQueue }: Props)
         method: 'POST',
         headers: {
           'Idempotency-Key': idempotencyKey,
+          'If-Match': String(item.version),
           'X-Correlation-ID': getCorrelationId(),
         },
       });
@@ -254,7 +256,7 @@ function QueueRow({
   position: number;
   serverNowMs: number;
   actionState: ActionState;
-  onConfirm: (holdId: string) => void;
+  onConfirm: (item: ManualConfirmationQueueItem) => void;
 }) {
   const remainingMs = Date.parse(item.confirmationSlaExpiresAt) - serverNowMs;
   const breached = remainingMs <= 0;
@@ -302,7 +304,7 @@ function QueueRow({
         <button
           type="button"
           disabled={blocked || actionState === 'confirming'}
-          onClick={() => onConfirm(item.holdId)}
+          onClick={() => onConfirm(item)}
           className="w-full rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
         >
           {actionState === 'confirming' ? 'Подтверждаем…' : blocked ? 'Недоступно' : 'Подтвердить'}

@@ -5,7 +5,9 @@ import { randomUUID } from 'node:crypto';
 import { setTimeout as retryDelay } from 'node:timers/promises';
 import type { DatabaseService } from '../src/database/database.service';
 import type { MisCommandDispatcherService } from '../src/modules/mis-integration/mis-command-dispatcher.service';
+import type { MisReconciliationSweeperWorker } from '../src/modules/mis-integration/mis-reconciliation-sweeper.worker';
 import type { MisReservationRequestedPayload } from '../src/modules/mis-integration/interfaces/mis-event.interface';
+import { MisNetworkError } from '../src/modules/mis-integration/interfaces/mis-adapter.interface';
 
 jest.mock('node:timers/promises', () => ({
   setTimeout: jest.fn(() => Promise.resolve()),
@@ -13,6 +15,7 @@ jest.mock('node:timers/promises', () => ({
 
 const VET_MANAGER_BASE_URL = 'https://vetmanager.test';
 const mockedRetryDelay = retryDelay as unknown as jest.Mock;
+type NockInterceptor = ReturnType<ReturnType<typeof nock>['post']>;
 
 interface Fixture {
   clinicId: string;
@@ -34,6 +37,7 @@ jest.setTimeout(30_000);
 describe('MisCommandDispatcherService integration', () => {
   let database: DatabaseService;
   let dispatcher: MisCommandDispatcherService;
+  let sweeper: MisReconciliationSweeperWorker;
   let fixture: Fixture;
 
   beforeAll(async () => {
@@ -54,11 +58,13 @@ describe('MisCommandDispatcherService integration', () => {
       { VetManagerAdapter },
       { MisAdapterFactory },
       { MisCommandDispatcherService },
+      { MisReconciliationSweeperWorker },
     ] = await Promise.all([
       import('../src/database/database.service'),
       import('../src/modules/mis-integration/adapters/vet-manager.adapter'),
       import('../src/modules/mis-integration/mis-adapter.factory'),
       import('../src/modules/mis-integration/mis-command-dispatcher.service'),
+      import('../src/modules/mis-integration/mis-reconciliation-sweeper.worker'),
     ]);
 
     database = new DatabaseService();
@@ -66,6 +72,7 @@ describe('MisCommandDispatcherService integration', () => {
     const adapter = new VetManagerAdapter(http);
     const factory = new MisAdapterFactory(adapter);
     dispatcher = new MisCommandDispatcherService(database, factory);
+    sweeper = new MisReconciliationSweeperWorker(database, factory, dispatcher);
 
     nock.disableNetConnect();
   });
@@ -122,7 +129,7 @@ describe('MisCommandDispatcherService integration', () => {
     expect(mockedRetryDelay.mock.calls.map((call) => call[0])).toEqual([1_000, 2_000]);
   });
 
-  it('marks the hold MIS_BOOKING_FAILED and compensates held_count after all network attempts fail', async () => {
+  it('leaves the hold for MIS reconciliation after all network attempts fail', async () => {
     const scope = reserveScope(fixture)
       .reply(500, { message: 'outage 1' })
       .post('/api/v1/reservations', expectedRequestBody(fixture))
@@ -130,12 +137,12 @@ describe('MisCommandDispatcherService integration', () => {
       .post('/api/v1/reservations', expectedRequestBody(fixture))
       .reply(500, { message: 'outage 3' });
 
-    await dispatcher.dispatchReservation(fixture.payload);
+    await expect(dispatcher.dispatchReservation(fixture.payload)).rejects.toBeInstanceOf(MisNetworkError);
 
     const hold = await readHold(database, fixture.holdId);
-    expect(hold).toEqual({ state: 'MIS_BOOKING_FAILED', external_hold_id: null });
-    await expectHeldCount(database, fixture.slotId, 0);
-    await expectAuditAction(database, fixture.holdId, 'mis.reservation.failed');
+    expect(hold).toEqual({ state: 'MIS_RECONCILIATION_PENDING', external_hold_id: null });
+    await expectHeldCount(database, fixture.slotId, 1);
+    await expectAuditAction(database, fixture.holdId, 'mis.reservation.reconciliation_pending');
     expect(scope.isDone()).toBe(true);
     expect(mockedRetryDelay.mock.calls.map((call) => call[0])).toEqual([1_000, 2_000]);
   });
@@ -152,9 +159,59 @@ describe('MisCommandDispatcherService integration', () => {
     expect(scope.isDone()).toBe(true);
     expect(mockedRetryDelay).not.toHaveBeenCalled();
   });
+
+  it('reconciles an ambiguous network result to MIS_HELD by deterministic reservation lookup', async () => {
+    const externalHoldId = 'vetmanager-hold-reconciled';
+    const scope = reserveScope(fixture)
+      .reply(500, { message: 'outage 1' })
+      .post('/api/v1/reservations', expectedRequestBody(fixture))
+      .reply(500, { message: 'outage 2' })
+      .post('/api/v1/reservations', expectedRequestBody(fixture))
+      .reply(500, { message: 'outage 3' });
+    lookupScope(fixture).reply(200, { success: true, external_hold_id: externalHoldId, ttl_minutes: 6 });
+
+    await expect(dispatcher.dispatchReservation(fixture.payload)).rejects.toBeInstanceOf(MisNetworkError);
+    const resolved = await sweeper.reconcileStaleReservations(10, 0);
+
+    const hold = await readHold(database, fixture.holdId);
+    expect(resolved).toBe(1);
+    expect(hold).toEqual({ state: 'MIS_HELD', external_hold_id: externalHoldId });
+    await expectHeldCount(database, fixture.slotId, 1);
+    await expectAuditAction(database, fixture.holdId, 'mis.reservation.reconciliation_pending');
+    await expectAuditAction(database, fixture.holdId, 'mis.reservation.held');
+    expect(scope.isDone()).toBe(true);
+  });
+
+  it('compensates only after lookup confirms no MIS reservation exists', async () => {
+    await markReconciliationPending(database, fixture.holdId);
+    const scope = lookupScope(fixture).reply(404, { error: 'not found' });
+
+    const resolved = await sweeper.reconcileStaleReservations(10, 0);
+
+    const hold = await readHold(database, fixture.holdId);
+    expect(resolved).toBe(1);
+    expect(hold).toEqual({ state: 'MIS_BOOKING_FAILED', external_hold_id: null });
+    await expectHeldCount(database, fixture.slotId, 0);
+    await expectAuditAction(database, fixture.holdId, 'mis.reservation.failed');
+    expect(scope.isDone()).toBe(true);
+  });
+
+  it('keeps the local hold reserved when reconciliation lookup is still ambiguous', async () => {
+    await markReconciliationPending(database, fixture.holdId);
+    const scope = lookupScope(fixture).reply(500, { message: 'lookup outage' });
+
+    const resolved = await sweeper.reconcileStaleReservations(10, 0);
+
+    const hold = await readHold(database, fixture.holdId);
+    expect(resolved).toBe(0);
+    expect(hold).toEqual({ state: 'MIS_RECONCILIATION_PENDING', external_hold_id: null });
+    await expectHeldCount(database, fixture.slotId, 1);
+    await expectAuditAction(database, fixture.holdId, 'mis.reservation.failed', '0');
+    expect(scope.isDone()).toBe(true);
+  });
 });
 
-function reserveScope(fixture: Fixture): ReturnType<typeof nock> {
+function reserveScope(fixture: Fixture): NockInterceptor {
   return nock(VET_MANAGER_BASE_URL)
     .matchHeader('idempotency-key', fixture.holdId)
     .matchHeader('x-api-key', 'mis-test-key')
@@ -170,6 +227,13 @@ function expectedRequestBody(fixture: Fixture): (body: unknown) => boolean {
       && value.clinicId === fixture.clinicId
       && value.patientId === fixture.externalPatientId;
   };
+}
+
+function lookupScope(fixture: Fixture) {
+  return nock(VET_MANAGER_BASE_URL)
+    .matchHeader('idempotency-key', fixture.holdId)
+    .matchHeader('x-api-key', 'mis-test-key')
+    .get(`/api/v1/reservations/${fixture.holdId}`);
 }
 
 async function resetDatabase(database: DatabaseService): Promise<void> {
@@ -263,6 +327,16 @@ async function readHold(database: DatabaseService, holdId: string): Promise<Hold
   return result.rows[0];
 }
 
+async function markReconciliationPending(database: DatabaseService, holdId: string): Promise<void> {
+  await database.query(`
+    UPDATE booking_schema.booking_holds
+    SET state = 'MIS_RECONCILIATION_PENDING',
+        mis_processed_at = clock_timestamp() - interval '2 minutes',
+        updated_at = clock_timestamp()
+    WHERE id = $1::uuid
+  `, [holdId]);
+}
+
 async function expectHeldCount(database: DatabaseService, slotId: string, expected: number): Promise<void> {
   const result = await database.query<{ held_count: number }>(
     'SELECT held_count FROM clinic_schema.appointment_slots WHERE id = $1::uuid',
@@ -271,7 +345,7 @@ async function expectHeldCount(database: DatabaseService, slotId: string, expect
   expect(result.rows[0]?.held_count).toBe(expected);
 }
 
-async function expectAuditAction(database: DatabaseService, holdId: string, action: string): Promise<void> {
+async function expectAuditAction(database: DatabaseService, holdId: string, action: string, expected = '1'): Promise<void> {
   const result = await database.query<{ count: string }>(
     `SELECT COUNT(*)::text AS count
      FROM audit_schema.audit_log
@@ -280,5 +354,5 @@ async function expectAuditAction(database: DatabaseService, holdId: string, acti
        AND action = $2`,
     [holdId, action],
   );
-  expect(result.rows[0]?.count).toBe('1');
+  expect(result.rows[0]?.count).toBe(expected);
 }

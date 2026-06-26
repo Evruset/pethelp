@@ -1,4 +1,5 @@
 export type MisReservationStatus = 'SUCCESS' | 'FAILED';
+export type MisReservationLookupStatus = MisReservationStatus | 'NOT_FOUND' | 'UNKNOWN';
 
 export interface MisReservationRequest {
   internalHoldId: string;
@@ -15,8 +16,21 @@ export interface MisReservationResult {
   rawError?: string;
 }
 
+export interface MisReservationLookupRequest {
+  internalHoldId: string;
+  correlationId?: string;
+}
+
+export interface MisReservationLookupResult {
+  externalHoldId?: string;
+  status: MisReservationLookupStatus;
+  ttlMinutes?: number;
+  rawError?: string;
+}
+
 export interface IMisAdapter {
   reserve(request: MisReservationRequest): Promise<MisReservationResult>;
+  lookupReservation(request: MisReservationLookupRequest): Promise<MisReservationLookupResult>;
 }
 
 export class MisNetworkError extends Error {
