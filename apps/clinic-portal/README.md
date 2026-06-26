@@ -16,6 +16,18 @@ npm run dev -- --port 3001
 
 Для локальной сессии браузер получает HTTP-only cookie `vethelp_clinic_session` от dev-only BFF endpoint. Cookie содержит подписанный JWT сотрудника с `roles`, `clinicIds` и `locationIds`. Frontend повторно проверяет claims на server-side; backend остаётся финальным ABAC enforcement.
 
+После `make local-up` и `make local-seed` можно получить готовую сессию и точный URL очереди одной командой из корня репозитория:
+
+```bash
+make clinic-portal-session
+```
+
+Открой `sessionUrl` из вывода. Dev-only endpoint валидирует JWT, ставит HTTP-only cookie и перенаправляет на queue route. Если portal уже запущен на `3001`, можно открыть браузер автоматически:
+
+```bash
+OPEN=1 make clinic-portal-session
+```
+
 ## Локальный B2B smoke
 
 После старта local stack, основного seed, `seed-local-identities.ts` и `seed-local-clinic-employee.ts` создай набор заявок для portal:
@@ -27,8 +39,8 @@ docker compose -p "$PROJECT" -f "$REPO/docker-compose.local.yml" exec -T backend
 
 Скрипт создаёт три новые Level-C заявки в `MANUAL_CONFIRM_PENDING` для demo owner/pet и печатает `clinicId`, `locationId`, `holdId` и SLA. Они отсортированы backend по `manualConfirmPendingAt`:
 
-- первая строка уже находится в critical state: SLA истекает примерно через две минуты;
-- последующие строки имеют запас примерно 10 и 14 минут;
+- первая строка самая срочная и остаётся пригодной для ручного тестирования примерно 10 минут;
+- последующие строки имеют запас примерно 20 и 30 минут;
 - слоты помечаются `LOCKED_BY_HOLD`, поэтому fixture соответствует реальной read model, а не рисует UI-данные напрямую.
 
 Открой маршрут из вывода скрипта и нажми **«Обновить»**. Для проверки state transitions:
