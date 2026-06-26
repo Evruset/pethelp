@@ -55,6 +55,8 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   OwnerSession? _session;
   OwnerPet? _selectedPet;
   CatalogBookingSelection? _pendingBooking;
+  bool _petBootstrapInFlight = false;
+  bool _petBootstrapCompleted = false;
 
   String get _apiBaseUrl => _configuredApiBaseUrl.isNotEmpty
       ? _configuredApiBaseUrl
@@ -64,11 +66,43 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   String get _accessToken => _session?.accessToken ?? _bootstrapOwnerJwt;
   bool get _hasOwnerSession => _accessToken.isNotEmpty;
 
+  @override
+  void initState() {
+    super.initState();
+    if (_bootstrapOwnerJwt.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _selectExistingPet();
+      });
+    }
+  }
+
   Future<String> _token() async {
     if (_accessToken.isEmpty) {
       throw StateError('Owner access token is unavailable.');
     }
     return _accessToken;
+  }
+
+  Future<void> _selectExistingPet() async {
+    if (!_hasOwnerSession ||
+        _selectedPet != null ||
+        _petBootstrapInFlight ||
+        _petBootstrapCompleted) {
+      return;
+    }
+
+    _petBootstrapInFlight = true;
+    try {
+      final pets = await HttpOwnerPetRepository(
+        baseUrl: Uri.parse(_apiBaseUrl),
+        accessToken: _token,
+      ).list();
+      if (!mounted || _selectedPet != null || pets.isEmpty) return;
+      setState(() => _selectedPet = pets.first);
+    } finally {
+      _petBootstrapInFlight = false;
+      _petBootstrapCompleted = true;
+    }
   }
 
   @override
@@ -109,22 +143,26 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
 
   void _completeAuthentication(OwnerSession session) {
     final hasPendingBooking = _pendingBooking != null;
-    setState(() => _session = session);
+    setState(() {
+      _session = session;
+      _selectedPet = null;
+      _petBootstrapCompleted = false;
+    });
     Navigator.of(context).popUntil((route) => route.isFirst);
-    if (hasPendingBooking) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _showMessage(
-              'Добавьте или выберите питомца: запись всегда создаётся для конкретного питомца.');
-        }
-      });
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _selectExistingPet();
+      if (hasPendingBooking && mounted) {
+        _showMessage(
+            'Добавьте или выберите питомца: запись всегда создаётся для конкретного питомца.');
+      }
+    });
   }
 
   void _selectPet(OwnerPet pet) {
     final pending = _pendingBooking;
     setState(() {
       _selectedPet = pet;
+      _petBootstrapCompleted = true;
       _pendingBooking = null;
     });
     if (pending != null) {
