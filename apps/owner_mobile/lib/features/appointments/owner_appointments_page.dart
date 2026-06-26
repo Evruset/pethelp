@@ -331,10 +331,11 @@ class _OwnerAppointmentDetailPageState
       });
       _syncPolling(detail);
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _stale = true;
         });
+      }
     }
   }
 
@@ -379,10 +380,11 @@ class _OwnerAppointmentDetailPageState
             'Не удалось отменить запись. Проверьте соединение и повторите попытку.');
       }
     } finally {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _cancelling = false;
         });
+      }
     }
   }
 

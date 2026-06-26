@@ -87,10 +87,11 @@ class _OwnerPetsPageState extends State<OwnerPetsPage> {
           ? 'Профиль изменился. Откройте его заново.'
           : 'Не удалось сохранить профиль. Повторите попытку.');
     } finally {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _busy = false;
         });
+      }
     }
   }
 
