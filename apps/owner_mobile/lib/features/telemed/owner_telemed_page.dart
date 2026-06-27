@@ -628,6 +628,7 @@ class _TelemedIntakeForm extends StatelessWidget {
         ),
         const SizedBox(height: _TelemedIntakePageState._space),
         DropdownButtonFormField<String>(
+          // ignore: deprecated_member_use
           value: selectedPetId,
           decoration: const InputDecoration(labelText: 'Питомец'),
           items: [
@@ -641,6 +642,7 @@ class _TelemedIntakeForm extends StatelessWidget {
         ),
         const SizedBox(height: _TelemedIntakePageState._space),
         DropdownButtonFormField<String>(
+          // ignore: deprecated_member_use
           value: category,
           decoration: const InputDecoration(labelText: 'Тема вопроса'),
           items: [
@@ -653,6 +655,7 @@ class _TelemedIntakeForm extends StatelessWidget {
         ),
         const SizedBox(height: _TelemedIntakePageState._space),
         DropdownButtonFormField<String>(
+          // ignore: deprecated_member_use
           value: duration,
           decoration: const InputDecoration(labelText: 'Как давно'),
           items: const [
