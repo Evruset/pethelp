@@ -5,6 +5,7 @@ const port = Number(process.env.PORT ?? 4102);
 const apiKey = process.env.MOCK_ACQUIRING_API_KEY ?? 'local-acquiring-api-key';
 const webhookSecret = process.env.MOCK_ACQUIRING_WEBHOOK_SECRET ?? 'local-acquiring-webhook-secret';
 const webhookTarget = process.env.VETHELP_WEBHOOK_TARGET ?? '';
+const telemedWebhookTarget = process.env.VETHELP_TELEMED_WEBHOOK_TARGET ?? '';
 const intents = new Map();
 const idempotency = new Map();
 
@@ -35,14 +36,22 @@ function sign(raw) {
 }
 
 async function deliverAuthorizedWebhook(intent, idempotencyKey) {
-  if (!webhookTarget) throw new Error('VETHELP_WEBHOOK_TARGET is not configured');
+  const target = intent.webhookKind === 'TELEMED' ? telemedWebhookTarget : webhookTarget;
+  if (!target) {
+    throw new Error(
+      intent.webhookKind === 'TELEMED'
+        ? 'VETHELP_TELEMED_WEBHOOK_TARGET is not configured'
+        : 'VETHELP_WEBHOOK_TARGET is not configured',
+    );
+  }
   const payload = {
-    idempotencyKey,
+    idempotencyKey: intent.webhookIdempotencyKey ?? idempotencyKey,
     eventId: `mock-event-${randomUUID()}`,
     providerPaymentId: intent.remoteId,
+    ...(intent.paymentFenceToken ? { paymentFenceToken: intent.paymentFenceToken } : {}),
   };
   const raw = JSON.stringify(payload);
-  const response = await fetch(webhookTarget, {
+  const response = await fetch(target, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -102,10 +111,20 @@ const server = http.createServer(async (request, response) => {
       return send(response, 422, { error: 'merchantPaymentId and numeric amount are required' });
     }
     const remoteId = `mock-pay-${randomUUID()}`;
+    const metadata = payload.webhookMetadata && typeof payload.webhookMetadata === 'object'
+      ? payload.webhookMetadata
+      : {};
     const intent = {
       remoteId,
       merchantPaymentId: String(payload.merchantPaymentId),
       amount: Number(payload.amount),
+      webhookKind: metadata.kind === 'TELEMED' ? 'TELEMED' : 'BOOKING',
+      webhookIdempotencyKey: typeof metadata.idempotencyKey === 'string'
+        ? metadata.idempotencyKey
+        : null,
+      paymentFenceToken: typeof metadata.paymentFenceToken === 'string'
+        ? metadata.paymentFenceToken
+        : null,
       status: 'PENDING',
       refunds: [],
     };

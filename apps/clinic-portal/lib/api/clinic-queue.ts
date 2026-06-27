@@ -19,6 +19,11 @@ export type ManualConfirmationQueueItem = {
   service: {
     displayName: string;
   } | null;
+  latestAudit: {
+    action: string;
+    occurredAt: string;
+    actorType: string;
+  } | null;
 };
 
 export type ManualConfirmationQueue = {
@@ -26,6 +31,24 @@ export type ManualConfirmationQueue = {
   locationId: string;
   serverNow: string;
   items: ManualConfirmationQueueItem[];
+};
+
+export type HoldAuditTrailItem = {
+  id: string;
+  occurredAt: string;
+  actorType: string;
+  actorId: string | null;
+  action: string;
+  correlationId: string | null;
+  payload: Record<string, unknown>;
+};
+
+export type HoldAuditTrail = {
+  holdId: string;
+  clinicId: string;
+  locationId: string;
+  serverNow: string;
+  items: HoldAuditTrailItem[];
 };
 
 export class ClinicBackendError extends Error {

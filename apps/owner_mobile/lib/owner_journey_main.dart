@@ -2,18 +2,31 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'core/offline/outbox_repository.dart';
 import 'features/appointments/owner_appointments_repository.dart';
 import 'features/auth/owner_auth_repository.dart';
 import 'features/auth/owner_session.dart';
+import 'features/booking/alternative_slot/alternative_slot_repository.dart';
 import 'features/booking/marketplace/booking_marketplace_page.dart';
 import 'features/booking/marketplace/booking_marketplace_repository.dart';
+import 'features/care/owner_pet_care_page.dart';
+import 'features/care/owner_pet_care_repository.dart';
 import 'features/catalog/catalog_models.dart';
 import 'features/catalog/public_catalog_page.dart';
 import 'features/catalog/public_catalog_repository.dart';
+import 'features/emergency/emergency_repository.dart';
+import 'features/emergency/emergency_triage_page.dart';
+import 'features/insurance/coverage_check_page.dart';
+import 'features/insurance/coverage_check_repository.dart';
 import 'features/owner_journey/owner_journey_page.dart';
 import 'features/owner_journey/phone_entry_page.dart';
 import 'features/pets/owner_pet.dart';
 import 'features/pets/owner_pet_repository.dart';
+import 'features/telemed/owner_telemed_page.dart';
+import 'features/telemed/owner_telemed_repository.dart';
+import 'features/telemed/waiting_room/telemed_room_access_repository.dart';
+import 'features/telemed/waiting_room/telemed_waiting_room_repository.dart';
+import 'ui/vethelp_ios_theme.dart';
 
 void main() => runApp(const VetHelpOwnerJourneyApp());
 
@@ -23,7 +36,8 @@ class VetHelpOwnerJourneyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
         title: 'VetHelp',
-        theme: ThemeData(colorSchemeSeed: Colors.teal, useMaterial3: true),
+        theme: VetHelpTheme.light(),
+        builder: VetHelpTheme.frameBuilder,
         locale: const Locale('ru'),
         supportedLocales: const [Locale('ru'), Locale('en')],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -38,11 +52,17 @@ class OwnerJourneyEntry extends StatefulWidget {
 }
 
 class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
-  static const _configuredApiBaseUrl = String.fromEnvironment('VETHELP_API_BASE_URL');
+  static const _configuredApiBaseUrl =
+      String.fromEnvironment('VETHELP_API_BASE_URL');
   final _bootstrapOwnerJwt = const String.fromEnvironment('VETHELP_OWNER_JWT');
   OwnerSession? _session;
   OwnerPet? _selectedPet;
-  CatalogLocation? _pendingLocation;
+  CatalogBookingSelection? _pendingBooking;
+  late final OutboxRepository _ownerOutbox;
+  late final String _ownerDeviceId;
+  int _ownerDeviceSequence = 0;
+  bool _petBootstrapInFlight = false;
+  bool _petBootstrapCompleted = false;
 
   String get _apiBaseUrl => _configuredApiBaseUrl.isNotEmpty
       ? _configuredApiBaseUrl
@@ -52,10 +72,55 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   String get _accessToken => _session?.accessToken ?? _bootstrapOwnerJwt;
   bool get _hasOwnerSession => _accessToken.isNotEmpty;
 
+  @override
+  void initState() {
+    super.initState();
+    _ownerOutbox = OutboxRepository(InMemoryOfflineCommandStore());
+    _ownerDeviceId = 'owner-mobile-${DateTime.now().microsecondsSinceEpoch}';
+    if (_bootstrapOwnerJwt.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _selectExistingPet();
+      });
+    }
+  }
+
   Future<String> _token() async {
-    if (_accessToken.isEmpty) throw StateError('Owner access token is unavailable.');
+    if (_accessToken.isEmpty) {
+      throw StateError('Owner access token is unavailable.');
+    }
     return _accessToken;
   }
+
+  Future<void> _selectExistingPet() async {
+    if (!_hasOwnerSession ||
+        _selectedPet != null ||
+        _petBootstrapInFlight ||
+        _petBootstrapCompleted) {
+      return;
+    }
+
+    _petBootstrapInFlight = true;
+    try {
+      final pets = await _petsRepository().list();
+      if (!mounted || _selectedPet != null || pets.isEmpty) return;
+      setState(() {
+        _selectedPet = pets.first;
+      });
+    } finally {
+      _petBootstrapInFlight = false;
+      _petBootstrapCompleted = true;
+    }
+  }
+
+  OwnerPetRepository _petsRepository() => OfflineCapableOwnerPetRepository(
+        remote: HttpOwnerPetRepository(
+          baseUrl: Uri.parse(_apiBaseUrl),
+          accessToken: _token,
+        ),
+        outbox: _ownerOutbox,
+        deviceId: _ownerDeviceId,
+        nextDeviceSequence: () => ++_ownerDeviceSequence,
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -63,8 +128,16 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
       return OwnerJourneyPage(
         onBrowseClinics: _openCatalogForOwner,
         onRequestTelemed: _openTelemedIntake,
-        petsRepository: HttpOwnerPetRepository(baseUrl: Uri.parse(_apiBaseUrl), accessToken: _token),
-        appointmentsRepository: HttpOwnerAppointmentsRepository(baseUrl: Uri.parse(_apiBaseUrl), accessToken: _token),
+        onRequestInsurance: _openInsuranceCheck,
+        onRequestEmergency: _openEmergency,
+        onOpenCare: _openCare,
+        petsRepository: _petsRepository(),
+        appointmentsRepository: HttpOwnerAppointmentsRepository(
+            baseUrl: Uri.parse(_apiBaseUrl), accessToken: _token),
+        alternativeSlotRepository: AlternativeSlotRepository(
+          baseUrl: Uri.parse(_apiBaseUrl),
+          accessTokenProvider: _token,
+        ),
         selectedPet: _selectedPet,
         onPetSelected: _selectPet,
       );
@@ -73,6 +146,8 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
       onOpenPhoneEntry: _openPhoneEntry,
       onBrowseClinics: _openCatalogForGuest,
       onRequestTelemed: _openPhoneEntry,
+      onRequestEmergency: _openEmergency,
+      onRequestInsurance: _openPhoneEntry,
     );
   }
 
@@ -85,21 +160,28 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
       ));
 
   void _completeAuthentication(OwnerSession session) {
-    final hasPendingLocation = _pendingLocation != null;
-    setState(() => _session = session);
+    final hasPendingBooking = _pendingBooking != null;
+    setState(() {
+      _session = session;
+      _selectedPet = null;
+      _petBootstrapCompleted = false;
+    });
     Navigator.of(context).popUntil((route) => route.isFirst);
-    if (hasPendingLocation) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _showMessage('Добавьте или выберите питомца: запись всегда создаётся для конкретного питомца.');
-      });
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _selectExistingPet();
+      if (hasPendingBooking && mounted) {
+        _showMessage(
+            'Добавьте или выберите питомца: запись всегда создаётся для конкретного питомца.');
+      }
+    });
   }
 
   void _selectPet(OwnerPet pet) {
-    final pending = _pendingLocation;
+    final pending = _pendingBooking;
     setState(() {
       _selectedPet = pet;
-      _pendingLocation = null;
+      _petBootstrapCompleted = true;
+      _pendingBooking = null;
     });
     if (pending != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -108,93 +190,208 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
     }
   }
 
-  void _openCatalogForGuest() => _openCatalog(onSelected: (location) {
-        setState(() => _pendingLocation = location);
+  void _openCatalogForGuest() => _openCatalog(onSelected: (selection) {
+        setState(() {
+          _pendingBooking = selection;
+        });
         Navigator.of(context).pop();
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
-          _showMessage('Подтвердите номер телефона, чтобы записать питомца в ${location.clinicName}.');
+          _showMessage(
+              'Подтвердите номер телефона, чтобы записать питомца в ${selection.location.clinicName}.');
           _openPhoneEntry();
         });
       });
 
   void _openCatalogForOwner() {
     if (_selectedPet == null) {
-      _showMessage('Сначала добавьте или выберите питомца на вкладке «Питомец».');
+      _showMessage(
+          'Сначала добавьте или выберите питомца на вкладке «Питомец».');
       return;
     }
-    _openCatalog(onSelected: (location) {
+    _openCatalog(onSelected: (selection) {
       Navigator.of(context).pop();
-      _openBooking(location);
+      _openBooking(selection);
     });
   }
 
-  void _openCatalog({required ValueChanged<CatalogLocation> onSelected}) => Navigator.of(context).push(
+  void _openCatalog(
+          {required ValueChanged<CatalogBookingSelection> onSelected}) =>
+      Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => PublicCatalogPage(
-            repository: HttpPublicCatalogRepository(baseUrl: Uri.parse(_apiBaseUrl)),
+            repository:
+                HttpPublicCatalogRepository(baseUrl: Uri.parse(_apiBaseUrl)),
             onSelected: onSelected,
           ),
         ),
       );
 
-  void _openBooking(CatalogLocation location) {
+  void _openBooking(CatalogBookingSelection selection) {
     final pet = _selectedPet;
     if (pet == null) {
       _showMessage('Для записи нужно выбрать питомца.');
       return;
     }
+    final location = selection.location;
     Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => BookingMarketplacePage(
         clinicName: location.clinicName,
+        serviceName: selection.service.displayName,
+        serviceId: selection.service.id,
         petName: pet.name,
         clinicLocationId: location.locationId,
         petId: pet.id,
-        repository: HttpBookingMarketplaceRepository(baseUrl: Uri.parse(_apiBaseUrl), accessTokenProvider: _token),
+        repository: HttpBookingMarketplaceRepository(
+            baseUrl: Uri.parse(_apiBaseUrl), accessTokenProvider: _token),
       ),
     ));
   }
 
-  void _openTelemedIntake() => _showMessage(
-        'Экран создания телемедицинского обращения будет подключён к серверному payment/session flow. Нельзя создавать сессию или показывать оплату только локально.',
-      );
+  void _openTelemedIntake() {
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => OwnerTelemedPage(
+        repository: HttpOwnerTelemedRepository(
+          baseUrl: Uri.parse(_apiBaseUrl),
+          accessTokenProvider: _token,
+        ),
+        waitingRepository: HttpTelemedWaitingRepository(
+          baseUrl: Uri.parse(_apiBaseUrl),
+          accessTokenProvider: _token,
+        ),
+        roomAccessRepository: HttpTelemedRoomAccessRepository(
+          baseUrl: Uri.parse(_apiBaseUrl),
+          accessTokenProvider: _token,
+        ),
+        onRequestEmergency: _openEmergency,
+        onBrowseClinics: _openCatalogForOwner,
+      ),
+    ));
+  }
 
-  void _showMessage(String text) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  void _openInsuranceCheck() {
+    final pet = _selectedPet;
+    if (pet == null) {
+      _showMessage(
+          'Сначала добавьте или выберите питомца на вкладке «Питомец».');
+      return;
+    }
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => CoverageCheckPage(
+        pet: pet,
+        repository: CoverageCheckRepository(
+          baseUrl: Uri.parse(_apiBaseUrl),
+          accessTokenProvider: _token,
+        ),
+      ),
+    ));
+  }
+
+  void _openCare() {
+    final pet = _selectedPet;
+    if (pet == null) {
+      _showMessage(
+          'Сначала добавьте или выберите питомца на вкладке «Питомец».');
+      return;
+    }
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => OwnerPetCarePage(
+        pet: pet,
+        repository: HttpOwnerPetCareRepository(
+          baseUrl: Uri.parse(_apiBaseUrl),
+          accessTokenProvider: _token,
+        ),
+      ),
+    ));
+  }
+
+  void _openEmergency() {
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => EmergencyTriagePage(
+        repository: EmergencyRepository(baseUrl: Uri.parse(_apiBaseUrl)),
+      ),
+    ));
+  }
+
+  void _showMessage(String text) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 }
 
 class _GuestStartPage extends StatelessWidget {
-  const _GuestStartPage({required this.onOpenPhoneEntry, required this.onBrowseClinics, required this.onRequestTelemed});
+  const _GuestStartPage(
+      {required this.onOpenPhoneEntry,
+      required this.onBrowseClinics,
+      required this.onRequestTelemed,
+      required this.onRequestEmergency,
+      required this.onRequestInsurance});
   final VoidCallback onOpenPhoneEntry;
   final VoidCallback onBrowseClinics;
   final VoidCallback onRequestTelemed;
+  final VoidCallback onRequestEmergency;
+  final VoidCallback onRequestInsurance;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('VetHelp'), actions: [TextButton(onPressed: onOpenPhoneEntry, child: const Text('Войти'))]),
+      appBar: AppBar(title: const Text('VetHelp'), actions: [
+        TextButton(onPressed: onOpenPhoneEntry, child: const Text('Войти'))
+      ]),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            Text('Помощь питомцу без лишних звонков', style: Theme.of(context).textTheme.headlineSmall),
+            Text('Помощь питомцу без лишних звонков',
+                style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 8),
-            const Text('Начните без регистрации. Номер телефона потребуется только для сохранения обращения, записи или оплаты консультации.'),
+            const Text(
+                'Начните без регистрации. Номер телефона потребуется только для сохранения обращения, записи или оплаты консультации.'),
             const SizedBox(height: 24),
             Card(
               color: colors.errorContainer,
-              child: const ListTile(
-                leading: Icon(Icons.warning_amber_rounded),
-                title: Text('Нужна срочная помощь'),
-                subtitle: Text('При тяжёлых симптомах не ждите онлайн-ответ: выбирайте очную срочную помощь.'),
+              child: ListTile(
+                leading: const Icon(Icons.warning_amber_rounded),
+                title: const Text('Нужна срочная помощь'),
+                subtitle: const Text(
+                    'При тяжёлых симптомах не ждите онлайн-ответ: выбирайте очную срочную помощь.'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: onRequestEmergency,
               ),
             ),
             const SizedBox(height: 12),
-            _ActionCard(icon: Icons.video_call_outlined, title: 'Ветеринар онлайн', subtitle: 'Оценка состояния, разбор анализов и следующий безопасный шаг.', badge: 'От 790 ₽', color: colors.secondaryContainer, onTap: onRequestTelemed),
+            _ActionCard(
+                icon: Icons.video_call_outlined,
+                title: 'Ветеринар онлайн',
+                subtitle:
+                    'Оценка состояния, разбор анализов и следующий безопасный шаг.',
+                badge: 'От 790 ₽',
+                color: colors.secondaryContainer,
+                onTap: onRequestTelemed),
             const SizedBox(height: 12),
-            _ActionCard(icon: Icons.calendar_month_outlined, title: 'Записаться в клинику', subtitle: 'Выберите клинику и время. Финальный статус всегда подтверждает сервер.', badge: 'Запись', color: colors.primaryContainer, onTap: onBrowseClinics),
+            _ActionCard(
+                icon: Icons.calendar_month_outlined,
+                title: 'Записаться в клинику',
+                subtitle:
+                    'Выберите клинику и время. VetHelp покажет подтверждённый статус.',
+                badge: 'Запись',
+                color: colors.primaryContainer,
+                onTap: onBrowseClinics),
             const SizedBox(height: 12),
-            const Card(child: ListTile(enabled: false, leading: Icon(Icons.shield_outlined), title: Text('Страховка питомца'), subtitle: Text('Скоро: полисы и проверка покрытия визита.'), trailing: Chip(label: Text('Скоро')))),
+            _ActionCard(
+                icon: Icons.shield_outlined,
+                title: 'Страховое покрытие',
+                subtitle:
+                    'После входа выберите питомца и отправьте предварительную проверку партнёру.',
+                badge: 'Нужен вход',
+                color: colors.tertiaryContainer,
+                onTap: onRequestInsurance),
+            const SizedBox(height: 12),
+            const Card(
+                child: ListTile(
+                    enabled: false,
+                    leading: Icon(Icons.health_and_safety_outlined),
+                    title: Text('Медицинская карта'),
+                    subtitle: Text('Профиль питомца откроется после входа.'))),
           ],
         ),
       ),
@@ -203,7 +400,13 @@ class _GuestStartPage extends StatelessWidget {
 }
 
 class _ActionCard extends StatelessWidget {
-  const _ActionCard({required this.icon, required this.title, required this.subtitle, required this.badge, required this.color, required this.onTap});
+  const _ActionCard(
+      {required this.icon,
+      required this.title,
+      required this.subtitle,
+      required this.badge,
+      required this.color,
+      required this.onTap});
   final IconData icon;
   final String title;
   final String subtitle;
@@ -222,13 +425,18 @@ class _ActionCard extends StatelessWidget {
             child: Row(children: [
               Icon(icon, size: 32),
               const SizedBox(width: 12),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 4),
-                Text(subtitle),
-                const SizedBox(height: 8),
-                Chip(label: Text(badge), visualDensity: VisualDensity.compact),
-              ])),
+              Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    Text(title, style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 4),
+                    Text(subtitle),
+                    const SizedBox(height: 8),
+                    Chip(
+                        label: Text(badge),
+                        visualDensity: VisualDensity.compact),
+                  ])),
               const Icon(Icons.chevron_right),
             ]),
           ),

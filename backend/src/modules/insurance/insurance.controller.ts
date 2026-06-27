@@ -7,6 +7,7 @@ import { RolesGuard } from '../../auth/roles.guard';
 import { Roles } from '../../auth/roles.decorator';
 import { SWAGGER_BEARER_AUTH } from '../../openapi/openapi';
 import { CreateCoverageCheckDto } from './dto/create-coverage-check.dto';
+import { CreateInsuranceProfileDto } from './dto/create-insurance-profile.dto';
 import { InsuranceService } from './insurance.service';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -18,6 +19,23 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 @ApiBearerAuth(SWAGGER_BEARER_AUTH)
 export class InsuranceController {
   constructor(private readonly insurance: InsuranceService) {}
+
+  @Get('profiles')
+  @ApiOperation({ summary: 'List owner insurance profiles with masked policy data' })
+  @ApiOkResponse({ description: 'Only caller-owned masked insurance profile summaries are returned.' })
+  @ApiUnauthorizedResponse({ description: 'Bearer JWT is missing or invalid.' })
+  async listProfiles(@CurrentUser() owner: JwtPayload) {
+    return this.insurance.listProfiles(owner.sub);
+  }
+
+  @Post('profiles')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create or update an owner insurance profile with masked policy reference' })
+  @ApiCreatedResponse({ description: 'Insurance profile stored with masked policy reference; VetHelp does not decide coverage.' })
+  @ApiUnauthorizedResponse({ description: 'Bearer JWT is missing or invalid.' })
+  async createProfile(@Body() dto: CreateInsuranceProfileDto, @CurrentUser() owner: JwtPayload) {
+    return this.insurance.createProfile(owner.sub, dto);
+  }
 
   @Post('coverage-checks')
   @HttpCode(HttpStatus.CREATED)

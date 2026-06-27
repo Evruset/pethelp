@@ -43,6 +43,7 @@ services:
       MOCK_ACQUIRING_API_KEY: local-acquiring-api-key
       MOCK_ACQUIRING_WEBHOOK_SECRET: local-acquiring-webhook-secret
       VETHELP_WEBHOOK_TARGET: http://backend:3000/v1/payments/webhooks/authorized
+      VETHELP_TELEMED_WEBHOOK_TARGET: http://backend:3000/v1/telemed/payments/webhooks/authorized
     ports:
       - "4102:4102"
     volumes:

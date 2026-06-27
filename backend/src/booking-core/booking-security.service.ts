@@ -3,9 +3,10 @@ import type { PoolClient } from 'pg';
 import { JwtPayload, Role } from '../auth/auth.types';
 import { DomainErrors, DomainException } from '../common/domain-error';
 import { DatabaseService } from '../database/database.service';
+import { TraceContext } from '../observability/trace-context.context';
 import { canTransition } from './booking-state-machine';
 import { ClinicEmployeeAccessService } from './clinic-employee-access.service';
-import { ConfirmHoldResult, HoldRow, ReleaseHoldResult, SlotRow } from './booking.types';
+import { ConfirmHoldResult, HoldRow, ReleaseHoldResult, RequestNotesResult, SlotRow } from './booking.types';
 
 interface LockedHoldAndSlot {
   hold_id: string;
@@ -48,6 +49,7 @@ interface IdempotencyRow {
 @Injectable()
 export class BookingSecurityService {
   private readonly logger = new Logger(BookingSecurityService.name);
+  private readonly traceContext = new TraceContext();
 
   constructor(
     private readonly database: DatabaseService,
@@ -135,6 +137,147 @@ export class BookingSecurityService {
     }
   }
 
+  async declineManualHold(input: { holdId: string; employee: JwtPayload; idempotencyKey: string; correlationId: string; expectedVersion: number; declineReason?: string }): Promise<ReleaseHoldResult> {
+    try {
+      return await this.database.withTransaction(async (client) => {
+        await this.setInteractiveTransactionLimits(client);
+        const locked = await this.lockHoldAndSlot(client, input.holdId);
+        if (!locked) throw DomainErrors.holdNotFound();
+
+        await this.clinicAccess.assertLocationAccess(client, input.employee, locked.clinic_location_id);
+        const scope = `booking.decline-manual-hold:${input.employee.sub}`;
+        const replay = await this.acquireIdempotency(client, scope, input.idempotencyKey);
+        if (replay) return replay as unknown as ReleaseHoldResult;
+
+        const hold = this.toHold(locked);
+        const slot = this.toSlot(locked);
+        if (hold.version !== input.expectedVersion) throw DomainErrors.slotVersionStale();
+        const now = await this.dbNow(client);
+        if (hold.confirmation_sla_expires_at && hold.confirmation_sla_expires_at <= now) {
+          await this.completeIdempotency(client, scope, input.idempotencyKey, DomainErrors.holdExpired().getResponse(), DomainErrors.holdExpired().getStatus());
+          throw DomainErrors.holdExpired();
+        }
+        if (hold.state === 'MANUAL_CONFIRM_PENDING' && hold.expires_at <= now) {
+          await this.expireLockedHold(client, hold, slot, input.correlationId, 'manual-decline-detected-expiry');
+          await this.completeIdempotency(client, scope, input.idempotencyKey, DomainErrors.holdExpired().getResponse(), DomainErrors.holdExpired().getStatus());
+          throw DomainErrors.holdExpired();
+        }
+        if (hold.state === 'MANUAL_CONFIRM_PENDING') {
+          const earlierHoldId = await this.findEarlierActionableQueueHold(client, hold, slot.clinic_location_id, now);
+          if (earlierHoldId) {
+            const error = DomainErrors.queueFifoViolation();
+            await this.completeIdempotency(client, scope, input.idempotencyKey, error.getResponse(), error.getStatus());
+            throw error;
+          }
+        }
+        if (!canTransition(hold.state, 'RELEASED')) throw DomainErrors.invalidTransition();
+
+        await this.releaseSlotCounter(client, slot.id);
+        const updated = await client.query<HoldRow>(`
+          UPDATE booking_schema.booking_holds
+          SET state = 'RELEASED',
+              confirmation_sla_expires_at = NULL,
+              state_changed_at = clock_timestamp(),
+              version = version + 1,
+              updated_at = clock_timestamp()
+          WHERE id = $1::uuid
+          RETURNING id, slot_id, owner_id, pet_id, state, expires_at, state_changed_at, version, created_at
+        `, [hold.id]);
+        const reason = input.declineReason?.trim() || 'CLINIC_DECLINED';
+        const result: ReleaseHoldResult = { holdId: hold.id, state: 'RELEASED', slotId: slot.id, correlationId: input.correlationId };
+
+        await this.writeOutbox(client, 'booking.hold.released.v1', input.correlationId, hold.id, updated.rows[0].version, {
+          ...result,
+          reason: 'CLINIC_DECLINED',
+          declineReason: reason,
+          employeeId: input.employee.sub,
+          clinicLocationId: slot.clinic_location_id,
+        });
+        await this.writeAudit(client, 'CLINIC_EMPLOYEE', input.employee.sub, 'booking.declined', hold.id, input.correlationId, {
+          slotId: slot.id,
+          clinicLocationId: slot.clinic_location_id,
+          reason,
+        });
+        await this.completeIdempotency(client, scope, input.idempotencyKey, result, HttpStatus.OK);
+        return result;
+      });
+    } catch (error) {
+      throw this.mapPgError(error);
+    }
+  }
+
+  async requestOwnerNotes(input: { holdId: string; employee: JwtPayload; idempotencyKey: string; correlationId: string; expectedVersion: number; noteRequest: string }): Promise<RequestNotesResult> {
+    try {
+      return await this.database.withTransaction(async (client) => {
+        await this.setInteractiveTransactionLimits(client);
+        const locked = await this.lockHoldAndSlot(client, input.holdId);
+        if (!locked) throw DomainErrors.holdNotFound();
+
+        await this.clinicAccess.assertLocationAccess(client, input.employee, locked.clinic_location_id);
+        const scope = `booking.request-owner-notes:${input.employee.sub}`;
+        const replay = await this.acquireIdempotency(client, scope, input.idempotencyKey);
+        if (replay) return replay as unknown as RequestNotesResult;
+
+        const hold = this.toHold(locked);
+        const slot = this.toSlot(locked);
+        if (hold.version !== input.expectedVersion) throw DomainErrors.slotVersionStale();
+        const now = await this.dbNow(client);
+        if (hold.confirmation_sla_expires_at && hold.confirmation_sla_expires_at <= now) {
+          await this.completeIdempotency(client, scope, input.idempotencyKey, DomainErrors.holdExpired().getResponse(), DomainErrors.holdExpired().getStatus());
+          throw DomainErrors.holdExpired();
+        }
+        if (hold.state === 'MANUAL_CONFIRM_PENDING' && hold.expires_at <= now) {
+          await this.expireLockedHold(client, hold, slot, input.correlationId, 'request-notes-detected-expiry');
+          await this.completeIdempotency(client, scope, input.idempotencyKey, DomainErrors.holdExpired().getResponse(), DomainErrors.holdExpired().getStatus());
+          throw DomainErrors.holdExpired();
+        }
+        if (hold.state === 'MANUAL_CONFIRM_PENDING') {
+          const earlierHoldId = await this.findEarlierActionableQueueHold(client, hold, slot.clinic_location_id, now);
+          if (earlierHoldId) {
+            const error = DomainErrors.queueFifoViolation();
+            await this.completeIdempotency(client, scope, input.idempotencyKey, error.getResponse(), error.getStatus());
+            throw error;
+          }
+        }
+        if (hold.state !== 'MANUAL_CONFIRM_PENDING') throw DomainErrors.invalidTransition();
+
+        const noteRequest = input.noteRequest.trim();
+        const updated = await client.query<{ version: number }>(`
+          UPDATE booking_schema.booking_holds
+          SET version = version + 1,
+              updated_at = clock_timestamp()
+          WHERE id = $1::uuid
+          RETURNING version
+        `, [hold.id]);
+        const result: RequestNotesResult = {
+          holdId: hold.id,
+          state: 'MANUAL_CONFIRM_PENDING',
+          slotId: slot.id,
+          version: updated.rows[0].version,
+          requestedNote: noteRequest,
+          correlationId: input.correlationId,
+        };
+
+        await this.writeOutbox(client, 'booking.notes.requested.v1', input.correlationId, hold.id, updated.rows[0].version, {
+          ...result,
+          employeeId: input.employee.sub,
+          ownerId: hold.owner_id,
+          petId: hold.pet_id,
+          clinicLocationId: slot.clinic_location_id,
+        });
+        await this.writeAudit(client, 'CLINIC_EMPLOYEE', input.employee.sub, 'booking.notes.requested', hold.id, input.correlationId, {
+          slotId: slot.id,
+          clinicLocationId: slot.clinic_location_id,
+          noteRequest,
+        });
+        await this.completeIdempotency(client, scope, input.idempotencyKey, result, HttpStatus.OK);
+        return result;
+      });
+    } catch (error) {
+      throw this.mapPgError(error);
+    }
+  }
+
   async releaseHold(input: { holdId: string; actor: JwtPayload; idempotencyKey: string; correlationId: string }): Promise<ReleaseHoldResult> {
     try {
       return await this.database.withTransaction(async (client) => {
@@ -169,6 +312,7 @@ export class BookingSecurityService {
 
         await this.releaseSlotCounter(client, hold.slot_id);
         if (hold.alternative_slot_id) await this.releaseSlotCounter(client, hold.alternative_slot_id);
+        const declinedSwapGroupId = hold.alternative_slot_id ? await this.finalizePendingAlternativeSwapGroup(client, hold.id, 'DECLINED') : null;
 
         const updated = await client.query<HoldRow>(`
           UPDATE booking_schema.booking_holds
@@ -182,9 +326,9 @@ export class BookingSecurityService {
           WHERE id = $1::uuid
           RETURNING id, slot_id, owner_id, pet_id, state, expires_at, state_changed_at, version, created_at
         `, [hold.id]);
-        const result: ReleaseHoldResult = { holdId: hold.id, state: 'RELEASED', slotId: hold.slot_id, correlationId: input.correlationId };
-        await this.writeOutbox(client, 'booking.hold.released.v1', input.correlationId, hold.id, updated.rows[0].version, { ...result, reason: systemWorker ? 'SYSTEM_RELEASE' : 'OWNER_CANCELLED', actorId: input.actor.sub });
-        await this.writeAudit(client, systemWorker ? 'SYSTEM_WORKER' : 'OWNER', input.actor.sub, 'booking.hold.released', hold.id, input.correlationId, { slotId: hold.slot_id, alternativeSlotId: hold.alternative_slot_id, reason: systemWorker ? 'SYSTEM_RELEASE' : 'OWNER_CANCELLED' });
+        const result: ReleaseHoldResult = { holdId: hold.id, state: 'RELEASED', slotId: hold.slot_id, correlationId: input.correlationId, swapGroupId: declinedSwapGroupId };
+        await this.writeOutbox(client, 'booking.hold.released.v1', input.correlationId, hold.id, updated.rows[0].version, { ...result, swapGroupId: declinedSwapGroupId, reason: systemWorker ? 'SYSTEM_RELEASE' : 'OWNER_CANCELLED', actorId: input.actor.sub });
+        await this.writeAudit(client, systemWorker ? 'SYSTEM_WORKER' : 'OWNER', input.actor.sub, 'booking.hold.released', hold.id, input.correlationId, { swapGroupId: declinedSwapGroupId, slotId: hold.slot_id, alternativeSlotId: hold.alternative_slot_id, reason: systemWorker ? 'SYSTEM_RELEASE' : 'OWNER_CANCELLED' });
         await this.completeIdempotency(client, scope, input.idempotencyKey, result, HttpStatus.OK);
         return result;
       });
@@ -280,14 +424,28 @@ export class BookingSecurityService {
   }
 
   private async markHoldExpired(client: PoolClient, hold: ReleaseHoldRow, correlationId: string, reason: string): Promise<void> {
+    const expiredSwapGroupId = hold.alternative_slot_id ? await this.finalizePendingAlternativeSwapGroup(client, hold.id, 'EXPIRED') : null;
     const updated = await client.query<{ version: number }>(`
       UPDATE booking_schema.booking_holds
       SET state = 'EXPIRED', state_changed_at = clock_timestamp(), version = version + 1, updated_at = clock_timestamp()
       WHERE id = $1::uuid
       RETURNING version
     `, [hold.id]);
-    await this.writeOutbox(client, 'booking.hold.expired.v1', correlationId, hold.id, updated.rows[0].version, { holdId: hold.id, slotId: hold.slot_id, reason });
-    await this.writeAudit(client, 'SYSTEM', null, 'booking.hold.expired', hold.id, correlationId, { slotId: hold.slot_id, reason });
+    await this.writeOutbox(client, 'booking.hold.expired.v1', correlationId, hold.id, updated.rows[0].version, { holdId: hold.id, slotId: hold.slot_id, swapGroupId: expiredSwapGroupId, reason });
+    await this.writeAudit(client, 'SYSTEM', null, 'booking.hold.expired', hold.id, correlationId, { slotId: hold.slot_id, swapGroupId: expiredSwapGroupId, reason });
+  }
+
+  private async finalizePendingAlternativeSwapGroup(client: PoolClient, holdId: string, state: 'DECLINED' | 'EXPIRED'): Promise<string | null> {
+    const updated = await client.query<{ id: string }>(`
+      UPDATE booking_schema.alternative_swap_groups
+      SET state = $2,
+          aggregate_version = aggregate_version + 1,
+          updated_at = clock_timestamp()
+      WHERE original_hold_id = $1::uuid
+        AND state = 'PENDING'
+      RETURNING id
+    `, [holdId, state]);
+    return updated.rows[0]?.id ?? null;
   }
 
   private async expireLockedHold(client: PoolClient, hold: HoldRow, slot: SlotRow, correlationId: string, reason: string): Promise<void> {
@@ -335,9 +493,20 @@ export class BookingSecurityService {
 
   private async writeOutbox(client: PoolClient, eventType: string, correlationId: string, aggregateId: string, aggregateVersion: number, payload: Record<string, unknown>): Promise<void> {
     await client.query(`
-      INSERT INTO booking_schema.outbox_events (event_type, correlation_id, aggregate_type, aggregate_id, aggregate_version, payload_json, deduplication_key)
-      VALUES ($1, $2::uuid, 'booking_hold', $3::uuid, $4, $5::jsonb, $6)
-    `, [eventType, correlationId, aggregateId, aggregateVersion, JSON.stringify(payload), `${eventType}:${aggregateId}:${aggregateVersion}`]);
+      INSERT INTO booking_schema.outbox_events (
+        event_type, correlation_id, causation_id, traceparent,
+        aggregate_type, aggregate_id, aggregate_version, payload_json, deduplication_key
+      ) VALUES ($1, $2::uuid, $3::uuid, $4, 'booking_hold', $5::uuid, $6, $7::jsonb, $8)
+    `, [
+      eventType,
+      correlationId,
+      this.traceContext.getCausationId() ?? null,
+      this.traceContext.getTraceparent() ?? null,
+      aggregateId,
+      aggregateVersion,
+      JSON.stringify(payload),
+      `${eventType}:${aggregateId}:${aggregateVersion}`,
+    ]);
   }
 
   private async writeAudit(client: PoolClient, actorType: string, actorId: string | null, action: string, holdId: string, correlationId: string, payload: Record<string, unknown>): Promise<void> {

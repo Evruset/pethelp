@@ -31,19 +31,27 @@ export class BookingEventReplayController {
   @ApiOperation({ summary: 'Replay versioned booking events for one hold after reconnect' })
   @ApiParam({ name: 'holdId', type: 'string', format: 'uuid' })
   @ApiQuery({ name: 'afterVersion', required: false, type: Number, description: 'Return events with a higher aggregate version.' })
+  @ApiQuery({ name: 'afterSequence', required: false, type: Number, description: 'Return events with a higher global outbox sequence.' })
   @ApiQuery({ name: 'limit', required: false, type: Number, description: '1 to 100 events; default 50.' })
-  @ApiOkResponse({ description: 'Authoritative replay slice ordered by aggregateVersion and eventSequence.' })
+  @ApiOkResponse({ description: 'Authoritative replay slice ordered by global sequence; each event includes the realtime envelope.' })
   @ApiForbiddenResponse({ description: 'Owner or clinic location scope does not permit the hold.' })
   @ApiUnauthorizedResponse({ description: 'Bearer JWT is missing or invalid.' })
   async getReplay(
     @Param('holdId') holdId: string,
     @Query('afterVersion') afterVersion: string | undefined,
+    @Query('afterSequence') afterSequence: string | undefined,
     @Query('limit') limit: string | undefined,
     @CurrentUser() actor: JwtPayload,
   ) {
     if (!UUID.test(holdId)) {
       throw new BadRequestException({ code: 'INVALID_REQUEST', message: 'holdId must be a UUID.' });
     }
-    return this.replay.replay(holdId, actor, positiveInteger(afterVersion, 0, Number.MAX_SAFE_INTEGER), positiveInteger(limit, 50, 100));
+    return this.replay.replay(
+      holdId,
+      actor,
+      positiveInteger(afterVersion, 0, Number.MAX_SAFE_INTEGER),
+      positiveInteger(afterSequence, 0, Number.MAX_SAFE_INTEGER),
+      positiveInteger(limit, 50, 100),
+    );
   }
 }

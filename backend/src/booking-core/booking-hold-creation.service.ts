@@ -3,6 +3,7 @@ import type { PoolClient } from 'pg';
 import { DomainErrors, DomainException } from '../common/domain-error';
 import { config } from '../config';
 import { DatabaseService } from '../database/database.service';
+import { TraceContext } from '../observability/trace-context.context';
 import { BookingRepository } from './booking.repository';
 import { CreateHoldResult, HoldRow, HoldState } from './booking.types';
 
@@ -39,6 +40,7 @@ const ACTIVE_HOLD_STATES: HoldState[] = [
 @Injectable()
 export class BookingHoldCreationService {
   private readonly logger = new Logger(BookingHoldCreationService.name);
+  private readonly traceContext = new TraceContext();
 
   constructor(
     private readonly database: DatabaseService,
@@ -300,12 +302,14 @@ export class BookingHoldCreationService {
   ): Promise<void> {
     await client.query(`
       INSERT INTO booking_schema.outbox_events (
-        event_type, correlation_id, aggregate_type,
+        event_type, correlation_id, causation_id, traceparent, aggregate_type,
         aggregate_id, aggregate_version, payload_json, deduplication_key
-      ) VALUES ($1, $2::uuid, 'booking_hold', $3::uuid, $4, $5::jsonb, $6)
+      ) VALUES ($1, $2::uuid, $3::uuid, $4, 'booking_hold', $5::uuid, $6, $7::jsonb, $8)
     `, [
       eventType,
       correlationId,
+      this.traceContext.getCausationId() ?? null,
+      this.traceContext.getTraceparent() ?? null,
       aggregateId,
       aggregateVersion,
       JSON.stringify(payload),

@@ -49,11 +49,16 @@ export class AcquiringClient {
     internalPaymentId: string,
     amount: number,
     providerIdempotencyKey = internalPaymentId,
+    webhookMetadata?: {
+      kind: 'BOOKING' | 'TELEMED';
+      idempotencyKey?: string;
+      paymentFenceToken?: string;
+    },
   ): Promise<RemotePaymentIntent> {
     const response = await firstValueFrom(
       this.http.post<RemoteIntentResponse>(
         `${this.baseUrl()}/v1/payment-intents`,
-        { merchantPaymentId: internalPaymentId, amount },
+        { merchantPaymentId: internalPaymentId, amount, webhookMetadata },
         { headers: this.headers(providerIdempotencyKey) },
       ).pipe(
         timeout(AcquiringClient.REQUEST_TIMEOUT_MS),

@@ -23,6 +23,15 @@ type Props = {
 const formatDateTime = (value: string) => new Intl.DateTimeFormat('ru-RU', {
   day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
 }).format(new Date(value));
+const formatDate = (value: string) => new Intl.DateTimeFormat('ru-RU', {
+  weekday: 'short', day: '2-digit', month: '2-digit',
+}).format(new Date(value));
+const formatTime = (value: string) => new Intl.DateTimeFormat('ru-RU', {
+  hour: '2-digit', minute: '2-digit',
+}).format(new Date(value));
+const dateKey = (value: string) => new Intl.DateTimeFormat('en-CA', {
+  year: 'numeric', month: '2-digit', day: '2-digit',
+}).format(new Date(value));
 
 const remaining = (slot: ClinicSlot) => Number(slot.remaining_capacity ?? slot.capacity - slot.booked_count - slot.held_count);
 
@@ -46,11 +55,30 @@ export function AlternativeSlotDrawer({ locationId, item, onClose, onProposed }:
     () => slots.filter((slot) => slot.id !== item?.slot.id && remaining(slot) > 0),
     [item?.slot.id, slots],
   );
+  const slotGroups = useMemo(() => {
+    const grouped = new Map<string, { key: string; label: string; slots: ClinicSlot[] }>();
+    for (const slot of availableSlots) {
+      const key = dateKey(slot.starts_at);
+      const current = grouped.get(key);
+      if (current) current.slots.push(slot);
+      else grouped.set(key, { key, label: formatDate(slot.starts_at), slots: [slot] });
+    }
+    return [...grouped.values()].map((group) => ({
+      ...group,
+      slots: group.slots.sort((left, right) => Date.parse(left.starts_at) - Date.parse(right.starts_at)),
+    }));
+  }, [availableSlots]);
+  const [activeDateKey, setActiveDateKey] = useState<string | null>(null);
+  const selectedSlot = useMemo(
+    () => availableSlots.find((slot) => slot.id === selectedSlotId) ?? null,
+    [availableSlots, selectedSlotId],
+  );
+  const activeGroup = slotGroups.find((group) => group.key === activeDateKey) ?? slotGroups[0] ?? null;
 
-  const loadSlots = useCallback(async () => {
+  const loadSlots = useCallback(async (options: { preserveError?: boolean } = {}) => {
     if (!item) return;
     setLoading(true);
-    setError(null);
+    if (!options.preserveError) setError(null);
     try {
       const url = new URL(`/api/clinic/locations/${locationId}/slots`, window.location.origin);
       url.searchParams.set('from', new Date().toISOString());
@@ -62,13 +90,12 @@ export function AlternativeSlotDrawer({ locationId, item, onClose, onProposed }:
       }
       const payload: unknown = await response.json().catch(() => null);
       if (!response.ok || !Array.isArray(payload)) {
-        setError('Cannot load available slots.');
+        setError('Не удалось загрузить доступные окна.');
         return;
       }
       setSlots(payload as ClinicSlot[]);
-      setSelectedSlotId(null);
     } catch {
-      setError('Connection to VetHelp is unavailable.');
+      setError('Нет связи с VetHelp.');
     } finally {
       setLoading(false);
     }
@@ -77,6 +104,23 @@ export function AlternativeSlotDrawer({ locationId, item, onClose, onProposed }:
   useEffect(() => {
     if (item) void loadSlots();
   }, [item, loadSlots]);
+
+  useEffect(() => {
+    if (!item) {
+      setSelectedSlotId(null);
+      setActiveDateKey(null);
+      return;
+    }
+    if (selectedSlot) {
+      const selectedDateKey = dateKey(selectedSlot.starts_at);
+      if (selectedDateKey !== activeDateKey) setActiveDateKey(selectedDateKey);
+      return;
+    }
+    if (selectedSlotId && availableSlots.length > 0) setSelectedSlotId(null);
+    if (!activeDateKey || !slotGroups.some((group) => group.key === activeDateKey)) {
+      setActiveDateKey(slotGroups[0]?.key ?? null);
+    }
+  }, [activeDateKey, availableSlots.length, item, selectedSlot, selectedSlotId, slotGroups]);
 
   const submit = useCallback(async () => {
     if (!item || !selectedSlotId || submitting) return;
@@ -100,23 +144,23 @@ export function AlternativeSlotDrawer({ locationId, item, onClose, onProposed }:
         return;
       }
       if (response.status === 409 && payload?.code === 'SLOT_LOCKED_RETRY') {
-        setError('Slot is being updated. Refreshing the list.');
-        await loadSlots();
+        setError('Слот обновляется. Загружаем актуальный список.');
+        await loadSlots({ preserveError: true });
         return;
       }
       if (response.status === 409) {
-        setError('Selected time is no longer available.');
-        await loadSlots();
+        setError('Выбранное время уже недоступно.');
+        await loadSlots({ preserveError: true });
         return;
       }
       if (response.status === 422) {
-        setError('Request has changed or expired. Refreshing queue.');
+        setError('Заявка изменилась или истекла. Обновляем очередь.');
         await onProposed();
         return;
       }
-      setError('Failed to propose another time.');
+      setError('Не удалось предложить другое время.');
     } catch {
-      setError('Connection to VetHelp is unavailable.');
+      setError('Нет связи с VetHelp.');
     } finally {
       setSubmitting(false);
     }
@@ -135,7 +179,16 @@ export function AlternativeSlotDrawer({ locationId, item, onClose, onProposed }:
         </header>
         <section className="border-b border-slate-200 px-6 py-4 text-sm text-slate-700">
           <p className="font-semibold text-slate-950">{item.pet.name}</p>
-          <p className="mt-1">Текущее время: {formatDateTime(item.slot.startsAt)}</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Старое время</p>
+              <p className="mt-1 font-medium text-slate-950">{formatDateTime(item.slot.startsAt)}</p>
+            </div>
+            <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Новое время</p>
+              <p className="mt-1 font-medium text-slate-950">{selectedSlot ? formatDateTime(selectedSlot.starts_at) : 'Не выбрано'}</p>
+            </div>
+          </div>
         </section>
         <section className="flex-1 overflow-y-auto px-6 py-4">
           {loading ? (
@@ -143,13 +196,30 @@ export function AlternativeSlotDrawer({ locationId, item, onClose, onProposed }:
           ) : availableSlots.length === 0 ? (
             <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-600">Нет доступных окон.</div>
           ) : (
-            <div className="space-y-3">
-              {availableSlots.map((slot) => (
-                <button key={slot.id} type="button" onClick={() => setSelectedSlotId(slot.id)} className={`w-full rounded-xl border px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${selectedSlotId === slot.id ? 'border-blue-600 bg-blue-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
-                  <span className="block text-sm font-semibold text-slate-950">{formatDateTime(slot.starts_at)}</span>
-                  <span className="mt-1 block text-xs text-slate-600">Свободно мест: {remaining(slot)}</span>
+            <div>
+              <div className="mb-4 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Дни с доступными окнами">
+                {slotGroups.map((group) => (
+                  <button
+                    key={group.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeGroup?.key === group.key}
+                    onClick={() => setActiveDateKey(group.key)}
+                    className={`shrink-0 rounded-lg border px-3 py-2 text-left text-sm transition focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${activeGroup?.key === group.key ? 'border-blue-600 bg-blue-50 text-blue-900' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
+                  >
+                    <span className="block font-semibold">{group.label}</span>
+                    <span className="mt-0.5 block text-xs">{group.slots.length} окон</span>
+                  </button>
+                ))}
+              </div>
+              <div className="space-y-3">
+                {(activeGroup?.slots ?? []).map((slot) => (
+                <button key={slot.id} type="button" data-testid={`alternative-slot-${slot.id}`} aria-pressed={selectedSlotId === slot.id} onClick={() => setSelectedSlotId(slot.id)} className={`w-full rounded-xl border px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${selectedSlotId === slot.id ? 'border-blue-600 bg-blue-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+                  <span className="block text-sm font-semibold text-slate-950">{formatTime(slot.starts_at)}-{formatTime(slot.ends_at)}</span>
+                  <span className="mt-1 block text-xs text-slate-600">{formatDate(slot.starts_at)} · свободно мест: {remaining(slot)}</span>
                 </button>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </section>

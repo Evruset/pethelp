@@ -18,17 +18,30 @@ export class OwnerAlternativeAcceptanceService {
         slot_id: string;
         state: string;
         owner_id: string;
+        swap_group_id: string | null;
+        original_slot_id: string | null;
       }>(`
-        SELECT id::text, slot_id::text, state, owner_id::text
+        SELECT h.id::text, h.slot_id::text, h.state, h.owner_id::text,
+               swap.id::text AS swap_group_id,
+               swap.original_slot_id::text AS original_slot_id
         FROM booking_schema.booking_holds
-        WHERE id = $1::uuid
-          AND owner_id = $2::uuid
+        LEFT JOIN LATERAL (
+          SELECT id
+          FROM booking_schema.alternative_swap_groups
+          WHERE original_hold_id = h.id
+            AND state = 'ACCEPTED'
+          ORDER BY updated_at DESC
+          LIMIT 1
+        ) swap ON true
+        WHERE h.id = $1::uuid
+          AND h.owner_id = $2::uuid
       `, [holdId, ownerId]);
       const row = replay.rows[0];
       if (row?.state === 'MIS_HELD') {
         return {
+          swapGroupId: row.swap_group_id ?? row.id,
           holdId: row.id,
-          sourceSlotId: row.slot_id,
+          sourceSlotId: row.original_slot_id ?? row.slot_id,
           slotId: row.slot_id,
           state: 'MIS_HELD',
         };

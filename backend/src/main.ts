@@ -29,7 +29,7 @@ async function bootstrap(): Promise<void> {
   app.enableCors({
     origin: corsOrigin(),
     methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Accept', 'Authorization', 'Content-Type', 'Idempotency-Key', 'X-Correlation-ID'],
+    allowedHeaders: ['Accept', 'Authorization', 'Content-Type', 'Idempotency-Key', 'X-Correlation-ID', 'X-Causation-ID', 'traceparent'],
   });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
   app.useGlobalFilters(new BookingErrorFilter());

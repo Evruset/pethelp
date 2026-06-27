@@ -9,7 +9,8 @@ class InMemoryOfflineCommandStore implements OfflineCommandStore {
   List<OfflineCommand> _commands = <OfflineCommand>[];
 
   @override
-  Future<List<OfflineCommand>> readAll() async => List<OfflineCommand>.unmodifiable(_commands);
+  Future<List<OfflineCommand>> readAll() async =>
+      List<OfflineCommand>.unmodifiable(_commands);
 
   @override
   Future<void> replaceAll(List<OfflineCommand> commands) async {
@@ -29,7 +30,8 @@ class OutboxRepository {
 
   Future<void> enqueue(OfflineCommand command) async {
     if (!OfflineCommandPolicy.canQueue(command.kind)) {
-      throw OfflineActionBlocked(OfflineCommandPolicy.blockedMessage(command.kind));
+      throw OfflineActionBlocked(
+          OfflineCommandPolicy.blockedMessage(command.kind));
     }
 
     final current = await _store.readAll();
@@ -46,7 +48,10 @@ class OutboxRepository {
         deviceSequence: command.deviceSequence,
         baseServerVersion: previous.baseServerVersion,
         payloadSchemaVersion: command.payloadSchemaVersion,
-        changedFields: <String>{...previous.changedFields, ...command.changedFields}.toList(growable: false),
+        changedFields: <String>{
+          ...previous.changedFields,
+          ...command.changedFields
+        }.toList(growable: false),
         payload: <String, Object?>{...previous.payload, ...command.payload},
         createdAt: command.createdAt,
       );
@@ -62,7 +67,8 @@ class OutboxRepository {
     final result = <OfflineCommand>[];
     final seenAggregate = <String>{};
 
-    for (final command in all.where((item) => item.status == OfflineCommandStatus.pending)) {
+    for (final command
+        in all.where((item) => item.status == OfflineCommandStatus.pending)) {
       final aggregateKey = '${command.aggregateType}:${command.aggregateId}';
       if (seenAggregate.contains(aggregateKey)) continue;
       result.add(command);
@@ -72,20 +78,52 @@ class OutboxRepository {
     return result;
   }
 
-  Future<void> updateStatus(String mutationId, OfflineCommandStatus status) async {
+  Future<List<OfflineCommand>> commandsForAggregate({
+    required String aggregateType,
+    required String aggregateId,
+  }) async {
+    final all = await _store.readAll();
+    return all
+        .where((command) =>
+            command.aggregateType == aggregateType &&
+            command.aggregateId == aggregateId &&
+            command.status != OfflineCommandStatus.completed)
+        .toList(growable: false);
+  }
+
+  Future<void> removeCommandsForAggregate({
+    required String aggregateType,
+    required String aggregateId,
+  }) async {
+    final all = await _store.readAll();
+    await _store.replaceAll(all
+        .where((command) =>
+            command.aggregateType != aggregateType ||
+            command.aggregateId != aggregateId)
+        .toList(growable: false));
+  }
+
+  Future<void> updateStatus(
+      String mutationId, OfflineCommandStatus status) async {
     final all = await _store.readAll();
     await _store.replaceAll(all.map((command) {
-      return command.mutationId == mutationId ? command.copyWith(status: status) : command;
+      return command.mutationId == mutationId
+          ? command.copyWith(status: status)
+          : command;
     }).toList(growable: false));
   }
 
   Future<void> removeCompleted() async {
     final all = await _store.readAll();
-    await _store.replaceAll(all.where((item) => item.status != OfflineCommandStatus.completed).toList(growable: false));
+    await _store.replaceAll(all
+        .where((item) => item.status != OfflineCommandStatus.completed)
+        .toList(growable: false));
   }
 
-  int _coalescibleIndex(List<OfflineCommand> commands, OfflineCommand incoming) {
-    if (incoming.kind != OfflineCommandKind.updatePetProfile && incoming.kind != OfflineCommandKind.updateNotificationPreferences) {
+  int _coalescibleIndex(
+      List<OfflineCommand> commands, OfflineCommand incoming) {
+    if (incoming.kind != OfflineCommandKind.updatePetProfile &&
+        incoming.kind != OfflineCommandKind.updateNotificationPreferences) {
       return -1;
     }
     return commands.lastIndexWhere((current) {
@@ -96,8 +134,10 @@ class OutboxRepository {
     });
   }
 
-  int _compareByAggregateThenSequence(OfflineCommand left, OfflineCommand right) {
-    final aggregate = '${left.aggregateType}:${left.aggregateId}'.compareTo('${right.aggregateType}:${right.aggregateId}');
+  int _compareByAggregateThenSequence(
+      OfflineCommand left, OfflineCommand right) {
+    final aggregate = '${left.aggregateType}:${left.aggregateId}'
+        .compareTo('${right.aggregateType}:${right.aggregateId}');
     if (aggregate != 0) return aggregate;
     return left.deviceSequence.compareTo(right.deviceSequence);
   }

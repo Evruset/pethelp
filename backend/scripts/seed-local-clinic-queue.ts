@@ -12,9 +12,9 @@ type FixtureItem = {
 };
 
 const fixturePlan = [
-  { startsInHours: 2, pendingForMinutes: 12, slaInMinutes: 2 },
-  { startsInHours: 3, pendingForMinutes: 6, slaInMinutes: 10 },
-  { startsInHours: 4, pendingForMinutes: 2, slaInMinutes: 14 },
+  { startsInHours: 2, pendingForMinutes: 20, slaInMinutes: 10 },
+  { startsInHours: 3, pendingForMinutes: 10, slaInMinutes: 20 },
+  { startsInHours: 4, pendingForMinutes: 4, slaInMinutes: 30 },
 ] as const;
 
 async function main(): Promise<void> {
@@ -177,7 +177,7 @@ async function main(): Promise<void> {
       items: created,
       notes: [
         'Items are ordered by manualConfirmPendingAt for backend FIFO validation.',
-        'The first row enters critical SLA state immediately; later rows keep 10 and 14 minutes.',
+        'The first row is the most urgent but keeps 10 minutes for manual testing; later rows keep 20 and 30 minutes.',
       ],
     }, null, 2));
   } catch (error) {

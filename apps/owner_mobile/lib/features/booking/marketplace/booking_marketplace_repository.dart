@@ -6,6 +6,8 @@ class BookingSlot {
   const BookingSlot({
     required this.id,
     required this.clinicLocationId,
+    required this.serviceId,
+    required this.serviceName,
     required this.startsAt,
     required this.endsAt,
     required this.remainingCapacity,
@@ -13,6 +15,8 @@ class BookingSlot {
 
   final String id;
   final String clinicLocationId;
+  final String? serviceId;
+  final String? serviceName;
   final DateTime startsAt;
   final DateTime endsAt;
   final int remainingCapacity;
@@ -21,6 +25,8 @@ class BookingSlot {
     return BookingSlot(
       id: json['id'] as String,
       clinicLocationId: json['clinic_location_id'] as String,
+      serviceId: json['service_id'] as String?,
+      serviceName: json['service_name'] as String?,
       startsAt: DateTime.parse(json['starts_at'] as String).toUtc(),
       endsAt: DateTime.parse(json['ends_at'] as String).toUtc(),
       remainingCapacity: (json['remaining_capacity'] as num?)?.toInt() ?? 0,
@@ -103,6 +109,7 @@ class BookingMarketplaceApiException implements Exception {
 abstract class BookingMarketplaceRepository {
   Future<List<BookingSlot>> listSlots({
     required String clinicLocationId,
+    required String serviceId,
     required DateTime from,
     required DateTime to,
   });
@@ -137,6 +144,7 @@ class HttpBookingMarketplaceRepository implements BookingMarketplaceRepository {
   @override
   Future<List<BookingSlot>> listSlots({
     required String clinicLocationId,
+    required String serviceId,
     required DateTime from,
     required DateTime to,
   }) async {
@@ -146,6 +154,7 @@ class HttpBookingMarketplaceRepository implements BookingMarketplaceRepository {
         <String, String>{
           'from': from.toUtc().toIso8601String(),
           'to': to.toUtc().toIso8601String(),
+          'serviceId': serviceId,
         },
       ),
       headers: const <String, String>{'Accept': 'application/json'},
@@ -219,7 +228,8 @@ class HttpBookingMarketplaceRepository implements BookingMarketplaceRepository {
     }
   }
 
-  BookingMarketplaceApiException _apiException(int statusCode, dynamic payload) {
+  BookingMarketplaceApiException _apiException(
+      int statusCode, dynamic payload) {
     final code = payload is Map<String, dynamic> && payload['code'] is String
         ? payload['code'] as String
         : 'BACKEND_UNAVAILABLE';

@@ -10,6 +10,7 @@ interface SessionTraceRow {
   id: string;
   state: string;
   doctor_id: string | null;
+  telemed_case_id: string | null;
   correlation_id: string | null;
 }
 
@@ -54,6 +55,16 @@ export class LiveKitWebhookService {
       }
 
       await this.traceContext.run(this.traceContext.workerContext(session.correlation_id ?? this.traceContext.getCorrelationId()), async () => {
+        if (session.telemed_case_id) {
+          await client.query(`
+            UPDATE telemed_schema.telemed_cases
+            SET state = 'IN_PROGRESS',
+                updated_at = clock_timestamp()
+            WHERE id = $1::uuid
+              AND state = 'DOCTOR_JOINED'
+          `, [session.telemed_case_id]);
+        }
+
         await client.query(`
           INSERT INTO audit_schema.audit_log (
             occurred_at, actor_type, actor_id, action,
@@ -94,6 +105,16 @@ export class LiveKitWebhookService {
         `, [session.id]);
 
         if (result.rows[0]) {
+          if (session.telemed_case_id) {
+            await client.query(`
+              UPDATE telemed_schema.telemed_cases
+              SET state = 'COMPLETED',
+                  updated_at = clock_timestamp()
+              WHERE id = $1::uuid
+                AND state IN ('DOCTOR_JOINED', 'IN_PROGRESS')
+            `, [session.telemed_case_id]);
+          }
+
           this.logger.event('log', LiveKitWebhookService.name, 'LiveKit room finished and session completed', {
             telemedSessionId: session.id,
             roomName,
@@ -105,7 +126,7 @@ export class LiveKitWebhookService {
 
   private async lockSessionByRoom(client: PoolClient, roomName: string): Promise<SessionTraceRow | undefined> {
     const result = await client.query<SessionTraceRow>(`
-      SELECT id, state, doctor_id, correlation_id
+      SELECT id, state, doctor_id, telemed_case_id, correlation_id
       FROM telemed_schema.telemed_sessions
       WHERE room_name = $1
       FOR UPDATE

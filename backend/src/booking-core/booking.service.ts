@@ -6,6 +6,7 @@ import { config } from '../config';
 import { canTransition } from './booking-state-machine';
 import { BookingRepository } from './booking.repository';
 import { ConfirmHoldResult, CreateHoldResult, HoldRow, ReleaseHoldResult, SlotRow } from './booking.types';
+import { TraceContext } from '../observability/trace-context.context';
 
 interface IdempotencyRow {
   id: string;
@@ -17,6 +18,7 @@ interface IdempotencyRow {
 @Injectable()
 export class BookingService {
   private readonly logger = new Logger(BookingService.name);
+  private readonly traceContext = new TraceContext();
 
   constructor(
     private readonly database: DatabaseService,
@@ -207,11 +209,15 @@ export class BookingService {
     return result.rows[0];
   }
 
-  async listSlots(clinicLocationId: string, from?: string, to?: string): Promise<Record<string, unknown>[]> {
+  async listSlots(clinicLocationId: string, from?: string, to?: string, serviceId?: string): Promise<Record<string, unknown>[]> {
     const result = await this.database.query(`
-      SELECT s.id, s.clinic_location_id, s.service_id, s.starts_at, s.ends_at, s.capacity, s.booked_count, s.held_count, s.state, s.version,
+      SELECT s.id, s.clinic_location_id, s.service_id, service.display_name AS service_name,
+             s.starts_at, s.ends_at, s.capacity, s.booked_count, s.held_count, s.state, s.version,
              (s.capacity - s.booked_count - s.held_count) AS remaining_capacity
       FROM clinic_schema.appointment_slots s
+      LEFT JOIN clinic_schema.clinic_services service
+        ON service.id = s.service_id
+       AND service.active = true
       WHERE s.clinic_location_id = $1
         AND s.state = 'OPEN'
         AND s.status = 'AVAILABLE'
@@ -219,8 +225,9 @@ export class BookingService {
         AND s.capacity - s.booked_count - s.held_count > 0
         AND ($2::timestamptz IS NULL OR s.starts_at >= $2::timestamptz)
         AND ($3::timestamptz IS NULL OR s.starts_at < $3::timestamptz)
+        AND ($4::uuid IS NULL OR s.service_id = $4::uuid)
       ORDER BY s.starts_at
-    `, [clinicLocationId, from ?? null, to ?? null]);
+    `, [clinicLocationId, from ?? null, to ?? null, serviceId ?? null]);
     return result.rows;
   }
 
@@ -329,9 +336,20 @@ export class BookingService {
   private async writeOutbox(client: PoolClient, event: { eventType: string; correlationId: string | null; aggregateType: string; aggregateId: string; aggregateVersion: number; payload: Record<string, unknown> }): Promise<void> {
     await client.query(`
       INSERT INTO booking_schema.outbox_events (
-        event_type, correlation_id, aggregate_type, aggregate_id, aggregate_version, payload_json, deduplication_key
-      ) VALUES ($1, $2::uuid, $3, $4::uuid, $5, $6::jsonb, $7)
-    `, [event.eventType, event.correlationId, event.aggregateType, event.aggregateId, event.aggregateVersion, JSON.stringify(event.payload), `${event.eventType}:${event.aggregateId}:${event.aggregateVersion}`]);
+        event_type, correlation_id, causation_id, traceparent, aggregate_type,
+        aggregate_id, aggregate_version, payload_json, deduplication_key
+      ) VALUES ($1, $2::uuid, $3::uuid, $4, $5, $6::uuid, $7, $8::jsonb, $9)
+    `, [
+      event.eventType,
+      event.correlationId,
+      this.traceContext.getCausationId() ?? null,
+      this.traceContext.getTraceparent() ?? null,
+      event.aggregateType,
+      event.aggregateId,
+      event.aggregateVersion,
+      JSON.stringify(event.payload),
+      `${event.eventType}:${event.aggregateId}:${event.aggregateVersion}`,
+    ]);
   }
 
   private async writeAudit(client: PoolClient, actorType: string, actorId: string | null, action: string, aggregateType: string, aggregateId: string, correlationId: string | null, payload: Record<string, unknown>): Promise<void> {

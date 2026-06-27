@@ -72,9 +72,17 @@ export class BookingController {
 
   @Get('clinic-locations/:clinicLocationId/slots')
   @ApiOperation({ summary: 'Получение доступных слотов клиники' })
-  async listSlots(@Param('clinicLocationId') clinicLocationId: string, @Query('from') from?: string, @Query('to') to?: string) {
+  async listSlots(
+    @Param('clinicLocationId') clinicLocationId: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('serviceId') serviceId?: string,
+  ) {
     if (!isUuid(clinicLocationId)) throw DomainErrors.slotNotFound();
-    return this.bookingService.listSlots(clinicLocationId, from, to);
+    if (serviceId !== undefined && !isUuid(serviceId)) {
+      throw new BadRequestException({ code: 'INVALID_SERVICE_ID', message: 'serviceId must be a UUID.' });
+    }
+    return this.bookingService.listSlots(clinicLocationId, from, to, serviceId);
   }
 
   @Post('booking-holds')
@@ -201,6 +209,81 @@ export class BookingController {
       idempotencyKey: requiredUuid(idempotencyKey, 'Idempotency-Key'),
       expectedVersion: requiredVersion(ifMatch, 'If-Match'),
       correlationId: isUuid(correlationHeader) ? correlationHeader : randomUUID(),
+    });
+  }
+
+  @Post('clinic/booking-holds/:holdId/decline')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.CLINIC_RECEPTIONIST, Role.CLINIC_ADMIN)
+  @ApiBearerAuth(SWAGGER_BEARER_AUTH)
+  @ApiOperation({
+    summary: 'Отклонение заявки сотрудником клиники',
+    description: 'Команда освобождает hold и слот только после backend ABAC, FIFO и If-Match проверки.',
+  })
+  @ApiParam({ name: 'holdId', type: 'string', format: 'uuid' })
+  @ApiHeader({ name: 'Idempotency-Key', required: true, schema: { type: 'string', format: 'uuid' } })
+  @ApiHeader({ name: 'If-Match', required: true, schema: { type: 'string', example: '1' } })
+  @ApiHeader({ name: 'X-Correlation-ID', required: false, schema: { type: 'string', format: 'uuid' } })
+  @ApiOkResponse({ description: 'Hold отклонён клиникой и освобождён.', type: ReleaseHoldDto })
+  @ApiForbiddenResponse({ description: 'CLINIC_SCOPE_MISMATCH.', type: ApiErrorDto })
+  @ApiConflictResponse({ description: 'SLOT_LOCKED_RETRY или QUEUE_FIFO_VIOLATION.', type: ApiErrorDto })
+  @ApiUnprocessableEntityResponse({ description: 'HOLD_EXPIRED или INVALID_STATE_TRANSITION.', type: ApiErrorDto })
+  async declineManualHold(
+    @Param('holdId') holdId: string,
+    @CurrentUser() employee: JwtPayload,
+    @Body() body: { declineReason?: unknown } | undefined,
+    @Headers('idempotency-key') idempotencyKey?: string,
+    @Headers('if-match') ifMatch?: string,
+    @Headers('x-correlation-id') correlationHeader?: string,
+  ) {
+    const declineReason = typeof body?.declineReason === 'string' ? body.declineReason.slice(0, 500) : undefined;
+    return this.bookingSecurityService.declineManualHold({
+      holdId: requiredUuid(holdId, 'holdId'),
+      employee,
+      idempotencyKey: requiredUuid(idempotencyKey, 'Idempotency-Key'),
+      expectedVersion: requiredVersion(ifMatch, 'If-Match'),
+      correlationId: isUuid(correlationHeader) ? correlationHeader : randomUUID(),
+      declineReason,
+    });
+  }
+
+  @Post('clinic/booking-holds/:holdId/request-notes')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.CLINIC_RECEPTIONIST, Role.CLINIC_ADMIN)
+  @ApiBearerAuth(SWAGGER_BEARER_AUTH)
+  @ApiOperation({
+    summary: 'Запрос уточнений у владельца по заявке',
+    description: 'Команда не подтверждает и не освобождает hold: она создаёт authoritative audit/outbox event и увеличивает версию hold.',
+  })
+  @ApiParam({ name: 'holdId', type: 'string', format: 'uuid' })
+  @ApiHeader({ name: 'Idempotency-Key', required: true, schema: { type: 'string', format: 'uuid' } })
+  @ApiHeader({ name: 'If-Match', required: true, schema: { type: 'string', example: '1' } })
+  @ApiHeader({ name: 'X-Correlation-ID', required: false, schema: { type: 'string', format: 'uuid' } })
+  @ApiOkResponse({ description: 'Запрос уточнений зафиксирован и отправлен в outbox.' })
+  @ApiForbiddenResponse({ description: 'CLINIC_SCOPE_MISMATCH.', type: ApiErrorDto })
+  @ApiConflictResponse({ description: 'SLOT_LOCKED_RETRY, SLOT_VERSION_STALE или QUEUE_FIFO_VIOLATION.', type: ApiErrorDto })
+  @ApiUnprocessableEntityResponse({ description: 'HOLD_EXPIRED или INVALID_STATE_TRANSITION.', type: ApiErrorDto })
+  async requestOwnerNotes(
+    @Param('holdId') holdId: string,
+    @CurrentUser() employee: JwtPayload,
+    @Body() body: { noteRequest?: unknown } | undefined,
+    @Headers('idempotency-key') idempotencyKey?: string,
+    @Headers('if-match') ifMatch?: string,
+    @Headers('x-correlation-id') correlationHeader?: string,
+  ) {
+    const noteRequest = typeof body?.noteRequest === 'string' ? body.noteRequest.trim().slice(0, 1000) : '';
+    if (noteRequest.length < 3) {
+      throw new BadRequestException({ code: 'INVALID_REQUEST', message: 'noteRequest must contain at least 3 characters.' });
+    }
+    return this.bookingSecurityService.requestOwnerNotes({
+      holdId: requiredUuid(holdId, 'holdId'),
+      employee,
+      idempotencyKey: requiredUuid(idempotencyKey, 'Idempotency-Key'),
+      expectedVersion: requiredVersion(ifMatch, 'If-Match'),
+      correlationId: isUuid(correlationHeader) ? correlationHeader : randomUUID(),
+      noteRequest,
     });
   }
 }

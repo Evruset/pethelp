@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:uuid/uuid.dart';
 
 import 'telemed_waiting_room_bloc.dart';
 
@@ -14,6 +15,8 @@ class HttpTelemedWaitingRepository implements TelemedWaitingRepository {
   final Uri baseUrl;
   final Future<String> Function() accessTokenProvider;
   final http.Client _client;
+  final Uuid _uuid = const Uuid();
+  final Map<String, String> _cancelIdempotencyKeys = <String, String>{};
 
   @override
   Future<TelemedWaitingSnapshot> readSession(String sessionId) async {
@@ -22,16 +25,58 @@ class HttpTelemedWaitingRepository implements TelemedWaitingRepository {
       baseUrl.resolve('/v1/telemed/sessions/$sessionId'),
       headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
     );
+    final payload = response.body.isEmpty
+        ? <String, dynamic>{}
+        : jsonDecode(response.body) as Map<String, dynamic>;
     if (response.statusCode != 200) {
-      throw StateError('Unable to read telemedicine waiting room state.');
+      throw TelemedWaitingApiException(
+          payload['code'] as String? ?? 'TELEMED_STATUS_UNAVAILABLE');
     }
-    final payload = jsonDecode(response.body) as Map<String, dynamic>;
     return TelemedWaitingSnapshot(
       sessionId: payload['sessionId'] as String,
       state: _state(payload['state'] as String),
-      doctorJoinDeadlineAt: DateTime.parse(payload['doctorJoinDeadlineAt'] as String),
+      doctorJoinDeadlineAt:
+          DateTime.parse(payload['doctorJoinDeadlineAt'] as String),
       serverNow: DateTime.parse(payload['serverNow'] as String),
       version: payload['version'] as int,
+      telemedCaseState: payload['telemedCaseState'] as String?,
+      paymentStatus: payload['paymentStatus'] as String?,
+      refundState: payload['refundState'] as String?,
+    );
+  }
+
+  @override
+  Future<TelemedWaitingSnapshot> cancelSession(String sessionId) async {
+    final token = await accessTokenProvider();
+    final idempotencyKey = _cancelIdempotencyKeys.putIfAbsent(
+      sessionId,
+      _uuid.v4,
+    );
+    final response = await _client.post(
+      baseUrl.resolve('/v1/telemed/sessions/$sessionId/cancel'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+        'Idempotency-Key': idempotencyKey,
+      },
+    );
+    final payload = response.body.isEmpty
+        ? <String, dynamic>{}
+        : jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode != 200) {
+      throw TelemedWaitingApiException(
+          payload['code'] as String? ?? 'TELEMED_CANCEL_UNAVAILABLE');
+    }
+    final serverNow = DateTime.parse(payload['serverNow'] as String);
+    return TelemedWaitingSnapshot(
+      sessionId: payload['sessionId'] as String,
+      state: _state(payload['state'] as String),
+      doctorJoinDeadlineAt: serverNow,
+      serverNow: serverNow,
+      version: payload['version'] as int,
+      telemedCaseState: payload['telemedCaseState'] as String?,
+      paymentStatus: payload['paymentStatus'] as String?,
+      refundState: payload['refundState'] as String?,
     );
   }
 
@@ -41,7 +86,13 @@ class HttpTelemedWaitingRepository implements TelemedWaitingRepository {
       'CONNECTED' => TelemedWaitingStateKind.connected,
       'DOCTOR_TIMEOUT' => TelemedWaitingStateKind.doctorTimeout,
       'COMPLETED' => TelemedWaitingStateKind.completed,
-      _ => throw StateError('Unknown telemedicine state.'),
+      'CANCELLED' => TelemedWaitingStateKind.cancelled,
+      _ => throw const TelemedWaitingApiException('TELEMED_STATUS_UNKNOWN'),
     };
   }
+}
+
+class TelemedWaitingApiException implements Exception {
+  const TelemedWaitingApiException(this.code);
+  final String code;
 }

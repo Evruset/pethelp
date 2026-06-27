@@ -9,6 +9,9 @@ const forbiddenLocationId = '33333333-3333-4333-8333-333333333333';
 const holdA = '44444444-4444-4444-8444-444444444444';
 const holdB = '55555555-5555-4555-8555-555555555555';
 const holdC = '66666666-6666-4666-8666-666666666666';
+const alternativeSlotA = '77777777-7777-4777-8777-777777777777';
+const alternativeSlotB = '88888888-8888-4888-8888-888888888888';
+const alternativeSlotC = '99999999-9999-4999-8999-999999999999';
 const serverNow = '2026-06-25T12:00:00.000Z';
 const jwtSecret = 'clinic-e2e-secret-at-least-32-bytes';
 const mockBackendPort = 3212;
@@ -25,12 +28,15 @@ type QueueItem = {
 };
 
 type ConfirmMode = 'success' | 'slot-locked-retry';
+type AlternativeMode = 'success' | 'slot-locked-retry';
 
 let server: Server;
 let items: QueueItem[] = [];
 let confirmMode: ConfirmMode = 'success';
+let alternativeMode: AlternativeMode = 'success';
 let queueReads = 0;
 let confirmRequests: Array<{ holdId: string; ifMatch: string | undefined; idempotencyKey: string | undefined }> = [];
+let alternativeRequests: Array<{ holdId: string; newSlotId: string; ifMatch: string | undefined; idempotencyKey: string | undefined }> = [];
 
 test.describe.configure({ mode: 'serial' });
 
@@ -107,6 +113,37 @@ test('refreshes queue after retryable confirm conflict without fencing the row',
   expect(queueReads).toBeGreaterThanOrEqual(2);
 });
 
+test('groups alternative slots by date and preserves selection after retryable conflict', async ({ page, context, baseURL }) => {
+  alternativeMode = 'slot-locked-retry';
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+
+  await rowFor(page, 'Барс').getByRole('button', { name: 'Другое время' }).click();
+
+  const dialog = page.getByRole('dialog', { name: 'Предложить другое время' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText('Старое время')).toBeVisible();
+  await expect(dialog.getByText('Новое время')).toBeVisible();
+  await expect(dialog.getByRole('tab').filter({ hasText: '2 окон' })).toBeVisible();
+  await expect(dialog.getByRole('tab').filter({ hasText: '1 окон' })).toBeVisible();
+
+  await expect(dialog.getByTestId(`alternative-slot-${alternativeSlotA}`)).toBeVisible();
+  await dialog.getByTestId(`alternative-slot-${alternativeSlotA}`).click();
+  await expect(dialog.getByText('Не выбрано')).toHaveCount(0);
+  await dialog.getByRole('button', { name: 'Предложить' }).click();
+
+  await expect(dialog.getByRole('alert')).toContainText('Слот обновляется. Загружаем актуальный список.');
+  await expect(dialog.getByText('Новое время')).toBeVisible();
+  await expect(dialog.getByTestId(`alternative-slot-${alternativeSlotA}`)).toHaveAttribute('aria-pressed', 'true');
+  await expect(dialog.getByRole('button', { name: 'Предложить' })).toBeEnabled();
+  expect(alternativeRequests).toEqual([{
+    holdId: holdA,
+    newSlotId: alternativeSlotA,
+    ifMatch: '1',
+    idempotencyKey: expect.any(String),
+  }]);
+});
+
 function rowFor(page: Page, petName: string) {
   return page.getByRole('row').filter({ hasText: petName });
 }
@@ -139,16 +176,24 @@ async function addClinicSession(
 function resetBackend() {
   items = makeQueueItems();
   confirmMode = 'success';
+  alternativeMode = 'success';
   queueReads = 0;
   confirmRequests = [];
+  alternativeRequests = [];
 }
 
 function handleBackendRequest(request: IncomingMessage, response: ServerResponse) {
   const url = new URL(request.url ?? '/', `http://${request.headers.host ?? `127.0.0.1:${mockBackendPort}`}`);
   const queuePath = `/v1/clinic/${clinicId}/locations/${locationId}/booking-queue`;
+  const slotsPath = `/v1/clinic-locations/${locationId}/slots`;
   if (request.method === 'GET' && url.pathname === queuePath) {
     queueReads += 1;
     sendJson(response, 200, { clinicId, locationId, serverNow, items });
+    return;
+  }
+
+  if (request.method === 'GET' && url.pathname === slotsPath) {
+    sendJson(response, 200, makeAvailableSlots());
     return;
   }
 
@@ -169,7 +214,35 @@ function handleBackendRequest(request: IncomingMessage, response: ServerResponse
     return;
   }
 
+  const alternativeMatch = url.pathname.match(/^\/v1\/clinic\/booking-holds\/([^/]+)\/alternative-slot$/);
+  if (request.method === 'POST' && alternativeMatch) {
+    collectBody(request).then((rawBody) => {
+      const body = rawBody ? JSON.parse(rawBody) as { newSlotId?: string } : {};
+      alternativeRequests.push({
+        holdId: alternativeMatch[1],
+        newSlotId: body.newSlotId ?? '',
+        ifMatch: headerValue(request, 'if-match'),
+        idempotencyKey: headerValue(request, 'idempotency-key'),
+      });
+      if (alternativeMode === 'slot-locked-retry') {
+        sendJson(response, 409, { code: 'SLOT_LOCKED_RETRY' });
+        return;
+      }
+      items = items.filter((item) => item.holdId !== alternativeMatch[1]);
+      sendJson(response, 200, { holdId: alternativeMatch[1], state: 'ALTERNATIVE_PENDING' });
+    }).catch(() => sendJson(response, 400, { code: 'INVALID_REQUEST' }));
+    return;
+  }
+
   sendJson(response, 404, { code: 'NOT_FOUND' });
+}
+
+async function collectBody(request: IncomingMessage): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of request) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks).toString('utf8');
 }
 
 function headerValue(request: IncomingMessage, name: string): string | undefined {
@@ -214,6 +287,24 @@ function makeQueueItems(): QueueItem[] {
       positionMinutes: 2,
       slaMinutes: 14,
     }),
+  ];
+}
+
+function makeAvailableSlots() {
+  const base = Date.parse(serverNow);
+  const slot = (id: string, minutes: number) => ({
+    id,
+    starts_at: new Date(base + minutes * 60_000).toISOString(),
+    ends_at: new Date(base + (minutes + 30) * 60_000).toISOString(),
+    capacity: 1,
+    booked_count: 0,
+    held_count: 0,
+    remaining_capacity: '1',
+  });
+  return [
+    slot(alternativeSlotA, 22 * 60),
+    slot(alternativeSlotB, 23 * 60),
+    slot(alternativeSlotC, 46 * 60),
   ];
 }
 

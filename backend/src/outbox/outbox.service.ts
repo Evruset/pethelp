@@ -7,6 +7,8 @@ export interface OutboxEvent {
   schema_version: number;
   producer: string;
   correlation_id: string | null;
+  causation_id: string | null;
+  traceparent: string | null;
   aggregate_type: string;
   aggregate_id: string;
   aggregate_version: number;
@@ -43,7 +45,7 @@ export class OutboxService {
             attempts = attempts + 1
         FROM claimed
         WHERE e.id = claimed.id
-        RETURNING e.id, e.event_type, e.schema_version, e.producer, e.correlation_id, e.aggregate_type, e.aggregate_id,
+        RETURNING e.id, e.event_type, e.schema_version, e.producer, e.correlation_id, e.causation_id, e.traceparent, e.aggregate_type, e.aggregate_id,
                   e.aggregate_version, e.payload_json, e.attempts
       `, [batchSize]);
       return result.rows;
