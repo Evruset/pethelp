@@ -25,4 +25,15 @@ jobs:
           cache: npm
           cache-dependency-path: apps/clinic-portal/package.json
       - run: npm install
-      - run: npm run build
+      - run: npm run typecheck
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
+      - name: Upload Playwright diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clinic-portal-playwright-report
+          path: |
+            apps/clinic-portal/playwright-report
+            apps/clinic-portal/test-results
+          if-no-files-found: ignore

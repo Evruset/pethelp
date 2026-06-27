@@ -7,10 +7,16 @@ export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: false,
   workers: 1,
-  reporter: [['list']],
+  reporter: process.env.CI
+    ? [
+      ['list'],
+      ['html', { outputFolder: 'playwright-report', open: 'never' }],
+    ]
+    : [['list']],
   use: {
     baseURL: `http://127.0.0.1:${port}`,
     trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
   },
   projects: [
     {
