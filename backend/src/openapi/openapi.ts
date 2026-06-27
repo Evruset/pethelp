@@ -13,7 +13,7 @@ export function createOpenApiDocument(app: INestApplication) {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
-        description: 'JWT access token. Поддерживаемые роли: OWNER, CLINIC_RECEPTIONIST, CLINIC_ADMIN, SYSTEM_WORKER.',
+        description: 'JWT access token. Поддерживаемые роли: GUEST, OWNER, CLINIC_ADMIN, CLINIC_RECEPTIONIST, CLINIC_VETERINARIAN, TELEMED_VETERINARIAN, SUPPORT_L1, SUPPORT_L2, FINANCE_OPERATOR, INSURANCE_OPERATOR, PLATFORM_ADMIN, SECURITY_AUDITOR, SYSTEM_WORKER.',
       },
       SWAGGER_BEARER_AUTH,
     )

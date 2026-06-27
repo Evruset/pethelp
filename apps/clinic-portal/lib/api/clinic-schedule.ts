@@ -29,6 +29,12 @@ export type ClinicScheduleSlot = {
   lastFreshnessSync: string | null;
   stale: boolean;
   version: number;
+  bookingHold: {
+    id: string;
+    state: string;
+    ownerId: string;
+    petId: string;
+  } | null;
 };
 
 export type ClinicScheduleStaff = {

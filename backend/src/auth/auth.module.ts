@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { OcrDocumentWorker } from './ocr-document.worker';
 import { OwnerAuthController, OwnerProfileController } from './owner-auth.controller';
 import { OwnerAppointmentsService } from './owner-appointments.service';
 import { OwnerAuthService } from './owner-auth.service';
@@ -20,6 +21,7 @@ import { WorkerAuthGuard } from './worker-auth.guard';
     OwnerAuthService,
     OwnerAppointmentsService,
     OwnerPetService,
+    OcrDocumentWorker,
   ],
   exports: [
     JwtModule,

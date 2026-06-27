@@ -154,9 +154,13 @@ class HttpOwnerPetRepository implements OwnerPetRepository {
         species: json['species'] as String,
         breed: json['breed'] as String?,
         birthDate: _optionalDate(json['birthDate']),
+        ageMonths: (json['ageMonths'] as num?)?.toInt(),
         sex: json['sex'] as String?,
+        gender: json['gender'] as String?,
         weightKg: json['weightKg'] as String?,
         sterilized: json['sterilized'] as bool?,
+        isSterilized: json['isSterilized'] as bool?,
+        chipNumber: json['chipNumber'] as String?,
         allergies: _stringList(json['allergies']),
         chronicConditions: _stringList(json['chronicConditions']),
         vaccinationNotes: json['vaccinationNotes'] as String?,
@@ -374,9 +378,13 @@ class OwnerPetProfileInput {
     required this.species,
     this.breed,
     this.birthDate,
+    this.ageMonths,
     this.sex,
+    this.gender,
     this.weightKg,
     this.sterilized,
+    this.isSterilized,
+    this.chipNumber,
     this.allergies = const <String>[],
     this.chronicConditions = const <String>[],
     this.vaccinationNotes,
@@ -389,9 +397,13 @@ class OwnerPetProfileInput {
   final String species;
   final String? breed;
   final DateTime? birthDate;
+  final int? ageMonths;
   final String? sex;
+  final String? gender;
   final double? weightKg;
   final bool? sterilized;
+  final bool? isSterilized;
+  final String? chipNumber;
   final List<String> allergies;
   final List<String> chronicConditions;
   final String? vaccinationNotes;
@@ -404,9 +416,13 @@ class OwnerPetProfileInput {
     'species',
     'breed',
     'birthDate',
+    'ageMonths',
     'sex',
+    'gender',
     'weightKg',
     'sterilized',
+    'isSterilized',
+    'chipNumber',
     'allergies',
     'chronicConditions',
     'vaccinationNotes',
@@ -423,9 +439,13 @@ class OwnerPetProfileInput {
       species: json['species'] as String? ?? 'OTHER',
       breed: json['breed'] as String?,
       birthDate: _optionalDate(json['birthDate']),
+      ageMonths: _optionalInt(json['ageMonths']),
       sex: json['sex'] as String?,
+      gender: json['gender'] as String?,
       weightKg: _optionalDouble(json['weightKg']),
       sterilized: json['sterilized'] as bool?,
+      isSterilized: json['isSterilized'] as bool?,
+      chipNumber: json['chipNumber'] as String?,
       allergies: _stringList(json['allergies']),
       chronicConditions: _stringList(json['chronicConditions']),
       vaccinationNotes: json['vaccinationNotes'] as String?,
@@ -446,9 +466,13 @@ class OwnerPetProfileInput {
     _putOptional(json, 'breed', _text(breed), includeNulls);
     _putOptional(json, 'birthDate',
         birthDate == null ? null : _dateOnly(birthDate!), includeNulls);
+    _putOptional(json, 'ageMonths', ageMonths, includeNulls);
     _putOptional(json, 'sex', sex, includeNulls);
+    _putOptional(json, 'gender', gender, includeNulls);
     _putOptional(json, 'weightKg', weightKg, includeNulls);
     _putOptional(json, 'sterilized', sterilized, includeNulls);
+    _putOptional(json, 'isSterilized', isSterilized, includeNulls);
+    _putOptional(json, 'chipNumber', _text(chipNumber), includeNulls);
     _putOptional(
         json, 'vaccinationNotes', _text(vaccinationNotes), includeNulls);
     _putOptional(json, 'photoUrl', _text(photoUrl), includeNulls);
@@ -475,6 +499,12 @@ class OwnerPetProfileInput {
   static double? _optionalDouble(Object? value) {
     if (value is num) return value.toDouble();
     if (value is String && value.isNotEmpty) return double.tryParse(value);
+    return null;
+  }
+
+  static int? _optionalInt(Object? value) {
+    if (value is num) return value.toInt();
+    if (value is String && value.isNotEmpty) return int.tryParse(value);
     return null;
   }
 

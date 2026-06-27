@@ -109,6 +109,27 @@ export function ownerAppointmentPresentation(
         description: 'Клиника подтвердила визит.',
         tone: 'success',
       };
+    case 'CANCELLATION_REQUESTED':
+      return {
+        code: 'STATUS_SYNCING',
+        label: 'Запрошена отмена',
+        description: 'Менеджер поддержки свяжется с клиникой и подтвердит результат.',
+        tone: 'warning',
+      };
+    case 'RESCHEDULE_REQUESTED':
+      return {
+        code: 'STATUS_SYNCING',
+        label: 'Запрошен перенос',
+        description: 'Клиника подберёт другое время и обновит запись.',
+        tone: 'warning',
+      };
+    case 'COMPLETED':
+      return {
+        code: 'HISTORY_RECORDED',
+        label: 'Приём завершён',
+        description: 'Заключение врача сохранено в истории питомца.',
+        tone: 'success',
+      };
     case 'EXPIRED':
     case 'SLA_BREACHED':
       return {
@@ -166,16 +187,18 @@ export class OwnerAppointmentsService {
       SELECT
         hold.id AS hold_id,
         appointment.id AS appointment_id,
-        COALESCE(appointment.status, hold.state) AS state,
+        hold.state AS state,
         CASE
           WHEN slot.ends_at <= server_time.value THEN 'HISTORY'
-          WHEN COALESCE(appointment.status, hold.state) IN (
+          WHEN hold.state IN (
             'MANUAL_CONFIRM_PENDING',
             'MIS_RESERVATION_PENDING',
             'MIS_RECONCILIATION_PENDING',
             'MIS_HELD',
             'ALTERNATIVE_PENDING',
-            'CONFIRMED'
+            'CONFIRMED',
+            'CANCELLATION_REQUESTED',
+            'RESCHEDULE_REQUESTED'
           ) THEN 'ACTIVE'
           ELSE 'HISTORY'
         END AS bucket,
@@ -198,13 +221,15 @@ export class OwnerAppointmentsService {
       ORDER BY
         CASE
           WHEN slot.ends_at <= server_time.value THEN 1
-          WHEN COALESCE(appointment.status, hold.state) IN (
+          WHEN hold.state IN (
             'MANUAL_CONFIRM_PENDING',
             'MIS_RESERVATION_PENDING',
             'MIS_RECONCILIATION_PENDING',
             'MIS_HELD',
             'ALTERNATIVE_PENDING',
-            'CONFIRMED'
+            'CONFIRMED',
+            'CANCELLATION_REQUESTED',
+            'RESCHEDULE_REQUESTED'
           ) THEN 0
           ELSE 1
         END ASC,
@@ -268,16 +293,18 @@ export class OwnerAppointmentsService {
       SELECT
         hold.id AS hold_id,
         appointment.id AS appointment_id,
-        COALESCE(appointment.status, hold.state) AS state,
+        hold.state AS state,
         CASE
           WHEN slot.ends_at <= server_time.value THEN 'HISTORY'
-          WHEN COALESCE(appointment.status, hold.state) IN (
+          WHEN hold.state IN (
             'MANUAL_CONFIRM_PENDING',
             'MIS_RESERVATION_PENDING',
             'MIS_RECONCILIATION_PENDING',
             'MIS_HELD',
             'ALTERNATIVE_PENDING',
-            'CONFIRMED'
+            'CONFIRMED',
+            'CANCELLATION_REQUESTED',
+            'RESCHEDULE_REQUESTED'
           ) THEN 'ACTIVE'
           ELSE 'HISTORY'
         END AS bucket,
@@ -395,6 +422,7 @@ export class OwnerAppointmentsService {
                WHEN 'booking.confirmed' THEN 'Запись подтверждена'
                WHEN 'BOOKING_ALTERNATIVE_PROPOSED' THEN 'Клиника предложила другое время'
                WHEN 'booking.released' THEN 'Заявка отменена'
+               WHEN 'booking.cancellation_requested' THEN 'Запрошена отмена'
                WHEN 'booking.expired' THEN 'Срок заявки истёк'
                ELSE audit.action
              END AS label

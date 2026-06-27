@@ -8,6 +8,7 @@ import { Roles } from '../auth/roles.decorator';
 import { DomainErrors } from '../common/domain-error';
 import { SWAGGER_BEARER_AUTH } from '../openapi/openapi';
 import { AlternativeSlotService } from './alternative-slot.service';
+import { ClinicPortalService } from './clinic-portal.service';
 import { OwnerAlternativeAcceptanceService } from './owner-alternative-acceptance.service';
 import { ProposeAlternativeSlotDto } from './dto/propose-alternative-slot.dto';
 
@@ -38,6 +39,7 @@ export class ClinicPortalController {
   constructor(
     private readonly alternatives: AlternativeSlotService,
     private readonly ownerAcceptance: OwnerAlternativeAcceptanceService,
+    private readonly clinicPortal: ClinicPortalService,
   ) {}
 
   @Post('clinic/booking-holds/:holdId/alternative-slot')
@@ -85,6 +87,30 @@ export class ClinicPortalController {
     return this.ownerAcceptance.accept(holdIdOrThrow(holdId), owner.sub, {
       idempotencyKey: requiredUuid(idempotencyKey, 'Idempotency-Key'),
       expectedVersion: requiredVersion(ifMatch, 'If-Match'),
+    });
+  }
+
+  @Post('clinic/booking-holds/:holdId/complete')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.CLINIC_ADMIN, Role.CLINIC_VETERINARIAN)
+  @ApiBearerAuth(SWAGGER_BEARER_AUTH)
+  @ApiOperation({ summary: 'Закрытие приёма врачом или администратором с публикацией заключения владельцу' })
+  @ApiHeader({ name: 'X-Correlation-ID', required: true, schema: { type: 'string', format: 'uuid' } })
+  @ApiOkResponse({ description: 'Приём закрыт, заключение сохранено, push-событие поставлено в outbox.' })
+  @ApiConflictResponse({ description: 'SLOT_LOCKED_RETRY.' })
+  @ApiUnprocessableEntityResponse({ description: 'INVALID_STATE_TRANSITION или невалидное заключение.' })
+  async completeAppointment(
+    @Param('holdId') holdId: string,
+    @Body() dto: { summary?: string },
+    @CurrentUser() employee: JwtPayload,
+    @Headers('x-correlation-id') correlationId?: string,
+  ) {
+    return this.clinicPortal.completeAppointment({
+      holdId: holdIdOrThrow(holdId),
+      summary: dto.summary ?? '',
+      employee,
+      correlationId: requiredUuid(correlationId, 'X-Correlation-ID'),
     });
   }
 }

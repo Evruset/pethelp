@@ -157,8 +157,42 @@ class OwnerPetCareTelemedSession {
   }
 }
 
+class OwnerPetDocumentUpload {
+  const OwnerPetDocumentUpload({
+    required this.documentId,
+    required this.petId,
+    required this.fileUrl,
+    required this.docType,
+    required this.status,
+    required this.createdAt,
+  });
+
+  final String documentId;
+  final String petId;
+  final String fileUrl;
+  final String docType;
+  final String status;
+  final DateTime createdAt;
+
+  factory OwnerPetDocumentUpload.fromJson(Map<String, dynamic> json) {
+    return OwnerPetDocumentUpload(
+      documentId: json['documentId'] as String,
+      petId: json['petId'] as String,
+      fileUrl: json['fileUrl'] as String,
+      docType: json['docType'] as String,
+      status: json['status'] as String,
+      createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
+    );
+  }
+}
+
 abstract class OwnerPetCareRepository {
   Future<OwnerPetCareSummary> readSummary(String petId);
+  Future<OwnerPetDocumentUpload> uploadDocumentPhoto({
+    required String petId,
+    required String fileUrl,
+    required String docType,
+  });
 }
 
 class HttpOwnerPetCareRepository implements OwnerPetCareRepository {
@@ -186,6 +220,29 @@ class HttpOwnerPetCareRepository implements OwnerPetCareRepository {
       throw OwnerPetCareApiException(response.statusCode, _errorCode(payload));
     }
     return OwnerPetCareSummary.fromJson(payload);
+  }
+
+  @override
+  Future<OwnerPetDocumentUpload> uploadDocumentPhoto({
+    required String petId,
+    required String fileUrl,
+    required String docType,
+  }) async {
+    final token = await _accessTokenProvider();
+    final response = await _client.post(
+      _baseUrl.resolve('/v1/owner/pets/$petId/documents'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'fileUrl': fileUrl, 'docType': docType}),
+    );
+    final payload = _decode(response);
+    if (response.statusCode != 201 || payload is! Map<String, dynamic>) {
+      throw OwnerPetCareApiException(response.statusCode, _errorCode(payload));
+    }
+    return OwnerPetDocumentUpload.fromJson(payload);
   }
 
   dynamic _decode(http.Response response) {
@@ -219,9 +276,13 @@ OwnerPet _pet(Map<String, dynamic> json) {
     species: json['species'] as String,
     breed: json['breed'] as String?,
     birthDate: _optionalDate(json['birthDate']),
+    ageMonths: (json['ageMonths'] as num?)?.toInt(),
     sex: json['sex'] as String?,
+    gender: json['gender'] as String?,
     weightKg: json['weightKg'] as String?,
     sterilized: json['sterilized'] as bool?,
+    isSterilized: json['isSterilized'] as bool?,
+    chipNumber: json['chipNumber'] as String?,
     allergies: _stringList(json['allergies']),
     chronicConditions: _stringList(json['chronicConditions']),
     vaccinationNotes: json['vaccinationNotes'] as String?,

@@ -5,9 +5,13 @@ class OwnerPet {
     required this.species,
     this.breed,
     this.birthDate,
+    this.ageMonths,
     this.sex,
+    this.gender,
     this.weightKg,
     this.sterilized,
+    this.isSterilized,
+    this.chipNumber,
     this.allergies = const <String>[],
     this.chronicConditions = const <String>[],
     this.vaccinationNotes,
@@ -23,9 +27,13 @@ class OwnerPet {
   final String species;
   final String? breed;
   final DateTime? birthDate;
+  final int? ageMonths;
   final String? sex;
+  final String? gender;
   final String? weightKg;
   final bool? sterilized;
+  final bool? isSterilized;
+  final String? chipNumber;
   final List<String> allergies;
   final List<String> chronicConditions;
   final String? vaccinationNotes;
