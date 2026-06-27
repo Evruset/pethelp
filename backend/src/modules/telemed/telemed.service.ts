@@ -156,7 +156,7 @@ export class TelemedService {
       `, [caseId]);
       await client.query(`
         INSERT INTO telemed_schema.telemed_case_events (case_id, actor_type, actor_id, event_type, payload_json)
-        VALUES ($1::uuid, 'CLINIC_EMPLOYEE', $2::uuid, 'SESSION_STARTED', jsonb_build_object('sessionId', $3::uuid))
+        VALUES ($1::uuid, 'TELEMED_VETERINARIAN', $2::uuid, 'SESSION_STARTED', jsonb_build_object('sessionId', $3::uuid))
       `, [caseId, doctorId, session.rows[0].id]);
 
       return session.rows[0];

@@ -1,8 +1,7 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import type { PoolClient } from 'pg';
 import { JwtPayload } from '../../auth/auth.types';
-import { ClinicEmployeeAccessService } from '../../booking-core/clinic-employee-access.service';
-import { DomainException, DomainErrors } from '../../common/domain-error';
+import { DomainException } from '../../common/domain-error';
 import { DatabaseService } from '../../database/database.service';
 import { UpdateTelemedCaseWorkspaceDto } from './dto/update-telemed-case-workspace.dto';
 import { DoctorConnectionResult, TelemedService, TelemedSessionResult } from './telemed.service';
@@ -84,8 +83,6 @@ export interface TelemedVetCase {
 }
 
 export interface TelemedVetQueueResult {
-  clinicId: string;
-  locationId: string;
   serverNow: string;
   availableCases: TelemedVetCase[];
   assignedCases: TelemedVetCase[];
@@ -99,19 +96,15 @@ export interface TelemedVetQueueResult {
 export class TelemedVetWorkspaceService {
   constructor(
     private readonly database: DatabaseService,
-    private readonly clinicAccess: ClinicEmployeeAccessService,
     private readonly telemedService: TelemedService,
   ) {}
 
-  async queue(input: { clinicId: string; locationId: string; employee: JwtPayload; limit: number }): Promise<TelemedVetQueueResult> {
+  async queue(input: { employee: JwtPayload; limit: number }): Promise<TelemedVetQueueResult> {
     return this.database.withTransaction(async (client) => {
       await client.query("SET LOCAL statement_timeout = '250ms'");
-      await this.assertClinicWorkspaceAccess(client, input);
       const serverNow = await this.dbNow(client);
-      const rows = await this.readQueueRows(client, input.limit);
+      const rows = await this.readQueueRows(client, input.employee.sub, input.limit);
       return {
-        clinicId: input.clinicId,
-        locationId: input.locationId,
         serverNow: serverNow.toISOString(),
         availableCases: rows.filter((row) => row.state === 'QUEUED').map(toCase),
         assignedCases: rows.filter((row) => row.state !== 'QUEUED').map(toCase),
@@ -120,11 +113,10 @@ export class TelemedVetWorkspaceService {
     });
   }
 
-  async assign(input: { clinicId: string; locationId: string; caseId: string; employee: JwtPayload }): Promise<TelemedVetCase> {
+  async assign(input: { caseId: string; employee: JwtPayload }): Promise<TelemedVetCase> {
     return this.database.withTransaction(async (client) => {
       await client.query("SET LOCAL lock_timeout = '50ms'");
       await client.query("SET LOCAL statement_timeout = '250ms'");
-      await this.assertClinicWorkspaceAccess(client, input);
 
       const locked = await client.query<{ id: string; state: string; assigned_employee_id: string | null }>(`
         SELECT id::text, state, assigned_employee_id::text
@@ -134,33 +126,39 @@ export class TelemedVetWorkspaceService {
       `, [input.caseId]);
       const row = locked.rows[0];
       if (!row) throw new DomainException(HttpStatus.NOT_FOUND, 'TELEMED_CASE_NOT_FOUND', 'Telemedicine case not found');
+      if (row.state === 'ASSIGNED' && row.assigned_employee_id === input.employee.sub) {
+        return this.readCase(client, input.caseId);
+      }
       if (row.state === 'ASSIGNED' && row.assigned_employee_id !== input.employee.sub) {
         throw new DomainException(HttpStatus.CONFLICT, 'TELEMED_CASE_ALREADY_ASSIGNED', 'Telemedicine case is already assigned');
       }
-      if (row.state !== 'QUEUED' && row.state !== 'ASSIGNED') {
+      if (row.state !== 'QUEUED') {
         throw new DomainException(HttpStatus.CONFLICT, 'TELEMED_CASE_NOT_ASSIGNABLE', 'Telemedicine case is not queued');
       }
 
-      await client.query(`
+      const assigned = await client.query<{ id: string }>(`
         UPDATE telemed_schema.telemed_cases
         SET state = 'ASSIGNED',
             assigned_employee_id = $2::uuid,
-            assigned_at = COALESCE(assigned_at, clock_timestamp()),
+            assigned_at = clock_timestamp(),
             updated_at = clock_timestamp()
         WHERE id = $1::uuid
+          AND state = 'QUEUED'
+          AND assigned_employee_id IS NULL
+        RETURNING id::text
       `, [input.caseId, input.employee.sub]);
-      await this.writeCaseEvent(client, input.caseId, input.employee.sub, 'ASSIGNED', {
-        clinicId: input.clinicId,
-        locationId: input.locationId,
-      });
+      if (!assigned.rows[0]) {
+        throw new DomainException(HttpStatus.CONFLICT, 'TELEMED_CASE_ALREADY_ASSIGNED', 'Telemedicine case assignment changed concurrently');
+      }
 
+      await this.writeCaseEvent(client, input.caseId, input.employee.sub, 'ASSIGNED', {
+        assigneeId: input.employee.sub,
+      });
       return this.readCase(client, input.caseId);
     });
   }
 
   async updateWorkspace(input: {
-    clinicId: string;
-    locationId: string;
     caseId: string;
     employee: JwtPayload;
     dto: UpdateTelemedCaseWorkspaceDto;
@@ -168,7 +166,8 @@ export class TelemedVetWorkspaceService {
     return this.database.withTransaction(async (client) => {
       await client.query("SET LOCAL lock_timeout = '50ms'");
       await client.query("SET LOCAL statement_timeout = '250ms'");
-      await this.assertClinicWorkspaceAccess(client, input);
+      await this.assertAssignedCase(client, input.caseId, input.employee.sub);
+
       const recommendation = normalizeText(input.dto.recommendationText);
       const followUp = normalizeText(input.dto.followUpNotes);
       if (recommendation && containsForbiddenOutput(recommendation)) {
@@ -177,15 +176,24 @@ export class TelemedVetWorkspaceService {
 
       const updated = await client.query<{ id: string }>(`
         UPDATE telemed_schema.telemed_cases
-        SET safety_escalation = COALESCE($2::boolean, safety_escalation),
-            recommendation_text = COALESCE($3, recommendation_text),
-            follow_up_notes = COALESCE($4, follow_up_notes),
+        SET safety_escalation = COALESCE($3::boolean, safety_escalation),
+            recommendation_text = COALESCE($4, recommendation_text),
+            follow_up_notes = COALESCE($5, follow_up_notes),
             updated_at = clock_timestamp()
         WHERE id = $1::uuid
+          AND assigned_employee_id = $2::uuid
           AND state IN ('ASSIGNED', 'DOCTOR_JOINED', 'IN_PROGRESS')
         RETURNING id::text
-      `, [input.caseId, input.dto.safetyEscalation ?? null, recommendation, followUp]);
-      if (!updated.rows[0]) throw new DomainException(HttpStatus.CONFLICT, 'TELEMED_CASE_WORKSPACE_CLOSED', 'Telemedicine case is not editable');
+      `, [
+        input.caseId,
+        input.employee.sub,
+        input.dto.safetyEscalation ?? null,
+        recommendation,
+        followUp,
+      ]);
+      if (!updated.rows[0]) {
+        throw new DomainException(HttpStatus.CONFLICT, 'TELEMED_CASE_WORKSPACE_CLOSED', 'Telemedicine case is not editable');
+      }
 
       if (input.dto.safetyEscalation === true) {
         await this.writeCaseEvent(client, input.caseId, input.employee.sub, 'SAFETY_ESCALATED', {});
@@ -200,18 +208,18 @@ export class TelemedVetWorkspaceService {
     });
   }
 
-  async startSession(input: { clinicId: string; locationId: string; caseId: string; employee: JwtPayload }): Promise<TelemedSessionResult> {
-    await this.database.withTransaction(async (client) => {
-      await client.query("SET LOCAL statement_timeout = '250ms'");
-      await this.assertClinicWorkspaceAccess(client, input);
-    });
+  async startSession(input: { caseId: string; employee: JwtPayload }): Promise<TelemedSessionResult> {
     return this.telemedService.startSessionForCase(input.caseId, input.employee.sub);
   }
 
-  async connectDoctor(input: { clinicId: string; locationId: string; caseId: string; sessionId: string; employee: JwtPayload }): Promise<DoctorConnectionResult> {
+  async connectDoctor(input: {
+    caseId: string;
+    sessionId: string;
+    employee: JwtPayload;
+  }): Promise<DoctorConnectionResult> {
     await this.database.withTransaction(async (client) => {
       await client.query("SET LOCAL statement_timeout = '250ms'");
-      await this.assertClinicWorkspaceAccess(client, input);
+      await this.assertAssignedCase(client, input.caseId, input.employee.sub);
       const result = await client.query<{ assigned_employee_id: string | null }>(`
         SELECT telemed_case.assigned_employee_id::text
         FROM telemed_schema.telemed_cases telemed_case
@@ -223,23 +231,22 @@ export class TelemedVetWorkspaceService {
       const row = result.rows[0];
       if (!row) throw new DomainException(HttpStatus.NOT_FOUND, 'TELEMED_SESSION_NOT_FOUND', 'Telemedicine session not found');
       if (row.assigned_employee_id !== input.employee.sub) {
-        throw new DomainException(HttpStatus.FORBIDDEN, 'TELEMED_CASE_ASSIGNEE_MISMATCH', 'Telemedicine case is assigned to another employee');
+        throw new DomainException(HttpStatus.FORBIDDEN, 'TELEMED_CASE_ASSIGNEE_MISMATCH', 'Telemedicine case is assigned to another veterinarian');
       }
     });
 
     const connected = await this.telemedService.connectDoctor(input.sessionId, input.employee.sub);
     await this.database.query(`
       INSERT INTO telemed_schema.telemed_case_events (case_id, actor_type, actor_id, event_type, payload_json)
-      VALUES ($1::uuid, 'CLINIC_EMPLOYEE', $2::uuid, 'DOCTOR_CONNECTED', jsonb_build_object('sessionId', $3::uuid))
+      VALUES ($1::uuid, 'TELEMED_VETERINARIAN', $2::uuid, 'DOCTOR_CONNECTED', jsonb_build_object('sessionId', $3::uuid))
     `, [input.caseId, input.employee.sub, input.sessionId]);
     return connected;
   }
 
-  async auditTrail(input: { clinicId: string; locationId: string; caseId: string; employee: JwtPayload; limit: number }) {
+  async auditTrail(input: { caseId: string; employee: JwtPayload; limit: number }) {
     return this.database.withTransaction(async (client) => {
       await client.query("SET LOCAL statement_timeout = '250ms'");
-      await this.assertClinicWorkspaceAccess(client, input);
-      await this.assertCaseExists(client, input.caseId);
+      await this.assertAssignedCase(client, input.caseId, input.employee.sub);
       const serverNow = await this.dbNow(client);
       const result = await client.query<TelemedCaseEventRow>(`
         SELECT id::text, actor_type, actor_id::text, event_type, payload_json, created_at
@@ -250,8 +257,6 @@ export class TelemedVetWorkspaceService {
       `, [input.caseId, input.limit]);
       return {
         caseId: input.caseId,
-        clinicId: input.clinicId,
-        locationId: input.locationId,
         serverNow: serverNow.toISOString(),
         items: result.rows.map((row) => ({
           id: row.id,
@@ -265,28 +270,34 @@ export class TelemedVetWorkspaceService {
     });
   }
 
-  private async assertClinicWorkspaceAccess(client: PoolClient, input: { clinicId: string; locationId: string; employee: JwtPayload }): Promise<void> {
-    if (!input.employee.clinicIds?.includes(input.clinicId)) throw DomainErrors.clinicScopeMismatch();
-    await this.clinicAccess.assertLocationAccess(client, input.employee, input.locationId);
-    const location = await client.query<{ id: string }>(`
-      SELECT id::text
-      FROM clinic_schema.clinic_locations
-      WHERE id = $1::uuid AND clinic_id = $2::uuid
+  private async assertAssignedCase(client: PoolClient, caseId: string, employeeId: string): Promise<void> {
+    const result = await client.query<{ assigned_employee_id: string | null }>(`
+      SELECT assigned_employee_id::text
+      FROM telemed_schema.telemed_cases
+      WHERE id = $1::uuid
       FOR SHARE
-    `, [input.locationId, input.clinicId]);
-    if (!location.rows[0]) throw DomainErrors.clinicScopeMismatch();
+    `, [caseId]);
+    const row = result.rows[0];
+    if (!row) throw new DomainException(HttpStatus.NOT_FOUND, 'TELEMED_CASE_NOT_FOUND', 'Telemedicine case not found');
+    if (row.assigned_employee_id !== employeeId) {
+      throw new DomainException(HttpStatus.FORBIDDEN, 'TELEMED_CASE_ASSIGNEE_MISMATCH', 'Telemedicine case is assigned to another veterinarian');
+    }
   }
 
-  private async readQueueRows(client: PoolClient, limit: number): Promise<TelemedVetCaseRow[]> {
+  private async readQueueRows(client: PoolClient, employeeId: string, limit: number): Promise<TelemedVetCaseRow[]> {
     const result = await client.query<TelemedVetCaseRow>(baseCaseQuery(`
-      WHERE telemed_case.state IN ('QUEUED', 'ASSIGNED', 'DOCTOR_JOINED', 'IN_PROGRESS')
+      WHERE telemed_case.state = 'QUEUED'
+         OR (
+           telemed_case.assigned_employee_id = $1::uuid
+           AND telemed_case.state IN ('ASSIGNED', 'DOCTOR_JOINED', 'IN_PROGRESS')
+         )
       ORDER BY
         CASE telemed_case.state WHEN 'QUEUED' THEN 0 ELSE 1 END,
         telemed_case.safety_escalation DESC,
         telemed_case.queue_priority DESC,
         telemed_case.created_at ASC
-      LIMIT $1
-    `), [limit]);
+      LIMIT $2
+    `), [employeeId, limit]);
     return result.rows;
   }
 
@@ -300,20 +311,21 @@ export class TelemedVetWorkspaceService {
     return toCase(row);
   }
 
-  private async assertCaseExists(client: PoolClient, caseId: string): Promise<void> {
-    const result = await client.query<{ id: string }>('SELECT id::text FROM telemed_schema.telemed_cases WHERE id = $1::uuid', [caseId]);
-    if (!result.rows[0]) throw new DomainException(HttpStatus.NOT_FOUND, 'TELEMED_CASE_NOT_FOUND', 'Telemedicine case not found');
-  }
-
   private async dbNow(client: PoolClient): Promise<Date> {
     const result = await client.query<{ now: Date }>('SELECT clock_timestamp() AS now');
     return result.rows[0].now;
   }
 
-  private async writeCaseEvent(client: PoolClient, caseId: string, actorId: string, eventType: 'ASSIGNED' | 'SAFETY_ESCALATED' | 'RECOMMENDATION_SAVED' | 'FOLLOW_UP_ROUTED', payload: Record<string, unknown>): Promise<void> {
+  private async writeCaseEvent(
+    client: PoolClient,
+    caseId: string,
+    actorId: string,
+    eventType: 'ASSIGNED' | 'SAFETY_ESCALATED' | 'RECOMMENDATION_SAVED' | 'FOLLOW_UP_ROUTED',
+    payload: Record<string, unknown>,
+  ): Promise<void> {
     await client.query(`
       INSERT INTO telemed_schema.telemed_case_events (case_id, actor_type, actor_id, event_type, payload_json)
-      VALUES ($1::uuid, 'CLINIC_EMPLOYEE', $2::uuid, $3, $4::jsonb)
+      VALUES ($1::uuid, 'TELEMED_VETERINARIAN', $2::uuid, $3, $4::jsonb)
     `, [caseId, actorId, eventType, JSON.stringify(payload)]);
   }
 }

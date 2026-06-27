@@ -59,8 +59,6 @@ export type TelemedVetCase = {
 };
 
 export type TelemedVetQueue = {
-  clinicId: string;
-  locationId: string;
   serverNow: string;
   availableCases: TelemedVetCase[];
   assignedCases: TelemedVetCase[];
@@ -97,12 +95,8 @@ function authHeaders(session: ClinicSession): HeadersInit {
   };
 }
 
-export async function getTelemedVetQueue(
-  session: ClinicSession,
-  clinicId: string,
-  locationId: string,
-): Promise<TelemedVetQueue> {
-  const url = new URL(`${backendBaseUrl()}/v1/clinic/${clinicId}/locations/${locationId}/telemed/vet-queue`);
+export async function getTelemedVetQueue(session: ClinicSession): Promise<TelemedVetQueue> {
+  const url = new URL(`${backendBaseUrl()}/v1/telemed/vet/queue`);
   url.searchParams.set('limit', '50');
   const response = await fetch(url, {
     headers: authHeaders(session),
@@ -114,11 +108,9 @@ export async function getTelemedVetQueue(
 
 export async function assignTelemedCase(
   session: ClinicSession,
-  clinicId: string,
-  locationId: string,
   caseId: string,
 ): Promise<TelemedVetCase> {
-  const response = await fetch(`${backendBaseUrl()}/v1/clinic/${clinicId}/locations/${locationId}/telemed/cases/${caseId}/assign`, {
+  const response = await fetch(`${backendBaseUrl()}/v1/telemed/vet/cases/${caseId}/assign`, {
     method: 'POST',
     headers: authHeaders(session),
     cache: 'no-store',
@@ -129,8 +121,6 @@ export async function assignTelemedCase(
 
 export async function updateTelemedCaseWorkspace(
   session: ClinicSession,
-  clinicId: string,
-  locationId: string,
   caseId: string,
   body: {
     safetyEscalation?: boolean;
@@ -138,7 +128,7 @@ export async function updateTelemedCaseWorkspace(
     followUpNotes?: string;
   },
 ): Promise<TelemedVetCase> {
-  const response = await fetch(`${backendBaseUrl()}/v1/clinic/${clinicId}/locations/${locationId}/telemed/cases/${caseId}/workspace`, {
+  const response = await fetch(`${backendBaseUrl()}/v1/telemed/vet/cases/${caseId}/workspace`, {
     method: 'PATCH',
     headers: {
       ...authHeaders(session),
@@ -153,11 +143,9 @@ export async function updateTelemedCaseWorkspace(
 
 export async function startTelemedCaseSession(
   session: ClinicSession,
-  clinicId: string,
-  locationId: string,
   caseId: string,
 ): Promise<DoctorConnectionResult['session']> {
-  const response = await fetch(`${backendBaseUrl()}/v1/clinic/${clinicId}/locations/${locationId}/telemed/cases/${caseId}/start-session`, {
+  const response = await fetch(`${backendBaseUrl()}/v1/telemed/vet/cases/${caseId}/start-session`, {
     method: 'POST',
     headers: authHeaders(session),
     cache: 'no-store',
@@ -168,12 +156,10 @@ export async function startTelemedCaseSession(
 
 export async function connectTelemedDoctor(
   session: ClinicSession,
-  clinicId: string,
-  locationId: string,
   caseId: string,
   sessionId: string,
 ): Promise<DoctorConnectionResult> {
-  const response = await fetch(`${backendBaseUrl()}/v1/clinic/${clinicId}/locations/${locationId}/telemed/cases/${caseId}/sessions/${sessionId}/connect`, {
+  const response = await fetch(`${backendBaseUrl()}/v1/telemed/vet/cases/${caseId}/sessions/${sessionId}/connect`, {
     method: 'POST',
     headers: authHeaders(session),
     cache: 'no-store',

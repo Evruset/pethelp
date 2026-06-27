@@ -4,8 +4,6 @@ import { useMemo, useState } from 'react';
 import type { TelemedVetCase, TelemedVetQueue } from '@/lib/api/telemed-vet';
 
 type Props = {
-  clinicId: string;
-  locationId: string;
   initialQueue: TelemedVetQueue;
 };
 
@@ -21,7 +19,7 @@ const labels: Record<string, string> = {
   OTHER: 'Другое',
 };
 
-export function TelemedVetQueueClient({ clinicId, locationId, initialQueue }: Props) {
+export function TelemedVetQueueClient({ initialQueue }: Props) {
   const [queue, setQueue] = useState(initialQueue);
   const [selectedId, setSelectedId] = useState(queue.availableCases[0]?.caseId ?? queue.assignedCases[0]?.caseId ?? '');
   const [busy, setBusy] = useState<string | null>(null);
@@ -34,7 +32,7 @@ export function TelemedVetQueueClient({ clinicId, locationId, initialQueue }: Pr
   );
 
   async function refresh() {
-    const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/telemed/vet-queue`, { cache: 'no-store' });
+    const response = await fetch('/api/telemed/vet/queue', { cache: 'no-store' });
     if (!response.ok) throw new Error('QUEUE_REFRESH_FAILED');
     setQueue(await response.json() as TelemedVetQueue);
   }
@@ -43,7 +41,7 @@ export function TelemedVetQueueClient({ clinicId, locationId, initialQueue }: Pr
     setBusy(caseId);
     setError(null);
     try {
-      const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/telemed/cases/${caseId}/assign`, { method: 'POST' });
+      const response = await fetch(`/api/telemed/vet/cases/${caseId}/assign`, { method: 'POST' });
       if (!response.ok) throw new Error((await response.json().catch(() => null))?.code ?? 'ASSIGN_FAILED');
       const updated = await response.json() as TelemedVetCase;
       setSelectedId(updated.caseId);
@@ -59,7 +57,7 @@ export function TelemedVetQueueClient({ clinicId, locationId, initialQueue }: Pr
     setBusy(caseId);
     setError(null);
     try {
-      const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/telemed/cases/${caseId}/workspace`, {
+      const response = await fetch(`/api/telemed/vet/cases/${caseId}/workspace`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -84,7 +82,7 @@ export function TelemedVetQueueClient({ clinicId, locationId, initialQueue }: Pr
     setError(null);
     setRoomStatus(null);
     try {
-      const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/telemed/cases/${caseId}/start-session`, { method: 'POST' });
+      const response = await fetch(`/api/telemed/vet/cases/${caseId}/start-session`, { method: 'POST' });
       if (!response.ok) throw new Error((await response.json().catch(() => null))?.code ?? 'SESSION_START_FAILED');
       const session = await response.json() as { id: string; expiresAt: string };
       setRoomStatus(`Waiting room opened: ${session.id}`);
@@ -102,10 +100,10 @@ export function TelemedVetQueueClient({ clinicId, locationId, initialQueue }: Pr
     setError(null);
     setRoomStatus(null);
     try {
-      const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/telemed/cases/${caseId}/sessions/${sessionId}/connect`, { method: 'POST' });
+      const response = await fetch(`/api/telemed/vet/cases/${caseId}/sessions/${sessionId}/connect`, { method: 'POST' });
       if (!response.ok) throw new Error((await response.json().catch(() => null))?.code ?? 'DOCTOR_CONNECT_FAILED');
       const connection = await response.json() as { livekitUrl: string; tokenExpiresAt: string };
-      setRoomStatus(`Doctor token ready until ${new Date(connection.tokenExpiresAt).toLocaleString('ru-RU')}. LiveKit: ${connection.livekitUrl}`);
+      setRoomStatus('Ветеринар подключён к консультации.');
       await refresh();
       setSelectedId(caseId);
     } catch (err) {
