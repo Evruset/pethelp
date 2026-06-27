@@ -7,6 +7,7 @@ import { TelemedOwnerRoomController } from './telemed-owner-room.controller';
 import { TelemedOwnerRoomService } from './telemed-owner-room.service';
 import { TelemedOwnerSessionController } from './telemed-owner-session.controller';
 import { TelemedOwnerSessionService } from './telemed-owner-session.service';
+import { TelemedOwnerCancellationService } from './telemed-owner-cancellation.service';
 import { TelemedPaymentWebhookController } from './telemed-payment-webhook.controller';
 import { TelemedIntakeService } from './telemed-intake.service';
 import { TelemedPaymentService } from './telemed-payment.service';
@@ -35,10 +36,11 @@ import { TelemedSlaWorker } from './telemed-sla.worker';
     TelemedPaymentService,
     TelemedVetWorkspaceService,
     TelemedOwnerSessionService,
+    TelemedOwnerCancellationService,
     TelemedOwnerRoomService,
     TelemedSessionStartWorker,
     TelemedSlaWorker,
   ],
-  exports: [TelemedService, TelemedIntakeService, TelemedPaymentService, TelemedVetWorkspaceService, TelemedOwnerSessionService, TelemedOwnerRoomService, LiveKitService],
+  exports: [TelemedService, TelemedIntakeService, TelemedPaymentService, TelemedVetWorkspaceService, TelemedOwnerSessionService, TelemedOwnerCancellationService, TelemedOwnerRoomService, LiveKitService],
 })
 export class TelemedModule {}

@@ -10,6 +10,7 @@ import { CreateTelemedIntakeDto } from './dto/create-telemed-intake.dto';
 import { TelemedIntakeService } from './telemed-intake.service';
 import { TelemedOwnerSessionService } from './telemed-owner-session.service';
 import { TelemedPaymentService } from './telemed-payment.service';
+import { TelemedOwnerCancellationService } from './telemed-owner-cancellation.service';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -20,6 +21,7 @@ export class TelemedOwnerSessionController {
     private readonly sessions: TelemedOwnerSessionService,
     private readonly intakes: TelemedIntakeService,
     private readonly payments: TelemedPaymentService,
+    private readonly cancellations: TelemedOwnerCancellationService,
   ) {}
 
   @Post('intakes')
@@ -58,6 +60,30 @@ export class TelemedOwnerSessionController {
       throw new BadRequestException({ code: 'INVALID_IDEMPOTENCY_KEY', message: 'Idempotency-Key must be a UUID.' });
     }
     return this.payments.createIntent({ intakeId, ownerId: owner.sub, idempotencyKey });
+  }
+
+  @Post('sessions/:sessionId/cancel')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.OWNER)
+  @ApiBearerAuth(SWAGGER_BEARER_AUTH)
+  @ApiHeader({ name: 'Idempotency-Key', required: true, schema: { type: 'string', format: 'uuid' } })
+  @ApiOperation({ summary: 'Cancel a case-based telemedicine waiting room before doctor connection' })
+  @ApiOkResponse({ description: 'The waiting room is cancelled and authorization void is queued when required.' })
+  @ApiBadRequestResponse({ description: 'Missing or malformed sessionId or Idempotency-Key.' })
+  @ApiUnauthorizedResponse({ description: 'Bearer JWT is missing or invalid.' })
+  async cancel(
+    @Param('sessionId') sessionId: string,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @CurrentUser() owner: JwtPayload,
+  ) {
+    if (!UUID.test(sessionId)) {
+      throw new BadRequestException({ code: 'INVALID_REQUEST', message: 'sessionId must be a UUID.' });
+    }
+    if (!idempotencyKey || !UUID.test(idempotencyKey)) {
+      throw new BadRequestException({ code: 'INVALID_IDEMPOTENCY_KEY', message: 'Idempotency-Key must be a UUID.' });
+    }
+    return this.cancellations.cancel({ sessionId, ownerId: owner.sub, idempotencyKey });
   }
 
   @Get('sessions')

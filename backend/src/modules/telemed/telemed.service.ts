@@ -5,7 +5,7 @@ import { DatabaseService } from '../../database/database.service';
 import { TraceContext } from '../../observability/trace-context.context';
 import { LiveKitService } from './livekit.service';
 
-export type TelemedSessionState = 'WAITING_FOR_DOCTOR' | 'CONNECTED' | 'COMPLETED' | 'DOCTOR_TIMEOUT';
+export type TelemedSessionState = 'WAITING_FOR_DOCTOR' | 'CONNECTED' | 'COMPLETED' | 'DOCTOR_TIMEOUT' | 'CANCELLED';
 
 export interface TelemedSessionResult {
   id: string;
