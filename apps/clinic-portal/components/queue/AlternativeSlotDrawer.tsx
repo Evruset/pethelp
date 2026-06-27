@@ -75,10 +75,10 @@ export function AlternativeSlotDrawer({ locationId, item, onClose, onProposed }:
   );
   const activeGroup = slotGroups.find((group) => group.key === activeDateKey) ?? slotGroups[0] ?? null;
 
-  const loadSlots = useCallback(async () => {
+  const loadSlots = useCallback(async (options: { preserveError?: boolean } = {}) => {
     if (!item) return;
     setLoading(true);
-    setError(null);
+    if (!options.preserveError) setError(null);
     try {
       const url = new URL(`/api/clinic/locations/${locationId}/slots`, window.location.origin);
       url.searchParams.set('from', new Date().toISOString());
@@ -145,12 +145,12 @@ export function AlternativeSlotDrawer({ locationId, item, onClose, onProposed }:
       }
       if (response.status === 409 && payload?.code === 'SLOT_LOCKED_RETRY') {
         setError('Слот обновляется. Загружаем актуальный список.');
-        await loadSlots();
+        await loadSlots({ preserveError: true });
         return;
       }
       if (response.status === 409) {
         setError('Выбранное время уже недоступно.');
-        await loadSlots();
+        await loadSlots({ preserveError: true });
         return;
       }
       if (response.status === 422) {
@@ -214,7 +214,7 @@ export function AlternativeSlotDrawer({ locationId, item, onClose, onProposed }:
               </div>
               <div className="space-y-3">
                 {(activeGroup?.slots ?? []).map((slot) => (
-                <button key={slot.id} type="button" onClick={() => setSelectedSlotId(slot.id)} className={`w-full rounded-xl border px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${selectedSlotId === slot.id ? 'border-blue-600 bg-blue-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+                <button key={slot.id} type="button" data-testid={`alternative-slot-${slot.id}`} aria-pressed={selectedSlotId === slot.id} onClick={() => setSelectedSlotId(slot.id)} className={`w-full rounded-xl border px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${selectedSlotId === slot.id ? 'border-blue-600 bg-blue-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
                   <span className="block text-sm font-semibold text-slate-950">{formatTime(slot.starts_at)}-{formatTime(slot.ends_at)}</span>
                   <span className="mt-1 block text-xs text-slate-600">{formatDate(slot.starts_at)} · свободно мест: {remaining(slot)}</span>
                 </button>

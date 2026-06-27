@@ -127,13 +127,14 @@ test('groups alternative slots by date and preserves selection after retryable c
   await expect(dialog.getByRole('tab').filter({ hasText: '2 окон' })).toBeVisible();
   await expect(dialog.getByRole('tab').filter({ hasText: '1 окон' })).toBeVisible();
 
-  await dialog.getByRole('button', { name: /10:00-10:30/ }).click();
+  await expect(dialog.getByTestId(`alternative-slot-${alternativeSlotA}`)).toBeVisible();
+  await dialog.getByTestId(`alternative-slot-${alternativeSlotA}`).click();
   await expect(dialog.getByText('Не выбрано')).toHaveCount(0);
   await dialog.getByRole('button', { name: 'Предложить' }).click();
 
   await expect(dialog.getByRole('alert')).toContainText('Слот обновляется. Загружаем актуальный список.');
   await expect(dialog.getByText('Новое время')).toBeVisible();
-  await expect(dialog.getByText(/10:00/)).toBeVisible();
+  await expect(dialog.getByTestId(`alternative-slot-${alternativeSlotA}`)).toHaveAttribute('aria-pressed', 'true');
   await expect(dialog.getByRole('button', { name: 'Предложить' })).toBeEnabled();
   expect(alternativeRequests).toEqual([{
     holdId: holdA,
