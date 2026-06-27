@@ -1,0 +1,4 @@
+apps/clinic-portal/allure-results/
+apps/clinic-portal/allure-report/
+apps/clinic-portal/playwright-report/
+apps/clinic-portal/test-results/

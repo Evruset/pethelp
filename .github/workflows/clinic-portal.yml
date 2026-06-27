@@ -24,16 +24,25 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: apps/clinic-portal/package.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
       - run: npm install
       - run: npm run typecheck
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e
-      - name: Upload Playwright diagnostics
-        if: failure()
+      - name: Generate Allure report
+        if: always()
+        run: npm run allure:generate
+      - name: Upload UI-test evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: clinic-portal-playwright-report
+          name: clinic-portal-ui-evidence
           path: |
+            apps/clinic-portal/allure-report
+            apps/clinic-portal/allure-results
             apps/clinic-portal/playwright-report
             apps/clinic-portal/test-results
           if-no-files-found: ignore

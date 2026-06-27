@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { captureEvidence } from './support/evidence';
 import type { BrowserContext, Page } from '@playwright/test';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { SignJWT } from 'jose';
@@ -46,6 +47,10 @@ test.beforeEach(() => {
   completionMode = 'success';
   completionRequests = [];
   schedule = makeSchedule('CONFIRMED');
+});
+
+test.afterEach(async ({ page }, testInfo) => {
+  await captureEvidence(page, testInfo, testInfo.status === 'passed' ? 'final-state' : 'failure-state');
 });
 
 test('denies the schedule page without an authenticated clinic session', async ({ page }) => {
