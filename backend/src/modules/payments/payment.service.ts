@@ -2,10 +2,12 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { DomainException, DomainErrors } from '../../common/domain-error';
+import { featureFlags } from '../../config/feature-flags.config';
 import { DatabaseService } from '../../database/database.service';
+import { TraceContext } from '../../observability/trace-context.context';
 import { AcquiringClient } from './acquiring-client.service';
 
-export type PaymentIntentStatus = 'PENDING_PROVIDER' | 'CREATED' | 'AUTHORIZED' | 'CAPTURED' | 'VOIDED' | 'FAILED';
+export type PaymentIntentStatus = 'PENDING_PROVIDER' | 'CREATED' | 'AUTHORIZED' | 'CAPTURED' | 'VOIDED' | 'FAILED' | 'PAY_AT_CLINIC';
 
 export interface PaymentIntentResult {
   id: string;
@@ -55,6 +57,8 @@ type WebhookOutcome =
 
 @Injectable()
 export class PaymentService {
+  private readonly traceContext = new TraceContext();
+
   constructor(
     private readonly database: DatabaseService,
     private readonly acquiringClient: AcquiringClient,
@@ -65,6 +69,10 @@ export class PaymentService {
    * call runs after COMMIT; phase 3 binds remote id + checkout URL afterwards.
    */
   async createPaymentIntent(holdId: string, ownerId: string): Promise<PaymentIntentResult> {
+    if (!featureFlags.FEATURE_ONLINE_PAYMENTS) {
+      return this.createPayAtClinicInstruction(holdId, ownerId);
+    }
+
     const localIntent = await this.createOrRetryLocalIntent(holdId, ownerId);
 
     if (localIntent.status === 'CREATED' && localIntent.remoteId && localIntent.checkoutUrl) {
@@ -81,6 +89,45 @@ export class PaymentService {
       await this.persistProviderFailure(localIntent.id, error instanceof Error ? error.message : 'Acquiring provider request failed');
       throw new DomainException(HttpStatus.SERVICE_UNAVAILABLE, 'ACQUIRING_PROVIDER_UNAVAILABLE', 'Unable to create payment checkout session');
     }
+  }
+
+  private async createPayAtClinicInstruction(holdId: string, ownerId: string): Promise<PaymentIntentResult> {
+    return this.database.withTransaction(async (client) => {
+      await this.setProviderTransactionLimits(client);
+      const hold = await client.query<{
+        state: string;
+        version: number;
+        owner_id: string;
+        amount: string | null;
+        currency: string | null;
+      }>(`
+        SELECT h.state, h.version, h.owner_id, price.amount::text AS amount, price.currency
+        FROM booking_schema.booking_holds h
+        LEFT JOIN booking_schema.hold_price_snapshots price ON price.hold_id = h.id
+        WHERE h.id = $1::uuid
+        FOR SHARE OF h
+      `, [holdId]);
+      const row = hold.rows[0];
+      if (!row) throw DomainErrors.holdNotFound();
+      if (row.owner_id !== ownerId) throw DomainErrors.holdOwnerMismatch();
+      if (!['CONFIRMED', 'MIS_HELD', 'PAYMENT_PENDING', 'PAYMENT_IN_PROGRESS', 'PAYMENT_RECONCILIATION_PENDING'].includes(row.state)) {
+        throw new DomainException(HttpStatus.UNPROCESSABLE_ENTITY, 'PAYMENT_HOLD_NOT_READY', 'Payment can be selected only for an active confirmed hold');
+      }
+
+      return {
+        id: `pay-at-clinic:${holdId}`,
+        holdId,
+        holdVersion: row.version,
+        paymentAttemptNo: 0,
+        paymentFenceToken: '',
+        amount: row.amount ?? '0.00',
+        currency: row.currency ?? 'RUB',
+        status: 'PAY_AT_CLINIC',
+        idempotencyKey: `pay-at-clinic:${holdId}:${row.version}`,
+        remoteId: null,
+        checkoutUrl: null,
+      };
+    });
   }
 
   async handlePaymentAuthorized(command: PaymentAuthorizedWebhookCommand): Promise<PaymentIntentResult> {
@@ -408,12 +455,15 @@ export class PaymentService {
   ): Promise<void> {
     await client.query(`
       INSERT INTO booking_schema.outbox_events (
-        event_type, aggregate_type, aggregate_id,
-        aggregate_version, payload_json, deduplication_key
-      ) VALUES ($1, 'payment_intent', $2::uuid, $3, $4::jsonb, $5)
+        event_type, correlation_id, causation_id, traceparent, aggregate_type,
+        aggregate_id, aggregate_version, payload_json, deduplication_key
+      ) VALUES ($1, $2::uuid, $3::uuid, $4, 'payment_intent', $5::uuid, $6, $7::jsonb, $8)
       ON CONFLICT (deduplication_key) DO NOTHING
     `, [
       eventType,
+      this.traceContext.getCorrelationId() ?? null,
+      this.traceContext.getCausationId() ?? null,
+      this.traceContext.getTraceparent() ?? null,
       row.id,
       row.hold_version,
       JSON.stringify({

@@ -2,10 +2,12 @@ import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import type { PoolClient } from 'pg';
 import { DomainErrors, DomainException } from '../common/domain-error';
 import { config } from '../config';
+import { featureFlags } from '../config/feature-flags.config';
 import { DatabaseService } from '../database/database.service';
 import { TraceContext } from '../observability/trace-context.context';
+import { canTransition } from './booking-state-machine';
 import { BookingRepository } from './booking.repository';
-import { CreateHoldResult, HoldRow, HoldState } from './booking.types';
+import { CreateHoldResult, HoldRow, HoldState, RequestCancellationResult } from './booking.types';
 
 interface IdempotencyRow {
   status: 'PROCESSING' | 'COMPLETED';
@@ -35,6 +37,8 @@ const ACTIVE_HOLD_STATES: HoldState[] = [
   'PAYMENT_IN_PROGRESS',
   'PAYMENT_RECONCILIATION_PENDING',
   'CONFIRMED',
+  'CANCELLATION_REQUESTED',
+  'RESCHEDULE_REQUESTED',
 ];
 
 @Injectable()
@@ -97,7 +101,7 @@ export class BookingHoldCreationService {
         }
 
         const integrationMode = slot.integration_mode ?? (clinic.rows[0].mis_type ? 'LEVEL_A' : 'LEVEL_C');
-        const requiresMisReservation = integrationMode !== 'LEVEL_C';
+        const requiresMisReservation = featureFlags.FEATURE_MIS_INTEGRATION && integrationMode !== 'LEVEL_C';
         if (requiresMisReservation && !pet.rows[0].external_patient_id) {
           throw new DomainException(
             HttpStatus.UNPROCESSABLE_ENTITY,
@@ -108,7 +112,9 @@ export class BookingHoldCreationService {
 
         const initialState: HoldState = requiresMisReservation
           ? 'MIS_RESERVATION_PENDING'
-          : 'MANUAL_CONFIRM_PENDING';
+          : featureFlags.FEATURE_MIS_INTEGRATION
+            ? 'MANUAL_CONFIRM_PENDING'
+            : 'CONFIRMED';
 
         /*
          * The 15-minute clinic SLA is set atomically with the Level-C hold.
@@ -138,12 +144,16 @@ export class BookingHoldCreationService {
 
         await client.query(`
           UPDATE clinic_schema.appointment_slots
-          SET held_count = held_count + 1,
-              status = 'LOCKED_BY_HOLD',
+          SET held_count = held_count + CASE WHEN $2 = 'CONFIRMED' THEN 0 ELSE 1 END,
+              booked_count = booked_count + CASE WHEN $2 = 'CONFIRMED' THEN 1 ELSE 0 END,
+              status = CASE
+                WHEN $2 = 'CONFIRMED' THEN 'BOOKED'
+                ELSE 'LOCKED_BY_HOLD'
+              END,
               version = version + 1,
               updated_at = clock_timestamp()
           WHERE id = $1::uuid
-        `, [input.slotId]);
+        `, [input.slotId, initialState]);
 
         const result: CreateHoldResult = {
           holdId: hold.rows[0].id,
@@ -163,6 +173,37 @@ export class BookingHoldCreationService {
           expiresAt: result.expiresAt,
           confirmationSlaExpiresAt: hold.rows[0].confirmation_sla_expires_at?.toISOString() ?? null,
         });
+
+        if (initialState === 'CONFIRMED') {
+          const appointment = await client.query<{ id: string }>(`
+            INSERT INTO booking_schema.appointments (hold_id, owner_id, pet_id, clinic_location_id, slot_id)
+            VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid)
+            ON CONFLICT (hold_id) DO UPDATE
+            SET updated_at = clock_timestamp()
+            RETURNING id
+          `, [hold.rows[0].id, input.ownerId, input.petId, slot.clinic_location_id, input.slotId]);
+          await client.query(`
+            INSERT INTO booking_schema.appointment_events (
+              appointment_id, hold_id, event_type, actor_type, actor_id, correlation_id, payload_json
+            ) VALUES ($1::uuid, $2::uuid, 'CONFIRMED', 'OWNER', $3::uuid, $4::uuid, $5::jsonb)
+          `, [
+            appointment.rows[0].id,
+            hold.rows[0].id,
+            input.ownerId,
+            input.correlationId,
+            JSON.stringify({ slotId: input.slotId, clinicLocationId: slot.clinic_location_id, autoApproved: true }),
+          ]);
+          await this.writeOutbox(client, 'booking.confirmed.v1', input.correlationId, hold.rows[0].id, hold.rows[0].version, {
+            holdId: hold.rows[0].id,
+            appointmentId: appointment.rows[0].id,
+            state: 'CONFIRMED',
+            slotId: input.slotId,
+            ownerId: input.ownerId,
+            petId: input.petId,
+            clinicLocationId: slot.clinic_location_id,
+            autoApproved: true,
+          });
+        }
 
         if (requiresMisReservation) {
           await this.writeOutbox(
@@ -216,9 +257,93 @@ export class BookingHoldCreationService {
     }
   }
 
+  async requestCancellation(input: {
+    holdId: string;
+    ownerId: string;
+    correlationId: string;
+  }): Promise<RequestCancellationResult> {
+    try {
+      return await this.database.withTransaction(async (client) => {
+        await this.setInteractiveTransactionLimits(client);
+
+        const locked = await client.query<{
+          id: string;
+          slot_id: string;
+          owner_id: string;
+          state: HoldState;
+          version: number;
+        }>(`
+          SELECT id, slot_id, owner_id, state, version
+          FROM booking_schema.booking_holds
+          WHERE id = $1::uuid
+          FOR UPDATE
+        `, [input.holdId]);
+        const hold = locked.rows[0];
+        if (!hold) throw DomainErrors.holdNotFound();
+        if (hold.owner_id !== input.ownerId) throw DomainErrors.holdOwnerMismatch();
+
+        if (hold.state === 'CANCELLATION_REQUESTED') {
+          return {
+            holdId: hold.id,
+            state: 'CANCELLATION_REQUESTED',
+            slotId: hold.slot_id,
+            correlationId: input.correlationId,
+          };
+        }
+        if (!canTransition(hold.state, 'CANCELLATION_REQUESTED')) {
+          throw DomainErrors.invalidTransition();
+        }
+
+        const updated = await client.query<{ version: number }>(`
+          UPDATE booking_schema.booking_holds
+          SET state = 'CANCELLATION_REQUESTED',
+              state_changed_at = clock_timestamp(),
+              version = version + 1,
+              updated_at = clock_timestamp()
+          WHERE id = $1::uuid
+          RETURNING version
+        `, [hold.id]);
+
+        const result: RequestCancellationResult = {
+          holdId: hold.id,
+          state: 'CANCELLATION_REQUESTED',
+          slotId: hold.slot_id,
+          correlationId: input.correlationId,
+        };
+        await this.writeOutbox(
+          client,
+          'support.ticket.cancellation_requested.v1',
+          input.correlationId,
+          hold.id,
+          updated.rows[0].version,
+          {
+            holdId: hold.id,
+            slotId: hold.slot_id,
+            ownerId: input.ownerId,
+            previousState: hold.state,
+          },
+        );
+        await client.query(`
+          INSERT INTO audit_schema.audit_log (
+            actor_type, actor_id, action, aggregate_type,
+            aggregate_id, correlation_id, payload_json
+          ) VALUES ('OWNER', $1, 'booking.cancellation_requested', 'booking_hold', $2::uuid, $3::uuid, $4::jsonb)
+        `, [
+          input.ownerId,
+          hold.id,
+          input.correlationId,
+          JSON.stringify({ slotId: hold.slot_id, previousState: hold.state }),
+        ]);
+        return result;
+      });
+    } catch (error) {
+      throw this.mapPgError(error);
+    }
+  }
+
   private async setInteractiveTransactionLimits(client: PoolClient): Promise<void> {
     await client.query("SET LOCAL lock_timeout = '50ms'");
-    await client.query("SET LOCAL statement_timeout = '250ms'");
+    await client.query("SET LOCAL statement_timeout = '50ms'");
   }
 
   private async assertNoActiveHoldForSlot(

@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsDateString, IsIn, IsNumber, IsOptional, IsString, IsUrl, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { IsArray, IsBoolean, IsDateString, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUrl, Max, MaxLength, Min, MinLength } from 'class-validator';
 
 export class CreateOwnerPetDto {
   @IsString()
@@ -20,9 +20,20 @@ export class CreateOwnerPetDto {
   birthDate?: string;
 
   @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(600)
+  ageMonths?: number;
+
+  @IsOptional()
   @IsString()
   @IsIn(['MALE', 'FEMALE', 'UNKNOWN'])
   sex?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['MALE', 'FEMALE'])
+  gender?: 'MALE' | 'FEMALE';
 
   @IsOptional()
   @IsNumber()
@@ -33,6 +44,15 @@ export class CreateOwnerPetDto {
   @IsOptional()
   @IsBoolean()
   sterilized?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isSterilized?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  chipNumber?: string;
 
   @IsOptional()
   @IsArray()
@@ -82,9 +102,20 @@ export class UpdateOwnerPetDto {
   birthDate?: string;
 
   @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(600)
+  ageMonths?: number;
+
+  @IsOptional()
   @IsString()
   @IsIn(['MALE', 'FEMALE', 'UNKNOWN'])
   sex?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['MALE', 'FEMALE'])
+  gender?: 'MALE' | 'FEMALE';
 
   @IsOptional()
   @IsNumber()
@@ -95,6 +126,15 @@ export class UpdateOwnerPetDto {
   @IsOptional()
   @IsBoolean()
   sterilized?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isSterilized?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  chipNumber?: string;
 
   @IsOptional()
   @IsArray()
@@ -125,4 +165,14 @@ export class UpdateOwnerPetDto {
   @IsString()
   @MaxLength(120)
   mutationId?: string;
+}
+
+export class UploadPetDocumentPhotoDto {
+  @IsUrl({ require_tld: false })
+  @MaxLength(2000)
+  fileUrl!: string;
+
+  @IsString()
+  @IsIn(['PASSPORT', 'HISTORY'])
+  docType!: 'PASSPORT' | 'HISTORY';
 }

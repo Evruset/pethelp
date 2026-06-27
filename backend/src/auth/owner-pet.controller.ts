@@ -5,7 +5,7 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import { JwtPayload, Role } from './auth.types';
 import { Roles } from './roles.decorator';
 import { RolesGuard } from './roles.guard';
-import { CreateOwnerPetDto, UpdateOwnerPetDto } from './dto/owner-pet.dto';
+import { CreateOwnerPetDto, UpdateOwnerPetDto, UploadPetDocumentPhotoDto } from './dto/owner-pet.dto';
 import { OwnerPetService } from './owner-pet.service';
 
 @ApiTags('Owner pets')
@@ -30,6 +30,17 @@ export class OwnerPetController {
     const summary = await this.pets.careSummary(owner, petId);
     if (!summary) throw new NotFoundException({ code: 'OWNER_PET_NOT_FOUND', message: 'Pet was not found.' });
     return summary;
+  }
+
+  @Post(':petId/documents')
+  @ApiOperation({ summary: 'Загрузка фото медкарты или паспорта питомца в асинхронную OCR-очередь' })
+  @ApiCreatedResponse({ description: 'Документ принят в обработку, OCR выполняется фоновым worker.' })
+  async uploadDocumentPhoto(
+    @CurrentUser() owner: JwtPayload,
+    @Param('petId', new ParseUUIDPipe()) petId: string,
+    @Body() dto: UploadPetDocumentPhotoDto,
+  ) {
+    return this.pets.uploadDocumentPhoto(owner, petId, dto);
   }
 
   @Get(':petId')

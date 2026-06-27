@@ -234,11 +234,30 @@ class ReleasedBookingHold {
           correlationId: json['correlationId'] as String);
 }
 
+class RequestedBookingCancellation {
+  const RequestedBookingCancellation(
+      {required this.holdId,
+      required this.state,
+      required this.slotId,
+      required this.correlationId});
+  final String holdId;
+  final String state;
+  final String slotId;
+  final String correlationId;
+  factory RequestedBookingCancellation.fromJson(Map<String, dynamic> json) =>
+      RequestedBookingCancellation(
+          holdId: json['holdId'] as String,
+          state: json['state'] as String,
+          slotId: json['slotId'] as String,
+          correlationId: json['correlationId'] as String);
+}
+
 abstract class OwnerAppointmentsRepository {
   Future<List<OwnerAppointment>> list();
   Future<OwnerAppointmentDetail> readDetail(String holdId);
   Future<BookingHoldSnapshot> readHold(String holdId);
   Future<ReleasedBookingHold> releaseHold(String holdId);
+  Future<RequestedBookingCancellation> requestCancellation(String holdId);
 }
 
 class HttpOwnerAppointmentsRepository implements OwnerAppointmentsRepository {
@@ -310,6 +329,21 @@ class HttpOwnerAppointmentsRepository implements OwnerAppointmentsRepository {
           response.statusCode, _errorCode(data));
     }
     return ReleasedBookingHold.fromJson(data);
+  }
+
+  @override
+  Future<RequestedBookingCancellation> requestCancellation(String holdId) async {
+    final correlationId = _uuid.v4();
+    final response = await _client.post(
+      _baseUrl.resolve('v1/booking-holds/$holdId/cancellation-requests'),
+      headers: await _headers(correlationId: correlationId),
+    );
+    final data = _decode(response);
+    if (response.statusCode != 200 || data is! Map<String, dynamic>) {
+      throw OwnerAppointmentsApiException(
+          response.statusCode, _errorCode(data));
+    }
+    return RequestedBookingCancellation.fromJson(data);
   }
 
   Future<Map<String, String>> _headers(

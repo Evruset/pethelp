@@ -139,4 +139,13 @@ class _FakeOwnerAppointmentsRepository implements OwnerAppointmentsRepository {
         slotId: 'slot-1',
         correlationId: '11111111-1111-4111-8111-111111111112',
       );
+
+  @override
+  Future<RequestedBookingCancellation> requestCancellation(String holdId) async =>
+      RequestedBookingCancellation(
+        holdId: holdId,
+        state: 'CANCELLATION_REQUESTED',
+        slotId: 'slot-1',
+        correlationId: '11111111-1111-4111-8111-111111111113',
+      );
 }
