@@ -96,7 +96,13 @@ export class TelemedOwnerSessionService {
       FROM telemed_schema.telemed_sessions session
       LEFT JOIN booking_schema.booking_holds hold ON hold.id = session.booking_hold_id
       LEFT JOIN telemed_schema.telemed_cases telemed_case ON telemed_case.id = session.telemed_case_id
-      LEFT JOIN telemed_schema.telemed_payment_intents telemed_payment ON telemed_payment.case_id = telemed_case.id
+      LEFT JOIN LATERAL (
+        SELECT payment.status
+        FROM telemed_schema.telemed_payment_intents payment
+        WHERE payment.case_id = telemed_case.id
+        ORDER BY payment.payment_attempt_no DESC, payment.created_at DESC
+        LIMIT 1
+      ) telemed_payment ON true
       LEFT JOIN clinic_schema.appointment_slots slot ON slot.id = hold.slot_id
       LEFT JOIN clinic_schema.clinic_locations location ON location.id = slot.clinic_location_id
       LEFT JOIN clinic_schema.clinics clinic ON clinic.id = location.clinic_id
@@ -169,7 +175,13 @@ export class TelemedOwnerSessionService {
         session.version
       FROM telemed_schema.telemed_sessions session
       LEFT JOIN telemed_schema.telemed_cases telemed_case ON telemed_case.id = session.telemed_case_id
-      LEFT JOIN telemed_schema.telemed_payment_intents telemed_payment ON telemed_payment.case_id = telemed_case.id
+      LEFT JOIN LATERAL (
+        SELECT payment.status
+        FROM telemed_schema.telemed_payment_intents payment
+        WHERE payment.case_id = telemed_case.id
+        ORDER BY payment.payment_attempt_no DESC, payment.created_at DESC
+        LIMIT 1
+      ) telemed_payment ON true
       WHERE session.id = $1::uuid
         AND session.owner_id = $2::uuid
     `, [sessionId, ownerId]);

@@ -32,6 +32,19 @@ const emergencySignals = new Set([
   'BLOAT_OR_BLOCKED_URINATION',
 ]);
 
+// Unknown safety signals must never silently become telemedicine-eligible.
+const knownRedFlags = new Set([
+  ...emergencySignals,
+  'DEHYDRATION',
+  'FEVER',
+  'LOSS_OF_APPETITE',
+  'LETHARGY',
+  'PERSISTENT_VOMITING',
+  'PERSISTENT_DIARRHEA',
+  'PREGNANCY_COMPLICATION',
+  'POST_OPERATIVE_COMPLICATION',
+]);
+
 @Injectable()
 export class TelemedIntakeService {
   constructor(private readonly database: DatabaseService) {}
@@ -42,8 +55,9 @@ export class TelemedIntakeService {
       throw new BadRequestException({ code: 'TELEMED_CONSENT_REQUIRED', message: 'Telemedicine consent is required.' });
     }
     const redFlags = normalizeCodes(dto.emergencyRedFlags);
+    const unknownRedFlags = redFlags.filter((signal) => !knownRedFlags.has(signal));
     const attachments = normalizeAttachmentRefs(dto.attachmentRefs ?? []);
-    const eligibility = decideEligibility(dto, redFlags);
+    const eligibility = decideEligibility(dto, redFlags, unknownRedFlags);
 
     return this.database.withTransaction(async (client) => {
       await client.query("SET LOCAL statement_timeout = '250ms'");
@@ -97,7 +111,11 @@ export class TelemedIntakeService {
 function decideEligibility(
   dto: CreateTelemedIntakeDto,
   redFlags: string[],
+  unknownRedFlags: string[],
 ): { outcome: TelemedEligibilityOutcome; routingTarget: TelemedRoutingTarget } {
+  if (unknownRedFlags.length > 0) {
+    return { outcome: 'INSUFFICIENT_DATA', routingTarget: 'GUIDED_QUESTIONS' };
+  }
   if (redFlags.some((signal) => emergencySignals.has(signal))) {
     return { outcome: 'EMERGENCY', routingTarget: 'EMERGENCY_ROUTE' };
   }

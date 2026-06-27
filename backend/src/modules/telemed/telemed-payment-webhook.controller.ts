@@ -9,6 +9,7 @@ interface TelemedPaymentAuthorizedWebhookDto {
   idempotencyKey?: string;
   eventId?: string;
   providerPaymentId?: string;
+  paymentFenceToken?: string;
 }
 
 interface RawBodyRequest extends Request {
@@ -42,6 +43,7 @@ export class TelemedPaymentWebhookController {
       idempotencyKey: body.idempotencyKey ?? idempotencyHeader ?? '',
       providerEventId: body.eventId ?? providerEventHeader ?? '',
       providerPaymentId: body.providerPaymentId,
+      paymentFenceToken: body.paymentFenceToken ?? '',
       rawPayload: rawPayload.toString('utf8'),
       payloadSha256: createHash('sha256').update(rawPayload).digest('hex'),
     });

@@ -49,7 +49,7 @@ export type OwnerPetCareVisit = {
 
 export type OwnerPetCareTelemedSession = {
   sessionId: string;
-  bookingHoldId: string;
+  bookingHoldId: string | null;
   state: string;
   bucket: 'ACTIVE' | 'HISTORY';
   startsAt: string;
@@ -178,7 +178,7 @@ export class OwnerPetService {
 
     const telemedSessions = await this.database.query<{
       session_id: string;
-      booking_hold_id: string;
+      booking_hold_id: string | null;
       state: string;
       bucket: 'ACTIVE' | 'HISTORY';
       starts_at: Date;
@@ -201,19 +201,20 @@ export class OwnerPetService {
         slot.starts_at,
         slot.ends_at,
         session.expires_at,
-        clinic.id::text AS clinic_id,
-        clinic.public_name AS clinic_name,
-        location.address,
+        COALESCE(clinic.id::text, 'platform-telemed') AS clinic_id,
+        COALESCE(clinic.public_name, 'VetHelp Telemed') AS clinic_name,
+        COALESCE(location.address, 'Онлайн-консультация') AS address,
         service.id::text AS service_id,
         service.display_name AS service_name
       FROM telemed_schema.telemed_sessions session
-      JOIN booking_schema.booking_holds hold ON hold.id = session.booking_hold_id
-      JOIN clinic_schema.appointment_slots slot ON slot.id = hold.slot_id
-      JOIN clinic_schema.clinic_locations location ON location.id = slot.clinic_location_id
-      JOIN clinic_schema.clinics clinic ON clinic.id = location.clinic_id
+      LEFT JOIN booking_schema.booking_holds hold ON hold.id = session.booking_hold_id
+      LEFT JOIN telemed_schema.telemed_cases telemed_case ON telemed_case.id = session.telemed_case_id
+      LEFT JOIN clinic_schema.appointment_slots slot ON slot.id = hold.slot_id
+      LEFT JOIN clinic_schema.clinic_locations location ON location.id = slot.clinic_location_id
+      LEFT JOIN clinic_schema.clinics clinic ON clinic.id = location.clinic_id
       LEFT JOIN clinic_schema.clinic_services service ON service.id = slot.service_id
       WHERE session.owner_id = $1::uuid
-        AND hold.pet_id = $2::uuid
+        AND COALESCE(hold.pet_id, telemed_case.pet_id) = $2::uuid
       ORDER BY
         CASE WHEN session.state IN ('WAITING_FOR_DOCTOR', 'CONNECTED') THEN 0 ELSE 1 END,
         session.created_at DESC
