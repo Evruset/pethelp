@@ -43,6 +43,9 @@ jobs:
       LIVEKIT_API_KEY: livekit-ci-api-key
       LIVEKIT_API_SECRET: livekit-ci-api-secret
       WORKERS_ENABLED: 'false'
+      FEATURE_MIS_INTEGRATION: 'true'
+      FEATURE_ONLINE_PAYMENTS: 'true'
+      FEATURE_EMERGENCY_OPS: 'true'
 
     steps:
       - uses: actions/checkout@v4
