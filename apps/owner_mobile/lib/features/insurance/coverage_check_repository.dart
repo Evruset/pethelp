@@ -10,6 +10,11 @@ class CoverageCheckView {
     required this.partnerCode,
     required this.state,
     required this.consentVersion,
+    required this.providerReference,
+    required this.responseSummary,
+    required this.providerCheckedAt,
+    required this.coverageValidUntil,
+    required this.claimDraft,
     required this.version,
     required this.serverNow,
   });
@@ -19,8 +24,45 @@ class CoverageCheckView {
   final String partnerCode;
   final String state;
   final String? consentVersion;
+  final String? providerReference;
+  final Map<String, Object?> responseSummary;
+  final DateTime? providerCheckedAt;
+  final DateTime? coverageValidUntil;
+  final InsuranceClaimDraftView? claimDraft;
   final int version;
   final DateTime serverNow;
+}
+
+class InsuranceClaimDraftView {
+  const InsuranceClaimDraftView({
+    required this.draftId,
+    required this.partnerCode,
+    required this.status,
+    required this.requiredDocuments,
+    required this.createdAt,
+    required this.expiresAt,
+  });
+
+  final String draftId;
+  final String partnerCode;
+  final String status;
+  final List<String> requiredDocuments;
+  final DateTime createdAt;
+  final DateTime expiresAt;
+
+  factory InsuranceClaimDraftView.fromJson(Map<String, dynamic> json) {
+    return InsuranceClaimDraftView(
+      draftId: json['draftId'] as String,
+      partnerCode: json['partnerCode'] as String,
+      status: json['status'] as String,
+      requiredDocuments:
+          (json['requiredDocuments'] as List<dynamic>? ?? const [])
+              .whereType<String>()
+              .toList(growable: false),
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      expiresAt: DateTime.parse(json['expiresAt'] as String),
+    );
+  }
 }
 
 class InsuranceProfileView {
@@ -197,6 +239,11 @@ class CoverageCheckRepository {
       partnerCode: payload['partnerCode'] as String,
       state: payload['state'] as String,
       consentVersion: payload['consentVersion'] as String?,
+      providerReference: payload['providerReference'] as String?,
+      responseSummary: _safeMap(payload['responseSummary']),
+      providerCheckedAt: _optionalDateTime(payload['providerCheckedAt']),
+      coverageValidUntil: _optionalDateTime(payload['coverageValidUntil']),
+      claimDraft: _claimDraft(payload['claimDraft']),
       version: payload['version'] as int,
       serverNow: DateTime.parse(payload['serverNow'] as String),
     );
@@ -222,6 +269,22 @@ class CoverageCheckRepository {
 DateTime? _optionalDate(dynamic value) {
   if (value is! String || value.isEmpty) return null;
   return DateTime.tryParse(value);
+}
+
+DateTime? _optionalDateTime(dynamic value) {
+  if (value is! String || value.isEmpty) return null;
+  return DateTime.tryParse(value);
+}
+
+Map<String, Object?> _safeMap(dynamic value) {
+  if (value is! Map<String, dynamic>) return const <String, Object?>{};
+  return value.map((key, item) => MapEntry(key, item is Object ? item : null));
+}
+
+InsuranceClaimDraftView? _claimDraft(dynamic value) {
+  if (value is! Map<String, dynamic>) return null;
+  if (value.isEmpty) return null;
+  return InsuranceClaimDraftView.fromJson(value);
 }
 
 String _dateOnly(DateTime value) {

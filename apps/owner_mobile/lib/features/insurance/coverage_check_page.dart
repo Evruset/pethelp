@@ -628,6 +628,37 @@ class _CoverageStatusCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(status.message),
+            if (check.providerReference != null) ...[
+              const SizedBox(height: 8),
+              _CoverageMetaRow(
+                icon: Icons.confirmation_number_outlined,
+                text: 'Номер проверки партнёра: ${check.providerReference}',
+              ),
+            ],
+            if (check.providerCheckedAt != null) ...[
+              const SizedBox(height: 8),
+              _CoverageMetaRow(
+                icon: Icons.verified_outlined,
+                text:
+                    'Статус актуален на ${_dateTime(context, check.providerCheckedAt!)}',
+              ),
+            ],
+            if (check.coverageValidUntil != null) ...[
+              const SizedBox(height: 8),
+              _CoverageMetaRow(
+                icon: Icons.event_available_outlined,
+                text:
+                    'Предварительная проверка действует до ${_dateTime(context, check.coverageValidUntil!)}',
+              ),
+            ],
+            if (check.responseSummary.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _ProviderSummary(summary: check.responseSummary),
+            ],
+            if (check.claimDraft != null) ...[
+              const SizedBox(height: 12),
+              _ClaimDraftCard(draft: check.claimDraft!),
+            ],
             const SizedBox(height: 8),
             Text('Обновлено: ${_dateTime(context, check.serverNow)}',
                 style: Theme.of(context).textTheme.bodySmall),
@@ -636,6 +667,115 @@ class _CoverageStatusCard extends StatelessWidget {
               onPressed: onRefresh,
               icon: const Icon(Icons.refresh),
               label: const Text('Обновить статус'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CoverageMetaRow extends StatelessWidget {
+  const _CoverageMetaRow({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 8),
+        Expanded(child: Text(text)),
+      ],
+    );
+  }
+}
+
+class _ProviderSummary extends StatelessWidget {
+  const _ProviderSummary({required this.summary});
+
+  final Map<String, Object?> summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = _summaryEntries(summary);
+    if (entries.isEmpty) return const SizedBox.shrink();
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Ответ партнёра',
+                style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            for (final entry in entries) ...[
+              Text(entry, style: Theme.of(context).textTheme.bodyMedium),
+              if (entry != entries.last) const SizedBox(height: 6),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ClaimDraftCard extends StatelessWidget {
+  const _ClaimDraftCard({required this.draft});
+
+  final InsuranceClaimDraftView draft;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.description_outlined),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Черновик обращения партнёру',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text('Черновик: ${draft.draftId}'),
+            const SizedBox(height: 4),
+            Text(
+                'Можно использовать до ${_dateTime(context, draft.expiresAt)}'),
+            if (draft.requiredDocuments.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text('Понадобятся документы:',
+                  style: Theme.of(context).textTheme.bodyMedium),
+              const SizedBox(height: 4),
+              for (final document in draft.requiredDocuments)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: Text('- ${_documentLabel(document)}'),
+                ),
+            ],
+            const SizedBox(height: 8),
+            Text(
+              'Это не решение о выплате. Финальный статус даст страховой партнёр.',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
         ),
@@ -689,8 +829,8 @@ _CoverageStatus _status(String state) => switch (state) {
           Icons.sync_outlined,
           (context) => Theme.of(context).colorScheme.primary),
       'COVERED' => _CoverageStatus(
-          'Покрытие подтверждено',
-          'Покажите этот статус клинике перед визитом.',
+          'Есть предварительное покрытие',
+          'Партнёр вернул предварительный статус. Покажите его клинике перед визитом.',
           Icons.check_circle_outline,
           (context) => Theme.of(context).colorScheme.tertiary),
       'NOT_COVERED' => _CoverageStatus(
@@ -718,6 +858,31 @@ _CoverageStatus _status(String state) => switch (state) {
           'Подтвердите согласие, чтобы отправить запрос страховому партнёру.',
           Icons.privacy_tip_outlined,
           (context) => Theme.of(context).colorScheme.primary),
+    };
+
+List<String> _summaryEntries(Map<String, Object?> summary) {
+  const allowed = {
+    'statusText': 'Статус',
+    'coverageScope': 'Область проверки',
+    'nextStep': 'Следующий шаг',
+    'wording': 'Важно',
+    'policyReference': 'Полис',
+  };
+  final result = <String>[];
+  for (final entry in summary.entries) {
+    final label = allowed[entry.key];
+    final value = entry.value;
+    if (label == null || value == null) continue;
+    result.add('$label: $value');
+  }
+  return result;
+}
+
+String _documentLabel(String value) => switch (value) {
+      'Doctor recommendation' => 'рекомендация врача',
+      'Invoice or payment receipt' => 'счёт или чек оплаты',
+      'Pet medical record excerpt' => 'выписка из карты питомца',
+      _ => value,
     };
 
 String _species(String value) => switch (value.toUpperCase()) {
