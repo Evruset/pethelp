@@ -136,7 +136,6 @@ class _OwnerJourneyLauncherState extends State<OwnerJourneyLauncher> {
           baseUrl: Uri.parse(_apiBaseUrl),
           accessTokenProvider: _token,
         ),
-        onRequestEmergency: _openEmergency,
       ),
     ));
   }

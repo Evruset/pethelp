@@ -97,6 +97,8 @@ class _FakeOwnerAppointmentsRepository implements OwnerAppointmentsRepository {
         clinicName: 'VetHelp Pilot',
         clinicAddress: 'Pilotnaya 1',
         locationPhone: null,
+        locationLatitude: null,
+        locationLongitude: null,
         petName: 'Барс',
         petSpecies: 'CAT',
         serviceName: 'Первичный приём',

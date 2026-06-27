@@ -55,7 +55,13 @@ class _FakeOwnerPetRepository implements OwnerPetRepository {
   }
 
   @override
-  Future<OwnerPet> update({
+  Future<List<OwnerPetProfileSyncState>> profileSyncStates(
+    String petId,
+  ) async =>
+      const <OwnerPetProfileSyncState>[];
+
+  @override
+  Future<OwnerPetSaveResult> update({
     required String petId,
     required int profileVersion,
     required OwnerPetProfileInput input,
