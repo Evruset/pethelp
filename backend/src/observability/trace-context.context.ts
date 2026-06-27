@@ -5,9 +5,12 @@ import { randomUUID } from 'node:crypto';
 export interface TraceContextValue {
   correlationId: string;
   userId?: string;
+  causationId?: string;
+  traceparent?: string;
 }
 
 const UUID_V4_OR_V5 = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const TRACEPARENT = /^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$/i;
 
 @Injectable()
 export class TraceContext {
@@ -29,6 +32,14 @@ export class TraceContext {
     return this.get()?.userId;
   }
 
+  getCausationId(): string | undefined {
+    return this.get()?.causationId;
+  }
+
+  getTraceparent(): string | undefined {
+    return this.get()?.traceparent;
+  }
+
   setUserId(userId: string | undefined): void {
     const store = TraceContext.storage.getStore();
     if (store && userId) store.userId = userId;
@@ -39,7 +50,29 @@ export class TraceContext {
     return candidate && UUID_V4_OR_V5.test(candidate) ? candidate : randomUUID();
   }
 
-  workerContext(correlationId: string | null | undefined): TraceContextValue {
-    return { correlationId: correlationId && UUID_V4_OR_V5.test(correlationId) ? correlationId : randomUUID() };
+  causationIdFromHeader(value: string | string[] | undefined): string | undefined {
+    const candidate = Array.isArray(value) ? value[0] : value;
+    return candidate && UUID_V4_OR_V5.test(candidate) ? candidate : undefined;
+  }
+
+  traceparentFromHeader(value: string | string[] | undefined): string | undefined {
+    const candidate = Array.isArray(value) ? value[0] : value;
+    return candidate && TRACEPARENT.test(candidate) ? candidate.toLowerCase() : undefined;
+  }
+
+  workerContext(
+    correlationId: string | null | undefined,
+    options: { causationId?: string | null; traceparent?: string | null } = {},
+  ): TraceContextValue {
+    const context: TraceContextValue = {
+      correlationId: correlationId && UUID_V4_OR_V5.test(correlationId) ? correlationId : randomUUID(),
+    };
+    if (options.causationId && UUID_V4_OR_V5.test(options.causationId)) {
+      context.causationId = options.causationId;
+    }
+    if (options.traceparent && TRACEPARENT.test(options.traceparent)) {
+      context.traceparent = options.traceparent.toLowerCase();
+    }
+    return context;
   }
 }

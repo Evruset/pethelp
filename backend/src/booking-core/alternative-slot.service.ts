@@ -339,10 +339,21 @@ export class AlternativeSlotService {
 
   private async writeOutbox(client: PoolClient, eventType: string, correlationId: string, aggregateId: string, version: number, payload: Record<string, unknown>): Promise<void> {
     await client.query(`
-      INSERT INTO booking_schema.outbox_events (event_type, correlation_id, aggregate_type, aggregate_id, aggregate_version, payload_json, deduplication_key)
-      VALUES ($1, $2::uuid, 'booking_hold', $3::uuid, $4, $5::jsonb, $6)
+      INSERT INTO booking_schema.outbox_events (
+        event_type, correlation_id, causation_id, traceparent,
+        aggregate_type, aggregate_id, aggregate_version, payload_json, deduplication_key
+      ) VALUES ($1, $2::uuid, $3::uuid, $4, 'booking_hold', $5::uuid, $6, $7::jsonb, $8)
       ON CONFLICT (deduplication_key) DO NOTHING
-    `, [eventType, correlationId, aggregateId, version, JSON.stringify(payload), `${eventType}:${aggregateId}:${version}`]);
+    `, [
+      eventType,
+      correlationId,
+      this.traceContext.getCausationId() ?? null,
+      this.traceContext.getTraceparent() ?? null,
+      aggregateId,
+      version,
+      JSON.stringify(payload),
+      `${eventType}:${aggregateId}:${version}`,
+    ]);
   }
 
   private async writeAudit(client: PoolClient, actorType: string, actorId: string | null, action: string, holdId: string, correlationId: string, payload: Record<string, unknown>): Promise<void> {

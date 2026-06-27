@@ -3,6 +3,7 @@ import type { PoolClient } from 'pg';
 import { JwtPayload } from '../auth/auth.types';
 import { DomainErrors } from '../common/domain-error';
 import { DatabaseService } from '../database/database.service';
+import { TraceContext } from '../observability/trace-context.context';
 import { ClinicEmployeeAccessService } from './clinic-employee-access.service';
 
 interface ScheduleSlotRow {
@@ -192,6 +193,8 @@ export interface ClinicScheduleResult {
 
 @Injectable()
 export class ClinicScheduleService {
+  private readonly traceContext = new TraceContext();
+
   constructor(
     private readonly database: DatabaseService,
     private readonly clinicAccess: ClinicEmployeeAccessService,
@@ -1429,9 +1432,21 @@ export class ClinicScheduleService {
 
   private async writeOutbox(client: PoolClient, eventType: string, correlationId: string, aggregateId: string, aggregateVersion: number, payload: Record<string, unknown>, aggregateType = 'appointment_slot'): Promise<void> {
     await client.query(`
-      INSERT INTO booking_schema.outbox_events (event_type, correlation_id, aggregate_type, aggregate_id, aggregate_version, payload_json, deduplication_key)
-      VALUES ($1, $2::uuid, $7, $3::uuid, $4, $5::jsonb, $6)
-    `, [eventType, correlationId, aggregateId, aggregateVersion, JSON.stringify(payload), `${eventType}:${aggregateId}:${aggregateVersion}`, aggregateType]);
+      INSERT INTO booking_schema.outbox_events (
+        event_type, correlation_id, causation_id, traceparent,
+        aggregate_type, aggregate_id, aggregate_version, payload_json, deduplication_key
+      ) VALUES ($1, $2::uuid, $3::uuid, $4, $9, $5::uuid, $6, $7::jsonb, $8)
+    `, [
+      eventType,
+      correlationId,
+      this.traceContext.getCausationId() ?? null,
+      this.traceContext.getTraceparent() ?? null,
+      aggregateId,
+      aggregateVersion,
+      JSON.stringify(payload),
+      `${eventType}:${aggregateId}:${aggregateVersion}`,
+      aggregateType,
+    ]);
   }
 
   private async writeAudit(client: PoolClient, actorType: string, actorId: string, action: string, aggregateId: string, correlationId: string, payload: Record<string, unknown>, aggregateType = 'appointment_slot'): Promise<void> {

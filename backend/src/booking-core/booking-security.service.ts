@@ -3,6 +3,7 @@ import type { PoolClient } from 'pg';
 import { JwtPayload, Role } from '../auth/auth.types';
 import { DomainErrors, DomainException } from '../common/domain-error';
 import { DatabaseService } from '../database/database.service';
+import { TraceContext } from '../observability/trace-context.context';
 import { canTransition } from './booking-state-machine';
 import { ClinicEmployeeAccessService } from './clinic-employee-access.service';
 import { ConfirmHoldResult, HoldRow, ReleaseHoldResult, RequestNotesResult, SlotRow } from './booking.types';
@@ -48,6 +49,7 @@ interface IdempotencyRow {
 @Injectable()
 export class BookingSecurityService {
   private readonly logger = new Logger(BookingSecurityService.name);
+  private readonly traceContext = new TraceContext();
 
   constructor(
     private readonly database: DatabaseService,
@@ -491,9 +493,20 @@ export class BookingSecurityService {
 
   private async writeOutbox(client: PoolClient, eventType: string, correlationId: string, aggregateId: string, aggregateVersion: number, payload: Record<string, unknown>): Promise<void> {
     await client.query(`
-      INSERT INTO booking_schema.outbox_events (event_type, correlation_id, aggregate_type, aggregate_id, aggregate_version, payload_json, deduplication_key)
-      VALUES ($1, $2::uuid, 'booking_hold', $3::uuid, $4, $5::jsonb, $6)
-    `, [eventType, correlationId, aggregateId, aggregateVersion, JSON.stringify(payload), `${eventType}:${aggregateId}:${aggregateVersion}`]);
+      INSERT INTO booking_schema.outbox_events (
+        event_type, correlation_id, causation_id, traceparent,
+        aggregate_type, aggregate_id, aggregate_version, payload_json, deduplication_key
+      ) VALUES ($1, $2::uuid, $3::uuid, $4, 'booking_hold', $5::uuid, $6, $7::jsonb, $8)
+    `, [
+      eventType,
+      correlationId,
+      this.traceContext.getCausationId() ?? null,
+      this.traceContext.getTraceparent() ?? null,
+      aggregateId,
+      aggregateVersion,
+      JSON.stringify(payload),
+      `${eventType}:${aggregateId}:${aggregateVersion}`,
+    ]);
   }
 
   private async writeAudit(client: PoolClient, actorType: string, actorId: string | null, action: string, holdId: string, correlationId: string, payload: Record<string, unknown>): Promise<void> {
