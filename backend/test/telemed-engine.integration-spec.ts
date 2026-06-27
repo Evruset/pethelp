@@ -59,6 +59,29 @@ describe('Telemedicine Engine', () => {
     expect(outbox.rows[0]).toMatchObject({ status: 'PUBLISHED', correlation_id: correlationId });
   });
 
+  it('starts a case-based waiting room idempotently with the partial case index', async () => {
+    const fixture = await createCaseFixture(database);
+
+    const first = await telemedService.startSessionForCase(fixture.caseId, fixture.doctorId);
+    const replay = await telemedService.startSessionForCase(fixture.caseId, fixture.doctorId);
+
+    expect(first).toMatchObject({
+      telemedCaseId: fixture.caseId,
+      ownerId: fixture.ownerId,
+      state: 'WAITING_FOR_DOCTOR',
+    });
+    expect(replay.id).toBe(first.id);
+    expect(replay.state).toBe('WAITING_FOR_DOCTOR');
+
+    const sessions = await database.query<{ count: string }>(`
+      SELECT count(*)::text AS count
+      FROM telemed_schema.telemed_sessions
+      WHERE telemed_case_id = $1::uuid
+    `, [fixture.caseId]);
+
+    expect(sessions.rows[0]).toEqual({ count: '1' });
+  });
+
   it('locks session, assigns doctor and returns a native 30-minute LiveKit token', async () => {
     const fixture = await createFixture(database, 'CONFIRMED');
     const session = await telemedService.startSessionAfterPayment(fixture.holdId);
@@ -109,13 +132,69 @@ async function createFixture(database: DatabaseService, state: 'MIS_HELD' | 'CON
   return { ownerId, holdId };
 }
 
+async function createCaseFixture(database: DatabaseService) {
+  const ownerId = randomUUID();
+  const doctorId = randomUUID();
+  const petId = randomUUID();
+  const intakeId = randomUUID();
+  const caseId = randomUUID();
+
+  await database.query(
+    'INSERT INTO identity_schema.users (id) VALUES ($1::uuid), ($2::uuid)',
+    [ownerId, doctorId],
+  );
+  await database.query(
+    `INSERT INTO pet_schema.pets (id, owner_id, name, species)
+     VALUES ($1::uuid, $2::uuid, 'Case session pet', 'DOG')`,
+    [petId, ownerId],
+  );
+  await database.query(`
+    INSERT INTO telemed_schema.telemed_intakes (
+      id, owner_id, pet_id, category, symptom_duration, prior_clinic_visit,
+      emergency_red_flags, attachment_refs, consent_version,
+      expected_service_level, eligibility_outcome, routing_target, guardrails
+    ) VALUES (
+      $1::uuid, $2::uuid, $3::uuid, 'GENERAL_QUESTION', 'NO_SYMPTOMS', false,
+      ARRAY[]::text[], ARRAY[]::text[], 'test-consent-v1',
+      'STANDARD', 'TELEMED_ELIGIBLE', 'TELEMED_PAYMENT_QUEUE', ARRAY[]::text[]
+    )
+  `, [intakeId, ownerId, petId]);
+  await database.query(`
+    INSERT INTO telemed_schema.telemed_cases (
+      id, intake_id, owner_id, pet_id, state, urgency_band, service_level,
+      queue_priority, assigned_employee_id, assigned_at
+    ) VALUES (
+      $1::uuid, $2::uuid, $3::uuid, $4::uuid, 'ASSIGNED', 'ROUTINE', 'STANDARD',
+      110, $5::uuid, clock_timestamp()
+    )
+  `, [caseId, intakeId, ownerId, petId, doctorId]);
+
+  return { ownerId, doctorId, caseId };
+}
+
 async function resetDatabase(database: DatabaseService): Promise<void> {
   await database.query(`
-    TRUNCATE TABLE telemed_schema.telemed_sessions, payment_schema.provider_webhook_events,
-      payment_schema.ledger_entries, payment_schema.payment_intents, audit_schema.audit_log,
-      booking_schema.outbox_events, booking_schema.appointment_events, booking_schema.appointments,
-      booking_schema.idempotency_records, booking_schema.booking_holds, pet_schema.pets,
-      identity_schema.users, clinic_schema.clinics RESTART IDENTITY CASCADE
+    TRUNCATE TABLE
+      telemed_schema.telemed_payment_events,
+      telemed_schema.telemed_provider_webhook_events,
+      telemed_schema.telemed_case_events,
+      telemed_schema.telemed_sessions,
+      telemed_schema.telemed_payment_intents,
+      telemed_schema.telemed_cases,
+      telemed_schema.telemed_intakes,
+      payment_schema.provider_webhook_events,
+      payment_schema.ledger_entries,
+      payment_schema.payment_intents,
+      audit_schema.audit_log,
+      booking_schema.outbox_events,
+      booking_schema.appointment_events,
+      booking_schema.appointments,
+      booking_schema.idempotency_records,
+      booking_schema.booking_holds,
+      pet_schema.pets,
+      identity_schema.users,
+      clinic_schema.clinics
+    RESTART IDENTITY CASCADE
   `);
 }
 

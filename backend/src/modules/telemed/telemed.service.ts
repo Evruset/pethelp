@@ -133,7 +133,9 @@ export class TelemedService {
           $4::uuid,
           clock_timestamp() + interval '${TelemedService.WAITING_TTL_MINUTES} minutes'
         )
-        ON CONFLICT (telemed_case_id) DO UPDATE
+        ON CONFLICT (telemed_case_id)
+          WHERE telemed_case_id IS NOT NULL
+        DO UPDATE
         SET telemed_case_id = EXCLUDED.telemed_case_id,
             correlation_id = COALESCE(telemed_schema.telemed_sessions.correlation_id, EXCLUDED.correlation_id)
         RETURNING
