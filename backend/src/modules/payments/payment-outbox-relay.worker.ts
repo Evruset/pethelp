@@ -21,6 +21,7 @@ interface PaymentOutboxEvent {
 }
 
 interface PaymentRow {
+  source: 'booking' | 'telemed';
   provider_payment_id: string | null;
   amount: string;
   currency: string;
@@ -62,7 +63,10 @@ export class PaymentOutboxRelayWorker {
               await this.acquiringClient.voidRemoteIntent(payment.provider_payment_id, event.payment_intent_id);
               await this.markProviderCommandSent(event, payment, 'VOID_SENT');
             } else if (event.event_type === 'payment.acquiring.refund.requested.v1') {
-              if (payment.status !== 'REFUND_SENT') {
+              if (
+                (payment.source === 'booking' && payment.status !== 'REFUND_SENT')
+                || (payment.source === 'telemed' && payment.status !== 'REFUND_PENDING')
+              ) {
                 await this.markSkipped(event.id, `Refund skipped because payment status is ${payment.status}`);
                 return;
               }
@@ -72,7 +76,7 @@ export class PaymentOutboxRelayWorker {
                 event.payment_intent_id,
               );
               await this.markRefundDispatched(event, payment, refund.refundId);
-            } else if (payment.status === 'AUTHORIZED') {
+            } else if (payment.source === 'booking' && payment.status === 'AUTHORIZED') {
               const captured = await this.acquiringClient.captureRemoteIntent(payment.provider_payment_id, event.payment_intent_id);
               if (!captured) throw new Error('Acquiring provider did not confirm capture request');
               await this.markProviderCommandSent(event, payment, 'CAPTURE_SENT');
@@ -141,9 +145,14 @@ export class PaymentOutboxRelayWorker {
 
   private async loadPayment(paymentIntentId: string): Promise<PaymentRow | undefined> {
     const result = await this.database.query<PaymentRow>(`
-      SELECT provider_payment_id, amount::text AS amount, currency, status
+      SELECT 'booking'::text AS source, provider_payment_id, amount::text AS amount, currency, status
       FROM payment_schema.payment_intents
       WHERE id = $1::uuid
+      UNION ALL
+      SELECT 'telemed'::text AS source, provider_payment_id, amount::text AS amount, currency, status
+      FROM telemed_schema.telemed_payment_intents
+      WHERE id = $1::uuid
+      LIMIT 1
     `, [paymentIntentId]);
     return result.rows[0];
   }
@@ -151,11 +160,21 @@ export class PaymentOutboxRelayWorker {
   private async markRefundDispatched(event: PaymentOutboxEvent, payment: PaymentRow, refundProviderId: string): Promise<void> {
     await this.database.withTransaction(async (client) => {
       await this.setCommitTransactionLimits(client);
-      await client.query(`
-        UPDATE payment_schema.payment_intents
-        SET refund_provider_id = COALESCE(refund_provider_id, $2), updated_at = clock_timestamp()
-        WHERE id = $1::uuid AND status = 'REFUND_SENT'
-      `, [event.payment_intent_id, refundProviderId]);
+      if (payment.source === 'telemed') {
+        await client.query(`
+          UPDATE telemed_schema.telemed_payment_intents
+          SET status = 'REFUNDED',
+              updated_at = clock_timestamp()
+          WHERE id = $1::uuid
+            AND status = 'REFUND_PENDING'
+        `, [event.payment_intent_id]);
+      } else {
+        await client.query(`
+          UPDATE payment_schema.payment_intents
+          SET refund_provider_id = COALESCE(refund_provider_id, $2), updated_at = clock_timestamp()
+          WHERE id = $1::uuid AND status = 'REFUND_SENT'
+        `, [event.payment_intent_id, refundProviderId]);
+      }
       await this.writeLedger(client, event, payment, 'REFUND_DISPATCHED', `refund-dispatched:${event.payment_intent_id}`, {
         refundProviderId,
       });
@@ -170,15 +189,27 @@ export class PaymentOutboxRelayWorker {
   ): Promise<void> {
     await this.database.withTransaction(async (client) => {
       await this.setCommitTransactionLimits(client);
-      const timestampColumn = ledgerEntry === 'VOID_SENT' ? 'void_sent_at' : 'capture_sent_at';
-      const statusClause = ledgerEntry === 'VOID_SENT'
-        ? ", status = CASE WHEN status = 'VOID_REQUESTED' THEN 'VOIDED' ELSE status END"
-        : '';
-      await client.query(`
-        UPDATE payment_schema.payment_intents
-        SET ${timestampColumn} = COALESCE(${timestampColumn}, clock_timestamp())${statusClause}, updated_at = clock_timestamp()
-        WHERE id = $1::uuid
-      `, [event.payment_intent_id]);
+      if (payment.source === 'telemed') {
+        if (ledgerEntry === 'VOID_SENT') {
+          await client.query(`
+            UPDATE telemed_schema.telemed_payment_intents
+            SET status = 'VOIDED',
+                updated_at = clock_timestamp()
+            WHERE id = $1::uuid
+              AND status = 'VOID_REQUESTED'
+          `, [event.payment_intent_id]);
+        }
+      } else {
+        const timestampColumn = ledgerEntry === 'VOID_SENT' ? 'void_sent_at' : 'capture_sent_at';
+        const statusClause = ledgerEntry === 'VOID_SENT'
+          ? ", status = CASE WHEN status = 'VOID_REQUESTED' THEN 'VOIDED' ELSE status END"
+          : '';
+        await client.query(`
+          UPDATE payment_schema.payment_intents
+          SET ${timestampColumn} = COALESCE(${timestampColumn}, clock_timestamp())${statusClause}, updated_at = clock_timestamp()
+          WHERE id = $1::uuid
+        `, [event.payment_intent_id]);
+      }
       await this.writeLedger(client, event, payment, ledgerEntry, `${ledgerEntry.toLowerCase()}:${event.payment_intent_id}`, {});
       await this.markPublished(client, event.id);
     });
@@ -192,6 +223,21 @@ export class PaymentOutboxRelayWorker {
     idempotencyKey: string,
     payload: Record<string, unknown>,
   ): Promise<void> {
+    if (payment.source === 'telemed') {
+      await client.query(`
+        INSERT INTO telemed_schema.telemed_payment_events (
+          payment_intent_id, event_type, provider_event_id, idempotency_key, payload_json
+        ) VALUES ($1::uuid, $2, NULL, $3, $4::jsonb)
+        ON CONFLICT (idempotency_key) DO NOTHING
+      `, [
+        event.payment_intent_id,
+        entryType,
+        idempotencyKey,
+        JSON.stringify({ outboxEventId: event.id, eventType: event.event_type, ...payload }),
+      ]);
+      return;
+    }
+
     await client.query(`
       INSERT INTO payment_schema.ledger_entries (
         payment_intent_id, entry_type, amount, currency, correlation_id,

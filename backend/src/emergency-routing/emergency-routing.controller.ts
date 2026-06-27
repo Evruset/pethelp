@@ -7,11 +7,15 @@ import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { SWAGGER_BEARER_AUTH } from '../openapi/openapi';
 import { ReviewEmergencyProfileDto } from './dto/review-emergency-profile.dto';
+import { CreateEmergencyTriageDto } from './dto/create-emergency-triage.dto';
+import { RecordEmergencyRouteActionDto } from './dto/record-emergency-route-action.dto';
 import { SearchEmergencyClinicsDto } from './dto/search-emergency-clinics.dto';
 import { UpsertEmergencyProfileDto } from './dto/upsert-emergency-profile.dto';
+import { EmergencyRouteActionService } from './emergency-route-action.service';
 import { EmergencyReviewCommand } from './emergency-review.command';
 import { EmergencyProfileService } from './emergency-profile.service';
 import { EmergencyRoutingService } from './emergency-routing.service';
+import { EmergencyTriageService } from './emergency-triage.service';
 
 @ApiTags('Emergency Routing')
 @Controller('v1')
@@ -20,6 +24,8 @@ export class EmergencyRoutingController {
     private readonly routing: EmergencyRoutingService,
     private readonly profiles: EmergencyProfileService,
     private readonly reviews: EmergencyReviewCommand,
+    private readonly triage: EmergencyTriageService,
+    private readonly routeActions: EmergencyRouteActionService,
   ) {}
 
   @Get('emergency/clinics')
@@ -28,6 +34,24 @@ export class EmergencyRoutingController {
   @ApiBadRequestResponse({ description: 'Unsupported species, malformed capability code or invalid coordinates.' })
   async search(@Query() query: SearchEmergencyClinicsDto) {
     return this.routing.search(query);
+  }
+
+  @Post('emergency/triage-decisions')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Versioned red-flag triage decision for emergency routing' })
+  @ApiOkResponse({ description: 'Safety routing outcome, rule-set version and recommended emergency capabilities.' })
+  @ApiBadRequestResponse({ description: 'Unsupported species, malformed signal code or missing acknowledgement.' })
+  async decide(@Body() dto: CreateEmergencyTriageDto) {
+    return this.triage.decide(dto);
+  }
+
+  @Post('emergency/route-actions')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Record an emergency call, route open or optional follow-up request without requiring auth' })
+  @ApiOkResponse({ description: 'Emergency route action was stored for safety analytics and optional follow-up.' })
+  @ApiBadRequestResponse({ description: 'Unknown clinic location, triage session or unsupported action.' })
+  async recordRouteAction(@Body() dto: RecordEmergencyRouteActionDto) {
+    return this.routeActions.record(dto);
   }
 
   @Put('clinic/locations/:locationId/emergency-profile')

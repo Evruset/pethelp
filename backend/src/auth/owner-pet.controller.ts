@@ -23,6 +23,15 @@ export class OwnerPetController {
     return this.pets.list(owner);
   }
 
+  @Get(':petId/care-summary')
+  @ApiOperation({ summary: 'Медицинская карта питомца: профиль, документы и история помощи' })
+  @ApiOkResponse({ description: 'Owner-scoped care summary без внутренних MIS/provider данных.' })
+  async careSummary(@CurrentUser() owner: JwtPayload, @Param('petId', new ParseUUIDPipe()) petId: string) {
+    const summary = await this.pets.careSummary(owner, petId);
+    if (!summary) throw new NotFoundException({ code: 'OWNER_PET_NOT_FOUND', message: 'Pet was not found.' });
+    return summary;
+  }
+
   @Get(':petId')
   @ApiOperation({ summary: 'Профиль питомца текущего владельца' })
   @ApiOkResponse({ description: 'Расширенный профиль питомца без чужих owner данных.' })

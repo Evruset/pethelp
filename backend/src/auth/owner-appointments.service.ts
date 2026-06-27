@@ -357,7 +357,9 @@ export class OwnerAppointmentsService {
       actions: {
         canRefresh: row.bucket === 'ACTIVE',
         canRebook: true,
-        canOpenRoute: Boolean(row.latitude && row.longitude),
+        canOpenRoute: Boolean(
+          (row.latitude && row.longitude) || row.address?.trim(),
+        ),
         canReviewAlternative:
             row.bucket === 'ACTIVE' && row.state === 'ALTERNATIVE_PENDING',
         canCancel:

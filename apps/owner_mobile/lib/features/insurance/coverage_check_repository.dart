@@ -23,6 +23,77 @@ class CoverageCheckView {
   final DateTime serverNow;
 }
 
+class InsuranceProfileView {
+  const InsuranceProfileView({
+    required this.id,
+    required this.petId,
+    required this.insurerCode,
+    required this.policyReferenceMasked,
+    required this.petRelation,
+    required this.validFrom,
+    required this.validUntil,
+    required this.verificationState,
+    required this.consentVersion,
+    required this.version,
+  });
+
+  final String id;
+  final String petId;
+  final String insurerCode;
+  final String policyReferenceMasked;
+  final String petRelation;
+  final DateTime? validFrom;
+  final DateTime? validUntil;
+  final String verificationState;
+  final String consentVersion;
+  final int version;
+
+  factory InsuranceProfileView.fromJson(Map<String, dynamic> json) {
+    return InsuranceProfileView(
+      id: json['id'] as String,
+      petId: json['petId'] as String,
+      insurerCode: json['insurerCode'] as String,
+      policyReferenceMasked: json['policyReferenceMasked'] as String,
+      petRelation: json['petRelation'] as String,
+      validFrom: _optionalDate(json['validFrom']),
+      validUntil: _optionalDate(json['validUntil']),
+      verificationState: json['verificationState'] as String,
+      consentVersion: json['consentVersion'] as String,
+      version: (json['version'] as num).toInt(),
+    );
+  }
+}
+
+class InsuranceProfileInput {
+  const InsuranceProfileInput({
+    required this.petId,
+    required this.insurerCode,
+    required this.policyReference,
+    required this.petRelation,
+    required this.consentVersion,
+    this.validFrom,
+    this.validUntil,
+  });
+
+  final String petId;
+  final String insurerCode;
+  final String policyReference;
+  final String petRelation;
+  final String consentVersion;
+  final DateTime? validFrom;
+  final DateTime? validUntil;
+
+  Map<String, Object?> toJson() => {
+        'petId': petId,
+        'insurerCode': insurerCode,
+        'policyReference': policyReference,
+        'petRelation': petRelation,
+        'consentVersion': consentVersion,
+        if (validFrom != null) 'validFrom': _dateOnly(validFrom!),
+        if (validUntil != null) 'validUntil': _dateOnly(validUntil!),
+      };
+}
+
 class CoverageCheckRepository {
   CoverageCheckRepository({
     required this.baseUrl,
@@ -34,6 +105,42 @@ class CoverageCheckRepository {
   final Future<String> Function() accessTokenProvider;
   final http.Client _client;
   final Uuid _uuid = const Uuid();
+
+  Future<List<InsuranceProfileView>> listProfiles() async {
+    final token = await accessTokenProvider();
+    final response = await _client.get(
+      baseUrl.resolve('/v1/insurance/profiles'),
+      headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
+    );
+    final payload = _decode(response);
+    if (response.statusCode != 200 || payload is! List) {
+      throw CoverageCheckApiException(response.statusCode, _errorCode(payload));
+    }
+    return payload
+        .whereType<Map<String, dynamic>>()
+        .map(InsuranceProfileView.fromJson)
+        .toList(growable: false);
+  }
+
+  Future<InsuranceProfileView> createProfile(
+    InsuranceProfileInput input,
+  ) async {
+    final token = await accessTokenProvider();
+    final response = await _client.post(
+      baseUrl.resolve('/v1/insurance/profiles'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode(input.toJson()),
+    );
+    final payload = _decode(response);
+    if (response.statusCode != 201 || payload is! Map<String, dynamic>) {
+      throw CoverageCheckApiException(response.statusCode, _errorCode(payload));
+    }
+    return InsuranceProfileView.fromJson(payload);
+  }
 
   Future<CoverageCheckView> create({
     required String petId,
@@ -110,6 +217,15 @@ class CoverageCheckRepository {
     }
     return 'BACKEND_UNAVAILABLE';
   }
+}
+
+DateTime? _optionalDate(dynamic value) {
+  if (value is! String || value.isEmpty) return null;
+  return DateTime.tryParse(value);
+}
+
+String _dateOnly(DateTime value) {
+  return '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
 }
 
 class CoverageCheckApiException implements Exception {

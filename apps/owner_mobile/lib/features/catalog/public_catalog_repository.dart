@@ -47,6 +47,14 @@ class HttpPublicCatalogRepository implements PublicCatalogRepository {
     if (serviceCode != null && serviceCode.isNotEmpty) {
       parameters['serviceCode'] = serviceCode;
     }
+    final latitude = selectedFilters?.latitude;
+    final longitude = selectedFilters?.longitude;
+    final radiusKm = selectedFilters?.radiusKm;
+    if (latitude != null && longitude != null) {
+      parameters['latitude'] = latitude.toString();
+      parameters['longitude'] = longitude.toString();
+      if (radiusKm != null) parameters['radiusKm'] = radiusKm.toString();
+    }
     final from = selectedFilters?.availableFrom;
     if (from != null) {
       parameters['availableFrom'] = from.toUtc().toIso8601String();
@@ -55,6 +63,14 @@ class HttpPublicCatalogRepository implements PublicCatalogRepository {
     if (to != null) parameters['availableTo'] = to.toUtc().toIso8601String();
     final openNow = selectedFilters?.openNow;
     if (openNow != null) parameters['openNow'] = openNow.toString();
+    final telemedAvailable = selectedFilters?.telemedAvailable;
+    if (telemedAvailable != null) {
+      parameters['telemedAvailable'] = telemedAvailable.toString();
+    }
+    final emergencyCapability = selectedFilters?.emergencyCapability?.trim();
+    if (emergencyCapability != null && emergencyCapability.isNotEmpty) {
+      parameters['emergencyCapability'] = emergencyCapability;
+    }
     final sort = selectedFilters?.sort;
     if (sort != null && sort.isNotEmpty) parameters['sort'] = sort;
 
@@ -98,6 +114,9 @@ class HttpPublicCatalogRepository implements PublicCatalogRepository {
       locationCount: (payload['locationCount'] as num?)?.toInt() ?? 0,
       serviceCount: (payload['serviceCount'] as num?)?.toInt() ?? 0,
       nextAvailableAt: _optionalDate(payload['nextAvailableAt']),
+      distanceKm: (payload['distanceKm'] as num?)?.toDouble(),
+      telemedAvailable: payload['telemedAvailable'] as bool? ?? false,
+      emergencyAvailable: payload['emergencyAvailable'] as bool? ?? false,
       locations: rawLocations
           .whereType<Map<String, dynamic>>()
           .map(_locationFromJson)
@@ -190,6 +209,9 @@ class HttpPublicCatalogRepository implements PublicCatalogRepository {
       locationCount: (json['locationCount'] as num?)?.toInt() ?? 0,
       serviceCount: (json['serviceCount'] as num?)?.toInt() ?? 0,
       nextAvailableAt: _optionalDate(json['nextAvailableAt']),
+      distanceKm: (json['distanceKm'] as num?)?.toDouble(),
+      telemedAvailable: json['telemedAvailable'] as bool? ?? false,
+      emergencyAvailable: json['emergencyAvailable'] as bool? ?? false,
     );
   }
 
@@ -203,6 +225,8 @@ class HttpPublicCatalogRepository implements PublicCatalogRepository {
       locationId: location['id'] as String,
       address: location['address'] as String,
       phone: location['phone'] as String?,
+      latitude: (location['latitude'] as num?)?.toDouble(),
+      longitude: (location['longitude'] as num?)?.toDouble(),
       hasOpenSlots: availability['hasOpenSlots'] as bool? ?? false,
       observedAt:
           DateTime.parse(availability['observedAt'] as String).toLocal(),

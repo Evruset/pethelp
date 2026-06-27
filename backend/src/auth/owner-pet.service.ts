@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException, PreconditionFailedE
 import { DatabaseService } from '../database/database.service';
 import { JwtPayload } from './auth.types';
 import { CreateOwnerPetDto, UpdateOwnerPetDto } from './dto/owner-pet.dto';
+import { ownerAppointmentPresentation, OwnerAppointmentPresentation } from './owner-appointments.service';
 
 export type OwnerPet = {
   id: string;
@@ -20,6 +21,50 @@ export type OwnerPet = {
   profileVersion: number;
   createdAt: string;
   updatedAt: string;
+};
+
+export type OwnerPetCareDocument = {
+  type: 'PHOTO' | 'VACCINATION_NOTES' | 'INSURANCE_POLICY_LINK';
+  label: string;
+  value: string;
+};
+
+export type OwnerPetCareVisit = {
+  holdId: string;
+  appointmentId: string | null;
+  state: string;
+  bucket: 'ACTIVE' | 'HISTORY';
+  presentation: OwnerAppointmentPresentation;
+  startsAt: string;
+  endsAt: string;
+  clinic: { id: string; name: string; address: string };
+  service: {
+    id: string | null;
+    code: string | null;
+    name: string | null;
+    priceAmount: string | null;
+    currency: string | null;
+  };
+};
+
+export type OwnerPetCareTelemedSession = {
+  sessionId: string;
+  bookingHoldId: string;
+  state: string;
+  bucket: 'ACTIVE' | 'HISTORY';
+  startsAt: string;
+  endsAt: string;
+  doctorJoinDeadlineAt: string;
+  clinic: { id: string; name: string; address: string };
+  service: { id: string | null; name: string | null };
+};
+
+export type OwnerPetCareSummary = {
+  pet: OwnerPet;
+  documents: OwnerPetCareDocument[];
+  visits: OwnerPetCareVisit[];
+  telemedSessions: OwnerPetCareTelemedSession[];
+  serverNow: string;
 };
 
 type OwnerPetRow = {
@@ -69,6 +114,157 @@ export class OwnerPetService {
       LIMIT 1
     `, [petId, owner.sub]);
     return result.rows[0] ? this.toPet(result.rows[0]) : undefined;
+  }
+
+  async careSummary(owner: JwtPayload, petId: string): Promise<OwnerPetCareSummary | undefined> {
+    const pet = await this.read(owner, petId);
+    if (!pet) return undefined;
+
+    const visits = await this.database.query<{
+      hold_id: string;
+      appointment_id: string | null;
+      state: string;
+      bucket: 'ACTIVE' | 'HISTORY';
+      starts_at: Date;
+      ends_at: Date;
+      clinic_id: string;
+      clinic_name: string;
+      address: string;
+      service_id: string | null;
+      service_code: string | null;
+      service_name: string | null;
+      price_amount: string | null;
+      currency: string | null;
+    }>(`
+      WITH server_time AS (SELECT clock_timestamp() AS value)
+      SELECT
+        hold.id AS hold_id,
+        appointment.id AS appointment_id,
+        COALESCE(appointment.status, hold.state) AS state,
+        CASE
+          WHEN slot.ends_at <= server_time.value THEN 'HISTORY'
+          WHEN COALESCE(appointment.status, hold.state) IN (
+            'MANUAL_CONFIRM_PENDING',
+            'MIS_RESERVATION_PENDING',
+            'MIS_RECONCILIATION_PENDING',
+            'MIS_HELD',
+            'ALTERNATIVE_PENDING',
+            'CONFIRMED'
+          ) THEN 'ACTIVE'
+          ELSE 'HISTORY'
+        END AS bucket,
+        slot.starts_at,
+        slot.ends_at,
+        clinic.id AS clinic_id,
+        clinic.public_name AS clinic_name,
+        location.address,
+        service.id AS service_id,
+        service.code AS service_code,
+        service.display_name AS service_name,
+        service.price_amount::text AS price_amount,
+        service.currency
+      FROM booking_schema.booking_holds hold
+      JOIN clinic_schema.appointment_slots slot ON slot.id = hold.slot_id
+      JOIN clinic_schema.clinic_locations location ON location.id = slot.clinic_location_id
+      JOIN clinic_schema.clinics clinic ON clinic.id = location.clinic_id
+      LEFT JOIN clinic_schema.clinic_services service ON service.id = slot.service_id
+      LEFT JOIN booking_schema.appointments appointment ON appointment.hold_id = hold.id
+      CROSS JOIN server_time
+      WHERE hold.owner_id = $1::uuid
+        AND hold.pet_id = $2::uuid
+      ORDER BY slot.starts_at DESC, hold.created_at DESC
+      LIMIT 30
+    `, [owner.sub, petId]);
+
+    const telemedSessions = await this.database.query<{
+      session_id: string;
+      booking_hold_id: string;
+      state: string;
+      bucket: 'ACTIVE' | 'HISTORY';
+      starts_at: Date;
+      ends_at: Date;
+      expires_at: Date;
+      clinic_id: string;
+      clinic_name: string;
+      address: string;
+      service_id: string | null;
+      service_name: string | null;
+    }>(`
+      SELECT
+        session.id::text AS session_id,
+        session.booking_hold_id::text AS booking_hold_id,
+        session.state,
+        CASE
+          WHEN session.state IN ('WAITING_FOR_DOCTOR', 'CONNECTED') THEN 'ACTIVE'
+          ELSE 'HISTORY'
+        END AS bucket,
+        slot.starts_at,
+        slot.ends_at,
+        session.expires_at,
+        clinic.id::text AS clinic_id,
+        clinic.public_name AS clinic_name,
+        location.address,
+        service.id::text AS service_id,
+        service.display_name AS service_name
+      FROM telemed_schema.telemed_sessions session
+      JOIN booking_schema.booking_holds hold ON hold.id = session.booking_hold_id
+      JOIN clinic_schema.appointment_slots slot ON slot.id = hold.slot_id
+      JOIN clinic_schema.clinic_locations location ON location.id = slot.clinic_location_id
+      JOIN clinic_schema.clinics clinic ON clinic.id = location.clinic_id
+      LEFT JOIN clinic_schema.clinic_services service ON service.id = slot.service_id
+      WHERE session.owner_id = $1::uuid
+        AND hold.pet_id = $2::uuid
+      ORDER BY
+        CASE WHEN session.state IN ('WAITING_FOR_DOCTOR', 'CONNECTED') THEN 0 ELSE 1 END,
+        session.created_at DESC
+      LIMIT 30
+    `, [owner.sub, petId]);
+
+    const serverNow = await this.database.query<{ value: Date }>('SELECT clock_timestamp() AS value');
+    return {
+      pet,
+      documents: this.careDocuments(pet),
+      visits: visits.rows.map((row) => ({
+        holdId: row.hold_id,
+        appointmentId: row.appointment_id,
+        state: row.state,
+        bucket: row.bucket,
+        presentation: ownerAppointmentPresentation(row.state, row.bucket),
+        startsAt: row.starts_at.toISOString(),
+        endsAt: row.ends_at.toISOString(),
+        clinic: {
+          id: row.clinic_id,
+          name: row.clinic_name,
+          address: row.address,
+        },
+        service: {
+          id: row.service_id,
+          code: row.service_code,
+          name: row.service_name,
+          priceAmount: row.price_amount,
+          currency: row.currency,
+        },
+      })),
+      telemedSessions: telemedSessions.rows.map((row) => ({
+        sessionId: row.session_id,
+        bookingHoldId: row.booking_hold_id,
+        state: row.state,
+        bucket: row.bucket,
+        startsAt: row.starts_at.toISOString(),
+        endsAt: row.ends_at.toISOString(),
+        doctorJoinDeadlineAt: row.expires_at.toISOString(),
+        clinic: {
+          id: row.clinic_id,
+          name: row.clinic_name,
+          address: row.address,
+        },
+        service: {
+          id: row.service_id,
+          name: row.service_name,
+        },
+      })),
+      serverNow: serverNow.rows[0].value.toISOString(),
+    };
   }
 
   async create(owner: JwtPayload, input: CreateOwnerPetDto): Promise<OwnerPet> {
@@ -185,6 +381,20 @@ export class OwnerPetService {
       createdAt: row.created_at.toISOString(),
       updatedAt: row.updated_at.toISOString(),
     };
+  }
+
+  private careDocuments(pet: OwnerPet): OwnerPetCareDocument[] {
+    const documents: OwnerPetCareDocument[] = [];
+    if (pet.photoUrl) {
+      documents.push({ type: 'PHOTO', label: 'Фото питомца', value: pet.photoUrl });
+    }
+    if (pet.vaccinationNotes) {
+      documents.push({ type: 'VACCINATION_NOTES', label: 'Вакцинация', value: pet.vaccinationNotes });
+    }
+    for (const [index, link] of pet.insurancePolicyLinks.entries()) {
+      documents.push({ type: 'INSURANCE_POLICY_LINK', label: `Полис ${index + 1}`, value: link });
+    }
+    return documents;
   }
 
   private blankToNull(value: string | undefined | null): string | null {

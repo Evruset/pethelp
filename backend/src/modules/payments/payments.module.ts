@@ -21,6 +21,6 @@ import { PaymentWebhookService } from './payment-webhook.service';
     PaymentOutboxRelayWorker,
     PaymentReconciliationWorker,
   ],
-  exports: [PaymentService, PaymentRefundService, PaymentWebhookService],
+  exports: [AcquiringClient, AcquiringWebhookVerifier, PaymentService, PaymentRefundService, PaymentWebhookService],
 })
 export class PaymentsModule {}

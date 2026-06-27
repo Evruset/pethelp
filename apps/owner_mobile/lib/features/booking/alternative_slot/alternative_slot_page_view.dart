@@ -33,7 +33,8 @@ class AlternativeSlotView extends StatelessWidget {
       appBar: AppBar(title: const Text('Другое время')),
       body: BlocConsumer<AlternativeSlotBloc, AlternativeSlotState>(
         listener: (context, state) {
-          if (state is AlternativeSlotAcceptedState) {
+          if (state is AlternativeSlotAcceptedState ||
+              state is AlternativeSlotDeclinedState) {
             HapticFeedback.mediumImpact();
           }
         },
@@ -44,9 +45,12 @@ class AlternativeSlotView extends StatelessWidget {
             AlternativeSlotActive(snapshot: final snapshot) =>
               _Active(snapshot: snapshot),
             AlternativeSlotAccepting(snapshot: final snapshot) =>
-              _Active(snapshot: snapshot, busy: true),
+              _Active(snapshot: snapshot, busyAction: _BusyAction.accept),
+            AlternativeSlotDeclining(snapshot: final snapshot) =>
+              _Active(snapshot: snapshot, busyAction: _BusyAction.decline),
             AlternativeSlotAcceptedState(result: final result) =>
               _Success(result: result),
+            AlternativeSlotDeclinedState() => const _Declined(),
             AlternativeSlotSoftRetry(message: final message) =>
               _Message(message: message, retry: true),
             AlternativeSlotFencedState(reason: final reason) =>
@@ -64,16 +68,22 @@ class AlternativeSlotView extends StatelessWidget {
       'HOLD_EXPIRED' => 'Предложение истекло. Обновите запись.',
       'SLOT_ALREADY_TAKEN' => 'Предложенное время уже недоступно.',
       'HOLD_NOT_FOUND' => 'Активное предложение не найдено или уже завершено.',
+      'INVALID_STATE_TRANSITION' =>
+        'Предложение уже изменилось. Обновите запись.',
       _ => 'Состояние записи изменилось. Обновите экран.',
     };
   }
 }
 
+enum _BusyAction { accept, decline }
+
 class _Active extends StatelessWidget {
-  const _Active({required this.snapshot, this.busy = false});
+  const _Active({required this.snapshot, this.busyAction});
 
   final AlternativeSlotSnapshot snapshot;
-  final bool busy;
+  final _BusyAction? busyAction;
+
+  bool get _busy => busyAction != null;
 
   @override
   Widget build(BuildContext context) {
@@ -109,22 +119,71 @@ class _Active extends StatelessWidget {
         ),
         SafeArea(
           minimum: const EdgeInsets.all(16),
-          child: FilledButton(
-            onPressed: busy
-                ? null
-                : () => context
-                    .read<AlternativeSlotBloc>()
-                    .add(const AlternativeSlotAcceptPressed()),
-            child: busy
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2))
-                : const Text('Принять новое время'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              FilledButton.icon(
+                onPressed: _busy
+                    ? null
+                    : () => context
+                        .read<AlternativeSlotBloc>()
+                        .add(const AlternativeSlotAcceptPressed()),
+                icon: busyAction == _BusyAction.accept
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.check_circle_outline),
+                label: Text(busyAction == _BusyAction.accept
+                    ? 'Принимаем...'
+                    : 'Принять новое время'),
+              ),
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: _busy ? null : () => _confirmDecline(context),
+                icon: busyAction == _BusyAction.decline
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.event_busy_outlined),
+                label: Text(busyAction == _BusyAction.decline
+                    ? 'Отказываемся...'
+                    : 'Не подходит'),
+              ),
+            ],
           ),
         ),
       ],
     );
+  }
+
+  Future<void> _confirmDecline(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Отказаться от времени?'),
+        content: const Text(
+          'VetHelp освободит исходное и предложенное время. Для новой записи нужно будет выбрать слот заново.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Назад'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Отказаться'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    context
+        .read<AlternativeSlotBloc>()
+        .add(const AlternativeSlotDeclinePressed());
   }
 
   String _formatRange(SlotSnapshot slot) {
@@ -213,6 +272,46 @@ class _Success extends StatelessWidget {
               onPressed: () => Navigator.of(context).pop(),
               icon: const Icon(Icons.calendar_month_outlined),
               label: const Text('К записи'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Declined extends StatelessWidget {
+  const _Declined();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.event_busy_outlined,
+              size: 64,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Предложение отклонено',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Запись освобождена. Вы можете выбрать другое время в каталоге клиник.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.calendar_month_outlined),
+              label: const Text('К записям'),
             ),
           ],
         ),

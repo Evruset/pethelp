@@ -14,6 +14,7 @@ class OwnerJourneyPage extends StatefulWidget {
     required this.onRequestTelemed,
     required this.onRequestInsurance,
     required this.onRequestEmergency,
+    required this.onOpenCare,
     required this.petsRepository,
     required this.appointmentsRepository,
     required this.alternativeSlotRepository,
@@ -25,6 +26,7 @@ class OwnerJourneyPage extends StatefulWidget {
   final VoidCallback onRequestTelemed;
   final VoidCallback onRequestInsurance;
   final VoidCallback onRequestEmergency;
+  final VoidCallback onOpenCare;
   final OwnerPetRepository petsRepository;
   final OwnerAppointmentsRepository appointmentsRepository;
   final AlternativeSlotRepository alternativeSlotRepository;
@@ -90,6 +92,7 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
             onBrowseClinics: widget.onBrowseClinics,
             onManagePets: () => setState(() => _index = 2),
             onOpenAppointments: () => setState(() => _index = 1),
+            onOpenCare: widget.onOpenCare,
             onRequestTelemed: widget.onRequestTelemed,
             onRequestInsurance: widget.onRequestInsurance,
             onRequestEmergency: widget.onRequestEmergency,
@@ -119,6 +122,7 @@ class _OwnerHome extends StatefulWidget {
     required this.onBrowseClinics,
     required this.onManagePets,
     required this.onOpenAppointments,
+    required this.onOpenCare,
     required this.onRequestTelemed,
     required this.onRequestInsurance,
     required this.onRequestEmergency,
@@ -129,6 +133,7 @@ class _OwnerHome extends StatefulWidget {
   final VoidCallback onBrowseClinics;
   final VoidCallback onManagePets;
   final VoidCallback onOpenAppointments;
+  final VoidCallback onOpenCare;
   final VoidCallback onRequestTelemed;
   final VoidCallback onRequestInsurance;
   final VoidCallback onRequestEmergency;
@@ -196,6 +201,40 @@ class _OwnerHomeState extends State<_OwnerHome> {
                 : 'Выбран для новой записи.'),
             trailing: const Icon(Icons.chevron_right),
             onTap: widget.onManagePets,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          color: colors.surfaceContainerHigh,
+          child: InkWell(
+            onTap: pet == null ? widget.onManagePets : widget.onOpenCare,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  const Icon(Icons.health_and_safety_outlined, size: 32),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Медицинская карта',
+                            style: Theme.of(context).textTheme.titleMedium),
+                        const SizedBox(height: 4),
+                        Text(pet == null
+                            ? 'Добавьте питомца, чтобы видеть профиль здоровья, документы и историю помощи.'
+                            : 'Профиль здоровья, документы и история помощи для ${pet.name}.'),
+                        const SizedBox(height: 8),
+                        Text('Данные берутся из профиля и записей VetHelp',
+                            style: Theme.of(context).textTheme.labelMedium),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right),
+                ],
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 12),

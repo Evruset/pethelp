@@ -137,8 +137,13 @@ void main() {
         expect(request.url.path, '/v1/clinics');
         expect(request.url.queryParameters['q'], 'Pilot');
         expect(request.url.queryParameters['serviceCode'], 'GENERAL_VISIT');
+        expect(request.url.queryParameters['latitude'], '55.7558');
+        expect(request.url.queryParameters['longitude'], '37.6173');
+        expect(request.url.queryParameters['radiusKm'], '12.5');
         expect(request.url.queryParameters['openNow'], 'true');
-        expect(request.url.queryParameters['sort'], 'name');
+        expect(request.url.queryParameters['telemedAvailable'], 'true');
+        expect(request.url.queryParameters['emergencyCapability'], 'TRAUMA');
+        expect(request.url.queryParameters['sort'], 'distance');
         expect(request.url.queryParameters['availableFrom'],
             '2026-06-25T00:00:00.000Z');
         expect(request.url.queryParameters['availableTo'],
@@ -153,10 +158,15 @@ void main() {
       filters: CatalogClinicFilters(
         query: ' Pilot ',
         serviceCode: 'GENERAL_VISIT',
+        latitude: 55.7558,
+        longitude: 37.6173,
+        radiusKm: 12.5,
         availableFrom: DateTime.utc(2026, 6, 25),
         availableTo: DateTime.utc(2026, 6, 26),
         openNow: true,
-        sort: 'name',
+        telemedAvailable: true,
+        emergencyCapability: 'TRAUMA',
+        sort: 'distance',
       ),
     );
 

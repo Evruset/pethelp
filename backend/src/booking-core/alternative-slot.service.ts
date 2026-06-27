@@ -36,12 +36,24 @@ interface IdempotencyRow {
   response_body: Record<string, unknown> | null;
 }
 
+interface AlternativeSwapGroupRow {
+  id: string;
+  original_hold_id: string;
+  original_slot_id: string;
+  alternative_slot_id: string;
+  owner_id: string;
+  expires_at: Date;
+  state: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'REPLACED';
+  aggregate_version: number;
+}
+
 interface CommandFence {
   expectedVersion: number;
   idempotencyKey: string;
 }
 
 export interface ProposedAlternativeSlot {
+  swapGroupId: string;
   holdId: string;
   sourceSlotId: string;
   alternativeSlotId: string;
@@ -50,6 +62,7 @@ export interface ProposedAlternativeSlot {
 }
 
 export interface AcceptedAlternativeSlot {
+  swapGroupId: string;
   holdId: string;
   sourceSlotId: string;
   slotId: string;
@@ -95,18 +108,22 @@ export class AlternativeSlotService {
       if (sourceSlot.clinic_location_id !== newSlot.clinic_location_id) throw DomainErrors.clinicScopeMismatch();
 
       if (hold.state === 'ALTERNATIVE_PENDING' && hold.alternative_slot_id === newSlotId && hold.alternative_expires_at) {
-        return { holdId: hold.id, sourceSlotId: hold.slot_id, alternativeSlotId: newSlotId, expiresAt: hold.alternative_expires_at.toISOString(), state: 'ALTERNATIVE_PENDING' };
+        const existing = await this.lockPendingSwapGroup(client, hold.id);
+        if (!existing) throw DomainErrors.alternativeSwapNotFound();
+        return { swapGroupId: existing.id, holdId: hold.id, sourceSlotId: hold.slot_id, alternativeSlotId: newSlotId, expiresAt: hold.alternative_expires_at.toISOString(), state: 'ALTERNATIVE_PENDING' };
       }
       if (newSlot.state !== 'OPEN' || newSlot.status === 'BOOKED' || newSlot.starts_at <= now || newSlot.capacity - newSlot.booked_count - newSlot.held_count <= 0) {
         throw DomainErrors.slotAlreadyTaken();
       }
 
       if (hold.alternative_slot_id) await this.releaseSlotCounter(client, hold.alternative_slot_id);
+      await this.replacePendingSwapGroup(client, hold.id);
       await client.query(`
         UPDATE clinic_schema.appointment_slots
         SET held_count = held_count + 1, status = 'LOCKED_BY_HOLD', version = version + 1, updated_at = clock_timestamp()
         WHERE id = $1::uuid
       `, [newSlotId]);
+      const correlationId = this.correlationId();
       const updated = await client.query<{ version: number; alternative_expires_at: Date }>(`
         UPDATE booking_schema.booking_holds
         SET state = 'ALTERNATIVE_PENDING', alternative_slot_id = $2::uuid,
@@ -117,9 +134,17 @@ export class AlternativeSlotService {
         WHERE id = $1::uuid
         RETURNING version, alternative_expires_at
       `, [hold.id, newSlotId]);
+      const swap = await this.createSwapGroup(client, {
+        holdId: hold.id,
+        originalSlotId: hold.slot_id,
+        alternativeSlotId: newSlotId,
+        ownerId: hold.owner_id,
+        expiresAt: updated.rows[0].alternative_expires_at,
+        correlationId,
+      });
 
-      const correlationId = this.correlationId();
       const result: ProposedAlternativeSlot = {
+        swapGroupId: swap.id,
         holdId: hold.id,
         sourceSlotId: hold.slot_id,
         alternativeSlotId: newSlotId,
@@ -127,7 +152,7 @@ export class AlternativeSlotService {
         state: 'ALTERNATIVE_PENDING',
       };
       await this.writeOutbox(client, 'booking.alternative.proposed.v1', correlationId, hold.id, updated.rows[0].version, { ...result, employeeId: employeeContext.sub, clinicLocationId: sourceSlot.clinic_location_id });
-      await this.writeAudit(client, 'CLINIC_EMPLOYEE', employeeContext.sub, 'BOOKING_ALTERNATIVE_PROPOSED', hold.id, correlationId, { sourceSlotId: hold.slot_id, alternativeSlotId: newSlotId });
+      await this.writeAudit(client, 'CLINIC_EMPLOYEE', employeeContext.sub, 'BOOKING_ALTERNATIVE_PROPOSED', hold.id, correlationId, { swapGroupId: swap.id, sourceSlotId: hold.slot_id, alternativeSlotId: newSlotId });
       await this.completeIdempotency(client, scope, command.idempotencyKey, result, HttpStatus.CREATED);
       return result;
     });
@@ -144,6 +169,8 @@ export class AlternativeSlotService {
       if (replay) return replay as unknown as AcceptedAlternativeSlot;
       if (hold.version !== command.expectedVersion) throw DomainErrors.slotVersionStale();
       if (hold.state !== 'ALTERNATIVE_PENDING' || !hold.alternative_slot_id || !hold.alternative_expires_at) throw DomainErrors.invalidTransition();
+      const swap = await this.lockPendingSwapGroup(client, hold.id);
+      if (!swap || swap.alternative_slot_id !== hold.alternative_slot_id || swap.original_slot_id !== hold.slot_id) throw DomainErrors.alternativeSwapNotFound();
 
       const slots = await this.lockSlots(client, [hold.slot_id, hold.alternative_slot_id]);
       const sourceSlot = slots.get(hold.slot_id);
@@ -167,7 +194,8 @@ export class AlternativeSlotService {
       if (!updated.rows[0]) throw DomainErrors.invalidTransition();
 
       const correlationId = this.correlationId();
-      const result: AcceptedAlternativeSlot = { holdId: hold.id, sourceSlotId: sourceSlot.id, slotId: alternativeSlot.id, state: 'MIS_HELD' };
+      await this.finalizeSwapGroup(client, swap.id, 'ACCEPTED');
+      const result: AcceptedAlternativeSlot = { swapGroupId: swap.id, holdId: hold.id, sourceSlotId: sourceSlot.id, slotId: alternativeSlot.id, state: 'MIS_HELD' };
       await this.writeOutbox(client, 'booking.alternative.accepted.v1', correlationId, hold.id, updated.rows[0].version, { ...result });
       await this.writeAudit(client, 'OWNER', ownerId, 'BOOKING_ALTERNATIVE_ACCEPTED', hold.id, correlationId, { ...result });
       await this.completeIdempotency(client, scope, command.idempotencyKey, result, HttpStatus.OK);
@@ -214,6 +242,61 @@ export class AlternativeSlotService {
     return new Map(result.rows.map((slot) => [slot.id, slot]));
   }
 
+  private async lockPendingSwapGroup(client: PoolClient, holdId: string): Promise<AlternativeSwapGroupRow | undefined> {
+    const result = await client.query<AlternativeSwapGroupRow>(`
+      SELECT id, original_hold_id, original_slot_id, alternative_slot_id, owner_id, expires_at, state, aggregate_version
+      FROM booking_schema.alternative_swap_groups
+      WHERE original_hold_id = $1::uuid
+        AND state = 'PENDING'
+      FOR UPDATE
+    `, [holdId]);
+    return result.rows[0];
+  }
+
+  private async replacePendingSwapGroup(client: PoolClient, holdId: string): Promise<void> {
+    await client.query(`
+      UPDATE booking_schema.alternative_swap_groups
+      SET state = 'REPLACED',
+          aggregate_version = aggregate_version + 1,
+          updated_at = clock_timestamp()
+      WHERE original_hold_id = $1::uuid
+        AND state = 'PENDING'
+    `, [holdId]);
+  }
+
+  private async createSwapGroup(client: PoolClient, input: {
+    holdId: string;
+    originalSlotId: string;
+    alternativeSlotId: string;
+    ownerId: string;
+    expiresAt: Date;
+    correlationId: string;
+  }): Promise<AlternativeSwapGroupRow> {
+    const result = await client.query<AlternativeSwapGroupRow>(`
+      INSERT INTO booking_schema.alternative_swap_groups (
+        original_hold_id, original_slot_id, alternative_slot_id, owner_id,
+        expires_at, state, correlation_id
+      )
+      VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::timestamptz, 'PENDING', $6::uuid)
+      RETURNING id, original_hold_id, original_slot_id, alternative_slot_id, owner_id, expires_at, state, aggregate_version
+    `, [input.holdId, input.originalSlotId, input.alternativeSlotId, input.ownerId, input.expiresAt, input.correlationId]);
+    return result.rows[0];
+  }
+
+  private async finalizeSwapGroup(client: PoolClient, swapGroupId: string, state: 'ACCEPTED' | 'DECLINED' | 'EXPIRED'): Promise<number> {
+    const updated = await client.query<{ aggregate_version: number }>(`
+      UPDATE booking_schema.alternative_swap_groups
+      SET state = $2,
+          aggregate_version = aggregate_version + 1,
+          updated_at = clock_timestamp()
+      WHERE id = $1::uuid
+        AND state = 'PENDING'
+      RETURNING aggregate_version
+    `, [swapGroupId, state]);
+    if (!updated.rows[0]) throw DomainErrors.alternativeSwapNotFound();
+    return updated.rows[0].aggregate_version;
+  }
+
   private async releaseSlotCounter(client: PoolClient, slotId: string): Promise<void> {
     const result = await client.query<{ id: string }>(`
       UPDATE clinic_schema.appointment_slots
@@ -227,6 +310,8 @@ export class AlternativeSlotService {
 
   private async expireAlternativeLocked(client: PoolClient, hold: AlternativeHold, correlationId: string, reason: string): Promise<void> {
     if (!hold.alternative_slot_id) throw DomainErrors.invalidTransition();
+    const swap = await this.lockPendingSwapGroup(client, hold.id);
+    if (!swap) throw DomainErrors.alternativeSwapNotFound();
     const slots = await this.lockSlots(client, [hold.slot_id, hold.alternative_slot_id]);
     if (!slots.get(hold.slot_id) || !slots.get(hold.alternative_slot_id)) throw DomainErrors.slotNotFound();
     await this.releaseSlotCounter(client, hold.slot_id);
@@ -238,8 +323,9 @@ export class AlternativeSlotService {
       WHERE id = $1::uuid AND state = 'ALTERNATIVE_PENDING' RETURNING version
     `, [hold.id]);
     if (!updated.rows[0]) throw DomainErrors.invalidTransition();
-    await this.writeOutbox(client, 'booking.alternative.expired.v1', correlationId, hold.id, updated.rows[0].version, { holdId: hold.id, sourceSlotId: hold.slot_id, alternativeSlotId: hold.alternative_slot_id, reason });
-    await this.writeAudit(client, 'SYSTEM_WORKER', null, 'BOOKING_ALTERNATIVE_EXPIRED', hold.id, correlationId, { sourceSlotId: hold.slot_id, alternativeSlotId: hold.alternative_slot_id, reason });
+    await this.finalizeSwapGroup(client, swap.id, 'EXPIRED');
+    await this.writeOutbox(client, 'booking.alternative.expired.v1', correlationId, hold.id, updated.rows[0].version, { swapGroupId: swap.id, holdId: hold.id, sourceSlotId: hold.slot_id, alternativeSlotId: hold.alternative_slot_id, reason });
+    await this.writeAudit(client, 'SYSTEM_WORKER', null, 'BOOKING_ALTERNATIVE_EXPIRED', hold.id, correlationId, { swapGroupId: swap.id, sourceSlotId: hold.slot_id, alternativeSlotId: hold.alternative_slot_id, reason });
   }
 
   private async databaseNow(client: PoolClient): Promise<Date> {

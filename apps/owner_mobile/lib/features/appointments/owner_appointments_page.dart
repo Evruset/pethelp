@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../booking/alternative_slot/alternative_slot_page.dart';
 import '../booking/alternative_slot/alternative_slot_repository.dart';
@@ -405,6 +406,58 @@ class _OwnerAppointmentDetailPageState
         .then((_) => _refresh());
   }
 
+  Future<void> _openRoute(OwnerAppointmentDetail detail) async {
+    final uri = _routeUri(detail);
+    if (uri == null) {
+      await Clipboard.setData(ClipboardData(text: detail.clinicAddress));
+      if (mounted) {
+        _message(context, 'Адрес скопирован.');
+      }
+      return;
+    }
+    try {
+      final opened = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!opened) {
+        await Clipboard.setData(ClipboardData(text: detail.clinicAddress));
+        if (mounted) {
+          _message(context, 'Адрес скопирован.');
+        }
+      }
+    } catch (_) {
+      await Clipboard.setData(ClipboardData(text: detail.clinicAddress));
+      if (mounted) {
+        _message(context, 'Адрес скопирован.');
+      }
+    }
+  }
+
+  Future<void> _callClinic(OwnerAppointmentDetail detail) async {
+    final phone = detail.locationPhone?.trim();
+    if (phone == null || phone.isEmpty) {
+      return;
+    }
+    try {
+      final opened = await launchUrl(
+        Uri(scheme: 'tel', path: phone),
+        mode: LaunchMode.externalApplication,
+      );
+      if (!opened) {
+        await Clipboard.setData(ClipboardData(text: phone));
+        if (mounted) {
+          _message(context, 'Телефон скопирован.');
+        }
+      }
+    } catch (_) {
+      await Clipboard.setData(ClipboardData(text: phone));
+      if (mounted) {
+        _message(context, 'Телефон скопирован.');
+      }
+    }
+  }
+
   void _syncPolling(OwnerAppointmentDetail detail) {
     final shouldPoll = detail.bucket == 'ACTIVE' && detail.actions.canRefresh;
     if (!shouldPoll) {
@@ -457,6 +510,8 @@ class _OwnerAppointmentDetailPageState
                       onRefresh: _refresh,
                       onReviewAlternative: () =>
                           _openAlternative(detail.holdId),
+                      onOpenRoute: () => _openRoute(detail),
+                      onCallClinic: () => _callClinic(detail),
                       onCancel: () => _cancel(detail),
                     ),
                   ],
@@ -601,6 +656,8 @@ class _ActionCard extends StatelessWidget {
     required this.cancelling,
     required this.onRefresh,
     required this.onReviewAlternative,
+    required this.onOpenRoute,
+    required this.onCallClinic,
     required this.onCancel,
   });
 
@@ -608,6 +665,8 @@ class _ActionCard extends StatelessWidget {
   final bool cancelling;
   final Future<void> Function() onRefresh;
   final VoidCallback onReviewAlternative;
+  final VoidCallback onOpenRoute;
+  final VoidCallback onCallClinic;
   final VoidCallback onCancel;
 
   @override
@@ -631,10 +690,18 @@ class _ActionCard extends StatelessWidget {
             if (detail.actions.canOpenRoute) ...[
               const SizedBox(height: 8),
               FilledButton.tonalIcon(
-                  onPressed: () => _message(context,
-                      'Маршрут до клиники появится после подключения карт.'),
+                  onPressed: onOpenRoute,
                   icon: const Icon(Icons.route_outlined),
                   label: const Text('Маршрут')),
+            ],
+            if (detail.locationPhone != null &&
+                detail.locationPhone!.trim().isNotEmpty) ...[
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: onCallClinic,
+                icon: const Icon(Icons.call_outlined),
+                label: const Text('Позвонить в клинику'),
+              ),
             ],
             if (detail.actions.canRebook) ...[
               const SizedBox(height: 8),
@@ -775,6 +842,23 @@ String _range(BuildContext context, DateTime from, DateTime to) {
   final start = TimeOfDay.fromDateTime(first).format(context);
   final end = TimeOfDay.fromDateTime(last).format(context);
   return '$date · $start–$end';
+}
+
+Uri? _routeUri(OwnerAppointmentDetail detail) {
+  final latitude = detail.locationLatitude;
+  final longitude = detail.locationLongitude;
+  if (latitude != null && longitude != null) {
+    return Uri.https('www.google.com', '/maps/search/', {
+      'api': '1',
+      'query': '$latitude,$longitude',
+    });
+  }
+  final address = detail.clinicAddress.trim();
+  if (address.isEmpty) return null;
+  return Uri.https('www.google.com', '/maps/search/', {
+    'api': '1',
+    'query': address,
+  });
 }
 
 void _message(BuildContext context, String text) {

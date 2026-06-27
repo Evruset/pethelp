@@ -68,4 +68,14 @@ export interface ReleaseHoldResult {
   state: 'RELEASED';
   slotId: string;
   correlationId: string;
+  swapGroupId?: string | null;
+}
+
+export interface RequestNotesResult {
+  holdId: string;
+  state: 'MANUAL_CONFIRM_PENDING';
+  slotId: string;
+  version: number;
+  requestedNote: string;
+  correlationId: string;
 }

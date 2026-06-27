@@ -4,8 +4,8 @@ import 'features/booking/alternative_slot/alternative_slot_page.dart';
 import 'features/booking/alternative_slot/alternative_slot_repository.dart';
 import 'features/booking/marketplace/booking_marketplace_page.dart';
 import 'features/booking/marketplace/booking_marketplace_repository.dart';
-import 'features/emergency/emergency_page.dart';
 import 'features/emergency/emergency_repository.dart';
+import 'features/emergency/emergency_triage_page.dart';
 import 'features/insurance/coverage_check_page.dart';
 import 'features/insurance/coverage_check_repository.dart';
 import 'features/pets/owner_pet.dart';
@@ -136,6 +136,7 @@ class _OwnerJourneyLauncherState extends State<OwnerJourneyLauncher> {
           baseUrl: Uri.parse(_apiBaseUrl),
           accessTokenProvider: _token,
         ),
+        onRequestEmergency: _openEmergency,
       ),
     ));
   }
@@ -165,7 +166,7 @@ class _OwnerJourneyLauncherState extends State<OwnerJourneyLauncher> {
 
   void _openEmergency() {
     Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => EmergencyPage(
+      builder: (_) => EmergencyTriagePage(
         repository: EmergencyRepository(baseUrl: Uri.parse(_apiBaseUrl)),
       ),
     ));

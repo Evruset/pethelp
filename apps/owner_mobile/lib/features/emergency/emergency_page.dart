@@ -5,32 +5,63 @@ import 'package:url_launcher/url_launcher.dart';
 import 'emergency_repository.dart';
 
 class EmergencyPage extends StatefulWidget {
-  const EmergencyPage({super.key, required this.repository});
+  const EmergencyPage({
+    super.key,
+    required this.repository,
+    this.initialSpecies = 'DOG',
+    this.initialCapabilities = const <String>['OXYGEN_SUPPORT'],
+    this.triageDecision,
+  });
 
   final EmergencyRepository repository;
+  final String initialSpecies;
+  final List<String> initialCapabilities;
+  final EmergencyTriageDecision? triageDecision;
 
   @override
   State<EmergencyPage> createState() => _EmergencyPageState();
 }
 
 class _EmergencyPageState extends State<EmergencyPage> {
-  String _species = 'DOG';
-  final Set<String> _capabilities = <String>{'OXYGEN_SUPPORT'};
-  Future<List<EmergencyClinic>>? _request;
+  late String _species;
+  late final Set<String> _capabilities;
+  Future<_EmergencyClinicResult>? _request;
 
   @override
   void initState() {
     super.initState();
+    _species = widget.initialSpecies;
+    _capabilities = widget.initialCapabilities.toSet();
     _search();
   }
 
   void _search() {
+    final filters = _filters();
     setState(() {
-      _request = widget.repository.search(EmergencyClinicFilters(
-        species: _species,
-        requiredCapabilities: _capabilities.toList(growable: false),
-      ));
+      _request = _loadClinics(filters);
     });
+  }
+
+  EmergencyClinicFilters _filters() {
+    return EmergencyClinicFilters(
+      species: _species,
+      requiredCapabilities: _capabilities.toList(growable: false),
+    );
+  }
+
+  Future<_EmergencyClinicResult> _loadClinics(
+    EmergencyClinicFilters filters,
+  ) async {
+    try {
+      final clinics = await widget.repository.search(filters);
+      return _EmergencyClinicResult.online(clinics);
+    } catch (_) {
+      final cached = await widget.repository.cached(filters);
+      if (cached != null && cached.clinics.isNotEmpty) {
+        return _EmergencyClinicResult.cached(cached);
+      }
+      rethrow;
+    }
   }
 
   @override
@@ -45,6 +76,10 @@ class _EmergencyPageState extends State<EmergencyPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (widget.triageDecision != null) ...[
+                    _TriageDecisionBanner(decision: widget.triageDecision!),
+                    const SizedBox(height: 12),
+                  ],
                   const _EmergencyDisclaimer(),
                   const SizedBox(height: 12),
                   Text('Питомец',
@@ -90,7 +125,7 @@ class _EmergencyPageState extends State<EmergencyPage> {
               ),
             ),
             Expanded(
-              child: FutureBuilder<List<EmergencyClinic>>(
+              child: FutureBuilder<_EmergencyClinicResult>(
                 future: _request,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState != ConnectionState.done) {
@@ -99,16 +134,31 @@ class _EmergencyPageState extends State<EmergencyPage> {
                   if (snapshot.hasError) {
                     return _EmergencyError(onRetry: _search);
                   }
-                  final clinics = snapshot.data ?? const <EmergencyClinic>[];
+                  final result =
+                      snapshot.data ?? _EmergencyClinicResult.online(const []);
+                  final clinics = result.clinics;
                   if (clinics.isEmpty) {
                     return const _EmergencyEmpty();
                   }
-                  return ListView.separated(
+                  return ListView(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                    itemCount: clinics.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) =>
-                        _EmergencyClinicCard(clinic: clinics[index]),
+                    children: [
+                      if (result.cachedAt != null) ...[
+                        _CachedEmergencyBanner(cachedAt: result.cachedAt!),
+                        const SizedBox(height: 8),
+                      ],
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: clinics.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) => _EmergencyClinicCard(
+                          clinic: clinics[index],
+                          repository: widget.repository,
+                          triageDecision: widget.triageDecision,
+                        ),
+                      ),
+                    ],
                   );
                 },
               ),
@@ -118,6 +168,27 @@ class _EmergencyPageState extends State<EmergencyPage> {
       ),
     );
   }
+}
+
+class _EmergencyClinicResult {
+  const _EmergencyClinicResult({
+    required this.clinics,
+    required this.cachedAt,
+  });
+
+  factory _EmergencyClinicResult.online(List<EmergencyClinic> clinics) {
+    return _EmergencyClinicResult(clinics: clinics, cachedAt: null);
+  }
+
+  factory _EmergencyClinicResult.cached(EmergencyCachedClinics cached) {
+    return _EmergencyClinicResult(
+      clinics: cached.clinics,
+      cachedAt: cached.cachedAt,
+    );
+  }
+
+  final List<EmergencyClinic> clinics;
+  final DateTime? cachedAt;
 }
 
 class _EmergencyDisclaimer extends StatelessWidget {
@@ -142,6 +213,59 @@ class _EmergencyDisclaimer extends StatelessWidget {
           ),
         ),
       );
+}
+
+class _CachedEmergencyBanner extends StatelessWidget {
+  const _CachedEmergencyBanner({required this.cachedAt});
+
+  final DateTime cachedAt;
+
+  @override
+  Widget build(BuildContext context) => Card(
+        color: Theme.of(context).colorScheme.secondaryContainer,
+        child: ListTile(
+          leading: const Icon(Icons.cloud_off_outlined),
+          title: const Text('Показаны последние полученные клиники'),
+          subtitle: Text(
+            'Обновлялись: ${_dateTime(context, cachedAt)}. Позвоните перед выездом.',
+          ),
+        ),
+      );
+}
+
+class _TriageDecisionBanner extends StatelessWidget {
+  const _TriageDecisionBanner({required this.decision});
+
+  final EmergencyTriageDecision decision;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final visual = _triageVisual(decision.outcome, theme.colorScheme);
+    return Card(
+      color: visual.background,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(visual.icon, color: visual.foreground),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(visual.title, style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 4),
+                  Text(decision.ownerMessage),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _CapabilityFilters extends StatelessWidget {
@@ -184,9 +308,15 @@ class _CapabilityFilters extends StatelessWidget {
 }
 
 class _EmergencyClinicCard extends StatelessWidget {
-  const _EmergencyClinicCard({required this.clinic});
+  const _EmergencyClinicCard({
+    required this.clinic,
+    required this.repository,
+    required this.triageDecision,
+  });
 
   final EmergencyClinic clinic;
+  final EmergencyRepository repository;
+  final EmergencyTriageDecision? triageDecision;
 
   @override
   Widget build(BuildContext context) {
@@ -265,6 +395,16 @@ class _EmergencyClinicCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (triageDecision != null) ...[
+              const SizedBox(height: 10),
+              const Divider(height: 1),
+              const SizedBox(height: 10),
+              _EmergencyFollowUpAction(
+                repository: repository,
+                clinicLocationId: clinic.clinicLocationId,
+                triageSessionId: triageDecision!.sessionId,
+              ),
+            ],
           ],
         ),
       ),
@@ -286,6 +426,7 @@ class _EmergencyClinicCard extends StatelessWidget {
         const SnackBar(content: Text('Телефон клиники скопирован.')),
       );
     }
+    await _recordRouteAction('CALL_STARTED');
   }
 
   Future<void> _openRoute(
@@ -306,6 +447,110 @@ class _EmergencyClinicCard extends StatelessWidget {
                 Text('Не удалось открыть карты. Адрес клиники скопирован.')),
       );
     }
+    await _recordRouteAction('ROUTE_OPENED');
+  }
+
+  Future<void> _recordRouteAction(String action) async {
+    try {
+      await repository.recordRouteAction(
+        clinicLocationId: clinic.clinicLocationId,
+        action: action,
+        triageSessionId: triageDecision?.sessionId,
+      );
+    } catch (_) {
+      // Emergency routing must stay usable even if analytics/follow-up logging is unavailable.
+    }
+  }
+}
+
+class _EmergencyFollowUpAction extends StatefulWidget {
+  const _EmergencyFollowUpAction({
+    required this.repository,
+    required this.clinicLocationId,
+    required this.triageSessionId,
+  });
+
+  final EmergencyRepository repository;
+  final String clinicLocationId;
+  final String triageSessionId;
+
+  @override
+  State<_EmergencyFollowUpAction> createState() =>
+      _EmergencyFollowUpActionState();
+}
+
+class _EmergencyFollowUpActionState extends State<_EmergencyFollowUpAction> {
+  bool _loading = false;
+  DateTime? _dueAt;
+
+  Future<void> _requestFollowUp() async {
+    if (_loading || _dueAt != null) return;
+    setState(() {
+      _loading = true;
+    });
+    try {
+      final result = await widget.repository.recordRouteAction(
+        clinicLocationId: widget.clinicLocationId,
+        triageSessionId: widget.triageSessionId,
+        action: 'FOLLOW_UP_REQUESTED',
+      );
+      if (!mounted) return;
+      setState(() {
+        _dueAt = result.followUpDueAt ?? result.createdAt;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не удалось сохранить контроль.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    if (_dueAt != null) {
+      return Row(
+        children: [
+          Icon(Icons.task_alt_outlined, color: theme.colorScheme.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Контроль сохранён: ${_dateTime(context, _dueAt!)}',
+              style: theme.textTheme.bodyMedium,
+            ),
+          ),
+        ],
+      );
+    }
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            'После звонка можно сохранить контроль состояния питомца.',
+            style: theme.textTheme.bodyMedium,
+          ),
+        ),
+        const SizedBox(width: 8),
+        OutlinedButton.icon(
+          onPressed: _loading ? null : _requestFollowUp,
+          icon: _loading
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.event_available_outlined),
+          label: const Text('Контроль'),
+        ),
+      ],
+    );
   }
 }
 
@@ -367,6 +612,55 @@ String _capabilityLabel(String code) => switch (code) {
       'INPATIENT_CARE' => 'Стационар',
       _ => code,
     };
+
+_TriageVisual _triageVisual(String outcome, ColorScheme colors) {
+  return switch (outcome) {
+    'EMERGENCY' => _TriageVisual(
+        'Срочная помощь',
+        Icons.warning_amber_rounded,
+        colors.error,
+        colors.errorContainer,
+      ),
+    'SAME_DAY_CLINIC' => _TriageVisual(
+        'Лучше очно сегодня',
+        Icons.today_outlined,
+        colors.onSecondaryContainer,
+        colors.secondaryContainer,
+      ),
+    'TELEMED_ELIGIBLE' => _TriageVisual(
+        'Можно начать онлайн',
+        Icons.video_call_outlined,
+        colors.primary,
+        colors.primaryContainer,
+      ),
+    'PLANNED_VISIT' => _TriageVisual(
+        'Плановая помощь',
+        Icons.event_available_outlined,
+        colors.primary,
+        colors.primaryContainer,
+      ),
+    _ => _TriageVisual(
+        'Нужны уточнения',
+        Icons.info_outline,
+        colors.onSurfaceVariant,
+        colors.surfaceContainerHighest,
+      ),
+  };
+}
+
+class _TriageVisual {
+  const _TriageVisual(
+    this.title,
+    this.icon,
+    this.foreground,
+    this.background,
+  );
+
+  final String title;
+  final IconData icon;
+  final Color foreground;
+  final Color background;
+}
 
 String _dateTime(BuildContext context, DateTime value) {
   final local = value.toLocal();

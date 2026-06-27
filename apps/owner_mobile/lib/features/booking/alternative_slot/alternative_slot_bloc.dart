@@ -18,6 +18,10 @@ class AlternativeSlotAcceptPressed extends AlternativeSlotEvent {
   const AlternativeSlotAcceptPressed();
 }
 
+class AlternativeSlotDeclinePressed extends AlternativeSlotEvent {
+  const AlternativeSlotDeclinePressed();
+}
+
 class AlternativeSlotRefreshRequested extends AlternativeSlotEvent {
   const AlternativeSlotRefreshRequested();
 }
@@ -32,10 +36,11 @@ class AlternativeSlotLoading extends AlternativeSlotState {
 
 class AlternativeSlotActive extends AlternativeSlotState {
   const AlternativeSlotActive(
-      this.snapshot, this.correlationId, this.idempotencyKey);
+      this.snapshot, this.correlationId, this.acceptKey, this.declineKey);
   final AlternativeSlotSnapshot snapshot;
   final String correlationId;
-  final String idempotencyKey;
+  final String acceptKey;
+  final String declineKey;
 }
 
 class AlternativeSlotAccepting extends AlternativeSlotState {
@@ -43,9 +48,19 @@ class AlternativeSlotAccepting extends AlternativeSlotState {
   final AlternativeSlotSnapshot snapshot;
 }
 
+class AlternativeSlotDeclining extends AlternativeSlotState {
+  const AlternativeSlotDeclining(this.snapshot);
+  final AlternativeSlotSnapshot snapshot;
+}
+
 class AlternativeSlotAcceptedState extends AlternativeSlotState {
   const AlternativeSlotAcceptedState(this.result);
   final AlternativeSlotAccepted result;
+}
+
+class AlternativeSlotDeclinedState extends AlternativeSlotState {
+  const AlternativeSlotDeclinedState(this.result);
+  final AlternativeSlotDeclined result;
 }
 
 class AlternativeSlotSoftRetry extends AlternativeSlotState {
@@ -70,6 +85,7 @@ class AlternativeSlotBloc
         super(const AlternativeSlotLoading()) {
     on<AlternativeSlotOpened>(_onOpened);
     on<AlternativeSlotAcceptPressed>(_onAcceptPressed);
+    on<AlternativeSlotDeclinePressed>(_onDeclinePressed);
     on<AlternativeSlotRefreshRequested>(_onRefreshRequested);
   }
 
@@ -77,13 +93,15 @@ class AlternativeSlotBloc
   final Uuid _uuid = const Uuid();
   String? _holdId;
   String? _correlationId;
-  String? _idempotencyKey;
+  String? _acceptKey;
+  String? _declineKey;
 
   Future<void> _onOpened(
       AlternativeSlotOpened event, Emitter<AlternativeSlotState> emit) async {
     _holdId = event.holdId;
     _correlationId ??= _uuid.v4();
-    _idempotencyKey ??= _uuid.v4();
+    _acceptKey ??= _uuid.v4();
+    _declineKey ??= _uuid.v4();
     emit(const AlternativeSlotLoading());
     await _load(emit);
   }
@@ -104,7 +122,7 @@ class AlternativeSlotBloc
       holdId: current.snapshot.holdId,
       version: current.snapshot.version,
       correlationId: current.correlationId,
-      idempotencyKey: current.idempotencyKey,
+      idempotencyKey: current.acceptKey,
     );
 
     switch (result) {
@@ -122,11 +140,39 @@ class AlternativeSlotBloc
     }
   }
 
+  Future<void> _onDeclinePressed(AlternativeSlotDeclinePressed event,
+      Emitter<AlternativeSlotState> emit) async {
+    final current = state;
+    if (current is! AlternativeSlotActive) return;
+
+    emit(AlternativeSlotDeclining(current.snapshot));
+    final result = await _repository.declineAlternative(
+      holdId: current.snapshot.holdId,
+      correlationId: current.correlationId,
+      idempotencyKey: current.declineKey,
+    );
+
+    switch (result) {
+      case AlternativeSlotSuccess<AlternativeSlotDeclined>(value: final value):
+        emit(AlternativeSlotDeclinedState(value));
+      case AlternativeSlotRetry<AlternativeSlotDeclined>():
+        emit(const AlternativeSlotSoftRetry('Обновляем состояние записи.'));
+        await _load(emit);
+      case AlternativeSlotFenced<AlternativeSlotDeclined>(reason: final reason):
+        emit(AlternativeSlotFencedState(reason));
+      case AlternativeSlotFailure<AlternativeSlotDeclined>(
+          message: final message
+        ):
+        emit(AlternativeSlotErrorState(message));
+    }
+  }
+
   Future<void> _load(Emitter<AlternativeSlotState> emit) async {
     final holdId = _holdId;
     final correlationId = _correlationId;
-    final idempotencyKey = _idempotencyKey;
-    if (holdId == null || correlationId == null || idempotencyKey == null) {
+    final acceptKey = _acceptKey ??= _uuid.v4();
+    final declineKey = _declineKey ??= _uuid.v4();
+    if (holdId == null || correlationId == null) {
       emit(const AlternativeSlotErrorState('Не удалось открыть предложение.'));
       return;
     }
@@ -134,7 +180,8 @@ class AlternativeSlotBloc
     final result = await _repository.readSnapshot(holdId);
     switch (result) {
       case AlternativeSlotSuccess<AlternativeSlotSnapshot>(value: final value):
-        emit(AlternativeSlotActive(value, correlationId, idempotencyKey));
+        emit(
+            AlternativeSlotActive(value, correlationId, acceptKey, declineKey));
       case AlternativeSlotRetry<AlternativeSlotSnapshot>():
         emit(const AlternativeSlotSoftRetry('Обновляем состояние записи.'));
       case AlternativeSlotFenced<AlternativeSlotSnapshot>(reason: final reason):

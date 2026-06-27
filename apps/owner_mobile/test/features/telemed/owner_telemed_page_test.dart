@@ -45,7 +45,8 @@ void main() {
 
     expect(waitingRepository.readCalls, 0);
     expect(
-      find.text('Консультация не состоялась. Выберите другой способ помощи питомцу.'),
+      find.text(
+          'Консультация не состоялась. Статус оплаты проверяется автоматически.'),
       findsOneWidget,
     );
   });
@@ -62,11 +63,8 @@ void main() {
     await tester.tap(find.text('Выбрать онлайн-консультацию'));
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('Онлайн-консультация скоро будет доступна'),
-      findsOneWidget,
-    );
-    expect(find.text('Вернуться к помощи питомцу'), findsOneWidget);
+    expect(find.text('Сначала проверим безопасность'), findsOneWidget);
+    expect(find.text('Питомец'), findsOneWidget);
     expect(find.text('Выберите клинику'), findsNothing);
   });
 }
@@ -89,7 +87,11 @@ OwnerTelemedSession _session({required String bucket, required String state}) {
   return OwnerTelemedSession(
     sessionId: '00000000-0000-4000-8000-000000000001',
     bookingHoldId: '00000000-0000-4000-8000-000000000002',
+    telemedCaseId: null,
     state: state,
+    telemedCaseState: null,
+    paymentStatus: null,
+    refundState: null,
     bucket: bucket,
     startsAt: startsAt,
     endsAt: startsAt.add(const Duration(minutes: 30)),
@@ -111,6 +113,45 @@ class _FakeOwnerTelemedRepository implements OwnerTelemedRepository {
 
   @override
   Future<List<OwnerTelemedSession>> list() async => sessions;
+
+  @override
+  Future<TelemedIntakeResult> createIntake(TelemedIntakeInput input) async {
+    return TelemedIntakeResult(
+      intakeId: '00000000-0000-4000-8000-000000000003',
+      outcome: 'TELEMED_ELIGIBLE',
+      routingTarget: 'TELEMED_PAYMENT_QUEUE',
+      nextStep: 'Continue to telemedicine payment and doctor queue.',
+      guardrails: const [
+        'Telemedicine does not replace emergency care.',
+      ],
+      createdAt: DateTime.utc(2026, 6, 26, 12),
+    );
+  }
+
+  @override
+  Future<List<TelemedPet>> listPets() async => const [
+        TelemedPet(
+          id: '00000000-0000-4000-8000-000000000004',
+          name: 'Барсик',
+          species: 'CAT',
+        ),
+      ];
+
+  @override
+  Future<TelemedPaymentIntent> createPaymentIntent(String intakeId) async {
+    return const TelemedPaymentIntent(
+      caseId: '00000000-0000-4000-8000-000000000005',
+      intakeId: '00000000-0000-4000-8000-000000000003',
+      paymentIntentId: '00000000-0000-4000-8000-000000000006',
+      paymentFenceToken: '00000000-0000-4000-8000-000000000007',
+      refundPolicyVersion: 'telemed-refund-v1',
+      amount: '1500.00',
+      currency: 'RUB',
+      status: 'CREATED',
+      idempotencyKey: '00000000-0000-4000-8000-000000000008',
+      checkoutUrl: 'https://pay.example.test/checkout',
+    );
+  }
 }
 
 class _FakeWaitingRepository implements TelemedWaitingRepository {

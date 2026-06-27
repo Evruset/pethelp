@@ -63,18 +63,28 @@ export class PublicClinicController {
   async listClinics(
     @Query('q') query?: string,
     @Query('serviceCode') serviceCode?: string,
+    @Query('latitude') latitude?: string,
+    @Query('longitude') longitude?: string,
+    @Query('radiusKm') radiusKm?: string,
     @Query('availableFrom') availableFrom?: string,
     @Query('availableTo') availableTo?: string,
     @Query('openNow') openNow?: string,
+    @Query('telemedAvailable') telemedAvailable?: string,
+    @Query('emergencyCapability') emergencyCapability?: string,
     @Query('sort') sort?: string,
     @Query('limit') rawLimit?: string,
   ): Promise<PublicClinicsResponse> {
     const filters = this.filters({
       query,
       serviceCode,
+      latitude,
+      longitude,
+      radiusKm,
       availableFrom,
       availableTo,
       openNow,
+      telemedAvailable,
+      emergencyCapability,
       sort,
       limit: rawLimit,
     });
@@ -126,42 +136,84 @@ export class PublicClinicController {
   private filters(input: {
     query?: string;
     serviceCode?: string;
+    latitude?: string;
+    longitude?: string;
+    radiusKm?: string;
     availableFrom?: string;
     availableTo?: string;
     openNow?: string;
+    telemedAvailable?: string;
+    emergencyCapability?: string;
     sort?: string;
     limit?: string;
   }): PublicCatalogFilters {
     const availableFrom = this.optionalDate(input.availableFrom, 'availableFrom');
     const availableTo = this.optionalDate(input.availableTo, 'availableTo');
+    const latitude = this.coordinate(input.latitude, 'latitude', -90, 90);
+    const longitude = this.coordinate(input.longitude, 'longitude', -180, 180);
+    const radiusKm = this.radius(input.radiusKm);
     if (availableFrom && availableTo && availableTo <= availableFrom) {
       throw new BadRequestException({ code: 'INVALID_AVAILABILITY_RANGE', message: 'availableTo must be greater than availableFrom.' });
+    }
+    if ((latitude === undefined) !== (longitude === undefined) || (radiusKm !== undefined && (latitude === undefined || longitude === undefined))) {
+      throw new BadRequestException({ code: 'INVALID_GEO_FILTER', message: 'latitude and longitude are required together; radiusKm requires both.' });
     }
     return {
       query: this.query(input.query),
       serviceCode: this.serviceCode(input.serviceCode),
+      latitude,
+      longitude,
+      radiusKm,
       availableFrom,
       availableTo,
       openNow: this.boolean(input.openNow, 'openNow'),
+      telemedAvailable: this.boolean(input.telemedAvailable, 'telemedAvailable'),
+      emergencyCapability: this.capabilityCode(input.emergencyCapability),
       sort: this.sort(input.sort),
       limit: this.limit(input.limit),
     };
   }
 
   private serviceCode(value?: string): string | undefined {
+    return this.catalogCode(value, 'INVALID_SERVICE_CODE', 'serviceCode');
+  }
+
+  private capabilityCode(value?: string): string | undefined {
+    return this.catalogCode(value, 'INVALID_EMERGENCY_CAPABILITY', 'emergencyCapability');
+  }
+
+  private catalogCode(value: string | undefined, code: string, field: string): string | undefined {
     const normalized = value?.trim().toUpperCase();
     if (!normalized) return undefined;
     if (!/^[A-Z0-9_-]{1,64}$/.test(normalized)) {
-      throw new BadRequestException({ code: 'INVALID_SERVICE_CODE', message: 'serviceCode must be 1-64 uppercase letters, numbers, underscores or dashes.' });
+      throw new BadRequestException({ code, message: `${field} must be 1-64 uppercase letters, numbers, underscores or dashes.` });
     }
     return normalized;
   }
 
-  private sort(value?: string): 'soonest' | 'name' | undefined {
+  private coordinate(value: string | undefined, field: string, min: number, max: number): number | undefined {
+    if (value === undefined || value.trim() === '') return undefined;
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < min || parsed > max) {
+      throw new BadRequestException({ code: 'INVALID_GEO_FILTER', message: `${field} must be between ${min} and ${max}.` });
+    }
+    return parsed;
+  }
+
+  private radius(value: string | undefined): number | undefined {
+    if (value === undefined || value.trim() === '') return undefined;
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 200) {
+      throw new BadRequestException({ code: 'INVALID_GEO_FILTER', message: 'radiusKm must be greater than 0 and no more than 200.' });
+    }
+    return parsed;
+  }
+
+  private sort(value?: string): 'soonest' | 'name' | 'distance' | undefined {
     const normalized = value?.trim();
     if (!normalized) return undefined;
-    if (normalized !== 'soonest' && normalized !== 'name') {
-      throw new BadRequestException({ code: 'INVALID_CATALOG_SORT', message: 'sort must be soonest or name.' });
+    if (normalized !== 'soonest' && normalized !== 'name' && normalized !== 'distance') {
+      throw new BadRequestException({ code: 'INVALID_CATALOG_SORT', message: 'sort must be soonest, name or distance.' });
     }
     return normalized;
   }

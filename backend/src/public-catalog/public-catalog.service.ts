@@ -19,6 +19,9 @@ type PublicClinicRow = {
   location_count: string;
   service_count: string;
   next_available_at: Date | null;
+  distance_km: string | null;
+  telemed_available: boolean;
+  emergency_available: boolean;
   server_now: Date;
 };
 
@@ -44,10 +47,15 @@ type PublicAvailabilityRow = {
 export type PublicCatalogFilters = {
   query?: string;
   serviceCode?: string;
+  latitude?: number;
+  longitude?: number;
+  radiusKm?: number;
   availableFrom?: Date;
   availableTo?: Date;
   openNow?: boolean;
-  sort?: 'soonest' | 'name';
+  telemedAvailable?: boolean;
+  emergencyCapability?: string;
+  sort?: 'soonest' | 'name' | 'distance';
   limit: number;
 };
 
@@ -76,6 +84,9 @@ export type PublicClinicSummary = {
   locationCount: number;
   serviceCount: number;
   nextAvailableAt: string | null;
+  distanceKm: number | null;
+  telemedAvailable: boolean;
+  emergencyAvailable: boolean;
 };
 
 export type PublicClinicsResponse = {
@@ -118,10 +129,16 @@ export class PublicCatalogService {
   async listClinics(input: PublicCatalogFilters): Promise<PublicClinicsResponse> {
     const query = input.query?.trim() || null;
     const serviceCode = input.serviceCode?.trim().toUpperCase() || null;
+    const emergencyCapability = input.emergencyCapability?.trim().toUpperCase() || null;
+    const latitude = input.latitude ?? null;
+    const longitude = input.longitude ?? null;
+    const radiusKm = input.radiusKm ?? null;
     const availabilityFrom = input.availableFrom ?? null;
     const availabilityTo = input.availableTo ?? null;
     const onlyOpen = input.openNow === true || Boolean(availabilityFrom || availabilityTo);
+    const requireTelemed = input.telemedAvailable === true;
     const sortByName = input.sort === 'name';
+    const sortByDistance = input.sort === 'distance';
     const result = await this.database.query<PublicClinicRow>(`
       WITH server_time AS (SELECT clock_timestamp() AS value)
       SELECT
@@ -129,6 +146,26 @@ export class PublicCatalogService {
         clinic.public_name AS clinic_name,
         COUNT(DISTINCT location.id)::text AS location_count,
         COUNT(DISTINCT service.id)::text AS service_count,
+        MIN(
+          CASE
+            WHEN $10::double precision IS NULL OR $11::double precision IS NULL
+              OR location.latitude IS NULL OR location.longitude IS NULL THEN NULL
+            ELSE 6371 * acos(LEAST(1, GREATEST(-1,
+              sin(radians($10::double precision)) * sin(radians(location.latitude::double precision)) +
+              cos(radians($10::double precision)) * cos(radians(location.latitude::double precision)) *
+              cos(radians(location.longitude::double precision) - radians($11::double precision))
+            )))
+          END
+        )::text AS distance_km,
+        BOOL_OR(service.code ILIKE 'TELEMED%' OR service.code ILIKE 'ONLINE%') AS telemed_available,
+        BOOL_OR(EXISTS (
+          SELECT 1
+          FROM clinic_schema.emergency_capability_profiles emergency_profile
+          WHERE emergency_profile.clinic_location_id = location.id
+            AND emergency_profile.emergency_status = 'ACCEPTING_NOW'
+            AND emergency_profile.verification_status = 'VERIFIED'
+            AND emergency_profile.valid_until > server_time.value
+        )) AS emergency_available,
         MIN(slot.starts_at) FILTER (
           WHERE slot.state = 'OPEN'
             AND slot.starts_at >= GREATEST(COALESCE($4::timestamptz, server_time.value), server_time.value)
@@ -151,6 +188,42 @@ export class PublicCatalogService {
         )
         AND ($3::text IS NULL OR service.code = $3::text)
         AND (
+          $12::double precision IS NULL
+          OR (
+            location.latitude IS NOT NULL
+            AND location.longitude IS NOT NULL
+            AND 6371 * acos(LEAST(1, GREATEST(-1,
+              sin(radians($10::double precision)) * sin(radians(location.latitude::double precision)) +
+              cos(radians($10::double precision)) * cos(radians(location.latitude::double precision)) *
+              cos(radians(location.longitude::double precision) - radians($11::double precision))
+            ))) <= $12::double precision
+          )
+        )
+        AND (
+          $8::boolean = false
+          OR EXISTS (
+            SELECT 1
+            FROM clinic_schema.clinic_services telemed_service
+            WHERE telemed_service.clinic_location_id = location.id
+              AND telemed_service.active = true
+              AND (telemed_service.code ILIKE 'TELEMED%' OR telemed_service.code ILIKE 'ONLINE%')
+          )
+        )
+        AND (
+          $9::text IS NULL
+          OR EXISTS (
+            SELECT 1
+            FROM clinic_schema.emergency_capability_profiles emergency_profile
+            JOIN clinic_schema.emergency_capabilities emergency_capability
+              ON emergency_capability.profile_id = emergency_profile.id
+            WHERE emergency_profile.clinic_location_id = location.id
+              AND emergency_profile.emergency_status = 'ACCEPTING_NOW'
+              AND emergency_profile.verification_status = 'VERIFIED'
+              AND emergency_profile.valid_until > server_time.value
+              AND emergency_capability.capability_code = $9::text
+          )
+        )
+        AND (
           $6::boolean = false
           OR EXISTS (
             SELECT 1
@@ -168,8 +241,19 @@ export class PublicCatalogService {
         )
       GROUP BY clinic.id, clinic.public_name, server_time.value
       ORDER BY
+        CASE WHEN $13::boolean THEN MIN(
+          CASE
+            WHEN $10::double precision IS NULL OR $11::double precision IS NULL
+              OR location.latitude IS NULL OR location.longitude IS NULL THEN NULL
+            ELSE 6371 * acos(LEAST(1, GREATEST(-1,
+              sin(radians($10::double precision)) * sin(radians(location.latitude::double precision)) +
+              cos(radians($10::double precision)) * cos(radians(location.latitude::double precision)) *
+              cos(radians(location.longitude::double precision) - radians($11::double precision))
+            )))
+          END
+        ) END ASC NULLS LAST,
         CASE WHEN $7::boolean THEN clinic.public_name END ASC,
-        CASE WHEN NOT $7::boolean THEN MIN(slot.starts_at) FILTER (
+        CASE WHEN NOT $7::boolean AND NOT $13::boolean THEN MIN(slot.starts_at) FILTER (
           WHERE slot.state = 'OPEN'
             AND slot.starts_at >= GREATEST(COALESCE($4::timestamptz, server_time.value), server_time.value)
             AND ($5::timestamptz IS NULL OR slot.starts_at < $5::timestamptz)
@@ -178,7 +262,7 @@ export class PublicCatalogService {
         clinic.public_name ASC,
         clinic.id ASC
       LIMIT $2
-    `, [query, input.limit, serviceCode, availabilityFrom, availabilityTo, onlyOpen, sortByName]);
+    `, [query, input.limit, serviceCode, availabilityFrom, availabilityTo, onlyOpen, sortByName, requireTelemed, emergencyCapability, latitude, longitude, radiusKm, sortByDistance]);
 
     return {
       observedAt: result.rows[0]?.server_now.toISOString() ?? new Date().toISOString(),
@@ -194,6 +278,16 @@ export class PublicCatalogService {
         clinic.public_name AS clinic_name,
         COUNT(DISTINCT location.id)::text AS location_count,
         COUNT(DISTINCT service.id)::text AS service_count,
+        NULL::text AS distance_km,
+        BOOL_OR(service.code ILIKE 'TELEMED%' OR service.code ILIKE 'ONLINE%') AS telemed_available,
+        BOOL_OR(EXISTS (
+          SELECT 1
+          FROM clinic_schema.emergency_capability_profiles emergency_profile
+          WHERE emergency_profile.clinic_location_id = location.id
+            AND emergency_profile.emergency_status = 'ACCEPTING_NOW'
+            AND emergency_profile.verification_status = 'VERIFIED'
+            AND emergency_profile.valid_until > server_time.value
+        )) AS emergency_available,
         MIN(slot.starts_at) FILTER (
           WHERE slot.state = 'OPEN'
             AND slot.starts_at > server_time.value
@@ -370,6 +464,9 @@ export class PublicCatalogService {
       locationCount: Number(row.location_count),
       serviceCount: Number(row.service_count),
       nextAvailableAt: row.next_available_at?.toISOString() ?? null,
+      distanceKm: row.distance_km === null ? null : Number(Number(row.distance_km).toFixed(1)),
+      telemedAvailable: row.telemed_available,
+      emergencyAvailable: row.emergency_available,
     };
   }
 }

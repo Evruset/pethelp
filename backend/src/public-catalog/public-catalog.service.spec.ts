@@ -61,6 +61,9 @@ describe('PublicCatalogService', () => {
         location_count: '1',
         service_count: '1',
         next_available_at: nextAvailableAt,
+        distance_km: null,
+        telemed_available: true,
+        emergency_available: true,
         server_now: observedAt,
       }],
     });
@@ -91,6 +94,12 @@ describe('PublicCatalogService', () => {
       new Date('2026-06-27T12:00:00.000Z'),
       true,
       false,
+      false,
+      null,
+      null,
+      null,
+      null,
+      false,
     ]);
 
     expect(response).toEqual({
@@ -101,6 +110,9 @@ describe('PublicCatalogService', () => {
         locationCount: 1,
         serviceCount: 1,
         nextAvailableAt: '2026-06-26T13:00:00.000Z',
+        distanceKm: null,
+        telemedAvailable: true,
+        emergencyAvailable: true,
       }],
     });
   });

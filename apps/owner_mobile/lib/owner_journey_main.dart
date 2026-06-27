@@ -2,17 +2,20 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'core/offline/outbox_repository.dart';
 import 'features/appointments/owner_appointments_repository.dart';
 import 'features/auth/owner_auth_repository.dart';
 import 'features/auth/owner_session.dart';
 import 'features/booking/alternative_slot/alternative_slot_repository.dart';
 import 'features/booking/marketplace/booking_marketplace_page.dart';
 import 'features/booking/marketplace/booking_marketplace_repository.dart';
+import 'features/care/owner_pet_care_page.dart';
+import 'features/care/owner_pet_care_repository.dart';
 import 'features/catalog/catalog_models.dart';
 import 'features/catalog/public_catalog_page.dart';
 import 'features/catalog/public_catalog_repository.dart';
-import 'features/emergency/emergency_page.dart';
 import 'features/emergency/emergency_repository.dart';
+import 'features/emergency/emergency_triage_page.dart';
 import 'features/insurance/coverage_check_page.dart';
 import 'features/insurance/coverage_check_repository.dart';
 import 'features/owner_journey/owner_journey_page.dart';
@@ -55,6 +58,9 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   OwnerSession? _session;
   OwnerPet? _selectedPet;
   CatalogBookingSelection? _pendingBooking;
+  late final OutboxRepository _ownerOutbox;
+  late final String _ownerDeviceId;
+  int _ownerDeviceSequence = 0;
   bool _petBootstrapInFlight = false;
   bool _petBootstrapCompleted = false;
 
@@ -69,6 +75,8 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   @override
   void initState() {
     super.initState();
+    _ownerOutbox = OutboxRepository(InMemoryOfflineCommandStore());
+    _ownerDeviceId = 'owner-mobile-${DateTime.now().microsecondsSinceEpoch}';
     if (_bootstrapOwnerJwt.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _selectExistingPet();
@@ -93,10 +101,7 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
 
     _petBootstrapInFlight = true;
     try {
-      final pets = await HttpOwnerPetRepository(
-        baseUrl: Uri.parse(_apiBaseUrl),
-        accessToken: _token,
-      ).list();
+      final pets = await _petsRepository().list();
       if (!mounted || _selectedPet != null || pets.isEmpty) return;
       setState(() {
         _selectedPet = pets.first;
@@ -107,6 +112,16 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
     }
   }
 
+  OwnerPetRepository _petsRepository() => OfflineCapableOwnerPetRepository(
+        remote: HttpOwnerPetRepository(
+          baseUrl: Uri.parse(_apiBaseUrl),
+          accessToken: _token,
+        ),
+        outbox: _ownerOutbox,
+        deviceId: _ownerDeviceId,
+        nextDeviceSequence: () => ++_ownerDeviceSequence,
+      );
+
   @override
   Widget build(BuildContext context) {
     if (_hasOwnerSession) {
@@ -115,8 +130,8 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
         onRequestTelemed: _openTelemedIntake,
         onRequestInsurance: _openInsuranceCheck,
         onRequestEmergency: _openEmergency,
-        petsRepository: HttpOwnerPetRepository(
-            baseUrl: Uri.parse(_apiBaseUrl), accessToken: _token),
+        onOpenCare: _openCare,
+        petsRepository: _petsRepository(),
         appointmentsRepository: HttpOwnerAppointmentsRepository(
             baseUrl: Uri.parse(_apiBaseUrl), accessToken: _token),
         alternativeSlotRepository: AlternativeSlotRepository(
@@ -132,6 +147,7 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
       onBrowseClinics: _openCatalogForGuest,
       onRequestTelemed: _openPhoneEntry,
       onRequestEmergency: _openEmergency,
+      onRequestInsurance: _openPhoneEntry,
     );
   }
 
@@ -247,6 +263,8 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
           baseUrl: Uri.parse(_apiBaseUrl),
           accessTokenProvider: _token,
         ),
+        onRequestEmergency: _openEmergency,
+        onBrowseClinics: _openCatalogForOwner,
       ),
     ));
   }
@@ -269,9 +287,27 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
     ));
   }
 
+  void _openCare() {
+    final pet = _selectedPet;
+    if (pet == null) {
+      _showMessage(
+          'Сначала добавьте или выберите питомца на вкладке «Питомец».');
+      return;
+    }
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => OwnerPetCarePage(
+        pet: pet,
+        repository: HttpOwnerPetCareRepository(
+          baseUrl: Uri.parse(_apiBaseUrl),
+          accessTokenProvider: _token,
+        ),
+      ),
+    ));
+  }
+
   void _openEmergency() {
     Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => EmergencyPage(
+      builder: (_) => EmergencyTriagePage(
         repository: EmergencyRepository(baseUrl: Uri.parse(_apiBaseUrl)),
       ),
     ));
@@ -286,11 +322,13 @@ class _GuestStartPage extends StatelessWidget {
       {required this.onOpenPhoneEntry,
       required this.onBrowseClinics,
       required this.onRequestTelemed,
-      required this.onRequestEmergency});
+      required this.onRequestEmergency,
+      required this.onRequestInsurance});
   final VoidCallback onOpenPhoneEntry;
   final VoidCallback onBrowseClinics;
   final VoidCallback onRequestTelemed;
   final VoidCallback onRequestEmergency;
+  final VoidCallback onRequestInsurance;
 
   @override
   Widget build(BuildContext context) {
@@ -339,13 +377,21 @@ class _GuestStartPage extends StatelessWidget {
                 color: colors.primaryContainer,
                 onTap: onBrowseClinics),
             const SizedBox(height: 12),
+            _ActionCard(
+                icon: Icons.shield_outlined,
+                title: 'Страховое покрытие',
+                subtitle:
+                    'После входа выберите питомца и отправьте предварительную проверку партнёру.',
+                badge: 'Нужен вход',
+                color: colors.tertiaryContainer,
+                onTap: onRequestInsurance),
+            const SizedBox(height: 12),
             const Card(
                 child: ListTile(
                     enabled: false,
-                    leading: Icon(Icons.shield_outlined),
-                    title: Text('Страховка питомца'),
-                    subtitle: Text('Скоро: полисы и проверка покрытия визита.'),
-                    trailing: Chip(label: Text('Скоро')))),
+                    leading: Icon(Icons.health_and_safety_outlined),
+                    title: Text('Медицинская карта'),
+                    subtitle: Text('Профиль питомца откроется после входа.'))),
           ],
         ),
       ),

@@ -51,4 +51,28 @@ export class ClinicQueueController {
       limit: parseLimit(limit),
     });
   }
+
+  @Get('clinic/:clinicId/locations/:locationId/booking-holds/:holdId/audit-trail')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.CLINIC_RECEPTIONIST, Role.CLINIC_ADMIN)
+  @ApiBearerAuth(SWAGGER_BEARER_AUTH)
+  @ApiOperation({ summary: 'Audit trail for a clinic-visible booking hold' })
+  @ApiOkResponse({ description: 'Append-only audit events for the hold, scoped to clinic location access.' })
+  @ApiUnauthorizedResponse({ description: 'Clinic employee JWT is required.' })
+  @ApiForbiddenResponse({ description: 'Clinic and location scope are enforced through JWT claims and active membership.' })
+  async getHoldAuditTrail(
+    @Param('clinicId') clinicId: string,
+    @Param('locationId') locationId: string,
+    @Param('holdId') holdId: string,
+    @Query('limit') limit: string | undefined,
+    @CurrentUser() employee: JwtPayload,
+  ) {
+    return this.queue.auditTrail({
+      clinicId: idOrThrow(clinicId),
+      locationId: idOrThrow(locationId),
+      holdId: idOrThrow(holdId),
+      employee,
+      limit: parseLimit(limit),
+    });
+  }
 }

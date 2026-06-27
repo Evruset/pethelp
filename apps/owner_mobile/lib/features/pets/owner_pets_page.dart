@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/offline/offline_command.dart';
 import 'owner_pet.dart';
 import 'owner_pet_repository.dart';
 
@@ -19,7 +20,8 @@ class OwnerPetsPage extends StatefulWidget {
 }
 
 class _OwnerPetsPageState extends State<OwnerPetsPage> {
-  Future<List<OwnerPet>>? _request;
+  Future<_PetsSnapshot>? _request;
+  _PetsSnapshot? _lastSnapshot;
   bool _busy = false;
 
   @override
@@ -29,25 +31,44 @@ class _OwnerPetsPageState extends State<OwnerPetsPage> {
   }
 
   void _reload() {
-    final request = widget.repository.list();
+    final request = _loadPets();
     setState(() {
       _request = request;
     });
   }
 
+  Future<_PetsSnapshot> _loadPets() async {
+    final pets = await widget.repository.list();
+    final entries = await Future.wait(pets.map((pet) async {
+      return MapEntry(
+        pet.id,
+        await widget.repository.profileSyncStates(pet.id),
+      );
+    }));
+    return _PetsSnapshot(
+      pets: pets,
+      syncStatesByPetId:
+          Map<String, List<OwnerPetProfileSyncState>>.fromEntries(
+        entries.where((entry) => entry.value.isNotEmpty),
+      ),
+    );
+  }
+
   Future<void> _createPet() async {
     if (_busy) return;
-    final pet = await showModalBottomSheet<OwnerPet>(
+    final result = await showModalBottomSheet<OwnerPetSaveResult>(
       context: context,
       isScrollControlled: true,
       builder: (_) => _PetForm(
-        onSubmit: widget.repository.create,
+        onSubmit: (input) async => OwnerPetSaved(
+          await widget.repository.create(input),
+        ),
       ),
     );
-    if (pet == null || !mounted) return;
-    widget.onPetSelected(pet);
+    if (result is! OwnerPetSaved || !mounted) return;
+    widget.onPetSelected(result.pet);
     _reload();
-    _message('${pet.name} добавлен и выбран для записи.');
+    _message('${result.pet.name} добавлен и выбран для записи.');
   }
 
   Future<void> _editPet(OwnerPet summary) async {
@@ -56,14 +77,23 @@ class _OwnerPetsPageState extends State<OwnerPetsPage> {
       _busy = true;
     });
     try {
-      final fresh = await widget.repository.read(summary.id);
+      OwnerPet fresh;
+      try {
+        fresh = await widget.repository.read(summary.id);
+      } catch (_) {
+        fresh = summary;
+        if (mounted) {
+          _message(
+              'Открыта последняя загруженная версия. Изменения будут поставлены в очередь.');
+        }
+      }
       if (!mounted) {
         return;
       }
       setState(() {
         _busy = false;
       });
-      final updated = await showModalBottomSheet<OwnerPet>(
+      final result = await showModalBottomSheet<OwnerPetSaveResult>(
         context: context,
         isScrollControlled: true,
         builder: (_) => _PetForm(
@@ -75,10 +105,18 @@ class _OwnerPetsPageState extends State<OwnerPetsPage> {
           ),
         ),
       );
-      if (updated == null || !mounted) return;
-      widget.onPetSelected(updated);
-      _reload();
-      _message('Профиль ${updated.name} обновлён.');
+      if (result == null || !mounted) return;
+      switch (result) {
+        case OwnerPetSaved(:final pet):
+          widget.onPetSelected(pet);
+          _reload();
+          _message('Профиль ${pet.name} обновлён.');
+        case OwnerPetUpdateQueued():
+          await _refreshSyncStates();
+          if (!mounted) return;
+          _message(
+              'Изменения сохранены в очередь и синхронизируются при соединении.');
+      }
     } on OwnerPetApiException catch (error) {
       if (!mounted) {
         return;
@@ -99,9 +137,30 @@ class _OwnerPetsPageState extends State<OwnerPetsPage> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
+  Future<void> _refreshSyncStates() async {
+    final current = _lastSnapshot;
+    if (current == null) return;
+    final entries = await Future.wait(current.pets.map((pet) async {
+      return MapEntry(
+        pet.id,
+        await widget.repository.profileSyncStates(pet.id),
+      );
+    }));
+    if (!mounted) return;
+    setState(() {
+      _request = Future.value(_PetsSnapshot(
+        pets: current.pets,
+        syncStatesByPetId:
+            Map<String, List<OwnerPetProfileSyncState>>.fromEntries(
+          entries.where((entry) => entry.value.isNotEmpty),
+        ),
+      ));
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<OwnerPet>>(
+    return FutureBuilder<_PetsSnapshot>(
       future: _request,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
@@ -116,7 +175,9 @@ class _OwnerPetsPageState extends State<OwnerPetsPage> {
             ),
           );
         }
-        final pets = snapshot.data ?? const <OwnerPet>[];
+        final data = snapshot.data ?? const _PetsSnapshot.empty();
+        _lastSnapshot = data;
+        final pets = data.pets;
         return Scaffold(
           floatingActionButton: FloatingActionButton.extended(
             onPressed: _busy ? null : _createPet,
@@ -131,6 +192,7 @@ class _OwnerPetsPageState extends State<OwnerPetsPage> {
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (context, index) => _PetCard(
                     pet: pets[index],
+                    syncStates: data.syncStatesFor(pets[index].id),
                     onSelect:
                         _busy ? null : () => widget.onPetSelected(pets[index]),
                     onEdit: _busy ? null : () => _editPet(pets[index]),
@@ -142,19 +204,39 @@ class _OwnerPetsPageState extends State<OwnerPetsPage> {
   }
 }
 
+class _PetsSnapshot {
+  const _PetsSnapshot({
+    required this.pets,
+    required this.syncStatesByPetId,
+  });
+
+  const _PetsSnapshot.empty()
+      : pets = const <OwnerPet>[],
+        syncStatesByPetId = const <String, List<OwnerPetProfileSyncState>>{};
+
+  final List<OwnerPet> pets;
+  final Map<String, List<OwnerPetProfileSyncState>> syncStatesByPetId;
+
+  List<OwnerPetProfileSyncState> syncStatesFor(String petId) =>
+      syncStatesByPetId[petId] ?? const <OwnerPetProfileSyncState>[];
+}
+
 class _PetCard extends StatelessWidget {
   const _PetCard({
     required this.pet,
+    required this.syncStates,
     required this.onSelect,
     required this.onEdit,
   });
 
   final OwnerPet pet;
+  final List<OwnerPetProfileSyncState> syncStates;
   final VoidCallback? onSelect;
   final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
+    final syncStatus = _petSyncStatusFromStates(syncStates);
     final details = <String>[
       _speciesTitle(pet.species),
       if (pet.breed != null) pet.breed!,
@@ -165,6 +247,10 @@ class _PetCard extends StatelessWidget {
         'Аллергии: ${pet.allergies.take(2).join(', ')}',
       if (pet.chronicConditions.isNotEmpty)
         'Хроника: ${pet.chronicConditions.take(2).join(', ')}',
+      if (pet.vaccinationNotes != null) 'Вакцинация указана',
+      if (pet.insurancePolicyLinks.isNotEmpty)
+        'Полисы: ${_policyCount(pet.insurancePolicyLinks.length)}',
+      if (pet.photoUrl != null) 'Фото профиля добавлено',
       if (pet.sterilized != null)
         pet.sterilized! ? 'Стерилизован(а)' : 'Не стерилизован(а)',
     ];
@@ -186,6 +272,10 @@ class _PetCard extends StatelessWidget {
                 isThreeLine: health.isNotEmpty,
               ),
             ),
+            if (syncStatus != null) ...[
+              _PetSyncChip(status: syncStatus),
+              const SizedBox(width: 4),
+            ],
             IconButton(
               tooltip: 'Профиль',
               onPressed: onEdit,
@@ -193,6 +283,82 @@ class _PetCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+enum _PetSyncStatus { pending, syncing, conflict, failed }
+
+extension on _PetSyncStatus {
+  String get label => switch (this) {
+        _PetSyncStatus.pending => 'В очереди',
+        _PetSyncStatus.syncing => 'Синхронизация',
+        _PetSyncStatus.conflict => 'Конфликт',
+        _PetSyncStatus.failed => 'Не сохранено',
+      };
+
+  IconData get icon => switch (this) {
+        _PetSyncStatus.pending => Icons.schedule_outlined,
+        _PetSyncStatus.syncing => Icons.sync,
+        _PetSyncStatus.conflict => Icons.error_outline,
+        _PetSyncStatus.failed => Icons.sync_problem,
+      };
+
+  Color color(ColorScheme colors) => switch (this) {
+        _PetSyncStatus.pending => colors.secondaryContainer,
+        _PetSyncStatus.syncing => colors.primaryContainer,
+        _PetSyncStatus.conflict => colors.errorContainer,
+        _PetSyncStatus.failed => colors.errorContainer,
+      };
+
+  Color foreground(ColorScheme colors) => switch (this) {
+        _PetSyncStatus.pending => colors.onSecondaryContainer,
+        _PetSyncStatus.syncing => colors.onPrimaryContainer,
+        _PetSyncStatus.conflict => colors.onErrorContainer,
+        _PetSyncStatus.failed => colors.onErrorContainer,
+      };
+}
+
+_PetSyncStatus? _petSyncStatusFromStates(
+    List<OwnerPetProfileSyncState> states) {
+  if (states.any((state) => state.status == OfflineCommandStatus.conflict)) {
+    return _PetSyncStatus.conflict;
+  }
+  if (states.any((state) =>
+      state.status == OfflineCommandStatus.denied ||
+      state.status == OfflineCommandStatus.fencedSchema ||
+      state.status == OfflineCommandStatus.invalid)) {
+    return _PetSyncStatus.failed;
+  }
+  if (states.any((state) => state.status == OfflineCommandStatus.syncing)) {
+    return _PetSyncStatus.syncing;
+  }
+  if (states.any((state) => state.status == OfflineCommandStatus.pending)) {
+    return _PetSyncStatus.pending;
+  }
+  return null;
+}
+
+class _PetSyncChip extends StatelessWidget {
+  const _PetSyncChip({required this.status});
+
+  final _PetSyncStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final foreground = status.foreground(colors);
+    return Tooltip(
+      message: status.label,
+      child: Chip(
+        avatar: Icon(status.icon, size: 16, color: foreground),
+        label: Text(status.label),
+        visualDensity: VisualDensity.compact,
+        backgroundColor: status.color(colors),
+        labelStyle:
+            Theme.of(context).textTheme.labelSmall?.copyWith(color: foreground),
+        side: BorderSide.none,
       ),
     );
   }
@@ -214,7 +380,8 @@ class _PetForm extends StatefulWidget {
   const _PetForm({this.initial, required this.onSubmit});
 
   final OwnerPet? initial;
-  final Future<OwnerPet> Function(OwnerPetProfileInput input) onSubmit;
+  final Future<OwnerPetSaveResult> Function(OwnerPetProfileInput input)
+      onSubmit;
 
   @override
   State<_PetForm> createState() => _PetFormState();
@@ -400,6 +567,7 @@ class _PetFormState extends State<_PetForm> {
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   labelText: 'Вакцинация',
+                  helperText: 'Например: дата последней комплексной вакцины',
                 ),
                 validator: _validateLongText,
               ),
@@ -409,7 +577,7 @@ class _PetFormState extends State<_PetForm> {
                 keyboardType: TextInputType.url,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
-                  labelText: 'Фото',
+                  labelText: 'Ссылка на фото',
                 ),
                 validator: _validateUrl,
               ),
@@ -418,7 +586,8 @@ class _PetFormState extends State<_PetForm> {
                 controller: _insuranceLinks,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
-                  labelText: 'Полисы',
+                  labelText: 'Ссылки на полисы',
+                  helperText: 'Несколько ссылок можно указать через запятую',
                 ),
                 validator: _validateLinks,
               ),
@@ -462,7 +631,7 @@ class _PetFormState extends State<_PetForm> {
       _submitState = _PetSubmitState.loading;
     });
     try {
-      final pet = await widget.onSubmit(OwnerPetProfileInput(
+      final result = await widget.onSubmit(OwnerPetProfileInput(
         name: _name.text.trim(),
         species: _species,
         breed: _emptyToNull(_breed.text),
@@ -491,7 +660,7 @@ class _PetFormState extends State<_PetForm> {
       if (!mounted) {
         return;
       }
-      Navigator.of(context).pop(pet);
+      Navigator.of(context).pop(result);
     } on OwnerPetApiException catch (error) {
       if (!mounted) {
         return;
@@ -610,3 +779,12 @@ String _speciesTitle(String value) => switch (value) {
       'CAT' => 'Кошка',
       _ => 'Другой вид',
     };
+
+String _policyCount(int count) {
+  final suffix = count == 1
+      ? 'полис'
+      : count < 5
+          ? 'полиса'
+          : 'полисов';
+  return '$count $suffix';
+}
