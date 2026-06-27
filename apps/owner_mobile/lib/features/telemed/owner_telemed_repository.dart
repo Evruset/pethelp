@@ -12,6 +12,9 @@ class OwnerTelemedSession {
     required this.telemedCaseState,
     required this.paymentStatus,
     required this.refundState,
+    required this.recommendationText,
+    required this.followUpNotes,
+    required this.safetyEscalation,
     required this.bucket,
     required this.startsAt,
     required this.endsAt,
@@ -32,6 +35,9 @@ class OwnerTelemedSession {
   final String? telemedCaseState;
   final String? paymentStatus;
   final String? refundState;
+  final String? recommendationText;
+  final String? followUpNotes;
+  final bool? safetyEscalation;
   final String bucket;
   final DateTime startsAt;
   final DateTime endsAt;
@@ -56,6 +62,9 @@ class OwnerTelemedSession {
       telemedCaseState: json['telemedCaseState'] as String?,
       paymentStatus: json['paymentStatus'] as String?,
       refundState: json['refundState'] as String?,
+      recommendationText: json['recommendationText'] as String?,
+      followUpNotes: json['followUpNotes'] as String?,
+      safetyEscalation: json['safetyEscalation'] as bool?,
       bucket: json['bucket'] as String? ?? 'HISTORY',
       startsAt: DateTime.parse(json['startsAt'] as String).toLocal(),
       endsAt: DateTime.parse(json['endsAt'] as String).toLocal(),

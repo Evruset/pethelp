@@ -3,8 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'telemed_live_call_view.dart';
 import 'telemed_room_access_repository.dart';
 import 'telemed_waiting_room_bloc.dart';
+
+typedef TelemedLiveCallBuilder = Widget Function(
+  BuildContext context,
+  TelemedRoomAccess access,
+);
 
 class TelemedWaitingRoomPage extends StatelessWidget {
   const TelemedWaitingRoomPage({
@@ -12,11 +18,15 @@ class TelemedWaitingRoomPage extends StatelessWidget {
     required this.sessionId,
     required this.repository,
     required this.roomAccessRepository,
+    this.onBrowseClinics,
+    this.liveCallBuilder,
   });
 
   final String sessionId;
   final TelemedWaitingRepository repository;
   final TelemedRoomAccessRepository roomAccessRepository;
+  final VoidCallback? onBrowseClinics;
+  final TelemedLiveCallBuilder? liveCallBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -25,13 +35,19 @@ class TelemedWaitingRoomPage extends StatelessWidget {
         repository: repository,
         roomAccessRepository: roomAccessRepository,
       )..add(TelemedWaitingOpened(sessionId)),
-      child: const _TelemedWaitingRoomView(),
+      child: _TelemedWaitingRoomView(
+        onBrowseClinics: onBrowseClinics,
+        liveCallBuilder: liveCallBuilder,
+      ),
     );
   }
 }
 
 class _TelemedWaitingRoomView extends StatelessWidget {
-  const _TelemedWaitingRoomView();
+  const _TelemedWaitingRoomView({this.onBrowseClinics, this.liveCallBuilder});
+
+  final VoidCallback? onBrowseClinics;
+  final TelemedLiveCallBuilder? liveCallBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -41,13 +57,28 @@ class _TelemedWaitingRoomView extends StatelessWidget {
         builder: (context, state) {
           return switch (state) {
             TelemedWaitingLoading() => const _WaitingSkeleton(),
-            TelemedWaitingForDoctor(snapshot: final snapshot) =>
-              _WaitingForDoctor(snapshot: snapshot),
+            TelemedWaitingForDoctor(
+              snapshot: final snapshot,
+              cancelError: final cancelError,
+            ) =>
+              _WaitingForDoctor(
+                snapshot: snapshot,
+                cancelError: cancelError,
+              ),
+            TelemedWaitingCancelling(snapshot: final snapshot) =>
+              _WaitingForDoctor(snapshot: snapshot, isCancelling: true),
             TelemedConnectingRoom() => const _ConnectingRoom(),
             TelemedRoomReady(access: final access) =>
-              _RoomReady(access: access),
-            TelemedDoctorTimeout() => const _DoctorTimeout(),
+              _RoomReady(access: access, liveCallBuilder: liveCallBuilder),
+            TelemedDoctorTimeout(snapshot: final snapshot) => _DoctorTimeout(
+                snapshot: snapshot,
+                onBrowseClinics: onBrowseClinics,
+              ),
             TelemedCompleted() => const _Completed(),
+            TelemedCancelled(snapshot: final snapshot) => _Cancelled(
+                snapshot: snapshot,
+                onBrowseClinics: onBrowseClinics,
+              ),
             TelemedWaitingError(message: final message) =>
               _Error(message: message),
           };
@@ -76,30 +107,39 @@ class _WaitingSkeleton extends StatelessWidget {
 }
 
 class _WaitingForDoctor extends StatelessWidget {
-  const _WaitingForDoctor({required this.snapshot});
+  const _WaitingForDoctor({
+    required this.snapshot,
+    this.isCancelling = false,
+    this.cancelError,
+  });
 
   final TelemedWaitingSnapshot snapshot;
+  final bool isCancelling;
+  final String? cancelError;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       children: [
         Expanded(
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              const Card(
+              Card(
                 child: Padding(
-                  padding: EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      Icon(Icons.medical_services_outlined, size: 52),
-                      SizedBox(height: 12),
-                      Text('Ожидаем подключения врача',
-                          style: TextStyle(
-                              fontSize: 21, fontWeight: FontWeight.w600)),
-                      SizedBox(height: 8),
+                      const Icon(Icons.medical_services_outlined, size: 52),
+                      const SizedBox(height: 12),
                       Text(
+                        'Ожидаем подключения врача',
+                        style: theme.textTheme.titleLarge,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
                           'Не закрывайте экран. Мы покажем актуальный статус, как только он изменится.',
                           textAlign: TextAlign.center),
                     ],
@@ -120,19 +160,129 @@ class _WaitingForDoctor extends StatelessWidget {
                       'При ухудшении состояния питомца не ждите консультацию: используйте экстренный маршрут.'),
                 ),
               ),
+              if (cancelError != null) ...[
+                const SizedBox(height: 16),
+                Card(
+                  color: theme.colorScheme.errorContainer,
+                  child: ListTile(
+                    leading: Icon(
+                      Icons.error_outline,
+                      color: theme.colorScheme.onErrorContainer,
+                    ),
+                    title: Text(
+                      'Не удалось отменить',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: theme.colorScheme.onErrorContainer,
+                      ),
+                    ),
+                    subtitle: Text(
+                      cancelError!,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onErrorContainer,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
         SafeArea(
           minimum: const EdgeInsets.all(16),
-          child: OutlinedButton(
-            onPressed: () => context
-                .read<TelemedWaitingBloc>()
-                .add(const TelemedWaitingRefreshRequested()),
-            child: const Text('Проверить статус'),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: isCancelling
+                      ? null
+                      : () => context
+                          .read<TelemedWaitingBloc>()
+                          .add(const TelemedWaitingRefreshRequested()),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Проверить статус'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed:
+                      isCancelling ? null : () => _confirmCancel(context),
+                  icon: isCancelling
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.close),
+                  label: Text(isCancelling
+                      ? 'Отменяем консультацию'
+                      : 'Отменить консультацию'),
+                ),
+              ),
+            ],
           ),
         ),
       ],
+    );
+  }
+
+  Future<void> _confirmCancel(BuildContext context) async {
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => const _CancelConfirmationSheet(),
+    );
+    if (confirmed == true && context.mounted) {
+      context
+          .read<TelemedWaitingBloc>()
+          .add(const TelemedWaitingCancelRequested());
+    }
+  }
+}
+
+class _CancelConfirmationSheet extends StatelessWidget {
+  const _CancelConfirmationSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Отменить онлайн-консультацию?',
+                style: theme.textTheme.titleLarge),
+            const SizedBox(height: 8),
+            Text(
+              'Если врач ещё не подключился, VetHelp отменит ожидание и поставит отмену авторизации оплаты в очередь.',
+              style: theme.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => Navigator.of(context).pop(true),
+                icon: const Icon(Icons.check),
+                label: const Text('Да, отменить'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Продолжить ожидание'),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -197,76 +347,71 @@ class _ConnectingRoom extends StatelessWidget {
 }
 
 class _RoomReady extends StatelessWidget {
-  const _RoomReady({required this.access});
+  const _RoomReady({required this.access, this.liveCallBuilder});
 
   final TelemedRoomAccess access;
+  final TelemedLiveCallBuilder? liveCallBuilder;
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        Card(
-          color: Theme.of(context).colorScheme.primaryContainer,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                const Icon(Icons.video_call_outlined, size: 56),
-                const SizedBox(height: 12),
-                Text('Врач подключился',
-                    style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 8),
-                const Text(
-                  'Комната консультации готова. Статус визита будет обновляться VetHelp.',
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: ListTile(
-            leading: const Icon(Icons.lock_clock_outlined),
-            title: const Text('Доступ к комнате'),
-            subtitle: Text(
-                'Действует до ${_dateTime(context, access.tokenExpiresAt)}'),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: ListTile(
-            leading: const Icon(Icons.videocam_outlined),
-            title: const Text('Канал связи'),
-            subtitle: const Text('Подключение подготовлено.'),
-          ),
-        ),
-        const SizedBox(height: 12),
-        const Card(
-          child: ListTile(
-            leading: Icon(Icons.health_and_safety_outlined),
-            title: Text('Безопасность'),
-            subtitle: Text(
-                'Онлайн-консультация не заменяет срочную очную помощь при тяжёлых симптомах.'),
-          ),
-        ),
-      ],
+    final builder = liveCallBuilder;
+    if (builder != null) return builder(context, access);
+    return TelemedLiveCallView(
+      access: access,
+      onRefreshStatus: () => context
+          .read<TelemedWaitingBloc>()
+          .add(const TelemedWaitingRefreshRequested()),
     );
   }
 }
 
 class _DoctorTimeout extends StatelessWidget {
-  const _DoctorTimeout();
+  const _DoctorTimeout({required this.snapshot, this.onBrowseClinics});
+
+  final TelemedWaitingSnapshot snapshot;
+  final VoidCallback? onBrowseClinics;
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-        child: Padding(
-            padding: EdgeInsets.all(24),
-            child: Text(
-                'Врач не вышел на связь. Проверяем автоматический возврат средств.',
-                textAlign: TextAlign.center)));
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.schedule_outlined,
+              size: 56,
+              color: theme.colorScheme.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Врач не вышел на связь',
+              style: theme.textTheme.titleLarge,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _doctorTimeoutMessage(snapshot.refundState),
+              textAlign: TextAlign.center,
+            ),
+            if (onBrowseClinics != null) ...[
+              const SizedBox(height: 20),
+              FilledButton.icon(
+                onPressed: () {
+                  final navigator = Navigator.of(context);
+                  if (navigator.canPop()) navigator.pop();
+                  onBrowseClinics?.call();
+                },
+                icon: const Icon(Icons.local_hospital_outlined),
+                label: const Text('Выбрать клинику'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -276,6 +421,62 @@ class _Completed extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Center(child: Text('Консультация завершена'));
+  }
+}
+
+class _Cancelled extends StatelessWidget {
+  const _Cancelled({required this.snapshot, this.onBrowseClinics});
+
+  final TelemedWaitingSnapshot snapshot;
+  final VoidCallback? onBrowseClinics;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.check_circle_outline,
+              size: 56,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Консультация отменена',
+              style: theme.textTheme.titleLarge,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _cancelledMessage(snapshot.refundState),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.history),
+              label: const Text('Вернуться к истории'),
+            ),
+            if (onBrowseClinics != null) ...[
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () {
+                  final navigator = Navigator.of(context);
+                  if (navigator.canPop()) navigator.pop();
+                  onBrowseClinics?.call();
+                },
+                icon: const Icon(Icons.local_hospital_outlined),
+                label: const Text('Выбрать клинику'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -293,12 +494,25 @@ class _Error extends StatelessWidget {
   }
 }
 
-String _dateTime(BuildContext context, DateTime value) {
-  final local = value.toLocal();
-  final date = MaterialLocalizations.of(context).formatMediumDate(local);
-  final time = TimeOfDay.fromDateTime(local).format(context);
-  return '$date, $time';
-}
+String _cancelledMessage(String? refundState) => switch (refundState) {
+      'VOID_REQUESTED' =>
+        'Отменяем авторизацию оплаты. Списания по этой консультации не будет.',
+      'VOIDED' => 'Авторизация оплаты отменена. Списания не будет.',
+      'REFUND_PENDING' => 'Возврат поставлен в очередь.',
+      'REFUNDED' => 'Возврат выполнен.',
+      'NOT_REQUIRED' => 'Дополнительных действий по оплате не требуется.',
+      _ => 'Статус оплаты обновляется автоматически.',
+    };
+
+String _doctorTimeoutMessage(String? refundState) => switch (refundState) {
+      'VOID_REQUESTED' =>
+        'Отменяем авторизацию оплаты. Списания по этой консультации не будет.',
+      'VOIDED' => 'Авторизация оплаты отменена. Списания не будет.',
+      'REFUND_PENDING' => 'Возврат поставлен в очередь.',
+      'REFUNDED' => 'Возврат выполнен.',
+      'NOT_REQUIRED' => 'Оплата не требовала дополнительных действий.',
+      _ => 'Проверяем автоматическую отмену авторизации оплаты.',
+    };
 
 class _PlaceholderCard extends StatelessWidget {
   const _PlaceholderCard({required this.height});

@@ -9,6 +9,9 @@ export interface OwnerTelemedSessionSnapshot {
   telemedCaseState: string | null;
   paymentStatus: string | null;
   refundState: string | null;
+  recommendationText: string | null;
+  followUpNotes: string | null;
+  safetyEscalation: boolean | null;
   doctorJoinDeadlineAt: string;
   serverNow: string;
   version: number;
@@ -22,6 +25,9 @@ export interface OwnerTelemedSessionSummary {
   telemedCaseState: string | null;
   paymentStatus: string | null;
   refundState: string | null;
+  recommendationText: string | null;
+  followUpNotes: string | null;
+  safetyEscalation: boolean | null;
   bucket: 'ACTIVE' | 'HISTORY';
   startsAt: string;
   endsAt: string;
@@ -46,6 +52,9 @@ export class TelemedOwnerSessionService {
       telemed_case_state: string | null;
       payment_status: string | null;
       refund_state: string | null;
+      recommendation_text: string | null;
+      follow_up_notes: string | null;
+      safety_escalation: boolean | null;
       bucket: 'ACTIVE' | 'HISTORY';
       starts_at: Date;
       ends_at: Date;
@@ -68,6 +77,9 @@ export class TelemedOwnerSessionService {
         session.telemed_case_id::text AS telemed_case_id,
         session.state,
         telemed_case.state AS telemed_case_state,
+        telemed_case.recommendation_text,
+        telemed_case.follow_up_notes,
+        telemed_case.safety_escalation,
         telemed_payment.status AS payment_status,
         CASE
           WHEN telemed_payment.status IN ('VOID_REQUESTED', 'VOIDED', 'REFUND_PENDING', 'REFUNDED')
@@ -124,6 +136,9 @@ export class TelemedOwnerSessionService {
       telemedCaseState: row.telemed_case_state,
       paymentStatus: row.payment_status,
       refundState: row.refund_state,
+      recommendationText: row.recommendation_text,
+      followUpNotes: row.follow_up_notes,
+      safetyEscalation: row.safety_escalation,
       bucket: row.bucket,
       startsAt: row.starts_at.toISOString(),
       endsAt: row.ends_at.toISOString(),
@@ -154,6 +169,9 @@ export class TelemedOwnerSessionService {
       telemed_case_state: string | null;
       payment_status: string | null;
       refund_state: string | null;
+      recommendation_text: string | null;
+      follow_up_notes: string | null;
+      safety_escalation: boolean | null;
       expires_at: Date;
       server_now: Date;
       version: number;
@@ -162,6 +180,9 @@ export class TelemedOwnerSessionService {
         session.id::text AS id,
         session.state,
         telemed_case.state AS telemed_case_state,
+        telemed_case.recommendation_text,
+        telemed_case.follow_up_notes,
+        telemed_case.safety_escalation,
         telemed_payment.status AS payment_status,
         CASE
           WHEN telemed_payment.status IN ('VOID_REQUESTED', 'VOIDED', 'REFUND_PENDING', 'REFUNDED')
@@ -195,6 +216,9 @@ export class TelemedOwnerSessionService {
       telemedCaseState: row.telemed_case_state,
       paymentStatus: row.payment_status,
       refundState: row.refund_state,
+      recommendationText: row.recommendation_text,
+      followUpNotes: row.follow_up_notes,
+      safetyEscalation: row.safety_escalation,
       doctorJoinDeadlineAt: row.expires_at.toISOString(),
       serverNow: row.server_now.toISOString(),
       version: row.version,

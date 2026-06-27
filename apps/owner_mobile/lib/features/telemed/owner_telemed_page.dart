@@ -52,15 +52,17 @@ class _OwnerTelemedPageState extends State<OwnerTelemedPage> {
     await _request;
   }
 
-  void _openWaitingRoom(OwnerTelemedSession session) {
+  Future<void> _openWaitingRoom(OwnerTelemedSession session) async {
     if (session.bucket != 'ACTIVE') return;
-    Navigator.of(context).push(MaterialPageRoute<void>(
+    await Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => TelemedWaitingRoomPage(
         sessionId: session.sessionId,
         repository: widget.waitingRepository,
         roomAccessRepository: widget.roomAccessRepository,
+        onBrowseClinics: widget.onBrowseClinics,
       ),
     ));
+    if (mounted) _reload();
   }
 
   void _openConsultationAvailability() {
@@ -121,6 +123,7 @@ class _OwnerTelemedPageState extends State<OwnerTelemedPage> {
                         emptyText:
                             'Завершённые и отменённые консультации появятся здесь.',
                         onRefresh: _refresh,
+                        onBrowseClinics: widget.onBrowseClinics,
                       ),
                     ],
                   ),
@@ -142,6 +145,7 @@ class _TelemedSessionList extends StatelessWidget {
     required this.onRefresh,
     this.onOpen,
     this.onCreateConsultation,
+    this.onBrowseClinics,
   });
 
   final List<OwnerTelemedSession> rows;
@@ -150,6 +154,7 @@ class _TelemedSessionList extends StatelessWidget {
   final Future<void> Function() onRefresh;
   final ValueChanged<OwnerTelemedSession>? onOpen;
   final VoidCallback? onCreateConsultation;
+  final VoidCallback? onBrowseClinics;
 
   @override
   Widget build(BuildContext context) {
@@ -197,6 +202,7 @@ class _TelemedSessionList extends StatelessWidget {
         itemBuilder: (context, index) => _TelemedSessionCard(
           session: rows[index],
           onOpen: onOpen == null ? null : () => onOpen!(rows[index]),
+          onBrowseClinics: onBrowseClinics,
         ),
       ),
     );
@@ -204,10 +210,15 @@ class _TelemedSessionList extends StatelessWidget {
 }
 
 class _TelemedSessionCard extends StatelessWidget {
-  const _TelemedSessionCard({required this.session, this.onOpen});
+  const _TelemedSessionCard({
+    required this.session,
+    this.onOpen,
+    this.onBrowseClinics,
+  });
 
   final OwnerTelemedSession session;
   final VoidCallback? onOpen;
+  final VoidCallback? onBrowseClinics;
 
   @override
   Widget build(BuildContext context) {
@@ -256,7 +267,7 @@ class _TelemedSessionCard extends StatelessWidget {
               if (session.refundState != null) ...[
                 const SizedBox(height: 8),
                 Text(
-                  _refundLabel(session.refundState!),
+                  _paymentActionLabel(session.refundState!),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: colors.onSurfaceVariant,
                       ),
@@ -269,10 +280,79 @@ class _TelemedSessionCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
+              if (session.recommendationText != null) ...[
+                const SizedBox(height: 12),
+                _TelemedResultBlock(
+                  icon: Icons.fact_check_outlined,
+                  title: 'Рекомендация врача',
+                  text: session.recommendationText!,
+                ),
+              ],
+              if (session.followUpNotes != null) ...[
+                const SizedBox(height: 12),
+                _TelemedResultBlock(
+                  icon: Icons.event_available_outlined,
+                  title: 'Следующий шаг',
+                  text: session.followUpNotes!,
+                ),
+              ],
+              if (session.safetyEscalation == true) ...[
+                const SizedBox(height: 12),
+                _TelemedResultBlock(
+                  icon: Icons.local_hospital_outlined,
+                  title: 'Нужен очный осмотр',
+                  text:
+                      'Врач отметил, что безопаснее продолжить помощь в клинике.',
+                ),
+              ],
+              if ((session.followUpNotes != null ||
+                      session.safetyEscalation == true) &&
+                  onBrowseClinics != null) ...[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: onBrowseClinics,
+                  icon: const Icon(Icons.local_hospital_outlined),
+                  label: const Text('Выбрать клинику'),
+                ),
+              ],
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _TelemedResultBlock extends StatelessWidget {
+  const _TelemedResultBlock({
+    required this.icon,
+    required this.title,
+    required this.text,
+  });
+
+  final IconData icon;
+  final String title;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: theme.colorScheme.primary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: theme.textTheme.labelLarge),
+              const SizedBox(height: 4),
+              Text(text, style: theme.textTheme.bodySmall),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -771,7 +851,7 @@ class _TelemedIntakeResultView extends StatelessWidget {
         if (paymentIntent != null) ...[
           const SizedBox(height: 8),
           Text(
-            'Оплата создана: ${paymentIntent!.amount} ${paymentIntent!.currency}. Политика возврата: ${paymentIntent!.refundPolicyVersion}.',
+            'Оплата создана: ${paymentIntent!.amount} ${paymentIntent!.currency}. Правила отмены оплаты: ${paymentIntent!.refundPolicyVersion}.',
             style: theme.textTheme.bodySmall,
           ),
         ],
@@ -1040,13 +1120,13 @@ _StateView _state(String value, ColorScheme colors) => switch (value) {
         ),
     };
 
-String _refundLabel(String value) => switch (value) {
+String _paymentActionLabel(String value) => switch (value) {
       'VOID_REQUESTED' => 'Отмена оплаты поставлена в очередь.',
       'VOIDED' => 'Оплата отменена, списания не будет.',
       'REFUND_PENDING' => 'Возврат поставлен в очередь.',
       'REFUNDED' => 'Возврат выполнен.',
-      'NOT_REQUIRED' => 'Оплата не требовала возврата.',
-      _ => 'Статус возврата обновляется.',
+      'NOT_REQUIRED' => 'Дополнительных действий по оплате не требуется.',
+      _ => 'Статус оплаты обновляется.',
     };
 
 String _dateTime(BuildContext context, DateTime value) {

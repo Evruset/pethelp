@@ -10,6 +10,7 @@ enum TelemedWaitingStateKind {
   connected,
   doctorTimeout,
   completed,
+  cancelled,
 }
 
 class TelemedWaitingSnapshot {
@@ -19,6 +20,9 @@ class TelemedWaitingSnapshot {
     required this.doctorJoinDeadlineAt,
     required this.serverNow,
     required this.version,
+    this.telemedCaseState,
+    this.paymentStatus,
+    this.refundState,
   });
 
   final String sessionId;
@@ -26,6 +30,9 @@ class TelemedWaitingSnapshot {
   final DateTime doctorJoinDeadlineAt;
   final DateTime serverNow;
   final int version;
+  final String? telemedCaseState;
+  final String? paymentStatus;
+  final String? refundState;
 
   Duration remainingAt(DateTime deviceNowUtc) {
     final serverOffset = serverNow.difference(DateTime.now().toUtc());
@@ -35,6 +42,7 @@ class TelemedWaitingSnapshot {
 
 abstract class TelemedWaitingRepository {
   Future<TelemedWaitingSnapshot> readSession(String sessionId);
+  Future<TelemedWaitingSnapshot> cancelSession(String sessionId);
 }
 
 sealed class TelemedWaitingEvent {
@@ -55,6 +63,10 @@ class TelemedRealtimeSnapshotReceived extends TelemedWaitingEvent {
   final TelemedWaitingSnapshot snapshot;
 }
 
+class TelemedWaitingCancelRequested extends TelemedWaitingEvent {
+  const TelemedWaitingCancelRequested();
+}
+
 sealed class TelemedWaitingState {
   const TelemedWaitingState();
 }
@@ -64,7 +76,13 @@ class TelemedWaitingLoading extends TelemedWaitingState {
 }
 
 class TelemedWaitingForDoctor extends TelemedWaitingState {
-  const TelemedWaitingForDoctor(this.snapshot);
+  const TelemedWaitingForDoctor(this.snapshot, {this.cancelError});
+  final TelemedWaitingSnapshot snapshot;
+  final String? cancelError;
+}
+
+class TelemedWaitingCancelling extends TelemedWaitingState {
+  const TelemedWaitingCancelling(this.snapshot);
   final TelemedWaitingSnapshot snapshot;
 }
 
@@ -79,11 +97,17 @@ class TelemedRoomReady extends TelemedWaitingState {
 }
 
 class TelemedDoctorTimeout extends TelemedWaitingState {
-  const TelemedDoctorTimeout();
+  const TelemedDoctorTimeout(this.snapshot);
+  final TelemedWaitingSnapshot snapshot;
 }
 
 class TelemedCompleted extends TelemedWaitingState {
   const TelemedCompleted();
+}
+
+class TelemedCancelled extends TelemedWaitingState {
+  const TelemedCancelled(this.snapshot);
+  final TelemedWaitingSnapshot snapshot;
 }
 
 class TelemedWaitingError extends TelemedWaitingState {
@@ -102,6 +126,7 @@ class TelemedWaitingBloc
     on<TelemedWaitingOpened>(_onOpened);
     on<TelemedWaitingRefreshRequested>(_onRefresh);
     on<TelemedRealtimeSnapshotReceived>(_onRealtime);
+    on<TelemedWaitingCancelRequested>(_onCancel);
   }
 
   final TelemedWaitingRepository _repository;
@@ -117,6 +142,11 @@ class TelemedWaitingBloc
 
   Future<void> _onRefresh(TelemedWaitingRefreshRequested event,
       Emitter<TelemedWaitingState> emit) async {
+    final current = state;
+    if (current is TelemedRoomReady) {
+      await _refreshRoomStatus(emit, current);
+      return;
+    }
     await _readAuthoritative(emit);
   }
 
@@ -128,6 +158,29 @@ class TelemedWaitingBloc
       return;
     }
     await _emitSnapshot(emit, event.snapshot);
+  }
+
+  Future<void> _onCancel(TelemedWaitingCancelRequested event,
+      Emitter<TelemedWaitingState> emit) async {
+    final current = state;
+    if (current is! TelemedWaitingForDoctor) return;
+    emit(TelemedWaitingCancelling(current.snapshot));
+    try {
+      final snapshot =
+          await _repository.cancelSession(current.snapshot.sessionId);
+      await _emitSnapshot(emit, snapshot);
+    } on TelemedWaitingApiException catch (error) {
+      emit(TelemedWaitingForDoctor(
+        current.snapshot,
+        cancelError: _cancelMessage(error.code),
+      ));
+    } catch (_) {
+      emit(TelemedWaitingForDoctor(
+        current.snapshot,
+        cancelError:
+            'Не удалось отменить консультацию. Проверьте статус и попробуйте снова.',
+      ));
+    }
   }
 
   Future<void> _readAuthoritative(Emitter<TelemedWaitingState> emit) async {
@@ -156,9 +209,11 @@ class TelemedWaitingBloc
         emit(TelemedConnectingRoom(snapshot));
         await _createRoomAccess(emit, snapshot.sessionId);
       case TelemedWaitingStateKind.doctorTimeout:
-        emit(const TelemedDoctorTimeout());
+        emit(TelemedDoctorTimeout(snapshot));
       case TelemedWaitingStateKind.completed:
         emit(const TelemedCompleted());
+      case TelemedWaitingStateKind.cancelled:
+        emit(TelemedCancelled(snapshot));
     }
   }
 
@@ -172,6 +227,25 @@ class TelemedWaitingBloc
     } catch (_) {
       emit(const TelemedWaitingError(
           'Не удалось подготовить комнату консультации. Обновите статус.'));
+    }
+  }
+
+  Future<void> _refreshRoomStatus(
+      Emitter<TelemedWaitingState> emit, TelemedRoomReady current) async {
+    final sessionId = _sessionId;
+    if (sessionId == null) return;
+    try {
+      final snapshot = await _repository.readSession(sessionId);
+      if (snapshot.state == TelemedWaitingStateKind.connected) {
+        emit(current);
+        return;
+      }
+      await _emitSnapshot(emit, snapshot);
+    } on TelemedWaitingApiException catch (error) {
+      emit(TelemedWaitingError(_waitingMessage(error.code)));
+    } catch (_) {
+      emit(const TelemedWaitingError(
+          'Не удалось получить статус консультации.'));
     }
   }
 
@@ -192,6 +266,22 @@ class TelemedWaitingBloc
         'Консультация не найдена или недоступна для этого профиля.',
       'UNAUTHENTICATED' => 'Сессия истекла. Войдите снова.',
       _ => 'Не удалось получить статус подключения врача.',
+    };
+  }
+
+  String _cancelMessage(String code) {
+    return switch (code) {
+      'TELEMED_SESSION_NOT_CANCELLABLE' =>
+        'Врач уже подключается или консультация завершилась. Обновите статус.',
+      'TELEMED_SESSION_ALREADY_CANCELLED' =>
+        'Консультация уже отменена. Обновите список консультаций.',
+      'TELEMED_OWNER_CANCEL_UNSUPPORTED' =>
+        'Эту консультацию нельзя отменить из приложения.',
+      'INVALID_IDEMPOTENCY_KEY' =>
+        'Не удалось безопасно подтвердить отмену. Попробуйте ещё раз.',
+      'UNAUTHENTICATED' => 'Сессия истекла. Войдите снова.',
+      _ =>
+        'Не удалось отменить консультацию. Проверьте статус и попробуйте снова.',
     };
   }
 }
