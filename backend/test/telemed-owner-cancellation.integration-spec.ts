@@ -11,6 +11,7 @@ process.env.LIVEKIT_API_SECRET = 'livekit-test-api-secret';
 const { DomainException } = require('../src/common/domain-error') as typeof import('../src/common/domain-error');
 const { DatabaseService } = require('../src/database/database.service') as typeof import('../src/database/database.service');
 const { LiveKitService } = require('../src/modules/telemed/livekit.service') as typeof import('../src/modules/telemed/livekit.service');
+const { TelemedOwnerSessionService } = require('../src/modules/telemed/telemed-owner-session.service') as typeof import('../src/modules/telemed/telemed-owner-session.service');
 const {
   TelemedOwnerCancellationService,
 } = require('../src/modules/telemed/telemed-owner-cancellation.service') as typeof import('../src/modules/telemed/telemed-owner-cancellation.service');
@@ -22,17 +23,20 @@ jest.setTimeout(30_000);
 type DatabaseServiceInstance = InstanceType<typeof DatabaseService>;
 type TelemedOwnerCancellationServiceInstance = InstanceType<typeof TelemedOwnerCancellationService>;
 type TelemedServiceInstance = InstanceType<typeof TelemedService>;
+type TelemedOwnerSessionServiceInstance = InstanceType<typeof TelemedOwnerSessionService>;
 type DomainExceptionInstance = InstanceType<typeof DomainException>;
 
 describe('Telemed owner cancellation', () => {
   let database: DatabaseServiceInstance;
   let cancellation: TelemedOwnerCancellationServiceInstance;
   let telemed: TelemedServiceInstance;
+  let ownerSessions: TelemedOwnerSessionServiceInstance;
 
   beforeAll(() => {
     database = new DatabaseService();
     cancellation = new TelemedOwnerCancellationService(database);
     telemed = new TelemedService(database, new TraceContext(), new LiveKitService());
+    ownerSessions = new TelemedOwnerSessionService(database);
   });
 
   beforeEach(async () => resetDatabase(database));
@@ -80,6 +84,27 @@ describe('Telemed owner cancellation', () => {
       outbox_count: '1',
       event_count: '1',
     });
+
+    const snapshot = await ownerSessions.read(fixture.sessionId, fixture.ownerId);
+    expect(snapshot).toMatchObject({
+      sessionId: fixture.sessionId,
+      state: 'CANCELLED',
+      telemedCaseState: 'CANCELLED_BY_OWNER',
+      paymentStatus: 'VOID_REQUESTED',
+      refundState: 'VOID_REQUESTED',
+    });
+
+    const list = await ownerSessions.list(fixture.ownerId);
+    expect(list).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        sessionId: fixture.sessionId,
+        state: 'CANCELLED',
+        telemedCaseState: 'CANCELLED_BY_OWNER',
+        paymentStatus: 'VOID_REQUESTED',
+        refundState: 'VOID_REQUESTED',
+        bucket: 'HISTORY',
+      }),
+    ]));
 
     await expectDomainError(
       telemed.connectDoctor(fixture.sessionId, fixture.doctorId),

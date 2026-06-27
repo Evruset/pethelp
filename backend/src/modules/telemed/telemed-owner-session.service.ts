@@ -109,7 +109,7 @@ export class TelemedOwnerSessionService {
       LEFT JOIN booking_schema.booking_holds hold ON hold.id = session.booking_hold_id
       LEFT JOIN telemed_schema.telemed_cases telemed_case ON telemed_case.id = session.telemed_case_id
       LEFT JOIN LATERAL (
-        SELECT payment.status
+        SELECT payment.id, payment.status
         FROM telemed_schema.telemed_payment_intents payment
         WHERE payment.case_id = telemed_case.id
         ORDER BY payment.payment_attempt_no DESC, payment.created_at DESC
@@ -197,7 +197,7 @@ export class TelemedOwnerSessionService {
       FROM telemed_schema.telemed_sessions session
       LEFT JOIN telemed_schema.telemed_cases telemed_case ON telemed_case.id = session.telemed_case_id
       LEFT JOIN LATERAL (
-        SELECT payment.status
+        SELECT payment.id, payment.status
         FROM telemed_schema.telemed_payment_intents payment
         WHERE payment.case_id = telemed_case.id
         ORDER BY payment.payment_attempt_no DESC, payment.created_at DESC
