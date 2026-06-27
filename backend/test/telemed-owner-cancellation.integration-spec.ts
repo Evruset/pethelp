@@ -1,23 +1,35 @@
 import { randomUUID } from 'node:crypto';
-import { DomainException } from '../src/common/domain-error';
-import { DatabaseService } from '../src/database/database.service';
-import { LiveKitService } from '../src/modules/telemed/livekit.service';
-import { TelemedOwnerCancellationService } from '../src/modules/telemed/telemed-owner-cancellation.service';
-import { TelemedService } from '../src/modules/telemed/telemed.service';
-import { TraceContext } from '../src/observability/trace-context.context';
+
+process.env.JWT_SECRET ??= 'telemed-owner-cancel-test-secret-at-least-32-bytes';
+process.env.JWT_ISSUER ??= 'vethelp-test';
+process.env.JWT_AUDIENCE ??= 'vethelp-test';
+process.env.WORKER_SERVICE_TOKEN ??= 'telemed-owner-cancel-worker-token';
+process.env.LIVEKIT_API_URL = 'wss://livekit.test';
+process.env.LIVEKIT_API_KEY = 'livekit-test-api-key';
+process.env.LIVEKIT_API_SECRET = 'livekit-test-api-secret';
+
+const { DomainException } = require('../src/common/domain-error') as typeof import('../src/common/domain-error');
+const { DatabaseService } = require('../src/database/database.service') as typeof import('../src/database/database.service');
+const { LiveKitService } = require('../src/modules/telemed/livekit.service') as typeof import('../src/modules/telemed/livekit.service');
+const {
+  TelemedOwnerCancellationService,
+} = require('../src/modules/telemed/telemed-owner-cancellation.service') as typeof import('../src/modules/telemed/telemed-owner-cancellation.service');
+const { TelemedService } = require('../src/modules/telemed/telemed.service') as typeof import('../src/modules/telemed/telemed.service');
+const { TraceContext } = require('../src/observability/trace-context.context') as typeof import('../src/observability/trace-context.context');
 
 jest.setTimeout(30_000);
 
+type DatabaseServiceInstance = InstanceType<typeof DatabaseService>;
+type TelemedOwnerCancellationServiceInstance = InstanceType<typeof TelemedOwnerCancellationService>;
+type TelemedServiceInstance = InstanceType<typeof TelemedService>;
+type DomainExceptionInstance = InstanceType<typeof DomainException>;
+
 describe('Telemed owner cancellation', () => {
-  let database: DatabaseService;
-  let cancellation: TelemedOwnerCancellationService;
-  let telemed: TelemedService;
+  let database: DatabaseServiceInstance;
+  let cancellation: TelemedOwnerCancellationServiceInstance;
+  let telemed: TelemedServiceInstance;
 
   beforeAll(() => {
-    process.env.JWT_SECRET = process.env.JWT_SECRET ?? 'telemed-owner-cancel-test-secret-at-least-32-bytes';
-    process.env.LIVEKIT_API_URL = 'wss://livekit.test';
-    process.env.LIVEKIT_API_KEY = 'livekit-test-api-key';
-    process.env.LIVEKIT_API_SECRET = 'livekit-test-api-secret';
     database = new DatabaseService();
     cancellation = new TelemedOwnerCancellationService(database);
     telemed = new TelemedService(database, new TraceContext(), new LiveKitService());
@@ -103,13 +115,13 @@ async function expectDomainError(
     throw new Error(`Expected ${code}`);
   } catch (error) {
     expect(error).toBeInstanceOf(DomainException);
-    const finalError = error as DomainException;
+    const finalError = error as DomainExceptionInstance;
     expect(finalError.getStatus()).toBe(status);
     expect(finalError.getResponse()).toMatchObject({ code });
   }
 }
 
-async function createFixture(database: DatabaseService) {
+async function createFixture(database: DatabaseServiceInstance) {
   const ownerId = randomUUID();
   const petId = randomUUID();
   const intakeId = randomUUID();
@@ -150,7 +162,7 @@ async function createFixture(database: DatabaseService) {
   return { ownerId, sessionId, paymentId, doctorId };
 }
 
-async function resetDatabase(database: DatabaseService): Promise<void> {
+async function resetDatabase(database: DatabaseServiceInstance): Promise<void> {
   await database.query(`
     TRUNCATE TABLE
       telemed_schema.telemed_payment_events,
