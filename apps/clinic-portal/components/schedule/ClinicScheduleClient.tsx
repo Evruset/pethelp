@@ -188,6 +188,7 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
   const [endsAt, setEndsAt] = useState(localInputValue(new Date(Date.now() + 90 * 60 * 1000)));
   const [capacity, setCapacity] = useState(1);
   const [workingHours, setWorkingHours] = useState<ClinicWorkingHoursDay[]>(initialSchedule.workingHours);
+  const [completionSlot, setCompletionSlot] = useState<ClinicScheduleSlot | null>(null);
 
   const range = useMemo(() => ({
     from: new Date().toISOString(),
@@ -739,10 +740,13 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
     }
   }, [busy, clinicId, locationId, refresh]);
 
-  const completeAppointment = useCallback(async (slot: ClinicScheduleSlot) => {
+  const openCompletionDialog = useCallback((slot: ClinicScheduleSlot) => {
     if (busy || !slot.bookingHold || slot.bookingHold.state !== 'CONFIRMED') return;
-    const summary = window.prompt('Заключение по приёму');
-    if (summary == null) return;
+    setCompletionSlot(slot);
+  }, [busy]);
+
+  const completeAppointment = useCallback(async (slot: ClinicScheduleSlot, summary: string) => {
+    if (busy || !slot.bookingHold || slot.bookingHold.state !== 'CONFIRMED') return;
     if (summary.trim().length < 3) {
       setNotice('Заключение должно содержать минимум 3 символа.');
       return;
@@ -760,11 +764,13 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
       });
       const payload = await response.json().catch(() => null) as { code?: string } | null;
       if (response.ok) {
+        setCompletionSlot(null);
         setNotice('Приём закрыт. Заключение отправлено владельцу.');
         await refresh();
         return;
       }
       if (response.status === 422 && payload?.code === 'INVALID_STATE_TRANSITION') {
+        setCompletionSlot(null);
         setNotice('Эту запись уже нельзя закрыть из расписания.');
         await refresh();
         return;
@@ -1138,7 +1144,7 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
                       <td className="px-4 py-4 align-top"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${slot.state === 'CLOSED' ? 'bg-slate-100 text-slate-700' : slot.status === 'LOCKED_BY_HOLD' ? 'bg-amber-50 text-amber-800' : 'bg-emerald-50 text-emerald-700'}`}>{statusLabel(slot)}</span></td>
                       <td className="px-4 py-4 align-top text-sm text-slate-700">{slot.bookedCount} записей · {slot.heldCount} holds · cap {slot.capacity}</td>
                       <td className="px-4 py-4 align-top text-sm text-slate-700"><p>{slot.source} · {slot.integrationMode}</p>{slot.stale ? <p className="mt-1 text-xs text-amber-700">Freshness устарел</p> : <p className="mt-1 text-xs text-slate-500">Fresh</p>}</td>
-                      <td className="px-4 py-4 align-top"><div className="flex flex-col gap-2"><button type="button" disabled={busy || slot.state === 'CLOSED' || slot.heldCount > 0 || slot.bookedCount > 0} onClick={() => void updateCapacity(slot)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Capacity</button><button type="button" disabled={busy || slot.state === 'CLOSED' || slot.heldCount > 0 || slot.bookedCount > 0} onClick={() => void blackout(slot)} className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Blackout</button>{canCompleteAppointments ? <button type="button" disabled={busy || slot.bookingHold?.state !== 'CONFIRMED'} onClick={() => void completeAppointment(slot)} className="w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Закрыть приём</button> : null}</div></td>
+                      <td className="px-4 py-4 align-top"><div className="flex flex-col gap-2"><button type="button" disabled={busy || slot.state === 'CLOSED' || slot.heldCount > 0 || slot.bookedCount > 0} onClick={() => void updateCapacity(slot)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Capacity</button><button type="button" disabled={busy || slot.state === 'CLOSED' || slot.heldCount > 0 || slot.bookedCount > 0} onClick={() => void blackout(slot)} className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Blackout</button>{canCompleteAppointments ? <button type="button" disabled={busy || slot.bookingHold?.state !== 'CONFIRMED'} onClick={() => openCompletionDialog(slot)} className="w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Закрыть приём</button> : null}</div></td>
                     </tr>
                   ))}
                 </tbody>
@@ -1147,6 +1153,63 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
           )}
         </div>
       </section>
+
+      <CompletionSummaryDialog
+        key={completionSlot?.id ?? 'completion-dialog-empty'}
+        slot={completionSlot}
+        submitting={busy}
+        onClose={() => setCompletionSlot(null)}
+        onSubmit={(slot, summary) => void completeAppointment(slot, summary)}
+      />
     </main>
+  );
+}
+
+function CompletionSummaryDialog({
+  slot,
+  submitting,
+  onClose,
+  onSubmit,
+}: {
+  slot: ClinicScheduleSlot | null;
+  submitting: boolean;
+  onClose: () => void;
+  onSubmit: (slot: ClinicScheduleSlot, summary: string) => void;
+}) {
+  const [summary, setSummary] = useState('');
+
+  if (!slot) return null;
+
+  const normalized = summary.trim();
+  return (
+    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="completion-title">
+      <button type="button" aria-label="Закрыть" className="absolute inset-0 bg-slate-950/40" onClick={onClose} disabled={submitting} />
+      <section className="absolute left-1/2 top-1/2 flex max-h-[90vh] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 flex-col rounded-2xl bg-white shadow-2xl">
+        <header className="border-b border-slate-200 px-6 py-5">
+          <p className="text-sm font-semibold text-emerald-700">VetHelp · clinical summary</p>
+          <h2 id="completion-title" className="mt-1 text-2xl font-semibold text-slate-950">Закрыть приём</h2>
+          <p className="mt-2 text-sm text-slate-600">
+            {dt(slot.startsAt)} · {slot.service?.displayName ?? 'Услуга не указана'}
+          </p>
+        </header>
+        <section className="px-6 py-5">
+          <label htmlFor="completion-summary" className="text-sm font-semibold text-slate-900">Заключение по приёму</label>
+          <textarea
+            id="completion-summary"
+            value={summary}
+            onChange={(event) => setSummary(event.target.value.slice(0, 2000))}
+            rows={7}
+            className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
+          />
+          <p className="mt-2 text-xs text-slate-500">Заключение будет отправлено владельцу и сохранено в Pet Diary.</p>
+        </section>
+        <footer className="flex gap-3 border-t border-slate-200 px-6 py-4">
+          <button type="button" onClick={onClose} disabled={submitting} className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Отмена</button>
+          <button type="button" disabled={normalized.length < 3 || submitting} onClick={() => onSubmit(slot, normalized)} className="flex-1 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
+            {submitting ? 'Закрываем...' : 'Закрыть приём'}
+          </button>
+        </footer>
+      </section>
+    </div>
   );
 }
