@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { captureEvidence } from './support/evidence';
 import type { BrowserContext, Page } from '@playwright/test';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { SignJWT } from 'jose';
@@ -53,6 +54,10 @@ test.afterAll(async () => {
 
 test.beforeEach(() => {
   resetBackend();
+});
+
+test.afterEach(async ({ page }, testInfo) => {
+  await captureEvidence(page, testInfo, testInfo.status === 'passed' ? 'final-state' : 'failure-state');
 });
 
 test('redirects unauthenticated clinic users to forbidden', async ({ page }) => {
