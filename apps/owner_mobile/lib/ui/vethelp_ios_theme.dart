@@ -134,7 +134,7 @@ class VetHelpTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size.fromHeight(52),
+          minimumSize: const Size(0, 52),
           shape: RoundedRectangleBorder(borderRadius: fieldRadius),
           textStyle: base.textTheme.labelLarge?.copyWith(
             fontWeight: FontWeight.w700,
@@ -143,7 +143,7 @@ class VetHelpTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size.fromHeight(52),
+          minimumSize: const Size(0, 52),
           side: BorderSide(color: tokens.hairline),
           shape: RoundedRectangleBorder(borderRadius: fieldRadius),
           textStyle: base.textTheme.labelLarge?.copyWith(
