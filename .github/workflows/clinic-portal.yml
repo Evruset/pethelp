@@ -46,3 +46,4 @@ jobs:
             apps/clinic-portal/playwright-report
             apps/clinic-portal/test-results
           if-no-files-found: ignore
+          retention-days: 14
