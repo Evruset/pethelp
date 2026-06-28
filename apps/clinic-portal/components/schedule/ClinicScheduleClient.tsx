@@ -189,6 +189,8 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
   const [capacity, setCapacity] = useState(1);
   const [workingHours, setWorkingHours] = useState<ClinicWorkingHoursDay[]>(initialSchedule.workingHours);
   const [completionSlot, setCompletionSlot] = useState<ClinicScheduleSlot | null>(null);
+  const [blackoutSlot, setBlackoutSlot] = useState<ClinicScheduleSlot | null>(null);
+  const [capacitySlot, setCapacitySlot] = useState<ClinicScheduleSlot | null>(null);
 
   const range = useMemo(() => ({
     from: new Date().toISOString(),
@@ -653,10 +655,14 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
     }
   }, [busy, capacity, clinicId, endsAt, locationId, refresh, resourceId, serviceId, staffId, startsAt]);
 
+  const openBlackoutDialog = useCallback((slot: ClinicScheduleSlot) => {
+    if (busy || slot.state === 'CLOSED' || slot.heldCount > 0 || slot.bookedCount > 0) return;
+    setBlackoutSlot(slot);
+  }, [busy]);
+
   const blackout = useCallback(async (slot: ClinicScheduleSlot) => {
     if (busy) return;
-    const confirmed = window.confirm(`Закрыть окно ${dt(slot.startsAt)}? Это возможно только если нет удержаний и записей.`);
-    if (!confirmed) return;
+    setBlackoutSlot(null);
     setBusy(true);
     setNotice(null);
     try {
@@ -694,15 +700,18 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
     }
   }, [busy, clinicId, locationId, refresh]);
 
-  const updateCapacity = useCallback(async (slot: ClinicScheduleSlot) => {
+  const openCapacityDialog = useCallback((slot: ClinicScheduleSlot) => {
+    if (busy || slot.state === 'CLOSED' || slot.heldCount > 0 || slot.bookedCount > 0) return;
+    setCapacitySlot(slot);
+  }, [busy]);
+
+  const updateCapacity = useCallback(async (slot: ClinicScheduleSlot, nextCapacity: number) => {
     if (busy) return;
-    const value = window.prompt('Новая capacity для окна', String(slot.capacity));
-    if (value == null) return;
-    const nextCapacity = Number(value);
     if (!Number.isInteger(nextCapacity) || nextCapacity < 1 || nextCapacity > 50) {
       setNotice('Capacity должна быть целым числом от 1 до 50.');
       return;
     }
+    setCapacitySlot(null);
     setBusy(true);
     setNotice(null);
     try {
@@ -1144,7 +1153,7 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
                       <td className="px-4 py-4 align-top"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${slot.state === 'CLOSED' ? 'bg-slate-100 text-slate-700' : slot.status === 'LOCKED_BY_HOLD' ? 'bg-amber-50 text-amber-800' : 'bg-emerald-50 text-emerald-700'}`}>{statusLabel(slot)}</span></td>
                       <td className="px-4 py-4 align-top text-sm text-slate-700">{slot.bookedCount} записей · {slot.heldCount} holds · cap {slot.capacity}</td>
                       <td className="px-4 py-4 align-top text-sm text-slate-700"><p>{slot.source} · {slot.integrationMode}</p>{slot.stale ? <p className="mt-1 text-xs text-amber-700">Freshness устарел</p> : <p className="mt-1 text-xs text-slate-500">Fresh</p>}</td>
-                      <td className="px-4 py-4 align-top"><div className="flex flex-col gap-2"><button type="button" disabled={busy || slot.state === 'CLOSED' || slot.heldCount > 0 || slot.bookedCount > 0} onClick={() => void updateCapacity(slot)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Capacity</button><button type="button" disabled={busy || slot.state === 'CLOSED' || slot.heldCount > 0 || slot.bookedCount > 0} onClick={() => void blackout(slot)} className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Blackout</button>{canCompleteAppointments ? <button type="button" disabled={busy || slot.bookingHold?.state !== 'CONFIRMED'} onClick={() => openCompletionDialog(slot)} className="w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Закрыть приём</button> : null}</div></td>
+                      <td className="px-4 py-4 align-top"><div className="flex flex-col gap-2"><button type="button" disabled={busy || slot.state === 'CLOSED' || slot.heldCount > 0 || slot.bookedCount > 0} onClick={() => openCapacityDialog(slot)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Capacity</button><button type="button" disabled={busy || slot.state === 'CLOSED' || slot.heldCount > 0 || slot.bookedCount > 0} onClick={() => openBlackoutDialog(slot)} className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Blackout</button>{canCompleteAppointments ? <button type="button" disabled={busy || slot.bookingHold?.state !== 'CONFIRMED'} onClick={() => openCompletionDialog(slot)} className="w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Закрыть приём</button> : null}</div></td>
                     </tr>
                   ))}
                 </tbody>
@@ -1161,7 +1170,106 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
         onClose={() => setCompletionSlot(null)}
         onSubmit={(slot, summary) => void completeAppointment(slot, summary)}
       />
+      <BlackoutDialog
+        slot={blackoutSlot}
+        submitting={busy}
+        onClose={() => setBlackoutSlot(null)}
+        onConfirm={(slot) => void blackout(slot)}
+      />
+      <CapacityDialog
+        key={capacitySlot?.id ?? 'capacity-dialog-empty'}
+        slot={capacitySlot}
+        submitting={busy}
+        onClose={() => setCapacitySlot(null)}
+        onSubmit={(slot, nextCapacity) => void updateCapacity(slot, nextCapacity)}
+      />
     </main>
+  );
+}
+
+function BlackoutDialog({
+  slot,
+  submitting,
+  onClose,
+  onConfirm,
+}: {
+  slot: ClinicScheduleSlot | null;
+  submitting: boolean;
+  onClose: () => void;
+  onConfirm: (slot: ClinicScheduleSlot) => void;
+}) {
+  if (!slot) return null;
+
+  return (
+    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="blackout-title">
+      <button type="button" aria-label="Закрыть" className="absolute inset-0 bg-slate-950/40" onClick={onClose} disabled={submitting} />
+      <section className="absolute left-1/2 top-1/2 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white shadow-2xl">
+        <header className="border-b border-slate-200 px-6 py-5">
+          <p className="text-sm font-semibold text-red-700">VetHelp · schedule</p>
+          <h2 id="blackout-title" className="mt-1 text-2xl font-semibold text-slate-950">Закрыть окно</h2>
+          <p className="mt-2 text-sm text-slate-600">{dt(slot.startsAt)} · {slot.service?.displayName ?? 'Услуга не указана'}</p>
+        </header>
+        <div className="px-6 py-5 text-sm text-slate-700">
+          Окно будет закрыто только если backend подтвердит, что в нём нет активных удержаний и записей.
+        </div>
+        <footer className="flex gap-3 border-t border-slate-200 px-6 py-4">
+          <button type="button" onClick={onClose} disabled={submitting} className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Отмена</button>
+          <button type="button" onClick={() => onConfirm(slot)} disabled={submitting} className="flex-1 rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
+            {submitting ? 'Закрываем...' : 'Закрыть окно'}
+          </button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+function CapacityDialog({
+  slot,
+  submitting,
+  onClose,
+  onSubmit,
+}: {
+  slot: ClinicScheduleSlot | null;
+  submitting: boolean;
+  onClose: () => void;
+  onSubmit: (slot: ClinicScheduleSlot, nextCapacity: number) => void;
+}) {
+  const [value, setValue] = useState(() => String(slot?.capacity ?? 1));
+
+  if (!slot) return null;
+
+  const nextCapacity = Number(value);
+  const valid = Number.isInteger(nextCapacity) && nextCapacity >= 1 && nextCapacity <= 50;
+  return (
+    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="capacity-title">
+      <button type="button" aria-label="Закрыть" className="absolute inset-0 bg-slate-950/40" onClick={onClose} disabled={submitting} />
+      <section className="absolute left-1/2 top-1/2 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white shadow-2xl">
+        <header className="border-b border-slate-200 px-6 py-5">
+          <p className="text-sm font-semibold text-blue-700">VetHelp · schedule</p>
+          <h2 id="capacity-title" className="mt-1 text-2xl font-semibold text-slate-950">Изменить capacity</h2>
+          <p className="mt-2 text-sm text-slate-600">{dt(slot.startsAt)} · текущая capacity {slot.capacity}</p>
+        </header>
+        <div className="px-6 py-5">
+          <label htmlFor="slot-capacity" className="text-sm font-semibold text-slate-900">Новая capacity</label>
+          <input
+            id="slot-capacity"
+            type="number"
+            min={1}
+            max={50}
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
+          />
+          <p className={`mt-2 text-xs ${valid ? 'text-slate-500' : 'text-red-700'}`}>Введите целое число от 1 до 50.</p>
+        </div>
+        <footer className="flex gap-3 border-t border-slate-200 px-6 py-4">
+          <button type="button" onClick={onClose} disabled={submitting} className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Отмена</button>
+          <button type="button" disabled={!valid || submitting} onClick={() => onSubmit(slot, nextCapacity)} className="flex-1 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
+            {submitting ? 'Сохраняем...' : 'Сохранить'}
+          </button>
+        </footer>
+      </section>
+    </div>
   );
 }
 
