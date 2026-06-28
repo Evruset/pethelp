@@ -46,9 +46,31 @@ void main() {
     expect(waitingRepository.readCalls, 0);
     expect(
       find.text(
-          'Консультация не состоялась. Статус оплаты проверяется автоматически.'),
+          'Консультация не состоялась. Статус авторизации оплаты проверяется автоматически.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('history shows owner-cancelled session with payment void copy',
+      (tester) async {
+    await tester.pumpWidget(_page(
+      repository: _FakeOwnerTelemedRepository([
+        _session(
+          bucket: 'HISTORY',
+          state: 'CANCELLED',
+          refundState: 'VOID_REQUESTED',
+        ),
+      ]),
+      waitingRepository: _FakeWaitingRepository(),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('История'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Консультация отменена'), findsOneWidget);
+    expect(find.text('Отменяем авторизацию оплаты.'), findsOneWidget);
+    expect(find.textContaining('Возврат'), findsNothing);
   });
 
   testWidgets('empty active state opens controlled telemed availability',
@@ -122,6 +144,7 @@ Widget _page({
 OwnerTelemedSession _session({
   required String bucket,
   required String state,
+  String? refundState,
   String? recommendationText,
   String? followUpNotes,
   bool? safetyEscalation,
@@ -134,7 +157,7 @@ OwnerTelemedSession _session({
     state: state,
     telemedCaseState: null,
     paymentStatus: null,
-    refundState: null,
+    refundState: refundState,
     recommendationText: recommendationText,
     followUpNotes: followUpNotes,
     safetyEscalation: safetyEscalation,
