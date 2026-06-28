@@ -75,6 +75,7 @@ class OwnerPetCareVisit {
     required this.serviceName,
     required this.priceAmount,
     required this.currency,
+    this.clinicalSummary,
   });
 
   final String holdId;
@@ -89,6 +90,7 @@ class OwnerPetCareVisit {
   final String? serviceName;
   final String? priceAmount;
   final String? currency;
+  final String? clinicalSummary;
 
   factory OwnerPetCareVisit.fromJson(Map<String, dynamic> json) {
     final clinic = json['clinic'] as Map<String, dynamic>;
@@ -109,6 +111,7 @@ class OwnerPetCareVisit {
       serviceName: service['name'] as String?,
       priceAmount: service['priceAmount'] as String?,
       currency: service['currency'] as String?,
+      clinicalSummary: json['clinicalSummary'] as String?,
     );
   }
 }
