@@ -83,9 +83,11 @@ test('closes a confirmed appointment and refreshes the authoritative schedule', 
 
   const summary = 'Состояние стабильное, назначена контрольная консультация.';
   await uiStep(page, testInfo, 'Отправить clinical summary', async () => {
-    const dialogHandled = expectPromptAndAccept(page, 'Заключение по приёму', summary);
     await slotRow(page).getByRole('button', { name: 'Закрыть приём' }).click();
-    await dialogHandled;
+    const dialog = page.getByRole('dialog', { name: 'Закрыть приём' });
+    await expect(dialog).toBeVisible();
+    await dialog.getByLabel('Заключение по приёму').fill(summary);
+    await dialog.getByRole('button', { name: 'Закрыть приём' }).click();
   });
 
   await uiStep(page, testInfo, 'Проверить refresh после закрытия приёма', async () => {
@@ -108,9 +110,11 @@ test('shows an actionable message and refreshes when appointment state is no lon
   await uiStep(page, testInfo, 'Открыть расписание перед stale-state закрытием', () => page.goto(`/clinics/${clinicId}/locations/${locationId}/schedule`));
 
   await uiStep(page, testInfo, 'Получить stale-state при закрытии приёма', async () => {
-    const dialogHandled = expectPromptAndAccept(page, 'Заключение по приёму', 'Заключение готово.');
     await slotRow(page).getByRole('button', { name: 'Закрыть приём' }).click();
-    await dialogHandled;
+    const dialog = page.getByRole('dialog', { name: 'Закрыть приём' });
+    await expect(dialog).toBeVisible();
+    await dialog.getByLabel('Заключение по приёму').fill('Заключение готово.');
+    await dialog.getByRole('button', { name: 'Закрыть приём' }).click();
   });
 
   await uiStep(page, testInfo, 'Проверить сообщение и refresh после stale-state', async () => {
@@ -120,22 +124,6 @@ test('shows an actionable message and refreshes when appointment state is no lon
     expect(scheduleReads).toBeGreaterThanOrEqual(2);
   });
 });
-
-function expectPromptAndAccept(page: Page, expectedMessage: string, answer: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    page.once('dialog', async (dialog) => {
-      try {
-        expect(dialog.type()).toBe('prompt');
-        expect(dialog.message()).toBe(expectedMessage);
-        await dialog.accept(answer);
-        resolve();
-      } catch (error) {
-        await dialog.dismiss().catch(() => undefined);
-        reject(error);
-      }
-    });
-  });
-}
 
 function slotRow(page: Page) {
   return page.getByRole('row').filter({ hasText: '1 записей · 0 holds · cap 1' });
