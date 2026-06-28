@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { captureEvidence } from './support/evidence';
+import { captureEvidence, uiStep } from './support/evidence';
 import type { BrowserContext, Page } from '@playwright/test';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { SignJWT } from 'jose';
@@ -60,93 +60,109 @@ test.afterEach(async ({ page }, testInfo) => {
   await captureEvidence(page, testInfo, testInfo.status === 'passed' ? 'final-state' : 'failure-state');
 });
 
-test('redirects unauthenticated clinic users to forbidden', async ({ page }) => {
-  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+test('redirects unauthenticated clinic users to forbidden', async ({ page }, testInfo) => {
+  await uiStep(page, testInfo, 'Открыть очередь без сессии', () => page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`));
 
-  await expect(page).toHaveURL(/\/forbidden\?reason=session_required$/);
-  await expect(page.getByText('403 Access Denied')).toBeVisible();
+  await uiStep(page, testInfo, 'Проверить запрет доступа без сессии', async () => {
+    await expect(page).toHaveURL(/\/forbidden\?reason=session_required$/);
+    await expect(page.getByText('403 Access Denied')).toBeVisible();
+  });
 });
 
-test('blocks clinic location URL tampering before backend queue fetch', async ({ page, context, baseURL }) => {
+test('blocks clinic location URL tampering before backend queue fetch', async ({ page, context, baseURL }, testInfo) => {
   await addClinicSession(context, baseURL);
 
-  await page.goto(`/clinics/${clinicId}/locations/${forbiddenLocationId}/queue`);
+  await uiStep(page, testInfo, 'Открыть очередь чужой локации', () => page.goto(`/clinics/${clinicId}/locations/${forbiddenLocationId}/queue`));
 
-  await expect(page.getByText('403 Access Denied')).toBeVisible();
-  await expect(page.getByText('Нет доступа к этой локации')).toBeVisible();
-  expect(queueReads).toBe(0);
+  await uiStep(page, testInfo, 'Проверить ABAC-блокировку до backend fetch', async () => {
+    await expect(page.getByText('403 Access Denied')).toBeVisible();
+    await expect(page.getByText('Нет доступа к этой локации')).toBeVisible();
+    expect(queueReads).toBe(0);
+  });
 });
 
-test('renders backend FIFO order and SLA risk state from serverNow', async ({ page, context, baseURL }) => {
+test('renders backend FIFO order and SLA risk state from serverNow', async ({ page, context, baseURL }, testInfo) => {
   await addClinicSession(context, baseURL);
 
-  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  await uiStep(page, testInfo, 'Открыть очередь подтверждений', () => page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`));
 
-  await expect(rowFor(page, 'Барс')).toContainText('1');
-  await expect(rowFor(page, 'Шарик')).toContainText('2');
-  await expect(rowFor(page, 'Марта')).toContainText('3');
-  await expect(rowFor(page, 'Барс')).toContainText('Срок подтверждения истекает.');
-  await expect(rowFor(page, 'Шарик')).toContainText('Сначала обработайте более раннюю заявку.');
-  await expect(rowFor(page, 'Марта')).toContainText('Сначала обработайте более раннюю заявку.');
-  await expect(rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' })).toBeEnabled();
-  await expect(rowFor(page, 'Шарик').getByRole('button', { name: 'Ожидает очередь' })).toBeDisabled();
+  await uiStep(page, testInfo, 'Проверить FIFO и SLA-риск', async () => {
+    await expect(rowFor(page, 'Барс')).toContainText('1');
+    await expect(rowFor(page, 'Шарик')).toContainText('2');
+    await expect(rowFor(page, 'Марта')).toContainText('3');
+    await expect(rowFor(page, 'Барс')).toContainText('Срок подтверждения истекает.');
+    await expect(rowFor(page, 'Шарик')).toContainText('Сначала обработайте более раннюю заявку.');
+    await expect(rowFor(page, 'Марта')).toContainText('Сначала обработайте более раннюю заявку.');
+    await expect(rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' })).toBeEnabled();
+    await expect(rowFor(page, 'Шарик').getByRole('button', { name: 'Ожидает очередь' })).toBeDisabled();
+  });
 });
 
-test('confirms the first actionable hold and refreshes authoritative queue', async ({ page, context, baseURL }) => {
+test('confirms the first actionable hold and refreshes authoritative queue', async ({ page, context, baseURL }, testInfo) => {
   await addClinicSession(context, baseURL);
-  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  await uiStep(page, testInfo, 'Открыть очередь с первой actionable заявкой', () => page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`));
 
-  await rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' }).click();
+  await uiStep(page, testInfo, 'Подтвердить первую заявку', () => rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' }).click());
 
-  await expect(page.getByRole('status')).toContainText('Запись подтверждена. Очередь обновлена.');
-  await expect(rowFor(page, 'Барс')).toHaveCount(0);
-  await expect(rowFor(page, 'Шарик')).toContainText('1');
-  expect(confirmRequests).toEqual([{ holdId: holdA, ifMatch: '1', idempotencyKey: expect.any(String) }]);
-  expect(queueReads).toBeGreaterThanOrEqual(2);
+  await uiStep(page, testInfo, 'Проверить обновлённую authoritative очередь', async () => {
+    await expect(page.getByRole('status')).toContainText('Запись подтверждена. Очередь обновлена.');
+    await expect(rowFor(page, 'Барс')).toHaveCount(0);
+    await expect(rowFor(page, 'Шарик')).toContainText('1');
+    expect(confirmRequests).toEqual([{ holdId: holdA, ifMatch: '1', idempotencyKey: expect.any(String) }]);
+    expect(queueReads).toBeGreaterThanOrEqual(2);
+  });
 });
 
-test('refreshes queue after retryable confirm conflict without fencing the row', async ({ page, context, baseURL }) => {
+test('refreshes queue after retryable confirm conflict without fencing the row', async ({ page, context, baseURL }, testInfo) => {
   confirmMode = 'slot-locked-retry';
   await addClinicSession(context, baseURL);
-  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  await uiStep(page, testInfo, 'Открыть очередь перед retryable conflict', () => page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`));
 
-  await rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' }).click();
+  await uiStep(page, testInfo, 'Получить retryable conflict при подтверждении', () => rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' }).click());
 
-  await expect(page.getByRole('status')).toContainText('Обновляем состояние заявки.');
-  await expect(rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' })).toBeEnabled();
-  expect(confirmRequests).toEqual([{ holdId: holdA, ifMatch: '1', idempotencyKey: expect.any(String) }]);
-  expect(queueReads).toBeGreaterThanOrEqual(2);
+  await uiStep(page, testInfo, 'Проверить refresh без fencing строки', async () => {
+    await expect(page.getByRole('status')).toContainText('Обновляем состояние заявки.');
+    await expect(rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' })).toBeEnabled();
+    expect(confirmRequests).toEqual([{ holdId: holdA, ifMatch: '1', idempotencyKey: expect.any(String) }]);
+    expect(queueReads).toBeGreaterThanOrEqual(2);
+  });
 });
 
-test('groups alternative slots by date and preserves selection after retryable conflict', async ({ page, context, baseURL }) => {
+test('groups alternative slots by date and preserves selection after retryable conflict', async ({ page, context, baseURL }, testInfo) => {
   alternativeMode = 'slot-locked-retry';
   await addClinicSession(context, baseURL);
-  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  await uiStep(page, testInfo, 'Открыть очередь для альтернативного времени', () => page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`));
 
-  await rowFor(page, 'Барс').getByRole('button', { name: 'Другое время' }).click();
+  await uiStep(page, testInfo, 'Открыть drawer альтернативного времени', () => rowFor(page, 'Барс').getByRole('button', { name: 'Другое время' }).click());
 
   const dialog = page.getByRole('dialog', { name: 'Предложить другое время' });
-  await expect(dialog).toBeVisible();
-  await expect(dialog.getByText('Старое время')).toBeVisible();
-  await expect(dialog.getByText('Новое время')).toBeVisible();
-  await expect(dialog.getByRole('tab').filter({ hasText: '2 окон' })).toBeVisible();
-  await expect(dialog.getByRole('tab').filter({ hasText: '1 окон' })).toBeVisible();
+  await uiStep(page, testInfo, 'Проверить группировку слотов по датам', async () => {
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText('Старое время')).toBeVisible();
+    await expect(dialog.getByText('Новое время')).toBeVisible();
+    await expect(dialog.getByRole('tab').filter({ hasText: '2 окон' })).toBeVisible();
+    await expect(dialog.getByRole('tab').filter({ hasText: '1 окон' })).toBeVisible();
+  });
 
-  await expect(dialog.getByTestId(`alternative-slot-${alternativeSlotA}`)).toBeVisible();
-  await dialog.getByTestId(`alternative-slot-${alternativeSlotA}`).click();
-  await expect(dialog.getByText('Не выбрано')).toHaveCount(0);
-  await dialog.getByRole('button', { name: 'Предложить' }).click();
+  await uiStep(page, testInfo, 'Выбрать альтернативный слот и отправить', async () => {
+    await expect(dialog.getByTestId(`alternative-slot-${alternativeSlotA}`)).toBeVisible();
+    await dialog.getByTestId(`alternative-slot-${alternativeSlotA}`).click();
+    await expect(dialog.getByText('Не выбрано')).toHaveCount(0);
+    await dialog.getByRole('button', { name: 'Предложить' }).click();
+  });
 
-  await expect(dialog.getByRole('alert')).toContainText('Слот обновляется. Загружаем актуальный список.');
-  await expect(dialog.getByText('Новое время')).toBeVisible();
-  await expect(dialog.getByTestId(`alternative-slot-${alternativeSlotA}`)).toHaveAttribute('aria-pressed', 'true');
-  await expect(dialog.getByRole('button', { name: 'Предложить' })).toBeEnabled();
-  expect(alternativeRequests).toEqual([{
-    holdId: holdA,
-    newSlotId: alternativeSlotA,
-    ifMatch: '1',
-    idempotencyKey: expect.any(String),
-  }]);
+  await uiStep(page, testInfo, 'Проверить сохранение выбора после retryable conflict', async () => {
+    await expect(dialog.getByRole('alert')).toContainText('Слот обновляется. Загружаем актуальный список.');
+    await expect(dialog.getByText('Новое время')).toBeVisible();
+    await expect(dialog.getByTestId(`alternative-slot-${alternativeSlotA}`)).toHaveAttribute('aria-pressed', 'true');
+    await expect(dialog.getByRole('button', { name: 'Предложить' })).toBeEnabled();
+    expect(alternativeRequests).toEqual([{
+      holdId: holdA,
+      newSlotId: alternativeSlotA,
+      ifMatch: '1',
+      idempotencyKey: expect.any(String),
+    }]);
+  });
 });
 
 function rowFor(page: Page, petName: string) {

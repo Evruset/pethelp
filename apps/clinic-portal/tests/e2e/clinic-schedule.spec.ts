@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { captureEvidence } from './support/evidence';
+import { captureEvidence, uiStep } from './support/evidence';
 import type { BrowserContext, Page } from '@playwright/test';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { SignJWT } from 'jose';
@@ -53,58 +53,72 @@ test.afterEach(async ({ page }, testInfo) => {
   await captureEvidence(page, testInfo, testInfo.status === 'passed' ? 'final-state' : 'failure-state');
 });
 
-test('denies the schedule page without an authenticated clinic session', async ({ page }) => {
-  await page.goto(`/clinics/${clinicId}/locations/${locationId}/schedule`);
+test('denies the schedule page without an authenticated clinic session', async ({ page }, testInfo) => {
+  await uiStep(page, testInfo, 'Открыть расписание без сессии', () => page.goto(`/clinics/${clinicId}/locations/${locationId}/schedule`));
 
-  await expect(page).toHaveURL(/\/forbidden\?reason=session_required$/);
-  await expect(page.getByText('403 Access Denied')).toBeVisible();
+  await uiStep(page, testInfo, 'Проверить запрет доступа к расписанию', async () => {
+    await expect(page).toHaveURL(/\/forbidden\?reason=session_required$/);
+    await expect(page.getByText('403 Access Denied')).toBeVisible();
+  });
 });
 
-test('does not render appointment completion action for a receptionist', async ({ page, context, baseURL }) => {
+test('does not render appointment completion action for a receptionist', async ({ page, context, baseURL }, testInfo) => {
   await addClinicSession(context, baseURL, ['CLINIC_RECEPTIONIST']);
-  await page.goto(`/clinics/${clinicId}/locations/${locationId}/schedule`);
+  await uiStep(page, testInfo, 'Открыть расписание под ресепционистом', () => page.goto(`/clinics/${clinicId}/locations/${locationId}/schedule`));
 
-  await expect(slotRow(page)).toContainText('Заполнен');
-  await expect(slotRow(page).getByRole('button', { name: 'Закрыть приём' })).toHaveCount(0);
-  expect(completionRequests).toHaveLength(0);
+  await uiStep(page, testInfo, 'Проверить скрытие закрытия приёма для роли', async () => {
+    await expect(slotRow(page)).toContainText('Заполнен');
+    await expect(slotRow(page).getByRole('button', { name: 'Закрыть приём' })).toHaveCount(0);
+    expect(completionRequests).toHaveLength(0);
+  });
 });
 
-test('closes a confirmed appointment and refreshes the authoritative schedule', async ({ page, context, baseURL }) => {
+test('closes a confirmed appointment and refreshes the authoritative schedule', async ({ page, context, baseURL }, testInfo) => {
   await addClinicSession(context, baseURL, ['CLINIC_ADMIN']);
-  await page.goto(`/clinics/${clinicId}/locations/${locationId}/schedule`);
+  await uiStep(page, testInfo, 'Открыть расписание администратора', () => page.goto(`/clinics/${clinicId}/locations/${locationId}/schedule`));
 
-  await expect(slotRow(page).getByRole('button', { name: 'Закрыть приём' })).toBeEnabled();
+  await uiStep(page, testInfo, 'Проверить доступность закрытия приёма', async () => {
+    await expect(slotRow(page).getByRole('button', { name: 'Закрыть приём' })).toBeEnabled();
+  });
 
   const summary = 'Состояние стабильное, назначена контрольная консультация.';
-  const dialogHandled = expectPromptAndAccept(page, 'Заключение по приёму', summary);
-  await slotRow(page).getByRole('button', { name: 'Закрыть приём' }).click();
-  await dialogHandled;
-
-  await expect(page.getByRole('status')).toContainText('Приём закрыт. Заключение отправлено владельцу.');
-  await expect(slotRow(page).getByRole('button', { name: 'Закрыть приём' })).toBeDisabled();
-  expect(completionRequests).toHaveLength(1);
-  expect(completionRequests[0]).toMatchObject({
-    holdId,
-    summary: 'Состояние стабильное, назначена контрольная консультация.',
-    authorization: expect.stringMatching(/^Bearer /),
-    correlationId: expect.stringMatching(/^[0-9a-f-]{36}$/i),
+  await uiStep(page, testInfo, 'Отправить clinical summary', async () => {
+    const dialogHandled = expectPromptAndAccept(page, 'Заключение по приёму', summary);
+    await slotRow(page).getByRole('button', { name: 'Закрыть приём' }).click();
+    await dialogHandled;
   });
-  expect(scheduleReads).toBeGreaterThanOrEqual(2);
+
+  await uiStep(page, testInfo, 'Проверить refresh после закрытия приёма', async () => {
+    await expect(page.getByRole('status')).toContainText('Приём закрыт. Заключение отправлено владельцу.');
+    await expect(slotRow(page).getByRole('button', { name: 'Закрыть приём' })).toBeDisabled();
+    expect(completionRequests).toHaveLength(1);
+    expect(completionRequests[0]).toMatchObject({
+      holdId,
+      summary: 'Состояние стабильное, назначена контрольная консультация.',
+      authorization: expect.stringMatching(/^Bearer /),
+      correlationId: expect.stringMatching(/^[0-9a-f-]{36}$/i),
+    });
+    expect(scheduleReads).toBeGreaterThanOrEqual(2);
+  });
 });
 
-test('shows an actionable message and refreshes when appointment state is no longer confirmable', async ({ page, context, baseURL }) => {
+test('shows an actionable message and refreshes when appointment state is no longer confirmable', async ({ page, context, baseURL }, testInfo) => {
   completionMode = 'invalid-state';
   await addClinicSession(context, baseURL, ['CLINIC_ADMIN']);
-  await page.goto(`/clinics/${clinicId}/locations/${locationId}/schedule`);
+  await uiStep(page, testInfo, 'Открыть расписание перед stale-state закрытием', () => page.goto(`/clinics/${clinicId}/locations/${locationId}/schedule`));
 
-  const dialogHandled = expectPromptAndAccept(page, 'Заключение по приёму', 'Заключение готово.');
-  await slotRow(page).getByRole('button', { name: 'Закрыть приём' }).click();
-  await dialogHandled;
+  await uiStep(page, testInfo, 'Получить stale-state при закрытии приёма', async () => {
+    const dialogHandled = expectPromptAndAccept(page, 'Заключение по приёму', 'Заключение готово.');
+    await slotRow(page).getByRole('button', { name: 'Закрыть приём' }).click();
+    await dialogHandled;
+  });
 
-  await expect(page.getByRole('status')).toContainText('Эту запись уже нельзя закрыть из расписания.');
-  await expect(slotRow(page).getByRole('button', { name: 'Закрыть приём' })).toBeDisabled();
-  expect(completionRequests).toHaveLength(1);
-  expect(scheduleReads).toBeGreaterThanOrEqual(2);
+  await uiStep(page, testInfo, 'Проверить сообщение и refresh после stale-state', async () => {
+    await expect(page.getByRole('status')).toContainText('Эту запись уже нельзя закрыть из расписания.');
+    await expect(slotRow(page).getByRole('button', { name: 'Закрыть приём' })).toBeDisabled();
+    expect(completionRequests).toHaveLength(1);
+    expect(scheduleReads).toBeGreaterThanOrEqual(2);
+  });
 });
 
 function expectPromptAndAccept(page: Page, expectedMessage: string, answer: string): Promise<void> {
