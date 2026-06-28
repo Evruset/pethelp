@@ -396,6 +396,7 @@ class _VisitTile extends StatelessWidget {
     final price = visit.priceAmount == null
         ? null
         : '${visit.priceAmount} ${visit.currency ?? ''}'.trim();
+    final clinicalSummary = visit.clinicalSummary?.trim();
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -413,6 +414,13 @@ class _VisitTile extends StatelessWidget {
               Text(visit.clinicName),
               Text(price == null ? service : '$service · $price',
                   style: Theme.of(context).textTheme.bodySmall),
+              if (clinicalSummary != null && clinicalSummary.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text('Заключение врача',
+                    style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 2),
+                Text(clinicalSummary),
+              ],
             ],
           ),
         ),
