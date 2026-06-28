@@ -2,7 +2,7 @@ LOCAL_PROJECT ?= vethelp-alpha
 NODE20_BIN ?= $(HOME)/.nvm/versions/node/v20.20.2/bin
 COMPOSE ?= docker compose -p $(LOCAL_PROJECT) -f docker-compose.local.yml
 
-.PHONY: local-up local-down local-status local-logs local-seed local-smoke local-test clinic-portal-session
+.PHONY: local-up local-down local-status local-logs local-seed local-smoke local-stack-e2e local-test clinic-portal-session
 
 local-up:
 	$(COMPOSE) up -d --build
@@ -25,6 +25,9 @@ local-seed:
 
 local-smoke:
 	backend/scripts/smoke-local-journey.sh
+
+local-stack-e2e:
+	cd apps/clinic-portal && PATH="$(NODE20_BIN):$$PATH" npm run e2e:local-stack
 
 clinic-portal-session:
 	PATH="$(NODE20_BIN):$$PATH" node dev/local/clinic-portal-session.mjs
