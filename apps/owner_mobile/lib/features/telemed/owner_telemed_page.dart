@@ -1114,7 +1114,12 @@ _StateView _state(String value, ColorScheme colors) => switch (value) {
           Icons.schedule_outlined,
           colors.error,
           description:
-              'Консультация не состоялась. Статус оплаты проверяется автоматически.',
+              'Консультация не состоялась. Статус авторизации оплаты проверяется автоматически.',
+        ),
+      'CANCELLED' => _StateView(
+          'Консультация отменена',
+          Icons.cancel_outlined,
+          colors.primary,
         ),
       _ => _StateView(
           'Статус обновляется',
@@ -1124,8 +1129,8 @@ _StateView _state(String value, ColorScheme colors) => switch (value) {
     };
 
 String _paymentActionLabel(String value) => switch (value) {
-      'VOID_REQUESTED' => 'Отмена оплаты поставлена в очередь.',
-      'VOIDED' => 'Оплата отменена, списания не будет.',
+      'VOID_REQUESTED' => 'Отменяем авторизацию оплаты.',
+      'VOIDED' => 'Авторизация оплаты отменена, списания не будет.',
       'REFUND_PENDING' => 'Возврат поставлен в очередь.',
       'REFUNDED' => 'Возврат выполнен.',
       'NOT_REQUIRED' => 'Дополнительных действий по оплате не требуется.',
