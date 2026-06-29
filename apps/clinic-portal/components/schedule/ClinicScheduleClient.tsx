@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import type { ClinicSchedule, ClinicSchedulePeriod, ClinicScheduleResource, ClinicScheduleService, ClinicScheduleSlot, ClinicScheduleStaff, ClinicWorkingHoursDay } from '@/lib/api/clinic-schedule';
+import { useBookingCoordinator } from './useBookingCoordinator';
 
 type Props = {
   clinicId: string;
@@ -41,18 +42,22 @@ type PeriodForm = {
   reason: string;
 };
 
+type SlotActionState = {
+  slotId: string;
+  kind: 'blackout' | 'capacity';
+  retryAttempt: number;
+};
+
+type SlotErrorSheet = {
+  slotId: string;
+  title: string;
+  description: string;
+};
+
+const slotRetryDelays = [1000, 2000, 4000] as const;
 const dt = (value: string) => new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 const tm = (value: string) => new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 const WEEKDAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-
-function correlationId(): string {
-  const key = 'vethelp.clinic.correlation-id';
-  const current = window.sessionStorage.getItem(key);
-  if (current) return current;
-  const next = crypto.randomUUID();
-  window.sessionStorage.setItem(key, next);
-  return next;
-}
 
 function localInputValue(date: Date): string {
   const offsetMs = date.getTimezoneOffset() * 60 * 1000;
@@ -64,6 +69,26 @@ function statusLabel(slot: ClinicScheduleSlot): string {
   if (slot.status === 'BOOKED') return 'Заполнен';
   if (slot.status === 'LOCKED_BY_HOLD') return 'Есть удержание';
   return 'Доступен';
+}
+
+function isSlotLockedRetry(status: number, code?: string): boolean {
+  return status === 409 && code === 'SLOT_LOCKED_RETRY';
+}
+
+function isHoldExpired(status: number, code?: string): boolean {
+  return status === 422 && code === 'HOLD_EXPIRED';
+}
+
+function slotErrorSheet(slotId: string): SlotErrorSheet {
+  return {
+    slotId,
+    title: 'Слот недоступен',
+    description: 'Это время уже занято другим процессом. Пожалуйста, обновите расписание',
+  };
+}
+
+function sleep(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }
 
 function serviceToForm(service: ClinicScheduleService): ServiceForm {
@@ -163,12 +188,23 @@ function downloadText(filename: string, contentType: string, body: string): void
   URL.revokeObjectURL(url);
 }
 
+async function recordExportAttempt(clinicId: string, locationId: string, headers: HeadersInit, body: { format: 'JSON' | 'CSV'; scope: 'SCHEDULE' | 'SLOTS'; rowsCount: number }): Promise<boolean> {
+  const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/schedule/export-attempts`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+    cache: 'no-store',
+  });
+  return response.ok;
+}
+
 function csvCell(value: string | number | null | undefined): string {
   const text = value == null ? '' : String(value);
   return `"${text.replace(/"/g, '""')}"`;
 }
 
 export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: Props) {
+  const bookingCoordinator = useBookingCoordinator();
   const [schedule, setSchedule] = useState(initialSchedule);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -187,6 +223,9 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
   const [endsAt, setEndsAt] = useState(localInputValue(new Date(Date.now() + 90 * 60 * 1000)));
   const [capacity, setCapacity] = useState(1);
   const [workingHours, setWorkingHours] = useState<ClinicWorkingHoursDay[]>(initialSchedule.workingHours);
+  const [slotAction, setSlotAction] = useState<SlotActionState | null>(null);
+  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+  const [slotError, setSlotError] = useState<SlotErrorSheet | null>(null);
 
   const range = useMemo(() => ({
     from: new Date().toISOString(),
@@ -195,6 +234,41 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
   const activeServices = useMemo(() => schedule.services.filter((service) => service.active), [schedule.services]);
   const activeStaff = useMemo(() => schedule.staff.filter((staff) => staff.active), [schedule.staff]);
   const activeResources = useMemo(() => schedule.resources.filter((resource) => resource.active), [schedule.resources]);
+
+  const postSlotWithRetry = useCallback(async (
+    slot: ClinicScheduleSlot,
+    kind: SlotActionState['kind'],
+    path: string,
+    body: unknown,
+  ): Promise<{ ok: true; payload: unknown } | { ok: false; status: number; code?: string; exhaustedRetry?: boolean }> => {
+    for (let attempt = 0; attempt <= slotRetryDelays.length; attempt += 1) {
+      if (attempt > 0) {
+        bookingCoordinator.releaseSlot(slot.id);
+        await sleep(slotRetryDelays[attempt - 1]);
+      }
+      setSlotAction({ slotId: slot.id, kind, retryAttempt: attempt });
+      const response = await fetch(path, {
+        method: 'POST',
+        headers: bookingCoordinator.headersForSlot(slot.id, {
+          'Content-Type': 'application/json',
+          'If-Match': String(slot.version),
+        }),
+        body: JSON.stringify(body),
+      });
+      const payload = await response.json().catch(() => null) as { code?: string } | null;
+      if (response.ok) return { ok: true, payload };
+      if (isSlotLockedRetry(response.status, payload?.code) && attempt < slotRetryDelays.length) {
+        continue;
+      }
+      return {
+        ok: false,
+        status: response.status,
+        code: payload?.code,
+        exhaustedRetry: isSlotLockedRetry(response.status, payload?.code),
+      };
+    }
+    return { ok: false, status: 409, code: 'SLOT_LOCKED_RETRY', exhaustedRetry: true };
+  }, [bookingCoordinator]);
 
   const refresh = useCallback(async () => {
     const url = new URL(`/api/clinic/${clinicId}/locations/${locationId}/schedule/slots`, window.location.origin);
@@ -243,15 +317,26 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     }));
   }, []);
 
-  const exportJson = useCallback(() => {
+  const exportJson = useCallback(async () => {
+    const audited = await recordExportAttempt(
+      clinicId,
+      locationId,
+      bookingCoordinator.headers({ 'Content-Type': 'application/json' }),
+      {
+        format: 'JSON',
+        scope: 'SCHEDULE',
+        rowsCount: schedule.slots.length,
+      },
+    ).catch(() => false);
+    if (!audited) setNotice('Экспорт выполнен, но audit временно недоступен.');
     downloadText(
       `vethelp-schedule-${locationId}-${new Date().toISOString().slice(0, 10)}.json`,
       'application/json;charset=utf-8',
       JSON.stringify(schedule, null, 2),
     );
-  }, [locationId, schedule]);
+  }, [bookingCoordinator, clinicId, locationId, schedule]);
 
-  const exportCsv = useCallback(() => {
+  const exportCsv = useCallback(async () => {
     const header = ['slot_id', 'starts_at', 'ends_at', 'service', 'staff', 'resource', 'state', 'status', 'capacity', 'booked_count', 'held_count', 'source', 'integration_mode', 'version'];
     const rows = schedule.slots.map((slot) => [
       slot.id,
@@ -270,8 +355,19 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
       slot.version,
     ]);
     const csv = [header, ...rows].map((row) => row.map(csvCell).join(',')).join('\n');
+    const audited = await recordExportAttempt(
+      clinicId,
+      locationId,
+      bookingCoordinator.headers({ 'Content-Type': 'application/json' }),
+      {
+        format: 'CSV',
+        scope: 'SLOTS',
+        rowsCount: rows.length,
+      },
+    ).catch(() => false);
+    if (!audited) setNotice('Экспорт выполнен, но audit временно недоступен.');
     downloadText(`vethelp-slots-${locationId}-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv;charset=utf-8', csv);
-  }, [locationId, schedule.slots]);
+  }, [bookingCoordinator, clinicId, locationId, schedule.slots]);
 
   const createPeriod = useCallback(async () => {
     if (busy) return;
@@ -280,11 +376,9 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     try {
       const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/schedule/periods`, {
         method: 'POST',
-        headers: {
+        headers: bookingCoordinator.headersForAttempt({
           'Content-Type': 'application/json',
-          'Idempotency-Key': crypto.randomUUID(),
-          'X-Correlation-ID': correlationId(),
-        },
+        }),
         body: JSON.stringify({
           periodType: newPeriod.periodType,
           startsAt: new Date(newPeriod.startsAt).toISOString(),
@@ -312,7 +406,7 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     } finally {
       setBusy(false);
     }
-  }, [busy, clinicId, locationId, newPeriod, refresh]);
+  }, [bookingCoordinator, busy, clinicId, locationId, newPeriod, refresh]);
 
   const cancelPeriod = useCallback(async (period: ClinicSchedulePeriod) => {
     if (busy || !period.active) return;
@@ -321,12 +415,10 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     try {
       const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/schedule/periods/${period.id}/cancel`, {
         method: 'POST',
-        headers: {
+        headers: bookingCoordinator.headersForAttempt({
           'Content-Type': 'application/json',
-          'Idempotency-Key': crypto.randomUUID(),
           'If-Match': String(period.version),
-          'X-Correlation-ID': correlationId(),
-        },
+        }),
       });
       const payload = await response.json().catch(() => null) as { code?: string } | null;
       if (response.ok) {
@@ -345,7 +437,7 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     } finally {
       setBusy(false);
     }
-  }, [busy, clinicId, locationId, refresh]);
+  }, [bookingCoordinator, busy, clinicId, locationId, refresh]);
 
   const importManualSlots = useCallback(async () => {
     if (busy) return;
@@ -359,11 +451,9 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
       }
       const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/schedule/import`, {
         method: 'POST',
-        headers: {
+        headers: bookingCoordinator.headersForAttempt({
           'Content-Type': 'application/json',
-          'Idempotency-Key': crypto.randomUUID(),
-          'X-Correlation-ID': correlationId(),
-        },
+        }),
         body: JSON.stringify({ slots: parsed.slots }),
       });
       const payload = await response.json().catch(() => null) as { imported?: number; code?: string } | null;
@@ -378,7 +468,7 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     } finally {
       setBusy(false);
     }
-  }, [busy, clinicId, importJson, locationId, refresh]);
+  }, [bookingCoordinator, busy, clinicId, importJson, locationId, refresh]);
 
   const createService = useCallback(async () => {
     if (busy) return;
@@ -387,11 +477,9 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     try {
       const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/schedule/services`, {
         method: 'POST',
-        headers: {
+        headers: bookingCoordinator.headersForAttempt({
           'Content-Type': 'application/json',
-          'Idempotency-Key': crypto.randomUUID(),
-          'X-Correlation-ID': correlationId(),
-        },
+        }),
         body: JSON.stringify(newService),
       });
       const payload = await response.json().catch(() => null) as { code?: string; id?: string } | null;
@@ -412,7 +500,7 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     } finally {
       setBusy(false);
     }
-  }, [busy, clinicId, locationId, newService, refresh]);
+  }, [bookingCoordinator, busy, clinicId, locationId, newService, refresh]);
 
   const saveService = useCallback(async (service: ClinicScheduleService) => {
     if (busy) return;
@@ -423,12 +511,10 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     try {
       const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/schedule/services/${service.id}`, {
         method: 'POST',
-        headers: {
+        headers: bookingCoordinator.headersForAttempt({
           'Content-Type': 'application/json',
-          'Idempotency-Key': crypto.randomUUID(),
           'If-Match': String(service.version),
-          'X-Correlation-ID': correlationId(),
-        },
+        }),
         body: JSON.stringify(draft),
       });
       const payload = await response.json().catch(() => null) as { code?: string } | null;
@@ -457,7 +543,7 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     } finally {
       setBusy(false);
     }
-  }, [busy, clinicId, locationId, refresh, serviceDrafts]);
+  }, [bookingCoordinator, busy, clinicId, locationId, refresh, serviceDrafts]);
 
   const createStaff = useCallback(async () => {
     if (busy) return;
@@ -466,11 +552,9 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     try {
       const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/schedule/staff`, {
         method: 'POST',
-        headers: {
+        headers: bookingCoordinator.headersForAttempt({
           'Content-Type': 'application/json',
-          'Idempotency-Key': crypto.randomUUID(),
-          'X-Correlation-ID': correlationId(),
-        },
+        }),
         body: JSON.stringify(newStaff),
       });
       const payload = await response.json().catch(() => null) as { code?: string; id?: string } | null;
@@ -491,7 +575,7 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     } finally {
       setBusy(false);
     }
-  }, [busy, clinicId, locationId, newStaff, refresh]);
+  }, [bookingCoordinator, busy, clinicId, locationId, newStaff, refresh]);
 
   const saveStaff = useCallback(async (staff: ClinicScheduleStaff) => {
     if (busy) return;
@@ -502,12 +586,10 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     try {
       const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/schedule/staff/${staff.id}`, {
         method: 'POST',
-        headers: {
+        headers: bookingCoordinator.headersForAttempt({
           'Content-Type': 'application/json',
-          'Idempotency-Key': crypto.randomUUID(),
           'If-Match': String(staff.version),
-          'X-Correlation-ID': correlationId(),
-        },
+        }),
         body: JSON.stringify(draft),
       });
       const payload = await response.json().catch(() => null) as { code?: string } | null;
@@ -536,7 +618,7 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     } finally {
       setBusy(false);
     }
-  }, [busy, clinicId, locationId, refresh, staffDrafts]);
+  }, [bookingCoordinator, busy, clinicId, locationId, refresh, staffDrafts]);
 
   const createResource = useCallback(async () => {
     if (busy) return;
@@ -545,11 +627,9 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     try {
       const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/schedule/resources`, {
         method: 'POST',
-        headers: {
+        headers: bookingCoordinator.headersForAttempt({
           'Content-Type': 'application/json',
-          'Idempotency-Key': crypto.randomUUID(),
-          'X-Correlation-ID': correlationId(),
-        },
+        }),
         body: JSON.stringify(newResource),
       });
       const payload = await response.json().catch(() => null) as { code?: string; id?: string } | null;
@@ -570,7 +650,7 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     } finally {
       setBusy(false);
     }
-  }, [busy, clinicId, locationId, newResource, refresh]);
+  }, [bookingCoordinator, busy, clinicId, locationId, newResource, refresh]);
 
   const saveResource = useCallback(async (resource: ClinicScheduleResource) => {
     if (busy) return;
@@ -581,12 +661,10 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     try {
       const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/schedule/resources/${resource.id}`, {
         method: 'POST',
-        headers: {
+        headers: bookingCoordinator.headersForAttempt({
           'Content-Type': 'application/json',
-          'Idempotency-Key': crypto.randomUUID(),
           'If-Match': String(resource.version),
-          'X-Correlation-ID': correlationId(),
-        },
+        }),
         body: JSON.stringify(draft),
       });
       const payload = await response.json().catch(() => null) as { code?: string } | null;
@@ -615,7 +693,7 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     } finally {
       setBusy(false);
     }
-  }, [busy, clinicId, locationId, refresh, resourceDrafts]);
+  }, [bookingCoordinator, busy, clinicId, locationId, refresh, resourceDrafts]);
 
   const createManualSlot = useCallback(async () => {
     if (!serviceId || busy) return;
@@ -624,11 +702,9 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     try {
       const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/schedule/manual-slots`, {
         method: 'POST',
-        headers: {
+        headers: bookingCoordinator.headersForAttempt({
           'Content-Type': 'application/json',
-          'Idempotency-Key': crypto.randomUUID(),
-          'X-Correlation-ID': correlationId(),
-        },
+        }),
         body: JSON.stringify({
           serviceId,
           staffId: staffId || null,
@@ -649,7 +725,7 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     } finally {
       setBusy(false);
     }
-  }, [busy, capacity, clinicId, endsAt, locationId, refresh, resourceId, serviceId, staffId, startsAt]);
+  }, [bookingCoordinator, busy, capacity, clinicId, endsAt, locationId, refresh, resourceId, serviceId, staffId, startsAt]);
 
   const blackout = useCallback(async (slot: ClinicScheduleSlot) => {
     if (busy) return;
@@ -658,28 +734,28 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     setBusy(true);
     setNotice(null);
     try {
-      const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/schedule/slots/${slot.id}/blackout`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': crypto.randomUUID(),
-          'If-Match': String(slot.version),
-          'X-Correlation-ID': correlationId(),
-        },
-        body: JSON.stringify({ reason: 'Закрыто сотрудником клиники в расписании' }),
-      });
-      const payload = await response.json().catch(() => null) as { code?: string } | null;
-      if (response.ok) {
+      const result = await postSlotWithRetry(
+        slot,
+        'blackout',
+        `/api/clinic/${clinicId}/locations/${locationId}/schedule/slots/${slot.id}/blackout`,
+        { reason: 'Закрыто сотрудником клиники в расписании' },
+      );
+      if (result.ok) {
+        setSelectedSlotId(slot.id);
         setNotice('Окно закрыто. Расписание обновлено.');
         await refresh();
         return;
       }
-      if (response.status === 409 && payload?.code === 'SLOT_HAS_ACTIVE_BOOKINGS') {
+      if (result.exhaustedRetry || isHoldExpired(result.status, result.code)) {
+        setSlotError(slotErrorSheet(slot.id));
+        return;
+      }
+      if (result.status === 409 && result.code === 'SLOT_HAS_ACTIVE_BOOKINGS') {
         setNotice('Нельзя закрыть окно с активным удержанием или записью.');
         await refresh();
         return;
       }
-      if (response.status === 409) {
+      if (result.status === 409) {
         setNotice('Окно уже изменилось. Расписание обновлено.');
         await refresh();
         return;
@@ -689,8 +765,9 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
       setNotice('Нет связи с VetHelp. Окно не закрыто.');
     } finally {
       setBusy(false);
+      setSlotAction(null);
     }
-  }, [busy, clinicId, locationId, refresh]);
+  }, [busy, clinicId, locationId, postSlotWithRetry, refresh]);
 
   const updateCapacity = useCallback(async (slot: ClinicScheduleSlot) => {
     if (busy) return;
@@ -704,28 +781,28 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     setBusy(true);
     setNotice(null);
     try {
-      const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/schedule/slots/${slot.id}/capacity`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': crypto.randomUUID(),
-          'If-Match': String(slot.version),
-          'X-Correlation-ID': correlationId(),
-        },
-        body: JSON.stringify({ capacity: nextCapacity }),
-      });
-      const payload = await response.json().catch(() => null) as { code?: string } | null;
-      if (response.ok) {
+      const result = await postSlotWithRetry(
+        slot,
+        'capacity',
+        `/api/clinic/${clinicId}/locations/${locationId}/schedule/slots/${slot.id}/capacity`,
+        { capacity: nextCapacity },
+      );
+      if (result.ok) {
+        setSelectedSlotId(slot.id);
         setNotice('Capacity обновлена. Расписание обновлено.');
         await refresh();
         return;
       }
-      if (response.status === 409 && payload?.code === 'SLOT_HAS_ACTIVE_BOOKINGS') {
+      if (result.exhaustedRetry || isHoldExpired(result.status, result.code)) {
+        setSlotError(slotErrorSheet(slot.id));
+        return;
+      }
+      if (result.status === 409 && result.code === 'SLOT_HAS_ACTIVE_BOOKINGS') {
         setNotice('Нельзя менять capacity у окна с активным удержанием или записью.');
         await refresh();
         return;
       }
-      if (response.status === 409) {
+      if (result.status === 409) {
         setNotice('Окно уже изменилось. Расписание обновлено.');
         await refresh();
         return;
@@ -735,8 +812,9 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
       setNotice('Нет связи с VetHelp. Capacity не изменена.');
     } finally {
       setBusy(false);
+      setSlotAction(null);
     }
-  }, [busy, clinicId, locationId, refresh]);
+  }, [busy, clinicId, locationId, postSlotWithRetry, refresh]);
 
   const completeAppointment = useCallback(async (slot: ClinicScheduleSlot) => {
     if (busy || !slot.bookingHold || slot.bookingHold.state !== 'CONFIRMED') return;
@@ -751,10 +829,9 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     try {
       const response = await fetch(`/api/clinic/booking-holds/${slot.bookingHold.id}/complete`, {
         method: 'POST',
-        headers: {
+        headers: bookingCoordinator.headers({
           'Content-Type': 'application/json',
-          'X-Correlation-ID': correlationId(),
-        },
+        }),
         body: JSON.stringify({ summary }),
       });
       const payload = await response.json().catch(() => null) as { code?: string } | null;
@@ -774,7 +851,7 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     } finally {
       setBusy(false);
     }
-  }, [busy, refresh]);
+  }, [bookingCoordinator, busy, refresh]);
 
   const updateWorkingHour = useCallback((weekday: number, patch: Partial<ClinicWorkingHoursDay>) => {
     setWorkingHours((current) => current.map((day) => day.weekday === weekday ? { ...day, ...patch } : day));
@@ -787,11 +864,9 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     try {
       const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/schedule/working-hours`, {
         method: 'POST',
-        headers: {
+        headers: bookingCoordinator.headersForAttempt({
           'Content-Type': 'application/json',
-          'Idempotency-Key': crypto.randomUUID(),
-          'X-Correlation-ID': correlationId(),
-        },
+        }),
         body: JSON.stringify({
           days: workingHours.map((day) => ({
             weekday: day.weekday,
@@ -812,7 +887,7 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     } finally {
       setBusy(false);
     }
-  }, [busy, clinicId, locationId, refresh, workingHours]);
+  }, [bookingCoordinator, busy, clinicId, locationId, refresh, workingHours]);
 
   return (
     <main className="min-h-screen px-4 py-6 sm:px-8 lg:px-12">
@@ -824,8 +899,8 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
             <p className="mt-2 text-sm text-slate-600">Ручные окна и blackout проходят через backend, audit и outbox. Окна с удержаниями не закрываются локально.</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={exportJson} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">JSON</button>
-            <button type="button" onClick={exportCsv} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">CSV</button>
+            <button type="button" onClick={() => void exportJson()} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">JSON</button>
+            <button type="button" onClick={() => void exportCsv()} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">CSV</button>
             <button type="button" onClick={() => void refresh()} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Обновить</button>
           </div>
         </header>
@@ -1129,23 +1204,67 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
                   </tr>
                 </thead>
                 <tbody>
-                  {schedule.slots.map((slot) => (
-                    <tr key={slot.id} className="border-t border-slate-200">
+                  {schedule.slots.map((slot) => {
+                    const activeSlotAction = slotAction?.slotId === slot.id ? slotAction : null;
+                    const slotSelected = selectedSlotId === slot.id;
+                    const slotBusy = activeSlotAction != null;
+                    return (
+                    <tr
+                      key={slot.id}
+                      data-testid={`schedule-slot-${slot.id}`}
+                      className={`vh-schedule-slot-row border-t border-slate-200 ${slotSelected ? 'vh-schedule-slot-row--selected' : ''} ${slotBusy ? 'vh-schedule-slot-row--busy' : ''}`}
+                    >
                       <td className="px-4 py-4 align-top"><p className="text-sm font-semibold text-slate-950">{dt(slot.startsAt)}</p><p className="mt-1 text-xs text-slate-600">{tm(slot.startsAt)}-{tm(slot.endsAt)}</p></td>
                       <td className="px-4 py-4 align-top text-sm text-slate-700">{slot.service?.displayName ?? 'Услуга не указана'}</td>
                       <td className="px-4 py-4 align-top text-sm text-slate-700"><p>{slot.staff?.displayName ?? 'Специалист не задан'}</p><p className="mt-1 text-xs text-slate-500">{slot.resource?.displayName ?? 'Ресурс не задан'}</p></td>
-                      <td className="px-4 py-4 align-top"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${slot.state === 'CLOSED' ? 'bg-slate-100 text-slate-700' : slot.status === 'LOCKED_BY_HOLD' ? 'bg-amber-50 text-amber-800' : 'bg-emerald-50 text-emerald-700'}`}>{statusLabel(slot)}</span></td>
+                      <td className="px-4 py-4 align-top">
+                        {slotBusy ? (
+                          <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800" role="status">
+                            <span className="vh-cupertino-spinner" aria-hidden="true" />
+                            {activeSlotAction.retryAttempt > 0 ? `Повтор ${activeSlotAction.retryAttempt}/3` : 'Отправляем'}
+                          </span>
+                        ) : (
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${slot.state === 'CLOSED' ? 'bg-slate-100 text-slate-700' : slot.status === 'LOCKED_BY_HOLD' ? 'bg-amber-50 text-amber-800' : 'bg-emerald-50 text-emerald-700'}`}>{statusLabel(slot)}</span>
+                        )}
+                      </td>
                       <td className="px-4 py-4 align-top text-sm text-slate-700">{slot.bookedCount} записей · {slot.heldCount} holds · cap {slot.capacity}</td>
                       <td className="px-4 py-4 align-top text-sm text-slate-700"><p>{slot.source} · {slot.integrationMode}</p>{slot.stale ? <p className="mt-1 text-xs text-amber-700">Freshness устарел</p> : <p className="mt-1 text-xs text-slate-500">Fresh</p>}</td>
-                      <td className="px-4 py-4 align-top"><div className="flex flex-col gap-2"><button type="button" disabled={busy || slot.state === 'CLOSED' || slot.heldCount > 0 || slot.bookedCount > 0} onClick={() => void updateCapacity(slot)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Capacity</button><button type="button" disabled={busy || slot.state === 'CLOSED' || slot.heldCount > 0 || slot.bookedCount > 0} onClick={() => void blackout(slot)} className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Blackout</button><button type="button" disabled={busy || slot.bookingHold?.state !== 'CONFIRMED'} onClick={() => void completeAppointment(slot)} className="w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Закрыть приём</button></div></td>
+                      <td className="px-4 py-4 align-top"><div className={`flex flex-col gap-2 ${slotBusy ? 'vh-schedule-slot-actions--busy' : ''}`}><button type="button" disabled={busy || slot.state === 'CLOSED' || slot.heldCount > 0 || slot.bookedCount > 0} onClick={() => void updateCapacity(slot)} className="vh-schedule-slot-action w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Capacity</button><button type="button" disabled={busy || slot.state === 'CLOSED' || slot.heldCount > 0 || slot.bookedCount > 0} onClick={() => void blackout(slot)} className="vh-schedule-slot-action w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Blackout</button><button type="button" disabled={busy || slot.bookingHold?.state !== 'CONFIRMED'} onClick={() => void completeAppointment(slot)} className="vh-schedule-slot-action w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Закрыть приём</button></div></td>
                     </tr>
-                  ))}
+                  );})}
                 </tbody>
               </table>
             </div>
           )}
         </div>
       </section>
+      {slotError ? (
+        <div className="vh-slide-over-backdrop" onClick={() => setSlotError(null)}>
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="slot-error-title"
+            className="vh-slide-over"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="vh-system-alert">
+              <p className="text-sm font-semibold text-red-700">Ошибка слота</p>
+              <h2 id="slot-error-title" className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{slotError.title}</h2>
+              <p className="mt-3 text-sm leading-6 text-slate-600">{slotError.description}</p>
+              <button
+                type="button"
+                className="mt-5 w-full rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white"
+                onClick={() => {
+                  setSlotError(null);
+                  void refresh();
+                }}
+              >
+                Обновить расписание
+              </button>
+            </div>
+          </aside>
+        </div>
+      ) : null}
     </main>
   );
 }
