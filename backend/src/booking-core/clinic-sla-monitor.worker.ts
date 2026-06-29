@@ -123,15 +123,17 @@ export class ClinicSlaMonitorWorker {
 
       await client.query(`
         INSERT INTO booking_schema.outbox_events (
-          event_type, correlation_id, aggregate_type, aggregate_id,
-          aggregate_version, payload_json, deduplication_key
+          event_type, correlation_id, causation_id, traceparent, aggregate_type,
+          aggregate_id, aggregate_version, payload_json, deduplication_key
         ) VALUES (
-          'clinic.sla.breached.v1', $1::uuid, 'booking_hold', $2::uuid,
-          $3, jsonb_build_object('holdId', $2::uuid, 'slotId', $4::uuid, 'sla', 'MANUAL_CONFIRMATION'),
-          $5
+          'clinic.sla.breached.v1', $1::uuid, $2::uuid, $3, 'booking_hold', $4::uuid,
+          $5, jsonb_build_object('holdId', $4::uuid, 'slotId', $6::uuid, 'sla', 'MANUAL_CONFIRMATION'),
+          $7
         ) ON CONFLICT (deduplication_key) DO NOTHING
       `, [
         hold.correlation_id,
+        hold.id,
+        null,
         hold.id,
         breached.rows[0].version,
         hold.slot_id,
@@ -140,10 +142,11 @@ export class ClinicSlaMonitorWorker {
 
       await client.query(`
         INSERT INTO audit_schema.audit_log (
-          actor_type, actor_id, action, aggregate_type, aggregate_id, correlation_id, payload_json
+          actor_type, actor_id, action, aggregate_type, aggregate_id,
+          correlation_id, causation_id, traceparent, payload_json
         ) VALUES (
           'SYSTEM_WORKER', NULL, 'CLINIC_MANUAL_CONFIRMATION_SLA_BREACHED',
-          'booking_hold', $1::uuid, $2::uuid,
+          'booking_hold', $1::uuid, $2::uuid, $1::uuid, NULL,
           jsonb_build_object('slotId', $3::uuid, 'confirmationSlaBreached', true)
         )
       `, [hold.id, hold.correlation_id, hold.slot_id]);

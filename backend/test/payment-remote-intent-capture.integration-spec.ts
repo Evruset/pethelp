@@ -7,6 +7,9 @@ import { AcquiringClient } from '../src/modules/payments/acquiring-client.servic
 import { PaymentOutboxRelayWorker } from '../src/modules/payments/payment-outbox-relay.worker';
 import { PaymentReconciliationWorker } from '../src/modules/payments/payment-reconciliation.worker';
 import { PaymentService } from '../src/modules/payments/payment.service';
+import { ContextLoggerService } from '../src/observability/context-logger.service';
+import { ObservabilityMetricsService } from '../src/observability/observability.metrics';
+import { TraceContext } from '../src/observability/trace-context.context';
 
 const PROVIDER_URL = 'https://capture.acquiring.test';
 const PROVIDER_KEY = 'capture-test-api-key';
@@ -19,6 +22,9 @@ describe('Remote acquiring intent and two-phase capture', () => {
   let service: PaymentService;
   let relay: PaymentOutboxRelayWorker;
   let reconciliation: PaymentReconciliationWorker;
+  let traceContext: TraceContext;
+  let logger: ContextLoggerService;
+  let metrics: ObservabilityMetricsService;
 
   beforeAll(() => {
     process.env.WORKERS_ENABLED = 'true';
@@ -26,9 +32,12 @@ describe('Remote acquiring intent and two-phase capture', () => {
     process.env.ACQUIRING_API_KEY = PROVIDER_KEY;
 
     database = new DatabaseService();
+    traceContext = new TraceContext();
+    logger = new ContextLoggerService(traceContext);
+    metrics = new ObservabilityMetricsService(logger);
     const client = new AcquiringClient(new HttpService(axios.create({ proxy: false })));
     service = new PaymentService(database, client);
-    relay = new PaymentOutboxRelayWorker(database, client);
+    relay = new PaymentOutboxRelayWorker(database, client, traceContext, logger, metrics);
     reconciliation = new PaymentReconciliationWorker(database, client);
     nock.disableNetConnect();
   });

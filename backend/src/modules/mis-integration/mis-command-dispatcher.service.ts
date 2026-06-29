@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { setTimeout as delay } from 'node:timers/promises';
 import type { PoolClient } from 'pg';
 import { DatabaseService } from '../../database/database.service';
+import { TraceContext } from '../../observability/trace-context.context';
 import { IMisAdapter, MisConfigurationError, MisNetworkError, MisReservationResult } from './interfaces/mis-adapter.interface';
 import { MisReservationRequestedPayload } from './interfaces/mis-event.interface';
 import { MisAdapterFactory } from './mis-adapter.factory';
@@ -15,7 +16,11 @@ export class MisCommandDispatcherService {
   private readonly retryDelaysMs = [1_000, 2_000] as const;
   private readonly maxNetworkAttempts = 3;
 
-  constructor(private readonly database: DatabaseService, private readonly adapterFactory: MisAdapterFactory) {}
+  constructor(
+    private readonly database: DatabaseService,
+    private readonly adapterFactory: MisAdapterFactory,
+    private readonly traceContext: TraceContext,
+  ) {}
 
   /**
    * A network timeout is not a business rejection. The hold remains reserved
@@ -172,17 +177,41 @@ export class MisCommandDispatcherService {
 
   private async writeAudit(client: PoolClient, action: string, payload: MisReservationRequestedPayload, details: Record<string, unknown>): Promise<void> {
     await client.query(`
-      INSERT INTO audit_schema.audit_log (actor_type, actor_id, action, aggregate_type, aggregate_id, correlation_id, payload_json)
-      VALUES ('SYSTEM', NULL, $1, 'booking_hold', $2::uuid, $3::uuid, $4::jsonb)
-    `, [action, payload.holdId, payload.correlationId ?? null, JSON.stringify({ ...details, slotId: payload.slotId, clinicId: payload.clinicId })]);
+      INSERT INTO audit_schema.audit_log (
+        actor_type, actor_id, action, aggregate_type, aggregate_id,
+        correlation_id, causation_id, traceparent, payload_json
+      )
+      VALUES (
+        'SYSTEM', NULL, $1, 'booking_hold', $2::uuid,
+        $3::uuid, $4::uuid, $5, $6::jsonb
+      )
+    `, [
+      action,
+      payload.holdId,
+      payload.correlationId ?? this.traceContext.getCorrelationId() ?? null,
+      this.traceContext.getCausationId() ?? null,
+      this.traceContext.getTraceparent() ?? null,
+      JSON.stringify({ ...details, slotId: payload.slotId, clinicId: payload.clinicId }),
+    ]);
   }
 
   private async writeOutbox(client: PoolClient, eventType: string, payload: MisReservationRequestedPayload, version: number, details: Record<string, unknown>): Promise<void> {
     await client.query(`
-      INSERT INTO booking_schema.outbox_events (event_type, correlation_id, aggregate_type, aggregate_id, aggregate_version, payload_json, deduplication_key)
-      VALUES ($1, $2::uuid, 'booking_hold', $3::uuid, $4, $5::jsonb, $6)
+      INSERT INTO booking_schema.outbox_events (
+        event_type, correlation_id, causation_id, traceparent,
+        aggregate_type, aggregate_id, aggregate_version, payload_json, deduplication_key
+      ) VALUES ($1, $2::uuid, $3::uuid, $4, 'booking_hold', $5::uuid, $6, $7::jsonb, $8)
       ON CONFLICT (deduplication_key) DO NOTHING
-    `, [eventType, payload.correlationId ?? null, payload.holdId, version, JSON.stringify({ holdId: payload.holdId, slotId: payload.slotId, clinicId: payload.clinicId, ...details }), `${eventType}:${payload.holdId}:${version}`]);
+    `, [
+      eventType,
+      payload.correlationId ?? null,
+      this.traceContext.getCausationId() ?? null,
+      this.traceContext.getTraceparent() ?? null,
+      payload.holdId,
+      version,
+      JSON.stringify({ holdId: payload.holdId, slotId: payload.slotId, clinicId: payload.clinicId, ...details }),
+      `${eventType}:${payload.holdId}:${version}`,
+    ]);
   }
 
   private errorMessage(error: unknown): string {

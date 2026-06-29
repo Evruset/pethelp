@@ -25,11 +25,15 @@ interface ManualConfirmationQueueRow {
 
 interface HoldAuditTrailRow {
   id: string;
+  event_ref: string;
   occurred_at: Date;
   actor_type: string;
   actor_id: string | null;
   action: string;
   correlation_id: string | null;
+  causation_id: string | null;
+  traceparent: string | null;
+  retained_until: Date;
   payload_json: Record<string, unknown>;
 }
 
@@ -58,11 +62,15 @@ export interface ManualConfirmationQueueResult {
 
 export interface HoldAuditTrailItem {
   id: string;
+  eventRef: string;
   occurredAt: string;
   actorType: string;
   actorId: string | null;
   action: string;
   correlationId: string | null;
+  causationId: string | null;
+  traceparent: string | null;
+  retainedUntil: string;
   payload: Record<string, unknown>;
 }
 
@@ -153,7 +161,8 @@ export class ClinicQueueService {
 
       const serverNow = await this.dbNow(client);
       const result = await client.query<HoldAuditTrailRow>(`
-        SELECT id, occurred_at, actor_type, actor_id, action, correlation_id, payload_json
+        SELECT id, event_ref, occurred_at, actor_type, actor_id, action, correlation_id,
+               causation_id, traceparent, retained_until, payload_json
         FROM audit_schema.audit_log
         WHERE aggregate_type = 'booking_hold'
           AND aggregate_id = $1::uuid
@@ -168,11 +177,15 @@ export class ClinicQueueService {
         serverNow: serverNow.toISOString(),
         items: result.rows.map((row) => ({
           id: row.id,
+          eventRef: row.event_ref,
           occurredAt: row.occurred_at.toISOString(),
           actorType: row.actor_type,
           actorId: row.actor_id,
           action: row.action,
           correlationId: row.correlation_id,
+          causationId: row.causation_id,
+          traceparent: row.traceparent,
+          retainedUntil: row.retained_until.toISOString(),
           payload: row.payload_json,
         })),
       };
