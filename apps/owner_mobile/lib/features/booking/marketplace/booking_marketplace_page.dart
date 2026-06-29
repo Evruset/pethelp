@@ -1,10 +1,11 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter/services.dart';
 
 import 'booking_hold_status_page.dart';
 import 'booking_marketplace_bloc.dart';
 import 'booking_marketplace_repository.dart';
+import 'booking_slot_grid.dart';
 
 class BookingMarketplacePage extends StatelessWidget {
   const BookingMarketplacePage({
@@ -16,6 +17,7 @@ class BookingMarketplacePage extends StatelessWidget {
     required this.clinicLocationId,
     required this.petId,
     required this.repository,
+    this.retryDelay,
   });
 
   final String clinicName;
@@ -25,6 +27,7 @@ class BookingMarketplacePage extends StatelessWidget {
   final String clinicLocationId;
   final String petId;
   final BookingMarketplaceRepository repository;
+  final BookingRetryDelay? retryDelay;
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +37,7 @@ class BookingMarketplacePage extends StatelessWidget {
         clinicLocationId: clinicLocationId,
         serviceId: serviceId,
         petId: petId,
+        retryDelay: retryDelay,
       )..add(const BookingMarketplaceOpened()),
       child: _BookingMarketplaceView(
         clinicName: clinicName,
@@ -74,6 +78,9 @@ class _BookingMarketplaceView extends StatelessWidget {
                 ),
               ));
             }
+            if (state is BookingMarketplaceError) {
+              _handleMarketplaceError(context, state);
+            }
           },
           builder: (context, state) => switch (state) {
             BookingMarketplaceLoading() => const _MarketplaceSkeleton(),
@@ -95,6 +102,19 @@ class _BookingMarketplaceView extends StatelessWidget {
                 ),
                 creatingHold: true,
               ),
+            BookingSlotLockingInProgress() => _MarketplaceReady(
+                clinicName: clinicName,
+                serviceName: serviceName,
+                petName: petName,
+                state: BookingMarketplaceReady(
+                  selectedDay: state.selectedDay,
+                  slots: state.slots,
+                  selectedSlot: state.selectedSlot,
+                  notice:
+                      'Проверяем время. Попытка ${state.retryAttempt} из 3.',
+                ),
+                lockingSlot: state.selectedSlot,
+              ),
             BookingMarketplaceError() => _MarketplaceError(state: state),
             BookingMarketplaceHoldCreated() => const SizedBox.shrink(),
           },
@@ -102,6 +122,76 @@ class _BookingMarketplaceView extends StatelessWidget {
       ),
     );
   }
+
+  void _handleMarketplaceError(
+    BuildContext context,
+    BookingMarketplaceError state,
+  ) {
+    final isCupertino = Theme.of(context).platform == TargetPlatform.iOS;
+    final alternativeSlots = state.slots;
+    if (!isCupertino ||
+        !state.showSlotUnavailableDialog ||
+        alternativeSlots.isEmpty) {
+      return;
+    }
+
+    showCupertinoDialog<void>(
+      context: context,
+      builder: (dialogContext) => CupertinoAlertDialog(
+        title: const Text('Слот недоступен'),
+        content: const Text(
+          'К сожалению, это время уже занято другим владельцем. Пожалуйста, выберите другое время',
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              _showAlternativeSlots(context, alternativeSlots);
+            },
+            child: const Text('Подобрать другое время'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+void _showAlternativeSlots(BuildContext context, List<BookingSlot> slots) {
+  final alternatives = slots
+      .where((slot) => slot.remainingCapacity > 0)
+      .take(4)
+      .toList(growable: false);
+  if (alternatives.isEmpty) return;
+
+  showCupertinoModalPopup<void>(
+    context: context,
+    builder: (sheetContext) => CupertinoActionSheet(
+      title: const Text('Доступные альтернативные слоты'),
+      actions: [
+        for (final slot in alternatives)
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.of(sheetContext).pop();
+              final bloc = context.read<BookingMarketplaceBloc>();
+              bloc
+                ..add(BookingMarketplaceSlotSelected(slot))
+                ..add(const BookingMarketplaceHoldRequested());
+            },
+            child: Text(_slotActionLabel(context, slot)),
+          ),
+      ],
+      cancelButton: CupertinoActionSheetAction(
+        onPressed: () => Navigator.of(sheetContext).pop(),
+        child: const Text('Отмена'),
+      ),
+    ),
+  );
+}
+
+String _slotActionLabel(BuildContext context, BookingSlot slot) {
+  final start = TimeOfDay.fromDateTime(slot.startsAt.toLocal()).format(context);
+  final end = TimeOfDay.fromDateTime(slot.endsAt.toLocal()).format(context);
+  return '$start - $end';
 }
 
 class _MarketplaceReady extends StatelessWidget {
@@ -111,6 +201,7 @@ class _MarketplaceReady extends StatelessWidget {
     required this.petName,
     required this.state,
     this.creatingHold = false,
+    this.lockingSlot,
   });
 
   final String clinicName;
@@ -118,6 +209,7 @@ class _MarketplaceReady extends StatelessWidget {
   final String petName;
   final BookingMarketplaceReady state;
   final bool creatingHold;
+  final BookingSlot? lockingSlot;
 
   @override
   Widget build(BuildContext context) {
@@ -126,6 +218,7 @@ class _MarketplaceReady extends StatelessWidget {
     final days =
         List<DateTime>.generate(3, (index) => today.add(Duration(days: index)));
     final selectedSlot = state.selectedSlot;
+    final interactionsBlocked = creatingHold || lockingSlot != null;
 
     return Column(
       children: [
@@ -188,27 +281,13 @@ class _MarketplaceReady extends StatelessWidget {
               else
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  sliver: SliverGrid.builder(
-                    itemCount: state.slots.length,
-                    gridDelegate:
-                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 190,
-                      mainAxisSpacing: 10,
-                      crossAxisSpacing: 10,
-                      childAspectRatio: 1.75,
-                    ),
-                    itemBuilder: (context, index) {
-                      final slot = state.slots[index];
-                      return _SlotCard(
-                        slot: slot,
-                        selected: selectedSlot?.id == slot.id,
-                        enabled: !creatingHold && slot.remainingCapacity > 0,
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          bloc.add(BookingMarketplaceSlotSelected(slot));
-                        },
-                      );
-                    },
+                  sliver: BookingSlotGrid(
+                    slots: state.slots,
+                    selectedSlot: selectedSlot,
+                    lockingSlot: lockingSlot,
+                    lockedSlot: null,
+                    onSlotSelected: (slot) =>
+                        bloc.add(BookingMarketplaceSlotSelected(slot)),
                   ),
                 ),
               SliverPadding(
@@ -237,7 +316,7 @@ class _MarketplaceReady extends StatelessWidget {
                 Border(top: BorderSide(color: Theme.of(context).dividerColor)),
           ),
           child: FilledButton(
-            onPressed: selectedSlot == null || creatingHold
+            onPressed: selectedSlot == null || interactionsBlocked
                 ? null
                 : () => bloc.add(const BookingMarketplaceHoldRequested()),
             style:
@@ -329,98 +408,6 @@ class _ClinicHeader extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SlotCard extends StatelessWidget {
-  const _SlotCard({
-    required this.slot,
-    required this.selected,
-    required this.enabled,
-    required this.onTap,
-  });
-
-  final BookingSlot slot;
-  final bool selected;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final time =
-        TimeOfDay.fromDateTime(slot.startsAt.toLocal()).format(context);
-    final end = TimeOfDay.fromDateTime(slot.endsAt.toLocal()).format(context);
-    final service = slot.serviceName;
-    final colors = Theme.of(context).colorScheme;
-    final contentColor = enabled ? null : colors.onSurfaceVariant;
-    return AnimatedScale(
-      duration: const Duration(milliseconds: 140),
-      scale: selected ? 0.98 : 1,
-      child: Material(
-        color: selected ? colors.secondaryContainer : colors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: BorderSide(
-              color: selected ? colors.primary : Theme.of(context).dividerColor,
-              width: selected ? 2 : 1),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: enabled ? onTap : null,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                        selected
-                            ? Icons.radio_button_checked
-                            : Icons.radio_button_off,
-                        size: 18,
-                        color: selected ? colors.primary : contentColor),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        time,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(color: contentColor),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'до $end',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: contentColor),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (service != null)
-                  Text(
-                    service,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: contentColor),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-              ],
-            ),
-          ),
         ),
       ),
     );

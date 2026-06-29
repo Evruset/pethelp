@@ -1,7 +1,9 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uuid/uuid.dart';
 
 import 'booking_marketplace_repository.dart';
+import 'booking_request_coordinator.dart';
+
+typedef BookingRetryDelay = Future<void> Function(Duration delay);
 
 sealed class BookingMarketplaceEvent {
   const BookingMarketplaceEvent();
@@ -79,6 +81,24 @@ class BookingMarketplaceCreatingHold extends BookingMarketplaceState {
   final BookingSlot selectedSlot;
 }
 
+class BookingSlotLockingInProgress extends BookingMarketplaceState {
+  const BookingSlotLockingInProgress({
+    required this.selectedDay,
+    required this.slots,
+    required this.selectedSlot,
+    required this.correlationId,
+    required this.retryAttempt,
+    required this.nextDelay,
+  });
+
+  final DateTime selectedDay;
+  final List<BookingSlot> slots;
+  final BookingSlot selectedSlot;
+  final String correlationId;
+  final int retryAttempt;
+  final Duration nextDelay;
+}
+
 class BookingMarketplaceHoldCreated extends BookingMarketplaceState {
   const BookingMarketplaceHoldCreated(this.hold);
   final CreatedBookingHold hold;
@@ -88,10 +108,16 @@ class BookingMarketplaceError extends BookingMarketplaceState {
   const BookingMarketplaceError({
     required this.selectedDay,
     required this.message,
+    this.slots = const <BookingSlot>[],
+    this.selectedSlot,
+    this.showSlotUnavailableDialog = false,
   });
 
   final DateTime selectedDay;
   final String message;
+  final List<BookingSlot> slots;
+  final BookingSlot? selectedSlot;
+  final bool showSlotUnavailableDialog;
 }
 
 class BookingMarketplaceBloc
@@ -101,8 +127,13 @@ class BookingMarketplaceBloc
     required this.clinicLocationId,
     required this.serviceId,
     required this.petId,
+    BookingHoldRequestCoordinator? requestCoordinator,
+    BookingRetryDelay? retryDelay,
     DateTime? initialDay,
   })  : _repository = repository,
+        _requestCoordinator =
+            requestCoordinator ?? BookingHoldRequestCoordinator(),
+        _retryDelay = retryDelay ?? Future<void>.delayed,
         _selectedDay = _dayStart(initialDay ?? DateTime.now().toUtc()),
         super(BookingMarketplaceLoading(
           selectedDay: _dayStart(initialDay ?? DateTime.now().toUtc()),
@@ -115,13 +146,17 @@ class BookingMarketplaceBloc
   }
 
   final BookingMarketplaceRepository _repository;
+  final BookingHoldRequestCoordinator _requestCoordinator;
+  final BookingRetryDelay _retryDelay;
   final String clinicLocationId;
   final String serviceId;
   final String petId;
-  final Uuid _uuid = const Uuid();
-  final Map<String, String> _operationKeysBySlot = <String, String>{};
-  String? _correlationId;
   DateTime _selectedDay;
+  static const List<Duration> _slotLockedRetryDelays = <Duration>[
+    Duration(seconds: 1),
+    Duration(seconds: 2),
+    Duration(seconds: 4),
+  ];
 
   static DateTime _dayStart(DateTime value) {
     final utc = value.toUtc();
@@ -132,7 +167,6 @@ class BookingMarketplaceBloc
     BookingMarketplaceOpened event,
     Emitter<BookingMarketplaceState> emit,
   ) async {
-    _correlationId ??= _uuid.v4();
     await _load(emit);
   }
 
@@ -171,10 +205,9 @@ class BookingMarketplaceBloc
     }
 
     final selectedSlot = current.selectedSlot!;
-    final correlationId = _correlationId ??= _uuid.v4();
-    final idempotencyKey = _operationKeysBySlot.putIfAbsent(
-      selectedSlot.id,
-      _uuid.v4,
+    final requestContext = _requestCoordinator.contextFor(
+      slotId: selectedSlot.id,
+      petId: petId,
     );
 
     emit(BookingMarketplaceCreatingHold(
@@ -183,27 +216,51 @@ class BookingMarketplaceBloc
       selectedSlot: selectedSlot,
     ));
 
+    await _tryCreateHold(
+      emit,
+      readyState: current,
+      requestContext: requestContext,
+    );
+  }
+
+  Future<void> _tryCreateHold(
+    Emitter<BookingMarketplaceState> emit, {
+    required BookingMarketplaceReady readyState,
+    required BookingHoldRequestContext requestContext,
+  }) async {
+    final selectedSlot = readyState.selectedSlot!;
+
     try {
       final hold = await _repository.createHold(
-        slotId: selectedSlot.id,
-        petId: petId,
-        correlationId: correlationId,
-        idempotencyKey: idempotencyKey,
+        slotId: requestContext.slotId,
+        petId: requestContext.petId,
+        correlationId: requestContext.correlationId,
+        idempotencyKey: requestContext.idempotencyKey,
       );
       emit(BookingMarketplaceHoldCreated(hold));
     } on BookingMarketplaceApiException catch (error) {
-      if (error.retryable) {
-        emit(BookingMarketplaceLoading(selectedDay: current.selectedDay));
-        await _load(
+      final action = actionForBookingHoldFailure(error);
+      if (action == BookingHoldFailureAction.slotLockedRetry) {
+        final retried = await _retrySlotLock(
           emit,
-          notice:
-              'Обновляем доступность. Выбранное время пока не подтверждено.',
+          readyState: readyState,
+          requestContext: requestContext,
         );
+        if (retried) return;
+        _requestCoordinator.releaseSlot(selectedSlot.id);
+        emit(BookingMarketplaceError(
+          selectedDay: readyState.selectedDay,
+          message:
+              'Выбранное время всё ещё занято другим запросом. Подберите другое время.',
+          slots: readyState.slots,
+          selectedSlot: selectedSlot,
+          showSlotUnavailableDialog: true,
+        ));
         return;
       }
-      if (error.slotUnavailable) {
-        _operationKeysBySlot.remove(selectedSlot.id);
-        emit(BookingMarketplaceLoading(selectedDay: current.selectedDay));
+      if (action == BookingHoldFailureAction.refreshAvailability) {
+        _requestCoordinator.releaseSlot(selectedSlot.id);
+        emit(BookingMarketplaceLoading(selectedDay: readyState.selectedDay));
         await _load(
           emit,
           notice: 'Это время уже занято. Показываем актуальные окна.',
@@ -211,16 +268,84 @@ class BookingMarketplaceBloc
         return;
       }
       emit(BookingMarketplaceError(
-        selectedDay: current.selectedDay,
+        selectedDay: readyState.selectedDay,
         message: _messageFor(error),
+        slots: readyState.slots,
+        selectedSlot: selectedSlot,
       ));
     } catch (_) {
       emit(BookingMarketplaceError(
-        selectedDay: current.selectedDay,
+        selectedDay: readyState.selectedDay,
         message:
             'Не удалось создать заявку. Проверьте соединение и повторите попытку.',
+        slots: readyState.slots,
+        selectedSlot: selectedSlot,
       ));
     }
+  }
+
+  Future<bool> _retrySlotLock(
+    Emitter<BookingMarketplaceState> emit, {
+    required BookingMarketplaceReady readyState,
+    required BookingHoldRequestContext requestContext,
+  }) async {
+    final selectedSlot = readyState.selectedSlot!;
+
+    for (var index = 0; index < _slotLockedRetryDelays.length; index += 1) {
+      final delay = _slotLockedRetryDelays[index];
+      emit(BookingSlotLockingInProgress(
+        selectedDay: readyState.selectedDay,
+        slots: readyState.slots,
+        selectedSlot: selectedSlot,
+        correlationId: requestContext.correlationId,
+        retryAttempt: index + 1,
+        nextDelay: delay,
+      ));
+      await _retryDelay(delay);
+
+      try {
+        final hold = await _repository.createHold(
+          slotId: requestContext.slotId,
+          petId: requestContext.petId,
+          correlationId: requestContext.correlationId,
+          idempotencyKey: requestContext.idempotencyKey,
+        );
+        emit(BookingMarketplaceHoldCreated(hold));
+        return true;
+      } on BookingMarketplaceApiException catch (error) {
+        final action = actionForBookingHoldFailure(error);
+        if (action == BookingHoldFailureAction.slotLockedRetry) {
+          continue;
+        }
+        if (action == BookingHoldFailureAction.refreshAvailability) {
+          _requestCoordinator.releaseSlot(selectedSlot.id);
+          emit(BookingMarketplaceLoading(selectedDay: readyState.selectedDay));
+          await _load(
+            emit,
+            notice: 'Это время уже занято. Показываем актуальные окна.',
+          );
+          return true;
+        }
+        emit(BookingMarketplaceError(
+          selectedDay: readyState.selectedDay,
+          message: _messageFor(error),
+          slots: readyState.slots,
+          selectedSlot: selectedSlot,
+        ));
+        return true;
+      } catch (_) {
+        emit(BookingMarketplaceError(
+          selectedDay: readyState.selectedDay,
+          message:
+              'Не удалось создать заявку. Проверьте соединение и повторите попытку.',
+          slots: readyState.slots,
+          selectedSlot: selectedSlot,
+        ));
+        return true;
+      }
+    }
+
+    return false;
   }
 
   Future<void> _load(
