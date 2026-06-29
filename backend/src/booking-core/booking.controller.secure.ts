@@ -174,6 +174,34 @@ export class BookingController {
     });
   }
 
+  @Post('booking-holds/:holdId/cancellation-requests')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.OWNER)
+  @ApiBearerAuth(SWAGGER_BEARER_AUTH)
+  @ApiOperation({ summary: 'Владелец запрашивает ручную отмену записи без автоматического освобождения брони' })
+  @ApiParam({ name: 'holdId', type: 'string', format: 'uuid' })
+  @ApiHeader({
+    name: 'X-Correlation-ID',
+    required: true,
+    schema: { type: 'string', format: 'uuid' },
+    description: 'Идентификатор трассировки заявки в поддержку.',
+  })
+  @ApiOkResponse({ description: 'Запрос отмены поставлен в очередь поддержки.' })
+  @ApiForbiddenResponse({ description: 'HOLD_OWNER_MISMATCH.', type: ApiErrorDto })
+  @ApiUnprocessableEntityResponse({ description: 'INVALID_STATE_TRANSITION.', type: ApiErrorDto })
+  async requestCancellation(
+    @Param('holdId') holdId: string,
+    @CurrentUser() owner: JwtPayload,
+    @Req() request: Request,
+  ) {
+    return this.holdCreationService.requestCancellation({
+      holdId: requiredUuid(holdId, 'holdId'),
+      ownerId: owner.sub,
+      correlationId: requiredUuid(originalHeader(request, 'X-Correlation-ID'), 'X-Correlation-ID'),
+    });
+  }
+
   @Post('clinic/booking-holds/:holdId/confirm')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard)

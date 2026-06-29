@@ -25,6 +25,10 @@ interface ScheduleSlotRow {
   integration_mode: string | null;
   last_freshness_sync: Date | null;
   version: number;
+  booking_hold_id?: string | null;
+  booking_hold_state?: string | null;
+  booking_hold_owner_id?: string | null;
+  booking_hold_pet_id?: string | null;
 }
 
 interface ScheduleStaffRow {
@@ -121,6 +125,12 @@ export interface ClinicScheduleSlot {
   lastFreshnessSync: string | null;
   stale: boolean;
   version: number;
+  bookingHold: {
+    id: string;
+    state: string;
+    ownerId: string;
+    petId: string;
+  } | null;
 }
 
 export interface ClinicScheduleStaffItem {
@@ -210,11 +220,23 @@ export class ClinicScheduleService {
                s.staff_id, staff.display_name AS staff_name,
                s.resource_id, resource.display_name AS resource_name,
                s.starts_at, s.ends_at, s.capacity, s.booked_count, s.held_count,
-               s.state, s.status, s.source, s.integration_mode, s.last_freshness_sync, s.version
+               s.state, s.status, s.source, s.integration_mode, s.last_freshness_sync, s.version,
+               hold.id::text AS booking_hold_id,
+               hold.state AS booking_hold_state,
+               hold.owner_id::text AS booking_hold_owner_id,
+               hold.pet_id::text AS booking_hold_pet_id
         FROM clinic_schema.appointment_slots s
         LEFT JOIN clinic_schema.clinic_services service ON service.id = s.service_id
         LEFT JOIN clinic_schema.clinic_staff staff ON staff.id = s.staff_id
         LEFT JOIN clinic_schema.clinic_resources resource ON resource.id = s.resource_id
+        LEFT JOIN LATERAL (
+          SELECT h.id, h.state, h.owner_id, h.pet_id
+          FROM booking_schema.booking_holds h
+          WHERE h.slot_id = s.id
+            AND h.state IN ('CONFIRMED', 'CANCELLATION_REQUESTED', 'RESCHEDULE_REQUESTED')
+          ORDER BY h.created_at DESC, h.id DESC
+          LIMIT 1
+        ) hold ON true
         WHERE s.clinic_location_id = $1::uuid
           AND s.starts_at >= $2::timestamptz
           AND s.starts_at < $3::timestamptz
@@ -1332,6 +1354,14 @@ export class ClinicScheduleService {
       lastFreshnessSync: lastFreshnessSync?.toISOString() ?? null,
       stale: lastFreshnessSync ? serverNow.getTime() - lastFreshnessSync.getTime() > 15 * 60 * 1000 : true,
       version: row.version,
+      bookingHold: row.booking_hold_id && row.booking_hold_state && row.booking_hold_owner_id && row.booking_hold_pet_id
+        ? {
+            id: row.booking_hold_id,
+            state: row.booking_hold_state,
+            ownerId: row.booking_hold_owner_id,
+            petId: row.booking_hold_pet_id,
+          }
+        : null,
     };
   }
 

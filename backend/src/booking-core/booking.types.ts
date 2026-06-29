@@ -12,6 +12,9 @@ export const HOLD_STATES = [
   'PAYMENT_IN_PROGRESS',
   'PAYMENT_RECONCILIATION_PENDING',
   'MIS_BOOKING_FAILED',
+  'CANCELLATION_REQUESTED',
+  'RESCHEDULE_REQUESTED',
+  'COMPLETED',
 ] as const;
 
 export type HoldState = (typeof HOLD_STATES)[number];
@@ -69,6 +72,21 @@ export interface ReleaseHoldResult {
   slotId: string;
   correlationId: string;
   swapGroupId?: string | null;
+}
+
+export interface RequestCancellationResult {
+  holdId: string;
+  state: 'CANCELLATION_REQUESTED';
+  slotId: string;
+  correlationId: string;
+}
+
+export interface CompleteAppointmentResult {
+  holdId: string;
+  state: 'COMPLETED';
+  slotId: string;
+  correlationId: string;
+  clinicalSummary: string;
 }
 
 export interface RequestNotesResult {

@@ -344,9 +344,9 @@ class _OwnerAppointmentDetailPageState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Отменить запись?'),
+        title: const Text('Запросить отмену?'),
         content: Text(
-          '${detail.clinicName}\n${_range(context, detail.startsAt, detail.endsAt)}\n\nЭто действие освободит заявку. Вернуть её автоматически не получится.',
+          '${detail.clinicName}\n${_range(context, detail.startsAt, detail.endsAt)}\n\nМенеджер поддержки свяжется с клиникой и подтвердит результат.',
         ),
         actions: [
           TextButton(
@@ -355,7 +355,7 @@ class _OwnerAppointmentDetailPageState
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Отменить'),
+            child: const Text('Запросить отмену'),
           ),
         ],
       ),
@@ -366,15 +366,15 @@ class _OwnerAppointmentDetailPageState
       _cancelling = true;
     });
     try {
-      await widget.repository.releaseHold(detail.holdId);
+      await widget.repository.requestCancellation(detail.holdId);
       await _refresh();
       if (!mounted) {
         return;
       }
       await HapticFeedback.mediumImpact();
-      if (mounted) _message(context, 'Запись отменена.');
+      if (mounted) _message(context, 'Запрос на отмену отправлен.');
     } on OwnerAppointmentsApiException catch (error) {
-      if (mounted) _message(context, _releaseError(error));
+      if (mounted) _message(context, _cancellationError(error));
     } catch (_) {
       if (mounted) {
         _message(context,
@@ -721,7 +721,7 @@ class _ActionCard extends StatelessWidget {
                         height: 18,
                         child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.event_busy_outlined),
-                label: Text(cancelling ? 'Отменяем...' : 'Отменить'),
+                label: Text(cancelling ? 'Отправляем...' : 'Запросить отмену'),
               ),
             ],
           ]),
@@ -865,12 +865,13 @@ void _message(BuildContext context, String text) {
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 }
 
-String _releaseError(OwnerAppointmentsApiException error) =>
+String _cancellationError(OwnerAppointmentsApiException error) =>
     switch (error.code) {
       'HOLD_EXPIRED' => 'Заявка уже истекла. Обновите детали записи.',
-      'INVALID_TRANSITION' => 'Эту запись уже нельзя отменить.',
+      'INVALID_TRANSITION' || 'INVALID_STATE_TRANSITION' =>
+        'Эту запись уже нельзя отменить.',
       'SLOT_LOCKED_RETRY' =>
         'Клиника обновляет слот. Повторите отмену через несколько секунд.',
       'UNAUTHENTICATED' => 'Сессия истекла. Войдите снова.',
-      _ => 'Не удалось отменить запись. Повторите попытку.',
+      _ => 'Не удалось отправить запрос отмены. Повторите попытку.',
     };
