@@ -52,3 +52,7 @@ export function canAccessClinicLocation(
   const hasRole = session.roles.includes('CLINIC_RECEPTIONIST') || session.roles.includes('CLINIC_ADMIN');
   return hasRole && session.clinicIds.includes(clinicId) && session.locationIds.includes(locationId);
 }
+
+export function canAccessOps(session: ClinicSession): boolean {
+  return session.roles.includes('PLATFORM_ADMIN') || session.roles.includes('SECURITY_AUDITOR');
+}

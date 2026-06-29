@@ -17,6 +17,8 @@ interface PaymentOutboxEvent {
   event_type: PaymentProviderEventType;
   payment_intent_id: string;
   correlation_id: string | null;
+  causation_id: string | null;
+  traceparent: string | null;
   payload_json: { amount?: number | string };
 }
 
@@ -31,21 +33,14 @@ interface PaymentRow {
 @Injectable()
 export class PaymentOutboxRelayWorker {
   private running = false;
-  private readonly traceContext: TraceContext;
-  private readonly logger: ContextLoggerService;
-  private readonly metrics: ObservabilityMetricsService;
 
   constructor(
     private readonly database: DatabaseService,
     private readonly acquiringClient: AcquiringClient,
-    traceContext?: TraceContext,
-    logger?: ContextLoggerService,
-    metrics?: ObservabilityMetricsService,
-  ) {
-    this.traceContext = traceContext ?? new TraceContext();
-    this.logger = logger ?? new ContextLoggerService(this.traceContext);
-    this.metrics = metrics ?? new ObservabilityMetricsService(this.logger);
-  }
+    private readonly traceContext: TraceContext,
+    private readonly logger: ContextLoggerService,
+    private readonly metrics: ObservabilityMetricsService,
+  ) {}
 
   @Cron(CronExpression.EVERY_5_SECONDS)
   async relay(): Promise<void> {
@@ -54,7 +49,11 @@ export class PaymentOutboxRelayWorker {
     try {
       const events = await this.claimBatch(10);
       for (const event of events) {
-        await this.traceContext.run(this.traceContext.workerContext(event.correlation_id), async () => {
+        const context = this.traceContext.workerContext(event.correlation_id, {
+          causationId: event.causation_id ?? event.id,
+          traceparent: event.traceparent,
+        });
+        await this.traceContext.run(context, async () => {
           try {
             const payment = await this.loadPayment(event.payment_intent_id);
             if (!payment?.provider_payment_id) throw new Error('Payment provider reference is missing');
@@ -137,7 +136,7 @@ export class PaymentOutboxRelayWorker {
             attempts = attempts + 1
         FROM claimed
         WHERE e.id = claimed.id
-        RETURNING e.id, e.event_type, e.aggregate_id AS payment_intent_id, e.correlation_id, e.payload_json
+        RETURNING e.id, e.event_type, e.aggregate_id AS payment_intent_id, e.correlation_id, e.causation_id, e.traceparent, e.payload_json
       `, [limit]);
       return result.rows;
     });
@@ -178,6 +177,9 @@ export class PaymentOutboxRelayWorker {
       await this.writeLedger(client, event, payment, 'REFUND_DISPATCHED', `refund-dispatched:${event.payment_intent_id}`, {
         refundProviderId,
       });
+      await this.writePaymentAudit(client, event, payment, 'payment.refund.dispatched', {
+        refundProviderId,
+      });
       await this.markPublished(client, event.id);
     });
   }
@@ -211,6 +213,7 @@ export class PaymentOutboxRelayWorker {
         `, [event.payment_intent_id]);
       }
       await this.writeLedger(client, event, payment, ledgerEntry, `${ledgerEntry.toLowerCase()}:${event.payment_intent_id}`, {});
+      await this.writePaymentAudit(client, event, payment, ledgerEntry === 'VOID_SENT' ? 'payment.void.sent' : 'payment.capture.sent', {});
       await this.markPublished(client, event.id);
     });
   }
@@ -252,6 +255,37 @@ export class PaymentOutboxRelayWorker {
       this.traceContext.getCorrelationId() ?? null,
       idempotencyKey,
       JSON.stringify({ outboxEventId: event.id, eventType: event.event_type, ...payload }),
+    ]);
+  }
+
+  private async writePaymentAudit(
+    client: PoolClient,
+    event: PaymentOutboxEvent,
+    payment: PaymentRow,
+    action: string,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
+    await client.query(`
+      INSERT INTO audit_schema.audit_log (
+        actor_type, actor_id, action, aggregate_type, aggregate_id,
+        correlation_id, causation_id, traceparent, payload_json
+      ) VALUES (
+        'SYSTEM_WORKER', NULL, $1, 'payment_intent', $2::uuid,
+        $3::uuid, $4::uuid, $5, $6::jsonb
+      )
+    `, [
+      action,
+      event.payment_intent_id,
+      this.traceContext.getCorrelationId() ?? null,
+      this.traceContext.getCausationId() ?? null,
+      this.traceContext.getTraceparent() ?? null,
+      JSON.stringify({
+        source: payment.source,
+        outboxEventId: event.id,
+        outboxEventType: event.event_type,
+        status: payment.status,
+        ...payload,
+      }),
     ]);
   }
 

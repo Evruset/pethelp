@@ -95,6 +95,7 @@ export class PaymentRefundService {
             refundedAmount: payment.amount,
           },
         });
+        await this.writeAudit(client, payment, command.providerEventId, command.providerRefundId ?? payment.refund_provider_id);
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Refund webhook processing failed';
@@ -131,6 +132,34 @@ export class PaymentRefundService {
       input.idempotencyKey,
       input.providerEventId,
       JSON.stringify({ ...input.payload, correlationId: this.traceContext.getCorrelationId() ?? null }),
+    ]);
+  }
+
+  private async writeAudit(
+    client: PoolClient,
+    payment: LockedRefundPayment,
+    providerEventId: string,
+    providerRefundId: string | null,
+  ): Promise<void> {
+    await client.query(`
+      INSERT INTO audit_schema.audit_log (
+        actor_type, actor_id, action, aggregate_type, aggregate_id,
+        correlation_id, causation_id, traceparent, payload_json
+      ) VALUES (
+        'SYSTEM', NULL, 'payment.refunded', 'payment_intent', $1::uuid,
+        $2::uuid, $3::uuid, $4, $5::jsonb
+      )
+    `, [
+      payment.id,
+      this.traceContext.getCorrelationId() ?? null,
+      this.traceContext.getCausationId() ?? null,
+      this.traceContext.getTraceparent() ?? null,
+      JSON.stringify({
+        providerEventId,
+        providerRefundId,
+        amount: payment.amount,
+        currency: payment.currency,
+      }),
     ]);
   }
 

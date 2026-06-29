@@ -9,17 +9,20 @@ import { MisIntegrationModule } from './modules/mis-integration/mis-integration.
 import { PaymentsModule } from './modules/payments/payments.module';
 import { TelemedModule } from './modules/telemed/telemed.module';
 import { ObservabilityModule } from './observability/observability.module';
+import { ApiMetricsMiddleware } from './observability/api-metrics.middleware';
 import { TraceMiddleware } from './observability/trace.middleware';
 import { OutboxModule } from './outbox/outbox.module';
 import { PublicCatalogModule } from './public-catalog/public-catalog.module';
 import { WorkersModule } from './workers/workers.module';
+import { PermissionDeniedAuditFilter } from './common/permission-denied-audit.filter';
 
 @NestModule({
   imports: [ObservabilityModule, DatabaseModule, AuthModule, BookingCoreModule, EmergencyRoutingModule, OutboxModule, WorkersModule, MisIntegrationModule, PaymentsModule, TelemedModule, InsuranceModule, PublicCatalogModule],
   controllers: [HealthController],
+  providers: [PermissionDeniedAuditFilter],
 })
 export class NestRoot implements NestModuleContract {
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(TraceMiddleware).forRoutes('*');
+    consumer.apply(TraceMiddleware, ApiMetricsMiddleware).forRoutes('*');
   }
 }

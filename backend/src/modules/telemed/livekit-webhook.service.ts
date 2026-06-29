@@ -65,16 +65,13 @@ export class LiveKitWebhookService {
           `, [session.telemed_case_id]);
         }
 
-        await client.query(`
-          INSERT INTO audit_schema.audit_log (
-            occurred_at, actor_type, actor_id, action,
-            aggregate_type, aggregate_id, correlation_id, payload_json
-          ) VALUES (
-            clock_timestamp(), 'DOCTOR', $1::text, 'TELEMED_DOCTOR_JOINED_LIVEKIT',
-            'telemed_session', $2::uuid, $3::uuid,
-            jsonb_build_object('roomName', $4::text, 'participantIdentity', $1::text, 'role', 'doctor')
-          )
-        `, [participantIdentity, session.id, this.traceContext.getCorrelationId() ?? null, roomName]);
+        await this.writeSessionAudit(client, {
+          sessionId: session.id,
+          actorType: 'DOCTOR',
+          actorId: participantIdentity,
+          action: 'TELEMED_DOCTOR_JOINED_LIVEKIT',
+          payload: { roomName, participantIdentity, role: 'doctor' },
+        });
         this.logger.event('log', LiveKitWebhookService.name, 'Doctor joined LiveKit telemedicine room', {
           telemedSessionId: session.id,
           roomName,
@@ -119,9 +116,46 @@ export class LiveKitWebhookService {
             telemedSessionId: session.id,
             roomName,
           });
+          await this.writeSessionAudit(client, {
+            sessionId: session.id,
+            actorType: 'SYSTEM_WORKER',
+            actorId: null,
+            action: 'telemed.session.completed',
+            payload: { roomName, source: 'livekit.room_finished' },
+          });
         }
       });
     });
+  }
+
+  private async writeSessionAudit(
+    client: PoolClient,
+    input: {
+      sessionId: string;
+      actorType: string;
+      actorId: string | null;
+      action: string;
+      payload: Record<string, unknown>;
+    },
+  ): Promise<void> {
+    await client.query(`
+      INSERT INTO audit_schema.audit_log (
+        actor_type, actor_id, action, aggregate_type, aggregate_id,
+        correlation_id, causation_id, traceparent, payload_json
+      ) VALUES (
+        $1, $2, $3, 'telemed_session', $4::uuid,
+        $5::uuid, $6::uuid, $7, $8::jsonb
+      )
+    `, [
+      input.actorType,
+      input.actorId,
+      input.action,
+      input.sessionId,
+      this.traceContext.getCorrelationId() ?? null,
+      this.traceContext.getCausationId() ?? null,
+      this.traceContext.getTraceparent() ?? null,
+      JSON.stringify(input.payload),
+    ]);
   }
 
   private async lockSessionByRoom(client: PoolClient, roomName: string): Promise<SessionTraceRow | undefined> {

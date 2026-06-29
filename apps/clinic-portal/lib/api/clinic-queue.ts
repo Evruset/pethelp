@@ -35,11 +35,15 @@ export type ManualConfirmationQueue = {
 
 export type HoldAuditTrailItem = {
   id: string;
+  eventRef: string;
   occurredAt: string;
   actorType: string;
   actorId: string | null;
   action: string;
   correlationId: string | null;
+  causationId: string | null;
+  traceparent: string | null;
+  retainedUntil: string;
   payload: Record<string, unknown>;
 };
 

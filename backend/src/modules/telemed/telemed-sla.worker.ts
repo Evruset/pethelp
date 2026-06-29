@@ -71,7 +71,7 @@ export class TelemedSlaWorker {
       const session = expired.rows[0];
       if (!session) return false;
 
-      return this.traceContext.run(this.traceContext.workerContext(session.correlation_id), async () => {
+      return this.traceContext.run(this.traceContext.workerContext(session.correlation_id, { causationId: session.id }), async () => {
         const timedOut = await client.query<{ id: string }>(`
           UPDATE telemed_schema.telemed_sessions
           SET state = 'DOCTOR_TIMEOUT', version = version + 1, updated_at = clock_timestamp()
@@ -83,12 +83,21 @@ export class TelemedSlaWorker {
         const correlationId = this.traceContext.getCorrelationId() ?? null;
         await client.query(`
           INSERT INTO audit_schema.audit_log (
-            actor_type, actor_id, action, aggregate_type, aggregate_id, correlation_id, payload_json
+            actor_type, actor_id, action, aggregate_type, aggregate_id,
+            correlation_id, causation_id, traceparent, payload_json
           ) VALUES (
-            'SYSTEM', NULL, 'TELEMED_DOCTOR_TIMEOUT', 'telemed_session', $1::uuid, $2::uuid,
-            jsonb_build_object('bookingHoldId', $3::uuid, 'telemedCaseId', $4::uuid)
+            'SYSTEM', NULL, 'TELEMED_DOCTOR_TIMEOUT', 'telemed_session', $1::uuid,
+            $2::uuid, $3::uuid, $4,
+            jsonb_build_object('bookingHoldId', $5::uuid, 'telemedCaseId', $6::uuid)
           )
-        `, [session.id, correlationId, session.booking_hold_id, session.telemed_case_id]);
+        `, [
+          session.id,
+          correlationId,
+          this.traceContext.getCausationId() ?? null,
+          this.traceContext.getTraceparent() ?? null,
+          session.booking_hold_id,
+          session.telemed_case_id,
+        ]);
 
         if (session.telemed_case_id) {
           await this.queueTelemedCaseRemedy(client, session, correlationId);
@@ -179,21 +188,24 @@ export class TelemedSlaWorker {
     });
     await client.query(`
       INSERT INTO booking_schema.outbox_events (
-        event_type, correlation_id, aggregate_type, aggregate_id,
-        aggregate_version, payload_json, deduplication_key
+        event_type, correlation_id, causation_id, traceparent, aggregate_type,
+        aggregate_id, aggregate_version, payload_json, deduplication_key
       ) VALUES (
-        'payment.acquiring.void.requested.v1', $1::uuid, 'telemed_payment_intent', $2::uuid,
+        'payment.acquiring.void.requested.v1', $1::uuid, $2::uuid, $3,
+        'telemed_payment_intent', $4::uuid,
         1,
         jsonb_build_object(
-          'paymentIntentId', $2::uuid,
-          'telemedCaseId', $3::uuid,
+          'paymentIntentId', $4::uuid,
+          'telemedCaseId', $5::uuid,
           'source', 'telemed_sla',
-          'telemedSessionId', $4::uuid
+          'telemedSessionId', $6::uuid
         ),
-        $5
+        $7
       ) ON CONFLICT (deduplication_key) DO NOTHING
     `, [
       correlationId,
+      this.traceContext.getCausationId() ?? null,
+      this.traceContext.getTraceparent() ?? null,
       paymentRow.id,
       session.telemed_case_id,
       session.id,
@@ -228,14 +240,23 @@ export class TelemedSlaWorker {
     `, [payment.id, payment.amount, payment.currency, correlationId, `refund-requested:${payment.id}`, session.id]);
     await client.query(`
       INSERT INTO booking_schema.outbox_events (
-        event_type, correlation_id, aggregate_type, aggregate_id,
-        aggregate_version, payload_json, deduplication_key
+        event_type, correlation_id, causation_id, traceparent, aggregate_type,
+        aggregate_id, aggregate_version, payload_json, deduplication_key
       ) VALUES (
-        'payment.acquiring.refund.requested.v1', $1::uuid, 'payment_intent', $2::uuid,
-        1, jsonb_build_object('paymentIntentId', $2::uuid, 'amount', $3::numeric, 'source', 'telemed_sla', 'telemedSessionId', $4::uuid),
-        $5
+        'payment.acquiring.refund.requested.v1', $1::uuid, $2::uuid, $3,
+        'payment_intent', $4::uuid,
+        1, jsonb_build_object('paymentIntentId', $4::uuid, 'amount', $5::numeric, 'source', 'telemed_sla', 'telemedSessionId', $6::uuid),
+        $7
       ) ON CONFLICT (deduplication_key) DO NOTHING
-    `, [correlationId, payment.id, payment.amount, session.id, `payment.acquiring.refund.requested.v1:${payment.id}`]);
+    `, [
+      correlationId,
+      this.traceContext.getCausationId() ?? null,
+      this.traceContext.getTraceparent() ?? null,
+      payment.id,
+      payment.amount,
+      session.id,
+      `payment.acquiring.refund.requested.v1:${payment.id}`,
+    ]);
   }
 
   private async queueAuthorizationVoid(
@@ -260,14 +281,22 @@ export class TelemedSlaWorker {
     `, [payment.id, payment.amount, payment.currency, correlationId, `telemed-sla-void:${session.id}`, session.id]);
     await client.query(`
       INSERT INTO booking_schema.outbox_events (
-        event_type, correlation_id, aggregate_type, aggregate_id,
-        aggregate_version, payload_json, deduplication_key
+        event_type, correlation_id, causation_id, traceparent, aggregate_type,
+        aggregate_id, aggregate_version, payload_json, deduplication_key
       ) VALUES (
-        'payment.acquiring.void.requested.v1', $1::uuid, 'payment_intent', $2::uuid,
-        1, jsonb_build_object('paymentIntentId', $2::uuid, 'source', 'telemed_sla', 'telemedSessionId', $3::uuid),
-        $4
+        'payment.acquiring.void.requested.v1', $1::uuid, $2::uuid, $3,
+        'payment_intent', $4::uuid,
+        1, jsonb_build_object('paymentIntentId', $4::uuid, 'source', 'telemed_sla', 'telemedSessionId', $5::uuid),
+        $6
       ) ON CONFLICT (deduplication_key) DO NOTHING
-    `, [correlationId, payment.id, session.id, `payment.acquiring.void.requested.v1:${payment.id}`]);
+    `, [
+      correlationId,
+      this.traceContext.getCausationId() ?? null,
+      this.traceContext.getTraceparent() ?? null,
+      payment.id,
+      session.id,
+      `payment.acquiring.void.requested.v1:${payment.id}`,
+    ]);
   }
 
   private async setFinancialTransactionLimits(client: PoolClient): Promise<void> {

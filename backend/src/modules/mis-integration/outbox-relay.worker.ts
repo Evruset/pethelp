@@ -11,6 +11,8 @@ import { MisCommandDispatcherService } from './mis-command-dispatcher.service';
 interface LeasedMisEvent {
   id: string;
   correlation_id: string | null;
+  causation_id: string | null;
+  traceparent: string | null;
   payload_json: MisReservationRequestedPayload;
 }
 
@@ -34,7 +36,11 @@ export class MisOutboxRelayWorker {
     try {
       const events = await this.claimBatch(10);
       for (const event of events) {
-        await this.traceContext.run(this.traceContext.workerContext(event.correlation_id), async () => {
+        const context = this.traceContext.workerContext(event.correlation_id, {
+          causationId: event.causation_id ?? event.id,
+          traceparent: event.traceparent,
+        });
+        await this.traceContext.run(context, async () => {
           try {
             this.assertPayload(event.payload_json);
             await this.dispatcher.dispatchReservation(event.payload_json);
@@ -80,7 +86,7 @@ export class MisOutboxRelayWorker {
             attempts = attempts + 1
         FROM claimed
         WHERE e.id = claimed.id
-        RETURNING e.id, e.correlation_id, e.payload_json
+        RETURNING e.id, e.correlation_id, e.causation_id, e.traceparent, e.payload_json
       `, [limit]);
       return result.rows;
     });

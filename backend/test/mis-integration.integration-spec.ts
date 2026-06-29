@@ -59,19 +59,21 @@ describe('MisCommandDispatcherService integration', () => {
       { MisAdapterFactory },
       { MisCommandDispatcherService },
       { MisReconciliationSweeperWorker },
+      { TraceContext },
     ] = await Promise.all([
       import('../src/database/database.service'),
       import('../src/modules/mis-integration/adapters/vet-manager.adapter'),
       import('../src/modules/mis-integration/mis-adapter.factory'),
       import('../src/modules/mis-integration/mis-command-dispatcher.service'),
       import('../src/modules/mis-integration/mis-reconciliation-sweeper.worker'),
+      import('../src/observability/trace-context.context'),
     ]);
 
     database = new DatabaseService();
     const http = new HttpService(axios.create({ proxy: false }));
     const adapter = new VetManagerAdapter(http);
     const factory = new MisAdapterFactory(adapter);
-    dispatcher = new MisCommandDispatcherService(database, factory);
+    dispatcher = new MisCommandDispatcherService(database, factory, new TraceContext());
     sweeper = new MisReconciliationSweeperWorker(database, factory, dispatcher);
 
     nock.disableNetConnect();

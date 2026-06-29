@@ -8,6 +8,9 @@ import { AcquiringWebhookVerifier } from '../src/modules/payments/acquiring-webh
 import { PaymentOutboxRelayWorker } from '../src/modules/payments/payment-outbox-relay.worker';
 import { PaymentReconciliationWorker } from '../src/modules/payments/payment-reconciliation.worker';
 import { PaymentAuthorizedWebhookCommand, PaymentService } from '../src/modules/payments/payment.service';
+import { ContextLoggerService } from '../src/observability/context-logger.service';
+import { ObservabilityMetricsService } from '../src/observability/observability.metrics';
+import { TraceContext } from '../src/observability/trace-context.context';
 
 const PROVIDER_URL = 'https://acquiring.test';
 const WEBHOOK_SECRET = 'payment-webhook-test-secret';
@@ -22,6 +25,9 @@ describe('Payment reliability: signed webhook, outbox void and reconciliation', 
   let relay: PaymentOutboxRelayWorker;
   let reconciliation: PaymentReconciliationWorker;
   let verifier: AcquiringWebhookVerifier;
+  let traceContext: TraceContext;
+  let logger: ContextLoggerService;
+  let metrics: ObservabilityMetricsService;
 
   beforeAll(() => {
     process.env.WORKERS_ENABLED = 'true';
@@ -30,9 +36,12 @@ describe('Payment reliability: signed webhook, outbox void and reconciliation', 
     process.env.ACQUIRING_WEBHOOK_SECRET = WEBHOOK_SECRET;
 
     database = new DatabaseService();
+    traceContext = new TraceContext();
+    logger = new ContextLoggerService(traceContext);
+    metrics = new ObservabilityMetricsService(logger);
     acquiringClient = new AcquiringClient(new HttpService(axios.create({ proxy: false })));
     service = new PaymentService(database, acquiringClient);
-    relay = new PaymentOutboxRelayWorker(database, acquiringClient);
+    relay = new PaymentOutboxRelayWorker(database, acquiringClient, traceContext, logger, metrics);
     reconciliation = new PaymentReconciliationWorker(database, acquiringClient);
     verifier = new AcquiringWebhookVerifier();
     nock.disableNetConnect();
