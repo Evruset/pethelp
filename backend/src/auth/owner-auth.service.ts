@@ -18,6 +18,7 @@ type RequestedChallenge = {
 };
 
 type SessionMaterial = {
+  sessionId: string;
   userId: string;
   refreshToken: string;
 };
@@ -131,6 +132,12 @@ export class OwnerAuthService {
       await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [`owner-phone:${phone}`]);
       const owner = await this.findOrCreateOwner(client, phone);
       const session = await this.createSession(client, owner.id, input.deviceName);
+      await this.writeAuthAudit(client, owner.id, 'user.authenticated', {
+        method: 'otp',
+        sessionId: session.sessionId,
+        challengeId: input.challengeId,
+        deviceName: input.deviceName?.trim() || null,
+      });
       return { kind: 'VERIFIED' as const, owner, session };
     });
 
@@ -165,6 +172,12 @@ export class OwnerAuthService {
         WHERE id = $1::uuid AND revoked_at IS NULL
       `, [row.id]);
       const session = await this.createSession(client, row.user_id, input.deviceName);
+      await this.writeAuthAudit(client, row.user_id, 'user.authenticated', {
+        method: 'refresh',
+        sessionId: session.sessionId,
+        rotatedFromSessionId: row.id,
+        deviceName: input.deviceName?.trim() || null,
+      });
       return { kind: 'REFRESHED' as const, owner: { id: row.user_id, phone: row.phone_e164 }, session };
     });
 
@@ -231,7 +244,17 @@ export class OwnerAuthService {
         $1::uuid, $2::uuid, $3, $4, clock_timestamp() + interval '30 days'
       )
     `, [sessionId, userId, this.tokenHash(refreshToken), deviceName?.trim() || null]);
-    return { userId, refreshToken };
+    return { sessionId, userId, refreshToken };
+  }
+
+  private async writeAuthAudit(client: PoolClient, ownerId: string, action: string, payload: Record<string, unknown>): Promise<void> {
+    await client.query(`
+      INSERT INTO audit_schema.audit_log (
+        actor_type, actor_id, action, aggregate_type, aggregate_id, payload_json
+      ) VALUES (
+        'OWNER', $1::text, $2::text, 'owner_identity', $1::uuid, $3::jsonb
+      )
+    `, [ownerId, action, JSON.stringify(payload)]);
   }
 
   private async tokens(session: SessionMaterial, phone: string): Promise<OwnerAuthTokens> {
