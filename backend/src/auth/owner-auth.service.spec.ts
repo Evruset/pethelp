@@ -59,4 +59,146 @@ describe('OwnerAuthService', () => {
     await expect(service.requestOtp({ phone: '8 999 123 45 67' })).rejects.toBeInstanceOf(BadRequestException);
     expect(database.withTransaction).not.toHaveBeenCalled();
   });
+  it('writes an OTP authentication audit row after successful verification', async () => {
+    const phone = '+79991234567';
+    const challengeId = '11111111-1111-4111-8111-111111111111';
+    const ownerId = '22222222-2222-4222-8222-222222222222';
+    const code = '123456';
+    let codeHash = '';
+
+    const client = {
+      query: jest.fn(async (statement: string, _parameters?: readonly unknown[]) => {
+        if (statement.includes('FROM identity_schema.otp_challenges')) {
+          return {
+            rows: [{
+              id: challengeId,
+              phone_e164: phone,
+              code_hash: codeHash,
+              expires_at: new Date('2099-01-01T00:00:00.000Z'),
+              attempts_remaining: 3,
+              consumed_at: null,
+            }],
+          };
+        }
+        if (statement.includes('FROM identity_schema.owner_identities')) {
+          return { rows: [{ user_id: ownerId, phone_e164: phone }] };
+        }
+        return { rows: [] };
+      }),
+    };
+
+    const database = {
+      withTransaction: async <T>(work: (transaction: typeof client) => Promise<T>) => work(client),
+    } as unknown as DatabaseService;
+    const jwt = {
+      signAsync: jest.fn().mockResolvedValue('access-token'),
+    } as unknown as JwtService;
+    const service = new OwnerAuthService(database, jwt);
+
+    codeHash = (service as unknown as {
+      otpHash: (id: string, normalizedPhone: string, value: string) => string;
+    }).otpHash(challengeId, phone, code);
+
+    const result = await service.verifyOtp({
+      phone,
+      challengeId,
+      code,
+      deviceName: ' iPhone  ',
+    });
+
+    expect(result.accessToken).toBe('access-token');
+    expect(result.owner).toEqual({ id: ownerId, phone });
+
+    const sessionCall = client.query.mock.calls.find(([statement]) =>
+      typeof statement === 'string' && statement.includes('INSERT INTO identity_schema.owner_sessions'),
+    );
+    const auditCall = client.query.mock.calls.find(([statement]) =>
+      typeof statement === 'string' && statement.includes('INSERT INTO audit_schema.audit_log'),
+    );
+
+    if (!sessionCall || !auditCall || !sessionCall[1] || !auditCall[1]) {
+      throw new Error('Expected session and audit inserts with parameters');
+    }
+
+    const sessionParameters = sessionCall[1];
+    const auditSql = auditCall[0];
+    const auditParameters = auditCall[1];
+    const auditPayload = JSON.parse(auditParameters[2] as string);
+
+    expect(auditSql).toContain('$1::text');
+    expect(auditSql).toContain('$1::uuid');
+    expect(auditParameters[0]).toBe(ownerId);
+    expect(auditParameters[1]).toBe('user.authenticated');
+    expect(auditPayload).toEqual({
+      method: 'otp',
+      sessionId: sessionParameters[0],
+      challengeId,
+      deviceName: 'iPhone',
+    });
+  });
+
+  it('writes a refresh authentication audit row with the rotated session id', async () => {
+    const ownerId = '22222222-2222-4222-8222-222222222222';
+    const oldSessionId = '33333333-3333-4333-8333-333333333333';
+    const refreshToken = 'r'.repeat(48);
+
+    const client = {
+      query: jest.fn(async (statement: string, _parameters?: readonly unknown[]) => {
+        if (statement.includes('FROM identity_schema.owner_sessions session')) {
+          return {
+            rows: [{
+              id: oldSessionId,
+              user_id: ownerId,
+              phone_e164: '+79991234567',
+            }],
+          };
+        }
+        return { rows: [] };
+      }),
+    };
+
+    const database = {
+      withTransaction: async <T>(work: (transaction: typeof client) => Promise<T>) => work(client),
+    } as unknown as DatabaseService;
+    const jwt = {
+      signAsync: jest.fn().mockResolvedValue('access-token'),
+    } as unknown as JwtService;
+    const service = new OwnerAuthService(database, jwt);
+
+    const result = await service.refresh({
+      refreshToken,
+      deviceName: ' Safari ',
+    });
+
+    expect(result.accessToken).toBe('access-token');
+    expect(result.owner).toEqual({ id: ownerId, phone: '+79991234567' });
+
+    const sessionCall = client.query.mock.calls.find(([statement]) =>
+      typeof statement === 'string' && statement.includes('INSERT INTO identity_schema.owner_sessions'),
+    );
+    const auditCall = client.query.mock.calls.find(([statement]) =>
+      typeof statement === 'string' && statement.includes('INSERT INTO audit_schema.audit_log'),
+    );
+
+    if (!sessionCall || !auditCall || !sessionCall[1] || !auditCall[1]) {
+      throw new Error('Expected session and audit inserts with parameters');
+    }
+
+    const sessionParameters = sessionCall[1];
+    const auditSql = auditCall[0];
+    const auditParameters = auditCall[1];
+    const auditPayload = JSON.parse(auditParameters[2] as string);
+
+    expect(auditSql).toContain('$1::text');
+    expect(auditSql).toContain('$1::uuid');
+    expect(auditParameters[0]).toBe(ownerId);
+    expect(auditParameters[1]).toBe('user.authenticated');
+    expect(auditPayload).toEqual({
+      method: 'refresh',
+      sessionId: sessionParameters[0],
+      rotatedFromSessionId: oldSessionId,
+      deviceName: 'Safari',
+    });
+  });
+
 });
