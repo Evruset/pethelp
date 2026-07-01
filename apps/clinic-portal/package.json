@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "e2e": "next build && playwright test"
+    "e2e": "next build && playwright test",
+    "allure:generate": "allure generate allure-results --clean -o allure-report"
   },
   "dependencies": {
     "jose": "^6.0.0",
@@ -16,11 +17,14 @@
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4.1.0",
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "allure-commandline": "^2.43.0",
+    "allure-playwright": "^3.10.2",
     "tailwindcss": "^4.1.0",
     "typescript": "^5.9.0"
   }

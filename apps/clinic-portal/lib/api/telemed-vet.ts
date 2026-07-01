@@ -26,7 +26,7 @@ export type DoctorConnectionResult = {
 
 export type TelemedVetCase = {
   caseId: string;
-  state: 'QUEUED' | 'ASSIGNED' | 'DOCTOR_JOINED' | 'IN_PROGRESS';
+  state: 'QUEUED' | 'ASSIGNED' | 'DOCTOR_JOINED' | 'IN_PROGRESS' | 'CANCELLED' | 'CANCELLED_BY_OWNER' | 'EXPIRED';
   queuePriority: number;
   urgencyBand: string;
   serviceLevel: string;
