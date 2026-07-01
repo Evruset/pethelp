@@ -413,6 +413,14 @@ class _VisitTile extends StatelessWidget {
               Text(visit.clinicName),
               Text(price == null ? service : '$service · $price',
                   style: Theme.of(context).textTheme.bodySmall),
+              if (visit.clinicalSummary != null &&
+                  visit.clinicalSummary!.trim().isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text('Заключение врача',
+                    style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 2),
+                Text(visit.clinicalSummary!),
+              ],
             ],
           ),
         ),

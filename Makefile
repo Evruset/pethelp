@@ -1,8 +1,24 @@
 LOCAL_PROJECT ?= vethelp-alpha
 NODE20_BIN ?= $(HOME)/.nvm/versions/node/v20.20.2/bin
 COMPOSE ?= docker compose -p $(LOCAL_PROJECT) -f docker-compose.local.yml
+OWNER_DEVICE ?= chrome
 
-.PHONY: local-up local-down local-status local-logs local-seed local-smoke local-test clinic-portal-session
+.PHONY: local-dev local-dev-down owner-web-e2e owner-integration-test local-stack-e2e local-up local-down local-status local-logs local-seed local-smoke local-test clinic-portal-session
+
+local-dev:
+	dev/local/up.sh
+
+local-dev-down:
+	dev/local/down.sh
+
+owner-web-e2e:
+	PATH="$(NODE20_BIN):$$PATH" node dev/local/owner-mobile-web-e2e.mjs
+
+owner-integration-test:
+	PATH="$(NODE20_BIN):$$PATH" node dev/local/run-owner-integration-test.mjs
+
+local-stack-e2e:
+	PATH="$(NODE20_BIN):$$PATH" node dev/local/local-stack-e2e.mjs
 
 local-up:
 	$(COMPOSE) up -d --build

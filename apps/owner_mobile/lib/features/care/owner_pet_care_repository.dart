@@ -68,6 +68,7 @@ class OwnerPetCareVisit {
     required this.state,
     required this.bucket,
     required this.presentation,
+    required this.clinicalSummary,
     required this.startsAt,
     required this.endsAt,
     required this.clinicName,
@@ -82,6 +83,7 @@ class OwnerPetCareVisit {
   final String state;
   final String bucket;
   final OwnerAppointmentPresentation presentation;
+  final String? clinicalSummary;
   final DateTime startsAt;
   final DateTime endsAt;
   final String clinicName;
@@ -102,6 +104,7 @@ class OwnerPetCareVisit {
         json['presentation'],
         bucket: json['bucket'] as String,
       ),
+      clinicalSummary: json['clinicalSummary'] as String?,
       startsAt: DateTime.parse(json['startsAt'] as String).toLocal(),
       endsAt: DateTime.parse(json['endsAt'] as String).toLocal(),
       clinicName: clinic['name'] as String,
