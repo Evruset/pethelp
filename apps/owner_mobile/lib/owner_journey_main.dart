@@ -545,18 +545,17 @@ class _OwnerIosHomeTab extends StatelessWidget {
       ),
       child: SafeArea(
         bottom: false,
-        child: _OwnerIosMaterialFeatureTab(
-          child: OwnerHomePage(
-            selectedPet: selectedPet,
-            appointmentsRepository: appointmentsRepository,
-            onBrowseClinics: onBrowseClinics,
-            onManagePets: onManagePets,
-            onOpenAppointments: onOpenAppointments,
-            onOpenCare: onOpenCare,
-            onRequestTelemed: onRequestTelemed,
-            onRequestInsurance: onRequestInsurance,
-            onRequestEmergency: onRequestEmergency,
-          ),
+        child: OwnerHomePage(
+          platformOverride: TargetPlatform.iOS,
+          selectedPet: selectedPet,
+          appointmentsRepository: appointmentsRepository,
+          onBrowseClinics: onBrowseClinics,
+          onManagePets: onManagePets,
+          onOpenAppointments: onOpenAppointments,
+          onOpenCare: onOpenCare,
+          onRequestTelemed: onRequestTelemed,
+          onRequestInsurance: onRequestInsurance,
+          onRequestEmergency: onRequestEmergency,
         ),
       ),
     );
