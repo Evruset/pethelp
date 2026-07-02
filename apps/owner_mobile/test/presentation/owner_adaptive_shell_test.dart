@@ -45,6 +45,7 @@ void main() {
           platformOverride: TargetPlatform.iOS,
           home: const Text('Home content'),
           clinics: PublicCatalogPage(
+            platformOverride: TargetPlatform.iOS,
             repository: _FakePublicCatalogRepository(),
             onSelected: (_) {},
           ),
@@ -58,7 +59,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(PublicCatalogPage), findsOneWidget);
-    expect(find.text('Выберите клинику'), findsOneWidget);
+    expect(find.byType(CupertinoPageScaffold), findsOneWidget);
+    expect(find.byType(CupertinoSearchTextField), findsOneWidget);
     expect(find.text('VetHelp Central'), findsOneWidget);
   });
 

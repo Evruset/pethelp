@@ -293,6 +293,7 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
             repository:
                 HttpPublicCatalogRepository(baseUrl: Uri.parse(_apiBaseUrl)),
             onSelected: onSelected,
+            platformOverride: widget.platformOverride,
           ),
         ),
       );
@@ -488,11 +489,10 @@ class _OwnerIosAuthenticatedShellState
         onRequestInsurance: widget.onRequestInsurance,
         onRequestEmergency: widget.onRequestEmergency,
       ),
-      clinics: _OwnerIosMaterialFeatureTab(
-        child: PublicCatalogPage(
-          repository: widget.catalogRepository,
-          onSelected: widget.onCatalogSelection,
-        ),
+      clinics: PublicCatalogPage(
+        platformOverride: TargetPlatform.iOS,
+        repository: widget.catalogRepository,
+        onSelected: widget.onCatalogSelection,
       ),
       appointments: _OwnerIosMaterialFeatureTab(
         child: OwnerAppointmentsPage(
