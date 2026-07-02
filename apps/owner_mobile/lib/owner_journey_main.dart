@@ -346,6 +346,7 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
           ),
           onRequestEmergency: _openEmergency,
           onBrowseClinics: _openCatalogForOwner,
+          platformOverride: widget.platformOverride,
         ),
       ),
     );
