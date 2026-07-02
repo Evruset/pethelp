@@ -426,6 +426,7 @@ class _CupertinoAppointmentRow extends StatelessWidget {
       bucket: appointment.bucket,
     );
     final tone = _cupertinoTone(context, status.tone);
+    final stacksHeader = MediaQuery.textScalerOf(context).scale(1) >= 1.3;
     return Semantics(
       button: true,
       label:
@@ -465,22 +466,36 @@ class _CupertinoAppointmentRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        appointment.clinicName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: CupertinoTheme.of(context)
-                            .textTheme
-                            .navTitleTextStyle,
+                if (stacksHeader) ...[
+                  Text(
+                    appointment.clinicName,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style:
+                        CupertinoTheme.of(context).textTheme.navTitleTextStyle,
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: _CupertinoStatusPill(status: status),
+                  ),
+                ] else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          appointment.clinicName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: CupertinoTheme.of(context)
+                              .textTheme
+                              .navTitleTextStyle,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    _CupertinoStatusPill(status: status),
-                  ],
-                ),
+                      const SizedBox(width: 12),
+                      _CupertinoStatusPill(status: status),
+                    ],
+                  ),
                 const SizedBox(height: 10),
                 Row(
                   children: [

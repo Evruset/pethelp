@@ -54,3 +54,15 @@ Future<void> showOwnerMessage(
     SnackBar(content: Text(text)),
   );
 }
+
+Duration ownerMotionDuration(
+  BuildContext context,
+  Duration duration,
+) {
+  final mediaQuery = MediaQuery.maybeOf(context);
+  if (mediaQuery == null) return duration;
+  if (mediaQuery.disableAnimations || mediaQuery.accessibleNavigation) {
+    return Duration.zero;
+  }
+  return duration;
+}

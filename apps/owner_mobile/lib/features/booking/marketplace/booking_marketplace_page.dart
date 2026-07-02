@@ -285,6 +285,12 @@ class _CupertinoMarketplaceReady extends StatelessWidget {
         List<DateTime>.generate(3, (index) => today.add(Duration(days: index)));
     final selectedSlot = state.selectedSlot;
     final interactionsBlocked = creatingHold || lockingSlot != null;
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final dayStripHeight = textScale >= 1.6
+        ? 120.0
+        : textScale >= 1.3
+            ? 96.0
+            : 74.0;
 
     return Column(
       children: [
@@ -315,7 +321,7 @@ class _CupertinoMarketplaceReady extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     SizedBox(
-                      height: 74,
+                      height: dayStripHeight,
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemBuilder: (context, index) {
@@ -537,6 +543,17 @@ class _CupertinoDayChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final chipWidth = textScale >= 1.6
+        ? 124.0
+        : textScale >= 1.3
+            ? 108.0
+            : 92.0;
+    final chipMinHeight = textScale >= 1.6
+        ? 96.0
+        : textScale >= 1.3
+            ? 76.0
+            : 56.0;
     final foreground = selected
         ? CupertinoColors.white
         : CupertinoDynamicColor.resolve(CupertinoColors.label, context);
@@ -558,9 +575,12 @@ class _CupertinoDayChip extends StatelessWidget {
         padding: EdgeInsets.zero,
         onPressed: enabled ? onTap : null,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          width: 92,
-          constraints: const BoxConstraints(minHeight: 56),
+          duration: ownerMotionDuration(
+            context,
+            const Duration(milliseconds: 160),
+          ),
+          width: chipWidth,
+          constraints: BoxConstraints(minHeight: chipMinHeight),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             color: selected
@@ -740,7 +760,10 @@ class _CupertinoSlotTile extends StatelessWidget {
           onPressed: enabled ? onTap : null,
           child: AnimatedContainer(
             key: ValueKey<String>('cupertino-booking-slot-${slot.id}'),
-            duration: const Duration(milliseconds: 160),
+            duration: ownerMotionDuration(
+              context,
+              const Duration(milliseconds: 160),
+            ),
             constraints: const BoxConstraints(minHeight: 64),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -1429,7 +1452,10 @@ class _DayChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         onTap: enabled ? onTap : null,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
+          duration: ownerMotionDuration(
+            context,
+            const Duration(milliseconds: 160),
+          ),
           width: 92,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
@@ -1458,7 +1484,10 @@ class _DayChip extends StatelessWidget {
                       ?.copyWith(color: foreground)),
               const SizedBox(height: 4),
               AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
+                duration: ownerMotionDuration(
+                  context,
+                  const Duration(milliseconds: 160),
+                ),
                 width: available ? 18 : 6,
                 height: 4,
                 decoration: BoxDecoration(

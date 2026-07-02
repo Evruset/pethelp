@@ -409,6 +409,7 @@ class _CupertinoClinicCard extends StatelessWidget {
       CupertinoColors.secondaryLabel,
       context,
     );
+    final stacksMeta = MediaQuery.textScalerOf(context).scale(1) >= 1.6;
     return Semantics(
       button: true,
       label:
@@ -449,6 +450,18 @@ class _CupertinoClinicCard extends StatelessWidget {
                         fontSize: 14,
                       ),
                     ),
+                    if (stacksMeta) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        next == null
+                            ? 'Нет ближайших окон'
+                            : 'Ближайшее окно ${_shortDateTime(context, next)}',
+                        style: textTheme.textStyle.copyWith(
+                          color: secondaryLabel,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                     if (clinic.distanceKm != null) ...[
                       const SizedBox(height: 4),
                       Text(
@@ -464,26 +477,35 @@ class _CupertinoClinicCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    next == null ? 'Нет окон' : _shortDateTime(context, next),
-                    textAlign: TextAlign.right,
-                    style: textTheme.textStyle.copyWith(
-                      color: secondaryLabel,
-                      fontSize: 13,
+              if (!stacksMeta) ...[
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      next == null ? 'Нет окон' : _shortDateTime(context, next),
+                      textAlign: TextAlign.right,
+                      style: textTheme.textStyle.copyWith(
+                        color: secondaryLabel,
+                        fontSize: 13,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Icon(
-                    CupertinoIcons.chevron_forward,
-                    color: secondaryLabel,
-                    size: 18,
-                  ),
-                ],
-              ),
+                    const SizedBox(height: 8),
+                    Icon(
+                      CupertinoIcons.chevron_forward,
+                      color: secondaryLabel,
+                      size: 18,
+                    ),
+                  ],
+                ),
+              ] else ...[
+                const SizedBox(width: 8),
+                Icon(
+                  CupertinoIcons.chevron_forward,
+                  color: secondaryLabel,
+                  size: 18,
+                ),
+              ],
             ],
           ),
         ),

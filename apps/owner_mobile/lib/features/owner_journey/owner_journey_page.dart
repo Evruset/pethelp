@@ -438,7 +438,7 @@ class _CupertinoHomeAction extends StatelessWidget {
     final isWarning = tone == _CupertinoHomeActionTone.warning;
     final background = CupertinoDynamicColor.resolve(
       isWarning
-          ? CupertinoColors.systemRed.withOpacity(0.12)
+          ? CupertinoColors.systemRed.withValues(alpha: 0.12)
           : CupertinoColors.secondarySystemGroupedBackground,
       context,
     );
