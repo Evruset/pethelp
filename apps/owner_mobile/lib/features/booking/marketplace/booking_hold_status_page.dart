@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../presentation/platform/owner_platform.dart';
+import '../../../presentation/widgets/owner_cupertino_feedback.dart';
 import 'booking_marketplace_repository.dart';
 
 typedef BookingHoldReader = Future<BookingHoldSnapshot> Function(String holdId);
@@ -14,6 +15,7 @@ class BookingHoldStatusPage extends StatefulWidget {
     this.readHold,
     this.repository,
     this.platformOverride,
+    this.onOpenAppointments,
   }) : assert(readHold != null || repository != null);
 
   final String holdId;
@@ -21,6 +23,7 @@ class BookingHoldStatusPage extends StatefulWidget {
   final BookingHoldReader? readHold;
   final BookingMarketplaceRepository? repository;
   final TargetPlatform? platformOverride;
+  final VoidCallback? onOpenAppointments;
 
   @override
   State<BookingHoldStatusPage> createState() => _BookingHoldStatusPageState();
@@ -117,22 +120,24 @@ class _BookingHoldStatusPageState extends State<BookingHoldStatusPage> {
           builder: (context, snapshot) {
             final hold = snapshot.data;
             final state = hold?.state ?? widget.initialState;
-            return Padding(
+            final status = _bookingResultStatus(state);
+            return SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Icon(
-                    _cupertinoIcon(state),
+                    status.icon,
                     size: 56,
                     color: CupertinoDynamicColor.resolve(
-                      _cupertinoIconColor(state),
+                      _cupertinoIconColor(status.tone),
                       context,
                     ),
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    _title(state),
+                    status.title,
                     textAlign: TextAlign.center,
                     style: CupertinoTheme.of(context)
                         .textTheme
@@ -140,9 +145,16 @@ class _BookingHoldStatusPageState extends State<BookingHoldStatusPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    _message(state),
+                    status.description,
                     textAlign: TextAlign.center,
                     style: CupertinoTheme.of(context).textTheme.textStyle,
+                  ),
+                  const SizedBox(height: 16),
+                  OwnerCupertinoStatusBanner(
+                    tone: _bookingResultTone(status.tone),
+                    icon: CupertinoIcons.info_circle,
+                    title: 'Что дальше',
+                    message: status.nextAction,
                   ),
                   if (hold != null) ...[
                     const SizedBox(height: 24),
@@ -170,22 +182,27 @@ class _BookingHoldStatusPageState extends State<BookingHoldStatusPage> {
                         textAlign: TextAlign.center,
                       ),
                     ),
-                  const Spacer(),
-                  CupertinoButton(
-                    minSize: 52,
-                    color: CupertinoColors.activeBlue,
-                    borderRadius: BorderRadius.circular(14),
-                    onPressed:
-                        snapshot.connectionState == ConnectionState.waiting
-                            ? null
-                            : _reload,
-                    child: const Text('Обновить статус'),
+                  const SizedBox(height: 24),
+                  if (widget.onOpenAppointments != null) ...[
+                    OwnerCupertinoButton.primary(
+                      label: 'Открыть записи',
+                      onPressed: widget.onOpenAppointments,
+                      semanticLabel: 'Открыть список записей',
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  OwnerCupertinoButton.secondary(
+                    label: 'Обновить статус',
+                    icon: CupertinoIcons.refresh,
+                    enabled:
+                        snapshot.connectionState != ConnectionState.waiting,
+                    onPressed: _reload,
                   ),
                   CupertinoButton(
                     minSize: 44,
                     onPressed: () => Navigator.of(context)
                         .popUntil((route) => route.isFirst),
-                    child: const Text('Вернуться к помощи питомцу'),
+                    child: const Text('Вернуться к разделам VetHelp'),
                   ),
                 ],
               ),
@@ -206,23 +223,13 @@ IconData _icon(String state) => state == 'CONFIRMED'
         ? Icons.event_busy_outlined
         : Icons.hourglass_top_outlined;
 
-IconData _cupertinoIcon(String state) => state == 'CONFIRMED'
-    ? CupertinoIcons.check_mark_circled
-    : state == 'EXPIRED' ||
-            state == 'SLA_BREACHED' ||
-            state == 'RELEASED' ||
-            state == 'MIS_BOOKING_FAILED'
-        ? CupertinoIcons.calendar_badge_minus
-        : CupertinoIcons.hourglass;
-
-CupertinoDynamicColor _cupertinoIconColor(String state) => state == 'CONFIRMED'
+CupertinoDynamicColor _cupertinoIconColor(String tone) => tone == 'success'
     ? CupertinoColors.systemGreen
-    : state == 'EXPIRED' ||
-            state == 'SLA_BREACHED' ||
-            state == 'RELEASED' ||
-            state == 'MIS_BOOKING_FAILED'
+    : tone == 'danger'
         ? CupertinoColors.systemRed
-        : CupertinoColors.activeBlue;
+        : tone == 'warning'
+            ? CupertinoColors.systemOrange
+            : CupertinoColors.activeBlue;
 
 String _title(String state) => state == 'CONFIRMED'
     ? 'Запись подтверждена'
@@ -239,6 +246,73 @@ String _message(String state) => state == 'CONFIRMED'
         : state == 'RELEASED' || state == 'MIS_BOOKING_FAILED'
             ? 'Это время больше недоступно. Выберите другое окно.'
             : 'Клиника подтверждает возможность записи. VetHelp покажет итоговый статус.';
+
+class _BookingResultStatus {
+  const _BookingResultStatus({
+    required this.title,
+    required this.description,
+    required this.nextAction,
+    required this.icon,
+    required this.tone,
+  });
+
+  final String title;
+  final String description;
+  final String nextAction;
+  final IconData icon;
+  final String tone;
+}
+
+_BookingResultStatus _bookingResultStatus(String state) {
+  final normalized = state.toUpperCase();
+  if (normalized == 'CONFIRMED') {
+    return const _BookingResultStatus(
+      title: 'Визит подтверждён',
+      description: 'Клиника подтвердила выбранное время.',
+      nextAction:
+          'Откройте запись, чтобы увидеть адрес, питомца, услугу и доступные действия.',
+      icon: CupertinoIcons.check_mark_circled,
+      tone: 'success',
+    );
+  }
+  if (normalized == 'EXPIRED' || normalized == 'SLA_BREACHED') {
+    return const _BookingResultStatus(
+      title: 'Время подтверждения истекло',
+      description: 'Клиника не успела подтвердить заявку.',
+      nextAction:
+          'Выберите другое время в каталоге. Новый слот будет проверен сервером отдельно.',
+      icon: CupertinoIcons.calendar_badge_minus,
+      tone: 'warning',
+    );
+  }
+  if (normalized == 'RELEASED' || normalized == 'MIS_BOOKING_FAILED') {
+    return const _BookingResultStatus(
+      title: 'Запись не подтверждена',
+      description: 'Это время больше недоступно для записи.',
+      nextAction:
+          'Вернитесь к каталогу и выберите другое время. Текущий слот не удерживается.',
+      icon: CupertinoIcons.xmark_circle,
+      tone: 'danger',
+    );
+  }
+  return const _BookingResultStatus(
+    title: 'Заявка отправлена в клинику',
+    description:
+        'Клиника проверяет возможность записи. Итоговый статус появится в разделе «Записи».',
+    nextAction:
+        'Сейчас можно открыть записи или обновить статус. Подтверждение не обещается до ответа клиники.',
+    icon: CupertinoIcons.hourglass,
+    tone: 'info',
+  );
+}
+
+OwnerCupertinoFeedbackTone _bookingResultTone(String tone) {
+  return switch (tone) {
+    'success' => OwnerCupertinoFeedbackTone.neutral,
+    'warning' || 'danger' => OwnerCupertinoFeedbackTone.warning,
+    _ => OwnerCupertinoFeedbackTone.neutral,
+  };
+}
 
 String _range(BuildContext context, DateTime from, DateTime to) {
   final first = from.toLocal();

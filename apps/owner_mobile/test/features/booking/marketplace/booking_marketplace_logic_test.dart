@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vethelp_owner_mobile/features/booking/marketplace/booking_marketplace_bloc.dart';
 import 'package:vethelp_owner_mobile/features/booking/marketplace/booking_marketplace_page.dart';
 import 'package:vethelp_owner_mobile/features/booking/marketplace/booking_marketplace_repository.dart';
+import 'package:vethelp_owner_mobile/features/booking/marketplace/booking_hold_status_page.dart';
 import 'package:vethelp_owner_mobile/features/booking/marketplace/booking_request_coordinator.dart';
 import 'package:vethelp_owner_mobile/features/booking/marketplace/booking_slot_grid.dart';
 
@@ -224,8 +225,43 @@ void main() {
 
     expect(find.text('Статус записи'), findsOneWidget);
     expect(find.text('Заявка отправлена в клинику'), findsOneWidget);
+    expect(find.text('Что дальше'), findsOneWidget);
+    expect(find.textContaining('Подтверждение не обещается'), findsOneWidget);
     expect(find.byType(CupertinoPageScaffold), findsOneWidget);
     expect(find.byType(Scaffold), findsNothing);
+  });
+
+  testWidgets('iOS booking result maps confirmed hold to owner-facing copy',
+      (tester) async {
+    var openedAppointments = false;
+    await tester.pumpWidget(MaterialApp(
+      theme: ThemeData(platform: TargetPlatform.iOS, useMaterial3: true),
+      home: BookingHoldStatusPage(
+        holdId: 'hold-1',
+        initialState: 'CONFIRMED',
+        platformOverride: TargetPlatform.iOS,
+        readHold: (_) async => BookingHoldSnapshot(
+          holdId: 'hold-1',
+          slotId: 'slot-1',
+          state: 'CONFIRMED',
+          expiresAt: DateTime.utc(2026, 7, 2, 9),
+          startsAt: DateTime.utc(2026, 7, 2, 10),
+          endsAt: DateTime.utc(2026, 7, 2, 10, 30),
+        ),
+        onOpenAppointments: () => openedAppointments = true,
+      ),
+    ));
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Визит подтверждён'), findsOneWidget);
+    expect(find.text('Открыть записи'), findsOneWidget);
+    expect(find.textContaining('hold-1'), findsNothing);
+    expect(find.textContaining('CONFIRMED'), findsNothing);
+
+    await tester.ensureVisible(find.text('Открыть записи'));
+    await tester.tap(find.text('Открыть записи'));
+    expect(openedAppointments, isTrue);
   });
 }
 

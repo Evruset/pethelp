@@ -17,11 +17,15 @@ class OwnerAppointmentsPage extends StatefulWidget {
     required this.repository,
     this.alternativeSlotRepository,
     this.platformOverride,
+    this.onOpenPetDiary,
+    this.onRebookAppointment,
   });
 
   final OwnerAppointmentsRepository repository;
   final AlternativeSlotRepository? alternativeSlotRepository;
   final TargetPlatform? platformOverride;
+  final VoidCallback? onOpenPetDiary;
+  final VoidCallback? onRebookAppointment;
 
   @override
   State<OwnerAppointmentsPage> createState() => _OwnerAppointmentsPageState();
@@ -104,6 +108,8 @@ class _OwnerAppointmentsPageState extends State<OwnerAppointmentsPage> {
                             widget.alternativeSlotRepository,
                         onRefresh: _refresh,
                         platformOverride: widget.platformOverride,
+                        onOpenPetDiary: widget.onOpenPetDiary,
+                        onRebookAppointment: widget.onRebookAppointment,
                       ),
                       _AppointmentsList(
                         rows: history,
@@ -113,6 +119,8 @@ class _OwnerAppointmentsPageState extends State<OwnerAppointmentsPage> {
                             widget.alternativeSlotRepository,
                         onRefresh: _refresh,
                         platformOverride: widget.platformOverride,
+                        onOpenPetDiary: widget.onOpenPetDiary,
+                        onRebookAppointment: widget.onRebookAppointment,
                       ),
                     ],
                   ),
@@ -191,6 +199,8 @@ class _OwnerAppointmentsPageState extends State<OwnerAppointmentsPage> {
                               widget.alternativeSlotRepository,
                           onRefresh: _refresh,
                           platformOverride: TargetPlatform.iOS,
+                          onOpenPetDiary: widget.onOpenPetDiary,
+                          onRebookAppointment: widget.onRebookAppointment,
                         ),
                       ),
                     ],
@@ -242,6 +252,8 @@ class _AppointmentsList extends StatelessWidget {
     required this.alternativeSlotRepository,
     required this.onRefresh,
     this.platformOverride,
+    this.onOpenPetDiary,
+    this.onRebookAppointment,
   });
 
   final List<OwnerAppointment> rows;
@@ -250,6 +262,8 @@ class _AppointmentsList extends StatelessWidget {
   final AlternativeSlotRepository? alternativeSlotRepository;
   final Future<void> Function() onRefresh;
   final TargetPlatform? platformOverride;
+  final VoidCallback? onOpenPetDiary;
+  final VoidCallback? onRebookAppointment;
 
   @override
   Widget build(BuildContext context) {
@@ -312,6 +326,8 @@ class _CupertinoAppointmentsList extends StatelessWidget {
     required this.alternativeSlotRepository,
     required this.onRefresh,
     required this.platformOverride,
+    this.onOpenPetDiary,
+    this.onRebookAppointment,
   });
 
   final List<OwnerAppointment> rows;
@@ -320,6 +336,8 @@ class _CupertinoAppointmentsList extends StatelessWidget {
   final AlternativeSlotRepository? alternativeSlotRepository;
   final Future<void> Function() onRefresh;
   final TargetPlatform platformOverride;
+  final VoidCallback? onOpenPetDiary;
+  final VoidCallback? onRebookAppointment;
 
   @override
   Widget build(BuildContext context) {
@@ -350,6 +368,8 @@ class _CupertinoAppointmentsList extends StatelessWidget {
               repository: repository,
               alternativeSlotRepository: alternativeSlotRepository,
               platformOverride: platformOverride,
+              onOpenPetDiary: onOpenPetDiary,
+              onRebookAppointment: onRebookAppointment,
             ),
           ),
         ),
@@ -381,12 +401,16 @@ class _CupertinoAppointmentRow extends StatelessWidget {
     required this.repository,
     required this.alternativeSlotRepository,
     required this.platformOverride,
+    this.onOpenPetDiary,
+    this.onRebookAppointment,
   });
 
   final OwnerAppointment appointment;
   final OwnerAppointmentsRepository repository;
   final AlternativeSlotRepository? alternativeSlotRepository;
   final TargetPlatform platformOverride;
+  final VoidCallback? onOpenPetDiary;
+  final VoidCallback? onRebookAppointment;
 
   @override
   Widget build(BuildContext context) {
@@ -414,6 +438,8 @@ class _CupertinoAppointmentRow extends StatelessWidget {
               repository: repository,
               alternativeSlotRepository: alternativeSlotRepository,
               platformOverride: platformOverride,
+              onOpenPetDiary: onOpenPetDiary,
+              onRebookAppointment: onRebookAppointment,
             ),
           ),
         ),
@@ -602,6 +628,8 @@ class OwnerAppointmentDetailPage extends StatefulWidget {
     required this.repository,
     this.alternativeSlotRepository,
     this.platformOverride,
+    this.onOpenPetDiary,
+    this.onRebookAppointment,
   });
 
   final String holdId;
@@ -609,6 +637,8 @@ class OwnerAppointmentDetailPage extends StatefulWidget {
   final OwnerAppointmentsRepository repository;
   final AlternativeSlotRepository? alternativeSlotRepository;
   final TargetPlatform? platformOverride;
+  final VoidCallback? onOpenPetDiary;
+  final VoidCallback? onRebookAppointment;
 
   @override
   State<OwnerAppointmentDetailPage> createState() =>
@@ -955,6 +985,8 @@ class _OwnerAppointmentDetailPageState
                       onOpenRoute: () => _openRoute(detail),
                       onCallClinic: () => _callClinic(detail),
                       onCancel: () => _cancel(detail),
+                      onOpenPetDiary: widget.onOpenPetDiary,
+                      onRebookAppointment: widget.onRebookAppointment,
                     ),
                   ],
                 ),
@@ -977,6 +1009,8 @@ class _CupertinoAppointmentDetailContent extends StatelessWidget {
     required this.onOpenRoute,
     required this.onCallClinic,
     required this.onCancel,
+    required this.onOpenPetDiary,
+    required this.onRebookAppointment,
   });
 
   final OwnerAppointmentDetail detail;
@@ -987,6 +1021,8 @@ class _CupertinoAppointmentDetailContent extends StatelessWidget {
   final VoidCallback onOpenRoute;
   final VoidCallback onCallClinic;
   final VoidCallback onCancel;
+  final VoidCallback? onOpenPetDiary;
+  final VoidCallback? onRebookAppointment;
 
   @override
   Widget build(BuildContext context) {
@@ -1001,6 +1037,8 @@ class _CupertinoAppointmentDetailContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _CupertinoStatusHeader(detail: detail, status: status),
+          const SizedBox(height: 12),
+          _CupertinoNextActionBanner(detail: detail, status: status),
           if (cancellationRequested ||
               detail.state == 'CANCELLATION_REQUESTED' ||
               status.label == 'Запрошена отмена') ...[
@@ -1009,14 +1047,29 @@ class _CupertinoAppointmentDetailContent extends StatelessWidget {
           ],
           const SizedBox(height: 12),
           _CupertinoVisitSection(detail: detail),
+          if (_showVisitReadiness(detail)) ...[
+            const SizedBox(height: 12),
+            _CupertinoVisitReadinessSection(detail: detail),
+          ],
           const SizedBox(height: 12),
           _CupertinoPetServiceSection(detail: detail),
+          if (_isCompletedVisit(detail) && onOpenPetDiary != null) ...[
+            const SizedBox(height: 12),
+            _CupertinoCompletedContinuitySection(
+              detail: detail,
+              onOpenPetDiary: onOpenPetDiary!,
+              onRebookAppointment:
+                  detail.actions.canRebook ? onRebookAppointment : null,
+            ),
+          ],
           const SizedBox(height: 12),
           _CupertinoTimelineSection(timeline: detail.timeline),
           if (detail.actions.canRefresh ||
               detail.actions.canReviewAlternative ||
               detail.actions.canOpenRoute ||
-              detail.actions.canRebook ||
+              (detail.actions.canRebook &&
+                  onRebookAppointment != null &&
+                  !_isCompletedVisit(detail)) ||
               detail.actions.canCancel ||
               (detail.locationPhone?.trim().isNotEmpty ?? false)) ...[
             const SizedBox(height: 12),
@@ -1028,6 +1081,7 @@ class _CupertinoAppointmentDetailContent extends StatelessWidget {
               onOpenRoute: onOpenRoute,
               onCallClinic: onCallClinic,
               onCancel: onCancel,
+              onRebookAppointment: onRebookAppointment,
             ),
           ],
         ],
@@ -1101,6 +1155,29 @@ class _CupertinoStatusHeader extends StatelessWidget {
   }
 }
 
+class _CupertinoNextActionBanner extends StatelessWidget {
+  const _CupertinoNextActionBanner({
+    required this.detail,
+    required this.status,
+  });
+
+  final OwnerAppointmentDetail detail;
+  final _OwnerStatusView status;
+
+  @override
+  Widget build(BuildContext context) {
+    return OwnerCupertinoStatusBanner(
+      tone: status.tone == 'warning' || status.tone == 'danger'
+          ? OwnerCupertinoFeedbackTone.warning
+          : OwnerCupertinoFeedbackTone.neutral,
+      icon: CupertinoIcons.info_circle,
+      title: 'Что сейчас важно',
+      message: _nextActionMessage(detail, status),
+      liveRegion: true,
+    );
+  }
+}
+
 class _CupertinoVisitSection extends StatelessWidget {
   const _CupertinoVisitSection({required this.detail});
 
@@ -1131,6 +1208,37 @@ class _CupertinoVisitSection extends StatelessWidget {
           _CupertinoInfoRow(
             icon: CupertinoIcons.phone_fill,
             label: 'Телефон',
+            value: detail.locationPhone!.trim(),
+          ),
+      ],
+    );
+  }
+}
+
+class _CupertinoVisitReadinessSection extends StatelessWidget {
+  const _CupertinoVisitReadinessSection({required this.detail});
+
+  final OwnerAppointmentDetail detail;
+
+  @override
+  Widget build(BuildContext context) {
+    return _CupertinoGroupedSection(
+      title: 'Перед визитом',
+      children: [
+        _CupertinoInfoRow(
+          icon: CupertinoIcons.clock,
+          label: 'Когда приехать',
+          value: _cupertinoRange(detail.startsAt, detail.endsAt),
+        ),
+        _CupertinoInfoRow(
+          icon: CupertinoIcons.location,
+          label: 'Куда ехать',
+          value: detail.clinicAddress,
+        ),
+        if (detail.locationPhone?.trim().isNotEmpty == true)
+          _CupertinoInfoRow(
+            icon: CupertinoIcons.phone,
+            label: 'Связь с клиникой',
             value: detail.locationPhone!.trim(),
           ),
       ],
@@ -1201,6 +1309,42 @@ class _CupertinoTimelineSection extends StatelessWidget {
   }
 }
 
+class _CupertinoCompletedContinuitySection extends StatelessWidget {
+  const _CupertinoCompletedContinuitySection({
+    required this.detail,
+    required this.onOpenPetDiary,
+    required this.onRebookAppointment,
+  });
+
+  final OwnerAppointmentDetail detail;
+  final VoidCallback onOpenPetDiary;
+  final VoidCallback? onRebookAppointment;
+
+  @override
+  Widget build(BuildContext context) {
+    return _CupertinoGroupedSection(
+      title: 'После визита',
+      children: [
+        _CupertinoActionRow(
+          icon: CupertinoIcons.doc_text,
+          label: 'Открыть дневник питомца',
+          semanticsLabel:
+              'Открыть Pet Diary для завершённого визита ${detail.petName}',
+          onPressed: onOpenPetDiary,
+        ),
+        if (onRebookAppointment != null)
+          _CupertinoActionRow(
+            icon: CupertinoIcons.calendar_badge_plus,
+            label: 'Подобрать повторную запись',
+            semanticsLabel:
+                'Подобрать повторную запись для ${detail.petName} после визита',
+            onPressed: onRebookAppointment!,
+          ),
+      ],
+    );
+  }
+}
+
 class _CupertinoActionSections extends StatelessWidget {
   const _CupertinoActionSections({
     required this.detail,
@@ -1210,6 +1354,7 @@ class _CupertinoActionSections extends StatelessWidget {
     required this.onOpenRoute,
     required this.onCallClinic,
     required this.onCancel,
+    required this.onRebookAppointment,
   });
 
   final OwnerAppointmentDetail detail;
@@ -1219,11 +1364,15 @@ class _CupertinoActionSections extends StatelessWidget {
   final VoidCallback onOpenRoute;
   final VoidCallback onCallClinic;
   final VoidCallback onCancel;
+  final VoidCallback? onRebookAppointment;
 
   @override
   Widget build(BuildContext context) {
     final phoneAvailable =
         detail.locationPhone != null && detail.locationPhone!.trim().isNotEmpty;
+    final showRebook = detail.actions.canRebook &&
+        onRebookAppointment != null &&
+        !_isCompletedVisit(detail);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1231,7 +1380,7 @@ class _CupertinoActionSections extends StatelessWidget {
             detail.actions.canReviewAlternative ||
             detail.actions.canOpenRoute ||
             phoneAvailable ||
-            detail.actions.canRebook)
+            showRebook)
           _CupertinoGroupedSection(
             title: 'Действия',
             children: [
@@ -1261,12 +1410,13 @@ class _CupertinoActionSections extends StatelessWidget {
                   label: 'Позвонить в клинику',
                   onPressed: onCallClinic,
                 ),
-              if (detail.actions.canRebook)
+              if (showRebook)
                 _CupertinoActionRow(
-                  icon: CupertinoIcons.search,
-                  label: 'Записаться снова',
-                  onPressed: () =>
-                      Navigator.of(context).popUntil((route) => route.isFirst),
+                  icon: CupertinoIcons.calendar_badge_plus,
+                  label: 'Подобрать повторную запись',
+                  semanticsLabel:
+                      'Подобрать повторную запись для ${detail.petName}',
+                  onPressed: onRebookAppointment!,
                 ),
             ],
           ),
@@ -1417,6 +1567,7 @@ class _CupertinoActionRow extends StatelessWidget {
     this.destructive = false,
     this.enabled = true,
     this.trailing,
+    this.semanticsLabel,
   });
 
   final IconData icon;
@@ -1425,6 +1576,7 @@ class _CupertinoActionRow extends StatelessWidget {
   final bool destructive;
   final bool enabled;
   final Widget? trailing;
+  final String? semanticsLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -1434,7 +1586,8 @@ class _CupertinoActionRow extends StatelessWidget {
     return Semantics(
       button: true,
       enabled: enabled,
-      label: destructive ? '$label, опасное действие' : label,
+      label:
+          semanticsLabel ?? (destructive ? '$label, опасное действие' : label),
       child: CupertinoButton(
         minSize: 44,
         padding: EdgeInsets.zero,
@@ -1856,6 +2009,43 @@ class _OwnerStatusView {
   final String tone;
 }
 
+String _nextActionMessage(
+  OwnerAppointmentDetail detail,
+  _OwnerStatusView status,
+) {
+  final state = detail.state.toUpperCase();
+  if (state == 'CANCELLATION_REQUESTED') {
+    return 'Запрос направлен клинике. Итоговый статус обновится здесь после ответа.';
+  }
+  if (_isCompletedVisit(detail)) {
+    return 'Визит завершён. Откройте дневник питомца, чтобы продолжить care context.';
+  }
+  if (state == 'CONFIRMED') {
+    return 'Визит подтверждён. Проверьте время, адрес и доступные действия ниже.';
+  }
+  if (state == 'ALTERNATIVE_PENDING') {
+    return 'Клиника предложила другое время. Используйте действие с альтернативами, если оно доступно.';
+  }
+  if (status.tone == 'warning' || status.tone == 'danger') {
+    return 'Проверьте статус или вернитесь к каталогу, если нужна новая запись.';
+  }
+  return 'Сейчас ожидается действие клиники. Обновите статус позже, если он не изменился автоматически.';
+}
+
+bool _isCompletedVisit(OwnerAppointmentDetail detail) {
+  return detail.state.toUpperCase() == 'COMPLETED' ||
+      detail.presentation.code.toUpperCase() == 'HISTORY_RECORDED';
+}
+
+bool _showVisitReadiness(OwnerAppointmentDetail detail) {
+  if (detail.bucket.toUpperCase() != 'ACTIVE') return false;
+  final state = detail.state.toUpperCase();
+  if (state != 'CONFIRMED' && state != 'MANUAL_CONFIRM_PENDING') {
+    return false;
+  }
+  return detail.clinicAddress.trim().isNotEmpty;
+}
+
 _OwnerStatusView _ownerStatusView(
   OwnerAppointmentPresentation presentation, {
   required String state,
@@ -1868,8 +2058,9 @@ _OwnerStatusView _ownerStatusView(
   switch (code) {
     case 'WAITING_FOR_CLINIC':
       return const _OwnerStatusView(
-        label: 'Ожидаем подтверждения',
-        description: 'Клиника проверяет возможность записи.',
+        label: 'Ждём подтверждения клиники',
+        description:
+            'Клиника проверяет возможность записи. Точный статус появится после ответа.',
         icon: CupertinoIcons.hourglass,
         tone: 'info',
       );
@@ -1889,7 +2080,7 @@ _OwnerStatusView _ownerStatusView(
       );
     case 'CONFIRMED_UPCOMING':
       return const _OwnerStatusView(
-        label: 'Подтверждена',
+        label: 'Визит подтверждён',
         description: 'Клиника подтвердила визит.',
         icon: CupertinoIcons.check_mark_circled,
         tone: 'success',
@@ -1918,8 +2109,8 @@ _OwnerStatusView _ownerStatusView(
       );
     case 'HISTORY_RECORDED':
       return const _OwnerStatusView(
-        label: 'Запись сохранена',
-        description: 'Событие сохранено в истории записи.',
+        label: 'Визит завершён',
+        description: 'Событие сохранено в истории питомца.',
         icon: CupertinoIcons.archivebox,
         tone: 'neutral',
       );
@@ -1964,7 +2155,7 @@ _OwnerStatusView _ownerStatusView(
       return _ownerStatusView(
         const OwnerAppointmentPresentation(
           code: 'WAITING_FOR_CLINIC',
-          label: 'Ожидаем подтверждения',
+          label: 'Ждём подтверждения клиники',
           description: 'Клиника проверяет возможность записи.',
           tone: 'info',
         ),
@@ -2002,7 +2193,7 @@ _OwnerStatusView _ownerStatusView(
       return _ownerStatusView(
         const OwnerAppointmentPresentation(
           code: 'CONFIRMED_UPCOMING',
-          label: 'Подтверждена',
+          label: 'Визит подтверждён',
           description: 'Клиника подтвердила визит.',
           tone: 'success',
         ),

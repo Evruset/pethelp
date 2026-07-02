@@ -22,6 +22,7 @@ class BookingMarketplacePage extends StatelessWidget {
     required this.repository,
     this.retryDelay,
     this.platformOverride,
+    this.onOpenAppointments,
   });
 
   final String clinicName;
@@ -33,6 +34,7 @@ class BookingMarketplacePage extends StatelessWidget {
   final BookingMarketplaceRepository repository;
   final BookingRetryDelay? retryDelay;
   final TargetPlatform? platformOverride;
+  final VoidCallback? onOpenAppointments;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +52,7 @@ class BookingMarketplacePage extends StatelessWidget {
         petName: petName,
         repository: repository,
         platformOverride: platformOverride,
+        onOpenAppointments: onOpenAppointments,
       ),
     );
   }
@@ -61,6 +64,7 @@ class _BookingMarketplaceView extends StatelessWidget {
     required this.serviceName,
     required this.petName,
     required this.repository,
+    this.onOpenAppointments,
     this.platformOverride,
   });
 
@@ -68,6 +72,7 @@ class _BookingMarketplaceView extends StatelessWidget {
   final String serviceName;
   final String petName;
   final BookingMarketplaceRepository repository;
+  final VoidCallback? onOpenAppointments;
   final TargetPlatform? platformOverride;
 
   @override
@@ -87,6 +92,7 @@ class _BookingMarketplaceView extends StatelessWidget {
                   repository: repository,
                   platformOverride:
                       usesCupertino ? TargetPlatform.iOS : platformOverride,
+                  onOpenAppointments: onOpenAppointments,
                 ),
               ),
             );

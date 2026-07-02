@@ -97,6 +97,7 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   late final OutboxRepository _ownerOutbox;
   late final String _ownerDeviceId;
   int _ownerDeviceSequence = 0;
+  int _iosSelectedTab = 0;
   bool _petBootstrapInFlight = false;
   bool _petBootstrapCompleted = false;
 
@@ -188,6 +189,7 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
               HttpPublicCatalogRepository(baseUrl: Uri.parse(_apiBaseUrl)),
           selectedPet: _selectedPet,
           onPetSelected: _selectPet,
+          selectedTabIndex: _iosSelectedTab,
         );
       }
 
@@ -332,9 +334,17 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
             accessTokenProvider: _token,
           ),
           platformOverride: widget.platformOverride,
+          onOpenAppointments: _openAppointmentsTab,
         ),
       ),
     );
+  }
+
+  void _openAppointmentsTab() {
+    setState(() {
+      _iosSelectedTab = 2;
+    });
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   void _openTelemedIntake() {
@@ -465,6 +475,7 @@ class _OwnerIosAuthenticatedShell extends StatefulWidget {
     required this.catalogRepository,
     required this.selectedPet,
     required this.onPetSelected,
+    required this.selectedTabIndex,
   });
 
   final VoidCallback onBrowseClinics;
@@ -479,6 +490,7 @@ class _OwnerIosAuthenticatedShell extends StatefulWidget {
   final PublicCatalogRepository catalogRepository;
   final OwnerPet? selectedPet;
   final ValueChanged<OwnerPet> onPetSelected;
+  final int selectedTabIndex;
 
   @override
   State<_OwnerIosAuthenticatedShell> createState() =>
@@ -492,7 +504,16 @@ class _OwnerIosAuthenticatedShellState
   @override
   void initState() {
     super.initState();
-    _tabController = CupertinoTabController();
+    _tabController =
+        CupertinoTabController(initialIndex: widget.selectedTabIndex);
+  }
+
+  @override
+  void didUpdateWidget(covariant _OwnerIosAuthenticatedShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_tabController.index != widget.selectedTabIndex) {
+      _tabController.index = widget.selectedTabIndex;
+    }
   }
 
   @override
@@ -532,6 +553,9 @@ class _OwnerIosAuthenticatedShellState
         repository: widget.appointmentsRepository,
         alternativeSlotRepository: widget.alternativeSlotRepository,
         platformOverride: TargetPlatform.iOS,
+        onOpenPetDiary: widget.selectedPet == null ? null : widget.onOpenCare,
+        onRebookAppointment:
+            widget.selectedPet == null ? null : widget.onBrowseClinics,
       ),
       pets: OwnerPetsPage(
         repository: widget.petsRepository,

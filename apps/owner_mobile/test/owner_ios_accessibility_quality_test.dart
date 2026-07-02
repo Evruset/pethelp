@@ -165,7 +165,7 @@ void main() {
     )));
     await tester.pumpAndSettle();
 
-    expect(find.text('Ожидаем подтверждения'), findsOneWidget);
+    expect(find.text('Ждём подтверждения клиники'), findsOneWidget);
     expect(find.textContaining('MANUAL_CONFIRM_PENDING'), findsNothing);
 
     await tester.tap(find.text('VetHelp Pilot').first);

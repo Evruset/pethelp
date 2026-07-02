@@ -22,7 +22,7 @@ void main() {
 
     expect(find.text('VetHelp Pilot'), findsOneWidget);
     expect(find.textContaining('Барс'), findsOneWidget);
-    expect(find.text('Ожидаем подтверждения'), findsOneWidget);
+    expect(find.text('Ждём подтверждения клиники'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -103,6 +103,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Когда и где'), findsOneWidget);
+    expect(find.text('Что сейчас важно'), findsOneWidget);
+    expect(find.text('Перед визитом'), findsOneWidget);
     expect(find.text('Питомец и услуга'), findsOneWidget);
     expect(find.text('История статуса'), findsOneWidget);
     expect(find.text('Маршрут'), findsOneWidget);
@@ -130,10 +132,145 @@ void main() {
     expect(repository.cancellationRequests, 1);
     expect(find.text('Запрошена отмена'), findsWidgets);
     expect(find.textContaining('CANCELLATION_REQUESTED'), findsNothing);
+    expect(find.textContaining('возврат'), findsNothing);
+    expect(find.textContaining('мгновенно отменена'), findsNothing);
     expect(
         find.text(
             'Запрос на отмену отправлен. Клиника подтвердит итоговый статус.'),
         findsOneWidget);
+  });
+
+  testWidgets('iOS appointment lifecycle shows hierarchy and no fake actions',
+      (tester) async {
+    await tester.pumpWidget(
+      _iosHarness(
+        OwnerAppointmentsPage(
+          platformOverride: TargetPlatform.iOS,
+          repository: _FakeOwnerAppointmentsRepository(
+            state: 'CONFIRMED',
+            presentation: const OwnerAppointmentPresentation(
+              code: 'CONFIRMED_UPCOMING',
+              label: 'CONFIRMED',
+              description: 'snapshot 409',
+              tone: 'success',
+            ),
+            actions: const OwnerAppointmentActions(
+              canRefresh: true,
+              canRebook: false,
+              canOpenRoute: true,
+              canReviewAlternative: false,
+              canCancel: true,
+            ),
+            locationPhone: '+79991234567',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('VetHelp Pilot').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Визит подтверждён'), findsWidgets);
+    expect(find.text('Что сейчас важно'), findsOneWidget);
+    expect(find.text('Когда и где'), findsOneWidget);
+    expect(find.text('Перед визитом'), findsOneWidget);
+    expect(find.text('Питомец и услуга'), findsOneWidget);
+    expect(find.text('Действия'), findsOneWidget);
+    expect(find.text('Маршрут'), findsOneWidget);
+    expect(find.text('Позвонить в клинику'), findsOneWidget);
+    expect(find.textContaining('CONFIRMED'), findsNothing);
+    expect(find.textContaining('snapshot'), findsNothing);
+    expect(find.textContaining('409'), findsNothing);
+    expect(find.textContaining('Календар'), findsNothing);
+    expect(find.textContaining('возврат'), findsNothing);
+    expect(find.textContaining('Перенести'), findsNothing);
+  });
+
+  testWidgets('completed iOS appointment opens Pet Diary and rebooking context',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(834, 1194));
+    var openedDiary = false;
+    var openedRebooking = false;
+    await tester.pumpWidget(
+      _iosHarness(
+        OwnerAppointmentsPage(
+          platformOverride: TargetPlatform.iOS,
+          repository: _FakeOwnerAppointmentsRepository(
+            historyOnly: true,
+            state: 'COMPLETED',
+            detailBucket: 'HISTORY',
+            presentation: const OwnerAppointmentPresentation(
+              code: 'HISTORY_RECORDED',
+              label: 'COMPLETED',
+              description: 'snapshot payload',
+              tone: 'success',
+            ),
+            actions: const OwnerAppointmentActions(
+              canRefresh: false,
+              canRebook: true,
+              canOpenRoute: false,
+              canReviewAlternative: false,
+              canCancel: false,
+            ),
+          ),
+          onOpenPetDiary: () => openedDiary = true,
+          onRebookAppointment: () => openedRebooking = true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('История'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('VetHelp Pilot').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Визит завершён'), findsWidgets);
+    expect(find.text('После визита'), findsOneWidget);
+    expect(find.text('Открыть дневник питомца'), findsOneWidget);
+    expect(find.text('Подобрать повторную запись'), findsOneWidget);
+    expect(find.textContaining('COMPLETED'), findsNothing);
+    expect(find.textContaining('snapshot'), findsNothing);
+
+    await tester.ensureVisible(find.text('Открыть дневник питомца'));
+    await tester.tap(find.text('Открыть дневник питомца'));
+    expect(openedDiary, isTrue);
+    await tester.ensureVisible(find.text('Подобрать повторную запись'));
+    await tester.tap(find.text('Подобрать повторную запись'));
+    expect(openedRebooking, isTrue);
+  });
+
+  testWidgets('iOS appointment detail supports dark mode and Dynamic Type',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(834, 1194));
+    await tester.pumpWidget(
+      _iosHarness(
+        OwnerAppointmentsPage(
+          platformOverride: TargetPlatform.iOS,
+          repository: _FakeOwnerAppointmentsRepository(
+            locationPhone: '+79991234567',
+          ),
+        ),
+        brightness: Brightness.dark,
+        textScale: 2,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('VetHelp Pilot').first);
+    await tester.pumpAndSettle();
+
+    expect(
+      CupertinoTheme.of(tester.element(find.text('Детали записи'))).brightness,
+      Brightness.dark,
+    );
+    final cancelButton = find.ancestor(
+      of: find.text('Запросить отмену'),
+      matching: find.byType(CupertinoButton),
+    );
+    await tester.ensureVisible(find.text('Запросить отмену'));
+    expect(tester.getSize(cancelButton.first).height, greaterThanOrEqualTo(44));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('iOS status mapper suppresses raw state names for known states',
@@ -177,14 +314,28 @@ void main() {
   });
 }
 
-Widget _iosHarness(Widget child) {
+Widget _iosHarness(
+  Widget child, {
+  Brightness brightness = Brightness.light,
+  double textScale = 1,
+}) {
   return CupertinoApp(
+    theme: CupertinoThemeData(brightness: brightness),
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
     supportedLocales: const [Locale('ru'), Locale('en')],
-    builder: (context, child) => Theme(
-      data: ThemeData(useMaterial3: true, platform: TargetPlatform.iOS),
-      child: child ?? const SizedBox.shrink(),
-    ),
+    builder: (context, child) {
+      final media = MediaQuery.of(context).copyWith(
+        platformBrightness: brightness,
+        textScaler: TextScaler.linear(textScale),
+      );
+      return MediaQuery(
+        data: media,
+        child: Theme(
+          data: ThemeData(useMaterial3: true, platform: TargetPlatform.iOS),
+          child: child ?? const SizedBox.shrink(),
+        ),
+      );
+    },
     home: child,
   );
 }
@@ -202,6 +353,7 @@ class _FakeOwnerAppointmentsRepository implements OwnerAppointmentsRepository {
       canCancel: true,
     ),
     this.locationPhone,
+    this.detailBucket,
   });
 
   final bool historyOnly;
@@ -209,6 +361,7 @@ class _FakeOwnerAppointmentsRepository implements OwnerAppointmentsRepository {
   final OwnerAppointmentPresentation? presentation;
   final OwnerAppointmentActions actions;
   final String? locationPhone;
+  final String? detailBucket;
   int cancellationRequests = 0;
 
   static const _activePresentation = OwnerAppointmentPresentation(
@@ -252,7 +405,7 @@ class _FakeOwnerAppointmentsRepository implements OwnerAppointmentsRepository {
       state: cancelled
           ? 'CANCELLATION_REQUESTED'
           : state ?? 'MANUAL_CONFIRM_PENDING',
-      bucket: 'ACTIVE',
+      bucket: detailBucket ?? (historyOnly ? 'HISTORY' : 'ACTIVE'),
       presentation: cancelled
           ? const OwnerAppointmentPresentation(
               code: 'STATUS_SYNCING',
