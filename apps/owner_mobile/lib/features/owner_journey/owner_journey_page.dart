@@ -86,7 +86,7 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
   }
 
   Widget _body() => switch (_index) {
-        0 => _OwnerHome(
+        0 => OwnerHomePage(
             selectedPet: widget.selectedPet,
             appointmentsRepository: widget.appointmentsRepository,
             onBrowseClinics: widget.onBrowseClinics,
@@ -115,8 +115,9 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
       };
 }
 
-class _OwnerHome extends StatefulWidget {
-  const _OwnerHome({
+class OwnerHomePage extends StatefulWidget {
+  const OwnerHomePage({
+    super.key,
     required this.selectedPet,
     required this.appointmentsRepository,
     required this.onBrowseClinics,
@@ -139,10 +140,10 @@ class _OwnerHome extends StatefulWidget {
   final VoidCallback onRequestEmergency;
 
   @override
-  State<_OwnerHome> createState() => _OwnerHomeState();
+  State<OwnerHomePage> createState() => _OwnerHomePageState();
 }
 
-class _OwnerHomeState extends State<_OwnerHome> {
+class _OwnerHomePageState extends State<OwnerHomePage> {
   Future<List<OwnerAppointment>>? _appointmentsRequest;
 
   @override
