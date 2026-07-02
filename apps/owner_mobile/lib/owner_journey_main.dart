@@ -391,9 +391,25 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
             baseUrl: Uri.parse(_apiBaseUrl),
             accessTokenProvider: _token,
           ),
+          onRebookVisit: _openRepeatBookingFromCare,
+          platformOverride: widget.platformOverride,
         ),
       ),
     );
+  }
+
+  void _openRepeatBookingFromCare(OwnerPetCareRebookIntent intent) {
+    setState(() {
+      _selectedPet = intent.pet;
+      _petBootstrapCompleted = true;
+    });
+    _showMessage(
+      'Выберите удобное время для ${intent.pet.name}. Слот не бронируется до подтверждения.',
+    );
+    _openCatalog(onSelected: (selection) {
+      Navigator.of(context).pop();
+      _openBooking(selection);
+    });
   }
 
   void _openEmergency() {
@@ -502,14 +518,17 @@ class _OwnerIosAuthenticatedShellState
         alternativeSlotRepository: widget.alternativeSlotRepository,
         platformOverride: TargetPlatform.iOS,
       ),
-      pets: _OwnerIosMaterialFeatureTab(
-        child: OwnerPetsPage(
-          repository: widget.petsRepository,
-          onPetSelected: (pet) {
-            widget.onPetSelected(pet);
-            _selectTab(0);
-          },
-        ),
+      pets: OwnerPetsPage(
+        repository: widget.petsRepository,
+        platformOverride: TargetPlatform.iOS,
+        onPetSelected: (pet) {
+          widget.onPetSelected(pet);
+          _selectTab(0);
+        },
+        onOpenPetCare: (pet) {
+          widget.onPetSelected(pet);
+          widget.onOpenCare();
+        },
       ),
     );
   }
@@ -560,20 +579,6 @@ class _OwnerIosHomeTab extends StatelessWidget {
           onRequestEmergency: onRequestEmergency,
         ),
       ),
-    );
-  }
-}
-
-class _OwnerIosMaterialFeatureTab extends StatelessWidget {
-  const _OwnerIosMaterialFeatureTab({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      type: MaterialType.transparency,
-      child: child,
     );
   }
 }

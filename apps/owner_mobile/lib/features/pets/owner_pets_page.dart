@@ -1,7 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/offline/offline_command.dart';
+import '../../presentation/platform/owner_platform.dart';
+import '../../presentation/widgets/owner_cupertino_feedback.dart';
 import 'owner_pet.dart';
 import 'owner_pet_repository.dart';
 
@@ -10,10 +13,14 @@ class OwnerPetsPage extends StatefulWidget {
     super.key,
     required this.repository,
     required this.onPetSelected,
+    this.onOpenPetCare,
+    this.platformOverride,
   });
 
   final OwnerPetRepository repository;
   final ValueChanged<OwnerPet> onPetSelected;
+  final ValueChanged<OwnerPet>? onOpenPetCare;
+  final TargetPlatform? platformOverride;
 
   @override
   State<OwnerPetsPage> createState() => _OwnerPetsPageState();
@@ -134,7 +141,11 @@ class _OwnerPetsPageState extends State<OwnerPetsPage> {
   }
 
   void _message(String text) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+    showOwnerMessage(
+      context,
+      text,
+      platform: widget.platformOverride,
+    );
   }
 
   Future<void> _refreshSyncStates() async {
@@ -160,6 +171,9 @@ class _OwnerPetsPageState extends State<OwnerPetsPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (ownerUsesCupertino(platform: widget.platformOverride)) {
+      return _buildCupertino(context);
+    }
     return FutureBuilder<_PetsSnapshot>(
       future: _request,
       builder: (context, snapshot) {
@@ -200,6 +214,127 @@ class _OwnerPetsPageState extends State<OwnerPetsPage> {
                 ),
         );
       },
+    );
+  }
+
+  Widget _buildCupertino(BuildContext context) {
+    return FutureBuilder<_PetsSnapshot>(
+      future: _request,
+      builder: (context, snapshot) {
+        final loading = snapshot.connectionState != ConnectionState.done;
+        final data = snapshot.data ?? _lastSnapshot;
+        if (loading && data == null) {
+          return CupertinoPageScaffold(
+            navigationBar: _cupertinoNavigationBar(context),
+            child: const SafeArea(
+              child: OwnerCupertinoLoading(label: 'Загружаем питомцев'),
+            ),
+          );
+        }
+        if (snapshot.hasError && data == null) {
+          return CupertinoPageScaffold(
+            navigationBar: _cupertinoNavigationBar(context),
+            child: SafeArea(
+              child: OwnerCupertinoEmptyState(
+                icon: CupertinoIcons.cloud,
+                title: 'Не удалось загрузить питомцев',
+                message:
+                    'Повторная попытка обновит список питомцев и их профильные данные.',
+                actionLabel: 'Обновить питомцев',
+                onAction: _reload,
+              ),
+            ),
+          );
+        }
+
+        final resolved = data ?? const _PetsSnapshot.empty();
+        _lastSnapshot = resolved;
+        return CupertinoPageScaffold(
+          navigationBar: _cupertinoNavigationBar(context),
+          child: SafeArea(
+            bottom: false,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                CupertinoSliverRefreshControl(onRefresh: _refreshSyncStates),
+                if (snapshot.hasError)
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                    sliver: SliverToBoxAdapter(
+                      child: OwnerCupertinoInlineError(
+                        title: 'Показаны последние данные',
+                        message:
+                            'Не удалось обновить список питомцев. Повторная попытка загрузит актуальные профили.',
+                        retryLabel: 'Обновить питомцев',
+                        onRetry: _reload,
+                      ),
+                    ),
+                  ),
+                if (resolved.pets.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: OwnerCupertinoEmptyState(
+                      icon: CupertinoIcons.paw,
+                      title: 'Питомцы не добавлены',
+                      message:
+                          'Добавьте питомца, чтобы видеть его дневник здоровья и быстро переходить к записи.',
+                      actionLabel: 'Добавить питомца',
+                      onAction: _busy ? null : _createPet,
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                    sliver: SliverList.separated(
+                      itemCount: resolved.pets.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final pet = resolved.pets[index];
+                        return _CupertinoPetCard(
+                          pet: pet,
+                          syncStates: resolved.syncStatesFor(pet.id),
+                          onTap: () => _openCupertinoPetProfile(pet, resolved),
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  ObstructingPreferredSizeWidget _cupertinoNavigationBar(BuildContext context) {
+    return CupertinoNavigationBar(
+      middle: const Text('Питомцы'),
+      transitionBetweenRoutes: false,
+      trailing: CupertinoButton(
+        minSize: 44,
+        padding: EdgeInsets.zero,
+        onPressed: _busy ? null : _createPet,
+        child: const Icon(CupertinoIcons.add),
+      ),
+    );
+  }
+
+  void _openCupertinoPetProfile(OwnerPet pet, _PetsSnapshot snapshot) {
+    Navigator.of(context).push(
+      CupertinoPageRoute<void>(
+        builder: (_) => _CupertinoPetProfilePage(
+          pet: pet,
+          syncStates: snapshot.syncStatesFor(pet.id),
+          onSelectForBooking: () {
+            widget.onPetSelected(pet);
+            Navigator.of(context).pop();
+          },
+          onOpenPetCare: widget.onOpenPetCare == null
+              ? null
+              : () => widget.onOpenPetCare!(pet),
+          onEdit: _busy ? null : () => _editPet(pet),
+        ),
+      ),
     );
   }
 }
@@ -374,6 +509,471 @@ class _PetsEmpty extends StatelessWidget {
           child: Text('Добавьте питомца, чтобы продолжить запись в клинику.'),
         ),
       );
+}
+
+class _CupertinoPetCard extends StatelessWidget {
+  const _CupertinoPetCard({
+    required this.pet,
+    required this.syncStates,
+    required this.onTap,
+  });
+
+  final OwnerPet pet;
+  final List<OwnerPetProfileSyncState> syncStates;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final syncStatus = _petSyncStatusFromStates(syncStates);
+    final subtitle = _cupertinoPetSubtitle(context, pet);
+    final health = _ownerHealthContext(pet);
+    final secondary = CupertinoDynamicColor.resolve(
+      CupertinoColors.secondaryLabel,
+      context,
+    );
+    return Semantics(
+      button: true,
+      label:
+          '${pet.name}. $subtitle. ${health.label}. Открыть профиль питомца.',
+      child: CupertinoButton(
+        minSize: 44,
+        padding: EdgeInsets.zero,
+        onPressed: onTap,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: CupertinoDynamicColor.resolve(
+              CupertinoColors.secondarySystemGroupedBackground,
+              context,
+            ),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: CupertinoDynamicColor.resolve(
+                CupertinoColors.separator,
+                context,
+              ),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _CupertinoPetAvatar(pet: pet, size: 54),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        pet.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: CupertinoTheme.of(context)
+                            .textTheme
+                            .navTitleTextStyle
+                            .copyWith(fontSize: 20),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: CupertinoTheme.of(context)
+                            .textTheme
+                            .textStyle
+                            .copyWith(color: secondary),
+                      ),
+                      const SizedBox(height: 8),
+                      _cupertinoPetHealthLine(context: context, health: health),
+                      if (syncStatus != null) ...[
+                        const SizedBox(height: 8),
+                        _CupertinoPetSyncStatus(status: syncStatus),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(CupertinoIcons.chevron_forward, color: secondary),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CupertinoPetProfilePage extends StatelessWidget {
+  const _CupertinoPetProfilePage({
+    required this.pet,
+    required this.syncStates,
+    required this.onSelectForBooking,
+    required this.onOpenPetCare,
+    required this.onEdit,
+  });
+
+  final OwnerPet pet;
+  final List<OwnerPetProfileSyncState> syncStates;
+  final VoidCallback onSelectForBooking;
+  final VoidCallback? onOpenPetCare;
+  final VoidCallback? onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final syncStatus = _petSyncStatusFromStates(syncStates);
+    final facts = _petFactRows(pet);
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text(pet.name),
+        transitionBetweenRoutes: false,
+        trailing: onEdit == null
+            ? null
+            : CupertinoButton(
+                minSize: 44,
+                padding: EdgeInsets.zero,
+                onPressed: onEdit,
+                child: const Icon(CupertinoIcons.pencil),
+              ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          children: [
+            _CupertinoPetIdentityHeader(pet: pet),
+            const SizedBox(height: 14),
+            if (syncStatus != null) ...[
+              OwnerCupertinoStatusBanner(
+                tone: syncStatus == _PetSyncStatus.conflict ||
+                        syncStatus == _PetSyncStatus.failed
+                    ? OwnerCupertinoFeedbackTone.warning
+                    : OwnerCupertinoFeedbackTone.neutral,
+                message: _cupertinoSyncMessage(syncStatus),
+              ),
+              const SizedBox(height: 14),
+            ],
+            OwnerCupertinoButton.primary(
+              label: 'Выбрать для записи',
+              onPressed: onSelectForBooking,
+              semanticLabel: 'Выбрать ${pet.name} для записи',
+            ),
+            const SizedBox(height: 18),
+            _CupertinoPetSection(
+              title: 'Что сейчас важно',
+              children: [
+                _CupertinoInfoText(_ownerHealthContext(pet).description),
+                if (onOpenPetCare != null) ...[
+                  const SizedBox(height: 12),
+                  OwnerCupertinoButton.secondary(
+                    label: 'Открыть дневник здоровья',
+                    icon: CupertinoIcons.doc_text,
+                    onPressed: onOpenPetCare,
+                    semanticLabel: 'Открыть дневник здоровья ${pet.name}',
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 14),
+            _CupertinoPetSection(
+              title: 'Сведения о питомце',
+              children: [
+                if (facts.isEmpty)
+                  const _CupertinoInfoText(
+                    'Дополнительные сведения пока не заполнены.',
+                  )
+                else
+                  for (var index = 0; index < facts.length; index++) ...[
+                    if (index > 0) const _CupertinoPetDivider(),
+                    _CupertinoPetFactRow(fact: facts[index]),
+                  ],
+              ],
+            ),
+            if (_hasCareSource(pet)) ...[
+              const SizedBox(height: 14),
+              _CupertinoPetSection(
+                title: 'Контекст для клиники',
+                children: [
+                  _CupertinoInfoText(_careSourceSummary(pet)),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CupertinoPetIdentityHeader extends StatelessWidget {
+  const _CupertinoPetIdentityHeader({required this.pet});
+
+  final OwnerPet pet;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = CupertinoDynamicColor.resolve(
+      CupertinoColors.secondaryLabel,
+      context,
+    );
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: CupertinoDynamicColor.resolve(
+          CupertinoColors.secondarySystemGroupedBackground,
+          context,
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _CupertinoPetAvatar(pet: pet, size: 68),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    pet.name,
+                    style: CupertinoTheme.of(context)
+                        .textTheme
+                        .navLargeTitleTextStyle
+                        .copyWith(fontSize: 26),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _cupertinoPetSubtitle(context, pet),
+                    style: CupertinoTheme.of(context)
+                        .textTheme
+                        .textStyle
+                        .copyWith(color: secondary),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CupertinoPetAvatar extends StatelessWidget {
+  const _CupertinoPetAvatar({required this.pet, required this.size});
+
+  final OwnerPet pet;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final background = CupertinoDynamicColor.resolve(
+      CupertinoColors.tertiarySystemFill,
+      context,
+    );
+    final foreground = CupertinoDynamicColor.resolve(
+      CupertinoColors.activeBlue,
+      context,
+    );
+    final photo = pet.photoUrl;
+    return ClipOval(
+      child: SizedBox.square(
+        dimension: size,
+        child: DecoratedBox(
+          decoration: BoxDecoration(color: background),
+          child: photo == null
+              ? Icon(CupertinoIcons.paw, color: foreground, size: size * .44)
+              : Image.network(
+                  photo,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Icon(
+                    CupertinoIcons.paw,
+                    color: foreground,
+                    size: size * .44,
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CupertinoPetSection extends StatelessWidget {
+  const _CupertinoPetSection({
+    required this.title,
+    required this.children,
+  });
+
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        OwnerCupertinoSectionHeader(title: title),
+        const SizedBox(height: 8),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: CupertinoDynamicColor.resolve(
+              CupertinoColors.secondarySystemGroupedBackground,
+              context,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: CupertinoDynamicColor.resolve(
+                CupertinoColors.separator,
+                context,
+              ),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: children,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CupertinoPetFact {
+  const _CupertinoPetFact(this.label, this.value, this.icon);
+
+  final String label;
+  final String value;
+  final IconData icon;
+}
+
+class _CupertinoPetFactRow extends StatelessWidget {
+  const _CupertinoPetFactRow({required this.fact});
+
+  final _CupertinoPetFact fact;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = CupertinoDynamicColor.resolve(
+      CupertinoColors.secondaryLabel,
+      context,
+    );
+    return Semantics(
+      label: '${fact.label}: ${fact.value}',
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(fact.icon, size: 20, color: secondary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  fact.label,
+                  style:
+                      CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                            color: secondary,
+                            fontSize: 13,
+                          ),
+                ),
+                const SizedBox(height: 2),
+                Text(fact.value),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CupertinoInfoText extends StatelessWidget {
+  const _CupertinoInfoText(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: CupertinoTheme.of(context).textTheme.textStyle,
+    );
+  }
+}
+
+class _CupertinoPetDivider extends StatelessWidget {
+  const _CupertinoPetDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: ColoredBox(
+        color:
+            CupertinoDynamicColor.resolve(CupertinoColors.separator, context),
+        child: const SizedBox(height: .5),
+      ),
+    );
+  }
+}
+
+class _CupertinoPetHealthContext {
+  const _CupertinoPetHealthContext({
+    required this.label,
+    required this.description,
+    required this.icon,
+  });
+
+  final String label;
+  final String description;
+  final IconData icon;
+}
+
+Widget _cupertinoPetHealthLine({
+  required BuildContext context,
+  required _CupertinoPetHealthContext health,
+}) {
+  final color = CupertinoDynamicColor.resolve(
+    CupertinoColors.secondaryLabel,
+    context,
+  );
+  return Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Icon(health.icon, size: 18, color: color),
+      const SizedBox(width: 6),
+      Expanded(
+        child: Text(
+          health.label,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                color: color,
+                fontSize: 14,
+              ),
+        ),
+      ),
+    ],
+  );
+}
+
+class _CupertinoPetSyncStatus extends StatelessWidget {
+  const _CupertinoPetSyncStatus({required this.status});
+
+  final _PetSyncStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    return OwnerCupertinoStatusBanner(
+      tone: status == _PetSyncStatus.conflict || status == _PetSyncStatus.failed
+          ? OwnerCupertinoFeedbackTone.warning
+          : OwnerCupertinoFeedbackTone.neutral,
+      message: _cupertinoSyncMessage(status),
+    );
+  }
 }
 
 class _PetForm extends StatefulWidget {
@@ -778,6 +1378,132 @@ String _speciesTitle(String value) => switch (value) {
       'DOG' => 'Собака',
       'CAT' => 'Кошка',
       _ => 'Другой вид',
+    };
+
+String _cupertinoPetSubtitle(BuildContext context, OwnerPet pet) {
+  final parts = <String>[
+    _speciesTitle(pet.species),
+    if (pet.breed != null && pet.breed!.trim().isNotEmpty) pet.breed!.trim(),
+    if (pet.birthDate != null) _ageFromBirthDate(context, pet.birthDate!),
+    if (pet.birthDate == null && pet.ageMonths != null)
+      _ageFromMonths(pet.ageMonths!),
+  ];
+  return parts.join(' · ');
+}
+
+String _ageFromBirthDate(BuildContext context, DateTime birthDate) {
+  final now = DateTime.now();
+  final months =
+      ((now.year - birthDate.year) * 12) + now.month - birthDate.month;
+  if (months >= 1) return _ageFromMonths(months);
+  return 'рожд. ${MaterialLocalizations.of(context).formatMediumDate(birthDate)}';
+}
+
+String _ageFromMonths(int months) {
+  if (months < 12) return '$months мес.';
+  final years = months ~/ 12;
+  final rest = months % 12;
+  if (rest == 0) return '$years г.';
+  return '$years г. $rest мес.';
+}
+
+_CupertinoPetHealthContext _ownerHealthContext(OwnerPet pet) {
+  if (pet.allergies.isNotEmpty) {
+    return _CupertinoPetHealthContext(
+      label: 'Есть отмеченные аллергии',
+      description:
+          'В профиле указаны аллергии: ${pet.allergies.take(3).join(', ')}. Сообщите об этом клинике при записи.',
+      icon: CupertinoIcons.exclamationmark_triangle,
+    );
+  }
+  if (pet.chronicConditions.isNotEmpty) {
+    return _CupertinoPetHealthContext(
+      label: 'Есть хронические состояния',
+      description:
+          'В профиле указаны хронические состояния: ${pet.chronicConditions.take(3).join(', ')}. Дневник помогает сохранить контекст визитов.',
+      icon: CupertinoIcons.heart,
+    );
+  }
+  if (pet.vaccinationNotes != null && pet.vaccinationNotes!.trim().isNotEmpty) {
+    return const _CupertinoPetHealthContext(
+      label: 'Есть заметки о вакцинации',
+      description:
+          'В профиле сохранены заметки о вакцинации. Проверьте актуальность данных перед плановым визитом.',
+      icon: CupertinoIcons.check_mark_circled,
+    );
+  }
+  return const _CupertinoPetHealthContext(
+    label: 'Нет важных заметок в профиле',
+    description:
+        'В профиле нет отмеченных аллергий, хронических состояний или заметок о вакцинации. Добавьте их, если клинике важно знать эти данные.',
+    icon: CupertinoIcons.info_circle,
+  );
+}
+
+List<_CupertinoPetFact> _petFactRows(OwnerPet pet) {
+  return [
+    if (pet.weightKg != null && pet.weightKg!.trim().isNotEmpty)
+      _CupertinoPetFact('Вес', '${pet.weightKg} кг', CupertinoIcons.gauge),
+    if (pet.sex != null && pet.sex!.trim().isNotEmpty)
+      _CupertinoPetFact('Пол', _sexLabel(pet.sex!), CupertinoIcons.person),
+    if (pet.sterilized != null || pet.isSterilized != null)
+      _CupertinoPetFact(
+        'Стерилизация',
+        (pet.sterilized ?? pet.isSterilized) == true ? 'Да' : 'Нет',
+        CupertinoIcons.heart,
+      ),
+    if (pet.allergies.isNotEmpty)
+      _CupertinoPetFact(
+        'Аллергии',
+        pet.allergies.join(', '),
+        CupertinoIcons.exclamationmark_triangle,
+      ),
+    if (pet.chronicConditions.isNotEmpty)
+      _CupertinoPetFact(
+        'Хронические состояния',
+        pet.chronicConditions.join(', '),
+        CupertinoIcons.doc_text,
+      ),
+    if (pet.vaccinationNotes != null && pet.vaccinationNotes!.trim().isNotEmpty)
+      _CupertinoPetFact(
+        'Вакцинация',
+        pet.vaccinationNotes!.trim(),
+        CupertinoIcons.check_mark_circled,
+      ),
+  ];
+}
+
+String _sexLabel(String value) => switch (value.toUpperCase()) {
+      'MALE' => 'Самец',
+      'FEMALE' => 'Самка',
+      _ => 'Не указано',
+    };
+
+bool _hasCareSource(OwnerPet pet) {
+  return pet.vaccinationNotes != null ||
+      pet.insurancePolicyLinks.isNotEmpty ||
+      pet.photoUrl != null;
+}
+
+String _careSourceSummary(OwnerPet pet) {
+  final parts = <String>[
+    if (pet.vaccinationNotes != null && pet.vaccinationNotes!.trim().isNotEmpty)
+      'заметки о вакцинации',
+    if (pet.insurancePolicyLinks.isNotEmpty)
+      _policyCount(pet.insurancePolicyLinks.length),
+    if (pet.photoUrl != null) 'фото профиля',
+  ];
+  return 'В профиле есть ${parts.join(', ')}. Это не заменяет медицинские рекомендации, но помогает сохранить контекст для клиники.';
+}
+
+String _cupertinoSyncMessage(_PetSyncStatus status) => switch (status) {
+      _PetSyncStatus.pending =>
+        'Изменения профиля сохранены на устройстве и будут отправлены при соединении.',
+      _PetSyncStatus.syncing => 'Изменения профиля синхронизируются.',
+      _PetSyncStatus.conflict =>
+        'Профиль изменился в другом месте. Откройте профиль заново перед редактированием.',
+      _PetSyncStatus.failed =>
+        'Последние изменения профиля не удалось отправить. Проверьте данные и повторите позже.',
     };
 
 String _policyCount(int count) {

@@ -1,7 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../presentation/platform/owner_platform.dart';
+import '../../presentation/widgets/owner_cupertino_feedback.dart';
 import '../pets/owner_pet.dart';
 import 'owner_pet_care_repository.dart';
 
@@ -10,10 +13,14 @@ class OwnerPetCarePage extends StatefulWidget {
     super.key,
     required this.pet,
     required this.repository,
+    this.onRebookVisit,
+    this.platformOverride,
   });
 
   final OwnerPet pet;
   final OwnerPetCareRepository repository;
+  final ValueChanged<OwnerPetCareRebookIntent>? onRebookVisit;
+  final TargetPlatform? platformOverride;
 
   @override
   State<OwnerPetCarePage> createState() => _OwnerPetCarePageState();
@@ -41,6 +48,9 @@ class _OwnerPetCarePageState extends State<OwnerPetCarePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (ownerUsesCupertino(platform: widget.platformOverride)) {
+      return _buildCupertino(context);
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('Медицинская карта')),
       body: FutureBuilder<OwnerPetCareSummary>(
@@ -82,6 +92,111 @@ class _OwnerPetCarePageState extends State<OwnerPetCarePage> {
       ),
     );
   }
+
+  Widget _buildCupertino(BuildContext context) {
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text(widget.pet.name),
+        transitionBetweenRoutes: false,
+      ),
+      child: FutureBuilder<OwnerPetCareSummary>(
+        future: _request,
+        builder: (context, snapshot) {
+          final summary = snapshot.data;
+          if (snapshot.connectionState != ConnectionState.done &&
+              summary == null) {
+            return const SafeArea(
+              child: OwnerCupertinoLoading(label: 'Загружаем дневник'),
+            );
+          }
+          if (summary == null) {
+            return SafeArea(
+              child: OwnerCupertinoEmptyState(
+                icon: CupertinoIcons.cloud,
+                title: 'Не удалось загрузить дневник',
+                message: 'Повторная попытка обновит дневник здоровья питомца.',
+                actionLabel: 'Обновить дневник',
+                onAction: _reload,
+              ),
+            );
+          }
+          return SafeArea(
+            bottom: false,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                CupertinoSliverRefreshControl(onRefresh: _refresh),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                  sliver: SliverList.list(
+                    children: [
+                      if (snapshot.hasError) ...[
+                        const OwnerCupertinoStatusBanner(
+                          tone: OwnerCupertinoFeedbackTone.warning,
+                          icon: CupertinoIcons.cloud,
+                          message:
+                              'Показаны последние полученные данные. Потяните вниз, чтобы обновить дневник.',
+                          liveRegion: true,
+                        ),
+                        const SizedBox(height: 14),
+                      ],
+                      _CupertinoCareHeader(pet: summary.pet),
+                      const SizedBox(height: 14),
+                      _CupertinoNextCareAction(
+                        summary: summary,
+                        onRebookVisit: widget.onRebookVisit,
+                      ),
+                      const SizedBox(height: 14),
+                      _CupertinoDiarySection(
+                        summary: summary,
+                        onRebookVisit: widget.onRebookVisit,
+                      ),
+                      const SizedBox(height: 14),
+                      _CupertinoPetDetailsSection(pet: summary.pet),
+                      if (summary.documents.isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        _CupertinoDocumentsSection(
+                          documents: summary.documents,
+                        ),
+                      ],
+                      const SizedBox(height: 18),
+                      Text(
+                        'Обновлено: ${_cupertinoDateTime(summary.serverNow)}',
+                        style: CupertinoTheme.of(context)
+                            .textTheme
+                            .textStyle
+                            .copyWith(
+                              color: CupertinoDynamicColor.resolve(
+                                CupertinoColors.secondaryLabel,
+                                context,
+                              ),
+                              fontSize: 13,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class OwnerPetCareRebookIntent {
+  const OwnerPetCareRebookIntent({
+    required this.pet,
+    required this.clinicName,
+    required this.clinicAddress,
+    required this.serviceName,
+  });
+
+  final OwnerPet pet;
+  final String clinicName;
+  final String clinicAddress;
+  final String serviceName;
 }
 
 class _CareLoadError extends StatelessWidget {
@@ -132,6 +247,458 @@ class _StaleCareBanner extends StatelessWidget {
         leading: Icon(Icons.cloud_off_outlined),
         title: Text('Показаны последние полученные данные'),
         subtitle: Text('Потяните экран вниз, чтобы обновить карту.'),
+      ),
+    );
+  }
+}
+
+class _CupertinoCareHeader extends StatelessWidget {
+  const _CupertinoCareHeader({required this.pet});
+
+  final OwnerPet pet;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = CupertinoDynamicColor.resolve(
+      CupertinoColors.secondaryLabel,
+      context,
+    );
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: CupertinoDynamicColor.resolve(
+          CupertinoColors.secondarySystemGroupedBackground,
+          context,
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: CupertinoDynamicColor.resolve(
+                  CupertinoColors.tertiarySystemFill,
+                  context,
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: const SizedBox.square(
+                dimension: 66,
+                child: Icon(CupertinoIcons.paw, size: 30),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    pet.name,
+                    style: CupertinoTheme.of(context)
+                        .textTheme
+                        .navLargeTitleTextStyle
+                        .copyWith(fontSize: 26),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _petSubtitle(context, pet),
+                    style: CupertinoTheme.of(context)
+                        .textTheme
+                        .textStyle
+                        .copyWith(color: secondary),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CupertinoNextCareAction extends StatelessWidget {
+  const _CupertinoNextCareAction({
+    required this.summary,
+    required this.onRebookVisit,
+  });
+
+  final OwnerPetCareSummary summary;
+  final ValueChanged<OwnerPetCareRebookIntent>? onRebookVisit;
+
+  @override
+  Widget build(BuildContext context) {
+    final latestVisit = _latestVisit(summary.visits);
+    if (latestVisit == null) {
+      return const OwnerCupertinoStatusBanner(
+        tone: OwnerCupertinoFeedbackTone.neutral,
+        title: 'Что дальше',
+        message:
+            'Когда появится завершённый визит или консультация, здесь будет последний медицинский контекст.',
+      );
+    }
+    final clinicalSummary = latestVisit.clinicalSummary?.trim();
+    return OwnerCupertinoStatusBanner(
+      tone: latestVisit.presentation.tone == 'warning'
+          ? OwnerCupertinoFeedbackTone.warning
+          : OwnerCupertinoFeedbackTone.neutral,
+      title: 'Последнее действие',
+      icon: CupertinoIcons.check_mark_circled,
+      message: clinicalSummary == null || clinicalSummary.isEmpty
+          ? '${latestVisit.presentation.label}. ${latestVisit.clinicName}, ${_cupertinoDate(latestVisit.startsAt)}.'
+          : 'После визита: $clinicalSummary',
+      actionLabel: _canRebook(latestVisit) && onRebookVisit != null
+          ? 'Подобрать повторную запись'
+          : null,
+      onAction: _canRebook(latestVisit) && onRebookVisit != null
+          ? () => onRebookVisit!(_rebookIntent(summary.pet, latestVisit))
+          : null,
+    );
+  }
+}
+
+class _CupertinoDiarySection extends StatelessWidget {
+  const _CupertinoDiarySection({
+    required this.summary,
+    required this.onRebookVisit,
+  });
+
+  final OwnerPetCareSummary summary;
+  final ValueChanged<OwnerPetCareRebookIntent>? onRebookVisit;
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = _diaryEntries(summary);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const OwnerCupertinoSectionHeader(
+          title: 'Pet Diary',
+          supportingText: 'Журнал визитов, документов и онлайн-консультаций.',
+        ),
+        const SizedBox(height: 8),
+        if (entries.isEmpty)
+          const OwnerCupertinoEmptyState(
+            icon: CupertinoIcons.book,
+            title: 'Дневник пока пуст',
+            message:
+                'Здесь появятся завершённые визиты, заключения врача, документы и онлайн-консультации.',
+          )
+        else
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: CupertinoDynamicColor.resolve(
+                CupertinoColors.secondarySystemGroupedBackground,
+                context,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: CupertinoDynamicColor.resolve(
+                  CupertinoColors.separator,
+                  context,
+                ),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                children: [
+                  for (var index = 0; index < entries.length; index++) ...[
+                    if (index > 0) const _CupertinoCareDivider(),
+                    _CupertinoDiaryEntryRow(
+                      entry: entries[index],
+                      onRebookVisit: onRebookVisit,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _CupertinoDiaryEntryRow extends StatelessWidget {
+  const _CupertinoDiaryEntryRow({
+    required this.entry,
+    required this.onRebookVisit,
+  });
+
+  final _DiaryEntry entry;
+  final ValueChanged<OwnerPetCareRebookIntent>? onRebookVisit;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = CupertinoDynamicColor.resolve(
+      CupertinoColors.secondaryLabel,
+      context,
+    );
+    return Semantics(
+      label:
+          '${entry.title}. ${entry.description}. ${_cupertinoDate(entry.at)}',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(entry.icon, color: secondary, size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry.title,
+                      style: CupertinoTheme.of(context)
+                          .textTheme
+                          .textStyle
+                          .copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _cupertinoDate(entry.at),
+                      style: CupertinoTheme.of(context)
+                          .textTheme
+                          .textStyle
+                          .copyWith(color: secondary, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(entry.description),
+          if (entry.clinicLine != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              entry.clinicLine!,
+              style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                    color: secondary,
+                    fontSize: 13,
+                  ),
+            ),
+          ],
+          if (entry.rebookIntent != null && onRebookVisit != null) ...[
+            const SizedBox(height: 10),
+            OwnerCupertinoButton.secondary(
+              label: 'Подобрать повторную запись',
+              icon: CupertinoIcons.calendar_badge_plus,
+              semanticLabel:
+                  'Подобрать повторную запись для ${entry.rebookIntent!.pet.name}',
+              onPressed: () => onRebookVisit!(entry.rebookIntent!),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _CupertinoPetDetailsSection extends StatelessWidget {
+  const _CupertinoPetDetailsSection({required this.pet});
+
+  final OwnerPet pet;
+
+  @override
+  Widget build(BuildContext context) {
+    final facts = <_CareFact>[
+      if (pet.weightKg != null)
+        _CareFact(Icons.scale_outlined, 'Вес', pet.weightKg!),
+      if (pet.sterilized != null)
+        _CareFact(Icons.monitor_heart_outlined, 'Стерилизация',
+            _sterilized(pet.sterilized)),
+      if (pet.allergies.isNotEmpty)
+        _CareFact(Icons.warning_amber_outlined, 'Аллергии',
+            _listOrEmpty(pet.allergies)),
+      if (pet.chronicConditions.isNotEmpty)
+        _CareFact(Icons.medical_information_outlined, 'Хронические состояния',
+            _listOrEmpty(pet.chronicConditions)),
+      if (pet.vaccinationNotes != null)
+        _CareFact(Icons.vaccines_outlined, 'Вакцинация', pet.vaccinationNotes!),
+    ];
+    if (facts.isEmpty) {
+      return const OwnerCupertinoStatusBanner(
+        tone: OwnerCupertinoFeedbackTone.neutral,
+        title: 'Сведения о питомце',
+        message:
+            'Дополнительные сведения пока не заполнены. Не добавляем медицинские предположения без данных.',
+      );
+    }
+    return _CupertinoCareSection(
+      title: 'Сведения о питомце',
+      children: [
+        for (var index = 0; index < facts.length; index++) ...[
+          if (index > 0) const _CupertinoCareDivider(),
+          _CupertinoCareFactRow(fact: facts[index]),
+        ],
+      ],
+    );
+  }
+}
+
+class _CupertinoDocumentsSection extends StatelessWidget {
+  const _CupertinoDocumentsSection({required this.documents});
+
+  final List<OwnerPetCareDocument> documents;
+
+  @override
+  Widget build(BuildContext context) {
+    return _CupertinoCareSection(
+      title: 'Документы',
+      children: [
+        for (var index = 0; index < documents.length; index++) ...[
+          if (index > 0) const _CupertinoCareDivider(),
+          _CupertinoDocumentRow(document: documents[index]),
+        ],
+      ],
+    );
+  }
+}
+
+class _CupertinoCareSection extends StatelessWidget {
+  const _CupertinoCareSection({
+    required this.title,
+    required this.children,
+  });
+
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        OwnerCupertinoSectionHeader(title: title),
+        const SizedBox(height: 8),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: CupertinoDynamicColor.resolve(
+              CupertinoColors.secondarySystemGroupedBackground,
+              context,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: CupertinoDynamicColor.resolve(
+                CupertinoColors.separator,
+                context,
+              ),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: children,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CupertinoCareFactRow extends StatelessWidget {
+  const _CupertinoCareFactRow({required this.fact});
+
+  final _CareFact fact;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = CupertinoDynamicColor.resolve(
+      CupertinoColors.secondaryLabel,
+      context,
+    );
+    return Semantics(
+      label: '${fact.label}: ${fact.value}',
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(_cupertinoFactIcon(fact.icon), color: secondary, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  fact.label,
+                  style:
+                      CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                            color: secondary,
+                            fontSize: 13,
+                          ),
+                ),
+                const SizedBox(height: 2),
+                Text(fact.value),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CupertinoDocumentRow extends StatelessWidget {
+  const _CupertinoDocumentRow({required this.document});
+
+  final OwnerPetCareDocument document;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = CupertinoDynamicColor.resolve(
+      CupertinoColors.secondaryLabel,
+      context,
+    );
+    return CupertinoButton(
+      minSize: 44,
+      padding: EdgeInsets.zero,
+      onPressed: () => _openOrCopy(context, document.value),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(_cupertinoDocumentIcon(document.type), color: secondary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(document.label),
+                const SizedBox(height: 2),
+                Text(
+                  'Открыть или скопировать документ',
+                  style:
+                      CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                            color: secondary,
+                            fontSize: 13,
+                          ),
+                ),
+              ],
+            ),
+          ),
+          Icon(CupertinoIcons.chevron_forward, color: secondary, size: 18),
+        ],
+      ),
+    );
+  }
+}
+
+class _CupertinoCareDivider extends StatelessWidget {
+  const _CupertinoCareDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: ColoredBox(
+        color:
+            CupertinoDynamicColor.resolve(CupertinoColors.separator, context),
+        child: const SizedBox(height: .5),
       ),
     );
   }
@@ -461,6 +1028,120 @@ class _TelemedTile extends StatelessWidget {
   }
 }
 
+class _DiaryEntry {
+  const _DiaryEntry({
+    required this.at,
+    required this.title,
+    required this.description,
+    required this.icon,
+    this.clinicLine,
+    this.rebookIntent,
+  });
+
+  final DateTime at;
+  final String title;
+  final String description;
+  final IconData icon;
+  final String? clinicLine;
+  final OwnerPetCareRebookIntent? rebookIntent;
+}
+
+List<_DiaryEntry> _diaryEntries(OwnerPetCareSummary summary) {
+  final entries = <_DiaryEntry>[
+    for (final visit in summary.visits)
+      _DiaryEntry(
+        at: visit.startsAt,
+        title: _visitDiaryTitle(visit),
+        description: _visitDiaryDescription(visit),
+        clinicLine: '${visit.clinicName}, ${visit.clinicAddress}',
+        icon: _cupertinoVisitIcon(visit.presentation.tone),
+        rebookIntent:
+            _canRebook(visit) ? _rebookIntent(summary.pet, visit) : null,
+      ),
+    for (final session in summary.telemedSessions)
+      _DiaryEntry(
+        at: session.startsAt,
+        title: _telemedDiaryTitle(session),
+        description: _telemedDiaryDescription(session),
+        clinicLine: '${session.clinicName}, ${session.clinicAddress}',
+        icon: CupertinoIcons.videocam,
+      ),
+    for (final document in summary.documents)
+      _DiaryEntry(
+        at: summary.serverNow,
+        title: _documentDiaryTitle(document),
+        description: 'Документ сохранён в карте питомца.',
+        icon: _cupertinoDocumentIcon(document.type),
+      ),
+  ];
+  entries.sort((a, b) => b.at.compareTo(a.at));
+  return entries;
+}
+
+OwnerPetCareVisit? _latestVisit(List<OwnerPetCareVisit> visits) {
+  if (visits.isEmpty) return null;
+  final copy = [...visits]..sort((a, b) => b.startsAt.compareTo(a.startsAt));
+  return copy.first;
+}
+
+bool _canRebook(OwnerPetCareVisit visit) {
+  return visit.clinicName.trim().isNotEmpty &&
+      visit.clinicAddress.trim().isNotEmpty &&
+      visit.serviceName != null &&
+      visit.serviceName!.trim().isNotEmpty;
+}
+
+OwnerPetCareRebookIntent _rebookIntent(OwnerPet pet, OwnerPetCareVisit visit) {
+  return OwnerPetCareRebookIntent(
+    pet: pet,
+    clinicName: visit.clinicName,
+    clinicAddress: visit.clinicAddress,
+    serviceName: visit.serviceName!,
+  );
+}
+
+String _visitDiaryTitle(OwnerPetCareVisit visit) {
+  final service = visit.serviceName?.trim();
+  if (service != null && service.isNotEmpty) return service;
+  return visit.presentation.label;
+}
+
+String _visitDiaryDescription(OwnerPetCareVisit visit) {
+  final clinicalSummary = visit.clinicalSummary?.trim();
+  if (clinicalSummary != null && clinicalSummary.isNotEmpty) {
+    return clinicalSummary;
+  }
+  return visit.presentation.description;
+}
+
+String _telemedDiaryTitle(OwnerPetCareTelemedSession session) {
+  return session.serviceName?.trim().isNotEmpty == true
+      ? session.serviceName!.trim()
+      : 'Онлайн-консультация';
+}
+
+String _telemedDiaryDescription(OwnerPetCareTelemedSession session) {
+  return switch (session.state) {
+    'WAITING_FOR_DOCTOR' =>
+      'Консультация ожидает подключения врача. Следите за статусом в разделе телемедицины.',
+    'CONNECTED' => 'Врач подключился к онлайн-консультации.',
+    'COMPLETED' => 'Онлайн-консультация завершена.',
+    'DOCTOR_TIMEOUT' =>
+      'Врач не подключился вовремя. Если состояние ухудшается, откройте срочные клиники.',
+    'CANCELLED' || 'CANCELLED_BY_OWNER' => 'Онлайн-консультация отменена.',
+    _ => 'Статус онлайн-консультации обновляется.',
+  };
+}
+
+String _documentDiaryTitle(OwnerPetCareDocument document) {
+  return switch (document.type) {
+    'PHOTO' => 'Фото документа',
+    'VACCINATION_NOTES' => 'Заметки о вакцинации',
+    'INSURANCE_POLICY_LINK' => 'Страховой полис',
+    _ => document.label,
+  };
+}
+
 String _petSubtitle(BuildContext context, OwnerPet pet) {
   final parts = <String>[
     _species(pet.species),
@@ -537,6 +1218,46 @@ String _range(BuildContext context, DateTime from, DateTime to) {
   final end = TimeOfDay.fromDateTime(to).format(context);
   return '$date, $start-$end';
 }
+
+String _cupertinoDate(DateTime value) {
+  return '${value.day.toString().padLeft(2, '0')}.${value.month.toString().padLeft(2, '0')}.${value.year}';
+}
+
+String _cupertinoDateTime(DateTime value) {
+  final hh = value.hour.toString().padLeft(2, '0');
+  final mm = value.minute.toString().padLeft(2, '0');
+  return '${_cupertinoDate(value)}, $hh:$mm';
+}
+
+IconData _cupertinoFactIcon(IconData materialIcon) {
+  if (materialIcon == Icons.warning_amber_outlined) {
+    return CupertinoIcons.exclamationmark_triangle;
+  }
+  if (materialIcon == Icons.vaccines_outlined) {
+    return CupertinoIcons.check_mark_circled;
+  }
+  if (materialIcon == Icons.monitor_heart_outlined) {
+    return CupertinoIcons.heart;
+  }
+  if (materialIcon == Icons.scale_outlined) {
+    return CupertinoIcons.gauge;
+  }
+  return CupertinoIcons.doc_text;
+}
+
+IconData _cupertinoDocumentIcon(String type) => switch (type) {
+      'PHOTO' => CupertinoIcons.photo,
+      'VACCINATION_NOTES' => CupertinoIcons.check_mark_circled,
+      'INSURANCE_POLICY_LINK' => CupertinoIcons.doc_text,
+      _ => CupertinoIcons.doc,
+    };
+
+IconData _cupertinoVisitIcon(String tone) => switch (tone) {
+      'success' => CupertinoIcons.check_mark_circled,
+      'warning' => CupertinoIcons.clock,
+      'danger' => CupertinoIcons.exclamationmark_triangle,
+      _ => CupertinoIcons.heart,
+    };
 
 String _dateTime(BuildContext context, DateTime value) {
   final date = MaterialLocalizations.of(context).formatMediumDate(value);
