@@ -402,6 +402,7 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
         platform: widget.platformOverride,
         builder: (_) => EmergencyTriagePage(
           repository: EmergencyRepository(baseUrl: Uri.parse(_apiBaseUrl)),
+          platformOverride: widget.platformOverride,
         ),
       ),
     );
