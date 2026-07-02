@@ -320,6 +320,7 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
             baseUrl: Uri.parse(_apiBaseUrl),
             accessTokenProvider: _token,
           ),
+          platformOverride: widget.platformOverride,
         ),
       ),
     );

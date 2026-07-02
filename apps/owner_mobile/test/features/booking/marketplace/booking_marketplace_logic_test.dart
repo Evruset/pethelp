@@ -96,19 +96,136 @@ void main() {
     ));
 
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(BookingSlotTile).first, warnIfMissed: false);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('cupertino-booking-slot-slot-a')),
+      warnIfMissed: false,
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Отправить заявку'));
+    await tester.tap(find.text('Отправить заявку в клинику'));
     await tester.pumpAndSettle();
 
     expect(find.byType(CupertinoAlertDialog), findsOneWidget);
     expect(find.text('Слот недоступен'), findsOneWidget);
+    expect(find.textContaining('SLOT_'), findsNothing);
+    expect(find.textContaining('409'), findsNothing);
 
     await tester.tap(find.text('Подобрать другое время'));
     await tester.pumpAndSettle();
 
     expect(find.byType(CupertinoActionSheet), findsOneWidget);
     expect(find.text('Доступные альтернативные слоты'), findsOneWidget);
+  });
+
+  testWidgets('iOS booking page uses Cupertino presentation for slot selection',
+      (tester) async {
+    final repository = _FakeBookingMarketplaceRepository(
+      holdFailuresBeforeSuccess: 0,
+    );
+
+    await tester.pumpWidget(MaterialApp(
+      theme: ThemeData(platform: TargetPlatform.iOS, useMaterial3: true),
+      home: BookingMarketplacePage(
+        clinicName: 'VetHelp Clinic',
+        serviceName: 'Первичный прием',
+        serviceId: 'service-1',
+        petName: 'Бим',
+        clinicLocationId: 'location-1',
+        petId: 'pet-1',
+        repository: repository,
+        retryDelay: (_) async {},
+      ),
+    ));
+
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CupertinoPageScaffold), findsOneWidget);
+    expect(find.byType(Scaffold), findsNothing);
+    expect(find.byType(AppBar), findsNothing);
+    expect(find.byType(FilledButton), findsNothing);
+    expect(find.text('Первичный прием'), findsOneWidget);
+    expect(find.text('Утро'), findsOneWidget);
+    expect(find.text('День'), findsAtLeastNWidgets(1));
+    expect(find.text('Выберите время'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('cupertino-booking-slot-slot-a')),
+      warnIfMissed: false,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('cupertino-booking-slot-slot-a')),
+        matching: find.byIcon(CupertinoIcons.check_mark),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Отправить заявку в клинику'), findsOneWidget);
+  });
+
+  testWidgets('Android booking page keeps Material presentation',
+      (tester) async {
+    final repository = _FakeBookingMarketplaceRepository(
+      holdFailuresBeforeSuccess: 0,
+    );
+
+    await tester.pumpWidget(MaterialApp(
+      theme: ThemeData(platform: TargetPlatform.android, useMaterial3: true),
+      home: BookingMarketplacePage(
+        clinicName: 'VetHelp Clinic',
+        serviceName: 'Первичный прием',
+        serviceId: 'service-1',
+        petName: 'Бим',
+        clinicLocationId: 'location-1',
+        petId: 'pet-1',
+        repository: repository,
+        retryDelay: (_) async {},
+        platformOverride: TargetPlatform.android,
+      ),
+    ));
+
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Scaffold), findsOneWidget);
+    expect(find.byType(AppBar), findsOneWidget);
+    expect(find.byType(FilledButton), findsOneWidget);
+    expect(find.byType(BookingSlotTile), findsWidgets);
+    expect(find.byType(CupertinoPageScaffold), findsNothing);
+  });
+
+  testWidgets('successful iOS booking opens Cupertino owner status screen',
+      (tester) async {
+    final repository = _FakeBookingMarketplaceRepository(
+      holdFailuresBeforeSuccess: 0,
+    );
+
+    await tester.pumpWidget(MaterialApp(
+      theme: ThemeData(platform: TargetPlatform.iOS, useMaterial3: true),
+      home: BookingMarketplacePage(
+        clinicName: 'VetHelp Clinic',
+        serviceName: 'Первичный прием',
+        serviceId: 'service-1',
+        petName: 'Бим',
+        clinicLocationId: 'location-1',
+        petId: 'pet-1',
+        repository: repository,
+        retryDelay: (_) async {},
+      ),
+    ));
+
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('cupertino-booking-slot-slot-a')),
+      warnIfMissed: false,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Отправить заявку в клинику'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Статус записи'), findsOneWidget);
+    expect(find.text('Заявка отправлена в клинику'), findsOneWidget);
+    expect(find.byType(CupertinoPageScaffold), findsOneWidget);
+    expect(find.byType(Scaffold), findsNothing);
   });
 }
 
@@ -151,10 +268,10 @@ class _FakeBookingMarketplaceRepository
   final int holdFailuresBeforeSuccess;
   int holdRequests = 0;
   final List<BookingSlot> slots = [
-    _slot('slot-a'),
+    _slot('slot-a', startsAtHour: 6),
     _slot('slot-b', startsAtHour: 11),
     _slot('slot-c', startsAtHour: 12),
-    _slot('slot-d', startsAtHour: 13),
+    _slot('slot-d', startsAtHour: 18),
   ];
 
   @override
@@ -191,7 +308,14 @@ class _FakeBookingMarketplaceRepository
   }
 
   @override
-  Future<BookingHoldSnapshot> readHold(String holdId) {
-    throw UnimplementedError();
+  Future<BookingHoldSnapshot> readHold(String holdId) async {
+    return BookingHoldSnapshot(
+      holdId: holdId,
+      slotId: 'slot-a',
+      state: 'MANUAL_CONFIRM_PENDING',
+      expiresAt: DateTime.utc(2026, 6, 29, 10, 10),
+      startsAt: DateTime.utc(2026, 6, 29, 10),
+      endsAt: DateTime.utc(2026, 6, 29, 10, 30),
+    );
   }
 }
