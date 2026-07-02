@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../presentation/platform/owner_platform.dart';
+import '../../presentation/widgets/owner_cupertino_feedback.dart';
 import 'owner_telemed_repository.dart';
 import 'waiting_room/telemed_room_access_repository.dart';
 import 'waiting_room/telemed_waiting_room_bloc.dart';
@@ -586,27 +587,12 @@ class _CupertinoTelemedEmptyRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            title,
-            style: CupertinoTheme.of(context)
-                .textTheme
-                .navTitleTextStyle
-                .copyWith(fontSize: 18),
-          ),
-          const SizedBox(height: 6),
-          Text(text),
-          if (actionLabel != null && onAction != null) ...[
-            const SizedBox(height: 12),
-            CupertinoButton.filled(
-              minSize: 44,
-              onPressed: onAction,
-              child: Text(actionLabel!),
-            ),
-          ],
-        ],
+      child: OwnerCupertinoEmptyState(
+        icon: CupertinoIcons.videocam,
+        title: title,
+        message: text,
+        actionLabel: actionLabel,
+        onAction: onAction,
       ),
     );
   }
@@ -1957,27 +1943,13 @@ class _CupertinoTelemedIntakeError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(CupertinoIcons.cloud, size: 44),
-            const SizedBox(height: 12),
-            const Text(
-              'Не удалось загрузить питомцев для онлайн-консультации.',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            CupertinoButton.filled(
-              minSize: 44,
-              onPressed: onRetry,
-              child: const Text('Повторить'),
-            ),
-          ],
-        ),
-      ),
+    return OwnerCupertinoEmptyState(
+      icon: CupertinoIcons.cloud,
+      title: 'Не удалось загрузить питомцев',
+      message:
+          'Повторная попытка обновит список питомцев для онлайн-консультации.',
+      actionLabel: 'Обновить питомцев',
+      onAction: onRetry,
     );
   }
 }
@@ -2002,14 +1974,10 @@ class _CupertinoTelemedNoPets extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(24),
-        child: Text(
-          'Для онлайн-консультации нужно добавить питомца в профиль.',
-          textAlign: TextAlign.center,
-        ),
-      ),
+    return const OwnerCupertinoEmptyState(
+      icon: CupertinoIcons.paw,
+      title: 'Нужен питомец',
+      message: 'Для онлайн-консультации нужно добавить питомца в профиль.',
     );
   }
 }
@@ -2184,27 +2152,13 @@ class _CupertinoTelemedError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(CupertinoIcons.cloud, size: 44),
-            const SizedBox(height: 12),
-            const Text(
-              'Не удалось загрузить консультации. Проверьте соединение и повторите попытку.',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            CupertinoButton.filled(
-              minSize: 44,
-              onPressed: onRetry,
-              child: const Text('Повторить'),
-            ),
-          ],
-        ),
-      ),
+    return OwnerCupertinoEmptyState(
+      icon: CupertinoIcons.cloud,
+      title: 'Не удалось загрузить консультации',
+      message:
+          'Повторная попытка обновит список онлайн-консультаций и их текущие статусы.',
+      actionLabel: 'Обновить консультации',
+      onAction: onRetry,
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../presentation/platform/owner_platform.dart';
+import '../../../presentation/widgets/owner_cupertino_feedback.dart';
 import 'telemed_live_call_view.dart';
 import 'telemed_room_access_repository.dart';
 import 'telemed_waiting_room_bloc.dart';
@@ -977,14 +978,10 @@ class _CupertinoWaitingError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Text(
-          _safeWaitingText(message),
-          textAlign: TextAlign.center,
-        ),
-      ),
+    return OwnerCupertinoEmptyState(
+      icon: CupertinoIcons.cloud,
+      title: 'Не удалось обновить консультацию',
+      message: _safeWaitingText(message),
     );
   }
 }

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../presentation/platform/owner_platform.dart';
+import '../../presentation/widgets/owner_cupertino_feedback.dart';
 import '../booking/alternative_slot/alternative_slot_page.dart';
 import '../booking/alternative_slot/alternative_slot_repository.dart';
 import 'owner_appointments_repository.dart';
@@ -364,43 +365,12 @@ class _CupertinoAppointmentsEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(28),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            isHistory ? CupertinoIcons.clock : CupertinoIcons.calendar,
-            size: 48,
-            color: CupertinoDynamicColor.resolve(
-              CupertinoColors.activeBlue,
-              context,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            isHistory ? 'История записей пуста' : 'Активных записей нет',
-            textAlign: TextAlign.center,
-            style: CupertinoTheme.of(context)
-                .textTheme
-                .navTitleTextStyle
-                .copyWith(fontSize: 22),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            isHistory
-                ? 'Здесь останутся отменённые, неподтверждённые и прошедшие записи.'
-                : 'Новая заявка появится здесь после отправки в клинику.',
-            textAlign: TextAlign.center,
-            style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
-                  color: CupertinoDynamicColor.resolve(
-                    CupertinoColors.secondaryLabel,
-                    context,
-                  ),
-                ),
-          ),
-        ],
-      ),
+    return OwnerCupertinoEmptyState(
+      icon: isHistory ? CupertinoIcons.clock : CupertinoIcons.calendar,
+      title: isHistory ? 'История записей пуста' : 'Активных записей нет',
+      message: isHistory
+          ? 'Здесь останутся отменённые, неподтверждённые и прошедшие записи.'
+          : 'Новая заявка появится здесь после отправки в клинику.',
     );
   }
 }
@@ -1533,28 +1503,11 @@ class _CupertinoCancellationNotice extends StatelessWidget {
       liveRegion: true,
       label:
           'Запрос на отмену отправлен. Клиника должна подтвердить результат.',
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: CupertinoDynamicColor.resolve(
-            CupertinoColors.systemYellow.withValues(alpha: 0.16),
-            context,
-          ),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: const Padding(
-          padding: EdgeInsets.all(14),
-          child: Row(
-            children: [
-              Icon(CupertinoIcons.info_circle),
-              SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Запрос на отмену отправлен. Клиника подтвердит итоговый статус.',
-                ),
-              ),
-            ],
-          ),
-        ),
+      child: const OwnerCupertinoStatusBanner(
+        tone: OwnerCupertinoFeedbackTone.warning,
+        message:
+            'Запрос на отмену отправлен. Клиника подтвердит итоговый статус.',
+        liveRegion: true,
       ),
     );
   }
@@ -1571,28 +1524,12 @@ class _CupertinoStaleBanner extends StatelessWidget {
           'Показаны последние полученные данные. Потяните экран вниз, чтобы получить актуальный статус.',
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: CupertinoDynamicColor.resolve(
-              CupertinoColors.systemRed.withValues(alpha: 0.14),
-              context,
-            ),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Padding(
-            padding: EdgeInsets.all(14),
-            child: Row(
-              children: [
-                Icon(CupertinoIcons.cloud),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Показаны последние полученные данные. Потяните вниз, чтобы обновить.',
-                  ),
-                ),
-              ],
-            ),
-          ),
+        child: const OwnerCupertinoStatusBanner(
+          tone: OwnerCupertinoFeedbackTone.warning,
+          icon: CupertinoIcons.cloud,
+          message:
+              'Показаны последние полученные данные. Потяните вниз, чтобы обновить.',
+          liveRegion: true,
         ),
       ),
     );
@@ -1606,39 +1543,12 @@ class _CupertinoAppointmentsLoadError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(CupertinoIcons.cloud, size: 44),
-            const SizedBox(height: 12),
-            Text(
-              'Не удалось загрузить записи',
-              textAlign: TextAlign.center,
-              style: CupertinoTheme.of(context)
-                  .textTheme
-                  .navTitleTextStyle
-                  .copyWith(fontSize: 22),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Проверьте подключение и повторите попытку.',
-              textAlign: TextAlign.center,
-              style: CupertinoTheme.of(context).textTheme.textStyle,
-            ),
-            const SizedBox(height: 16),
-            CupertinoButton(
-              minSize: 44,
-              color: CupertinoColors.activeBlue,
-              borderRadius: BorderRadius.circular(14),
-              onPressed: onRetry,
-              child: const Text('Повторить'),
-            ),
-          ],
-        ),
-      ),
+    return OwnerCupertinoEmptyState(
+      icon: CupertinoIcons.cloud,
+      title: 'Не удалось загрузить записи',
+      message: 'Повторная попытка обновит список записей владельца.',
+      actionLabel: 'Обновить записи',
+      onAction: onRetry,
     );
   }
 }

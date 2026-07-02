@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../presentation/platform/owner_platform.dart';
+import '../../presentation/widgets/owner_cupertino_feedback.dart';
 import 'catalog_models.dart';
 import 'public_catalog_repository.dart';
 
@@ -845,17 +846,7 @@ class _CupertinoSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
-            color: CupertinoDynamicColor.resolve(
-              CupertinoColors.secondaryLabel,
-              context,
-            ),
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
-    );
+    return OwnerCupertinoSectionHeader(title: title);
   }
 }
 
@@ -1312,7 +1303,7 @@ class _CupertinoPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final background = CupertinoDynamicColor.resolve(
       selected
-          ? CupertinoColors.activeBlue.withOpacity(0.12)
+          ? CupertinoColors.activeBlue.withValues(alpha: 0.12)
           : CupertinoColors.secondarySystemGroupedBackground,
       context,
     );
@@ -1347,31 +1338,10 @@ class _CupertinoPrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: CupertinoButton(
-        minSize: 52,
-        color: enabled
-            ? CupertinoColors.activeBlue
-            : CupertinoDynamicColor.resolve(
-                CupertinoColors.tertiarySystemFill,
-                context,
-              ),
-        borderRadius: BorderRadius.circular(14),
-        onPressed: enabled ? onPressed : null,
-        child: Text(
-          label,
-          style: TextStyle(
-            color: enabled
-                ? CupertinoColors.white
-                : CupertinoDynamicColor.resolve(
-                    CupertinoColors.secondaryLabel,
-                    context,
-                  ),
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
+    return OwnerCupertinoButton.primary(
+      label: label,
+      enabled: enabled,
+      onPressed: onPressed,
     );
   }
 }
@@ -1391,50 +1361,11 @@ class _CupertinoSecondaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = CupertinoDynamicColor.resolve(
-      enabled ? CupertinoColors.activeBlue : CupertinoColors.inactiveGray,
-      context,
-    );
-    return CupertinoButton(
-      minSize: 44,
-      padding: EdgeInsets.zero,
-      onPressed: enabled ? onPressed : null,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: CupertinoDynamicColor.resolve(
-            CupertinoColors.secondarySystemGroupedBackground,
-            context,
-          ),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: CupertinoDynamicColor.resolve(
-              CupertinoColors.separator,
-              context,
-            ),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: foreground, size: 18),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  label,
-                  overflow: TextOverflow.ellipsis,
-                  style:
-                      CupertinoTheme.of(context).textTheme.textStyle.copyWith(
-                            color: foreground,
-                            fontWeight: FontWeight.w600,
-                          ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return OwnerCupertinoButton.secondary(
+      label: label,
+      icon: icon,
+      enabled: enabled,
+      onPressed: onPressed,
     );
   }
 }
@@ -1446,26 +1377,11 @@ class _CupertinoInlineRetry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _CupertinoPanel(
-      child: Row(
-        children: [
-          Icon(
-            CupertinoIcons.exclamationmark_circle,
-            color: CupertinoDynamicColor.resolve(
-              CupertinoColors.systemRed,
-              context,
-            ),
-          ),
-          const SizedBox(width: 10),
-          const Expanded(child: Text('Не удалось обновить услуги и время.')),
-          CupertinoButton(
-            minSize: 44,
-            padding: EdgeInsets.zero,
-            onPressed: onRetry,
-            child: const Text('Повторить'),
-          ),
-        ],
-      ),
+    return OwnerCupertinoInlineError(
+      title: 'Не удалось обновить услуги и время',
+      message: 'Повторная попытка обновит список услуг и ближайшие окна.',
+      retryLabel: 'Обновить услуги и время',
+      onRetry: onRetry,
     );
   }
 }
@@ -1477,42 +1393,12 @@ class _CupertinoCatalogError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              CupertinoIcons.cloud,
-              color: CupertinoDynamicColor.resolve(
-                CupertinoColors.secondaryLabel,
-                context,
-              ),
-              size: 44,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Не удалось загрузить каталог',
-              textAlign: TextAlign.center,
-              style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Проверьте подключение и повторите попытку.',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            _CupertinoPrimaryButton(
-              label: 'Повторить',
-              enabled: true,
-              onPressed: onRetry,
-            ),
-          ],
-        ),
-      ),
+    return OwnerCupertinoEmptyState(
+      icon: CupertinoIcons.cloud,
+      title: 'Не удалось загрузить каталог',
+      message: 'Повторная попытка обновит список клиник по текущим фильтрам.',
+      actionLabel: 'Обновить каталог',
+      onAction: onRetry,
     );
   }
 }
@@ -1524,20 +1410,10 @@ class _CupertinoCatalogEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
-                color: CupertinoDynamicColor.resolve(
-                  CupertinoColors.secondaryLabel,
-                  context,
-                ),
-              ),
-        ),
-      ),
+    return OwnerCupertinoEmptyState(
+      icon: CupertinoIcons.search,
+      title: 'Ничего не найдено',
+      message: text,
     );
   }
 }

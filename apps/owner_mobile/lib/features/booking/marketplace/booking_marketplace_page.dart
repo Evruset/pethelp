@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../presentation/platform/owner_platform.dart';
+import '../../../presentation/widgets/owner_cupertino_feedback.dart';
 import 'booking_hold_status_page.dart';
 import 'booking_marketplace_bloc.dart';
 import 'booking_marketplace_repository.dart';
@@ -503,25 +504,16 @@ class _CupertinoSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            title,
-            style: CupertinoTheme.of(context)
-                .textTheme
-                .navTitleTextStyle
-                .copyWith(fontSize: 18),
-          ),
-        ),
-        if (actionLabel != null)
-          CupertinoButton(
-            minSize: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            onPressed: onAction,
-            child: Text(actionLabel!),
-          ),
-      ],
+    return OwnerCupertinoSectionHeader(
+      title: title,
+      trailing: actionLabel == null
+          ? null
+          : CupertinoButton(
+              minSize: 44,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              onPressed: onAction,
+              child: Text(actionLabel!),
+            ),
     );
   }
 }
@@ -878,24 +870,9 @@ class _CupertinoNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: CupertinoDynamicColor.resolve(
-          CupertinoColors.systemYellow.withValues(alpha: 0.16),
-          context,
-        ),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            const Icon(CupertinoIcons.info_circle),
-            const SizedBox(width: 10),
-            Expanded(child: Text(text)),
-          ],
-        ),
-      ),
+    return OwnerCupertinoStatusBanner(
+      tone: OwnerCupertinoFeedbackTone.warning,
+      message: text,
     );
   }
 }
@@ -905,30 +882,11 @@ class _CupertinoEmptySlots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: CupertinoDynamicColor.resolve(
-          CupertinoColors.secondarySystemGroupedBackground,
-          context,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: CupertinoDynamicColor.resolve(
-            CupertinoColors.separator,
-            context,
-          ),
-        ),
-      ),
-      child: const Padding(
-        padding: EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Icon(CupertinoIcons.calendar_badge_minus),
-            SizedBox(height: 8),
-            Text('На этот день свободных окон нет.'),
-          ],
-        ),
-      ),
+    return const OwnerCupertinoEmptyState(
+      icon: CupertinoIcons.calendar_badge_minus,
+      title: 'Нет свободного времени',
+      message:
+          'На выбранный день свободных окон нет. Выберите другой день или обновите расписание.',
     );
   }
 }
@@ -971,48 +929,11 @@ class _CupertinoBookingFooter extends StatelessWidget {
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-          child: Semantics(
-            button: true,
-            enabled: !disabled,
+          child: OwnerCupertinoButton.primary(
             label: label,
-            child: CupertinoButton(
-              minSize: 52,
-              borderRadius: BorderRadius.circular(14),
-              color: disabled
-                  ? CupertinoDynamicColor.resolve(
-                      CupertinoColors.tertiarySystemFill,
-                      context,
-                    )
-                  : CupertinoColors.activeBlue,
-              onPressed: onSubmit,
-              child: busy
-                  ? Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const CupertinoActivityIndicator(
-                          color: CupertinoColors.white,
-                        ),
-                        const SizedBox(width: 10),
-                        Flexible(
-                          child: Text(
-                            label,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    )
-                  : Text(
-                      label,
-                      style: TextStyle(
-                        color: disabled
-                            ? CupertinoDynamicColor.resolve(
-                                CupertinoColors.secondaryLabel,
-                                context,
-                              )
-                            : CupertinoColors.white,
-                      ),
-                    ),
-            ),
+            enabled: !disabled,
+            loading: busy,
+            onPressed: onSubmit,
           ),
         ),
       ),
@@ -1027,48 +948,14 @@ class _CupertinoMarketplaceError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              CupertinoIcons.exclamationmark_circle,
-              size: 52,
-              color: CupertinoDynamicColor.resolve(
-                CupertinoColors.systemRed,
-                context,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Не удалось открыть запись',
-              textAlign: TextAlign.center,
-              style: CupertinoTheme.of(context)
-                  .textTheme
-                  .navTitleTextStyle
-                  .copyWith(fontSize: 22),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              state.message,
-              textAlign: TextAlign.center,
-              style: CupertinoTheme.of(context).textTheme.textStyle,
-            ),
-            const SizedBox(height: 20),
-            CupertinoButton(
-              minSize: 44,
-              color: CupertinoColors.activeBlue,
-              borderRadius: BorderRadius.circular(14),
-              onPressed: () => context
-                  .read<BookingMarketplaceBloc>()
-                  .add(const BookingMarketplaceRefreshRequested()),
-              child: const Text('Обновить расписание'),
-            ),
-          ],
-        ),
-      ),
+    return OwnerCupertinoEmptyState(
+      icon: CupertinoIcons.exclamationmark_circle,
+      title: 'Не удалось открыть запись',
+      message: state.message,
+      actionLabel: 'Обновить расписание',
+      onAction: () => context
+          .read<BookingMarketplaceBloc>()
+          .add(const BookingMarketplaceRefreshRequested()),
     );
   }
 }

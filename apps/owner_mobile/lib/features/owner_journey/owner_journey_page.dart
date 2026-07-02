@@ -8,6 +8,7 @@ import '../pets/owner_pet.dart';
 import '../pets/owner_pet_repository.dart';
 import '../pets/owner_pets_page.dart';
 import '../../presentation/platform/owner_platform.dart';
+import '../../presentation/widgets/owner_cupertino_feedback.dart';
 
 class OwnerJourneyPage extends StatefulWidget {
   const OwnerJourneyPage({
@@ -567,14 +568,19 @@ class _CupertinoActiveAppointmentsPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loadingHeight =
+        MediaQuery.textScalerOf(context).scale(1) >= 1.3 ? 112.0 : 96.0;
     return _CupertinoHomePanel(
       child: FutureBuilder<List<OwnerAppointment>>(
         future: request,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return const SizedBox(
-              height: 96,
-              child: Center(child: CupertinoActivityIndicator()),
+            return SizedBox(
+              height: loadingHeight,
+              child: const OwnerCupertinoLoading(
+                label: 'Обновляем ближайшие действия',
+                compact: true,
+              ),
             );
           }
           if (snapshot.hasError) {
@@ -710,29 +716,11 @@ class _CupertinoAppointmentsError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = CupertinoTheme.of(context).textTheme;
-    final secondaryLabel = CupertinoDynamicColor.resolve(
-      CupertinoColors.secondaryLabel,
-      context,
-    );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _CupertinoPanelTitle(
-          icon: CupertinoIcons.exclamationmark_circle,
-          title: 'Не удалось обновить записи',
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Проверьте подключение и повторите попытку.',
-          style: textTheme.textStyle.copyWith(color: secondaryLabel),
-        ),
-        const SizedBox(height: 12),
-        _CupertinoPrimaryActionButton(
-          label: 'Повторить',
-          onPressed: onRetry,
-        ),
-      ],
+    return OwnerCupertinoInlineError(
+      title: 'Не удалось обновить записи',
+      message: 'Повторная попытка обновит ближайшие действия на главной.',
+      retryLabel: 'Обновить главную',
+      onRetry: onRetry,
     );
   }
 }
@@ -748,21 +736,9 @@ class _CupertinoPrimaryActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: CupertinoButton(
-        minSize: 44,
-        color: CupertinoColors.activeBlue,
-        borderRadius: BorderRadius.circular(12),
-        onPressed: onPressed,
-        child: Text(
-          label,
-          style: const TextStyle(
-            color: CupertinoColors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
+    return OwnerCupertinoButton.primary(
+      label: label,
+      onPressed: onPressed,
     );
   }
 }

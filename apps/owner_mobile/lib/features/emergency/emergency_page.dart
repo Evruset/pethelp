@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../presentation/platform/owner_platform.dart';
+import '../../presentation/widgets/owner_cupertino_feedback.dart';
 import 'emergency_repository.dart';
 
 class EmergencyPage extends StatefulWidget {
@@ -387,28 +388,11 @@ class _CupertinoCachedEmergencyBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: CupertinoDynamicColor.resolve(
-          CupertinoColors.systemYellow.withValues(alpha: 0.16),
-          context,
-        ),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            const Icon(CupertinoIcons.cloud),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Показаны последние полученные клиники. Обновлялись: ${_cupertinoDateTime(cachedAt)}. Позвоните перед выездом.',
-              ),
-            ),
-          ],
-        ),
-      ),
+    return OwnerCupertinoStatusBanner(
+      tone: OwnerCupertinoFeedbackTone.warning,
+      icon: CupertinoIcons.cloud,
+      message:
+          'Показаны последние полученные клиники. Обновлялись: ${_cupertinoDateTime(cachedAt)}. Позвоните перед выездом.',
     );
   }
 }
@@ -461,42 +445,14 @@ class _CupertinoTriageDecisionBanner extends StatelessWidget {
     final copy = severe
         ? 'Не ждите онлайн-ответа. Откройте срочные клиники или позвоните.'
         : _safeEmergencyText(decision.ownerMessage);
-    return Semantics(
+    return OwnerCupertinoStatusBanner(
+      tone: severe
+          ? OwnerCupertinoFeedbackTone.destructive
+          : OwnerCupertinoFeedbackTone.neutral,
+      title: visual.title,
+      message: copy,
+      icon: visual.icon,
       liveRegion: true,
-      label: severe ? 'Срочная помощь. $copy' : '${visual.title}. $copy',
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: visual.background,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: visual.border),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(visual.icon, color: visual.foreground),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      visual.title,
-                      style: CupertinoTheme.of(context)
-                          .textTheme
-                          .navTitleTextStyle
-                          .copyWith(fontSize: 18),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(copy),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
@@ -1287,43 +1243,13 @@ class _CupertinoEmergencyError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              CupertinoIcons.cloud,
-              size: 44,
-              color: CupertinoDynamicColor.resolve(
-                CupertinoColors.systemRed,
-                context,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Не удалось обновить срочные клиники',
-              style: CupertinoTheme.of(context)
-                  .textTheme
-                  .navTitleTextStyle
-                  .copyWith(fontSize: 19),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Если состояние тяжёлое, звоните в ближайшую круглосуточную клинику напрямую.',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            CupertinoButton.filled(
-              minSize: 44,
-              onPressed: onRetry,
-              child: const Text('Повторить'),
-            ),
-          ],
-        ),
-      ),
+    return OwnerCupertinoEmptyState(
+      icon: CupertinoIcons.cloud,
+      title: 'Не удалось обновить срочные клиники',
+      message:
+          'Если состояние тяжёлое, звоните в ближайшую круглосуточную клинику напрямую. Повторная попытка обновит список срочных клиник.',
+      actionLabel: 'Обновить срочные клиники',
+      onAction: onRetry,
     );
   }
 }
@@ -1348,14 +1274,11 @@ class _CupertinoEmergencyEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(24),
-        child: Text(
+    return const OwnerCupertinoEmptyState(
+      icon: CupertinoIcons.exclamationmark_triangle,
+      title: 'Проверенных срочных клиник не найдено',
+      message:
           'По выбранным условиям проверенных срочных клиник не найдено. При тяжёлом состоянии звоните в ближайшую круглосуточную клинику напрямую.',
-          textAlign: TextAlign.center,
-        ),
-      ),
     );
   }
 }
