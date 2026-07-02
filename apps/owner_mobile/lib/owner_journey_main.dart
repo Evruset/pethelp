@@ -284,7 +284,8 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   }
 
   void _openCatalog(
-          {required ValueChanged<CatalogBookingSelection> onSelected}) =>
+          {required ValueChanged<CatalogBookingSelection> onSelected,
+          String? contextNote}) =>
       Navigator.of(context).push(
         ownerPageRoute<void>(
           context: context,
@@ -294,6 +295,16 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
                 HttpPublicCatalogRepository(baseUrl: Uri.parse(_apiBaseUrl)),
             onSelected: onSelected,
             platformOverride: widget.platformOverride,
+            bookingPetName: _selectedPet?.name,
+            bookingContextNote: contextNote,
+            onChangePet: _selectedPet == null
+                ? null
+                : () {
+                    Navigator.of(context).maybePop();
+                    _showMessage(
+                      'Вы можете изменить питомца во вкладке «Питомцы», затем вернуться к записи.',
+                    );
+                  },
           ),
         ),
       );
@@ -406,10 +417,14 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
     _showMessage(
       'Выберите удобное время для ${intent.pet.name}. Слот не бронируется до подтверждения.',
     );
-    _openCatalog(onSelected: (selection) {
-      Navigator.of(context).pop();
-      _openBooking(selection);
-    });
+    _openCatalog(
+      contextNote:
+          'Это повторная запись по контексту прошлого визита. Клиника и услуга выбираются заново, а время будет проверено отдельно.',
+      onSelected: (selection) {
+        Navigator.of(context).pop();
+        _openBooking(selection);
+      },
+    );
   }
 
   void _openEmergency() {
