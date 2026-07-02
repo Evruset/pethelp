@@ -14,6 +14,7 @@ import 'features/telemed/owner_telemed_repository.dart';
 import 'features/telemed/waiting_room/telemed_waiting_room_page.dart';
 import 'features/telemed/waiting_room/telemed_room_access_repository.dart';
 import 'features/telemed/waiting_room/telemed_waiting_room_repository.dart';
+import 'presentation/platform/owner_platform.dart';
 import 'ui/vethelp_ios_theme.dart';
 
 void main() {
@@ -92,20 +93,23 @@ class _OwnerJourneyLauncherState extends State<OwnerJourneyLauncher> {
       _showLocalSetup();
       return;
     }
-    Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => BookingMarketplacePage(
-        clinicName: _demoClinicName,
-        serviceName: _demoServiceName,
-        serviceId: _demoServiceId,
-        petName: _demoPetName,
-        clinicLocationId: _demoLocationId,
-        petId: _demoPetId,
-        repository: HttpBookingMarketplaceRepository(
-          baseUrl: Uri.parse(_apiBaseUrl),
-          accessTokenProvider: _token,
+    Navigator.of(context).push(
+      ownerPageRoute<void>(
+        context: context,
+        builder: (_) => BookingMarketplacePage(
+          clinicName: _demoClinicName,
+          serviceName: _demoServiceName,
+          serviceId: _demoServiceId,
+          petName: _demoPetName,
+          clinicLocationId: _demoLocationId,
+          petId: _demoPetId,
+          repository: HttpBookingMarketplaceRepository(
+            baseUrl: Uri.parse(_apiBaseUrl),
+            accessTokenProvider: _token,
+          ),
         ),
       ),
-    ));
+    );
   }
 
   void _openAlternative() {

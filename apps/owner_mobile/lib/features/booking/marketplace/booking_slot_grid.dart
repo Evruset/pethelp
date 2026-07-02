@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../presentation/widgets/adaptive_hit_target.dart';
+import '../../../presentation/platform/owner_platform.dart';
 import 'booking_marketplace_repository.dart';
 
 class BookingSlotGrid extends StatelessWidget {
@@ -95,7 +96,10 @@ class BookingSlotTile extends StatelessWidget {
             : colors.surface;
 
     return AnimatedScale(
-      duration: const Duration(milliseconds: 140),
+      duration: ownerMotionDuration(
+        context,
+        const Duration(milliseconds: 140),
+      ),
       scale: active ? 0.98 : 1,
       child: AdaptiveHitTarget(
         enabled: enabled,
@@ -103,7 +107,10 @@ class BookingSlotTile extends StatelessWidget {
         semanticLabel: 'Выбрать время $time',
         child: AnimatedContainer(
           key: ValueKey<String>('booking-slot-${slot.id}'),
-          duration: const Duration(milliseconds: 160),
+          duration: ownerMotionDuration(
+            context,
+            const Duration(milliseconds: 160),
+          ),
           constraints: const BoxConstraints(minHeight: kVetHelpMinTapTarget),
           decoration: BoxDecoration(
             color: background,

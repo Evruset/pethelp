@@ -1,0 +1,379 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:vethelp_owner_mobile/features/catalog/catalog_models.dart';
+import 'package:vethelp_owner_mobile/features/catalog/public_catalog_page.dart';
+import 'package:vethelp_owner_mobile/features/catalog/public_catalog_repository.dart';
+
+void main() {
+  testWidgets('iOS catalog renders a Cupertino clinic list without geo inputs',
+      (tester) async {
+    await tester.pumpWidget(
+      _cupertinoHarness(
+        PublicCatalogPage(
+          platformOverride: TargetPlatform.iOS,
+          repository: _FakePublicCatalogRepository(),
+          onSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CupertinoPageScaffold), findsOneWidget);
+    expect(find.byType(CupertinoSearchTextField), findsOneWidget);
+    expect(find.byType(Scaffold), findsNothing);
+    expect(find.byType(SearchBar), findsNothing);
+    expect(find.byType(SegmentedButton), findsNothing);
+    expect(find.text('Карта'), findsNothing);
+    expect(find.text('Широта'), findsNothing);
+    expect(find.text('Долгота'), findsNothing);
+    expect(find.textContaining('1500'), findsNothing);
+    expect(find.textContaining('₽'), findsNothing);
+    expect(find.textContaining('рейтинг'), findsNothing);
+    expect(find.textContaining('отзыв'), findsNothing);
+    expect(find.text('VetHelp Central'), findsOneWidget);
+  });
+
+  testWidgets('iOS catalog keeps booking handoff as CatalogBookingSelection',
+      (tester) async {
+    CatalogBookingSelection? selection;
+
+    await tester.pumpWidget(
+      _cupertinoHarness(
+        PublicCatalogPage(
+          platformOverride: TargetPlatform.iOS,
+          repository: _FakePublicCatalogRepository(),
+          bookingPetName: 'Бим',
+          onSelected: (value) => selection = value,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('VetHelp Central'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Москва, Лесная, 1'), findsOneWidget);
+    expect(find.text('Первичный приём'), findsOneWidget);
+    expect(find.text('Выберите услугу'), findsOneWidget);
+    expect(find.text('Широта'), findsNothing);
+    expect(find.text('Долгота'), findsNothing);
+    expect(find.textContaining('service-1'), findsNothing);
+    expect(find.textContaining('GENERAL_VISIT'), findsNothing);
+    expect(find.textContaining('1500'), findsNothing);
+
+    await tester.tap(find.text('Первичный приём'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Перед выбором времени'), findsOneWidget);
+    expect(find.text('Питомец'), findsOneWidget);
+    expect(find.text('Бим'), findsOneWidget);
+    expect(find.text('Клиника'), findsOneWidget);
+    expect(find.text('Услуга'), findsOneWidget);
+    expect(find.text('Перейти к выбору времени'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Перейти к выбору времени'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Перейти к выбору времени'));
+    await tester.pump();
+
+    expect(selection, isNotNull);
+    expect(selection!.location.locationId, 'location-1');
+    expect(selection!.service.id, 'service-1');
+  });
+
+  testWidgets('iOS empty filtered catalog can clear filters', (tester) async {
+    await tester.pumpWidget(
+      _cupertinoHarness(
+        PublicCatalogPage(
+          platformOverride: TargetPlatform.iOS,
+          repository: _FakePublicCatalogRepository(emptyWhenFiltered: true),
+          onSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Первичный приём'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ничего не найдено'), findsOneWidget);
+    expect(find.text('Очистить фильтры'), findsOneWidget);
+
+    await tester.tap(find.text('Очистить фильтры'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('VetHelp Central'), findsOneWidget);
+  });
+
+  testWidgets('iOS clinic detail hides missing contact and service sections',
+      (tester) async {
+    await tester.pumpWidget(
+      _cupertinoHarness(
+        PublicCatalogPage(
+          platformOverride: TargetPlatform.iOS,
+          repository: _FakePublicCatalogRepository(
+            hasPhone: false,
+            services: const <CatalogService>[],
+          ),
+          onSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('VetHelp Central'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Маршрут'), findsOneWidget);
+    expect(find.text('Позвонить'), findsNothing);
+    expect(find.text('Активные услуги не найдены.'), findsOneWidget);
+    expect(find.text('Перейти к выбору времени'), findsNothing);
+  });
+
+  testWidgets('iOS rebooking context explains prefilled decision journey',
+      (tester) async {
+    await tester.pumpWidget(
+      _cupertinoHarness(
+        PublicCatalogPage(
+          platformOverride: TargetPlatform.iOS,
+          repository: _FakePublicCatalogRepository(),
+          bookingPetName: 'Барсик',
+          bookingContextNote:
+              'Это повторная запись по контексту прошлого визита.',
+          onSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('VetHelp Central'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Первичный приём'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Барсик'), findsOneWidget);
+    expect(
+      find.text('Это повторная запись по контексту прошлого визита.'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Слот не удерживается до выбора времени'),
+      findsNothing,
+    );
+    expect(find.textContaining('queue'), findsNothing);
+    expect(find.textContaining('location-1'), findsNothing);
+  });
+
+  testWidgets('iOS catalog supports dark mode, Dynamic Type and tap targets',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(834, 1194));
+    await tester.pumpWidget(
+      _cupertinoHarness(
+        PublicCatalogPage(
+          platformOverride: TargetPlatform.iOS,
+          repository: _FakePublicCatalogRepository(),
+          bookingPetName: 'Бим',
+          onSelected: (_) {},
+        ),
+        brightness: Brightness.dark,
+        textScale: 2,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      CupertinoTheme.of(tester.element(find.text('VetHelp Central')))
+          .brightness,
+      Brightness.dark,
+    );
+    await tester.tap(find.text('VetHelp Central'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Первичный приём'));
+    await tester.pumpAndSettle();
+
+    final changeServiceButton = find.ancestor(
+      of: find.text('Изменить').last,
+      matching: find.byType(CupertinoButton),
+    );
+    expect(
+      tester.getSize(changeServiceButton.first).height,
+      greaterThanOrEqualTo(44),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Material catalog path remains available on Android',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PublicCatalogPage(
+          platformOverride: TargetPlatform.android,
+          repository: _FakePublicCatalogRepository(),
+          onSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Scaffold), findsOneWidget);
+    expect(find.byType(SearchBar), findsOneWidget);
+    expect(find.text('Список'), findsOneWidget);
+    expect(find.text('Карта'), findsOneWidget);
+    expect(find.byType(CupertinoPageScaffold), findsNothing);
+  });
+}
+
+Widget _cupertinoHarness(
+  Widget child, {
+  Brightness brightness = Brightness.light,
+  double textScale = 1,
+}) {
+  return CupertinoApp(
+    theme: CupertinoThemeData(brightness: brightness),
+    localizationsDelegates: GlobalMaterialLocalizations.delegates,
+    supportedLocales: const [Locale('ru'), Locale('en')],
+    builder: (context, child) {
+      final media = MediaQuery.of(context).copyWith(
+        platformBrightness: brightness,
+        textScaler: TextScaler.linear(textScale),
+      );
+      return MediaQuery(
+        data: media,
+        child: Theme(
+          data: ThemeData(useMaterial3: true),
+          child: child ?? const SizedBox.shrink(),
+        ),
+      );
+    },
+    home: child,
+  );
+}
+
+class _FakePublicCatalogRepository implements PublicCatalogRepository {
+  _FakePublicCatalogRepository({
+    this.emptyWhenFiltered = false,
+    this.hasPhone = true,
+    List<CatalogService>? services,
+    DateTime? nextAvailableAt,
+  })  : services = services ?? _defaultServices,
+        nextAvailableAt = nextAvailableAt ?? DateTime.utc(2026, 7, 2, 10);
+
+  static const _defaultServices = [
+    CatalogService(
+      id: 'service-1',
+      code: 'GENERAL_VISIT',
+      displayName: 'Первичный приём',
+      durationMinutes: 30,
+      priceAmount: '1500.00',
+      currency: 'RUB',
+    ),
+  ];
+
+  final bool emptyWhenFiltered;
+  final bool hasPhone;
+  final List<CatalogService> services;
+  final DateTime? nextAvailableAt;
+
+  @override
+  Future<List<CatalogClinic>> listClinics({
+    String? query,
+    CatalogClinicFilters? filters,
+  }) async {
+    if (emptyWhenFiltered && _fakeHasFilters(filters)) {
+      return const <CatalogClinic>[];
+    }
+    return [
+      CatalogClinic(
+        id: 'clinic-1',
+        name: 'VetHelp Central',
+        locationCount: 1,
+        serviceCount: 1,
+        nextAvailableAt: nextAvailableAt,
+        distanceKm: null,
+        telemedAvailable: true,
+        emergencyAvailable: true,
+      ),
+    ];
+  }
+
+  @override
+  Future<CatalogClinicDetail> readClinic(String clinicId) async {
+    return CatalogClinicDetail(
+      id: clinicId,
+      name: 'VetHelp Central',
+      locationCount: 1,
+      serviceCount: 1,
+      nextAvailableAt: DateTime.utc(2026, 7, 2, 10),
+      distanceKm: null,
+      telemedAvailable: true,
+      emergencyAvailable: true,
+      locations: [
+        CatalogLocation(
+          clinicId: clinicId,
+          clinicName: 'VetHelp Central',
+          locationId: 'location-1',
+          address: 'Москва, Лесная, 1',
+          phone: hasPhone ? '+79991234567' : null,
+          latitude: 55.75,
+          longitude: 37.61,
+          hasOpenSlots: true,
+          observedAt: DateTime.utc(2026, 7, 2),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<List<CatalogLocation>> listLocations({String? query}) async {
+    return [
+      CatalogLocation(
+        clinicId: 'clinic-1',
+        clinicName: 'VetHelp Central',
+        locationId: 'location-1',
+        address: 'Москва, Лесная, 1',
+        phone: '+79991234567',
+        latitude: 55.75,
+        longitude: 37.61,
+        hasOpenSlots: true,
+        observedAt: DateTime.utc(2026, 7, 2),
+      ),
+    ];
+  }
+
+  @override
+  Future<List<CatalogService>> listLocationServices(String locationId) async {
+    return services;
+  }
+
+  @override
+  Future<List<CatalogAvailabilitySlot>> readAvailability({
+    required String locationId,
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    return [
+      CatalogAvailabilitySlot(
+        id: 'slot-1',
+        startsAt: DateTime.utc(2026, 7, 2, 10),
+        endsAt: DateTime.utc(2026, 7, 2, 10, 30),
+        remainingCapacity: 1,
+        serviceId: 'service-1',
+        serviceName: 'Первичный приём',
+      ),
+    ];
+  }
+}
+
+bool _fakeHasFilters(CatalogClinicFilters? filters) {
+  if (filters == null) return false;
+  return filters.serviceCode != null ||
+      filters.availableFrom != null ||
+      filters.availableTo != null ||
+      filters.openNow == true ||
+      filters.telemedAvailable == true ||
+      filters.emergencyCapability != null ||
+      filters.sort != 'soonest';
+}

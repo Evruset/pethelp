@@ -1,4 +1,6 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vethelp_owner_mobile/features/telemed/waiting_room/telemed_room_access_repository.dart';
 import 'package:vethelp_owner_mobile/features/telemed/waiting_room/telemed_waiting_room_bloc.dart';
@@ -125,6 +127,71 @@ void main() {
 
     expect(find.text('Live call session-1'), findsOneWidget);
   });
+
+  testWidgets('iOS cancellation confirmation uses destructive action',
+      (tester) async {
+    final now = DateTime.utc(2026, 6, 26, 12);
+    final repository = _FakeWaitingRepository(
+      waiting: TelemedWaitingSnapshot(
+        sessionId: 'session-1',
+        state: TelemedWaitingStateKind.waitingForDoctor,
+        doctorJoinDeadlineAt: now.add(const Duration(minutes: 5)),
+        serverNow: now,
+        version: 1,
+      ),
+      cancelled: TelemedWaitingSnapshot(
+        sessionId: 'session-1',
+        state: TelemedWaitingStateKind.cancelled,
+        doctorJoinDeadlineAt: now,
+        serverNow: now,
+        version: 2,
+        telemedCaseState: 'CANCELLED_BY_OWNER',
+        paymentStatus: 'VOID_REQUESTED',
+        refundState: 'VOID_REQUESTED',
+      ),
+    );
+
+    await tester.pumpWidget(_iosHarness(
+      TelemedWaitingRoomPage(
+        platformOverride: TargetPlatform.iOS,
+        sessionId: 'session-1',
+        repository: repository,
+        roomAccessRepository: _FakeRoomAccessRepository(),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Отменить консультацию'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CupertinoAlertDialog), findsOneWidget);
+    final destructiveActions = tester
+        .widgetList<CupertinoDialogAction>(
+          find.byType(CupertinoDialogAction),
+        )
+        .where((action) => action.isDestructiveAction);
+    expect(destructiveActions.length, 1);
+
+    await tester.tap(find.text('Да, отменить'));
+    await tester.pumpAndSettle();
+
+    expect(repository.cancelCalls, 1);
+    expect(find.text('Консультация отменена'), findsOneWidget);
+    expect(find.textContaining('CANCELLED_BY_OWNER'), findsNothing);
+    expect(find.textContaining('VOID_REQUESTED'), findsNothing);
+  });
+}
+
+Widget _iosHarness(Widget child) {
+  return CupertinoApp(
+    localizationsDelegates: GlobalMaterialLocalizations.delegates,
+    supportedLocales: const [Locale('ru'), Locale('en')],
+    builder: (context, child) => Theme(
+      data: ThemeData(useMaterial3: true, platform: TargetPlatform.iOS),
+      child: child ?? const SizedBox.shrink(),
+    ),
+    home: child,
+  );
 }
 
 class _FakeWaitingRepository implements TelemedWaitingRepository {
