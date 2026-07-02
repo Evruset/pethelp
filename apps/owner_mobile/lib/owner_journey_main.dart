@@ -495,11 +495,10 @@ class _OwnerIosAuthenticatedShellState
         repository: widget.catalogRepository,
         onSelected: widget.onCatalogSelection,
       ),
-      appointments: _OwnerIosMaterialFeatureTab(
-        child: OwnerAppointmentsPage(
-          repository: widget.appointmentsRepository,
-          alternativeSlotRepository: widget.alternativeSlotRepository,
-        ),
+      appointments: OwnerAppointmentsPage(
+        repository: widget.appointmentsRepository,
+        alternativeSlotRepository: widget.alternativeSlotRepository,
+        platformOverride: TargetPlatform.iOS,
       ),
       pets: _OwnerIosMaterialFeatureTab(
         child: OwnerPetsPage(
