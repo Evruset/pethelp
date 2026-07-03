@@ -279,6 +279,7 @@ Widget _booking() {
   return BookingMarketplacePage(
     platformOverride: TargetPlatform.iOS,
     clinicName: 'VetHelp Pilot',
+    locationAddress: 'Москва, Лесная, 1',
     serviceName: 'Первичный приём',
     serviceId: 'service-1',
     petName: 'Барс',

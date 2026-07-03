@@ -90,8 +90,8 @@ export class BookingController {
   @Roles(Role.OWNER)
   @ApiBearerAuth(SWAGGER_BEARER_AUTH)
   @ApiOperation({
-    summary: 'Создание локального удержания слота владельцем',
-    description: 'ownerId извлекается только из Bearer JWT. Питомец проверяется внутри транзакции: чужой или отсутствующий petId не раскрывается владельцу.',
+    summary: 'Мгновенная запись владельца на выбранный слот',
+    description: 'ownerId извлекается только из Bearer JWT. Питомец проверяется внутри транзакции: чужой или отсутствующий petId не раскрывается владельцу. Для owner catalog booking non-MIS слот атомарно переводится в CONFIRMED appointment.',
   })
   @ApiHeader({
     name: 'Idempotency-Key',
@@ -105,7 +105,7 @@ export class BookingController {
     schema: { type: 'string', format: 'uuid' },
     description: 'Обязательный идентификатор распределённой трассировки команды.',
   })
-  @ApiCreatedResponse({ description: 'Hold создан и ожидает ручного подтверждения клиникой.', type: HoldDto })
+  @ApiCreatedResponse({ description: 'Запись создана. Для non-MIS слота ответ содержит CONFIRMED и appointmentId.', type: HoldDto })
   @ApiBadRequestResponse({ description: 'Некорректный UUID или отсутствует Idempotency-Key/X-Correlation-ID.', type: ApiErrorDto })
   @ApiUnauthorizedResponse({ description: 'Bearer JWT отсутствует, истёк или невалиден.', type: ApiErrorDto })
   @ApiConflictResponse({

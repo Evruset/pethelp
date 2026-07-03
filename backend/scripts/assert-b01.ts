@@ -38,9 +38,9 @@ async function main(): Promise<void> {
     };
 
     const valid = actual.slot?.capacity === 1 &&
-      actual.slot.held_count === 1 &&
-      actual.slot.booked_count === 0 &&
-      actual.activeHolds === 1 &&
+      actual.slot.held_count === 0 &&
+      actual.slot.booked_count === 1 &&
+      actual.activeHolds === 0 &&
       actual.createdOutboxEvents === 1 &&
       actual.completedIdempotencyRecords === 1 &&
       actual.idleInTransactionConnections === 0;

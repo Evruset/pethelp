@@ -12,6 +12,10 @@ class BookingHoldStatusPage extends StatefulWidget {
     super.key,
     required this.holdId,
     required this.initialState,
+    required this.clinicName,
+    required this.locationAddress,
+    required this.serviceName,
+    required this.petName,
     this.readHold,
     this.repository,
     this.platformOverride,
@@ -20,6 +24,10 @@ class BookingHoldStatusPage extends StatefulWidget {
 
   final String holdId;
   final String initialState;
+  final String clinicName;
+  final String locationAddress;
+  final String serviceName;
+  final String petName;
   final BookingHoldReader? readHold;
   final BookingMarketplaceRepository? repository;
   final TargetPlatform? platformOverride;
@@ -52,12 +60,13 @@ class _BookingHoldStatusPageState extends State<BookingHoldStatusPage> {
       return _buildCupertino(context);
     }
     return Scaffold(
-      appBar: AppBar(title: const Text('Статус записи')),
+      appBar: AppBar(title: const Text('Вы записаны')),
       body: FutureBuilder<BookingHoldSnapshot>(
         future: _snapshot,
         builder: (context, snapshot) {
           final hold = snapshot.data;
           final state = hold?.state ?? widget.initialState;
+          final booked = _isBookedState(state);
           return Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -74,28 +83,39 @@ class _BookingHoldStatusPageState extends State<BookingHoldStatusPage> {
                 Text(_message(state), textAlign: TextAlign.center),
                 if (hold != null) ...[
                   const SizedBox(height: 24),
-                  Text(
-                    'Время визита',
-                    style: Theme.of(context).textTheme.labelLarge,
+                  _MaterialBookingDetails(
+                    time: _range(context, hold.startsAt, hold.endsAt),
+                    clinicName: widget.clinicName,
+                    locationAddress: widget.locationAddress,
+                    serviceName: widget.serviceName,
+                    petName: widget.petName,
                   ),
-                  Text(_range(context, hold.startsAt, hold.endsAt)),
                 ],
                 if (snapshot.hasError)
                   const Padding(
                     padding: EdgeInsets.only(top: 16),
                     child: Text(
-                      'Не удалось обновить статус. Показано последнее известное состояние.',
+                      'Не удалось загрузить детали записи. Откройте раздел «Записи» чуть позже.',
                       textAlign: TextAlign.center,
                     ),
                   ),
                 const Spacer(),
-                OutlinedButton.icon(
-                  onPressed: snapshot.connectionState == ConnectionState.waiting
-                      ? null
-                      : _reload,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Обновить статус'),
-                ),
+                if (widget.onOpenAppointments != null) ...[
+                  FilledButton(
+                    onPressed: widget.onOpenAppointments,
+                    child: const Text('Открыть записи'),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                if (!booked)
+                  OutlinedButton.icon(
+                    onPressed:
+                        snapshot.connectionState == ConnectionState.waiting
+                            ? null
+                            : _reload,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Обновить детали'),
+                  ),
                 TextButton(
                   onPressed: () =>
                       Navigator.of(context).popUntil((route) => route.isFirst),
@@ -110,9 +130,10 @@ class _BookingHoldStatusPageState extends State<BookingHoldStatusPage> {
   }
 
   Widget _buildCupertino(BuildContext context) {
+    final initialBooked = _isBookedState(widget.initialState);
     return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(
-        middle: Text('Статус записи'),
+      navigationBar: CupertinoNavigationBar(
+        middle: Text(initialBooked ? 'Вы записаны' : 'Запись'),
       ),
       child: SafeArea(
         child: FutureBuilder<BookingHoldSnapshot>(
@@ -121,6 +142,7 @@ class _BookingHoldStatusPageState extends State<BookingHoldStatusPage> {
             final hold = snapshot.data;
             final state = hold?.state ?? widget.initialState;
             final status = _bookingResultStatus(state);
+            final booked = _isBookedState(state);
             return SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(
@@ -149,36 +171,30 @@ class _BookingHoldStatusPageState extends State<BookingHoldStatusPage> {
                     textAlign: TextAlign.center,
                     style: CupertinoTheme.of(context).textTheme.textStyle,
                   ),
-                  const SizedBox(height: 16),
-                  OwnerCupertinoStatusBanner(
-                    tone: _bookingResultTone(status.tone),
-                    icon: CupertinoIcons.info_circle,
-                    title: 'Что дальше',
-                    message: status.nextAction,
-                  ),
+                  if (!booked) ...[
+                    const SizedBox(height: 16),
+                    OwnerCupertinoStatusBanner(
+                      tone: _bookingResultTone(status.tone),
+                      icon: CupertinoIcons.info_circle,
+                      title: 'Дальше',
+                      message: status.nextAction,
+                    ),
+                  ],
                   if (hold != null) ...[
                     const SizedBox(height: 24),
-                    Text(
-                      'Время визита',
-                      style: CupertinoTheme.of(context)
-                          .textTheme
-                          .textStyle
-                          .copyWith(
-                            color: CupertinoDynamicColor.resolve(
-                              CupertinoColors.secondaryLabel,
-                              context,
-                            ),
-                            fontWeight: FontWeight.w600,
-                          ),
+                    _CupertinoBookingDetails(
+                      time: _cupertinoRange(hold.startsAt, hold.endsAt),
+                      clinicName: widget.clinicName,
+                      locationAddress: widget.locationAddress,
+                      serviceName: widget.serviceName,
+                      petName: widget.petName,
                     ),
-                    const SizedBox(height: 4),
-                    Text(_cupertinoRange(hold.startsAt, hold.endsAt)),
                   ],
                   if (snapshot.hasError)
                     const Padding(
                       padding: EdgeInsets.only(top: 16),
                       child: Text(
-                        'Не удалось обновить статус. Показано последнее известное состояние.',
+                        'Не удалось загрузить детали записи. Откройте раздел «Записи» чуть позже.',
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -192,7 +208,7 @@ class _BookingHoldStatusPageState extends State<BookingHoldStatusPage> {
                     const SizedBox(height: 8),
                   ],
                   OwnerCupertinoButton.secondary(
-                    label: 'Обновить статус',
+                    label: 'Обновить детали',
                     icon: CupertinoIcons.refresh,
                     enabled:
                         snapshot.connectionState != ConnectionState.waiting,
@@ -214,6 +230,117 @@ class _BookingHoldStatusPageState extends State<BookingHoldStatusPage> {
   }
 }
 
+class _MaterialBookingDetails extends StatelessWidget {
+  const _MaterialBookingDetails({
+    required this.time,
+    required this.clinicName,
+    required this.locationAddress,
+    required this.serviceName,
+    required this.petName,
+  });
+
+  final String time;
+  final String clinicName;
+  final String locationAddress;
+  final String serviceName;
+  final String petName;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _MaterialDetailRow(label: 'Когда', value: time),
+            _MaterialDetailRow(label: 'Клиника', value: clinicName),
+            if (locationAddress.isNotEmpty)
+              _MaterialDetailRow(label: 'Адрес', value: locationAddress),
+            _MaterialDetailRow(label: 'Питомец', value: petName),
+            _MaterialDetailRow(label: 'Услуга', value: serviceName),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MaterialDetailRow extends StatelessWidget {
+  const _MaterialDetailRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: Theme.of(context).textTheme.labelMedium),
+          const SizedBox(height: 2),
+          Text(value, style: Theme.of(context).textTheme.bodyLarge),
+        ],
+      ),
+    );
+  }
+}
+
+class _CupertinoBookingDetails extends StatelessWidget {
+  const _CupertinoBookingDetails({
+    required this.time,
+    required this.clinicName,
+    required this.locationAddress,
+    required this.serviceName,
+    required this.petName,
+  });
+
+  final String time;
+  final String clinicName;
+  final String locationAddress;
+  final String serviceName;
+  final String petName;
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoListSection.insetGrouped(
+      header: const Text('Детали визита'),
+      children: [
+        _CupertinoDetailRow(label: 'Когда', value: time),
+        _CupertinoDetailRow(label: 'Клиника', value: clinicName),
+        if (locationAddress.isNotEmpty)
+          _CupertinoDetailRow(label: 'Адрес', value: locationAddress),
+        _CupertinoDetailRow(label: 'Питомец', value: petName),
+        _CupertinoDetailRow(label: 'Услуга', value: serviceName),
+      ],
+    );
+  }
+}
+
+class _CupertinoDetailRow extends StatelessWidget {
+  const _CupertinoDetailRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = CupertinoDynamicColor.resolve(
+      CupertinoColors.secondaryLabel,
+      context,
+    );
+    return Semantics(
+      label: '$label: $value',
+      child: CupertinoListTile(
+        title: Text(label),
+        subtitle: Text(value, style: TextStyle(color: secondary)),
+      ),
+    );
+  }
+}
+
 IconData _icon(String state) => state == 'CONFIRMED'
     ? Icons.check_circle_outline
     : state == 'EXPIRED' ||
@@ -222,6 +349,8 @@ IconData _icon(String state) => state == 'CONFIRMED'
             state == 'MIS_BOOKING_FAILED'
         ? Icons.event_busy_outlined
         : Icons.hourglass_top_outlined;
+
+bool _isBookedState(String state) => state.toUpperCase() == 'CONFIRMED';
 
 CupertinoDynamicColor _cupertinoIconColor(String tone) => tone == 'success'
     ? CupertinoColors.systemGreen
@@ -232,20 +361,20 @@ CupertinoDynamicColor _cupertinoIconColor(String tone) => tone == 'success'
             : CupertinoColors.activeBlue;
 
 String _title(String state) => state == 'CONFIRMED'
-    ? 'Запись подтверждена'
+    ? 'Вы записаны'
     : state == 'EXPIRED' || state == 'SLA_BREACHED'
-        ? 'Время подтверждения истекло'
+        ? 'Время недоступно'
         : state == 'RELEASED' || state == 'MIS_BOOKING_FAILED'
-            ? 'Запись не подтверждена'
-            : 'Заявка отправлена в клинику';
+            ? 'Запись не оформлена'
+            : 'Запись оформляется';
 
 String _message(String state) => state == 'CONFIRMED'
-    ? 'Клиника подтвердила ваше время.'
+    ? 'Детали визита доступны ниже и в разделе «Записи».'
     : state == 'EXPIRED' || state == 'SLA_BREACHED'
-        ? 'Клиника не успела подтвердить заявку. Выберите другое окно.'
+        ? 'Это время уже заняли. Выберите другое окно.'
         : state == 'RELEASED' || state == 'MIS_BOOKING_FAILED'
             ? 'Это время больше недоступно. Выберите другое окно.'
-            : 'Клиника подтверждает возможность записи. VetHelp покажет итоговый статус.';
+            : 'Мы покажем результат в разделе «Записи».';
 
 class _BookingResultStatus {
   const _BookingResultStatus({
@@ -267,27 +396,25 @@ _BookingResultStatus _bookingResultStatus(String state) {
   final normalized = state.toUpperCase();
   if (normalized == 'CONFIRMED') {
     return const _BookingResultStatus(
-      title: 'Визит подтверждён',
-      description: 'Клиника подтвердила выбранное время.',
-      nextAction:
-          'Откройте запись, чтобы увидеть адрес, питомца, услугу и доступные действия.',
+      title: 'Вы записаны',
+      description: 'Детали визита доступны ниже и в разделе «Записи».',
+      nextAction: 'Откройте запись, чтобы увидеть доступные действия.',
       icon: CupertinoIcons.check_mark_circled,
       tone: 'success',
     );
   }
   if (normalized == 'EXPIRED' || normalized == 'SLA_BREACHED') {
     return const _BookingResultStatus(
-      title: 'Время подтверждения истекло',
-      description: 'Клиника не успела подтвердить заявку.',
-      nextAction:
-          'Выберите другое время в каталоге. Новый слот будет проверен сервером отдельно.',
+      title: 'Время недоступно',
+      description: 'Это время уже заняли. Выберите другое окно.',
+      nextAction: 'Вернитесь к выбору времени и выберите другой слот.',
       icon: CupertinoIcons.calendar_badge_minus,
       tone: 'warning',
     );
   }
   if (normalized == 'RELEASED' || normalized == 'MIS_BOOKING_FAILED') {
     return const _BookingResultStatus(
-      title: 'Запись не подтверждена',
+      title: 'Запись не оформлена',
       description: 'Это время больше недоступно для записи.',
       nextAction:
           'Вернитесь к каталогу и выберите другое время. Текущий слот не удерживается.',
@@ -296,11 +423,9 @@ _BookingResultStatus _bookingResultStatus(String state) {
     );
   }
   return const _BookingResultStatus(
-    title: 'Заявка отправлена в клинику',
-    description:
-        'Клиника проверяет возможность записи. Итоговый статус появится в разделе «Записи».',
-    nextAction:
-        'Сейчас можно открыть записи или обновить статус. Подтверждение не обещается до ответа клиники.',
+    title: 'Запись оформляется',
+    description: 'Мы покажем результат в разделе «Записи».',
+    nextAction: 'Можно открыть записи или обновить детали этого визита.',
     icon: CupertinoIcons.hourglass,
     tone: 'info',
   );

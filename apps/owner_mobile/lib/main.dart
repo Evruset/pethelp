@@ -65,6 +65,10 @@ class _OwnerJourneyLauncherState extends State<OwnerJourneyLauncher> {
     'VETHELP_DEMO_CLINIC_NAME',
     defaultValue: 'VetHelp Pilot',
   );
+  final _demoLocationAddress = const String.fromEnvironment(
+    'VETHELP_DEMO_LOCATION_ADDRESS',
+    defaultValue: 'Адрес клиники',
+  );
   final _demoPetName = const String.fromEnvironment(
     'VETHELP_DEMO_PET_NAME',
     defaultValue: 'Питомец',
@@ -98,6 +102,7 @@ class _OwnerJourneyLauncherState extends State<OwnerJourneyLauncher> {
         context: context,
         builder: (_) => BookingMarketplacePage(
           clinicName: _demoClinicName,
+          locationAddress: _demoLocationAddress,
           serviceName: _demoServiceName,
           serviceId: _demoServiceId,
           petName: _demoPetName,

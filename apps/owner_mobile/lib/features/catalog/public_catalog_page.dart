@@ -135,6 +135,9 @@ class _PublicCatalogPageState extends State<PublicCatalogPage> {
                   search: _search,
                   filters: _filters,
                   request: _clinicsRequest,
+                  bookingPetName: widget.bookingPetName,
+                  bookingContextNote: widget.bookingContextNote,
+                  onChangePet: widget.onChangePet,
                   onReload: _reloadClinics,
                   onClearFilters: _clearFilters,
                   onFiltersChanged: _applyFilters,
@@ -145,6 +148,10 @@ class _PublicCatalogPageState extends State<PublicCatalogPage> {
                   request: _detailRequest,
                   onRetry: _reloadDetail,
                   onSelected: widget.onSelected,
+                  bookingPetName: widget.bookingPetName,
+                  bookingContextNote: widget.bookingContextNote,
+                  onChangeClinic: _backToClinics,
+                  onChangePet: widget.onChangePet,
                 ),
         ),
       ),
@@ -177,6 +184,9 @@ class _PublicCatalogPageState extends State<PublicCatalogPage> {
                   search: _search,
                   filters: _filters,
                   request: _clinicsRequest,
+                  bookingPetName: widget.bookingPetName,
+                  bookingContextNote: widget.bookingContextNote,
+                  onChangePet: widget.onChangePet,
                   onReload: _reloadClinics,
                   onClearFilters: _clearFilters,
                   onFiltersChanged: _applyFilters,
@@ -203,6 +213,9 @@ class _CupertinoClinicsBody extends StatelessWidget {
     required this.search,
     required this.filters,
     required this.request,
+    required this.bookingPetName,
+    required this.bookingContextNote,
+    required this.onChangePet,
     required this.onReload,
     required this.onClearFilters,
     required this.onFiltersChanged,
@@ -212,6 +225,9 @@ class _CupertinoClinicsBody extends StatelessWidget {
   final TextEditingController search;
   final CatalogClinicFilters filters;
   final Future<List<CatalogClinic>>? request;
+  final String? bookingPetName;
+  final String? bookingContextNote;
+  final VoidCallback? onChangePet;
   final VoidCallback onReload;
   final VoidCallback onClearFilters;
   final ValueChanged<CatalogClinicFilters> onFiltersChanged;
@@ -231,6 +247,12 @@ class _CupertinoClinicsBody extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _CupertinoCatalogPetContext(
+                  petName: bookingPetName,
+                  contextNote: bookingContextNote,
+                  onChangePet: onChangePet,
+                ),
+                const SizedBox(height: 12),
                 CupertinoSearchTextField(
                   controller: search,
                   placeholder: 'Название, адрес или услуга',
@@ -353,6 +375,85 @@ class _CupertinoCatalogFilters extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CupertinoCatalogPetContext extends StatelessWidget {
+  const _CupertinoCatalogPetContext({
+    required this.petName,
+    required this.contextNote,
+    required this.onChangePet,
+  });
+
+  final String? petName;
+  final String? contextNote;
+  final VoidCallback? onChangePet;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = CupertinoTheme.of(context).textTheme;
+    final label = CupertinoDynamicColor.resolve(CupertinoColors.label, context);
+    final secondaryLabel = CupertinoDynamicColor.resolve(
+      CupertinoColors.secondaryLabel,
+      context,
+    );
+    final note = contextNote?.trim();
+    final pet = petName?.trim();
+    return Semantics(
+      label: pet == null || pet.isEmpty
+          ? 'Питомец для поиска клиники не выбран'
+          : 'Поиск клиники для питомца $pet',
+      child: _CupertinoPanel(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              CupertinoIcons.paw,
+              color: CupertinoDynamicColor.resolve(
+                CupertinoColors.activeBlue,
+                context,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    pet == null || pet.isEmpty
+                        ? 'Выберите клинику и услугу'
+                        : 'Клиника и услуга для $pet',
+                    style: textTheme.textStyle.copyWith(
+                      color: label,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    note == null || note.isEmpty
+                        ? 'Дата, время и удержание слота будут проверены на следующем экране.'
+                        : note,
+                    style: textTheme.textStyle.copyWith(
+                      color: secondaryLabel,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (onChangePet != null) ...[
+              const SizedBox(width: 8),
+              CupertinoButton(
+                minSize: 44,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                onPressed: onChangePet,
+                child: const Text('Сменить'),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -550,7 +651,7 @@ class _CupertinoCatalogBadges extends StatelessWidget {
       runSpacing: 6,
       children: [
         _CupertinoCatalogBadge(
-          label: clinic.nextAvailableAt == null ? 'Нет окон' : 'Есть окна',
+          label: clinic.nextAvailableAt == null ? 'Время уточним' : 'Есть окна',
         ),
         if (clinic.telemedAvailable)
           const _CupertinoCatalogBadge(label: 'Онлайн'),
@@ -626,8 +727,7 @@ class _CupertinoClinicDetailBodyState
   int _selectedLocationIndex = 0;
   String? _selectedServiceId;
   String? _loadedLocationId;
-  DateTime _selectedAvailabilityDay = _todayStart();
-  Future<_LocationSnapshot>? _locationRequest;
+  Future<List<CatalogService>>? _servicesRequest;
 
   @override
   Widget build(BuildContext context) {
@@ -655,7 +755,7 @@ class _CupertinoClinicDetailBodyState
             _selectedLocationIndex = 0;
           }
           final location = detail.locations[_selectedLocationIndex];
-          _ensureLocationRequest(location.locationId);
+          _ensureServicesRequest(location.locationId);
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
             children: [
@@ -674,32 +774,29 @@ class _CupertinoClinicDetailBodyState
               const SizedBox(height: 8),
               _CupertinoLocationActions(location: location),
               const SizedBox(height: 16),
-              FutureBuilder<_LocationSnapshot>(
-                future: _locationRequest,
-                builder: (context, locationSnapshot) {
-                  if (locationSnapshot.connectionState !=
+              FutureBuilder<List<CatalogService>>(
+                future: _servicesRequest,
+                builder: (context, servicesSnapshot) {
+                  if (servicesSnapshot.connectionState !=
                       ConnectionState.done) {
                     return const Padding(
                       padding: EdgeInsets.symmetric(vertical: 32),
                       child: Center(child: CupertinoActivityIndicator()),
                     );
                   }
-                  if (locationSnapshot.hasError) {
+                  if (servicesSnapshot.hasError) {
                     return _CupertinoInlineRetry(
-                      onRetry: () => _reloadLocation(location.locationId),
+                      onRetry: () => _reloadServices(location.locationId),
                     );
                   }
-                  final data = locationSnapshot.data ??
-                      const _LocationSnapshot(
-                        services: <CatalogService>[],
-                        slots: <CatalogAvailabilitySlot>[],
-                      );
-                  final selectedService = _selectedService(data.services);
+                  final services =
+                      servicesSnapshot.data ?? const <CatalogService>[];
+                  final selectedService = _selectedService(services);
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _CupertinoServicesSection(
-                        services: data.services,
+                        services: services,
                         selectedServiceId: selectedService?.id,
                         onSelected: (service) =>
                             setState(() => _selectedServiceId = service.id),
@@ -710,23 +807,12 @@ class _CupertinoClinicDetailBodyState
                           tone: OwnerCupertinoFeedbackTone.neutral,
                           title: 'Что будет дальше',
                           message:
-                              'Выберите услугу, чтобы проверить ближайшее время для конкретного адреса. Слот не удерживается до выбора времени.',
+                              'Выберите услугу, чтобы перейти к доступному времени. Слот не удерживается до выбора времени.',
                         )
                       else ...[
-                        _CupertinoAvailabilityDaySelector(
-                          selectedDay: _selectedAvailabilityDay,
-                          onSelected: (day) {
-                            setState(() {
-                              _selectedAvailabilityDay = _dayStart(day);
-                              _locationRequest =
-                                  _loadLocation(location.locationId);
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        _CupertinoAvailabilitySection(
-                          slots: data.slots,
-                          service: selectedService,
+                        _CupertinoAvailabilityHint(
+                          nextAvailableAt: detail.nextAvailableAt,
+                          hasOpenSlots: location.hasOpenSlots,
                         ),
                         const SizedBox(height: 16),
                         _CupertinoBookingContextSummary(
@@ -743,13 +829,10 @@ class _CupertinoClinicDetailBodyState
                       ],
                       const SizedBox(height: 22),
                       _CupertinoPrimaryButton(
-                        label: !location.hasOpenSlots
-                            ? 'Свободных окон нет'
-                            : selectedService == null
-                                ? 'Выберите услугу'
-                                : 'Перейти к выбору времени',
-                        enabled:
-                            location.hasOpenSlots && selectedService != null,
+                        label: selectedService == null
+                            ? 'Выберите услугу'
+                            : 'Посмотреть время',
+                        enabled: selectedService != null,
                         onPressed: selectedService == null
                             ? null
                             : () => widget.onSelected(
@@ -770,36 +853,18 @@ class _CupertinoClinicDetailBodyState
     );
   }
 
-  void _ensureLocationRequest(String locationId) {
-    if (_loadedLocationId == locationId && _locationRequest != null) return;
+  void _ensureServicesRequest(String locationId) {
+    if (_loadedLocationId == locationId && _servicesRequest != null) return;
     _loadedLocationId = locationId;
     _selectedServiceId = null;
-    _locationRequest = _loadLocation(locationId);
+    _servicesRequest = widget.repository.listLocationServices(locationId);
   }
 
-  void _reloadLocation(String locationId) {
+  void _reloadServices(String locationId) {
     setState(() {
       _loadedLocationId = locationId;
-      _locationRequest = _loadLocation(locationId);
+      _servicesRequest = widget.repository.listLocationServices(locationId);
     });
-  }
-
-  Future<_LocationSnapshot> _loadLocation(String locationId) async {
-    final now = DateTime.now();
-    final dayStart = _dayStart(_selectedAvailabilityDay);
-    final from = _sameDay(dayStart, _dayStart(now)) ? now : dayStart;
-    final results = await Future.wait<Object>([
-      widget.repository.listLocationServices(locationId),
-      widget.repository.readAvailability(
-        locationId: locationId,
-        from: from,
-        to: dayStart.add(const Duration(days: 1)),
-      ),
-    ]);
-    return _LocationSnapshot(
-      services: results[0] as List<CatalogService>,
-      slots: results[1] as List<CatalogAvailabilitySlot>,
-    );
   }
 
   CatalogService? _selectedService(List<CatalogService> services) {
@@ -1122,6 +1187,32 @@ class _CupertinoServiceChoice extends StatelessWidget {
   }
 }
 
+class _CupertinoAvailabilityHint extends StatelessWidget {
+  const _CupertinoAvailabilityHint({
+    required this.nextAvailableAt,
+    required this.hasOpenSlots,
+  });
+
+  final DateTime? nextAvailableAt;
+  final bool hasOpenSlots;
+
+  @override
+  Widget build(BuildContext context) {
+    final next = nextAvailableAt;
+    final message = next == null
+        ? hasOpenSlots
+            ? 'Клиника сообщает о свободных окнах. Конкретное время проверим на следующем экране.'
+            : 'Свободное время проверим на следующем экране по данным сервера.'
+        : 'Ближайшая подсказка от клиники: ${_fullDateTime(context, next)}. Точное время выберете дальше.';
+    return OwnerCupertinoStatusBanner(
+      tone: OwnerCupertinoFeedbackTone.neutral,
+      icon: CupertinoIcons.time,
+      title: 'Время будет на следующем шаге',
+      message: message,
+    );
+  }
+}
+
 class _CupertinoBookingContextSummary extends StatelessWidget {
   const _CupertinoBookingContextSummary({
     required this.petName,
@@ -1283,229 +1374,6 @@ class _CupertinoContextDivider extends StatelessWidget {
   }
 }
 
-class _CupertinoAvailabilityDaySelector extends StatelessWidget {
-  const _CupertinoAvailabilityDaySelector({
-    required this.selectedDay,
-    required this.onSelected,
-  });
-
-  final DateTime selectedDay;
-  final ValueChanged<DateTime> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final today = _todayStart();
-    final textScale = MediaQuery.textScalerOf(context).scale(1);
-    final stripHeight = 72 + ((textScale - 1).clamp(0, 1).toDouble() * 34);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _CupertinoSectionHeader(title: 'День записи'),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: stripHeight,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: 7,
-            itemBuilder: (context, index) {
-              final day = today.add(Duration(days: index));
-              final selected = _sameDay(day, selectedDay);
-              return Padding(
-                padding: EdgeInsets.only(right: index == 6 ? 0 : 8),
-                child: _CupertinoDayChip(
-                  day: day,
-                  selected: selected,
-                  onTap: () => onSelected(day),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CupertinoDayChip extends StatelessWidget {
-  const _CupertinoDayChip({
-    required this.day,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final DateTime day;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = CupertinoDynamicColor.resolve(CupertinoColors.label, context);
-    final secondaryLabel = CupertinoDynamicColor.resolve(
-      CupertinoColors.secondaryLabel,
-      context,
-    );
-    return Semantics(
-      button: true,
-      selected: selected,
-      child: CupertinoButton(
-        minSize: 44,
-        padding: EdgeInsets.zero,
-        onPressed: onTap,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: CupertinoDynamicColor.resolve(
-              selected
-                  ? CupertinoColors.activeBlue.withOpacity(0.14)
-                  : CupertinoColors.secondarySystemGroupedBackground,
-              context,
-            ),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: CupertinoDynamicColor.resolve(
-                selected
-                    ? CupertinoColors.activeBlue
-                    : CupertinoColors.separator,
-                context,
-              ),
-              width: selected ? 2 : 1,
-            ),
-          ),
-          child: SizedBox(
-            width: 82,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    _dayLabel(day),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style:
-                        CupertinoTheme.of(context).textTheme.textStyle.copyWith(
-                              color: secondaryLabel,
-                              fontSize: 13,
-                            ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${day.day}',
-                    style:
-                        CupertinoTheme.of(context).textTheme.textStyle.copyWith(
-                              color: label,
-                              fontWeight: FontWeight.w700,
-                            ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CupertinoAvailabilitySection extends StatelessWidget {
-  const _CupertinoAvailabilitySection({
-    required this.slots,
-    required this.service,
-  });
-
-  final List<CatalogAvailabilitySlot> slots;
-  final CatalogService? service;
-
-  @override
-  Widget build(BuildContext context) {
-    final selectedService = service;
-    final visibleSlots = selectedService == null
-        ? const <CatalogAvailabilitySlot>[]
-        : slots
-            .where(
-              (slot) =>
-                  slot.serviceId == null ||
-                  slot.serviceId == selectedService.id,
-            )
-            .toList(growable: false);
-    if (visibleSlots.isEmpty) {
-      return const _CupertinoCatalogEmpty(
-        text: 'На ближайшие дни свободных окон нет.',
-      );
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _CupertinoSectionHeader(title: 'Ближайшее время'),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final slot in visibleSlots) _CupertinoSlotPreview(slot: slot),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _CupertinoSlotPreview extends StatelessWidget {
-  const _CupertinoSlotPreview({required this.slot});
-
-  final CatalogAvailabilitySlot slot;
-
-  @override
-  Widget build(BuildContext context) {
-    final start = TimeOfDay.fromDateTime(slot.startsAt).format(context);
-    final end = TimeOfDay.fromDateTime(slot.endsAt).format(context);
-    final label = CupertinoDynamicColor.resolve(CupertinoColors.label, context);
-    final secondaryLabel = CupertinoDynamicColor.resolve(
-      CupertinoColors.secondaryLabel,
-      context,
-    );
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: CupertinoDynamicColor.resolve(
-          CupertinoColors.secondarySystemGroupedBackground,
-          context,
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color:
-              CupertinoDynamicColor.resolve(CupertinoColors.separator, context),
-        ),
-      ),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 112, minHeight: 54),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                start,
-                style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
-                      color: label,
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'до $end',
-                style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
-                      color: secondaryLabel,
-                      fontSize: 13,
-                    ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _CupertinoPanel extends StatelessWidget {
   const _CupertinoPanel({
     required this.child,
@@ -1591,9 +1459,9 @@ class _CupertinoInlineRetry extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return OwnerCupertinoInlineError(
-      title: 'Не удалось обновить услуги и время',
-      message: 'Повторная попытка обновит список услуг и ближайшие окна.',
-      retryLabel: 'Обновить услуги и время',
+      title: 'Не удалось обновить услуги',
+      message: 'Повторная попытка обновит список услуг выбранного адреса.',
+      retryLabel: 'Обновить услуги',
       onRetry: onRetry,
     );
   }
@@ -1670,6 +1538,9 @@ class _ClinicsBody extends StatelessWidget {
     required this.search,
     required this.filters,
     required this.request,
+    required this.bookingPetName,
+    required this.bookingContextNote,
+    required this.onChangePet,
     required this.onReload,
     required this.onClearFilters,
     required this.onFiltersChanged,
@@ -1679,6 +1550,9 @@ class _ClinicsBody extends StatelessWidget {
   final TextEditingController search;
   final CatalogClinicFilters filters;
   final Future<List<CatalogClinic>>? request;
+  final String? bookingPetName;
+  final String? bookingContextNote;
+  final VoidCallback? onChangePet;
   final VoidCallback onReload;
   final VoidCallback onClearFilters;
   final ValueChanged<CatalogClinicFilters> onFiltersChanged;
@@ -1692,6 +1566,9 @@ class _ClinicsBody extends StatelessWidget {
         final searchControls = _CatalogSearchControls(
           search: search,
           filters: filters,
+          bookingPetName: bookingPetName,
+          bookingContextNote: bookingContextNote,
+          onChangePet: onChangePet,
           onReload: onReload,
           onClearFilters: onClearFilters,
         );
@@ -1763,12 +1640,18 @@ class _CatalogSearchControls extends StatelessWidget {
   const _CatalogSearchControls({
     required this.search,
     required this.filters,
+    required this.bookingPetName,
+    required this.bookingContextNote,
+    required this.onChangePet,
     required this.onReload,
     required this.onClearFilters,
   });
 
   final TextEditingController search;
   final CatalogClinicFilters filters;
+  final String? bookingPetName;
+  final String? bookingContextNote;
+  final VoidCallback? onChangePet;
   final VoidCallback onReload;
   final VoidCallback onClearFilters;
 
@@ -1778,6 +1661,12 @@ class _CatalogSearchControls extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        _CatalogPetContext(
+          petName: bookingPetName,
+          contextNote: bookingContextNote,
+          onChangePet: onChangePet,
+        ),
+        const SizedBox(height: 12),
         SearchBar(
           controller: search,
           hintText: 'Название, адрес или услуга',
@@ -1840,6 +1729,79 @@ class _ActiveCatalogFilters extends StatelessWidget {
           label: const Text('Очистить фильтры'),
         ),
       ],
+    );
+  }
+}
+
+class _CatalogPetContext extends StatelessWidget {
+  const _CatalogPetContext({
+    required this.petName,
+    required this.contextNote,
+    required this.onChangePet,
+  });
+
+  final String? petName;
+  final String? contextNote;
+  final VoidCallback? onChangePet;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final pet = petName?.trim();
+    final note = contextNote?.trim();
+    return Semantics(
+      container: true,
+      label: pet == null || pet.isEmpty
+          ? 'Питомец для поиска клиники не выбран'
+          : 'Поиск клиники для питомца $pet',
+      child: Card(
+        elevation: 0,
+        color: colors.surfaceContainerHighest,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.pets_outlined, color: colors.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      pet == null || pet.isEmpty
+                          ? 'Выберите клинику и услугу'
+                          : 'Клиника и услуга для $pet',
+                      style: theme.textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      note == null || note.isEmpty
+                          ? 'Дата, время и удержание слота будут проверены на следующем экране.'
+                          : note,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              if (onChangePet != null) ...[
+                const SizedBox(width: 8),
+                Tooltip(
+                  message: 'Сменить питомца',
+                  child: OutlinedButton(
+                    onPressed: onChangePet,
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(44, 44),
+                    ),
+                    child: const Text('Сменить'),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -2096,7 +2058,9 @@ class _ClinicCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                      next == null ? 'Нет окон' : _shortDateTime(context, next),
+                      next == null
+                          ? 'Время уточним'
+                          : _shortDateTime(context, next),
                       style: Theme.of(context).textTheme.labelMedium),
                   const SizedBox(height: 6),
                   const Icon(Icons.chevron_right),
@@ -2123,7 +2087,7 @@ class _CatalogBadges extends StatelessWidget {
       children: [
         _CatalogBadge(
           icon: Icons.event_available_outlined,
-          label: clinic.nextAvailableAt == null ? 'Нет окон' : 'Есть окна',
+          label: clinic.nextAvailableAt == null ? 'Время уточним' : 'Есть окна',
         ),
         if (clinic.telemedAvailable)
           const _CatalogBadge(
@@ -2174,12 +2138,20 @@ class _ClinicDetailBody extends StatefulWidget {
     required this.request,
     required this.onRetry,
     required this.onSelected,
+    required this.bookingPetName,
+    required this.bookingContextNote,
+    required this.onChangeClinic,
+    required this.onChangePet,
   });
 
   final PublicCatalogRepository repository;
   final Future<CatalogClinicDetail>? request;
   final VoidCallback onRetry;
   final ValueChanged<CatalogBookingSelection> onSelected;
+  final String? bookingPetName;
+  final String? bookingContextNote;
+  final VoidCallback onChangeClinic;
+  final VoidCallback? onChangePet;
 
   @override
   State<_ClinicDetailBody> createState() => _ClinicDetailBodyState();
@@ -2189,8 +2161,7 @@ class _ClinicDetailBodyState extends State<_ClinicDetailBody> {
   int _selectedLocationIndex = 0;
   String? _selectedServiceId;
   String? _loadedLocationId;
-  DateTime _selectedAvailabilityDay = _todayStart();
-  Future<_LocationSnapshot>? _locationRequest;
+  Future<List<CatalogService>>? _servicesRequest;
 
   @override
   Widget build(BuildContext context) {
@@ -2212,7 +2183,7 @@ class _ClinicDetailBodyState extends State<_ClinicDetailBody> {
           _selectedLocationIndex = 0;
         }
         final location = detail.locations[_selectedLocationIndex];
-        _ensureLocationRequest(location.locationId);
+        _ensureServicesRequest(location.locationId);
         return ListView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
           children: [
@@ -2233,64 +2204,69 @@ class _ClinicDetailBodyState extends State<_ClinicDetailBody> {
             }),
             _LocationActions(location: location),
             const SizedBox(height: 16),
-            FutureBuilder<_LocationSnapshot>(
-              future: _locationRequest,
-              builder: (context, locationSnapshot) {
-                if (locationSnapshot.connectionState != ConnectionState.done) {
+            FutureBuilder<List<CatalogService>>(
+              future: _servicesRequest,
+              builder: (context, servicesSnapshot) {
+                if (servicesSnapshot.connectionState != ConnectionState.done) {
                   return const Center(
                       child: Padding(
                     padding: EdgeInsets.symmetric(vertical: 32),
                     child: CircularProgressIndicator(),
                   ));
                 }
-                if (locationSnapshot.hasError) {
+                if (servicesSnapshot.hasError) {
                   return _InlineRetry(
-                      onRetry: () => _reloadLocation(location.locationId));
+                      onRetry: () => _reloadServices(location.locationId));
                 }
-                final data = locationSnapshot.data ??
-                    const _LocationSnapshot(
-                        services: <CatalogService>[],
-                        slots: <CatalogAvailabilitySlot>[]);
-                final selectedService = _selectedService(data.services);
+                final services =
+                    servicesSnapshot.data ?? const <CatalogService>[];
+                final selectedService = _selectedService(services);
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _ServicesSection(
-                      services: data.services,
+                      services: services,
                       selectedServiceId: selectedService?.id,
                       onSelected: (service) =>
                           setState(() => _selectedServiceId = service.id),
                     ),
                     const SizedBox(height: 20),
-                    _AvailabilityDaySelector(
-                      selectedDay: _selectedAvailabilityDay,
-                      onSelected: (day) {
-                        setState(() {
-                          _selectedAvailabilityDay = _dayStart(day);
-                          _locationRequest = _loadLocation(location.locationId);
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _AvailabilitySection(
-                      slots: data.slots,
-                      service: selectedService,
-                    ),
+                    if (selectedService == null)
+                      const _CatalogInfoPanel(
+                        title: 'Что будет дальше',
+                        message:
+                            'Выберите услугу, чтобы перейти к доступному времени. Слот не удерживается до выбора времени.',
+                      )
+                    else ...[
+                      _AvailabilityHint(
+                        nextAvailableAt: detail.nextAvailableAt,
+                        hasOpenSlots: location.hasOpenSlots,
+                      ),
+                      const SizedBox(height: 16),
+                      _BookingContextSummary(
+                        petName: widget.bookingPetName,
+                        clinicName: location.clinicName,
+                        locationAddress: location.address,
+                        service: selectedService,
+                        contextNote: widget.bookingContextNote,
+                        onChangeClinic: widget.onChangeClinic,
+                        onChangeService: () =>
+                            setState(() => _selectedServiceId = null),
+                        onChangePet: widget.onChangePet,
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     FilledButton.icon(
-                      onPressed:
-                          location.hasOpenSlots && selectedService != null
-                              ? () => widget.onSelected(CatalogBookingSelection(
-                                    location: location,
-                                    service: selectedService,
-                                  ))
-                              : null,
+                      onPressed: selectedService != null
+                          ? () => widget.onSelected(CatalogBookingSelection(
+                                location: location,
+                                service: selectedService,
+                              ))
+                          : null,
                       icon: const Icon(Icons.calendar_month_outlined),
-                      label: Text(!location.hasOpenSlots
-                          ? 'Свободных окон нет'
-                          : selectedService == null
-                              ? 'Выберите услугу'
-                              : 'Выбрать время'),
+                      label: Text(selectedService == null
+                          ? 'Выберите услугу'
+                          : 'Посмотреть время'),
                       style: FilledButton.styleFrom(
                           minimumSize: const Size.fromHeight(52)),
                     ),
@@ -2304,36 +2280,18 @@ class _ClinicDetailBodyState extends State<_ClinicDetailBody> {
     );
   }
 
-  void _ensureLocationRequest(String locationId) {
-    if (_loadedLocationId == locationId && _locationRequest != null) return;
+  void _ensureServicesRequest(String locationId) {
+    if (_loadedLocationId == locationId && _servicesRequest != null) return;
     _loadedLocationId = locationId;
     _selectedServiceId = null;
-    _locationRequest = _loadLocation(locationId);
+    _servicesRequest = widget.repository.listLocationServices(locationId);
   }
 
-  void _reloadLocation(String locationId) {
+  void _reloadServices(String locationId) {
     setState(() {
       _loadedLocationId = locationId;
-      _locationRequest = _loadLocation(locationId);
+      _servicesRequest = widget.repository.listLocationServices(locationId);
     });
-  }
-
-  Future<_LocationSnapshot> _loadLocation(String locationId) async {
-    final now = DateTime.now();
-    final dayStart = _dayStart(_selectedAvailabilityDay);
-    final from = _sameDay(dayStart, _dayStart(now)) ? now : dayStart;
-    final results = await Future.wait<Object>([
-      widget.repository.listLocationServices(locationId),
-      widget.repository.readAvailability(
-        locationId: locationId,
-        from: from,
-        to: dayStart.add(const Duration(days: 1)),
-      ),
-    ]);
-    return _LocationSnapshot(
-      services: results[0] as List<CatalogService>,
-      slots: results[1] as List<CatalogAvailabilitySlot>,
-    );
   }
 
   CatalogService? _selectedService(List<CatalogService> services) {
@@ -2344,93 +2302,7 @@ class _ClinicDetailBodyState extends State<_ClinicDetailBody> {
         if (service.id == selectedId) return service;
       }
     }
-    return services.first;
-  }
-}
-
-class _AvailabilityDaySelector extends StatelessWidget {
-  const _AvailabilityDaySelector({
-    required this.selectedDay,
-    required this.onSelected,
-  });
-
-  final DateTime selectedDay;
-  final ValueChanged<DateTime> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final today = _todayStart();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('День записи', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 72,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: 7,
-            itemBuilder: (context, index) {
-              final day = today.add(Duration(days: index));
-              final selected = _sameDay(day, selectedDay);
-              return Padding(
-                padding: EdgeInsets.only(right: index == 6 ? 0 : 8),
-                child: _CatalogDayChip(
-                  day: day,
-                  selected: selected,
-                  onTap: () => onSelected(day),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CatalogDayChip extends StatelessWidget {
-  const _CatalogDayChip({
-    required this.day,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final DateTime day;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        width: 88,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? colors.primaryContainer : colors.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: selected ? colors.primary : Theme.of(context).dividerColor,
-            width: selected ? 2 : 1,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(_dayLabel(day),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelMedium),
-            const SizedBox(height: 2),
-            Text('${day.day}', style: Theme.of(context).textTheme.titleMedium),
-          ],
-        ),
-      ),
-    );
+    return null;
   }
 }
 
@@ -2525,7 +2397,9 @@ class _LocationChoice extends StatelessWidget {
                 ),
               ),
               Chip(
-                label: Text(location.hasOpenSlots ? 'Есть окна' : 'Нет окон'),
+                label: Text(
+                  location.hasOpenSlots ? 'Есть окна' : 'Время уточним',
+                ),
                 visualDensity: VisualDensity.compact,
               ),
             ],
@@ -2600,93 +2474,182 @@ class _ServicesSection extends StatelessWidget {
   }
 }
 
-class _AvailabilitySection extends StatelessWidget {
-  const _AvailabilitySection({required this.slots, required this.service});
+class _AvailabilityHint extends StatelessWidget {
+  const _AvailabilityHint({
+    required this.nextAvailableAt,
+    required this.hasOpenSlots,
+  });
 
-  final List<CatalogAvailabilitySlot> slots;
-  final CatalogService? service;
+  final DateTime? nextAvailableAt;
+  final bool hasOpenSlots;
 
   @override
   Widget build(BuildContext context) {
-    final selectedService = service;
-    final visibleSlots = selectedService == null
-        ? const <CatalogAvailabilitySlot>[]
-        : slots
-            .where((slot) =>
-                slot.serviceId == null || slot.serviceId == selectedService.id)
-            .toList(growable: false);
-    if (visibleSlots.isEmpty) {
-      return const _CatalogEmpty(text: 'На ближайшие дни свободных окон нет.');
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Ближайшее время', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: visibleSlots.length,
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 180,
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 8,
-            childAspectRatio: 1.9,
-          ),
-          itemBuilder: (context, index) => _AvailabilitySlotPreview(
-            slot: visibleSlots[index],
-          ),
-        ),
-      ],
+    final next = nextAvailableAt;
+    final message = next == null
+        ? hasOpenSlots
+            ? 'Клиника сообщает о свободных окнах. Конкретное время проверим на следующем экране.'
+            : 'Свободное время проверим на следующем экране по данным сервера.'
+        : 'Ближайшая подсказка от клиники: ${_fullDateTime(context, next)}. Точное время выберете дальше.';
+    return _CatalogInfoPanel(
+      title: 'Время будет на следующем шаге',
+      message: message,
     );
   }
 }
 
-class _AvailabilitySlotPreview extends StatelessWidget {
-  const _AvailabilitySlotPreview({required this.slot});
+class _BookingContextSummary extends StatelessWidget {
+  const _BookingContextSummary({
+    required this.petName,
+    required this.clinicName,
+    required this.locationAddress,
+    required this.service,
+    required this.contextNote,
+    required this.onChangeClinic,
+    required this.onChangeService,
+    required this.onChangePet,
+  });
 
-  final CatalogAvailabilitySlot slot;
+  final String? petName;
+  final String clinicName;
+  final String locationAddress;
+  final CatalogService service;
+  final String? contextNote;
+  final VoidCallback onChangeClinic;
+  final VoidCallback onChangeService;
+  final VoidCallback? onChangePet;
 
   @override
   Widget build(BuildContext context) {
-    final start = TimeOfDay.fromDateTime(slot.startsAt).format(context);
-    final end = TimeOfDay.fromDateTime(slot.endsAt).format(context);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Theme.of(context).dividerColor),
-      ),
+    final note = contextNote?.trim();
+    return Card(
+      elevation: 0,
       child: Padding(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
+            Text('Перед выбором времени',
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 10),
+            if (note != null && note.isNotEmpty) ...[
+              _CatalogInfoPanel(title: 'Контекст записи', message: note),
+              const SizedBox(height: 10),
+            ],
+            _ContextRow(
+              icon: Icons.pets_outlined,
+              label: 'Питомец',
+              value: petName ?? 'Будет выбран после входа',
+              actionLabel: onChangePet == null ? null : 'Изменить',
+              onAction: onChangePet,
+            ),
+            const Divider(height: 20),
+            _ContextRow(
+              icon: Icons.local_hospital_outlined,
+              label: 'Клиника',
+              value: '$clinicName, $locationAddress',
+              actionLabel: 'Изменить',
+              onAction: onChangeClinic,
+            ),
+            const Divider(height: 20),
+            _ContextRow(
+              icon: Icons.medical_services_outlined,
+              label: 'Услуга',
+              value: '${service.displayName}, ${service.durationMinutes} мин',
+              actionLabel: 'Изменить',
+              onAction: onChangeService,
+            ),
+            const SizedBox(height: 12),
+            _CatalogInfoPanel(
+              title: 'Слот ещё не удерживается',
+              message:
+                  'Свободное время и удержание слота будут проверены сервером только после выбора времени.',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ContextRow extends StatelessWidget {
+  const _ContextRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: '$label: $value',
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.schedule, size: 18),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    start,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                ),
+                Text(label, style: Theme.of(context).textTheme.labelMedium),
+                const SizedBox(height: 2),
+                Text(value, style: Theme.of(context).textTheme.titleSmall),
               ],
             ),
-            const SizedBox(height: 2),
-            Text('до $end',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall),
-            if (slot.serviceName != null)
-              Text(slot.serviceName!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall),
+          ),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(width: 8),
+            TextButton(onPressed: onAction, child: Text(actionLabel!)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _CatalogInfoPanel extends StatelessWidget {
+  const _CatalogInfoPanel({
+    required this.title,
+    required this.message,
+  });
+
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.info_outline),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: theme.textTheme.titleSmall),
+                  const SizedBox(height: 3),
+                  Text(message),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -2735,8 +2698,7 @@ class _ServiceChoice extends StatelessWidget {
                     children: [
                       Text(service.displayName,
                           style: Theme.of(context).textTheme.titleSmall),
-                      Text(
-                          '${service.durationMinutes} мин · ${_price(service)}'),
+                      Text('${service.durationMinutes} мин'),
                     ],
                   ),
                 ),
@@ -2767,7 +2729,7 @@ class _InlineRetry extends StatelessWidget {
           children: [
             const Icon(Icons.cloud_off_outlined),
             const SizedBox(width: 10),
-            const Expanded(child: Text('Не удалось обновить услуги и время.')),
+            const Expanded(child: Text('Не удалось обновить услуги.')),
             TextButton(onPressed: onRetry, child: const Text('Повторить')),
           ],
         ),
@@ -2838,13 +2800,6 @@ class _CatalogEmpty extends StatelessWidget {
   }
 }
 
-class _LocationSnapshot {
-  const _LocationSnapshot({required this.services, required this.slots});
-
-  final List<CatalogService> services;
-  final List<CatalogAvailabilitySlot> slots;
-}
-
 String _shortDateTime(BuildContext context, DateTime value) {
   final time = TimeOfDay.fromDateTime(value).format(context);
   return '${value.day.toString().padLeft(2, '0')}.${value.month.toString().padLeft(2, '0')} $time';
@@ -2858,27 +2813,6 @@ String _fullDateTime(BuildContext context, DateTime value) {
 DateTime _todayStart() {
   final now = DateTime.now();
   return DateTime(now.year, now.month, now.day);
-}
-
-DateTime _dayStart(DateTime value) =>
-    DateTime(value.year, value.month, value.day);
-
-bool _sameDay(DateTime first, DateTime second) =>
-    first.year == second.year &&
-    first.month == second.month &&
-    first.day == second.day;
-
-String _dayLabel(DateTime day) {
-  final today = _todayStart();
-  if (_sameDay(day, today)) return 'Сегодня';
-  if (_sameDay(day, today.add(const Duration(days: 1)))) return 'Завтра';
-  const names = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-  return names[day.weekday - 1];
-}
-
-String _price(CatalogService service) {
-  final value = service.priceAmount.replaceAll(RegExp(r'\.0+$'), '');
-  return service.currency == 'RUB' ? '$value ₽' : '$value ${service.currency}';
 }
 
 String _sortLabel(String value) => switch (value) {

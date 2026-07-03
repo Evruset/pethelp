@@ -14,6 +14,7 @@ class BookingMarketplacePage extends StatelessWidget {
   const BookingMarketplacePage({
     super.key,
     required this.clinicName,
+    required this.locationAddress,
     required this.serviceName,
     required this.serviceId,
     required this.petName,
@@ -26,6 +27,7 @@ class BookingMarketplacePage extends StatelessWidget {
   });
 
   final String clinicName;
+  final String locationAddress;
   final String serviceName;
   final String serviceId;
   final String petName;
@@ -48,6 +50,7 @@ class BookingMarketplacePage extends StatelessWidget {
       )..add(const BookingMarketplaceOpened()),
       child: _BookingMarketplaceView(
         clinicName: clinicName,
+        locationAddress: locationAddress,
         serviceName: serviceName,
         petName: petName,
         repository: repository,
@@ -61,6 +64,7 @@ class BookingMarketplacePage extends StatelessWidget {
 class _BookingMarketplaceView extends StatelessWidget {
   const _BookingMarketplaceView({
     required this.clinicName,
+    required this.locationAddress,
     required this.serviceName,
     required this.petName,
     required this.repository,
@@ -69,6 +73,7 @@ class _BookingMarketplaceView extends StatelessWidget {
   });
 
   final String clinicName;
+  final String locationAddress;
   final String serviceName;
   final String petName;
   final BookingMarketplaceRepository repository;
@@ -89,6 +94,10 @@ class _BookingMarketplaceView extends StatelessWidget {
                 builder: (_) => BookingHoldStatusPage(
                   holdId: state.hold.holdId,
                   initialState: state.hold.state,
+                  clinicName: clinicName,
+                  locationAddress: locationAddress,
+                  serviceName: serviceName,
+                  petName: petName,
                   repository: repository,
                   platformOverride:
                       usesCupertino ? TargetPlatform.iOS : platformOverride,
@@ -108,12 +117,14 @@ class _BookingMarketplaceView extends StatelessWidget {
           BookingMarketplaceReady() => usesCupertino
               ? _CupertinoMarketplaceReady(
                   clinicName: clinicName,
+                  locationAddress: locationAddress,
                   serviceName: serviceName,
                   petName: petName,
                   state: state,
                 )
               : _MarketplaceReady(
                   clinicName: clinicName,
+                  locationAddress: locationAddress,
                   serviceName: serviceName,
                   petName: petName,
                   state: state,
@@ -121,57 +132,84 @@ class _BookingMarketplaceView extends StatelessWidget {
           BookingMarketplaceCreatingHold() => usesCupertino
               ? _CupertinoMarketplaceReady(
                   clinicName: clinicName,
+                  locationAddress: locationAddress,
                   serviceName: serviceName,
                   petName: petName,
                   state: BookingMarketplaceReady(
                     selectedDay: state.selectedDay,
                     slots: state.slots,
                     selectedSlot: state.selectedSlot,
-                    notice: 'Проверяем доступность…',
+                    notice: 'Оформляем запись…',
                   ),
                   creatingHold: true,
                 )
               : _MarketplaceReady(
                   clinicName: clinicName,
+                  locationAddress: locationAddress,
                   serviceName: serviceName,
                   petName: petName,
                   state: BookingMarketplaceReady(
                     selectedDay: state.selectedDay,
                     slots: state.slots,
                     selectedSlot: state.selectedSlot,
-                    notice: 'Отправляем заявку в VetHelp. Не закрывайте экран.',
+                    notice: 'Оформляем запись…',
                   ),
                   creatingHold: true,
                 ),
           BookingSlotLockingInProgress() => usesCupertino
               ? _CupertinoMarketplaceReady(
                   clinicName: clinicName,
+                  locationAddress: locationAddress,
                   serviceName: serviceName,
                   petName: petName,
                   state: BookingMarketplaceReady(
                     selectedDay: state.selectedDay,
                     slots: state.slots,
                     selectedSlot: state.selectedSlot,
-                    notice: 'Проверяем доступность…',
+                    notice: 'Оформляем запись…',
                   ),
                   lockingSlot: state.selectedSlot,
                 )
               : _MarketplaceReady(
                   clinicName: clinicName,
+                  locationAddress: locationAddress,
                   serviceName: serviceName,
                   petName: petName,
                   state: BookingMarketplaceReady(
                     selectedDay: state.selectedDay,
                     slots: state.slots,
                     selectedSlot: state.selectedSlot,
-                    notice:
-                        'Проверяем время. Попытка ${state.retryAttempt} из 3.',
+                    notice: 'Оформляем запись…',
                   ),
                   lockingSlot: state.selectedSlot,
                 ),
           BookingMarketplaceError() => usesCupertino
-              ? _CupertinoMarketplaceError(state: state)
-              : _MarketplaceError(state: state),
+              ? state.showSlotUnavailableDialog && state.slots.isNotEmpty
+                  ? _CupertinoMarketplaceReady(
+                      clinicName: clinicName,
+                      locationAddress: locationAddress,
+                      serviceName: serviceName,
+                      petName: petName,
+                      state: BookingMarketplaceReady(
+                        selectedDay: state.selectedDay,
+                        slots: state.slots,
+                        selectedSlot: state.selectedSlot,
+                      ),
+                    )
+                  : _CupertinoMarketplaceError(state: state)
+              : state.showSlotUnavailableDialog && state.slots.isNotEmpty
+                  ? _MarketplaceReady(
+                      clinicName: clinicName,
+                      locationAddress: locationAddress,
+                      serviceName: serviceName,
+                      petName: petName,
+                      state: BookingMarketplaceReady(
+                        selectedDay: state.selectedDay,
+                        slots: state.slots,
+                        selectedSlot: state.selectedSlot,
+                      ),
+                    )
+                  : _MarketplaceError(state: state),
           BookingMarketplaceHoldCreated() => const SizedBox.shrink(),
         },
       ),
@@ -195,27 +233,19 @@ class _BookingMarketplaceView extends StatelessWidget {
     BookingMarketplaceError state,
     bool usesCupertino,
   ) {
-    final alternativeSlots = state.slots;
-    if (!usesCupertino ||
-        !state.showSlotUnavailableDialog ||
-        alternativeSlots.isEmpty) {
+    if (!usesCupertino || !state.showSlotUnavailableDialog) {
       return;
     }
 
     showCupertinoDialog<void>(
       context: context,
       builder: (dialogContext) => CupertinoAlertDialog(
-        title: const Text('Слот недоступен'),
-        content: const Text(
-          'К сожалению, это время уже занято другим владельцем. Пожалуйста, выберите другое время',
-        ),
+        title: const Text('Время занято'),
+        content: const Text('Это время уже заняли. Выберите другое время.'),
         actions: [
           CupertinoDialogAction(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              _showAlternativeSlots(context, alternativeSlots);
-            },
-            child: const Text('Подобрать другое время'),
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Выбрать другое время'),
           ),
         ],
       ),
@@ -232,44 +262,10 @@ bool _usesCupertinoBooking(
   return ownerUsesCupertino(platform: platformOverride ?? themedPlatform);
 }
 
-void _showAlternativeSlots(BuildContext context, List<BookingSlot> slots) {
-  final alternatives = slots
-      .where((slot) => slot.remainingCapacity > 0)
-      .take(4)
-      .toList(growable: false);
-  if (alternatives.isEmpty) return;
-
-  showCupertinoModalPopup<void>(
-    context: context,
-    builder: (sheetContext) => CupertinoActionSheet(
-      title: const Text('Доступные альтернативные слоты'),
-      actions: [
-        for (final slot in alternatives)
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.of(sheetContext).pop();
-              context
-                  .read<BookingMarketplaceBloc>()
-                  .add(BookingMarketplaceDaySelected(_dayStart(slot.startsAt)));
-            },
-            child: Text('Показать ${_slotActionLabel(context, slot)}'),
-          ),
-      ],
-      cancelButton: CupertinoActionSheetAction(
-        onPressed: () => Navigator.of(sheetContext).pop(),
-        child: const Text('Отмена'),
-      ),
-    ),
-  );
-}
-
-String _slotActionLabel(BuildContext context, BookingSlot slot) {
-  return _timeRangeLabel(slot);
-}
-
 class _CupertinoMarketplaceReady extends StatelessWidget {
   const _CupertinoMarketplaceReady({
     required this.clinicName,
+    required this.locationAddress,
     required this.serviceName,
     required this.petName,
     required this.state,
@@ -278,6 +274,7 @@ class _CupertinoMarketplaceReady extends StatelessWidget {
   });
 
   final String clinicName;
+  final String locationAddress;
   final String serviceName;
   final String petName;
   final BookingMarketplaceReady state;
@@ -311,6 +308,7 @@ class _CupertinoMarketplaceReady extends StatelessWidget {
                   children: [
                     _CupertinoBookingSummary(
                       clinicName: clinicName,
+                      locationAddress: locationAddress,
                       serviceName: serviceName,
                       petName: petName,
                     ),
@@ -389,7 +387,7 @@ class _CupertinoMarketplaceReady extends StatelessWidget {
                       const SizedBox(height: 12),
                     ],
                     Text(
-                      'Клиника подтвердит запись после проверки доступности времени.',
+                      'После нажатия «Записаться» запись появится в разделе «Записи».',
                       style: CupertinoTheme.of(context)
                           .textTheme
                           .textStyle
@@ -421,11 +419,13 @@ class _CupertinoMarketplaceReady extends StatelessWidget {
 class _CupertinoBookingSummary extends StatelessWidget {
   const _CupertinoBookingSummary({
     required this.clinicName,
+    required this.locationAddress,
     required this.serviceName,
     required this.petName,
   });
 
   final String clinicName;
+  final String locationAddress;
   final String serviceName;
   final String petName;
 
@@ -476,6 +476,21 @@ class _CupertinoBookingSummary extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(serviceName),
+                  if (locationAddress.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      locationAddress,
+                      style: CupertinoTheme.of(context)
+                          .textTheme
+                          .textStyle
+                          .copyWith(
+                            color: CupertinoDynamicColor.resolve(
+                              CupertinoColors.secondaryLabel,
+                              context,
+                            ),
+                          ),
+                    ),
+                  ],
                   const SizedBox(height: 4),
                   Text(
                     'Питомец: $petName',
@@ -562,6 +577,11 @@ class _CupertinoDayChip extends StatelessWidget {
     final borderColor = selected
         ? CupertinoColors.activeBlue
         : CupertinoDynamicColor.resolve(CupertinoColors.separator, context);
+    final availabilityLabel = selected
+        ? hasAvailability
+            ? 'Есть время'
+            : 'Нет окон'
+        : 'Выбрать';
 
     return Semantics(
       button: true,
@@ -614,7 +634,7 @@ class _CupertinoDayChip extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                hasAvailability ? 'Есть окна' : 'Проверим',
+                availabilityLabel,
                 style: TextStyle(color: secondaryForeground, fontSize: 11),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -912,10 +932,10 @@ class _CupertinoBookingFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     final disabled = onSubmit == null;
     final label = busy
-        ? 'Проверяем доступность…'
+        ? 'Оформляем запись…'
         : selectedSlot == null
             ? 'Выберите время'
-            : 'Отправить заявку в клинику';
+            : 'Записаться';
     return DecoratedBox(
       decoration: BoxDecoration(
         color: CupertinoDynamicColor.resolve(
@@ -1099,6 +1119,7 @@ String _dateLabel(DateTime value) {
 class _MarketplaceReady extends StatelessWidget {
   const _MarketplaceReady({
     required this.clinicName,
+    required this.locationAddress,
     required this.serviceName,
     required this.petName,
     required this.state,
@@ -1107,6 +1128,7 @@ class _MarketplaceReady extends StatelessWidget {
   });
 
   final String clinicName;
+  final String locationAddress;
   final String serviceName;
   final String petName;
   final BookingMarketplaceReady state;
@@ -1133,6 +1155,7 @@ class _MarketplaceReady extends StatelessWidget {
                   children: [
                     _ClinicHeader(
                       clinicName: clinicName,
+                      locationAddress: locationAddress,
                       serviceName: serviceName,
                       petName: petName,
                     ),
@@ -1155,7 +1178,7 @@ class _MarketplaceReady extends StatelessWidget {
                               day: day,
                               label: _dayLabel(day),
                               available: selected && state.slots.isNotEmpty,
-                              enabled: !creatingHold,
+                              enabled: !interactionsBlocked,
                               selected: selected,
                               onTap: () =>
                                   bloc.add(BookingMarketplaceDaySelected(day)),
@@ -1183,13 +1206,17 @@ class _MarketplaceReady extends StatelessWidget {
               else
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  sliver: BookingSlotGrid(
-                    slots: state.slots,
-                    selectedSlot: selectedSlot,
-                    lockingSlot: lockingSlot,
-                    lockedSlot: null,
-                    onSlotSelected: (slot) =>
-                        bloc.add(BookingMarketplaceSlotSelected(slot)),
+                  sliver: SliverToBoxAdapter(
+                    child: _MaterialSlotSections(
+                      slots: state.slots,
+                      selectedSlot: selectedSlot,
+                      lockingSlot: lockingSlot,
+                      interactionsBlocked: interactionsBlocked,
+                      onSlotSelected: (slot) {
+                        HapticFeedback.selectionClick();
+                        bloc.add(BookingMarketplaceSlotSelected(slot));
+                      },
+                    ),
                   ),
                 ),
               SliverPadding(
@@ -1201,7 +1228,7 @@ class _MarketplaceReady extends StatelessWidget {
                       const SizedBox(height: 12),
                     ],
                     Text(
-                      'Мы подтвердим запись только после ответа клиники. Время в списке основано на данных VetHelp.',
+                      'После нажатия «Записаться» запись появится в разделе «Записи».',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
@@ -1224,15 +1251,94 @@ class _MarketplaceReady extends StatelessWidget {
             style:
                 FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
             child: creatingHold
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2))
-                : Text(selectedSlot == null
-                    ? 'Выберите время'
-                    : 'Отправить заявку'),
+                ? const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: 12),
+                      Text('Оформляем запись…'),
+                    ],
+                  )
+                : Text(selectedSlot == null ? 'Выберите время' : 'Записаться'),
           ),
         ),
+      ],
+    );
+  }
+}
+
+class _MaterialSlotSections extends StatelessWidget {
+  const _MaterialSlotSections({
+    required this.slots,
+    required this.selectedSlot,
+    required this.lockingSlot,
+    required this.interactionsBlocked,
+    required this.onSlotSelected,
+  });
+
+  final List<BookingSlot> slots;
+  final BookingSlot? selectedSlot;
+  final BookingSlot? lockingSlot;
+  final bool interactionsBlocked;
+  final ValueChanged<BookingSlot> onSlotSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final groups = _slotGroups(slots);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final group in groups) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: 6, bottom: 8),
+            child: Text(
+              group.label,
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+          ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = constraints.maxWidth >= 720
+                  ? 4
+                  : constraints.maxWidth >= 500
+                      ? 3
+                      : 2;
+              const spacing = 10.0;
+              final tileWidth =
+                  (constraints.maxWidth - spacing * (columns - 1)) / columns;
+              return Wrap(
+                spacing: spacing,
+                runSpacing: spacing,
+                children: [
+                  for (final slot in group.slots)
+                    SizedBox(
+                      width: tileWidth,
+                      child: AbsorbPointer(
+                        absorbing:
+                            interactionsBlocked && lockingSlot?.id != slot.id,
+                        child: BookingSlotTile(
+                          slot: slot,
+                          selected: selectedSlot?.id == slot.id,
+                          locking: lockingSlot?.id == slot.id,
+                          locked: false,
+                          enabled: !interactionsBlocked &&
+                              slot.remainingCapacity > 0,
+                          showServiceName: false,
+                          onTap: () => onSlotSelected(slot),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 18),
+        ],
       ],
     );
   }
@@ -1275,11 +1381,13 @@ class _MarketplaceError extends StatelessWidget {
 class _ClinicHeader extends StatelessWidget {
   const _ClinicHeader({
     required this.clinicName,
+    required this.locationAddress,
     required this.serviceName,
     required this.petName,
   });
 
   final String clinicName;
+  final String locationAddress;
   final String serviceName;
   final String petName;
 
@@ -1304,6 +1412,13 @@ class _ClinicHeader extends StatelessWidget {
                       style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 2),
                   Text(serviceName),
+                  if (locationAddress.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      locationAddress,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
                   const SizedBox(height: 2),
                   Text('Питомец: $petName'),
                 ],

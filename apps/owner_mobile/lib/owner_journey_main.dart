@@ -324,6 +324,7 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
         platform: widget.platformOverride,
         builder: (_) => BookingMarketplacePage(
           clinicName: location.clinicName,
+          locationAddress: location.address,
           serviceName: selection.service.displayName,
           serviceId: selection.service.id,
           petName: pet.name,
@@ -548,6 +549,8 @@ class _OwnerIosAuthenticatedShellState
         platformOverride: TargetPlatform.iOS,
         repository: widget.catalogRepository,
         onSelected: widget.onCatalogSelection,
+        bookingPetName: widget.selectedPet?.name,
+        onChangePet: widget.selectedPet == null ? null : () => _selectTab(3),
       ),
       appointments: OwnerAppointmentsPage(
         repository: widget.appointmentsRepository,

@@ -250,8 +250,7 @@ class BookingMarketplaceBloc
         _requestCoordinator.releaseSlot(selectedSlot.id);
         emit(BookingMarketplaceError(
           selectedDay: readyState.selectedDay,
-          message:
-              'Выбранное время всё ещё занято другим запросом. Подберите другое время.',
+          message: 'Это время уже заняли. Выберите другое время.',
           slots: readyState.slots,
           selectedSlot: selectedSlot,
           showSlotUnavailableDialog: true,
@@ -263,7 +262,7 @@ class BookingMarketplaceBloc
         emit(BookingMarketplaceLoading(selectedDay: readyState.selectedDay));
         await _load(
           emit,
-          notice: 'Это время уже занято. Показываем актуальные окна.',
+          notice: 'Это время уже заняли. Выберите другое время.',
         );
         return;
       }
@@ -277,7 +276,7 @@ class BookingMarketplaceBloc
       emit(BookingMarketplaceError(
         selectedDay: readyState.selectedDay,
         message:
-            'Не удалось создать заявку. Проверьте соединение и повторите попытку.',
+            'Не удалось оформить запись. Проверьте соединение и повторите попытку.',
         slots: readyState.slots,
         selectedSlot: selectedSlot,
       ));
@@ -322,7 +321,7 @@ class BookingMarketplaceBloc
           emit(BookingMarketplaceLoading(selectedDay: readyState.selectedDay));
           await _load(
             emit,
-            notice: 'Это время уже занято. Показываем актуальные окна.',
+            notice: 'Это время уже заняли. Выберите другое время.',
           );
           return true;
         }
@@ -337,7 +336,7 @@ class BookingMarketplaceBloc
         emit(BookingMarketplaceError(
           selectedDay: readyState.selectedDay,
           message:
-              'Не удалось создать заявку. Проверьте соединение и повторите попытку.',
+              'Не удалось оформить запись. Проверьте соединение и повторите попытку.',
           slots: readyState.slots,
           selectedSlot: selectedSlot,
         ));
@@ -387,8 +386,7 @@ class BookingMarketplaceBloc
         'Не удалось подтвердить доступ к профилю питомца.',
       'EXTERNAL_PATIENT_MAPPING_REQUIRED' =>
         'Клиника пока не может принять запись для этого питомца. Выберите другую клинику.',
-      'HOLD_EXPIRED' =>
-        'Время для подтверждения уже истекло. Обновите доступные окна.',
+      'HOLD_EXPIRED' => 'Это время уже заняли. Выберите другое время.',
       _ => 'Не удалось выполнить действие. Повторите попытку.',
     };
   }

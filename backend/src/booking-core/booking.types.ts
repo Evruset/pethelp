@@ -52,6 +52,7 @@ export interface HoldRow {
 
 export interface CreateHoldResult {
   holdId: string;
+  appointmentId?: string;
   state: HoldState;
   slotId: string;
   expiresAt: string;
