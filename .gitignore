@@ -1,0 +1,14 @@
+.DS_Store
+.dev-local/
+node_modules/
+.next/
+.env.local
+tsconfig.tsbuildinfo
+playwright-report/
+test-results/
+allure-results/
+allure-report/
+apps/clinic-portal/test-results/
+apps/clinic-portal/playwright-report/
+apps/clinic-portal/allure-results/
+apps/clinic-portal/allure-report/

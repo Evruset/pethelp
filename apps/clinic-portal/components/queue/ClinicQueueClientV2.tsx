@@ -418,6 +418,8 @@ function AuditTrailDrawer({ item, trail, loading, error, onClose }: { item: Manu
                     <time className="shrink-0 text-xs text-slate-500">{dt(event.occurredAt)}</time>
                   </div>
                   {event.correlationId ? <p className="mt-2 text-xs text-slate-500">Correlation: {event.correlationId}</p> : null}
+                  <p className="mt-2 break-all text-xs text-slate-500">Ссылка: {event.eventRef}</p>
+                  <p className="mt-1 text-xs text-slate-500">Хранить до: {dt(event.retainedUntil)}</p>
                   <pre className="mt-3 max-h-32 overflow-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-600">{JSON.stringify(event.payload, null, 2)}</pre>
                 </li>
               ))}

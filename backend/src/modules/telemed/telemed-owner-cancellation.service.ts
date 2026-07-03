@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import type { PoolClient } from 'pg';
 import { DomainException } from '../../common/domain-error';
 import { DatabaseService } from '../../database/database.service';
+import { TraceContext } from '../../observability/trace-context.context';
 import { TelemedSessionState } from './telemed.service';
 
 type TelemedPaymentStatus =
@@ -44,7 +45,10 @@ export interface OwnerTelemedCancellationResult {
 
 @Injectable()
 export class TelemedOwnerCancellationService {
-  constructor(private readonly database: DatabaseService) {}
+  constructor(
+    private readonly database: DatabaseService,
+    private readonly traceContext: TraceContext,
+  ) {}
 
   async cancel(input: {
     sessionId: string;
@@ -194,15 +198,24 @@ export class TelemedOwnerCancellationService {
 
     await client.query(`
       INSERT INTO booking_schema.outbox_events (
-        event_type, correlation_id, aggregate_type, aggregate_id,
-        aggregate_version, payload_json, deduplication_key
+        event_type, correlation_id, causation_id, traceparent, aggregate_type,
+        aggregate_id, aggregate_version, payload_json, deduplication_key
       ) VALUES (
-        'payment.acquiring.void.requested.v1', NULL, 'telemed_payment_intent', $1::uuid,
+        'payment.acquiring.void.requested.v1', $1::uuid, $2::uuid, $3,
+        'telemed_payment_intent', $4::uuid,
         1,
-        jsonb_build_object('paymentIntentId', $1::uuid, 'telemedCaseId', $2::uuid, 'telemedSessionId', $3::uuid, 'source', 'telemed_owner_cancel'),
-        $4
+        jsonb_build_object('paymentIntentId', $4::uuid, 'telemedCaseId', $5::uuid, 'telemedSessionId', $6::uuid, 'source', 'telemed_owner_cancel'),
+        $7
       ) ON CONFLICT (deduplication_key) DO NOTHING
-    `, [payment.id, caseId, sessionId, `payment.acquiring.telemed.owner-cancel.void.requested.v1:${payment.id}`]);
+    `, [
+      this.traceContext.getCorrelationId() ?? null,
+      this.traceContext.getCausationId() ?? null,
+      this.traceContext.getTraceparent() ?? null,
+      payment.id,
+      caseId,
+      sessionId,
+      `payment.acquiring.telemed.owner-cancel.void.requested.v1:${payment.id}`,
+    ]);
 
     return status;
   }

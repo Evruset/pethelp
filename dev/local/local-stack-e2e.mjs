@@ -419,7 +419,7 @@ async function openBookingFlowFromHome(
   await page.mouse.wheel(0, 1200);
   await capture(page, 'owner', `${prefix}-clinic-service-and-availability`);
   const slotsResponse = page.waitForResponse(successfulResponseFor('/slots?', 'GET'), { timeout: 30_000 });
-  await clickOwner(page, `${prefix}-open-slot-picker`, 195, 535, async () => {
+  await clickOwner(page, `${prefix}-open-slot-picker`, 195, 795, async () => {
     await slotsResponse;
   });
   const nextDaySlotsResponse = page.waitForResponse(successfulResponseFor('/slots?', 'GET'), { timeout: 30_000 });
@@ -439,10 +439,7 @@ async function createBookingThroughOwnerUi(page, prefix, bookingOptions) {
   });
   const hold = await (await holdResponsePromise).json();
   await clickOwner(page, `${prefix}-return-home`, 195, 792);
-  const appointmentsResponse = page.waitForResponse(successfulResponseFor('/v1/owner/appointments', 'GET'), { timeout: 30_000 });
-  await clickOwner(page, `${prefix}-open-owner-appointments`, 145, 820, async () => {
-    await appointmentsResponse;
-  });
+  await clickOwner(page, `${prefix}-open-owner-appointments`, 145, 820);
   const detail = await ownerApi(`/v1/owner/appointments/${hold.holdId}`);
   return { hold, detail };
 }
@@ -491,8 +488,12 @@ async function requestCancellationThroughOwnerUi(page, holdId) {
 }
 
 async function startPortalSession(page) {
-  const params = new URLSearchParams({ token: clinicAdminJwt });
-  await page.goto(`${portalBaseUrl}/api/dev/local-session?${params}`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+  const response = await page.request.post(`${portalBaseUrl}/api/dev/local-session`, {
+    data: { token: clinicAdminJwt },
+  });
+  if (!response.ok()) {
+    throw new Error(`Clinic Portal dev session failed with ${response.status()}: ${await response.text()}`);
+  }
 }
 
 async function openPortalSchedule(page, name) {

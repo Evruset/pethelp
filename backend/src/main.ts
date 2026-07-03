@@ -3,6 +3,7 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule } from '@nestjs/swagger';
 import { BookingErrorFilter } from './common/booking-error.filter';
+import { PermissionDeniedAuditFilter } from './common/permission-denied-audit.filter';
 import { config } from './config';
 import { NestRoot } from './nest-root-full';
 import { ContextLoggerService } from './observability/context-logger.service';
@@ -32,7 +33,7 @@ async function bootstrap(): Promise<void> {
     allowedHeaders: ['Accept', 'Authorization', 'Content-Type', 'Idempotency-Key', 'X-Correlation-ID', 'X-Causation-ID', 'traceparent'],
   });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
-  app.useGlobalFilters(new BookingErrorFilter());
+  app.useGlobalFilters(app.get(PermissionDeniedAuditFilter), new BookingErrorFilter());
   app.enableShutdownHooks();
 
   if ((process.env.SWAGGER_ENABLED ?? 'true').toLowerCase() === 'true') {

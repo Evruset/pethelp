@@ -1,5 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { createHash } from 'node:crypto';
+import type { PoolClient } from 'pg';
 import { DomainException, DomainErrors } from '../../common/domain-error';
 import { DatabaseService } from '../../database/database.service';
 import { TraceContext } from '../../observability/trace-context.context';
@@ -43,6 +44,7 @@ export interface InsuranceProfileView {
   verificationState: 'PENDING' | 'VERIFIED' | 'REJECTED' | 'EXPIRED';
   consentVersion: string;
   consentedAt: string;
+  consentRevokedAt: string | null;
   providerDataMasked: Record<string, unknown>;
   version: number;
   createdAt: string;
@@ -62,9 +64,10 @@ export class InsuranceService {
       SELECT id::text, pet_id::text, insurer_code, policy_reference_masked,
              pet_relation, valid_from::text, valid_until::text,
              verification_state, consent_version, consented_at,
-             provider_data_masked, version, created_at, updated_at
+             consent_revoked_at, provider_data_masked, version, created_at, updated_at
       FROM insurance_schema.insurance_profiles
       WHERE owner_id = $1::uuid
+        AND consent_revoked_at IS NULL
       ORDER BY created_at DESC, id DESC
       LIMIT 100
     `, [ownerId]);
@@ -100,12 +103,14 @@ export class InsuranceService {
             valid_until = EXCLUDED.valid_until,
             consent_version = EXCLUDED.consent_version,
             consented_at = clock_timestamp(),
+            consent_revoked_at = NULL,
+            consent_revocation_reason = NULL,
             provider_data_masked = EXCLUDED.provider_data_masked,
             version = profiles.version + 1,
             updated_at = clock_timestamp()
         RETURNING id::text, pet_id::text, insurer_code, policy_reference_masked,
           pet_relation, valid_from::text, valid_until::text, verification_state,
-          consent_version, consented_at, provider_data_masked, version,
+          consent_version, consented_at, consent_revoked_at, provider_data_masked, version,
           created_at, updated_at
       `, [
         ownerId,
@@ -119,7 +124,48 @@ export class InsuranceService {
         input.consentVersion.trim(),
         JSON.stringify(maskProviderData(input.providerDataMasked ?? {})),
       ]);
-      return profileView(result.rows[0]);
+      const profile = result.rows[0];
+      await this.writeInsuranceAudit(client, ownerId, profile.id, 'insurance_profile', 'consent.granted', {
+        consentVersion: profile.consent_version,
+        insurerCode: profile.insurer_code,
+        petId: profile.pet_id,
+        source: 'insurance_profile',
+      });
+      return profileView(profile);
+    });
+  }
+
+  async revokeProfileConsent(ownerId: string, profileId: string): Promise<{ revoked: true; profileId: string; serverNow: string }> {
+    return this.database.withTransaction(async (client) => {
+      await client.query("SET LOCAL lock_timeout = '50ms'");
+      await client.query("SET LOCAL statement_timeout = '250ms'");
+      const result = await client.query<InsuranceProfileRow>(`
+        UPDATE insurance_schema.insurance_profiles
+        SET consent_revoked_at = COALESCE(consent_revoked_at, clock_timestamp()),
+            consent_revocation_reason = COALESCE(consent_revocation_reason, 'OWNER_REVOKED'),
+            verification_state = 'EXPIRED',
+            version = version + 1,
+            updated_at = clock_timestamp()
+        WHERE id = $1::uuid
+          AND owner_id = $2::uuid
+        RETURNING id::text, pet_id::text, insurer_code, policy_reference_masked,
+          pet_relation, valid_from::text, valid_until::text, verification_state,
+          consent_version, consented_at, consent_revoked_at, provider_data_masked, version,
+          created_at, updated_at
+      `, [profileId, ownerId]);
+      const profile = result.rows[0];
+      if (!profile) {
+        throw new DomainException(HttpStatus.NOT_FOUND, 'INSURANCE_PROFILE_NOT_FOUND', 'Insurance profile not found');
+      }
+
+      await this.writeInsuranceAudit(client, ownerId, profile.id, 'insurance_profile', 'consent.revoked', {
+        consentVersion: profile.consent_version,
+        insurerCode: profile.insurer_code,
+        petId: profile.pet_id,
+        source: 'insurance_profile',
+      });
+      const serverNow = await client.query<{ now: Date }>('SELECT clock_timestamp() AS now');
+      return { revoked: true, profileId: profile.id, serverNow: serverNow.rows[0].now.toISOString() };
     });
   }
 
@@ -145,6 +191,18 @@ export class InsuranceService {
       const row = created.rows[0];
 
       if (state === 'REQUESTED') {
+        await this.writeInsuranceAudit(client, input.ownerId, row.id, 'insurance_coverage_check', 'consent.granted', {
+          consentVersion: row.consent_version,
+          partnerCode: row.partner_code,
+          petId: row.pet_id,
+          source: 'coverage_check',
+        });
+        await this.writeInsuranceAudit(client, input.ownerId, row.id, 'insurance_coverage_check', 'insurance.request.created', {
+          coverageCheckId: row.id,
+          partnerCode: row.partner_code,
+          petId: row.pet_id,
+          state: row.state,
+        });
         await client.query(`
           INSERT INTO booking_schema.outbox_events (
             event_type, aggregate_type, aggregate_id, aggregate_version, correlation_id,
@@ -166,6 +224,34 @@ export class InsuranceService {
 
       return this.view(row);
     });
+  }
+
+  private async writeInsuranceAudit(
+    client: PoolClient,
+    ownerId: string,
+    aggregateId: string,
+    aggregateType: string,
+    action: string,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
+    await client.query(`
+      INSERT INTO audit_schema.audit_log (
+        actor_type, actor_id, action, aggregate_type, aggregate_id,
+        correlation_id, causation_id, traceparent, payload_json
+      ) VALUES (
+        'OWNER', $1, $2, $3, $4::uuid,
+        $5::uuid, $6::uuid, $7, $8::jsonb
+      )
+    `, [
+      ownerId,
+      action,
+      aggregateType,
+      aggregateId,
+      this.traceContext.getCorrelationId() ?? null,
+      this.traceContext.getCausationId() ?? null,
+      this.traceContext.getTraceparent() ?? null,
+      JSON.stringify(payload),
+    ]);
   }
 
   async read(id: string, ownerId: string): Promise<CoverageCheckView> {
@@ -259,10 +345,11 @@ export class InsuranceService {
       SELECT id::text, pet_id::text, insurer_code, policy_reference_masked,
              pet_relation, valid_from::text, valid_until::text,
              verification_state, consent_version, consented_at,
-             provider_data_masked, version, created_at, updated_at
+             consent_revoked_at, provider_data_masked, version, created_at, updated_at
       FROM insurance_schema.insurance_profiles
       WHERE owner_id = $1::uuid
         AND pet_id = $2::uuid
+        AND consent_revoked_at IS NULL
       ORDER BY CASE WHEN insurer_code = $3 THEN 0 ELSE 1 END,
                created_at DESC,
                id DESC
@@ -416,6 +503,7 @@ interface InsuranceProfileRow {
   verification_state: 'PENDING' | 'VERIFIED' | 'REJECTED' | 'EXPIRED';
   consent_version: string;
   consented_at: Date;
+  consent_revoked_at: Date | null;
   provider_data_masked: Record<string, unknown>;
   version: number;
   created_at: Date;
@@ -448,6 +536,7 @@ function profileView(row: InsuranceProfileRow): InsuranceProfileView {
     verificationState: row.verification_state,
     consentVersion: row.consent_version,
     consentedAt: row.consented_at.toISOString(),
+    consentRevokedAt: row.consent_revoked_at?.toISOString() ?? null,
     providerDataMasked: row.provider_data_masked,
     version: row.version,
     createdAt: row.created_at.toISOString(),

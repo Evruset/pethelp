@@ -9,6 +9,7 @@ interface CoverageOutboxEvent {
   id: string;
   coverage_check_id: string;
   correlation_id: string | null;
+  causation_id: string | null;
   traceparent: string | null;
 }
 
@@ -31,7 +32,7 @@ export class InsuranceCoverageWorker {
       const events = await this.claimBatch(10);
       for (const event of events) {
         const context = this.traceContext.workerContext(event.correlation_id, {
-          causationId: event.id,
+          causationId: event.causation_id ?? event.id,
           traceparent: event.traceparent,
         });
         await this.traceContext.run(context, async () => {
@@ -79,7 +80,7 @@ export class InsuranceCoverageWorker {
             attempts = attempts + 1
         FROM claimed
         WHERE e.id = claimed.id
-        RETURNING e.id, e.aggregate_id AS coverage_check_id, e.correlation_id, e.traceparent
+        RETURNING e.id, e.aggregate_id AS coverage_check_id, e.correlation_id, e.causation_id, e.traceparent
       `, [limit]);
       return result.rows;
     });

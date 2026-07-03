@@ -9,6 +9,8 @@ interface StartSessionOutboxEvent {
   id: string;
   booking_hold_id: string;
   correlation_id: string | null;
+  causation_id: string | null;
+  traceparent: string | null;
 }
 
 @Injectable()
@@ -29,7 +31,11 @@ export class TelemedSessionStartWorker {
     try {
       const events = await this.claimBatch(10);
       for (const event of events) {
-        await this.traceContext.run(this.traceContext.workerContext(event.correlation_id), async () => {
+        const context = this.traceContext.workerContext(event.correlation_id, {
+          causationId: event.causation_id ?? event.id,
+          traceparent: event.traceparent,
+        });
+        await this.traceContext.run(context, async () => {
           try {
             await this.telemedService.startSessionAfterPayment(event.booking_hold_id);
             await this.markPublished(event.id);
@@ -73,7 +79,7 @@ export class TelemedSessionStartWorker {
             attempts = attempts + 1
         FROM claimed
         WHERE e.id = claimed.id
-        RETURNING e.id, e.aggregate_id AS booking_hold_id, e.correlation_id
+        RETURNING e.id, e.aggregate_id AS booking_hold_id, e.correlation_id, e.causation_id, e.traceparent
       `, [limit]);
       return result.rows;
     });

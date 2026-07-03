@@ -76,6 +76,7 @@ class InsuranceProfileView {
     required this.validUntil,
     required this.verificationState,
     required this.consentVersion,
+    required this.consentRevokedAt,
     required this.version,
   });
 
@@ -88,6 +89,7 @@ class InsuranceProfileView {
   final DateTime? validUntil;
   final String verificationState;
   final String consentVersion;
+  final DateTime? consentRevokedAt;
   final int version;
 
   factory InsuranceProfileView.fromJson(Map<String, dynamic> json) {
@@ -101,7 +103,25 @@ class InsuranceProfileView {
       validUntil: _optionalDate(json['validUntil']),
       verificationState: json['verificationState'] as String,
       consentVersion: json['consentVersion'] as String,
+      consentRevokedAt: _optionalDateTime(json['consentRevokedAt']),
       version: (json['version'] as num).toInt(),
+    );
+  }
+}
+
+class ConsentRevocationResult {
+  const ConsentRevocationResult({
+    required this.profileId,
+    required this.serverNow,
+  });
+
+  final String profileId;
+  final DateTime serverNow;
+
+  factory ConsentRevocationResult.fromJson(Map<String, dynamic> json) {
+    return ConsentRevocationResult(
+      profileId: json['profileId'] as String,
+      serverNow: DateTime.parse(json['serverNow'] as String),
     );
   }
 }
@@ -182,6 +202,30 @@ class CoverageCheckRepository {
       throw CoverageCheckApiException(response.statusCode, _errorCode(payload));
     }
     return InsuranceProfileView.fromJson(payload);
+  }
+
+  Future<ConsentRevocationResult> revokeInsuranceConsent(
+    String profileId, {
+    required String correlationId,
+  }) async {
+    final token = await accessTokenProvider();
+    final response = await _client.delete(
+      baseUrl.resolve('/v1/insurance/profiles/$profileId/consent'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+        'X-Correlation-Id': correlationId,
+      },
+    );
+    final payload = _decode(response);
+    if (response.statusCode != 200 || payload is! Map<String, dynamic>) {
+      throw CoverageCheckApiException(response.statusCode, _errorCode(payload));
+    }
+    return ConsentRevocationResult.fromJson(payload);
+  }
+
+  Future<ConsentRevocationResult> revokeProfileConsent(String profileId) {
+    return revokeInsuranceConsent(profileId, correlationId: _uuid.v4());
   }
 
   Future<CoverageCheckView> create({

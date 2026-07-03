@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../core/e2e/owner_e2e_hooks.dart';
 import '../pets/owner_pet.dart';
 import 'coverage_check_repository.dart';
 
@@ -24,6 +25,7 @@ class _CoverageCheckPageState extends State<CoverageCheckPage> {
   static const _policyConsentVersion = 'owner-mobile-policy-v1';
   final _formKey = GlobalKey<FormState>();
   final _uuid = const Uuid();
+  late final String _correlationId = _uuid.v4();
 
   CoverageCheckSubmitState _submitState = CoverageCheckSubmitState.idle;
   CoverageCheckView? _check;
@@ -40,7 +42,20 @@ class _CoverageCheckPageState extends State<CoverageCheckPage> {
   @override
   void initState() {
     super.initState();
+    registerOwnerE2EHook('insuranceAcceptConsent', () {
+      if (!mounted) return;
+      setState(() => _consentAccepted = true);
+      setOwnerE2EMarker('insuranceConsent', 'accepted');
+    });
+    registerOwnerE2EHook('insuranceSubmit', _submit);
     _reloadProfiles();
+  }
+
+  @override
+  void dispose() {
+    unregisterOwnerE2EHook('insuranceAcceptConsent');
+    unregisterOwnerE2EHook('insuranceSubmit');
+    super.dispose();
   }
 
   void _reloadProfiles() {
@@ -66,6 +81,51 @@ class _CoverageCheckPageState extends State<CoverageCheckPage> {
     );
   }
 
+  Future<void> _revokeProfileConsent(InsuranceProfileView profile) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Отозвать согласие'),
+        content: Text(
+          'Полис ${profile.insurerCode} больше не будет использоваться для проверок покрытия.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Назад'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Отозвать'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await widget.repository.revokeInsuranceConsent(
+        profile.id,
+        correlationId: _correlationId,
+      );
+      if (!mounted) return;
+      _reloadProfiles();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Согласие отозвано.')),
+      );
+    } on CoverageCheckApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_revokeError(error.code))),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не удалось отозвать согласие.')),
+      );
+    }
+  }
+
   Future<void> _submit() async {
     final form = _formKey.currentState;
     if (form == null || !form.validate() || !_canSubmit) return;
@@ -78,7 +138,7 @@ class _CoverageCheckPageState extends State<CoverageCheckPage> {
         petId: widget.pet.id,
         partnerCode: _partnerCode,
         consentVersion: _consentVersion,
-        correlationId: _uuid.v4(),
+        correlationId: _correlationId,
       );
       if (!mounted) return;
       HapticFeedback.mediumImpact();
@@ -86,12 +146,14 @@ class _CoverageCheckPageState extends State<CoverageCheckPage> {
         _check = result;
         _submitState = CoverageCheckSubmitState.success;
       });
+      setOwnerE2EMarker('insuranceState', 'success');
     } on CoverageCheckApiException catch (error) {
       if (!mounted) return;
       setState(() {
         _submitState = CoverageCheckSubmitState.failure;
         _error = _messageFor(error.code);
       });
+      setOwnerE2EMarker('insuranceState', 'failure');
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -99,6 +161,7 @@ class _CoverageCheckPageState extends State<CoverageCheckPage> {
         _error =
             'Не удалось отправить проверку. Проверьте соединение и повторите попытку.';
       });
+      setOwnerE2EMarker('insuranceState', 'failure');
     }
   }
 
@@ -150,6 +213,7 @@ class _CoverageCheckPageState extends State<CoverageCheckPage> {
               petId: widget.pet.id,
               onRetry: _reloadProfiles,
               onAdd: _addProfile,
+              onRevoke: _revokeProfileConsent,
             ),
             const SizedBox(height: 16),
             Form(
@@ -189,22 +253,26 @@ class _CoverageCheckPageState extends State<CoverageCheckPage> {
                     builder: (field) => Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CheckboxListTile(
-                          value: _consentAccepted,
-                          onChanged:
-                              _submitState == CoverageCheckSubmitState.loading
-                                  ? null
-                                  : (value) {
-                                      setState(() {
-                                        _consentAccepted = value == true;
-                                        field.didChange(_consentAccepted);
-                                      });
-                                    },
-                          title: const Text('Согласие на проверку'),
-                          subtitle: const Text(
-                              'VetHelp отправит страховому партнёру только данные, необходимые для проверки покрытия.'),
-                          controlAffinity: ListTileControlAffinity.leading,
-                          contentPadding: EdgeInsets.zero,
+                        Semantics(
+                          label:
+                              'Согласие на отправку данных страховому партнёру',
+                          child: CheckboxListTile(
+                            value: _consentAccepted,
+                            onChanged:
+                                _submitState == CoverageCheckSubmitState.loading
+                                    ? null
+                                    : (value) {
+                                        setState(() {
+                                          _consentAccepted = value == true;
+                                          field.didChange(_consentAccepted);
+                                        });
+                                      },
+                            title: const Text('Согласие на проверку'),
+                            subtitle: const Text(
+                                'VetHelp отправит страховому партнёру только данные, необходимые для проверки покрытия.'),
+                            controlAffinity: ListTileControlAffinity.leading,
+                            contentPadding: EdgeInsets.zero,
+                          ),
                         ),
                         if (field.hasError)
                           Padding(
@@ -222,20 +290,25 @@ class _CoverageCheckPageState extends State<CoverageCheckPage> {
                     _ErrorBanner(text: _error!),
                   ],
                   const SizedBox(height: 16),
-                  FilledButton.icon(
-                    onPressed: _canSubmit ? _submit : null,
-                    icon: _submitState == CoverageCheckSubmitState.loading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.shield_outlined),
-                    label: Text(_submitState == CoverageCheckSubmitState.loading
-                        ? 'Отправляем'
-                        : 'Проверить покрытие'),
-                    style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(52)),
+                  Semantics(
+                    button: true,
+                    label: 'Отправить проверку страхового покрытия',
+                    child: FilledButton.icon(
+                      onPressed: _canSubmit ? _submit : null,
+                      icon: _submitState == CoverageCheckSubmitState.loading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.shield_outlined),
+                      label: Text(
+                          _submitState == CoverageCheckSubmitState.loading
+                              ? 'Отправляем'
+                              : 'Проверить покрытие'),
+                      style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(52)),
+                    ),
                   ),
                 ],
               ),
@@ -270,12 +343,14 @@ class _InsuranceProfilesSection extends StatelessWidget {
     required this.petId,
     required this.onRetry,
     required this.onAdd,
+    required this.onRevoke,
   });
 
   final Future<List<InsuranceProfileView>>? request;
   final String petId;
   final VoidCallback onRetry;
   final VoidCallback onAdd;
+  final ValueChanged<InsuranceProfileView> onRevoke;
 
   @override
   Widget build(BuildContext context) {
@@ -327,8 +402,10 @@ class _InsuranceProfilesSection extends StatelessWidget {
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: profiles.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) =>
-                        _InsuranceProfileTile(profile: profiles[index]),
+                    itemBuilder: (context, index) => _InsuranceProfileTile(
+                      profile: profiles[index],
+                      onRevoke: () => onRevoke(profiles[index]),
+                    ),
                   ),
               ],
             );
@@ -361,9 +438,13 @@ class _InlineRetry extends StatelessWidget {
 }
 
 class _InsuranceProfileTile extends StatelessWidget {
-  const _InsuranceProfileTile({required this.profile});
+  const _InsuranceProfileTile({
+    required this.profile,
+    required this.onRevoke,
+  });
 
   final InsuranceProfileView profile;
+  final VoidCallback onRevoke;
 
   @override
   Widget build(BuildContext context) {
@@ -382,6 +463,11 @@ class _InsuranceProfileTile extends StatelessWidget {
           if (validity != null) validity,
           _verification(profile.verificationState),
         ].join('\n')),
+        trailing: IconButton(
+          tooltip: 'Отозвать согласие',
+          onPressed: onRevoke,
+          icon: const Icon(Icons.link_off_outlined),
+        ),
         isThreeLine: validity != null,
       ),
     );
@@ -960,5 +1046,13 @@ String _profileError(String code) {
       'Выберите питомца из вашего профиля и повторите сохранение.',
     'UNAUTHENTICATED' => 'Сессия истекла. Войдите снова.',
     _ => 'Не удалось сохранить полис. Проверьте данные и повторите попытку.',
+  };
+}
+
+String _revokeError(String code) {
+  return switch (code) {
+    'INSURANCE_PROFILE_NOT_FOUND' => 'Полис уже недоступен.',
+    'UNAUTHENTICATED' => 'Сессия истекла. Войдите снова.',
+    _ => 'Не удалось отозвать согласие. Повторите попытку.',
   };
 }

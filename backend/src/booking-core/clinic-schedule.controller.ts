@@ -214,6 +214,16 @@ function workingHoursOrThrow(value: unknown): Array<{ weekday: number; opensAt: 
   });
 }
 
+function exportAttemptBodyOrThrow(body: { format?: unknown; scope?: unknown; rowsCount?: unknown }): { format: 'JSON' | 'CSV'; scope: 'SCHEDULE' | 'SLOTS'; rowsCount: number } {
+  const format = body.format === 'JSON' || body.format === 'CSV' ? body.format : null;
+  const scope = body.scope === 'SCHEDULE' || body.scope === 'SLOTS' ? body.scope : null;
+  const rowsCount = typeof body.rowsCount === 'number' ? body.rowsCount : Number(body.rowsCount);
+  if (!format || !scope || !Number.isInteger(rowsCount) || rowsCount < 0 || rowsCount > 100_000) {
+    throw new BadRequestException({ code: 'INVALID_REQUEST', message: 'format, scope and rowsCount are required.' });
+  }
+  return { format, scope, rowsCount };
+}
+
 @ApiTags('Clinic Schedule')
 @Controller('v1')
 export class ClinicScheduleController {
@@ -240,6 +250,28 @@ export class ClinicScheduleController {
       employee,
       from: dateOrThrow(from, 'from'),
       to: dateOrThrow(to, 'to'),
+    });
+  }
+
+  @Post('clinic/:clinicId/locations/:locationId/schedule/export-attempts')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.CLINIC_RECEPTIONIST, Role.CLINIC_ADMIN)
+  @ApiBearerAuth(SWAGGER_BEARER_AUTH)
+  @ApiOperation({ summary: 'Audit a clinic schedule export/download attempt' })
+  @ApiOkResponse({ description: 'Export attempt has been appended to audit log.' })
+  @ApiForbiddenResponse({ description: 'Clinic/location scope mismatch.' })
+  async recordExportAttempt(
+    @Param('clinicId') clinicId: string,
+    @Param('locationId') locationId: string,
+    @Body() body: { format?: unknown; scope?: unknown; rowsCount?: unknown },
+    @CurrentUser() employee: JwtPayload,
+  ) {
+    return this.schedule.recordExportAttempt({
+      clinicId: idOrThrow(clinicId),
+      locationId: idOrThrow(locationId),
+      employee,
+      ...exportAttemptBodyOrThrow(body),
     });
   }
 

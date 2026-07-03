@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../core/e2e/owner_e2e_hooks.dart';
 import '../appointments/owner_appointments_page.dart';
 import '../appointments/owner_appointments_repository.dart';
 import '../booking/alternative_slot/alternative_slot_repository.dart';
 import '../pets/owner_pet.dart';
 import '../pets/owner_pet_repository.dart';
 import '../pets/owner_pets_page.dart';
+import '../../presentation/pages/owner_adaptive_shell.dart';
 
 class OwnerJourneyPage extends StatefulWidget {
   const OwnerJourneyPage({
@@ -60,7 +62,46 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    registerOwnerE2EHook('openHome', () => _selectTab(0));
+    registerOwnerE2EHook('openAppointments', () => _selectTab(1));
+    registerOwnerE2EHook('openPet', () => _selectTab(2));
+    registerOwnerE2EHook('openOnline', () => _selectTab(3));
+  }
+
+  @override
+  void dispose() {
+    unregisterOwnerE2EHook('openHome');
+    unregisterOwnerE2EHook('openAppointments');
+    unregisterOwnerE2EHook('openPet');
+    unregisterOwnerE2EHook('openOnline');
+    super.dispose();
+  }
+
+  void _selectTab(int index) {
+    if (!mounted) return;
+    setState(() => _index = index);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (Theme.of(context).platform == TargetPlatform.iOS) {
+      return OwnerAdaptiveShell(
+        home: _homeBody(),
+        clinics: _ClinicsLanding(onBrowseClinics: widget.onBrowseClinics),
+        appointments: OwnerAppointmentsPage(
+          repository: widget.appointmentsRepository,
+          alternativeSlotRepository: widget.alternativeSlotRepository,
+        ),
+        pets: OwnerPetsPage(
+          repository: widget.petsRepository,
+          onPetSelected: widget.onPetSelected,
+        ),
+        profile: const _OwnerProfileLanding(),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('VetHelp'),
@@ -79,24 +120,26 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
       body: SafeArea(child: _body()),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (index) => setState(() => _index = index),
+        onDestinationSelected: _selectTab,
         destinations: _destinations,
       ),
     );
   }
 
+  Widget _homeBody() => _OwnerHome(
+        selectedPet: widget.selectedPet,
+        appointmentsRepository: widget.appointmentsRepository,
+        onBrowseClinics: widget.onBrowseClinics,
+        onManagePets: () => setState(() => _index = 2),
+        onOpenAppointments: () => setState(() => _index = 1),
+        onOpenCare: widget.onOpenCare,
+        onRequestTelemed: widget.onRequestTelemed,
+        onRequestInsurance: widget.onRequestInsurance,
+        onRequestEmergency: widget.onRequestEmergency,
+      );
+
   Widget _body() => switch (_index) {
-        0 => _OwnerHome(
-            selectedPet: widget.selectedPet,
-            appointmentsRepository: widget.appointmentsRepository,
-            onBrowseClinics: widget.onBrowseClinics,
-            onManagePets: () => setState(() => _index = 2),
-            onOpenAppointments: () => setState(() => _index = 1),
-            onOpenCare: widget.onOpenCare,
-            onRequestTelemed: widget.onRequestTelemed,
-            onRequestInsurance: widget.onRequestInsurance,
-            onRequestEmergency: widget.onRequestEmergency,
-          ),
+        0 => _homeBody(),
         1 => OwnerAppointmentsPage(
             repository: widget.appointmentsRepository,
             alternativeSlotRepository: widget.alternativeSlotRepository,
@@ -113,6 +156,44 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
         3 => _TelemedLanding(onRequestTelemed: widget.onRequestTelemed),
         _ => const SizedBox.shrink(),
       };
+}
+
+class _ClinicsLanding extends StatelessWidget {
+  const _ClinicsLanding({required this.onBrowseClinics});
+
+  final VoidCallback onBrowseClinics;
+
+  @override
+  Widget build(BuildContext context) => ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Text('Клиники', style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 8),
+          const Text(
+              'Выберите клинику, услугу и удобное время для очного визита.'),
+          const SizedBox(height: 20),
+          FilledButton.icon(
+            onPressed: onBrowseClinics,
+            icon: const Icon(Icons.search),
+            label: const Text('Найти клинику'),
+          ),
+        ],
+      );
+}
+
+class _OwnerProfileLanding extends StatelessWidget {
+  const _OwnerProfileLanding();
+
+  @override
+  Widget build(BuildContext context) => ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Text('Профиль', style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 8),
+          const Text(
+              'Личные данные, уведомления и настройки аккаунта появятся в следующих шагах.'),
+        ],
+      );
 }
 
 class _OwnerHome extends StatefulWidget {
@@ -180,6 +261,75 @@ class _OwnerHomeState extends State<_OwnerHome> {
                 'Покажем проверенные клиники, которые принимают срочные случаи сейчас.'),
             trailing: const Icon(Icons.chevron_right),
             onTap: widget.onRequestEmergency,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          color: colors.primaryContainer,
+          child: InkWell(
+            onTap: pet == null ? widget.onManagePets : widget.onBrowseClinics,
+            borderRadius: BorderRadius.circular(12),
+            child: Semantics(
+              button: true,
+              label: pet == null
+                  ? 'Добавить питомца для записи'
+                  : 'Найти клинику для записи',
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, size: 32),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Найти клинику',
+                              style: Theme.of(context).textTheme.titleMedium),
+                          const SizedBox(height: 4),
+                          Text(pet == null
+                              ? 'Сначала добавьте питомца, затем выберите клинику, услугу и время.'
+                              : 'Выберите клинику, услугу и ближайшее доступное время для ${pet.name}.'),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          color: colors.tertiaryContainer,
+          child: InkWell(
+            onTap: widget.onRequestInsurance,
+            borderRadius: BorderRadius.circular(12),
+            child: Semantics(
+              button: true,
+              label: 'Открыть проверку страхового покрытия',
+              child: const Padding(
+                padding: EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Icon(Icons.shield_outlined, size: 32),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Страховое покрытие'),
+                          SizedBox(height: 4),
+                          Text('Проверьте покрытие после согласия владельца.'),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 12),

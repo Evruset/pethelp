@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/e2e/owner_e2e_hooks.dart';
 import '../booking/alternative_slot/alternative_slot_page.dart';
 import '../booking/alternative_slot/alternative_slot_repository.dart';
 import 'owner_appointments_repository.dart';
@@ -179,6 +180,18 @@ class _AppointmentsList extends StatelessWidget {
         ),
       );
     }
+
+    registerOwnerE2EHook('openFirstAppointmentDetail', () {
+      final first = rows.first;
+      Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => OwnerAppointmentDetailPage(
+          holdId: first.holdId,
+          initialSummary: first,
+          repository: repository,
+          alternativeSlotRepository: alternativeSlotRepository,
+        ),
+      ));
+    });
 
     return RefreshIndicator(
       onRefresh: onRefresh,

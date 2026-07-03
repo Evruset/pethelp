@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 /// Shared semantic tokens for the owner application.
@@ -58,10 +59,14 @@ class VetHelpSurfaceTokens extends ThemeExtension<VetHelpSurfaceTokens> {
 class VetHelpTheme {
   const VetHelpTheme._();
 
-  static ThemeData light() {
+  static ThemeData light() => _theme(Brightness.light);
+
+  static ThemeData dark() => _theme(Brightness.dark);
+
+  static ThemeData _theme(Brightness brightness) {
     final colors = ColorScheme.fromSeed(
       seedColor: Colors.teal,
-      brightness: Brightness.light,
+      brightness: brightness,
     );
     final base = ThemeData(useMaterial3: true, colorScheme: colors);
     final radius = BorderRadius.circular(22);
@@ -218,6 +223,27 @@ class VetHelpTheme {
           ),
         );
       },
+    );
+  }
+}
+
+class VetHelpCupertinoTheme {
+  const VetHelpCupertinoTheme._();
+
+  static CupertinoThemeData data(BuildContext context) {
+    final brightness = MediaQuery.platformBrightnessOf(context);
+    return CupertinoThemeData(
+      brightness: brightness,
+      primaryColor: CupertinoColors.activeBlue,
+      scaffoldBackgroundColor: CupertinoColors.systemGroupedBackground,
+      barBackgroundColor: CupertinoColors.systemBackground,
+      textTheme: CupertinoTextThemeData(
+        primaryColor: CupertinoColors.label,
+        textStyle: const TextStyle(
+          color: CupertinoColors.label,
+          fontFamily: '.SF Pro Text',
+        ),
+      ),
     );
   }
 }

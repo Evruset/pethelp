@@ -4,6 +4,40 @@ import 'package:http/testing.dart';
 import 'package:vethelp_owner_mobile/features/insurance/coverage_check_repository.dart';
 
 void main() {
+  test('revokes insurance consent with correlation header', () async {
+    const profileId = '00000000-0000-4000-8000-000000000010';
+    const correlationId = '00000000-0000-4000-8000-000000000011';
+    final repository = CoverageCheckRepository(
+      baseUrl: Uri.parse('http://127.0.0.1:3000'),
+      accessTokenProvider: () async => 'owner-token',
+      client: MockClient((request) async {
+        expect(request.method, 'DELETE');
+        expect(request.url.path, '/v1/insurance/profiles/$profileId/consent');
+        expect(request.headers['Authorization'], 'Bearer owner-token');
+        expect(request.headers['X-Correlation-Id'], correlationId);
+        return http.Response(
+          '''
+{
+  "revoked": true,
+  "profileId": "$profileId",
+  "serverNow": "2026-06-29T10:00:00.000Z"
+}
+''',
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      }),
+    );
+
+    final result = await repository.revokeInsuranceConsent(
+      profileId,
+      correlationId: correlationId,
+    );
+
+    expect(result.profileId, profileId);
+    expect(result.serverNow, DateTime.utc(2026, 6, 29, 10));
+  });
+
   test('reads provider-backed coverage snapshot with claim draft', () async {
     final repository = CoverageCheckRepository(
       baseUrl: Uri.parse('http://127.0.0.1:3000'),

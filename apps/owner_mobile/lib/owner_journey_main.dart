@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'core/e2e/owner_e2e_hooks.dart';
 import 'core/offline/outbox_repository.dart';
 import 'features/appointments/owner_appointments_repository.dart';
 import 'features/auth/owner_auth_repository.dart';
@@ -37,6 +38,7 @@ class VetHelpOwnerJourneyApp extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
         title: 'VetHelp',
         theme: VetHelpTheme.light(),
+        darkTheme: VetHelpTheme.dark(),
         builder: VetHelpTheme.frameBuilder,
         locale: const Locale('ru'),
         supportedLocales: const [Locale('ru'), Locale('en')],
@@ -54,6 +56,15 @@ class OwnerJourneyEntry extends StatefulWidget {
 class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   static const _configuredApiBaseUrl =
       String.fromEnvironment('VETHELP_API_BASE_URL');
+  static const _e2eClinicId = String.fromEnvironment('VETHELP_E2E_CLINIC_ID');
+  static const _e2eClinicName =
+      String.fromEnvironment('VETHELP_E2E_CLINIC_NAME');
+  static const _e2eLocationId =
+      String.fromEnvironment('VETHELP_E2E_LOCATION_ID');
+  static const _e2eServiceId =
+      String.fromEnvironment('VETHELP_E2E_SERVICE_ID');
+  static const _e2eServiceName =
+      String.fromEnvironment('VETHELP_E2E_SERVICE_NAME');
   final _bootstrapOwnerJwt = const String.fromEnvironment('VETHELP_OWNER_JWT');
   OwnerSession? _session;
   OwnerPet? _selectedPet;
@@ -77,11 +88,32 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
     super.initState();
     _ownerOutbox = OutboxRepository(InMemoryOfflineCommandStore());
     _ownerDeviceId = 'owner-mobile-${DateTime.now().microsecondsSinceEpoch}';
+    _registerE2EHooks();
     if (_bootstrapOwnerJwt.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _selectExistingPet();
       });
     }
+  }
+
+  @override
+  void dispose() {
+    unregisterOwnerE2EHook('openEmergency');
+    unregisterOwnerE2EHook('openInsurance');
+    unregisterOwnerE2EHook('openBooking');
+    unregisterOwnerE2EHook('back');
+    super.dispose();
+  }
+
+  void _registerE2EHooks() {
+    registerOwnerE2EHook('openEmergency', _openEmergency);
+    registerOwnerE2EHook('openInsurance', _openInsuranceCheck);
+    registerOwnerE2EHook('openBooking', _openE2EBooking);
+    registerOwnerE2EHook('back', () {
+      if (mounted) {
+        Navigator.of(context).maybePop();
+      }
+    });
   }
 
   Future<String> _token() async {
@@ -244,6 +276,38 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
         petId: pet.id,
         repository: HttpBookingMarketplaceRepository(
             baseUrl: Uri.parse(_apiBaseUrl), accessTokenProvider: _token),
+      ),
+    ));
+  }
+
+  void _openE2EBooking() {
+    if (_e2eClinicId.isEmpty ||
+        _e2eLocationId.isEmpty ||
+        _e2eServiceId.isEmpty) {
+      _showMessage(
+          'Local E2E booking requires VETHELP_E2E_CLINIC_ID, VETHELP_E2E_LOCATION_ID and VETHELP_E2E_SERVICE_ID.');
+      return;
+    }
+    _openBooking(CatalogBookingSelection(
+      location: CatalogLocation(
+        clinicId: _e2eClinicId,
+        clinicName: _e2eClinicName.isNotEmpty ? _e2eClinicName : 'VetHelp Pilot',
+        locationId: _e2eLocationId,
+        address: 'Moscow, Pilotnaya 1',
+        phone: null,
+        latitude: null,
+        longitude: null,
+        hasOpenSlots: true,
+        observedAt: DateTime.now(),
+      ),
+      service: CatalogService(
+        id: _e2eServiceId,
+        code: 'CONSULTATION',
+        displayName:
+            _e2eServiceName.isNotEmpty ? _e2eServiceName : 'Первичный приём',
+        durationMinutes: 30,
+        priceAmount: '1500.00',
+        currency: 'RUB',
       ),
     ));
   }

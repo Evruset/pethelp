@@ -548,9 +548,12 @@ class _ClinicCard extends StatelessWidget {
     final badges = _CatalogBadges(clinic: clinic);
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
+      child: Semantics(
+        button: true,
+        label: 'Открыть клинику ${clinic.name}',
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -588,6 +591,7 @@ class _ClinicCard extends StatelessWidget {
                 ],
               ),
             ],
+          ),
           ),
         ),
       ),
@@ -746,6 +750,31 @@ class _ClinicDetailBodyState extends State<_ClinicDetailBody> {
                       onSelected: (service) =>
                           setState(() => _selectedServiceId = service.id),
                     ),
+                    const SizedBox(height: 16),
+                    Semantics(
+                      button: true,
+                      label: selectedService == null
+                          ? 'Выберите услугу перед выбором времени'
+                          : 'Выбрать время для услуги ${selectedService.displayName}',
+                      child: FilledButton.icon(
+                        onPressed:
+                            location.hasOpenSlots && selectedService != null
+                                ? () =>
+                                    widget.onSelected(CatalogBookingSelection(
+                                      location: location,
+                                      service: selectedService,
+                                    ))
+                                : null,
+                        icon: const Icon(Icons.calendar_month_outlined),
+                        label: Text(!location.hasOpenSlots
+                            ? 'Свободных окон нет'
+                            : selectedService == null
+                                ? 'Выберите услугу'
+                                : 'Выбрать время'),
+                        style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(52)),
+                      ),
+                    ),
                     const SizedBox(height: 20),
                     _AvailabilityDaySelector(
                       selectedDay: _selectedAvailabilityDay,
@@ -762,22 +791,29 @@ class _ClinicDetailBodyState extends State<_ClinicDetailBody> {
                       service: selectedService,
                     ),
                     const SizedBox(height: 24),
-                    FilledButton.icon(
-                      onPressed:
-                          location.hasOpenSlots && selectedService != null
-                              ? () => widget.onSelected(CatalogBookingSelection(
-                                    location: location,
-                                    service: selectedService,
-                                  ))
-                              : null,
-                      icon: const Icon(Icons.calendar_month_outlined),
-                      label: Text(!location.hasOpenSlots
-                          ? 'Свободных окон нет'
-                          : selectedService == null
-                              ? 'Выберите услугу'
-                              : 'Выбрать время'),
-                      style: FilledButton.styleFrom(
-                          minimumSize: const Size.fromHeight(52)),
+                    Semantics(
+                      button: true,
+                      label: selectedService == null
+                          ? 'Выберите услугу перед выбором времени'
+                          : 'Выбрать время для услуги ${selectedService.displayName}',
+                      child: FilledButton.icon(
+                        onPressed:
+                            location.hasOpenSlots && selectedService != null
+                                ? () =>
+                                    widget.onSelected(CatalogBookingSelection(
+                                      location: location,
+                                      service: selectedService,
+                                    ))
+                                : null,
+                        icon: const Icon(Icons.calendar_month_outlined),
+                        label: Text(!location.hasOpenSlots
+                            ? 'Свободных окон нет'
+                            : selectedService == null
+                                ? 'Выберите услугу'
+                                : 'Выбрать время'),
+                        style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(52)),
+                      ),
                     ),
                   ],
                 );
@@ -988,10 +1024,14 @@ class _LocationChoice extends StatelessWidget {
         side: BorderSide(
             color: selected ? colors.primary : Theme.of(context).dividerColor),
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Padding(
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: 'Выбрать адрес ${location.address}',
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(
             children: [
@@ -1014,6 +1054,7 @@ class _LocationChoice extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
               ),
             ],
+          ),
           ),
         ),
       ),
