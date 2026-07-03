@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../presentation/platform/owner_platform.dart';
 import '../../presentation/widgets/owner_cupertino_feedback.dart';
+import '../../ui/vethelp_owner_components.dart';
 import '../booking/alternative_slot/alternative_slot_page.dart';
 import '../booking/alternative_slot/alternative_slot_repository.dart';
 import 'owner_appointments_repository.dart';
@@ -155,8 +156,9 @@ class _OwnerAppointmentsPageState extends State<OwnerAppointmentsPage> {
                 child: const Icon(CupertinoIcons.refresh),
               ),
             ),
-            child: SafeArea(
-              bottom: false,
+            child: VhPageBackdrop(
+              child: SafeArea(
+                bottom: false,
               child: Builder(
                 builder: (context) {
                   if (loading) {
@@ -169,9 +171,12 @@ class _OwnerAppointmentsPageState extends State<OwnerAppointmentsPage> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: CupertinoSlidingSegmentedControl<int>(
+                        child: VhGlassSurface(
+                          radius: 18,
+                          padding: const EdgeInsets.all(4),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: CupertinoSlidingSegmentedControl<int>(
                             groupValue: _cupertinoSegment,
                             children: const {
                               0: Padding(
@@ -186,7 +191,8 @@ class _OwnerAppointmentsPageState extends State<OwnerAppointmentsPage> {
                             onValueChanged: (value) {
                               if (value == null) return;
                               setState(() => _cupertinoSegment = value);
-                            },
+                              },
+                            ),
                           ),
                         ),
                       ),
@@ -206,6 +212,7 @@ class _OwnerAppointmentsPageState extends State<OwnerAppointmentsPage> {
                     ],
                   );
                 },
+              ),
               ),
             ),
           );
@@ -420,7 +427,9 @@ class _CupertinoAppointmentRow extends StatelessWidget {
       bucket: appointment.bucket,
     );
     final tone = _cupertinoTone(context, status.tone);
+    final colors = Theme.of(context).colorScheme;
     final stacksHeader = MediaQuery.textScalerOf(context).scale(1) >= 1.3;
+
     return Semantics(
       button: true,
       label:
@@ -443,92 +452,127 @@ class _CupertinoAppointmentRow extends StatelessWidget {
             ),
           ),
         ),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: CupertinoDynamicColor.resolve(
-              CupertinoColors.secondarySystemGroupedBackground,
-              context,
-            ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: CupertinoDynamicColor.resolve(
-                CupertinoColors.separator,
-                context,
-              ),
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (stacksHeader) ...[
-                  Text(
-                    appointment.clinicName,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style:
-                        CupertinoTheme.of(context).textTheme.navTitleTextStyle,
-                  ),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: _CupertinoStatusPill(status: status),
-                  ),
-                ] else
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          appointment.clinicName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: CupertinoTheme.of(context)
-                              .textTheme
-                              .navTitleTextStyle,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      _CupertinoStatusPill(status: status),
-                    ],
-                  ),
+        child: VhGlassSurface(
+          radius: 24,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (stacksHeader) ...[
+                _AppointmentTitle(
+                  clinicName: appointment.clinicName,
+                  status: status,
+                  tone: tone,
+                  colors: colors,
+                ),
                 const SizedBox(height: 10),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: _CupertinoStatusPill(status: status),
+                ),
+              ] else
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(status.icon, size: 20, color: tone.foreground),
-                    const SizedBox(width: 8),
+                    _AppointmentStatusIcon(
+                      icon: status.icon,
+                      color: tone.foreground,
+                      background: tone.background,
+                    ),
+                    const SizedBox(width: 12),
                     Expanded(
-                        child: Text(_cupertinoRange(
-                      appointment.startsAt,
-                      appointment.endsAt,
-                    ))),
+                      child: _AppointmentTitle(
+                        clinicName: appointment.clinicName,
+                        status: status,
+                        tone: tone,
+                        colors: colors,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _CupertinoStatusPill(status: status),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  '${appointment.petName} · ${appointment.clinicAddress}',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style:
-                      CupertinoTheme.of(context).textTheme.textStyle.copyWith(
-                            color: CupertinoDynamicColor.resolve(
-                              CupertinoColors.secondaryLabel,
-                              context,
-                            ),
-                          ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  status.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: CupertinoTheme.of(context).textTheme.textStyle,
-                ),
-              ],
-            ),
+              const SizedBox(height: 14),
+              Text(
+                _cupertinoRange(appointment.startsAt, appointment.endsAt),
+                style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                      color: colors.onSurface,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${appointment.petName} · ${appointment.clinicAddress}',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                status.description,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                      color: colors.onSurfaceVariant,
+                      fontSize: 14,
+                    ),
+              ),
+            ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _AppointmentTitle extends StatelessWidget {
+  const _AppointmentTitle({
+    required this.clinicName,
+    required this.status,
+    required this.tone,
+    required this.colors,
+  });
+
+  final String clinicName;
+  final _OwnerStatusView status;
+  final _CupertinoTone tone;
+  final ColorScheme colors;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      clinicName,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: CupertinoTheme.of(context).textTheme.navTitleTextStyle.copyWith(
+            color: colors.onSurface,
+          ),
+    );
+  }
+}
+
+class _AppointmentStatusIcon extends StatelessWidget {
+  const _AppointmentStatusIcon({
+    required this.icon,
+    required this.color,
+    required this.background,
+  });
+
+  final IconData icon;
+  final Color color;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: background.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Icon(icon, color: color, size: 24),
     );
   }
 }
