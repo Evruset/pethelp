@@ -150,7 +150,7 @@ void main() {
     expect(find.byType(CupertinoButton), findsNothing);
   });
 
-  testWidgets('web desktop shell uses side rail and responsive Home hierarchy',
+  testWidgets('web desktop shell uses floating bottom dock and Home hierarchy',
       (tester) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.binding.setSurfaceSize(const Size(1280, 900));
@@ -172,8 +172,9 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byType(NavigationRail), findsNothing);
     expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byKey(const ValueKey('owner-web-bottom-dock')), findsOneWidget);
     expect(find.text('Главное для питомца'), findsOneWidget);
     expect(find.text('Найти клинику'), findsOneWidget);
     expect(find.text('Выбранный питомец'), findsOneWidget);
@@ -183,7 +184,7 @@ void main() {
     expect(find.textContaining('790'), findsNothing);
   });
 
-  testWidgets('tablet Home keeps side rail and usable constrained content',
+  testWidgets('tablet Home keeps floating dock and usable constrained content',
       (tester) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.binding.setSurfaceSize(const Size(1024, 768));
@@ -205,7 +206,8 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byType(NavigationRail), findsNothing);
+    expect(find.byKey(const ValueKey('owner-web-bottom-dock')), findsOneWidget);
     expect(find.text('Активные записи'), findsOneWidget);
     expect(find.text('VetHelp Pilot'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -264,6 +266,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(NavigationRail), findsNothing);
+    expect(find.byKey(const ValueKey('owner-web-bottom-dock')), findsNothing);
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.text('Добавить питомца'), findsOneWidget);
   });
@@ -485,7 +488,7 @@ void main() {
   });
 
   testWidgets(
-      'desktop Home rail is extended and secondary services stay compact',
+      'desktop Home dock is rounded and secondary services stay compact',
       (tester) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.binding.setSurfaceSize(const Size(1440, 900));
@@ -507,8 +510,11 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-    expect(rail.extended, isTrue);
+    final dockFinder = find.byKey(const ValueKey('owner-web-bottom-dock'));
+    final dock = tester.widget<DecoratedBox>(dockFinder);
+    final decoration = dock.decoration as BoxDecoration;
+    expect(decoration.borderRadius, BorderRadius.circular(44));
+    expect(tester.getTopLeft(dockFinder).dy, greaterThan(760));
     expect(tester.getSize(find.text('Страхование')).height, lessThan(80));
     expect(tester.takeException(), isNull);
   });
