@@ -11,6 +11,7 @@ import '../pets/owner_pet_repository.dart';
 import '../pets/owner_pets_page.dart';
 import '../../presentation/platform/owner_platform.dart';
 import '../../presentation/widgets/owner_cupertino_feedback.dart';
+import '../../ui/vethelp_owner_components.dart';
 
 class OwnerJourneyPage extends StatefulWidget {
   const OwnerJourneyPage({
@@ -447,46 +448,68 @@ class _OwnerHomePageState extends State<OwnerHomePage> {
 
   Widget _buildCupertino(BuildContext context) {
     final pet = widget.selectedPet;
-    final groupedBackground = CupertinoDynamicColor.resolve(
-      CupertinoColors.systemGroupedBackground,
-      context,
-    );
     final textTheme = CupertinoTheme.of(context).textTheme;
+    final colors = Theme.of(context).colorScheme;
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
 
-    return ColoredBox(
-      color: groupedBackground,
+    return VhPageBackdrop(
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
         children: [
           Semantics(
             header: true,
-            child: Text(
-              'Помощь питомцу — в одном месте',
-              style: textTheme.navLargeTitleTextStyle,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Запись, онлайн-консультация, страховая проверка и история питомца.',
-            style: textTheme.textStyle.copyWith(
-              color: CupertinoDynamicColor.resolve(
-                CupertinoColors.secondaryLabel,
-                context,
-              ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'VetHelp',
+                        style: textTheme.textStyle.copyWith(
+                          color: colors.onSurfaceVariant,
+                          fontSize: 15,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Помощь питомцу',
+                        style: textTheme.navLargeTitleTextStyle.copyWith(
+                          color: colors.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: colors.surface.withValues(alpha: 0.72),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: colors.outlineVariant.withValues(alpha: 0.45),
+                    ),
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Icon(CupertinoIcons.bell),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 18),
-          _CupertinoHomeAction(
-            icon: CupertinoIcons.exclamationmark_triangle_fill,
-            title: 'Срочная помощь',
-            subtitle:
-                'Покажем клиники, которые принимают срочные случаи сейчас.',
-            semanticLabel:
-                'Срочная помощь. Открыть список срочных клиник сейчас.',
-            tone: _CupertinoHomeActionTone.warning,
-            onPressed: widget.onRequestEmergency,
+          VhPetSummary(
+            name: pet?.name ?? 'Питомец ещё не добавлен',
+            subtitle: pet == null
+                ? 'Создайте профиль перед новой записью'
+                : '${pet.species == 'DOG' ? 'Собака' : 'Питомец'} · выбран для новой записи',
+            onPressed: widget.onManagePets,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
+          VhUrgentBanner(onPressed: widget.onRequestEmergency),
+          const SizedBox(height: 22),
+          const VhSectionHeading(title: 'Ближайшее'),
+          const SizedBox(height: 8),
           _CupertinoActiveAppointmentsPreview(
             request: _appointmentsRequest,
             selectedPet: pet,
@@ -495,154 +518,54 @@ class _OwnerHomePageState extends State<OwnerHomePage> {
             onManagePets: widget.onManagePets,
             onOpenAppointments: widget.onOpenAppointments,
           ),
-          const SizedBox(height: 12),
-          _CupertinoHomeAction(
-            icon: CupertinoIcons.heart,
-            title: pet?.name ?? 'Питомец ещё не добавлен',
-            subtitle: pet == null
-                ? 'Добавьте питомца перед записью.'
-                : 'Выбран для новой записи.',
-            semanticLabel: pet == null
-                ? 'Питомец ещё не добавлен. Добавить питомца.'
-                : 'Выбран питомец ${pet.name}. Открыть профиль питомца.',
-            onPressed: widget.onManagePets,
+          const SizedBox(height: 22),
+          VhSectionHeading(
+            title: 'Сервисы',
+            actionLabel: 'См. все',
+            onAction: widget.onBrowseClinics,
           ),
-          const SizedBox(height: 12),
-          _CupertinoHomeAction(
-            icon: CupertinoIcons.doc_text,
-            title: 'Медицинская карта',
-            subtitle: pet == null
-                ? 'Добавьте питомца, чтобы видеть профиль здоровья, документы и историю помощи.'
-                : 'Профиль здоровья, документы и история помощи для ${pet.name}.',
-            semanticLabel: pet == null
-                ? 'Медицинская карта. Сначала добавьте питомца.'
-                : 'Медицинская карта для ${pet.name}. Открыть.',
-            onPressed: pet == null ? widget.onManagePets : widget.onOpenCare,
-          ),
-          const SizedBox(height: 12),
-          _CupertinoHomeAction(
-            icon: CupertinoIcons.shield,
-            title: 'Страховое покрытие',
-            subtitle: 'Проверьте покрытие у партнёра после согласия владельца.',
-            semanticLabel: 'Страховое покрытие. Открыть проверку покрытия.',
-            onPressed: widget.onRequestInsurance,
-          ),
-          const SizedBox(height: 12),
-          _CupertinoHomeAction(
-            icon: CupertinoIcons.video_camera,
-            title: 'Ветеринар онлайн',
-            subtitle:
-                'Опишите вопрос, приложите файлы и получите следующий безопасный шаг.',
-            semanticLabel: 'Ветеринар онлайн. Описать вопрос для консультации.',
-            onPressed: widget.onRequestTelemed,
+          const SizedBox(height: 10),
+          GridView.count(
+            crossAxisCount: textScale >= 1.6 ? 1 : 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: textScale >= 1.6
+                ? 1.8
+                : textScale >= 1.35
+                    ? 0.9
+                    : 1.22,
+            children: [
+              VhServiceTile(
+                icon: CupertinoIcons.calendar_badge_plus,
+                title: 'Запись в клинику',
+                subtitle: 'Выбрать время',
+                onPressed: widget.onBrowseClinics,
+              ),
+              VhServiceTile(
+                icon: CupertinoIcons.video_camera,
+                title: 'Ветеринар онлайн',
+                subtitle: 'Консультация',
+                onPressed: widget.onRequestTelemed,
+              ),
+              VhServiceTile(
+                icon: CupertinoIcons.doc_text,
+                title: 'Медкарта',
+                subtitle: 'Здоровье и документы',
+                onPressed: pet == null
+                    ? widget.onManagePets
+                    : widget.onOpenCare,
+              ),
+              VhServiceTile(
+                icon: CupertinoIcons.shield,
+                title: 'Страхование',
+                subtitle: 'Проверить покрытие',
+                onPressed: widget.onRequestInsurance,
+              ),
+            ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-enum _CupertinoHomeActionTone { normal, warning }
-
-class _CupertinoHomeAction extends StatelessWidget {
-  const _CupertinoHomeAction({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onPressed,
-    this.semanticLabel,
-    this.tone = _CupertinoHomeActionTone.normal,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onPressed;
-  final String? semanticLabel;
-  final _CupertinoHomeActionTone tone;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = CupertinoTheme.of(context).textTheme;
-    final isWarning = tone == _CupertinoHomeActionTone.warning;
-    final background = CupertinoDynamicColor.resolve(
-      isWarning
-          ? CupertinoColors.systemRed.withValues(alpha: 0.12)
-          : CupertinoColors.secondarySystemGroupedBackground,
-      context,
-    );
-    final border = CupertinoDynamicColor.resolve(
-      isWarning ? CupertinoColors.systemRed : CupertinoColors.separator,
-      context,
-    );
-    final iconColor = CupertinoDynamicColor.resolve(
-      isWarning ? CupertinoColors.systemRed : CupertinoColors.activeBlue,
-      context,
-    );
-    final labelColor = CupertinoDynamicColor.resolve(
-      CupertinoColors.label,
-      context,
-    );
-    final secondaryLabel = CupertinoDynamicColor.resolve(
-      CupertinoColors.secondaryLabel,
-      context,
-    );
-
-    return Semantics(
-      button: true,
-      label: semanticLabel ?? '$title. $subtitle',
-      child: CupertinoButton(
-        minSize: 44,
-        padding: EdgeInsets.zero,
-        onPressed: onPressed,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: background,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: border),
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 72),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Row(
-                children: [
-                  Icon(icon, color: iconColor, size: 28),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          title,
-                          style: textTheme.textStyle.copyWith(
-                            color: labelColor,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          subtitle,
-                          style: textTheme.textStyle.copyWith(
-                            color: secondaryLabel,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    CupertinoIcons.chevron_forward,
-                    color: secondaryLabel,
-                    size: 18,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -696,8 +619,14 @@ class _CupertinoActiveAppointmentsPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final loadingHeight =
-        MediaQuery.textScalerOf(context).scale(1) >= 1.3 ? 112.0 : 96.0;
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final loadingHeight = textScale >= 2
+        ? 176.0
+        : textScale >= 1.6
+            ? 148.0
+            : textScale >= 1.3
+                ? 112.0
+                : 96.0;
     return _CupertinoHomePanel(
       child: FutureBuilder<List<OwnerAppointment>>(
         future: request,

@@ -65,7 +65,7 @@ class VetHelpTheme {
 
   static ThemeData _theme(Brightness brightness) {
     final colors = ColorScheme.fromSeed(
-      seedColor: Colors.teal,
+      seedColor: Colors.blue,
       brightness: brightness,
     );
     final base = ThemeData(useMaterial3: true, colorScheme: colors);
@@ -73,11 +73,11 @@ class VetHelpTheme {
     final fieldRadius = BorderRadius.circular(16);
     final tokens = VetHelpSurfaceTokens(
       groupedSurface: colors.surfaceContainerLowest,
-      glassSurface: colors.surface.withValues(alpha: .86),
+      glassSurface: colors.surface.withValues(alpha: .82),
       hairline: colors.outlineVariant.withValues(alpha: .72),
       desktopBackdrop: colors.surfaceContainerLow,
       contentMaxWidth: 560,
-      cardRadius: 22,
+      cardRadius: 24,
     );
 
     return base.copyWith(
