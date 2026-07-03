@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../presentation/platform/owner_platform.dart';
 import '../../../presentation/widgets/owner_cupertino_feedback.dart';
+import '../../../ui/vethelp_owner_components.dart';
 import 'booking_hold_status_page.dart';
 import 'booking_marketplace_bloc.dart';
 import 'booking_marketplace_repository.dart';
@@ -219,7 +220,7 @@ class _BookingMarketplaceView extends StatelessWidget {
         navigationBar: const CupertinoNavigationBar(
           middle: Text('Запись в клинику'),
         ),
-        child: body,
+        child: VhPageBackdrop(child: body),
       );
     }
     return Scaffold(
@@ -431,86 +432,74 @@ class _CupertinoBookingSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: CupertinoDynamicColor.resolve(
-          CupertinoColors.secondarySystemGroupedBackground,
-          context,
-        ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: CupertinoDynamicColor.resolve(
-            CupertinoColors.separator,
-            context,
-          ),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: CupertinoDynamicColor.resolve(
-                  CupertinoColors.systemBlue.withValues(alpha: 0.12),
-                  context,
-                ),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const SizedBox(
-                width: 44,
-                height: 44,
-                child: Icon(CupertinoIcons.building_2_fill),
-              ),
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = CupertinoTheme.of(context).textTheme;
+
+    return VhGlassSurface(
+      radius: 24,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: colors.primaryContainer,
+              borderRadius: BorderRadius.circular(18),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    clinicName,
-                    style:
-                        CupertinoTheme.of(context).textTheme.navTitleTextStyle,
+            child: Icon(
+              CupertinoIcons.building_2_fill,
+              color: colors.primary,
+              size: 26,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  clinicName,
+                  style: textTheme.navTitleTextStyle.copyWith(
+                    color: colors.onSurface,
+                    fontWeight: FontWeight.w700,
                   ),
-                  const SizedBox(height: 4),
-                  Text(serviceName),
-                  if (locationAddress.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      locationAddress,
-                      style: CupertinoTheme.of(context)
-                          .textTheme
-                          .textStyle
-                          .copyWith(
-                            color: CupertinoDynamicColor.resolve(
-                              CupertinoColors.secondaryLabel,
-                              context,
-                            ),
-                          ),
-                    ),
-                  ],
-                  const SizedBox(height: 4),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  serviceName,
+                  style: textTheme.textStyle.copyWith(
+                    color: colors.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (locationAddress.isNotEmpty) ...[
+                  const SizedBox(height: 6),
                   Text(
-                    'Питомец: $petName',
-                    style:
-                        CupertinoTheme.of(context).textTheme.textStyle.copyWith(
-                              color: CupertinoDynamicColor.resolve(
-                                CupertinoColors.secondaryLabel,
-                                context,
-                              ),
-                            ),
+                    locationAddress,
+                    style: textTheme.textStyle.copyWith(
+                      color: colors.onSurfaceVariant,
+                      fontSize: 14,
+                    ),
                   ),
                 ],
-              ),
+                const SizedBox(height: 6),
+                Text(
+                  'Питомец · $petName',
+                  style: textTheme.textStyle.copyWith(
+                    color: colors.onSurfaceVariant,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
+
 
 class _CupertinoSectionHeader extends StatelessWidget {
   const _CupertinoSectionHeader({
@@ -859,35 +848,46 @@ class _CupertinoSelectedSlotSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Semantics(
       label: 'Выбранное время ${_timeRangeLabel(slot)}',
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: CupertinoDynamicColor.resolve(
-            CupertinoColors.systemBlue.withValues(alpha: 0.12),
-            context,
-          ),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              const Icon(CupertinoIcons.calendar_badge_plus),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Выбрано: ${_dateLabel(slot.startsAt)}, ${_timeRangeLabel(slot)}',
-                  style: CupertinoTheme.of(context).textTheme.textStyle,
-                ),
+      child: VhGlassSurface(
+        radius: 20,
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: colors.primaryContainer,
+                borderRadius: BorderRadius.circular(14),
               ),
-            ],
-          ),
+              child: Icon(
+                CupertinoIcons.calendar_badge_plus,
+                color: colors.primary,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Выбрано: ${_dateLabel(slot.startsAt)}, '
+                '${_timeRangeLabel(slot)}',
+                style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                      color: colors.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
+
 
 class _CupertinoNotice extends StatelessWidget {
   const _CupertinoNotice({required this.text});

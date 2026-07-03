@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../presentation/platform/owner_platform.dart';
 import '../../../presentation/widgets/owner_cupertino_feedback.dart';
+import '../../../ui/vethelp_owner_components.dart';
 import 'booking_marketplace_repository.dart';
 
 typedef BookingHoldReader = Future<BookingHoldSnapshot> Function(String holdId);
@@ -131,100 +132,155 @@ class _BookingHoldStatusPageState extends State<BookingHoldStatusPage> {
 
   Widget _buildCupertino(BuildContext context) {
     final initialBooked = _isBookedState(widget.initialState);
+
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         middle: Text(initialBooked ? 'Вы записаны' : 'Запись'),
       ),
-      child: SafeArea(
-        child: FutureBuilder<BookingHoldSnapshot>(
-          future: _snapshot,
-          builder: (context, snapshot) {
-            final hold = snapshot.data;
-            final state = hold?.state ?? widget.initialState;
-            final status = _bookingResultStatus(state);
-            final booked = _isBookedState(state);
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Icon(
-                    status.icon,
-                    size: 56,
-                    color: CupertinoDynamicColor.resolve(
-                      _cupertinoIconColor(status.tone),
-                      context,
+      child: VhPageBackdrop(
+        child: SafeArea(
+          child: FutureBuilder<BookingHoldSnapshot>(
+            future: _snapshot,
+            builder: (context, snapshot) {
+              final hold = snapshot.data;
+              final state = hold?.state ?? widget.initialState;
+              final status = _bookingResultStatus(state);
+              final booked = _isBookedState(state);
+
+              return SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _CupertinoBookingResultHero(
+                      status: status,
+                      booked: booked,
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    status.title,
-                    textAlign: TextAlign.center,
-                    style: CupertinoTheme.of(context)
-                        .textTheme
-                        .navLargeTitleTextStyle,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    status.description,
-                    textAlign: TextAlign.center,
-                    style: CupertinoTheme.of(context).textTheme.textStyle,
-                  ),
-                  if (!booked) ...[
-                    const SizedBox(height: 16),
-                    OwnerCupertinoStatusBanner(
-                      tone: _bookingResultTone(status.tone),
-                      icon: CupertinoIcons.info_circle,
-                      title: 'Дальше',
-                      message: status.nextAction,
-                    ),
-                  ],
-                  if (hold != null) ...[
-                    const SizedBox(height: 24),
-                    _CupertinoBookingDetails(
-                      time: _cupertinoRange(hold.startsAt, hold.endsAt),
-                      clinicName: widget.clinicName,
-                      locationAddress: widget.locationAddress,
-                      serviceName: widget.serviceName,
-                      petName: widget.petName,
-                    ),
-                  ],
-                  if (snapshot.hasError)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 16),
-                      child: Text(
-                        'Не удалось загрузить детали записи. Откройте раздел «Записи» чуть позже.',
-                        textAlign: TextAlign.center,
+                    if (!booked) ...[
+                      const SizedBox(height: 16),
+                      OwnerCupertinoStatusBanner(
+                        tone: _bookingResultTone(status.tone),
+                        icon: CupertinoIcons.info_circle,
+                        title: 'Дальше',
+                        message: status.nextAction,
                       ),
+                    ],
+                    if (hold != null) ...[
+                      const SizedBox(height: 20),
+                      _CupertinoBookingDetails(
+                        time: _cupertinoRange(hold.startsAt, hold.endsAt),
+                        clinicName: widget.clinicName,
+                        locationAddress: widget.locationAddress,
+                        serviceName: widget.serviceName,
+                        petName: widget.petName,
+                      ),
+                    ],
+                    if (snapshot.hasError)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 16),
+                        child: Text(
+                          'Не удалось загрузить детали записи. '
+                          'Откройте раздел «Записи» чуть позже.',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    const SizedBox(height: 24),
+                    if (widget.onOpenAppointments != null) ...[
+                      OwnerCupertinoButton.primary(
+                        label: 'Открыть записи',
+                        onPressed: widget.onOpenAppointments,
+                        semanticLabel: 'Открыть список записей',
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    if (!booked)
+                      OwnerCupertinoButton.secondary(
+                        label: 'Обновить детали',
+                        icon: CupertinoIcons.refresh,
+                        enabled:
+                            snapshot.connectionState != ConnectionState.waiting,
+                        onPressed: _reload,
+                      ),
+                    CupertinoButton(
+                      minSize: 44,
+                      onPressed: () => Navigator.of(context)
+                          .popUntil((route) => route.isFirst),
+                      child: const Text('Вернуться к разделам VetHelp'),
                     ),
-                  const SizedBox(height: 24),
-                  if (widget.onOpenAppointments != null) ...[
-                    OwnerCupertinoButton.primary(
-                      label: 'Открыть записи',
-                      onPressed: widget.onOpenAppointments,
-                      semanticLabel: 'Открыть список записей',
-                    ),
-                    const SizedBox(height: 8),
                   ],
-                  OwnerCupertinoButton.secondary(
-                    label: 'Обновить детали',
-                    icon: CupertinoIcons.refresh,
-                    enabled:
-                        snapshot.connectionState != ConnectionState.waiting,
-                    onPressed: _reload,
-                  ),
-                  CupertinoButton(
-                    minSize: 44,
-                    onPressed: () => Navigator.of(context)
-                        .popUntil((route) => route.isFirst),
-                    child: const Text('Вернуться к разделам VetHelp'),
-                  ),
-                ],
-              ),
-            );
-          },
+                ),
+              );
+            },
+          ),
         ),
+      ),
+    );
+  }
+
+}
+
+class _CupertinoBookingResultHero extends StatelessWidget {
+  const _CupertinoBookingResultHero({
+    required this.status,
+    required this.booked,
+  });
+
+  final _BookingResultStatus status;
+  final bool booked;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = CupertinoTheme.of(context).textTheme;
+    final iconColor = switch (status.tone) {
+      'success' => colors.primary,
+      'danger' => colors.error,
+      'warning' => colors.tertiary,
+      _ => colors.primary,
+    };
+
+    return VhGlassSurface(
+      radius: 28,
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+      child: Column(
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.14),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(status.icon, color: iconColor, size: 38),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            status.title,
+            textAlign: TextAlign.center,
+            style: textTheme.navLargeTitleTextStyle.copyWith(
+              color: colors.onSurface,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            status.description,
+            textAlign: TextAlign.center,
+            style: textTheme.textStyle.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
+          ),
+          if (booked) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Визит уже появился в разделе «Записи».',
+              textAlign: TextAlign.center,
+              style: textTheme.textStyle.copyWith(
+                color: colors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -305,16 +361,30 @@ class _CupertinoBookingDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoListSection.insetGrouped(
-      header: const Text('Детали визита'),
-      children: [
-        _CupertinoDetailRow(label: 'Когда', value: time),
-        _CupertinoDetailRow(label: 'Клиника', value: clinicName),
-        if (locationAddress.isNotEmpty)
-          _CupertinoDetailRow(label: 'Адрес', value: locationAddress),
-        _CupertinoDetailRow(label: 'Питомец', value: petName),
-        _CupertinoDetailRow(label: 'Услуга', value: serviceName),
-      ],
+    final colors = Theme.of(context).colorScheme;
+
+    return VhGlassSurface(
+      radius: 24,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Детали визита',
+            style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                  color: colors.onSurface,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 8),
+          _CupertinoDetailRow(label: 'Когда', value: time),
+          _CupertinoDetailRow(label: 'Клиника', value: clinicName),
+          if (locationAddress.isNotEmpty)
+            _CupertinoDetailRow(label: 'Адрес', value: locationAddress),
+          _CupertinoDetailRow(label: 'Питомец', value: petName),
+          _CupertinoDetailRow(label: 'Услуга', value: serviceName),
+        ],
+      ),
     );
   }
 }
@@ -327,19 +397,37 @@ class _CupertinoDetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final secondary = CupertinoDynamicColor.resolve(
-      CupertinoColors.secondaryLabel,
-      context,
-    );
+    final colors = Theme.of(context).colorScheme;
+
     return Semantics(
       label: '$label: $value',
-      child: CupertinoListTile(
-        title: Text(label),
-        subtitle: Text(value, style: TextStyle(color: secondary)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                    color: colors.onSurfaceVariant,
+                    fontSize: 13,
+                  ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                    color: colors.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
+
 
 IconData _icon(String state) => state == 'CONFIRMED'
     ? Icons.check_circle_outline
@@ -351,14 +439,6 @@ IconData _icon(String state) => state == 'CONFIRMED'
         : Icons.hourglass_top_outlined;
 
 bool _isBookedState(String state) => state.toUpperCase() == 'CONFIRMED';
-
-CupertinoDynamicColor _cupertinoIconColor(String tone) => tone == 'success'
-    ? CupertinoColors.systemGreen
-    : tone == 'danger'
-        ? CupertinoColors.systemRed
-        : tone == 'warning'
-            ? CupertinoColors.systemOrange
-            : CupertinoColors.activeBlue;
 
 String _title(String state) => state == 'CONFIRMED'
     ? 'Вы записаны'
