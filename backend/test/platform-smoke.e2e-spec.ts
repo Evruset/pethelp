@@ -13,6 +13,7 @@ process.env.JWT_SECRET ??= 'platform-smoke-jwt-secret-at-least-32-bytes';
 process.env.JWT_ISSUER ??= 'vethelp-test';
 process.env.JWT_AUDIENCE ??= 'vethelp-test';
 process.env.WORKER_SERVICE_TOKEN ??= 'platform-smoke-worker-token';
+process.env.FEATURE_ONLINE_PAYMENTS = 'true';
 (globalThis as typeof globalThis & { crypto?: Crypto }).crypto ??=
   webcrypto as Crypto;
 
