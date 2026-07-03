@@ -8,6 +8,7 @@ import 'package:vethelp_owner_mobile/features/appointments/owner_appointments_re
 import 'package:vethelp_owner_mobile/features/care/owner_pet_care_page.dart';
 import 'package:vethelp_owner_mobile/features/care/owner_pet_care_repository.dart';
 import 'package:vethelp_owner_mobile/features/pets/owner_pet.dart';
+import 'package:vethelp_owner_mobile/features/pets/owner_pet_files.dart';
 import 'package:vethelp_owner_mobile/features/pets/owner_pet_repository.dart';
 import 'package:vethelp_owner_mobile/features/pets/owner_pets_page.dart';
 import 'package:vethelp_owner_mobile/presentation/widgets/owner_cupertino_feedback.dart';
@@ -195,11 +196,19 @@ OwnerPetCareSummary _careSummary() {
   final start = DateTime.utc(2026, 7, 2, 10);
   return OwnerPetCareSummary(
     pet: _pet,
-    documents: const [
+    documents: [
       OwnerPetCareDocument(
-        type: 'VACCINATION_NOTES',
-        label: 'Вакцинация',
-        value: 'Комплексная вакцина отмечена в профиле.',
+        id: 'document-1',
+        type: 'HISTORY',
+        label: 'Комплексная вакцина',
+        value: '/v1/owner/pets/pet-1/documents/document-1/download',
+        fileName: 'vaccination.pdf',
+        mimeType: 'application/pdf',
+        sizeBytes: 24000,
+        createdAt: start,
+        downloadUrl: '/v1/owner/pets/pet-1/documents/document-1/download',
+        canOpen: true,
+        canDelete: true,
       ),
     ],
     visits: [
@@ -269,6 +278,28 @@ class _PetsRepository implements OwnerPetRepository {
       OwnerPet(id: petId, name: input.name, species: input.species),
     );
   }
+
+  @override
+  Future<OwnerPet> uploadPhoto({
+    required String petId,
+    required OwnerPickedPetFile file,
+  }) async {
+    return OwnerPet(
+      id: petId,
+      name: pets.isEmpty ? 'Demo Pet' : pets.first.name,
+      species: pets.isEmpty ? 'DOG' : pets.first.species,
+      photoUrl: '/v1/owner/pets/$petId/documents/photo/download',
+    );
+  }
+
+  @override
+  Future<OwnerPet> deletePhoto(String petId) async {
+    return OwnerPet(
+      id: petId,
+      name: pets.isEmpty ? 'Demo Pet' : pets.first.name,
+      species: pets.isEmpty ? 'DOG' : pets.first.species,
+    );
+  }
 }
 
 class _CareRepository implements OwnerPetCareRepository {
@@ -280,11 +311,19 @@ class _CareRepository implements OwnerPetCareRepository {
   Future<OwnerPetCareSummary> readSummary(String petId) async => summary;
 
   @override
-  Future<OwnerPetDocumentUpload> uploadDocumentPhoto({
+  Future<OwnerPetDocumentUpload> uploadDocumentFile({
     required String petId,
-    required String fileUrl,
+    required OwnerPickedPetFile file,
     required String docType,
   }) {
     throw UnsupportedError('Upload is not used in this test.');
+  }
+
+  @override
+  Future<void> deleteDocument({
+    required String petId,
+    required String documentId,
+  }) {
+    throw UnsupportedError('Delete is not used in this test.');
   }
 }
