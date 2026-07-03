@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vethelp_owner_mobile/features/catalog/catalog_models.dart';
 import 'package:vethelp_owner_mobile/features/catalog/public_catalog_page.dart';
@@ -220,10 +221,111 @@ void main() {
 
     expect(find.byType(Scaffold), findsOneWidget);
     expect(find.byType(SearchBar), findsOneWidget);
-    expect(find.text('Список'), findsOneWidget);
-    expect(find.text('Карта'), findsOneWidget);
+    expect(find.text('Фильтры'), findsOneWidget);
+    expect(find.byType(SegmentedButton), findsNothing);
+    expect(find.text('Карта'), findsNothing);
     expect(find.byType(CupertinoPageScaffold), findsNothing);
   });
+
+  testWidgets('Material web catalog uses search-first desktop filters',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+
+    await tester.pumpWidget(_materialHarness(
+      PublicCatalogPage(
+        platformOverride: TargetPlatform.android,
+        repository: _FakePublicCatalogRepository(),
+        onSelected: (_) {},
+      ),
+      size: const Size(1280, 900),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SearchBar), findsOneWidget);
+    expect(find.text('Фильтры каталога'), findsOneWidget);
+    expect(find.text('VetHelp Central'), findsOneWidget);
+    expect(find.byType(SegmentedButton), findsNothing);
+    expect(find.text('Карта'), findsNothing);
+    expect(find.text('Широта'), findsNothing);
+    expect(find.text('Долгота'), findsNothing);
+    expect(find.text('Радиус'), findsNothing);
+    expect(find.textContaining('координат'), findsNothing);
+  });
+
+  testWidgets('Material web catalog clears active filters', (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+
+    await tester.pumpWidget(_materialHarness(
+      PublicCatalogPage(
+        platformOverride: TargetPlatform.android,
+        repository: _FakePublicCatalogRepository(emptyWhenFiltered: true),
+        onSelected: (_) {},
+      ),
+      size: const Size(1280, 900),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(CheckboxListTile, 'Первичный приём'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('По этому запросу активных клиник не найдено.'),
+        findsOneWidget);
+    expect(find.text('Очистить фильтры'), findsWidgets);
+
+    await tester.tap(find.text('Очистить фильтры').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('VetHelp Central'), findsOneWidget);
+    expect(find.text('Очистить фильтры'), findsNothing);
+  });
+
+  testWidgets(
+      'Material web catalog keeps focusable controls and 200 percent text',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+
+    await tester.pumpWidget(_materialHarness(
+      PublicCatalogPage(
+        platformOverride: TargetPlatform.android,
+        repository: _FakePublicCatalogRepository(),
+        onSelected: (_) {},
+      ),
+      textScale: 2,
+      size: const Size(1280, 900),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Обновить каталог'), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+
+    expect(FocusManager.instance.primaryFocus, isNotNull);
+    expect(find.text('VetHelp Central'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+}
+
+Widget _materialHarness(
+  Widget child, {
+  double textScale = 1,
+  Size? size,
+}) {
+  return MaterialApp(
+    localizationsDelegates: GlobalMaterialLocalizations.delegates,
+    supportedLocales: const [Locale('ru'), Locale('en')],
+    theme: ThemeData(useMaterial3: true),
+    builder: (context, child) {
+      final media = MediaQuery.of(context).copyWith(
+        size: size,
+        textScaler: TextScaler.linear(textScale),
+      );
+      return MediaQuery(data: media, child: child ?? const SizedBox.shrink());
+    },
+    home: child,
+  );
 }
 
 Widget _cupertinoHarness(
