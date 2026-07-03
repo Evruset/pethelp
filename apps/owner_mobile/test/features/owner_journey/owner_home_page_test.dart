@@ -8,6 +8,7 @@ import 'package:vethelp_owner_mobile/features/booking/alternative_slot/alternati
 import 'package:vethelp_owner_mobile/features/booking/marketplace/booking_marketplace_repository.dart';
 import 'package:vethelp_owner_mobile/features/owner_journey/owner_journey_page.dart';
 import 'package:vethelp_owner_mobile/features/pets/owner_pet.dart';
+import 'package:vethelp_owner_mobile/features/pets/owner_pet_files.dart';
 import 'package:vethelp_owner_mobile/features/pets/owner_pet_repository.dart';
 
 void main() {
@@ -724,5 +725,55 @@ class _FakeOwnerPetRepository implements OwnerPetRepository {
     );
     pets[currentIndex] = updated;
     return OwnerPetSaved(updated);
+  }
+
+  @override
+  Future<OwnerPet> uploadPhoto({
+    required String petId,
+    required OwnerPickedPetFile file,
+  }) async {
+    final currentIndex = pets.indexWhere((pet) => pet.id == petId);
+    final current = pets[currentIndex];
+    final updated = OwnerPet(
+      id: current.id,
+      name: current.name,
+      species: current.species,
+      breed: current.breed,
+      birthDate: current.birthDate,
+      sex: current.sex,
+      weightKg: current.weightKg,
+      sterilized: current.sterilized,
+      allergies: current.allergies,
+      chronicConditions: current.chronicConditions,
+      vaccinationNotes: current.vaccinationNotes,
+      photoUrl: '/v1/owner/pets/$petId/documents/photo/download',
+      insurancePolicyLinks: current.insurancePolicyLinks,
+      profileVersion: current.profileVersion + 1,
+    );
+    pets[currentIndex] = updated;
+    return updated;
+  }
+
+  @override
+  Future<OwnerPet> deletePhoto(String petId) async {
+    final currentIndex = pets.indexWhere((pet) => pet.id == petId);
+    final current = pets[currentIndex];
+    final updated = OwnerPet(
+      id: current.id,
+      name: current.name,
+      species: current.species,
+      breed: current.breed,
+      birthDate: current.birthDate,
+      sex: current.sex,
+      weightKg: current.weightKg,
+      sterilized: current.sterilized,
+      allergies: current.allergies,
+      chronicConditions: current.chronicConditions,
+      vaccinationNotes: current.vaccinationNotes,
+      insurancePolicyLinks: current.insurancePolicyLinks,
+      profileVersion: current.profileVersion + 1,
+    );
+    pets[currentIndex] = updated;
+    return updated;
   }
 }

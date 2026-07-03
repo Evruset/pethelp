@@ -1,12 +1,14 @@
-import { Body, Controller, Get, Headers, NotFoundException, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Headers, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Res, StreamableFile, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { CurrentUser } from './current-user.decorator';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { JwtPayload, Role } from './auth.types';
 import { Roles } from './roles.decorator';
 import { RolesGuard } from './roles.guard';
-import { CreateOwnerPetDto, UpdateOwnerPetDto, UploadPetDocumentPhotoDto } from './dto/owner-pet.dto';
-import { OwnerPetService } from './owner-pet.service';
+import { CreateOwnerPetDto, UpdateOwnerPetDto } from './dto/owner-pet.dto';
+import { OwnerPetService, PET_DOCUMENT_MAX_BYTES, type UploadedPetFile } from './owner-pet.service';
 
 @ApiTags('Owner pets')
 @ApiBearerAuth('bearer')
@@ -33,14 +35,78 @@ export class OwnerPetController {
   }
 
   @Post(':petId/documents')
-  @ApiOperation({ summary: 'Загрузка фото медкарты или паспорта питомца в асинхронную OCR-очередь' })
-  @ApiCreatedResponse({ description: 'Документ принят в обработку, OCR выполняется фоновым worker.' })
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: PET_DOCUMENT_MAX_BYTES } }))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        docType: { type: 'string', enum: ['PASSPORT', 'HISTORY'] },
+      },
+    },
+  })
+  @ApiOperation({ summary: 'Загрузка медицинского файла питомца' })
+  @ApiCreatedResponse({ description: 'Документ сохранён и доступен только владельцу питомца.' })
   async uploadDocumentPhoto(
     @CurrentUser() owner: JwtPayload,
     @Param('petId', new ParseUUIDPipe()) petId: string,
-    @Body() dto: UploadPetDocumentPhotoDto,
+    @UploadedFile() file: UploadedPetFile | undefined,
+    @Body('docType') docType?: 'PASSPORT' | 'HISTORY',
   ) {
-    return this.pets.uploadDocumentPhoto(owner, petId, dto);
+    return this.pets.uploadDocumentFile(owner, petId, file, docType ?? 'HISTORY');
+  }
+
+  @Post(':petId/photo')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: PET_DOCUMENT_MAX_BYTES } }))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  @ApiOperation({ summary: 'Загрузка или замена фото профиля питомца' })
+  async uploadPhoto(
+    @CurrentUser() owner: JwtPayload,
+    @Param('petId', new ParseUUIDPipe()) petId: string,
+    @UploadedFile() file: UploadedPetFile | undefined,
+  ) {
+    return this.pets.uploadPetPhoto(owner, petId, file);
+  }
+
+  @Delete(':petId/photo')
+  @ApiOperation({ summary: 'Удаление фото профиля питомца' })
+  async deletePhoto(@CurrentUser() owner: JwtPayload, @Param('petId', new ParseUUIDPipe()) petId: string) {
+    return this.pets.deletePetPhoto(owner, petId);
+  }
+
+  @Get(':petId/documents/:documentId/download')
+  @ApiOperation({ summary: 'Owner-scoped download документа питомца' })
+  async downloadDocument(
+    @CurrentUser() owner: JwtPayload,
+    @Param('petId', new ParseUUIDPipe()) petId: string,
+    @Param('documentId', new ParseUUIDPipe()) documentId: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const download = await this.pets.downloadDocument(owner, petId, documentId);
+    response.setHeader('Content-Type', download.mimeType);
+    response.setHeader('Content-Length', download.fileSizeBytes.toString());
+    response.setHeader('Content-Disposition', `inline; filename="${download.safeFileName}"`);
+    return new StreamableFile(download.stream);
+  }
+
+  @Delete(':petId/documents/:documentId')
+  @ApiOperation({ summary: 'Удаление документа питомца владельцем' })
+  async deleteDocument(
+    @CurrentUser() owner: JwtPayload,
+    @Param('petId', new ParseUUIDPipe()) petId: string,
+    @Param('documentId', new ParseUUIDPipe()) documentId: string,
+  ) {
+    await this.pets.deleteDocument(owner, petId, documentId);
+    return { deleted: true };
   }
 
   @Get(':petId')

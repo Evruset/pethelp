@@ -8,6 +8,7 @@ import '../../core/offline/offline_command.dart';
 import '../../presentation/platform/owner_platform.dart';
 import '../../presentation/widgets/owner_cupertino_feedback.dart';
 import 'owner_pet.dart';
+import 'owner_pet_files.dart';
 import 'owner_pet_repository.dart';
 
 Future<OwnerPetSaveResult?> showOwnerPetEditorBottomSheet({
@@ -15,6 +16,8 @@ Future<OwnerPetSaveResult?> showOwnerPetEditorBottomSheet({
   required OwnerPetRepository repository,
   required OwnerPet pet,
   VoidCallback? onFallbackSnapshot,
+  ValueChanged<OwnerPet>? onPetChanged,
+  Future<OwnerPickedPetFile?> Function(BuildContext context)? pickPhoto,
 }) async {
   OwnerPet fresh;
   try {
@@ -29,6 +32,13 @@ Future<OwnerPetSaveResult?> showOwnerPetEditorBottomSheet({
     isScrollControlled: true,
     builder: (_) => _PetForm(
       initial: fresh,
+      onPetChanged: onPetChanged,
+      pickPhoto: pickPhoto ?? _pickPhotoFromSheet,
+      onUploadPhoto: (file) => repository.uploadPhoto(
+        petId: fresh.id,
+        file: file,
+      ),
+      onDeletePhoto: () => repository.deletePhoto(fresh.id),
       onSubmit: (input) => repository.update(
         petId: fresh.id,
         profileVersion: fresh.profileVersion,
@@ -121,6 +131,10 @@ class _OwnerPetsPageState extends State<OwnerPetsPage> {
         context: context,
         repository: widget.repository,
         pet: summary,
+        onPetChanged: (pet) {
+          widget.onPetSelected(pet);
+          _reload();
+        },
         onFallbackSnapshot: () => _message(
           'Открыта последняя загруженная версия. Изменения будут поставлены в очередь.',
         ),
@@ -990,9 +1004,20 @@ class _CupertinoPetSyncStatus extends StatelessWidget {
 }
 
 class _PetForm extends StatefulWidget {
-  const _PetForm({this.initial, required this.onSubmit});
+  const _PetForm({
+    this.initial,
+    this.onPetChanged,
+    this.pickPhoto,
+    this.onUploadPhoto,
+    this.onDeletePhoto,
+    required this.onSubmit,
+  });
 
   final OwnerPet? initial;
+  final ValueChanged<OwnerPet>? onPetChanged;
+  final Future<OwnerPickedPetFile?> Function(BuildContext context)? pickPhoto;
+  final Future<OwnerPet> Function(OwnerPickedPetFile file)? onUploadPhoto;
+  final Future<OwnerPet> Function()? onDeletePhoto;
   final Future<OwnerPetSaveResult> Function(OwnerPetProfileInput input)
       onSubmit;
 
@@ -1009,19 +1034,22 @@ class _PetFormState extends State<_PetForm> {
   late final TextEditingController _allergies;
   late final TextEditingController _chronicConditions;
   late final TextEditingController _vaccinationNotes;
-  late final TextEditingController _photoUrl;
-  late final TextEditingController _insuranceLinks;
   late String _species;
+  OwnerPet? _currentPet;
   String? _sex;
   bool? _sterilized;
   bool _submittedOnce = false;
   _PetSubmitState _submitState = _PetSubmitState.idle;
+  _PetSubmitState _photoState = _PetSubmitState.idle;
   String? _submitError;
+  String? _photoError;
+  OwnerPickedPetFile? _lastPhotoFile;
 
   @override
   void initState() {
     super.initState();
     final initial = widget.initial;
+    _currentPet = initial;
     _name = TextEditingController(text: initial?.name);
     _breed = TextEditingController(text: initial?.breed);
     _birthDate = TextEditingController(
@@ -1031,9 +1059,6 @@ class _PetFormState extends State<_PetForm> {
     _chronicConditions =
         TextEditingController(text: initial?.chronicConditions.join(', '));
     _vaccinationNotes = TextEditingController(text: initial?.vaccinationNotes);
-    _photoUrl = TextEditingController(text: initial?.photoUrl);
-    _insuranceLinks =
-        TextEditingController(text: initial?.insurancePolicyLinks.join(', '));
     _species = initial?.species ?? 'DOG';
     _sex = initial?.sex;
     _sterilized = initial?.sterilized;
@@ -1048,8 +1073,6 @@ class _PetFormState extends State<_PetForm> {
     _allergies.dispose();
     _chronicConditions.dispose();
     _vaccinationNotes.dispose();
-    _photoUrl.dispose();
-    _insuranceLinks.dispose();
     super.dispose();
   }
 
@@ -1093,6 +1116,24 @@ class _PetFormState extends State<_PetForm> {
                 ),
               ),
               const SizedBox(height: 16),
+              if (widget.initial != null) ...[
+                _PetPhotoEditor(
+                  pet: _currentPet,
+                  busy: _photoState == _PetSubmitState.loading,
+                  error: _photoError,
+                  canUpload: widget.onUploadPhoto != null &&
+                      widget.pickPhoto != null &&
+                      _currentPet != null,
+                  canDelete: widget.onDeletePhoto != null &&
+                      _currentPet?.photoUrl != null,
+                  onPick: _pickAndUploadPhoto,
+                  onRetry: _lastPhotoFile == null
+                      ? null
+                      : () => _uploadPhoto(_lastPhotoFile!),
+                  onDelete: _deletePhoto,
+                ),
+                const SizedBox(height: 16),
+              ],
               TextFormField(
                 key: const ValueKey('owner-pet-name-field'),
                 controller: _name,
@@ -1207,26 +1248,6 @@ class _PetFormState extends State<_PetForm> {
                 ),
                 validator: _validateLongText,
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _photoUrl,
-                keyboardType: TextInputType.url,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Ссылка на фото',
-                ),
-                validator: _validateUrl,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _insuranceLinks,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Ссылки на полисы',
-                  helperText: 'Несколько ссылок можно указать через запятую',
-                ),
-                validator: _validateLinks,
-              ),
               if (_submitError != null) ...[
                 const SizedBox(height: 12),
                 Text(_submitError!,
@@ -1282,8 +1303,10 @@ class _PetFormState extends State<_PetForm> {
         allergies: _split(_allergies.text),
         chronicConditions: _split(_chronicConditions.text),
         vaccinationNotes: _emptyToNull(_vaccinationNotes.text),
-        photoUrl: _emptyToNull(_photoUrl.text),
-        insurancePolicyLinks: _split(_insuranceLinks.text),
+        photoUrl: _currentPet?.photoUrl ?? widget.initial?.photoUrl,
+        insurancePolicyLinks: _currentPet?.insurancePolicyLinks ??
+            widget.initial?.insurancePolicyLinks ??
+            const <String>[],
         mutationId: 'owner-mobile-${DateTime.now().microsecondsSinceEpoch}',
       ));
       if (!mounted) {
@@ -1316,9 +1339,279 @@ class _PetFormState extends State<_PetForm> {
       });
     }
   }
+
+  Future<void> _pickAndUploadPhoto() async {
+    if (_photoState == _PetSubmitState.loading) return;
+    final picker = widget.pickPhoto;
+    if (picker == null) return;
+    final file = await picker(context);
+    if (file == null || !mounted) return;
+    await _uploadPhoto(file);
+  }
+
+  Future<void> _uploadPhoto(OwnerPickedPetFile file) async {
+    final upload = widget.onUploadPhoto;
+    if (upload == null) return;
+    final validation = ownerPetUploadValidationError(file, allowPdf: false);
+    if (validation != null) {
+      setState(() {
+        _photoState = _PetSubmitState.failure;
+        _photoError = validation;
+        _lastPhotoFile = file;
+      });
+      return;
+    }
+    setState(() {
+      _photoState = _PetSubmitState.loading;
+      _photoError = null;
+      _lastPhotoFile = file;
+    });
+    try {
+      final pet = await upload(file);
+      if (!mounted) return;
+      setState(() {
+        _currentPet = pet;
+        _photoState = _PetSubmitState.success;
+        _photoError = null;
+        _lastPhotoFile = null;
+      });
+      widget.onPetChanged?.call(pet);
+      unawaited(HapticFeedback.selectionClick().catchError((_) {}));
+    } on OwnerPetApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _photoState = _PetSubmitState.failure;
+        _photoError = _petPhotoError(error);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _photoState = _PetSubmitState.failure;
+        _photoError =
+            'Не удалось загрузить фото. Проверьте соединение и повторите попытку.';
+      });
+    }
+  }
+
+  Future<void> _deletePhoto() async {
+    final delete = widget.onDeletePhoto;
+    if (delete == null || _photoState == _PetSubmitState.loading) return;
+    setState(() {
+      _photoState = _PetSubmitState.loading;
+      _photoError = null;
+    });
+    try {
+      final pet = await delete();
+      if (!mounted) return;
+      setState(() {
+        _currentPet = pet;
+        _photoState = _PetSubmitState.success;
+        _photoError = null;
+        _lastPhotoFile = null;
+      });
+      widget.onPetChanged?.call(pet);
+    } on OwnerPetApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _photoState = _PetSubmitState.failure;
+        _photoError = _petPhotoError(error);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _photoState = _PetSubmitState.failure;
+        _photoError =
+            'Не удалось удалить фото. Проверьте соединение и повторите попытку.';
+      });
+    }
+  }
+}
+
+class _PetPhotoEditor extends StatelessWidget {
+  const _PetPhotoEditor({
+    required this.pet,
+    required this.busy,
+    required this.error,
+    required this.canUpload,
+    required this.canDelete,
+    required this.onPick,
+    required this.onRetry,
+    required this.onDelete,
+  });
+
+  final OwnerPet? pet;
+  final bool busy;
+  final String? error;
+  final bool canUpload;
+  final bool canDelete;
+  final VoidCallback onPick;
+  final VoidCallback? onRetry;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final photoUrl = pet?.photoUrl;
+    final hasPhoto = photoUrl != null && photoUrl.trim().isNotEmpty;
+    return Semantics(
+      container: true,
+      label: hasPhoto
+          ? 'Фото питомца добавлено. Можно заменить или удалить фото.'
+          : 'Фото питомца не добавлено.',
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: colors.outlineVariant),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  _PetPhotoPreview(photoUrl: photoUrl),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Фото питомца',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          hasPhoto
+                              ? 'Фото профиля сохранено. Его можно заменить или удалить.'
+                              : 'Добавьте фото из камеры, галереи или файлов.',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (busy)
+                    const SizedBox.square(
+                      dimension: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                ],
+              ),
+              if (error != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  error!,
+                  style: TextStyle(color: colors.error),
+                ),
+              ],
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  Tooltip(
+                    message: hasPhoto ? 'Заменить фото' : 'Добавить фото',
+                    child: FilledButton.icon(
+                      onPressed: canUpload && !busy ? onPick : null,
+                      icon: Icon(hasPhoto
+                          ? Icons.photo_library_outlined
+                          : Icons.add_a_photo_outlined),
+                      label: Text(hasPhoto ? 'Заменить' : 'Добавить фото'),
+                    ),
+                  ),
+                  if (onRetry != null)
+                    OutlinedButton.icon(
+                      onPressed: busy ? null : onRetry,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Повторить'),
+                    ),
+                  if (hasPhoto)
+                    OutlinedButton.icon(
+                      onPressed: canDelete && !busy ? onDelete : null,
+                      icon: const Icon(Icons.delete_outline),
+                      label: const Text('Удалить'),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PetPhotoPreview extends StatelessWidget {
+  const _PetPhotoPreview({required this.photoUrl});
+
+  final String? photoUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final url = photoUrl?.trim();
+    return ClipOval(
+      child: SizedBox.square(
+        dimension: 82,
+        child: DecoratedBox(
+          decoration: BoxDecoration(color: colors.surface),
+          child: url == null || url.isEmpty
+              ? Icon(Icons.pets, color: colors.primary, size: 36)
+              : Image.network(
+                  url,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      Icon(Icons.pets, color: colors.primary, size: 36),
+                ),
+        ),
+      ),
+    );
+  }
 }
 
 enum _PetSubmitState { idle, loading, success, failure }
+
+enum _PetPhotoSource { camera, gallery, files }
+
+Future<OwnerPickedPetFile?> _pickPhotoFromSheet(BuildContext context) async {
+  final source = await showModalBottomSheet<_PetPhotoSource>(
+    context: context,
+    builder: (context) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            minVerticalPadding: 12,
+            leading: const Icon(Icons.photo_camera_outlined),
+            title: const Text('Сделать фото'),
+            onTap: () => Navigator.of(context).pop(_PetPhotoSource.camera),
+          ),
+          ListTile(
+            minVerticalPadding: 12,
+            leading: const Icon(Icons.photo_library_outlined),
+            title: const Text('Выбрать из галереи'),
+            onTap: () => Navigator.of(context).pop(_PetPhotoSource.gallery),
+          ),
+          ListTile(
+            minVerticalPadding: 12,
+            leading: const Icon(Icons.folder_open_outlined),
+            title: const Text('Выбрать файл'),
+            subtitle: const Text('JPEG, PNG, HEIC или WEBP до 10 МБ'),
+            onTap: () => Navigator.of(context).pop(_PetPhotoSource.files),
+          ),
+        ],
+      ),
+    ),
+  );
+  return switch (source) {
+    _PetPhotoSource.camera => pickOwnerPetPhotoFromCamera(),
+    _PetPhotoSource.gallery => pickOwnerPetPhotoFromGallery(),
+    _PetPhotoSource.files => pickOwnerPetPhotoFromFiles(),
+    null => null,
+  };
+}
 
 String? _validateName(String? value) {
   final normalized = value?.trim() ?? '';
@@ -1367,29 +1660,25 @@ String? _validateLongText(String? value) {
   return null;
 }
 
-String? _validateUrl(String? value) {
-  final normalized = value?.trim() ?? '';
-  if (normalized.isEmpty) return null;
-  final uri = Uri.tryParse(normalized);
-  if (uri == null || !uri.hasScheme) return 'Укажите ссылку на фото';
-  return null;
-}
-
-String? _validateLinks(String? value) {
-  final links = _split(value ?? '');
-  for (final link in links) {
-    final uri = Uri.tryParse(link);
-    if (uri == null || !uri.hasScheme) return 'Укажите ссылки через запятую';
-  }
-  return null;
-}
-
 String _petError(OwnerPetApiException error) {
   return switch (error.code) {
     'INVALID_PET_NAME' => 'Введите имя питомца',
     'PET_PROFILE_VERSION_MISMATCH' => 'Профиль изменился. Откройте его заново.',
     'UNAUTHENTICATED' => 'Сессия истекла. Войдите снова.',
     _ => 'Не удалось сохранить профиль. Повторите попытку.',
+  };
+}
+
+String _petPhotoError(OwnerPetApiException error) {
+  return switch (error.code) {
+    'EMPTY_PET_FILE' => 'Файл пустой. Выберите другой файл.',
+    'PET_FILE_TOO_LARGE' =>
+      'Файл больше ${ownerPetFileSizeLabel(ownerPetUploadMaxBytes)}. Выберите файл меньшего размера.',
+    'UNSUPPORTED_PET_FILE_TYPE' =>
+      'Этот тип файла не поддерживается. Можно загрузить JPEG, PNG, HEIC или WEBP.',
+    'OWNER_PET_NOT_FOUND' => 'Питомец не найден. Обновите профиль.',
+    'UNAUTHENTICATED' => 'Сессия истекла. Войдите снова.',
+    _ => 'Не удалось обновить фото. Повторите попытку.',
   };
 }
 
