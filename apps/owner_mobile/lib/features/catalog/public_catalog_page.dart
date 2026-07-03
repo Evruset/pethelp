@@ -33,7 +33,6 @@ class PublicCatalogPage extends StatefulWidget {
 class _PublicCatalogPageState extends State<PublicCatalogPage> {
   final _search = TextEditingController();
   CatalogClinicFilters _filters = const CatalogClinicFilters();
-  _CatalogViewMode _viewMode = _CatalogViewMode.list;
   Future<List<CatalogClinic>>? _clinicsRequest;
   Future<CatalogClinicDetail>? _detailRequest;
   CatalogClinic? _openedClinic;
@@ -63,7 +62,7 @@ class _PublicCatalogPageState extends State<PublicCatalogPage> {
     });
   }
 
-  void _clearCupertinoFilters() {
+  void _clearFilters() {
     _search.clear();
     setState(() {
       _filters = const CatalogClinicFilters();
@@ -135,12 +134,10 @@ class _PublicCatalogPageState extends State<PublicCatalogPage> {
               ? _ClinicsBody(
                   search: _search,
                   filters: _filters,
-                  viewMode: _viewMode,
                   request: _clinicsRequest,
                   onReload: _reloadClinics,
+                  onClearFilters: _clearFilters,
                   onFiltersChanged: _applyFilters,
-                  onViewModeChanged: (value) =>
-                      setState(() => _viewMode = value),
                   onOpenClinic: _openClinic,
                 )
               : _ClinicDetailBody(
@@ -181,7 +178,7 @@ class _PublicCatalogPageState extends State<PublicCatalogPage> {
                   filters: _filters,
                   request: _clinicsRequest,
                   onReload: _reloadClinics,
-                  onClearFilters: _clearCupertinoFilters,
+                  onClearFilters: _clearFilters,
                   onFiltersChanged: _applyFilters,
                   onOpenClinic: _openClinic,
                 )
@@ -200,8 +197,6 @@ class _PublicCatalogPageState extends State<PublicCatalogPage> {
     );
   }
 }
-
-enum _CatalogViewMode { list, map }
 
 class _CupertinoClinicsBody extends StatelessWidget {
   const _CupertinoClinicsBody({
@@ -1655,405 +1650,402 @@ bool _hasActiveCatalogFilters(CatalogClinicFilters filters) {
       filters.sort != 'soonest';
 }
 
+List<String> _activeFilterLabels(CatalogClinicFilters filters) {
+  final labels = <String>[];
+  final query = filters.query?.trim();
+  if (query != null && query.isNotEmpty) labels.add('Поиск: $query');
+  if (filters.openNow == true) labels.add('Ближайшие окна');
+  if (filters.availableFrom != null && filters.availableTo != null) {
+    labels.add('Сегодня');
+  }
+  if (filters.serviceCode == 'GENERAL_VISIT') labels.add('Первичный приём');
+  if (filters.telemedAvailable == true) labels.add('Онлайн');
+  if (filters.emergencyCapability == 'TRAUMA') labels.add('Срочная помощь');
+  if (filters.sort != 'soonest') labels.add(_sortLabel(filters.sort));
+  return labels;
+}
+
 class _ClinicsBody extends StatelessWidget {
   const _ClinicsBody({
     required this.search,
     required this.filters,
-    required this.viewMode,
     required this.request,
     required this.onReload,
+    required this.onClearFilters,
     required this.onFiltersChanged,
-    required this.onViewModeChanged,
     required this.onOpenClinic,
   });
 
   final TextEditingController search;
   final CatalogClinicFilters filters;
-  final _CatalogViewMode viewMode;
   final Future<List<CatalogClinic>>? request;
   final VoidCallback onReload;
+  final VoidCallback onClearFilters;
   final ValueChanged<CatalogClinicFilters> onFiltersChanged;
-  final ValueChanged<_CatalogViewMode> onViewModeChanged;
   final ValueChanged<CatalogClinic> onOpenClinic;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
-          child: Column(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= 900;
+        final searchControls = _CatalogSearchControls(
+          search: search,
+          filters: filters,
+          onReload: onReload,
+          onClearFilters: onClearFilters,
+        );
+        final filtersPanel = _CatalogFiltersPanel(
+          filters: filters,
+          onChanged: onFiltersChanged,
+          onClearFilters: onClearFilters,
+        );
+        final results = _CatalogResults(
+          request: request,
+          filters: filters,
+          onReload: onReload,
+          onClearFilters: onClearFilters,
+          onOpenClinic: onOpenClinic,
+        );
+
+        if (wide) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SearchBar(
-                controller: search,
-                hintText: 'Название, адрес или услуга',
-                leading: const Icon(Icons.search),
-                trailing: [
-                  IconButton(
-                      onPressed: onReload, icon: const Icon(Icons.refresh))
-                ],
-                onSubmitted: (_) => onReload(),
+              SizedBox(
+                width: 300,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 16, 24),
+                  child: filtersPanel,
+                ),
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  SegmentedButton<_CatalogViewMode>(
-                    segments: const [
-                      ButtonSegment(
-                          value: _CatalogViewMode.list,
-                          icon: Icon(Icons.list_alt),
-                          label: Text('Список')),
-                      ButtonSegment(
-                          value: _CatalogViewMode.map,
-                          icon: Icon(Icons.map_outlined),
-                          label: Text('Карта')),
-                    ],
-                    selected: {viewMode},
-                    onSelectionChanged: (value) =>
-                        onViewModeChanged(value.single),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              _CatalogFilters(
-                filters: filters,
-                onChanged: onFiltersChanged,
+              const VerticalDivider(width: 1),
+              Expanded(
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+                      child: searchControls,
+                    ),
+                    Expanded(child: results),
+                  ],
+                ),
               ),
             ],
-          ),
-        ),
-        Expanded(
-          child: FutureBuilder<List<CatalogClinic>>(
-            future: request,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState != ConnectionState.done) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (snapshot.hasError) {
-                return _CatalogError(onRetry: onReload);
-              }
-              final clinics = snapshot.data ?? const <CatalogClinic>[];
-              if (clinics.isEmpty) {
-                return const _CatalogEmpty(
-                    text: 'По этому запросу активных клиник не найдено.');
-              }
-              if (viewMode == _CatalogViewMode.map) {
-                return _MapFallback(
-                  clinics: clinics,
-                  onOpenClinic: onOpenClinic,
-                );
-              }
-              return ListView.separated(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                itemCount: clinics.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (context, index) => _ClinicCard(
-                  clinic: clinics[index],
-                  onTap: () => onOpenClinic(clinics[index]),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CatalogFilters extends StatelessWidget {
-  const _CatalogFilters({required this.filters, required this.onChanged});
-
-  final CatalogClinicFilters filters;
-  final ValueChanged<CatalogClinicFilters> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final serviceCode = filters.serviceCode;
-    final todaySelected =
-        filters.availableFrom != null && filters.availableTo != null;
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          FilterChip(
-            avatar: const Icon(Icons.event_available_outlined, size: 18),
-            label: const Text('Ближайшие окна'),
-            selected: filters.openNow == true,
-            onSelected: (selected) =>
-                onChanged(filters.copyWith(openNow: selected)),
-          ),
-          FilterChip(
-            avatar: const Icon(Icons.today_outlined, size: 18),
-            label: const Text('Сегодня'),
-            selected: todaySelected,
-            onSelected: (selected) => onChanged(selected
-                ? filters.copyWith(
-                    availableFrom: _todayStart(),
-                    availableTo: _todayStart().add(const Duration(days: 1)),
-                    openNow: true,
-                  )
-                : filters.copyWith(clearAvailability: true, openNow: false)),
-          ),
-          _GeoFilterChip(filters: filters, onChanged: onChanged),
-          FilterChip(
-            avatar: const Icon(Icons.medical_services_outlined, size: 18),
-            label: const Text('Первичный приём'),
-            selected: serviceCode == 'GENERAL_VISIT',
-            onSelected: (selected) => onChanged(filters.copyWith(
-              serviceCode: selected ? 'GENERAL_VISIT' : null,
-              clearServiceCode: !selected,
-            )),
-          ),
-          FilterChip(
-            avatar: const Icon(Icons.video_call_outlined, size: 18),
-            label: const Text('Онлайн'),
-            selected: filters.telemedAvailable == true,
-            onSelected: (selected) =>
-                onChanged(filters.copyWith(telemedAvailable: selected)),
-          ),
-          FilterChip(
-            avatar: const Icon(Icons.emergency_outlined, size: 18),
-            label: const Text('Срочная помощь'),
-            selected: filters.emergencyCapability == 'TRAUMA',
-            onSelected: (selected) => onChanged(filters.copyWith(
-              emergencyCapability: selected ? 'TRAUMA' : null,
-              clearEmergencyCapability: !selected,
-            )),
-          ),
-          ChoiceChip(
-            avatar: const Icon(Icons.sort_by_alpha, size: 18),
-            label: Text(_sortLabel(filters.sort)),
-            selected: true,
-            onSelected: (_) => onChanged(filters.copyWith(
-                sort: _nextSort(filters.sort,
-                    geoEnabled: filters.latitude != null &&
-                        filters.longitude != null))),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GeoFilterChip extends StatelessWidget {
-  const _GeoFilterChip({required this.filters, required this.onChanged});
-
-  final CatalogClinicFilters filters;
-  final ValueChanged<CatalogClinicFilters> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final active = filters.latitude != null && filters.longitude != null;
-    return FilterChip(
-      avatar: const Icon(Icons.my_location_outlined, size: 18),
-      label: Text(active ? 'До ${filters.radiusKm ?? 10} км' : 'Радиус'),
-      selected: active,
-      onSelected: (_) => _openGeoSheet(context),
-      onDeleted: active
-          ? () => onChanged(filters.copyWith(clearGeo: true, sort: 'soonest'))
-          : null,
-    );
-  }
-
-  Future<void> _openGeoSheet(BuildContext context) async {
-    final next = await showModalBottomSheet<CatalogClinicFilters>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => _GeoFilterSheet(filters: filters),
-    );
-    if (next != null) onChanged(next);
-  }
-}
-
-class _GeoFilterSheet extends StatefulWidget {
-  const _GeoFilterSheet({required this.filters});
-
-  final CatalogClinicFilters filters;
-
-  @override
-  State<_GeoFilterSheet> createState() => _GeoFilterSheetState();
-}
-
-class _GeoFilterSheetState extends State<_GeoFilterSheet> {
-  final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _latitude;
-  late final TextEditingController _longitude;
-  late final TextEditingController _radius;
-
-  @override
-  void initState() {
-    super.initState();
-    _latitude =
-        TextEditingController(text: widget.filters.latitude?.toString());
-    _longitude =
-        TextEditingController(text: widget.filters.longitude?.toString());
-    _radius =
-        TextEditingController(text: (widget.filters.radiusKm ?? 10).toString());
-  }
-
-  @override
-  void dispose() {
-    _latitude.dispose();
-    _longitude.dispose();
-    _radius.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bottom = MediaQuery.viewInsetsOf(context).bottom;
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + bottom),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('Поиск рядом',
-                  style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _latitude,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Широта',
-                      ),
-                      validator: (value) =>
-                          _numberInRange(value, -90, 90, 'Широта'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _longitude,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Долгота',
-                      ),
-                      validator: (value) =>
-                          _numberInRange(value, -180, 180, 'Долгота'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _radius,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Радиус, км',
-                ),
-                validator: (value) => _numberInRange(value, 0.1, 200, 'Радиус'),
-              ),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: _apply,
-                icon: const Icon(Icons.check),
-                label: const Text('Применить'),
-              ),
-              TextButton.icon(
-                onPressed: () => Navigator.of(context)
-                    .pop(widget.filters.copyWith(clearGeo: true)),
-                icon: const Icon(Icons.clear),
-                label: const Text('Сбросить радиус'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _apply() {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-    Navigator.of(context).pop(widget.filters.copyWith(
-      latitude: _parseNumber(_latitude.text),
-      longitude: _parseNumber(_longitude.text),
-      radiusKm: _parseNumber(_radius.text),
-      sort: 'distance',
-    ));
-  }
-}
-
-class _MapFallback extends StatelessWidget {
-  const _MapFallback({required this.clinics, required this.onOpenClinic});
-
-  final List<CatalogClinic> clinics;
-  final ValueChanged<CatalogClinic> onOpenClinic;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-      itemCount: clinics.length + 1,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return DecoratedBox(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.secondaryContainer,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Padding(
-              padding: EdgeInsets.all(14),
-              child: Row(
-                children: [
-                  Icon(Icons.location_off_outlined),
-                  SizedBox(width: 10),
-                  Expanded(
-                      child: Text(
-                          'Список отсортирован без доступа к геолокации.')),
-                ],
-              ),
-            ),
           );
         }
-        final clinic = clinics[index - 1];
-        return _ClinicMapRow(
-          clinic: clinic,
-          onTap: () => onOpenClinic(clinic),
+
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
+              child: Column(
+                children: [
+                  searchControls,
+                  const SizedBox(height: 12),
+                  _CatalogMobileFilters(
+                    filters: filters,
+                    onChanged: onFiltersChanged,
+                    onClearFilters: onClearFilters,
+                  ),
+                ],
+              ),
+            ),
+            Expanded(child: results),
+          ],
         );
       },
     );
   }
 }
 
-class _ClinicMapRow extends StatelessWidget {
-  const _ClinicMapRow({required this.clinic, required this.onTap});
+class _CatalogSearchControls extends StatelessWidget {
+  const _CatalogSearchControls({
+    required this.search,
+    required this.filters,
+    required this.onReload,
+    required this.onClearFilters,
+  });
 
-  final CatalogClinic clinic;
-  final VoidCallback onTap;
+  final TextEditingController search;
+  final CatalogClinicFilters filters;
+  final VoidCallback onReload;
+  final VoidCallback onClearFilters;
 
   @override
   Widget build(BuildContext context) {
-    final next = clinic.nextAvailableAt;
-    return Material(
-      color: Theme.of(context).colorScheme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Theme.of(context).dividerColor),
+    final hasFilters = _hasActiveCatalogFilters(filters);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SearchBar(
+          controller: search,
+          hintText: 'Название, адрес или услуга',
+          leading: const Icon(Icons.search),
+          trailing: [
+            Tooltip(
+              message: 'Обновить каталог',
+              child: IconButton(
+                onPressed: onReload,
+                icon: const Icon(Icons.refresh),
+              ),
+            ),
+          ],
+          onSubmitted: (_) => onReload(),
+        ),
+        if (hasFilters) ...[
+          const SizedBox(height: 10),
+          _ActiveCatalogFilters(
+            filters: filters,
+            onClearFilters: onClearFilters,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _ActiveCatalogFilters extends StatelessWidget {
+  const _ActiveCatalogFilters({
+    required this.filters,
+    required this.onClearFilters,
+  });
+
+  final CatalogClinicFilters filters;
+  final VoidCallback onClearFilters;
+
+  @override
+  Widget build(BuildContext context) {
+    final labels = _activeFilterLabels(filters);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final label in labels)
+                Chip(
+                  visualDensity: VisualDensity.compact,
+                  label: Text(label),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        TextButton.icon(
+          onPressed: onClearFilters,
+          icon: const Icon(Icons.clear),
+          label: const Text('Очистить фильтры'),
+        ),
+      ],
+    );
+  }
+}
+
+class _CatalogResults extends StatelessWidget {
+  const _CatalogResults({
+    required this.request,
+    required this.filters,
+    required this.onReload,
+    required this.onClearFilters,
+    required this.onOpenClinic,
+  });
+
+  final Future<List<CatalogClinic>>? request;
+  final CatalogClinicFilters filters;
+  final VoidCallback onReload;
+  final VoidCallback onClearFilters;
+  final ValueChanged<CatalogClinic> onOpenClinic;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<CatalogClinic>>(
+      future: request,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return _CatalogError(onRetry: onReload);
+        }
+        final clinics = snapshot.data ?? const <CatalogClinic>[];
+        if (clinics.isEmpty) {
+          return _CatalogEmpty(
+            text: 'По этому запросу активных клиник не найдено.',
+            actionLabel:
+                _hasActiveCatalogFilters(filters) ? 'Очистить фильтры' : null,
+            onAction: _hasActiveCatalogFilters(filters) ? onClearFilters : null,
+          );
+        }
+        return ListView.separated(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+          itemCount: clinics.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          itemBuilder: (context, index) => _ClinicCard(
+            clinic: clinics[index],
+            onTap: () => onOpenClinic(clinics[index]),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CatalogMobileFilters extends StatelessWidget {
+  const _CatalogMobileFilters({
+    required this.filters,
+    required this.onChanged,
+    required this.onClearFilters,
+  });
+
+  final CatalogClinicFilters filters;
+  final ValueChanged<CatalogClinicFilters> onChanged;
+  final VoidCallback onClearFilters;
+
+  @override
+  Widget build(BuildContext context) {
+    return ExpansionTile(
+      tilePadding: EdgeInsets.zero,
+      title: const Text('Фильтры'),
+      subtitle: Text(
+        _hasActiveCatalogFilters(filters)
+            ? _activeFilterLabels(filters).join(', ')
+            : 'Список без дополнительных ограничений',
       ),
-      child: ListTile(
-        onTap: onTap,
-        leading: const Icon(Icons.place_outlined),
-        title: Text(clinic.name),
-        subtitle: Text(next == null
-            ? 'Нет ближайших окон'
-            : _shortDateTime(context, next)),
-        trailing: const Icon(Icons.chevron_right),
+      children: [
+        _CatalogFiltersPanel(
+          filters: filters,
+          onChanged: onChanged,
+          onClearFilters: onClearFilters,
+          compact: true,
+        ),
+      ],
+    );
+  }
+}
+
+class _CatalogFiltersPanel extends StatelessWidget {
+  const _CatalogFiltersPanel({
+    required this.filters,
+    required this.onChanged,
+    required this.onClearFilters,
+    this.compact = false,
+  });
+
+  final CatalogClinicFilters filters;
+  final ValueChanged<CatalogClinicFilters> onChanged;
+  final VoidCallback onClearFilters;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final serviceCode = filters.serviceCode;
+    final todaySelected =
+        filters.availableFrom != null && filters.availableTo != null;
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child:
+                  Text('Фильтры каталога', style: theme.textTheme.titleMedium),
+            ),
+            if (_hasActiveCatalogFilters(filters))
+              TextButton(
+                onPressed: onClearFilters,
+                child: const Text('Сбросить'),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          secondary: const Icon(Icons.event_available_outlined),
+          title: const Text('Ближайшие окна'),
+          subtitle: const Text('Показывать клиники с ближайшими окнами.'),
+          value: filters.openNow == true,
+          onChanged: (selected) =>
+              onChanged(filters.copyWith(openNow: selected)),
+        ),
+        CheckboxListTile(
+          contentPadding: EdgeInsets.zero,
+          secondary: const Icon(Icons.today_outlined),
+          title: const Text('Сегодня'),
+          subtitle: const Text('Только окна на текущий день.'),
+          value: todaySelected,
+          onChanged: (selected) => onChanged((selected ?? false)
+              ? filters.copyWith(
+                  availableFrom: _todayStart(),
+                  availableTo: _todayStart().add(const Duration(days: 1)),
+                  openNow: true,
+                )
+              : filters.copyWith(clearAvailability: true, openNow: false)),
+        ),
+        CheckboxListTile(
+          contentPadding: EdgeInsets.zero,
+          secondary: const Icon(Icons.medical_services_outlined),
+          title: const Text('Первичный приём'),
+          value: serviceCode == 'GENERAL_VISIT',
+          onChanged: (selected) => onChanged(filters.copyWith(
+            serviceCode: (selected ?? false) ? 'GENERAL_VISIT' : null,
+            clearServiceCode: !(selected ?? false),
+          )),
+        ),
+        CheckboxListTile(
+          contentPadding: EdgeInsets.zero,
+          secondary: const Icon(Icons.video_call_outlined),
+          title: const Text('Онлайн-консультации'),
+          value: filters.telemedAvailable == true,
+          onChanged: (selected) =>
+              onChanged(filters.copyWith(telemedAvailable: selected ?? false)),
+        ),
+        CheckboxListTile(
+          contentPadding: EdgeInsets.zero,
+          secondary: const Icon(Icons.emergency_outlined),
+          title: const Text('Срочная помощь'),
+          value: filters.emergencyCapability == 'TRAUMA',
+          onChanged: (selected) => onChanged(filters.copyWith(
+            emergencyCapability: (selected ?? false) ? 'TRAUMA' : null,
+            clearEmergencyCapability: !(selected ?? false),
+          )),
+        ),
+        const SizedBox(height: 12),
+        Text('Сортировка', style: theme.textTheme.labelLarge),
+        RadioListTile<String>(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Сначала ближайшие'),
+          value: 'soonest',
+          groupValue: filters.sort == 'name' ? 'name' : 'soonest',
+          onChanged: (value) {
+            if (value != null) onChanged(filters.copyWith(sort: value));
+          },
+        ),
+        RadioListTile<String>(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('По названию'),
+          value: 'name',
+          groupValue: filters.sort == 'name' ? 'name' : 'soonest',
+          onChanged: (value) {
+            if (value != null) onChanged(filters.copyWith(sort: value));
+          },
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Поиск рядом появится после доступа к геолокации.',
+          style: theme.textTheme.bodySmall,
+        ),
+      ],
+    );
+
+    if (compact) return content;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: content,
       ),
     );
   }
@@ -2813,16 +2805,34 @@ class _CatalogError extends StatelessWidget {
 }
 
 class _CatalogEmpty extends StatelessWidget {
-  const _CatalogEmpty({required this.text});
+  const _CatalogEmpty({
+    required this.text,
+    this.actionLabel,
+    this.onAction,
+  });
 
   final String text;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(20),
-        child: Text(text),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(text, textAlign: TextAlign.center),
+            if (actionLabel != null && onAction != null) ...[
+              const SizedBox(height: 12),
+              FilledButton.tonal(
+                onPressed: onAction,
+                child: Text(actionLabel!),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -2883,28 +2893,10 @@ String _nextSort(String value, {required bool geoEnabled}) {
   return 'soonest';
 }
 
-String? _numberInRange(
-  String? value,
-  double min,
-  double max,
-  String label,
-) {
-  final normalized = value?.trim();
-  if (normalized == null || normalized.isEmpty) return 'Заполните поле.';
-  final parsed = double.tryParse(normalized.replaceAll(',', '.'));
-  if (parsed == null || parsed < min || parsed > max) {
-    return '$label: от $min до $max.';
-  }
-  return null;
-}
-
 String _distance(double value) {
   if (value < 1) return '${(value * 1000).round()} м';
   return '${value.toStringAsFixed(value < 10 ? 1 : 0)} км';
 }
-
-double _parseNumber(String value) =>
-    double.parse(value.trim().replaceAll(',', '.'));
 
 Future<void> _openRoute(BuildContext context, CatalogLocation location) async {
   final uri = _routeUri(location);

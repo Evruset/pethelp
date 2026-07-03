@@ -64,6 +64,8 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final wide = _usesWideMaterialLayout(width);
     return Scaffold(
       appBar: AppBar(
         title: const Text('VetHelp'),
@@ -79,12 +81,38 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
           ),
         ],
       ),
-      body: SafeArea(child: _body()),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (index) => setState(() => _index = index),
-        destinations: _destinations,
+      body: SafeArea(
+        child: wide
+            ? Row(
+                children: [
+                  NavigationRail(
+                    selectedIndex: _index,
+                    onDestinationSelected: (index) =>
+                        setState(() => _index = index),
+                    labelType: NavigationRailLabelType.all,
+                    minWidth: 88,
+                    destinations: [
+                      for (final destination in _destinations)
+                        NavigationRailDestination(
+                          icon: destination.icon,
+                          selectedIcon: destination.selectedIcon,
+                          label: Text(destination.label),
+                        ),
+                    ],
+                  ),
+                  const VerticalDivider(width: 1),
+                  Expanded(child: _body()),
+                ],
+              )
+            : _body(),
       ),
+      bottomNavigationBar: wide
+          ? null
+          : NavigationBar(
+              selectedIndex: _index,
+              onDestinationSelected: (index) => setState(() => _index = index),
+              destinations: _destinations,
+            ),
     );
   }
 
@@ -169,151 +197,37 @@ class _OwnerHomePageState extends State<OwnerHomePage> {
       return _buildCupertino(context);
     }
 
-    final colors = Theme.of(context).colorScheme;
     final pet = widget.selectedPet;
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        Text('Помощь питомцу — в одном месте',
-            style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 8),
-        Text(
-            'Запись, онлайн-консультация, страховая проверка и история питомца.',
-            style: Theme.of(context).textTheme.bodyLarge),
-        const SizedBox(height: 24),
-        Card(
-          color: colors.errorContainer,
-          child: ListTile(
-            leading: const Icon(Icons.warning_amber_rounded),
-            title: const Text('Срочная помощь'),
-            subtitle: const Text(
-                'Покажем проверенные клиники, которые принимают срочные случаи сейчас.'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: widget.onRequestEmergency,
-          ),
-        ),
-        const SizedBox(height: 12),
-        _ActiveAppointmentsPreview(
-          request: _appointmentsRequest,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = _usesWideMaterialLayout(constraints.maxWidth);
+        final content = _MaterialHomeContent(
           selectedPet: pet,
-          onRetry: _reloadAppointments,
+          appointmentsRequest: _appointmentsRequest,
+          wide: wide,
+          onRetryAppointments: _reloadAppointments,
           onBrowseClinics: widget.onBrowseClinics,
           onManagePets: widget.onManagePets,
           onOpenAppointments: widget.onOpenAppointments,
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: ListTile(
-            leading: const CircleAvatar(child: Icon(Icons.pets)),
-            title: Text(pet?.name ?? 'Питомец ещё не добавлен'),
-            subtitle: Text(pet == null
-                ? 'Добавьте питомца перед записью.'
-                : 'Выбран для новой записи.'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: widget.onManagePets,
+          onRequestTelemed: widget.onRequestTelemed,
+          onRequestInsurance: widget.onRequestInsurance,
+          onRequestEmergency: widget.onRequestEmergency,
+        );
+        return ListView(
+          padding: EdgeInsets.symmetric(
+            horizontal: wide ? 32 : 20,
+            vertical: wide ? 28 : 20,
           ),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          color: colors.surfaceContainerHigh,
-          child: InkWell(
-            onTap: pet == null ? widget.onManagePets : widget.onOpenCare,
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  const Icon(Icons.health_and_safety_outlined, size: 32),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Медицинская карта',
-                            style: Theme.of(context).textTheme.titleMedium),
-                        const SizedBox(height: 4),
-                        Text(pet == null
-                            ? 'Добавьте питомца, чтобы видеть профиль здоровья, документы и историю помощи.'
-                            : 'Профиль здоровья, документы и история помощи для ${pet.name}.'),
-                        const SizedBox(height: 8),
-                        Text('Данные берутся из профиля и записей VetHelp',
-                            style: Theme.of(context).textTheme.labelMedium),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right),
-                ],
+          children: [
+            Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: wide ? 1180 : 720),
+                child: content,
               ),
             ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          color: colors.tertiaryContainer,
-          child: InkWell(
-            onTap: widget.onRequestInsurance,
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  const Icon(Icons.shield_outlined, size: 32),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Страховое покрытие',
-                            style: Theme.of(context).textTheme.titleMedium),
-                        const SizedBox(height: 4),
-                        const Text(
-                            'Проверьте покрытие у партнёра после согласия владельца.'),
-                        const SizedBox(height: 8),
-                        Text('Статус приходит от страхового партнёра',
-                            style: Theme.of(context).textTheme.labelMedium),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right),
-                ],
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          color: colors.secondaryContainer,
-          child: InkWell(
-            onTap: widget.onRequestTelemed,
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  const Icon(Icons.video_call_outlined, size: 32),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Ветеринар онлайн',
-                            style: Theme.of(context).textTheme.titleMedium),
-                        const SizedBox(height: 4),
-                        const Text(
-                            'Опишите вопрос, приложите файлы и получите следующий безопасный шаг.'),
-                        const SizedBox(height: 8),
-                        Text('От 790 ₽ · после подтверждения оплаты',
-                            style: Theme.of(context).textTheme.labelMedium),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 
@@ -808,6 +722,308 @@ class _CupertinoActiveAppointmentRow extends StatelessWidget {
   }
 }
 
+class _MaterialHomeContent extends StatelessWidget {
+  const _MaterialHomeContent({
+    required this.selectedPet,
+    required this.appointmentsRequest,
+    required this.wide,
+    required this.onRetryAppointments,
+    required this.onBrowseClinics,
+    required this.onManagePets,
+    required this.onOpenAppointments,
+    required this.onRequestTelemed,
+    required this.onRequestInsurance,
+    required this.onRequestEmergency,
+  });
+
+  final OwnerPet? selectedPet;
+  final Future<List<OwnerAppointment>>? appointmentsRequest;
+  final bool wide;
+  final VoidCallback onRetryAppointments;
+  final VoidCallback onBrowseClinics;
+  final VoidCallback onManagePets;
+  final VoidCallback onOpenAppointments;
+  final VoidCallback onRequestTelemed;
+  final VoidCallback onRequestInsurance;
+  final VoidCallback onRequestEmergency;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final header = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Главное для питомца',
+          style: textTheme.headlineMedium,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Запись в клинику, ближайшие действия и сервисы VetHelp без лишних шагов.',
+          style: textTheme.bodyLarge,
+        ),
+      ],
+    );
+
+    final primaryColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _ActiveAppointmentsPreview(
+          request: appointmentsRequest,
+          selectedPet: selectedPet,
+          onRetry: onRetryAppointments,
+          onBrowseClinics: onBrowseClinics,
+          onManagePets: onManagePets,
+          onOpenAppointments: onOpenAppointments,
+        ),
+        const SizedBox(height: 16),
+        _MaterialPetSummary(
+          pet: selectedPet,
+          onManagePets: onManagePets,
+        ),
+      ],
+    );
+
+    final secondaryColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _MaterialEmergencyAction(onPressed: onRequestEmergency),
+        const SizedBox(height: 16),
+        _MaterialSecondaryServices(
+          onRequestInsurance: onRequestInsurance,
+          onRequestTelemed: onRequestTelemed,
+        ),
+      ],
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        header,
+        const SizedBox(height: 24),
+        if (wide)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 7, child: primaryColumn),
+              const SizedBox(width: 24),
+              Expanded(flex: 4, child: secondaryColumn),
+            ],
+          )
+        else ...[
+          primaryColumn,
+          const SizedBox(height: 16),
+          secondaryColumn,
+        ],
+      ],
+    );
+  }
+}
+
+class _MaterialPetSummary extends StatelessWidget {
+  const _MaterialPetSummary({
+    required this.pet,
+    required this.onManagePets,
+  });
+
+  final OwnerPet? pet;
+  final VoidCallback onManagePets;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(
+              radius: 24,
+              child: Icon(pet == null ? Icons.pets_outlined : Icons.pets),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Выбранный питомец',
+                    style: textTheme.labelLarge,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    pet?.name ?? 'Питомец ещё не выбран',
+                    style: textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    pet == null
+                        ? 'Выберите питомца перед записью: VetHelp создаёт запись для конкретного питомца.'
+                        : 'Новая запись будет создана для ${pet!.name}. Питомца можно изменить перед выбором клиники.',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: 'Изменить питомца',
+              onPressed: onManagePets,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MaterialEmergencyAction extends StatelessWidget {
+  const _MaterialEmergencyAction({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Card(
+      color: colors.errorContainer,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onPressed,
+        child: const Padding(
+          padding: EdgeInsets.all(18),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.warning_amber_rounded, size: 28),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Срочная помощь'),
+                    SizedBox(height: 4),
+                    Text(
+                      'Если состояние тяжёлое, откройте срочные клиники без анкеты и оплаты.',
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MaterialSecondaryServices extends StatelessWidget {
+  const _MaterialSecondaryServices({
+    required this.onRequestInsurance,
+    required this.onRequestTelemed,
+  });
+
+  final VoidCallback onRequestInsurance;
+  final VoidCallback onRequestTelemed;
+
+  @override
+  Widget build(BuildContext context) {
+    final wide = MediaQuery.sizeOf(context).width >= 1100;
+    final services = [
+      _MaterialServiceAction(
+        icon: Icons.shield_outlined,
+        title: 'Страхование',
+        subtitle: 'Проверка покрытия после явного согласия владельца.',
+        onPressed: onRequestInsurance,
+      ),
+      _MaterialServiceAction(
+        icon: Icons.video_call_outlined,
+        title: 'Ветеринар онлайн',
+        subtitle:
+            'Контекстная консультация, когда она доступна по текущим правилам.',
+        onPressed: onRequestTelemed,
+      ),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Дополнительные сервисы',
+            style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 10),
+        if (wide)
+          Row(
+            children: [
+              for (var index = 0; index < services.length; index++) ...[
+                if (index > 0) const SizedBox(width: 12),
+                Expanded(child: services[index]),
+              ],
+            ],
+          )
+        else
+          Column(
+            children: [
+              for (var index = 0; index < services.length; index++) ...[
+                if (index > 0) const SizedBox(height: 10),
+                services[index],
+              ],
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+class _MaterialServiceAction extends StatelessWidget {
+  const _MaterialServiceAction({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onPressed,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 96),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, size: 26),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title,
+                          style: Theme.of(context).textTheme.titleSmall),
+                      const SizedBox(height: 4),
+                      Text(subtitle),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ActiveAppointmentsPreview extends StatelessWidget {
   const _ActiveAppointmentsPreview({
     required this.request,
@@ -1011,6 +1227,8 @@ String _appointmentRange(BuildContext context, OwnerAppointment appointment) {
   final end = TimeOfDay.fromDateTime(appointment.endsAt).format(context);
   return '$date, $start–$end';
 }
+
+bool _usesWideMaterialLayout(double width) => width >= 840;
 
 class _TelemedLanding extends StatelessWidget {
   const _TelemedLanding({required this.onRequestTelemed});

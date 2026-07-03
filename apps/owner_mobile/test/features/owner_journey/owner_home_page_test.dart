@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vethelp_owner_mobile/features/appointments/owner_appointments_repository.dart';
+import 'package:vethelp_owner_mobile/features/booking/alternative_slot/alternative_slot_repository.dart';
 import 'package:vethelp_owner_mobile/features/booking/marketplace/booking_marketplace_repository.dart';
 import 'package:vethelp_owner_mobile/features/owner_journey/owner_journey_page.dart';
 import 'package:vethelp_owner_mobile/features/pets/owner_pet.dart';
+import 'package:vethelp_owner_mobile/features/pets/owner_pet_repository.dart';
 
 void main() {
   testWidgets('iOS Home uses Cupertino presentation and real actions',
@@ -143,10 +145,187 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(Card), findsWidgets);
-    expect(find.byType(ListTile), findsWidgets);
     expect(find.text('Добавить питомца'), findsOneWidget);
     expect(find.byType(CupertinoButton), findsNothing);
   });
+
+  testWidgets('web desktop shell uses side rail and responsive Home hierarchy',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+
+    await tester.pumpWidget(_materialHarness(
+      OwnerJourneyPage(
+        selectedPet: _pet,
+        appointmentsRepository: _FakeOwnerAppointmentsRepository(),
+        petsRepository: _FakeOwnerPetRepository(),
+        alternativeSlotRepository: _alternativeSlots,
+        onBrowseClinics: () {},
+        onPetSelected: (_) {},
+        onOpenCare: () {},
+        onRequestTelemed: () {},
+        onRequestInsurance: () {},
+        onRequestEmergency: () {},
+      ),
+      size: const Size(1280, 900),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.text('Главное для питомца'), findsOneWidget);
+    expect(find.text('Найти клинику'), findsOneWidget);
+    expect(find.text('Выбранный питомец'), findsOneWidget);
+    expect(find.text('Дополнительные сервисы'), findsOneWidget);
+    expect(find.text('Срочная помощь'), findsOneWidget);
+    expect(find.text('Медицинская карта'), findsNothing);
+    expect(find.textContaining('790'), findsNothing);
+  });
+
+  testWidgets('tablet Home keeps side rail and usable constrained content',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(1024, 768));
+
+    await tester.pumpWidget(_materialHarness(
+      OwnerJourneyPage(
+        selectedPet: _pet,
+        appointmentsRepository: _FakeOwnerAppointmentsRepository(active: true),
+        petsRepository: _FakeOwnerPetRepository(),
+        alternativeSlotRepository: _alternativeSlots,
+        onBrowseClinics: () {},
+        onPetSelected: (_) {},
+        onOpenCare: () {},
+        onRequestTelemed: () {},
+        onRequestInsurance: () {},
+        onRequestEmergency: () {},
+      ),
+      size: const Size(1024, 768),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.text('Активные записи'), findsOneWidget);
+    expect(find.text('VetHelp Pilot'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('mobile Material shell keeps bottom navigation', (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+
+    await tester.pumpWidget(_materialHarness(
+      OwnerJourneyPage(
+        selectedPet: null,
+        appointmentsRepository: _FakeOwnerAppointmentsRepository(),
+        petsRepository: _FakeOwnerPetRepository(),
+        alternativeSlotRepository: _alternativeSlots,
+        onBrowseClinics: () {},
+        onPetSelected: (_) {},
+        onOpenCare: () {},
+        onRequestTelemed: () {},
+        onRequestInsurance: () {},
+        onRequestEmergency: () {},
+      ),
+      size: const Size(390, 844),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NavigationRail), findsNothing);
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.text('Добавить питомца'), findsOneWidget);
+  });
+
+  testWidgets('web Home primary CTA and pet edit icon use real callbacks',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    var browseClinics = 0;
+    var managePets = 0;
+    var insurance = 0;
+    var telemed = 0;
+    var emergency = 0;
+
+    await tester.pumpWidget(_materialHarness(
+        OwnerHomePage(
+          selectedPet: _pet,
+          appointmentsRepository: _FakeOwnerAppointmentsRepository(),
+          onBrowseClinics: () => browseClinics++,
+          onManagePets: () => managePets++,
+          onOpenAppointments: () {},
+          onOpenCare: () {},
+          onRequestTelemed: () => telemed++,
+          onRequestInsurance: () => insurance++,
+          onRequestEmergency: () => emergency++,
+        ),
+        size: const Size(1280, 900)));
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Изменить питомца'), findsOneWidget);
+    expect(find.text('Страхование'), findsOneWidget);
+    expect(find.text('Ветеринар онлайн'), findsOneWidget);
+    expect(find.text('Срочная помощь'), findsOneWidget);
+    expect(find.text('Медицинская карта'), findsNothing);
+
+    await tester.tap(find.text('Найти клинику'));
+    await tester.tap(find.byTooltip('Изменить питомца'));
+    await tester.tap(find.text('Страхование'));
+    await tester.tap(find.text('Ветеринар онлайн'));
+    await tester.tap(find.text('Срочная помощь'));
+
+    expect(browseClinics, 1);
+    expect(managePets, 1);
+    expect(insurance, 1);
+    expect(telemed, 1);
+    expect(emergency, 1);
+  });
+
+  testWidgets('web Home survives browser zoom style text scaling',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+
+    await tester.pumpWidget(_materialHarness(
+      OwnerHomePage(
+        selectedPet: _pet,
+        appointmentsRepository: _FakeOwnerAppointmentsRepository(),
+        onBrowseClinics: () {},
+        onManagePets: () {},
+        onOpenAppointments: () {},
+        onOpenCare: () {},
+        onRequestTelemed: () {},
+        onRequestInsurance: () {},
+        onRequestEmergency: () {},
+      ),
+      textScale: 2,
+      size: const Size(1280, 900),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Главное для питомца'), findsOneWidget);
+    expect(find.text('Найти клинику'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+}
+
+Widget _materialHarness(
+  Widget child, {
+  double textScale = 1,
+  Size? size,
+}) {
+  return MaterialApp(
+    localizationsDelegates: GlobalMaterialLocalizations.delegates,
+    supportedLocales: const [Locale('ru'), Locale('en')],
+    theme: ThemeData(useMaterial3: true),
+    builder: (context, child) {
+      final media = MediaQuery.of(context).copyWith(
+        size: size,
+        textScaler: TextScaler.linear(textScale),
+      );
+      return MediaQuery(data: media, child: child ?? const SizedBox.shrink());
+    },
+    home: child,
+  );
 }
 
 Widget _cupertinoHarness(Widget child) {
@@ -164,6 +343,11 @@ Widget _cupertinoHarness(Widget child) {
 }
 
 const _pet = OwnerPet(id: 'pet-1', name: 'Барс', species: 'CAT');
+
+final _alternativeSlots = AlternativeSlotRepository(
+  baseUrl: Uri.parse('http://127.0.0.1:3000'),
+  accessTokenProvider: () async => 'token',
+);
 
 class _FakeOwnerAppointmentsRepository implements OwnerAppointmentsRepository {
   _FakeOwnerAppointmentsRepository({this.active = false});
@@ -215,4 +399,28 @@ class _FakeOwnerAppointmentsRepository implements OwnerAppointmentsRepository {
   Future<RequestedBookingCancellation> requestCancellation(String holdId) {
     throw UnimplementedError();
   }
+}
+
+class _FakeOwnerPetRepository implements OwnerPetRepository {
+  @override
+  Future<OwnerPet> create(OwnerPetProfileInput input) async => _pet;
+
+  @override
+  Future<List<OwnerPet>> list() async => const [_pet];
+
+  @override
+  Future<List<OwnerPetProfileSyncState>> profileSyncStates(
+          String petId) async =>
+      const <OwnerPetProfileSyncState>[];
+
+  @override
+  Future<OwnerPet> read(String petId) async => _pet;
+
+  @override
+  Future<OwnerPetSaveResult> update({
+    required String petId,
+    required int profileVersion,
+    required OwnerPetProfileInput input,
+  }) async =>
+      const OwnerPetSaved(_pet);
 }
