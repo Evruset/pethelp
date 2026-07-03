@@ -548,6 +548,8 @@ class _OwnerIosAuthenticatedShellState
         platformOverride: TargetPlatform.iOS,
         repository: widget.catalogRepository,
         onSelected: widget.onCatalogSelection,
+        bookingPetName: widget.selectedPet?.name,
+        onChangePet: widget.selectedPet == null ? null : () => _selectTab(3),
       ),
       appointments: OwnerAppointmentsPage(
         repository: widget.appointmentsRepository,

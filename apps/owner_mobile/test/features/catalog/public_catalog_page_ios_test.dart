@@ -39,12 +39,13 @@ void main() {
   testWidgets('iOS catalog keeps booking handoff as CatalogBookingSelection',
       (tester) async {
     CatalogBookingSelection? selection;
+    final repository = _FakePublicCatalogRepository();
 
     await tester.pumpWidget(
       _cupertinoHarness(
         PublicCatalogPage(
           platformOverride: TargetPlatform.iOS,
-          repository: _FakePublicCatalogRepository(),
+          repository: repository,
           bookingPetName: 'Бим',
           onSelected: (value) => selection = value,
         ),
@@ -58,6 +59,8 @@ void main() {
     expect(find.text('Москва, Лесная, 1'), findsOneWidget);
     expect(find.text('Первичный приём'), findsOneWidget);
     expect(find.text('Выберите услугу'), findsOneWidget);
+    expect(find.text('День записи'), findsNothing);
+    expect(find.text('Ближайшее время'), findsNothing);
     expect(find.text('Широта'), findsNothing);
     expect(find.text('Долгота'), findsNothing);
     expect(find.textContaining('service-1'), findsNothing);
@@ -72,16 +75,50 @@ void main() {
     expect(find.text('Бим'), findsOneWidget);
     expect(find.text('Клиника'), findsOneWidget);
     expect(find.text('Услуга'), findsOneWidget);
-    expect(find.text('Перейти к выбору времени'), findsOneWidget);
+    expect(find.text('Посмотреть время'), findsOneWidget);
+    expect(find.text('День записи'), findsNothing);
+    expect(find.text('Ближайшее время'), findsNothing);
+    expect(repository.availabilityCalls, 0);
+    expect(selection, isNull);
 
-    await tester.ensureVisible(find.text('Перейти к выбору времени'));
+    await tester.ensureVisible(find.text('Посмотреть время'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Перейти к выбору времени'));
+    await tester.tap(find.text('Посмотреть время'));
     await tester.pump();
 
     expect(selection, isNotNull);
     expect(selection!.location.locationId, 'location-1');
     expect(selection!.service.id, 'service-1');
+  });
+
+  testWidgets('selected pet context can change without booking side effects',
+      (tester) async {
+    var changePetCalls = 0;
+    CatalogBookingSelection? selection;
+    final repository = _FakePublicCatalogRepository();
+
+    await tester.pumpWidget(
+      _cupertinoHarness(
+        PublicCatalogPage(
+          platformOverride: TargetPlatform.iOS,
+          repository: repository,
+          bookingPetName: 'Бим',
+          onChangePet: () => changePetCalls += 1,
+          onSelected: (value) => selection = value,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Клиника и услуга для Бим'), findsOneWidget);
+    expect(find.text('Сменить'), findsOneWidget);
+
+    await tester.tap(find.text('Сменить'));
+    await tester.pump();
+
+    expect(changePetCalls, 1);
+    expect(selection, isNull);
+    expect(repository.availabilityCalls, 0);
   });
 
   testWidgets('iOS empty filtered catalog can clear filters', (tester) async {
@@ -130,7 +167,7 @@ void main() {
     expect(find.text('Маршрут'), findsOneWidget);
     expect(find.text('Позвонить'), findsNothing);
     expect(find.text('Активные услуги не найдены.'), findsOneWidget);
-    expect(find.text('Перейти к выбору времени'), findsNothing);
+    expect(find.text('Посмотреть время'), findsNothing);
   });
 
   testWidgets('iOS rebooking context explains prefilled decision journey',
@@ -160,11 +197,58 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.textContaining('Слот не удерживается до выбора времени'),
-      findsNothing,
+      find.textContaining('удержание слота'),
+      findsOneWidget,
     );
     expect(find.textContaining('queue'), findsNothing);
     expect(find.textContaining('location-1'), findsNothing);
+  });
+
+  testWidgets('Material clinic detail does not render slot picker',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    CatalogBookingSelection? selection;
+    final repository = _FakePublicCatalogRepository();
+
+    await tester.pumpWidget(_materialHarness(
+      PublicCatalogPage(
+        platformOverride: TargetPlatform.android,
+        repository: repository,
+        bookingPetName: 'Бим',
+        onSelected: (value) => selection = value,
+      ),
+      size: const Size(1280, 900),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('VetHelp Central'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('День записи'), findsNothing);
+    expect(find.text('Ближайшее время'), findsNothing);
+    expect(find.text('Выберите услугу'), findsOneWidget);
+    expect(repository.availabilityCalls, 0);
+
+    await tester.tap(find.text('Первичный приём'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Перед выбором времени'), findsOneWidget);
+    expect(find.text('Посмотреть время'), findsOneWidget);
+    expect(find.text('День записи'), findsNothing);
+    expect(find.text('Ближайшее время'), findsNothing);
+    expect(find.textContaining('service-1'), findsNothing);
+    expect(repository.availabilityCalls, 0);
+
+    await tester.ensureVisible(find.text('Посмотреть время'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Посмотреть время'));
+    await tester.pump();
+
+    expect(selection, isNotNull);
+    expect(selection!.location.locationId, 'location-1');
+    expect(selection!.service.id, 'service-1');
+    expect(repository.availabilityCalls, 0);
   });
 
   testWidgets('iOS catalog supports dark mode, Dynamic Type and tap targets',
@@ -378,6 +462,7 @@ class _FakePublicCatalogRepository implements PublicCatalogRepository {
   final bool hasPhone;
   final List<CatalogService> services;
   final DateTime? nextAvailableAt;
+  int availabilityCalls = 0;
 
   @override
   Future<List<CatalogClinic>> listClinics({
@@ -456,6 +541,7 @@ class _FakePublicCatalogRepository implements PublicCatalogRepository {
     required DateTime from,
     required DateTime to,
   }) async {
+    availabilityCalls += 1;
     return [
       CatalogAvailabilitySlot(
         id: 'slot-1',
