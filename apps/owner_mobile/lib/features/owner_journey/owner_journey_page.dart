@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -66,7 +68,6 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final wide = _usesWideMaterialLayout(width);
-    final extendedRail = width >= 1180;
     return Scaffold(
       appBar: AppBar(
         title: const Text('VetHelp'),
@@ -84,29 +85,25 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
       ),
       body: SafeArea(
         child: wide
-            ? Row(
+            ? Stack(
                 children: [
-                  NavigationRail(
-                    selectedIndex: _index,
-                    onDestinationSelected: (index) =>
-                        setState(() => _index = index),
-                    extended: extendedRail,
-                    labelType: extendedRail
-                        ? NavigationRailLabelType.none
-                        : NavigationRailLabelType.all,
-                    minWidth: 88,
-                    minExtendedWidth: 240,
-                    destinations: [
-                      for (final destination in _destinations)
-                        NavigationRailDestination(
-                          icon: destination.icon,
-                          selectedIcon: destination.selectedIcon,
-                          label: Text(destination.label),
-                        ),
-                    ],
+                  Positioned.fill(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 132),
+                      child: _body(),
+                    ),
                   ),
-                  const VerticalDivider(width: 1),
-                  Expanded(child: _body()),
+                  Positioned(
+                    left: 32,
+                    right: 32,
+                    bottom: 24,
+                    child: _MaterialFloatingDock(
+                      selectedIndex: _index,
+                      destinations: _destinations,
+                      onDestinationSelected: (index) =>
+                          setState(() => _index = index),
+                    ),
+                  ),
                 ],
               )
             : _body(),
@@ -151,6 +148,152 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
         3 => _TelemedLanding(onRequestTelemed: widget.onRequestTelemed),
         _ => const SizedBox.shrink(),
       };
+}
+
+class _MaterialFloatingDock extends StatelessWidget {
+  const _MaterialFloatingDock({
+    required this.selectedIndex,
+    required this.destinations,
+    required this.onDestinationSelected,
+  });
+
+  final int selectedIndex;
+  final List<NavigationDestination> destinations;
+  final ValueChanged<int> onDestinationSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final background = Color.alphaBlend(
+      colorScheme.primaryContainer.withValues(alpha: 0.10),
+      colorScheme.surface.withValues(alpha: 0.86),
+    );
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 940),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(44),
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: DecoratedBox(
+              key: const ValueKey('owner-web-bottom-dock'),
+              decoration: BoxDecoration(
+                color: background,
+                borderRadius: BorderRadius.circular(44),
+                border: Border.all(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.55),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: colorScheme.shadow.withValues(alpha: 0.10),
+                    blurRadius: 28,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: Row(
+                  children: [
+                    for (var index = 0; index < destinations.length; index++)
+                      Expanded(
+                        child: _MaterialFloatingDockItem(
+                          destination: destinations[index],
+                          selected: index == selectedIndex,
+                          onPressed: () => onDestinationSelected(index),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MaterialFloatingDockItem extends StatelessWidget {
+  const _MaterialFloatingDockItem({
+    required this.destination,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  final NavigationDestination destination;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final foreground =
+        selected ? colorScheme.primary : colorScheme.onSurfaceVariant;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: destination.label,
+      child: Tooltip(
+        message: destination.label,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(34),
+            onTap: onPressed,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 76),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeOutCubic,
+                      width: 64,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? colorScheme.primaryContainer.withValues(
+                                alpha: 0.72,
+                              )
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: IconTheme(
+                        data: IconThemeData(color: foreground, size: 28),
+                        child: Center(
+                          child: selected
+                              ? destination.selectedIcon
+                              : destination.icon,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      destination.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: foreground,
+                            fontWeight:
+                                selected ? FontWeight.w700 : FontWeight.w600,
+                            letterSpacing: 0,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class OwnerHomePage extends StatefulWidget {
