@@ -2,11 +2,13 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import '../../core/offline/offline_command.dart';
 import '../../core/offline/outbox_repository.dart';
 import '../../core/offline/outbox_sync_engine.dart';
 import 'owner_pet.dart';
+import 'owner_pet_files.dart';
 
 abstract class OwnerPetRepository {
   Future<List<OwnerPet>> list();
@@ -17,6 +19,11 @@ abstract class OwnerPetRepository {
     required int profileVersion,
     required OwnerPetProfileInput input,
   });
+  Future<OwnerPet> uploadPhoto({
+    required String petId,
+    required OwnerPickedPetFile file,
+  });
+  Future<OwnerPet> deletePhoto(String petId);
   Future<List<OwnerPetProfileSyncState>> profileSyncStates(String petId);
 }
 
@@ -128,6 +135,49 @@ class HttpOwnerPetRepository implements OwnerPetRepository {
       throw OwnerPetApiException(response.statusCode, _errorCode(data));
     }
     return OwnerPetSaved(_toPet(data));
+  }
+
+  @override
+  Future<OwnerPet> uploadPhoto({
+    required String petId,
+    required OwnerPickedPetFile file,
+  }) async {
+    final validation = ownerPetUploadValidationError(file, allowPdf: false);
+    if (validation != null) {
+      throw const OwnerPetApiException(400, 'INVALID_OWNER_PET_PHOTO');
+    }
+    final request = http.MultipartRequest(
+      'POST',
+      _baseUrl.resolve('v1/owner/pets/$petId/photo'),
+    )
+      ..headers.addAll(await _headers())
+      ..files.add(http.MultipartFile.fromBytes(
+        'file',
+        file.bytes,
+        filename: file.name,
+        contentType: _mediaType(file.mimeType),
+      ));
+    final response =
+        await http.Response.fromStream(await _client.send(request));
+    final data = _decode(response);
+    if ((response.statusCode != 200 && response.statusCode != 201) ||
+        data is! Map<String, dynamic>) {
+      throw OwnerPetApiException(response.statusCode, _errorCode(data));
+    }
+    return _toPet(data);
+  }
+
+  @override
+  Future<OwnerPet> deletePhoto(String petId) async {
+    final response = await _client.delete(
+      _baseUrl.resolve('v1/owner/pets/$petId/photo'),
+      headers: await _headers(),
+    );
+    final data = _decode(response);
+    if (response.statusCode != 200 || data is! Map<String, dynamic>) {
+      throw OwnerPetApiException(response.statusCode, _errorCode(data));
+    }
+    return _toPet(data);
   }
 
   @override
@@ -267,6 +317,21 @@ class OfflineCapableOwnerPetRepository implements OwnerPetRepository {
         input: input,
       );
     }
+  }
+
+  @override
+  Future<OwnerPet> uploadPhoto({
+    required String petId,
+    required OwnerPickedPetFile file,
+  }) async {
+    await syncPending();
+    return _remote.uploadPhoto(petId: petId, file: file);
+  }
+
+  @override
+  Future<OwnerPet> deletePhoto(String petId) async {
+    await syncPending();
+    return _remote.deletePhoto(petId);
   }
 
   @override
@@ -528,4 +593,13 @@ class OwnerPetProfileInput {
   static String _dateOnly(DateTime value) {
     return '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
   }
+}
+
+MediaType _mediaType(String value) {
+  final parts = value.split('/');
+  if (parts.length != 2 ||
+      parts.any((part) => part.trim().isEmpty || part.contains(';'))) {
+    return MediaType('application', 'octet-stream');
+  }
+  return MediaType(parts[0], parts[1]);
 }

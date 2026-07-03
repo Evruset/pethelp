@@ -367,6 +367,10 @@ class _OwnerHomePageState extends State<OwnerHomePage> {
       context: context,
       repository: repository,
       pet: pet,
+      onPetChanged: (updatedPet) {
+        onPetSelected(updatedPet);
+        _reloadPets();
+      },
       onFallbackSnapshot: () {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(

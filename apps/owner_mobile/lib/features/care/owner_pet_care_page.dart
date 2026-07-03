@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../presentation/platform/owner_platform.dart';
 import '../../presentation/widgets/owner_cupertino_feedback.dart';
 import '../pets/owner_pet.dart';
+import '../pets/owner_pet_files.dart';
 import 'owner_pet_care_repository.dart';
 
 class OwnerPetCarePage extends StatefulWidget {
@@ -15,12 +16,14 @@ class OwnerPetCarePage extends StatefulWidget {
     required this.repository,
     this.onRebookVisit,
     this.platformOverride,
+    this.pickDocuments,
   });
 
   final OwnerPet pet;
   final OwnerPetCareRepository repository;
   final ValueChanged<OwnerPetCareRebookIntent>? onRebookVisit;
   final TargetPlatform? platformOverride;
+  final Future<List<OwnerPickedPetFile>> Function()? pickDocuments;
 
   @override
   State<OwnerPetCarePage> createState() => _OwnerPetCarePageState();
@@ -28,6 +31,9 @@ class OwnerPetCarePage extends StatefulWidget {
 
 class _OwnerPetCarePageState extends State<OwnerPetCarePage> {
   Future<OwnerPetCareSummary>? _request;
+  bool _documentUploadInProgress = false;
+  String? _documentUploadError;
+  List<OwnerPickedPetFile>? _lastDocumentFiles;
 
   @override
   void initState() {
@@ -44,6 +50,100 @@ class _OwnerPetCarePageState extends State<OwnerPetCarePage> {
   Future<void> _refresh() async {
     _reload();
     await _request;
+  }
+
+  Future<void> _attachDocuments() async {
+    final files = await (widget.pickDocuments ?? pickOwnerPetDocumentFiles)();
+    if (files.isEmpty || !mounted) return;
+    await _uploadDocuments(files);
+  }
+
+  Future<void> _retryDocumentUpload() async {
+    final files = _lastDocumentFiles;
+    if (files == null || files.isEmpty) return;
+    await _uploadDocuments(files);
+  }
+
+  Future<void> _uploadDocuments(List<OwnerPickedPetFile> files) async {
+    String? validation;
+    for (final file in files) {
+      validation = ownerPetUploadValidationError(file, allowPdf: true);
+      if (validation != null) break;
+    }
+    if (validation != null) {
+      setState(() {
+        _documentUploadError = validation;
+        _lastDocumentFiles = files;
+      });
+      return;
+    }
+    setState(() {
+      _documentUploadInProgress = true;
+      _documentUploadError = null;
+      _lastDocumentFiles = files;
+    });
+    try {
+      for (final file in files) {
+        await widget.repository.uploadDocumentFile(
+          petId: widget.pet.id,
+          file: file,
+          docType: 'HISTORY',
+        );
+      }
+      if (!mounted) return;
+      setState(() {
+        _documentUploadInProgress = false;
+        _documentUploadError = null;
+        _lastDocumentFiles = null;
+      });
+      _reload();
+    } on OwnerPetCareApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _documentUploadInProgress = false;
+        _documentUploadError = _documentUploadErrorText(error);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _documentUploadInProgress = false;
+        _documentUploadError =
+            'Не удалось загрузить документы. Проверьте соединение и повторите попытку.';
+      });
+    }
+  }
+
+  Future<void> _deleteDocument(OwnerPetCareDocument document) async {
+    final documentId = document.id;
+    if (documentId == null || _documentUploadInProgress) return;
+    setState(() {
+      _documentUploadInProgress = true;
+      _documentUploadError = null;
+    });
+    try {
+      await widget.repository.deleteDocument(
+        petId: widget.pet.id,
+        documentId: documentId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _documentUploadInProgress = false;
+      });
+      _reload();
+    } on OwnerPetCareApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _documentUploadInProgress = false;
+        _documentUploadError = _documentUploadErrorText(error);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _documentUploadInProgress = false;
+        _documentUploadError =
+            'Не удалось удалить документ. Проверьте соединение и повторите попытку.';
+      });
+    }
   }
 
   @override
@@ -75,7 +175,14 @@ class _OwnerPetCarePageState extends State<OwnerPetCarePage> {
                 const SizedBox(height: 12),
                 _HealthProfileCard(pet: summary.pet),
                 const SizedBox(height: 12),
-                _DocumentsCard(documents: summary.documents),
+                _DocumentsCard(
+                  documents: summary.documents,
+                  uploading: _documentUploadInProgress,
+                  error: _documentUploadError,
+                  onAttach: _attachDocuments,
+                  onRetry: _retryDocumentUpload,
+                  onDelete: _deleteDocument,
+                ),
                 const SizedBox(height: 12),
                 _VisitHistoryCard(visits: summary.visits),
                 const SizedBox(height: 12),
@@ -153,12 +260,15 @@ class _OwnerPetCarePageState extends State<OwnerPetCarePage> {
                       ),
                       const SizedBox(height: 14),
                       _CupertinoPetDetailsSection(pet: summary.pet),
-                      if (summary.documents.isNotEmpty) ...[
-                        const SizedBox(height: 14),
-                        _CupertinoDocumentsSection(
-                          documents: summary.documents,
-                        ),
-                      ],
+                      const SizedBox(height: 14),
+                      _CupertinoDocumentsSection(
+                        documents: summary.documents,
+                        uploading: _documentUploadInProgress,
+                        error: _documentUploadError,
+                        onAttach: _attachDocuments,
+                        onRetry: _retryDocumentUpload,
+                        onDelete: _deleteDocument,
+                      ),
                       const SizedBox(height: 18),
                       Text(
                         'Обновлено: ${_cupertinoDateTime(summary.serverNow)}',
@@ -542,19 +652,91 @@ class _CupertinoPetDetailsSection extends StatelessWidget {
 }
 
 class _CupertinoDocumentsSection extends StatelessWidget {
-  const _CupertinoDocumentsSection({required this.documents});
+  const _CupertinoDocumentsSection({
+    required this.documents,
+    required this.uploading,
+    required this.error,
+    required this.onAttach,
+    required this.onRetry,
+    required this.onDelete,
+  });
 
   final List<OwnerPetCareDocument> documents;
+  final bool uploading;
+  final String? error;
+  final VoidCallback onAttach;
+  final VoidCallback onRetry;
+  final ValueChanged<OwnerPetCareDocument> onDelete;
 
   @override
   Widget build(BuildContext context) {
-    return _CupertinoCareSection(
-      title: 'Документы',
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (var index = 0; index < documents.length; index++) ...[
-          if (index > 0) const _CupertinoCareDivider(),
-          _CupertinoDocumentRow(document: documents[index]),
+        Row(
+          children: [
+            const Expanded(
+              child: OwnerCupertinoSectionHeader(
+                title: 'Документы',
+                supportingText: 'Файлы, которые вы загрузили для питомца.',
+              ),
+            ),
+            CupertinoButton(
+              minSize: 44,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              onPressed: uploading ? null : onAttach,
+              child: uploading
+                  ? const CupertinoActivityIndicator()
+                  : const Text('Добавить'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (error != null) ...[
+          OwnerCupertinoInlineError(
+            title: 'Документ не загружен',
+            message: error!,
+            retryLabel: 'Повторить загрузку',
+            onRetry: onRetry,
+          ),
+          const SizedBox(height: 10),
         ],
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: CupertinoDynamicColor.resolve(
+              CupertinoColors.secondarySystemGroupedBackground,
+              context,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: CupertinoDynamicColor.resolve(
+                CupertinoColors.separator,
+                context,
+              ),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: documents.isEmpty
+                ? const _CupertinoDocumentEmptyState()
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (var index = 0;
+                          index < documents.length;
+                          index++) ...[
+                        if (index > 0) const _CupertinoCareDivider(),
+                        _CupertinoDocumentRow(
+                          document: documents[index],
+                          onDelete: documents[index].canDelete
+                              ? () => onDelete(documents[index])
+                              : null,
+                        ),
+                      ],
+                    ],
+                  ),
+          ),
+        ),
       ],
     );
   }
@@ -645,9 +827,13 @@ class _CupertinoCareFactRow extends StatelessWidget {
 }
 
 class _CupertinoDocumentRow extends StatelessWidget {
-  const _CupertinoDocumentRow({required this.document});
+  const _CupertinoDocumentRow({
+    required this.document,
+    required this.onDelete,
+  });
 
   final OwnerPetCareDocument document;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -655,35 +841,95 @@ class _CupertinoDocumentRow extends StatelessWidget {
       CupertinoColors.secondaryLabel,
       context,
     );
-    return CupertinoButton(
-      minSize: 44,
-      padding: EdgeInsets.zero,
-      onPressed: () => _openOrCopy(context, document.value),
+    final title = document.fileName ?? document.label;
+    return Semantics(
+      label: '$title. ${_documentMetadata(document)}',
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(_cupertinoDocumentIcon(document.type), color: secondary),
+          _CupertinoDocumentPreview(document: document),
           const SizedBox(width: 10),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(document.label),
-                const SizedBox(height: 2),
-                Text(
-                  'Открыть или скопировать документ',
-                  style:
-                      CupertinoTheme.of(context).textTheme.textStyle.copyWith(
-                            color: secondary,
-                            fontSize: 13,
-                          ),
-                ),
-              ],
+            child: CupertinoButton(
+              minSize: 44,
+              padding: EdgeInsets.zero,
+              alignment: Alignment.centerLeft,
+              onPressed: document.canOpen
+                  ? () => _openOrCopy(
+                      context, document.downloadUrl ?? document.value)
+                  : null,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title),
+                  const SizedBox(height: 2),
+                  Text(
+                    _documentMetadata(document),
+                    style:
+                        CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                              color: secondary,
+                              fontSize: 13,
+                            ),
+                  ),
+                ],
+              ),
             ),
           ),
-          Icon(CupertinoIcons.chevron_forward, color: secondary, size: 18),
+          if (onDelete != null)
+            CupertinoButton(
+              minSize: 44,
+              padding: EdgeInsets.zero,
+              onPressed: onDelete,
+              child: Icon(CupertinoIcons.delete, color: secondary, size: 22),
+            ),
         ],
       ),
+    );
+  }
+}
+
+class _CupertinoDocumentPreview extends StatelessWidget {
+  const _CupertinoDocumentPreview({required this.document});
+
+  final OwnerPetCareDocument document;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = CupertinoDynamicColor.resolve(
+      CupertinoColors.tertiarySystemFill,
+      context,
+    );
+    final foreground = CupertinoDynamicColor.resolve(
+      CupertinoColors.secondaryLabel,
+      context,
+    );
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: SizedBox.square(
+        dimension: 44,
+        child: ColoredBox(
+          color: color,
+          child: Icon(_cupertinoDocumentIcon(document.type), color: foreground),
+        ),
+      ),
+    );
+  }
+}
+
+class _CupertinoDocumentEmptyState extends StatelessWidget {
+  const _CupertinoDocumentEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = CupertinoDynamicColor.resolve(
+      CupertinoColors.secondaryLabel,
+      context,
+    );
+    return Text(
+      'Загрузите фото медицинского документа или PDF. Здесь будут только реально добавленные файлы.',
+      style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+            color: secondary,
+          ),
     );
   }
 }
@@ -818,9 +1064,21 @@ class _CareFactRow extends StatelessWidget {
 }
 
 class _DocumentsCard extends StatelessWidget {
-  const _DocumentsCard({required this.documents});
+  const _DocumentsCard({
+    required this.documents,
+    required this.uploading,
+    required this.error,
+    required this.onAttach,
+    required this.onRetry,
+    required this.onDelete,
+  });
 
   final List<OwnerPetCareDocument> documents;
+  final bool uploading;
+  final String? error;
+  final VoidCallback onAttach;
+  final VoidCallback onRetry;
+  final ValueChanged<OwnerPetCareDocument> onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -830,12 +1088,41 @@ class _DocumentsCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Документы и ссылки',
-                style: Theme.of(context).textTheme.titleMedium),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Документы',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: uploading ? null : onAttach,
+                  icon: uploading
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.attach_file),
+                  label: const Text('Добавить'),
+                ),
+              ],
+            ),
             const SizedBox(height: 8),
+            if (error != null) ...[
+              Text(error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: uploading ? null : onRetry,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Повторить загрузку'),
+              ),
+              const SizedBox(height: 8),
+            ],
             if (documents.isEmpty)
               const Text(
-                'Добавьте фото, вакцинацию или ссылки на полисы в профиле питомца.',
+                'Загрузите фото медицинского документа или PDF. Здесь будут только реально добавленные файлы.',
               )
             else
               ListView.separated(
@@ -843,8 +1130,12 @@ class _DocumentsCard extends StatelessWidget {
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: documents.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (context, index) =>
-                    _DocumentTile(document: documents[index]),
+                itemBuilder: (context, index) => _DocumentTile(
+                  document: documents[index],
+                  onDelete: documents[index].canDelete
+                      ? () => onDelete(documents[index])
+                      : null,
+                ),
               ),
           ],
         ),
@@ -854,14 +1145,14 @@ class _DocumentsCard extends StatelessWidget {
 }
 
 class _DocumentTile extends StatelessWidget {
-  const _DocumentTile({required this.document});
+  const _DocumentTile({required this.document, required this.onDelete});
 
   final OwnerPetCareDocument document;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
-    final uri = Uri.tryParse(document.value);
-    final canOpen = uri != null && uri.hasScheme;
+    final title = document.fileName ?? document.label;
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -869,14 +1160,28 @@ class _DocumentTile extends StatelessWidget {
       ),
       child: ListTile(
         leading: Icon(_documentIcon(document.type)),
-        title: Text(document.label),
-        subtitle: Text(
-          document.value,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
+        title: Text(title),
+        subtitle: Text(_documentMetadata(document)),
+        trailing: Wrap(
+          spacing: 4,
+          children: [
+            if (document.canOpen)
+              IconButton(
+                tooltip: 'Открыть документ',
+                onPressed: () => _openOrCopy(
+                  context,
+                  document.downloadUrl ?? document.value,
+                ),
+                icon: const Icon(Icons.open_in_new),
+              ),
+            if (onDelete != null)
+              IconButton(
+                tooltip: 'Удалить документ',
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete_outline),
+              ),
+          ],
         ),
-        trailing: Icon(canOpen ? Icons.open_in_new : Icons.copy),
-        onTap: () => _openOrCopy(context, document.value),
       ),
     );
   }
@@ -1068,9 +1373,10 @@ List<_DiaryEntry> _diaryEntries(OwnerPetCareSummary summary) {
       ),
     for (final document in summary.documents)
       _DiaryEntry(
-        at: summary.serverNow,
+        at: document.createdAt ?? summary.serverNow,
         title: _documentDiaryTitle(document),
-        description: 'Документ сохранён в карте питомца.',
+        description:
+            'Документ сохранён в карте питомца. ${_documentMetadata(document)}',
         icon: _cupertinoDocumentIcon(document.type),
       ),
   ];
@@ -1135,10 +1441,45 @@ String _telemedDiaryDescription(OwnerPetCareTelemedSession session) {
 
 String _documentDiaryTitle(OwnerPetCareDocument document) {
   return switch (document.type) {
-    'PHOTO' => 'Фото документа',
-    'VACCINATION_NOTES' => 'Заметки о вакцинации',
-    'INSURANCE_POLICY_LINK' => 'Страховой полис',
+    'PASSPORT' => 'Документ питомца',
+    'HISTORY' => document.fileName ?? 'Медицинский документ',
     _ => document.label,
+  };
+}
+
+String _documentMetadata(OwnerPetCareDocument document) {
+  final parts = <String>[
+    if (document.mimeType != null) _friendlyMimeType(document.mimeType!),
+    if (document.sizeBytes != null) ownerPetFileSizeLabel(document.sizeBytes!),
+    if (document.createdAt != null) _cupertinoDate(document.createdAt!),
+  ];
+  if (parts.isEmpty) return 'Файл добавлен владельцем';
+  return parts.join(' · ');
+}
+
+String _friendlyMimeType(String value) {
+  return switch (value.toLowerCase()) {
+    'image/jpeg' => 'JPEG',
+    'image/png' => 'PNG',
+    'image/heic' || 'image/heif' => 'HEIC',
+    'image/webp' => 'WEBP',
+    'application/pdf' => 'PDF',
+    _ => 'Файл',
+  };
+}
+
+String _documentUploadErrorText(OwnerPetCareApiException error) {
+  return switch (error.code) {
+    'EMPTY_PET_FILE' => 'Файл пустой. Выберите другой файл.',
+    'PET_FILE_TOO_LARGE' =>
+      'Файл больше ${ownerPetFileSizeLabel(ownerPetUploadMaxBytes)}. Выберите файл меньшего размера.',
+    'UNSUPPORTED_PET_FILE_TYPE' =>
+      'Этот тип файла не поддерживается. Можно загрузить JPEG, PNG, HEIC, WEBP или PDF.',
+    'OWNER_PET_NOT_FOUND' => 'Питомец не найден. Обновите дневник.',
+    'OWNER_PET_DOCUMENT_NOT_FOUND' =>
+      'Документ уже недоступен. Обновите дневник.',
+    'UNAUTHENTICATED' => 'Сессия истекла. Войдите снова.',
+    _ => 'Не удалось обновить документы. Повторите попытку.',
   };
 }
 
@@ -1182,9 +1523,8 @@ String _listOrEmpty(List<String> value) {
 }
 
 IconData _documentIcon(String type) => switch (type) {
-      'PHOTO' => Icons.image_outlined,
-      'VACCINATION_NOTES' => Icons.vaccines_outlined,
-      'INSURANCE_POLICY_LINK' => Icons.policy_outlined,
+      'PASSPORT' => Icons.badge_outlined,
+      'HISTORY' => Icons.description_outlined,
       _ => Icons.description_outlined,
     };
 
@@ -1246,9 +1586,8 @@ IconData _cupertinoFactIcon(IconData materialIcon) {
 }
 
 IconData _cupertinoDocumentIcon(String type) => switch (type) {
-      'PHOTO' => CupertinoIcons.photo,
-      'VACCINATION_NOTES' => CupertinoIcons.check_mark_circled,
-      'INSURANCE_POLICY_LINK' => CupertinoIcons.doc_text,
+      'PASSPORT' => CupertinoIcons.person_crop_square,
+      'HISTORY' => CupertinoIcons.doc_text,
       _ => CupertinoIcons.doc,
     };
 
@@ -1277,8 +1616,6 @@ Future<void> _openOrCopy(BuildContext context, String value) async {
   }
   await Clipboard.setData(ClipboardData(text: value));
   if (context.mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Ссылка скопирована.')),
-    );
+    showOwnerMessage(context, 'Ссылка на документ скопирована.');
   }
 }

@@ -1,9 +1,11 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import '../appointments/owner_appointments_repository.dart';
 import '../pets/owner_pet.dart';
+import '../pets/owner_pet_files.dart';
 
 class OwnerPetCareSummary {
   const OwnerPetCareSummary({
@@ -43,20 +45,49 @@ class OwnerPetCareSummary {
 
 class OwnerPetCareDocument {
   const OwnerPetCareDocument({
+    this.id,
     required this.type,
     required this.label,
     required this.value,
+    this.fileName,
+    this.mimeType,
+    this.sizeBytes,
+    this.createdAt,
+    this.downloadUrl,
+    this.canOpen = false,
+    this.canDelete = false,
+    this.isImage = false,
   });
 
+  final String? id;
   final String type;
   final String label;
   final String value;
+  final String? fileName;
+  final String? mimeType;
+  final int? sizeBytes;
+  final DateTime? createdAt;
+  final String? downloadUrl;
+  final bool canOpen;
+  final bool canDelete;
+  final bool isImage;
 
   factory OwnerPetCareDocument.fromJson(Map<String, dynamic> json) {
+    final mimeType = json['mimeType'] as String?;
     return OwnerPetCareDocument(
+      id: json['id'] as String?,
       type: json['type'] as String,
       label: json['label'] as String,
       value: json['value'] as String,
+      fileName: json['fileName'] as String?,
+      mimeType: mimeType,
+      sizeBytes: (json['sizeBytes'] as num?)?.toInt(),
+      createdAt: _optionalDateTime(json['createdAt']),
+      downloadUrl: json['downloadUrl'] as String?,
+      canOpen: json['canOpen'] as bool? ?? false,
+      canDelete: json['canDelete'] as bool? ?? false,
+      isImage:
+          json['isImage'] as bool? ?? (mimeType?.startsWith('image/') ?? false),
     );
   }
 }
@@ -191,10 +222,14 @@ class OwnerPetDocumentUpload {
 
 abstract class OwnerPetCareRepository {
   Future<OwnerPetCareSummary> readSummary(String petId);
-  Future<OwnerPetDocumentUpload> uploadDocumentPhoto({
+  Future<OwnerPetDocumentUpload> uploadDocumentFile({
     required String petId,
-    required String fileUrl,
+    required OwnerPickedPetFile file,
     required String docType,
+  });
+  Future<void> deleteDocument({
+    required String petId,
+    required String documentId,
   });
 }
 
@@ -226,26 +261,54 @@ class HttpOwnerPetCareRepository implements OwnerPetCareRepository {
   }
 
   @override
-  Future<OwnerPetDocumentUpload> uploadDocumentPhoto({
+  Future<OwnerPetDocumentUpload> uploadDocumentFile({
     required String petId,
-    required String fileUrl,
+    required OwnerPickedPetFile file,
     required String docType,
   }) async {
+    final validation = ownerPetUploadValidationError(file, allowPdf: true);
+    if (validation != null) {
+      throw const OwnerPetCareApiException(400, 'INVALID_OWNER_PET_DOCUMENT');
+    }
     final token = await _accessTokenProvider();
-    final response = await _client.post(
+    final request = http.MultipartRequest(
+      'POST',
       _baseUrl.resolve('/v1/owner/pets/$petId/documents'),
-      headers: {
+    )
+      ..headers.addAll({
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({'fileUrl': fileUrl, 'docType': docType}),
-    );
+      })
+      ..fields['docType'] = docType
+      ..files.add(http.MultipartFile.fromBytes(
+        'file',
+        file.bytes,
+        filename: file.name,
+        contentType: _mediaType(file.mimeType),
+      ));
+    final response =
+        await http.Response.fromStream(await _client.send(request));
     final payload = _decode(response);
     if (response.statusCode != 201 || payload is! Map<String, dynamic>) {
       throw OwnerPetCareApiException(response.statusCode, _errorCode(payload));
     }
     return OwnerPetDocumentUpload.fromJson(payload);
+  }
+
+  @override
+  Future<void> deleteDocument({
+    required String petId,
+    required String documentId,
+  }) async {
+    final token = await _accessTokenProvider();
+    final response = await _client.delete(
+      _baseUrl.resolve('/v1/owner/pets/$petId/documents/$documentId'),
+      headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
+    );
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw OwnerPetCareApiException(
+          response.statusCode, _errorCode(_decode(response)));
+    }
   }
 
   dynamic _decode(http.Response response) {
@@ -263,6 +326,15 @@ class HttpOwnerPetCareRepository implements OwnerPetCareRepository {
     }
     return 'BACKEND_UNAVAILABLE';
   }
+}
+
+MediaType _mediaType(String value) {
+  final parts = value.split('/');
+  if (parts.length != 2 ||
+      parts.any((part) => part.trim().isEmpty || part.contains(';'))) {
+    return MediaType('application', 'octet-stream');
+  }
+  return MediaType(parts[0], parts[1]);
 }
 
 class OwnerPetCareApiException implements Exception {
