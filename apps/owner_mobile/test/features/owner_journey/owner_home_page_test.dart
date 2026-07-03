@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vethelp_owner_mobile/features/appointments/owner_appointments_repository.dart';
 import 'package:vethelp_owner_mobile/features/booking/alternative_slot/alternative_slot_repository.dart';
@@ -247,7 +248,7 @@ void main() {
     var emergency = 0;
 
     await tester.pumpWidget(_materialHarness(
-        OwnerHomePage(
+        _materialScaffold(OwnerHomePage(
           selectedPet: _pet,
           appointmentsRepository: _FakeOwnerAppointmentsRepository(),
           onBrowseClinics: () => browseClinics++,
@@ -257,7 +258,7 @@ void main() {
           onRequestTelemed: () => telemed++,
           onRequestInsurance: () => insurance++,
           onRequestEmergency: () => emergency++,
-        ),
+        )),
         size: const Size(1280, 900)));
     await tester.pumpAndSettle();
 
@@ -280,13 +281,214 @@ void main() {
     expect(emergency, 1);
   });
 
+  testWidgets('web pet pencil opens bottom sheet and save updates Home summary',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    final repository = _FakeOwnerPetRepository(pets: [_pet]);
+    var selectedPet = _pet;
+    OwnerPet? callbackPet;
+
+    await tester.pumpWidget(_materialHarness(
+      _materialScaffold(StatefulBuilder(
+        builder: (context, setState) => OwnerHomePage(
+          selectedPet: selectedPet,
+          petsRepository: repository,
+          appointmentsRepository: _FakeOwnerAppointmentsRepository(),
+          onBrowseClinics: () {},
+          onManagePets: () {},
+          onPetSelected: (pet) {
+            callbackPet = pet;
+            setState(() => selectedPet = pet);
+          },
+          onOpenAppointments: () {},
+          onOpenCare: () {},
+          onRequestTelemed: () {},
+          onRequestInsurance: () {},
+          onRequestEmergency: () {},
+        ),
+      )),
+      size: const Size(1280, 900),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Изменить питомца'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Профиль питомца'), findsOneWidget);
+    expect(find.byTooltip('Закрыть'), findsOneWidget);
+    expect(find.text('Отменить'), findsOneWidget);
+
+    await tester.ensureVisible(_petNameField());
+    await tester.enterText(_petNameEditable(), 'Барсик');
+    await tester.pump();
+    final saveButton = find.widgetWithText(FilledButton, 'Сохранить');
+    await tester.ensureVisible(saveButton);
+    await tester.tap(saveButton);
+    await tester.pumpAndSettle();
+
+    expect(repository.updatedInputs, 1);
+    expect(repository.lastUpdatedName, 'Барсик');
+    expect(callbackPet?.name, 'Барсик');
+    expect(selectedPet.name, 'Барсик');
+    expect(find.text('Барсик'), findsOneWidget);
+  });
+
+  testWidgets('web pet edit cancel and Escape leave Home summary unchanged',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    final repository = _FakeOwnerPetRepository(pets: [_pet]);
+
+    await tester.pumpWidget(_materialHarness(
+      _materialScaffold(OwnerHomePage(
+        selectedPet: _pet,
+        petsRepository: repository,
+        appointmentsRepository: _FakeOwnerAppointmentsRepository(),
+        onBrowseClinics: () {},
+        onManagePets: () {},
+        onPetSelected: (_) {},
+        onOpenAppointments: () {},
+        onOpenCare: () {},
+        onRequestTelemed: () {},
+        onRequestInsurance: () {},
+        onRequestEmergency: () {},
+      )),
+      size: const Size(1280, 900),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Изменить питомца'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(_petNameField());
+    await tester.enterText(_petNameEditable(), 'Барсик');
+    await tester.pump();
+    final cancelButton = find.widgetWithText(TextButton, 'Отменить');
+    await tester.ensureVisible(cancelButton);
+    await tester.tap(cancelButton);
+    await tester.pumpAndSettle();
+
+    expect(repository.updatedInputs, 0);
+    expect(find.text('Барс'), findsOneWidget);
+    expect(find.text('Барсик'), findsNothing);
+
+    await tester.tap(find.byTooltip('Изменить питомца'));
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Профиль питомца'), findsNothing);
+    expect(repository.updatedInputs, 0);
+  });
+
+  testWidgets(
+      'multi-pet picker appears only for multiple pets and updates context',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    const secondPet = OwnerPet(id: 'pet-2', name: 'Бим', species: 'DOG');
+    var selectedPet = _pet;
+    final repository = _FakeOwnerPetRepository(pets: [_pet, secondPet]);
+
+    await tester.pumpWidget(_materialHarness(
+      _materialScaffold(StatefulBuilder(
+        builder: (context, setState) => OwnerHomePage(
+          selectedPet: selectedPet,
+          petsRepository: repository,
+          appointmentsRepository: _FakeOwnerAppointmentsRepository(),
+          onBrowseClinics: () {},
+          onManagePets: () {},
+          onPetSelected: (pet) => setState(() => selectedPet = pet),
+          onOpenAppointments: () {},
+          onOpenCare: () {},
+          onRequestTelemed: () {},
+          onRequestInsurance: () {},
+          onRequestEmergency: () {},
+        ),
+      )),
+      size: const Size(1280, 900),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Сменить питомца'), findsOneWidget);
+    expect(find.textContaining('Новая запись будет создана для Барс'),
+        findsOneWidget);
+
+    await tester.tap(find.text('Сменить питомца'));
+    await tester.pumpAndSettle();
+    expect(find.text('Бим'), findsOneWidget);
+    expect(
+        find.textContaining('Уже выбранный слот не изменится'), findsOneWidget);
+
+    await tester.tap(find.text('Бим'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Новая запись будет создана для Бим'),
+        findsOneWidget);
+    expect(repository.updatedInputs, 0);
+  });
+
+  testWidgets('single pet Home does not show pet picker', (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+
+    await tester.pumpWidget(_materialHarness(
+      _materialScaffold(OwnerHomePage(
+        selectedPet: _pet,
+        petsRepository: _FakeOwnerPetRepository(pets: [_pet]),
+        appointmentsRepository: _FakeOwnerAppointmentsRepository(),
+        onBrowseClinics: () {},
+        onManagePets: () {},
+        onPetSelected: (_) {},
+        onOpenAppointments: () {},
+        onOpenCare: () {},
+        onRequestTelemed: () {},
+        onRequestInsurance: () {},
+        onRequestEmergency: () {},
+      )),
+      size: const Size(1280, 900),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Сменить питомца'), findsNothing);
+  });
+
+  testWidgets(
+      'desktop Home rail is extended and secondary services stay compact',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(1440, 900));
+
+    await tester.pumpWidget(_materialHarness(
+      OwnerJourneyPage(
+        selectedPet: _pet,
+        appointmentsRepository: _FakeOwnerAppointmentsRepository(),
+        petsRepository: _FakeOwnerPetRepository(pets: [_pet]),
+        alternativeSlotRepository: _alternativeSlots,
+        onBrowseClinics: () {},
+        onPetSelected: (_) {},
+        onOpenCare: () {},
+        onRequestTelemed: () {},
+        onRequestInsurance: () {},
+        onRequestEmergency: () {},
+      ),
+      size: const Size(1440, 900),
+    ));
+    await tester.pumpAndSettle();
+
+    final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
+    expect(rail.extended, isTrue);
+    expect(tester.getSize(find.text('Страхование')).height, lessThan(80));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('web Home survives browser zoom style text scaling',
       (tester) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.binding.setSurfaceSize(const Size(1280, 900));
 
     await tester.pumpWidget(_materialHarness(
-      OwnerHomePage(
+      _materialScaffold(OwnerHomePage(
         selectedPet: _pet,
         appointmentsRepository: _FakeOwnerAppointmentsRepository(),
         onBrowseClinics: () {},
@@ -296,7 +498,7 @@ void main() {
         onRequestTelemed: () {},
         onRequestInsurance: () {},
         onRequestEmergency: () {},
-      ),
+      )),
       textScale: 2,
       size: const Size(1280, 900),
     ));
@@ -326,6 +528,21 @@ Widget _materialHarness(
     },
     home: child,
   );
+}
+
+Finder _petNameField() {
+  return find.byKey(const ValueKey('owner-pet-name-field'));
+}
+
+Finder _petNameEditable() {
+  return find.descendant(
+    of: _petNameField(),
+    matching: find.byType(EditableText),
+  );
+}
+
+Widget _materialScaffold(Widget child) {
+  return Scaffold(body: child);
 }
 
 Widget _cupertinoHarness(Widget child) {
@@ -402,11 +619,36 @@ class _FakeOwnerAppointmentsRepository implements OwnerAppointmentsRepository {
 }
 
 class _FakeOwnerPetRepository implements OwnerPetRepository {
-  @override
-  Future<OwnerPet> create(OwnerPetProfileInput input) async => _pet;
+  _FakeOwnerPetRepository({List<OwnerPet>? pets})
+      : pets = List<OwnerPet>.from(pets ?? const [_pet]);
+
+  final List<OwnerPet> pets;
+  int updatedInputs = 0;
+  String? lastUpdatedName;
 
   @override
-  Future<List<OwnerPet>> list() async => const [_pet];
+  Future<OwnerPet> create(OwnerPetProfileInput input) async {
+    final pet = OwnerPet(
+      id: 'pet-${pets.length + 1}',
+      name: input.name,
+      species: input.species,
+      breed: input.breed,
+      birthDate: input.birthDate,
+      sex: input.sex,
+      weightKg: input.weightKg?.toString(),
+      sterilized: input.sterilized,
+      allergies: input.allergies,
+      chronicConditions: input.chronicConditions,
+      vaccinationNotes: input.vaccinationNotes,
+      photoUrl: input.photoUrl,
+      insurancePolicyLinks: input.insurancePolicyLinks,
+    );
+    pets.add(pet);
+    return pet;
+  }
+
+  @override
+  Future<List<OwnerPet>> list() async => List<OwnerPet>.from(pets);
 
   @override
   Future<List<OwnerPetProfileSyncState>> profileSyncStates(
@@ -414,13 +656,36 @@ class _FakeOwnerPetRepository implements OwnerPetRepository {
       const <OwnerPetProfileSyncState>[];
 
   @override
-  Future<OwnerPet> read(String petId) async => _pet;
+  Future<OwnerPet> read(String petId) async =>
+      pets.firstWhere((pet) => pet.id == petId);
 
   @override
   Future<OwnerPetSaveResult> update({
     required String petId,
     required int profileVersion,
     required OwnerPetProfileInput input,
-  }) async =>
-      const OwnerPetSaved(_pet);
+  }) async {
+    updatedInputs++;
+    lastUpdatedName = input.name;
+    final currentIndex = pets.indexWhere((pet) => pet.id == petId);
+    final current = pets[currentIndex];
+    final updated = OwnerPet(
+      id: current.id,
+      name: input.name,
+      species: input.species,
+      breed: input.breed,
+      birthDate: input.birthDate,
+      sex: input.sex,
+      weightKg: input.weightKg?.toString(),
+      sterilized: input.sterilized,
+      allergies: input.allergies,
+      chronicConditions: input.chronicConditions,
+      vaccinationNotes: input.vaccinationNotes,
+      photoUrl: input.photoUrl,
+      insurancePolicyLinks: input.insurancePolicyLinks,
+      profileVersion: current.profileVersion + 1,
+    );
+    pets[currentIndex] = updated;
+    return OwnerPetSaved(updated);
+  }
 }

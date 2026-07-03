@@ -66,6 +66,7 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final wide = _usesWideMaterialLayout(width);
+    final extendedRail = width >= 1180;
     return Scaffold(
       appBar: AppBar(
         title: const Text('VetHelp'),
@@ -89,8 +90,12 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
                     selectedIndex: _index,
                     onDestinationSelected: (index) =>
                         setState(() => _index = index),
-                    labelType: NavigationRailLabelType.all,
+                    extended: extendedRail,
+                    labelType: extendedRail
+                        ? NavigationRailLabelType.none
+                        : NavigationRailLabelType.all,
                     minWidth: 88,
+                    minExtendedWidth: 220,
                     destinations: [
                       for (final destination in _destinations)
                         NavigationRailDestination(
@@ -120,8 +125,10 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
         0 => OwnerHomePage(
             selectedPet: widget.selectedPet,
             appointmentsRepository: widget.appointmentsRepository,
+            petsRepository: widget.petsRepository,
             onBrowseClinics: widget.onBrowseClinics,
             onManagePets: () => setState(() => _index = 2),
+            onPetSelected: widget.onPetSelected,
             onOpenAppointments: () => setState(() => _index = 1),
             onOpenCare: widget.onOpenCare,
             onRequestTelemed: widget.onRequestTelemed,
@@ -158,11 +165,14 @@ class OwnerHomePage extends StatefulWidget {
     required this.onRequestTelemed,
     required this.onRequestInsurance,
     required this.onRequestEmergency,
+    this.petsRepository,
+    this.onPetSelected,
     this.platformOverride,
   });
 
   final OwnerPet? selectedPet;
   final OwnerAppointmentsRepository appointmentsRepository;
+  final OwnerPetRepository? petsRepository;
   final VoidCallback onBrowseClinics;
   final VoidCallback onManagePets;
   final VoidCallback onOpenAppointments;
@@ -170,6 +180,7 @@ class OwnerHomePage extends StatefulWidget {
   final VoidCallback onRequestTelemed;
   final VoidCallback onRequestInsurance;
   final VoidCallback onRequestEmergency;
+  final ValueChanged<OwnerPet>? onPetSelected;
   final TargetPlatform? platformOverride;
 
   @override
@@ -178,17 +189,70 @@ class OwnerHomePage extends StatefulWidget {
 
 class _OwnerHomePageState extends State<OwnerHomePage> {
   Future<List<OwnerAppointment>>? _appointmentsRequest;
+  Future<List<OwnerPet>>? _petsRequest;
 
   @override
   void initState() {
     super.initState();
     _reloadAppointments();
+    _reloadPets();
   }
 
   void _reloadAppointments() {
     setState(() {
       _appointmentsRequest = widget.appointmentsRepository.list();
     });
+  }
+
+  void _reloadPets() {
+    final repository = widget.petsRepository;
+    if (repository == null) return;
+    setState(() {
+      _petsRequest = repository.list();
+    });
+  }
+
+  Future<void> _editSelectedPet() async {
+    final repository = widget.petsRepository;
+    final pet = widget.selectedPet;
+    final onPetSelected = widget.onPetSelected;
+    if (repository == null || pet == null || onPetSelected == null) {
+      widget.onManagePets();
+      return;
+    }
+    final result = await showOwnerPetEditorBottomSheet(
+      context: context,
+      repository: repository,
+      pet: pet,
+      onFallbackSnapshot: () {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Открыта последняя загруженная версия. Изменения будут поставлены в очередь.',
+            ),
+          ),
+        );
+      },
+    );
+    if (!mounted || result == null) return;
+    switch (result) {
+      case OwnerPetSaved(:final pet):
+        onPetSelected(pet);
+        _reloadPets();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Профиль ${pet.name} обновлён.')),
+        );
+      case OwnerPetUpdateQueued():
+        _reloadPets();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Изменения сохранены в очередь и синхронизируются при соединении.',
+            ),
+          ),
+        );
+    }
   }
 
   @override
@@ -203,11 +267,14 @@ class _OwnerHomePageState extends State<OwnerHomePage> {
         final wide = _usesWideMaterialLayout(constraints.maxWidth);
         final content = _MaterialHomeContent(
           selectedPet: pet,
+          petsRequest: _petsRequest,
           appointmentsRequest: _appointmentsRequest,
           wide: wide,
           onRetryAppointments: _reloadAppointments,
           onBrowseClinics: widget.onBrowseClinics,
           onManagePets: widget.onManagePets,
+          onEditPet: _editSelectedPet,
+          onPetSelected: widget.onPetSelected,
           onOpenAppointments: widget.onOpenAppointments,
           onRequestTelemed: widget.onRequestTelemed,
           onRequestInsurance: widget.onRequestInsurance,
@@ -725,11 +792,14 @@ class _CupertinoActiveAppointmentRow extends StatelessWidget {
 class _MaterialHomeContent extends StatelessWidget {
   const _MaterialHomeContent({
     required this.selectedPet,
+    required this.petsRequest,
     required this.appointmentsRequest,
     required this.wide,
     required this.onRetryAppointments,
     required this.onBrowseClinics,
     required this.onManagePets,
+    required this.onEditPet,
+    required this.onPetSelected,
     required this.onOpenAppointments,
     required this.onRequestTelemed,
     required this.onRequestInsurance,
@@ -737,11 +807,14 @@ class _MaterialHomeContent extends StatelessWidget {
   });
 
   final OwnerPet? selectedPet;
+  final Future<List<OwnerPet>>? petsRequest;
   final Future<List<OwnerAppointment>>? appointmentsRequest;
   final bool wide;
   final VoidCallback onRetryAppointments;
   final VoidCallback onBrowseClinics;
   final VoidCallback onManagePets;
+  final VoidCallback onEditPet;
+  final ValueChanged<OwnerPet>? onPetSelected;
   final VoidCallback onOpenAppointments;
   final VoidCallback onRequestTelemed;
   final VoidCallback onRequestInsurance;
@@ -776,23 +849,21 @@ class _MaterialHomeContent extends StatelessWidget {
           onManagePets: onManagePets,
           onOpenAppointments: onOpenAppointments,
         ),
-        const SizedBox(height: 16),
-        _MaterialPetSummary(
-          pet: selectedPet,
-          onManagePets: onManagePets,
-        ),
       ],
     );
 
-    final secondaryColumn = Column(
+    final petAndEmergencyColumn = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _MaterialEmergencyAction(onPressed: onRequestEmergency),
-        const SizedBox(height: 16),
-        _MaterialSecondaryServices(
-          onRequestInsurance: onRequestInsurance,
-          onRequestTelemed: onRequestTelemed,
+        _MaterialPetSummary(
+          pet: selectedPet,
+          petsRequest: petsRequest,
+          onManagePets: onManagePets,
+          onEditPet: onEditPet,
+          onPetSelected: onPetSelected,
         ),
+        const SizedBox(height: 16),
+        _MaterialEmergencyAction(onPressed: onRequestEmergency),
       ],
     );
 
@@ -801,19 +872,29 @@ class _MaterialHomeContent extends StatelessWidget {
       children: [
         header,
         const SizedBox(height: 24),
-        if (wide)
+        if (wide) ...[
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(flex: 7, child: primaryColumn),
               const SizedBox(width: 24),
-              Expanded(flex: 4, child: secondaryColumn),
+              Expanded(flex: 4, child: petAndEmergencyColumn),
             ],
-          )
-        else ...[
+          ),
+          const SizedBox(height: 18),
+          _MaterialSecondaryServices(
+            onRequestInsurance: onRequestInsurance,
+            onRequestTelemed: onRequestTelemed,
+          ),
+        ] else ...[
           primaryColumn,
           const SizedBox(height: 16),
-          secondaryColumn,
+          petAndEmergencyColumn,
+          const SizedBox(height: 16),
+          _MaterialSecondaryServices(
+            onRequestInsurance: onRequestInsurance,
+            onRequestTelemed: onRequestTelemed,
+          ),
         ],
       ],
     );
@@ -823,11 +904,17 @@ class _MaterialHomeContent extends StatelessWidget {
 class _MaterialPetSummary extends StatelessWidget {
   const _MaterialPetSummary({
     required this.pet,
+    required this.petsRequest,
     required this.onManagePets,
+    required this.onEditPet,
+    required this.onPetSelected,
   });
 
   final OwnerPet? pet;
+  final Future<List<OwnerPet>>? petsRequest;
   final VoidCallback onManagePets;
+  final VoidCallback onEditPet;
+  final ValueChanged<OwnerPet>? onPetSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -862,6 +949,23 @@ class _MaterialPetSummary extends StatelessWidget {
                         ? 'Выберите питомца перед записью: VetHelp создаёт запись для конкретного питомца.'
                         : 'Новая запись будет создана для ${pet!.name}. Питомца можно изменить перед выбором клиники.',
                   ),
+                  if (pet != null && petsRequest != null) ...[
+                    const SizedBox(height: 10),
+                    FutureBuilder<List<OwnerPet>>(
+                      future: petsRequest,
+                      builder: (context, snapshot) {
+                        final pets = snapshot.data ?? const <OwnerPet>[];
+                        if (pets.length < 2 || onPetSelected == null) {
+                          return const SizedBox.shrink();
+                        }
+                        return _MaterialPetPicker(
+                          selectedPet: pet!,
+                          pets: pets,
+                          onSelected: onPetSelected!,
+                        );
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -869,10 +973,64 @@ class _MaterialPetSummary extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.edit_outlined),
               tooltip: 'Изменить питомца',
-              onPressed: onManagePets,
+              onPressed: pet == null ? onManagePets : onEditPet,
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _MaterialPetPicker extends StatelessWidget {
+  const _MaterialPetPicker({
+    required this.selectedPet,
+    required this.pets,
+    required this.onSelected,
+  });
+
+  final OwnerPet selectedPet;
+  final List<OwnerPet> pets;
+  final ValueChanged<OwnerPet> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label:
+          'Сменить питомца. Сейчас выбран ${selectedPet.name}. Смена применяется для следующей записи и не меняет уже выбранный слот.',
+      child: MenuAnchor(
+        builder: (context, controller, child) {
+          return OutlinedButton.icon(
+            onPressed: () {
+              if (controller.isOpen) {
+                controller.close();
+              } else {
+                controller.open();
+              }
+            },
+            icon: const Icon(Icons.swap_horiz),
+            label: const Text('Сменить питомца'),
+          );
+        },
+        menuChildren: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 10, 16, 6),
+            child: Text(
+              'Применится для следующей записи. Уже выбранный слот не изменится.',
+            ),
+          ),
+          for (final candidate in pets)
+            MenuItemButton(
+              leadingIcon: candidate.id == selectedPet.id
+                  ? const Icon(Icons.check)
+                  : const Icon(Icons.pets_outlined),
+              onPressed: () {
+                if (candidate.id != selectedPet.id) onSelected(candidate);
+              },
+              child: Text(candidate.name),
+            ),
+        ],
       ),
     );
   }
