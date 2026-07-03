@@ -4,6 +4,9 @@ export class HoldDto {
   @ApiProperty({ format: 'uuid', example: '7f04cd21-642a-4c48-8a82-5650ca5ce06c' })
   holdId!: string;
 
+  @ApiProperty({ format: 'uuid', required: false })
+  appointmentId?: string;
+
   @ApiProperty({
     enum: [
       'MANUAL_CONFIRM_PENDING',
@@ -14,7 +17,7 @@ export class HoldDto {
       'RELEASED',
       'MIS_BOOKING_FAILED',
     ],
-    example: 'MANUAL_CONFIRM_PENDING',
+    example: 'CONFIRMED',
   })
   state!: string;
 

@@ -324,6 +324,7 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
         platform: widget.platformOverride,
         builder: (_) => BookingMarketplacePage(
           clinicName: location.clinicName,
+          locationAddress: location.address,
           serviceName: selection.service.displayName,
           serviceId: selection.service.id,
           petName: pet.name,

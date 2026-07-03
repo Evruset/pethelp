@@ -76,7 +76,7 @@ void main() {
   });
 
   testWidgets(
-      'final slot failure opens Cupertino dialog and alternatives sheet',
+      'final slot failure opens Cupertino conflict dialog without alternatives',
       (tester) async {
     final repository = _FakeBookingMarketplaceRepository(
       holdFailuresBeforeSuccess: 4,
@@ -86,6 +86,7 @@ void main() {
       theme: ThemeData(platform: TargetPlatform.iOS, useMaterial3: true),
       home: BookingMarketplacePage(
         clinicName: 'VetHelp Clinic',
+        locationAddress: 'Москва, Лесная, 1',
         serviceName: 'Первичный прием',
         serviceId: 'service-1',
         petName: 'Бим',
@@ -102,19 +103,21 @@ void main() {
       warnIfMissed: false,
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Отправить заявку в клинику'));
+    await tester.tap(find.text('Записаться'));
     await tester.pumpAndSettle();
 
     expect(find.byType(CupertinoAlertDialog), findsOneWidget);
-    expect(find.text('Слот недоступен'), findsOneWidget);
+    expect(find.text('Время занято'), findsOneWidget);
+    expect(find.text('Это время уже заняли. Выберите другое время.'),
+        findsOneWidget);
     expect(find.textContaining('SLOT_'), findsNothing);
     expect(find.textContaining('409'), findsNothing);
 
-    await tester.tap(find.text('Подобрать другое время'));
+    await tester.tap(find.text('Выбрать другое время'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(CupertinoActionSheet), findsOneWidget);
-    expect(find.text('Доступные альтернативные слоты'), findsOneWidget);
+    expect(find.byType(CupertinoActionSheet), findsNothing);
+    expect(find.byType(CupertinoAlertDialog), findsNothing);
   });
 
   testWidgets('iOS booking page uses Cupertino presentation for slot selection',
@@ -127,6 +130,7 @@ void main() {
       theme: ThemeData(platform: TargetPlatform.iOS, useMaterial3: true),
       home: BookingMarketplacePage(
         clinicName: 'VetHelp Clinic',
+        locationAddress: 'Москва, Лесная, 1',
         serviceName: 'Первичный прием',
         serviceId: 'service-1',
         petName: 'Бим',
@@ -144,6 +148,7 @@ void main() {
     expect(find.byType(AppBar), findsNothing);
     expect(find.byType(FilledButton), findsNothing);
     expect(find.text('Первичный прием'), findsOneWidget);
+    expect(find.text('Москва, Лесная, 1'), findsOneWidget);
     expect(find.text('Утро'), findsOneWidget);
     expect(find.text('День'), findsAtLeastNWidgets(1));
     expect(find.text('Выберите время'), findsOneWidget);
@@ -161,7 +166,8 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('Отправить заявку в клинику'), findsOneWidget);
+    expect(find.text('Записаться'), findsOneWidget);
+    expect(repository.holdRequests, 0);
   });
 
   testWidgets('Android booking page keeps Material presentation',
@@ -174,6 +180,7 @@ void main() {
       theme: ThemeData(platform: TargetPlatform.android, useMaterial3: true),
       home: BookingMarketplacePage(
         clinicName: 'VetHelp Clinic',
+        locationAddress: 'Москва, Лесная, 1',
         serviceName: 'Первичный прием',
         serviceId: 'service-1',
         petName: 'Бим',
@@ -204,6 +211,7 @@ void main() {
       theme: ThemeData(platform: TargetPlatform.iOS, useMaterial3: true),
       home: BookingMarketplacePage(
         clinicName: 'VetHelp Clinic',
+        locationAddress: 'Москва, Лесная, 1',
         serviceName: 'Первичный прием',
         serviceId: 'service-1',
         petName: 'Бим',
@@ -220,13 +228,16 @@ void main() {
       warnIfMissed: false,
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Отправить заявку в клинику'));
+    await tester.tap(find.text('Записаться'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Статус записи'), findsOneWidget);
-    expect(find.text('Заявка отправлена в клинику'), findsOneWidget);
-    expect(find.text('Что дальше'), findsOneWidget);
-    expect(find.textContaining('Подтверждение не обещается'), findsOneWidget);
+    expect(find.text('Вы записаны'), findsWidgets);
+    expect(find.text('VetHelp Clinic'), findsOneWidget);
+    expect(find.text('Москва, Лесная, 1'), findsOneWidget);
+    expect(find.text('Бим'), findsOneWidget);
+    expect(find.text('Первичный прием'), findsOneWidget);
+    expect(find.textContaining('Заявка'), findsNothing);
+    expect(find.textContaining('подтверд'), findsNothing);
     expect(find.byType(CupertinoPageScaffold), findsOneWidget);
     expect(find.byType(Scaffold), findsNothing);
   });
@@ -239,6 +250,10 @@ void main() {
       home: BookingHoldStatusPage(
         holdId: 'hold-1',
         initialState: 'CONFIRMED',
+        clinicName: 'VetHelp Clinic',
+        locationAddress: 'Москва, Лесная, 1',
+        serviceName: 'Первичный прием',
+        petName: 'Бим',
         platformOverride: TargetPlatform.iOS,
         readHold: (_) async => BookingHoldSnapshot(
           holdId: 'hold-1',
@@ -254,10 +269,15 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Визит подтверждён'), findsOneWidget);
+    expect(find.text('Вы записаны'), findsWidgets);
+    expect(find.text('VetHelp Clinic'), findsOneWidget);
+    expect(find.text('Москва, Лесная, 1'), findsOneWidget);
+    expect(find.text('Бим'), findsOneWidget);
+    expect(find.text('Первичный прием'), findsOneWidget);
     expect(find.text('Открыть записи'), findsOneWidget);
     expect(find.textContaining('hold-1'), findsNothing);
     expect(find.textContaining('CONFIRMED'), findsNothing);
+    expect(find.textContaining('подтверд'), findsNothing);
 
     await tester.ensureVisible(find.text('Открыть записи'));
     await tester.tap(find.text('Открыть записи'));
@@ -336,7 +356,8 @@ class _FakeBookingMarketplaceRepository
     }
     return CreatedBookingHold(
       holdId: 'hold-1',
-      state: 'MANUAL_CONFIRM_PENDING',
+      appointmentId: 'appointment-1',
+      state: 'CONFIRMED',
       slotId: slotId,
       expiresAt: DateTime.utc(2026, 6, 29, 10, 10),
       correlationId: correlationId,
@@ -348,7 +369,7 @@ class _FakeBookingMarketplaceRepository
     return BookingHoldSnapshot(
       holdId: holdId,
       slotId: 'slot-a',
-      state: 'MANUAL_CONFIRM_PENDING',
+      state: 'CONFIRMED',
       expiresAt: DateTime.utc(2026, 6, 29, 10, 10),
       startsAt: DateTime.utc(2026, 6, 29, 10),
       endsAt: DateTime.utc(2026, 6, 29, 10, 30),
