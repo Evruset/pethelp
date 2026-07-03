@@ -95,7 +95,7 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
                         ? NavigationRailLabelType.none
                         : NavigationRailLabelType.all,
                     minWidth: 88,
-                    minExtendedWidth: 220,
+                    minExtendedWidth: 240,
                     destinations: [
                       for (final destination in _destinations)
                         NavigationRailDestination(
@@ -282,13 +282,13 @@ class _OwnerHomePageState extends State<OwnerHomePage> {
         );
         return ListView(
           padding: EdgeInsets.symmetric(
-            horizontal: wide ? 32 : 20,
+            horizontal: wide ? 40 : 20,
             vertical: wide ? 28 : 20,
           ),
           children: [
             Center(
               child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: wide ? 1180 : 720),
+                constraints: BoxConstraints(maxWidth: wide ? 1240 : 760),
                 child: content,
               ),
             ),
@@ -1088,7 +1088,6 @@ class _MaterialSecondaryServices extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final wide = MediaQuery.sizeOf(context).width >= 1100;
     final services = [
       _MaterialServiceAction(
         icon: Icons.shield_outlined,
@@ -1104,31 +1103,38 @@ class _MaterialSecondaryServices extends StatelessWidget {
         onPressed: onRequestTelemed,
       ),
     ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Дополнительные сервисы',
-            style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 10),
-        if (wide)
-          Row(
-            children: [
-              for (var index = 0; index < services.length; index++) ...[
-                if (index > 0) const SizedBox(width: 12),
-                Expanded(child: services[index]),
-              ],
-            ],
-          )
-        else
-          Column(
-            children: [
-              for (var index = 0; index < services.length; index++) ...[
-                if (index > 0) const SizedBox(height: 10),
-                services[index],
-              ],
-            ],
-          ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final roomy = constraints.maxWidth >= 760;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Дополнительные сервисы',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 10),
+            if (roomy)
+              Row(
+                children: [
+                  for (var index = 0; index < services.length; index++) ...[
+                    if (index > 0) const SizedBox(width: 12),
+                    Expanded(child: services[index]),
+                  ],
+                ],
+              )
+            else
+              Column(
+                children: [
+                  for (var index = 0; index < services.length; index++) ...[
+                    if (index > 0) const SizedBox(height: 10),
+                    services[index],
+                  ],
+                ],
+              ),
+          ],
+        );
+      },
     );
   }
 }
@@ -1153,17 +1159,18 @@ class _MaterialServiceAction extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         onTap: onPressed,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 96),
+          constraints: const BoxConstraints(minHeight: 88),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Icon(icon, size: 26),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(title,
                           style: Theme.of(context).textTheme.titleSmall),

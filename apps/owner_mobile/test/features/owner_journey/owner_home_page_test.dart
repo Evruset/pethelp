@@ -211,6 +211,37 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('medium web Home stacks secondary services before text collapses',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(1024, 900));
+
+    await tester.pumpWidget(_materialHarness(
+      OwnerJourneyPage(
+        selectedPet: _pet,
+        appointmentsRepository: _FakeOwnerAppointmentsRepository(),
+        petsRepository: _FakeOwnerPetRepository(),
+        alternativeSlotRepository: _alternativeSlots,
+        onBrowseClinics: () {},
+        onPetSelected: (_) {},
+        onOpenCare: () {},
+        onRequestTelemed: () {},
+        onRequestInsurance: () {},
+        onRequestEmergency: () {},
+      ),
+      size: const Size(1024, 900),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(tester.getSize(find.text('Страхование')).height, lessThan(40));
+    expect(tester.getSize(find.text('Ветеринар онлайн')).height, lessThan(64));
+    expect(
+      tester.getSize(find.textContaining('Проверка покрытия')).height,
+      lessThan(96),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('mobile Material shell keeps bottom navigation', (tester) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.binding.setSurfaceSize(const Size(390, 844));
