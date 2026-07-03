@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +9,34 @@ import '../../presentation/platform/owner_platform.dart';
 import '../../presentation/widgets/owner_cupertino_feedback.dart';
 import 'owner_pet.dart';
 import 'owner_pet_repository.dart';
+
+Future<OwnerPetSaveResult?> showOwnerPetEditorBottomSheet({
+  required BuildContext context,
+  required OwnerPetRepository repository,
+  required OwnerPet pet,
+  VoidCallback? onFallbackSnapshot,
+}) async {
+  OwnerPet fresh;
+  try {
+    fresh = await repository.read(pet.id);
+  } catch (_) {
+    fresh = pet;
+    onFallbackSnapshot?.call();
+  }
+  if (!context.mounted) return null;
+  return showModalBottomSheet<OwnerPetSaveResult>(
+    context: context,
+    isScrollControlled: true,
+    builder: (_) => _PetForm(
+      initial: fresh,
+      onSubmit: (input) => repository.update(
+        petId: fresh.id,
+        profileVersion: fresh.profileVersion,
+        input: input,
+      ),
+    ),
+  );
+}
 
 class OwnerPetsPage extends StatefulWidget {
   const OwnerPetsPage({
@@ -84,32 +114,15 @@ class _OwnerPetsPageState extends State<OwnerPetsPage> {
       _busy = true;
     });
     try {
-      OwnerPet fresh;
-      try {
-        fresh = await widget.repository.read(summary.id);
-      } catch (_) {
-        fresh = summary;
-        if (mounted) {
-          _message(
-              'Открыта последняя загруженная версия. Изменения будут поставлены в очередь.');
-        }
-      }
-      if (!mounted) {
-        return;
-      }
       setState(() {
         _busy = false;
       });
-      final result = await showModalBottomSheet<OwnerPetSaveResult>(
+      final result = await showOwnerPetEditorBottomSheet(
         context: context,
-        isScrollControlled: true,
-        builder: (_) => _PetForm(
-          initial: fresh,
-          onSubmit: (input) => widget.repository.update(
-            petId: fresh.id,
-            profileVersion: fresh.profileVersion,
-            input: input,
-          ),
+        repository: widget.repository,
+        pet: summary,
+        onFallbackSnapshot: () => _message(
+          'Открыта последняя загруженная версия. Изменения будут поставлены в очередь.',
         ),
       );
       if (result == null || !mounted) return;
@@ -1055,10 +1068,33 @@ class _PetFormState extends State<_PetForm> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(widget.initial == null ? 'Новый питомец' : 'Профиль питомца',
-                  style: Theme.of(context).textTheme.titleLarge),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.initial == null
+                          ? 'Новый питомец'
+                          : 'Профиль питомца',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Закрыть',
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Отменить'),
+                ),
+              ),
               const SizedBox(height: 16),
               TextFormField(
+                key: const ValueKey('owner-pet-name-field'),
                 controller: _name,
                 autofocus: widget.initial == null,
                 textCapitalization: TextCapitalization.words,
@@ -1256,7 +1292,7 @@ class _PetFormState extends State<_PetForm> {
       setState(() {
         _submitState = _PetSubmitState.success;
       });
-      await HapticFeedback.mediumImpact();
+      unawaited(HapticFeedback.mediumImpact().catchError((_) {}));
       if (!mounted) {
         return;
       }
