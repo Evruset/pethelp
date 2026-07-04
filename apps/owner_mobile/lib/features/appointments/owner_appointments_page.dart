@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../presentation/platform/owner_platform.dart';
 import '../../presentation/widgets/owner_cupertino_feedback.dart';
+import '../../ui/vethelp_owner_components.dart';
 import '../booking/alternative_slot/alternative_slot_page.dart';
 import '../booking/alternative_slot/alternative_slot_repository.dart';
 import 'owner_appointments_repository.dart';
@@ -952,47 +953,51 @@ class _OwnerAppointmentDetailPageState
       navigationBar: const CupertinoNavigationBar(
         middle: Text('Детали записи'),
       ),
-      child: SafeArea(
-        bottom: false,
-        child: FutureBuilder<OwnerAppointmentDetail>(
-          future: _request,
-          builder: (context, snapshot) {
-            final detail = snapshot.data ?? _last;
-            if (snapshot.connectionState != ConnectionState.done &&
-                detail == null) {
-              return const Center(child: CupertinoActivityIndicator());
-            }
-            if (detail == null) {
-              return _CupertinoAppointmentsLoadError(onRetry: _reload);
-            }
-            _last = detail;
-            _syncPolling(detail);
-            return CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                CupertinoSliverRefreshControl(onRefresh: _refresh),
-                SliverList.list(
-                  children: [
-                    if (_stale || snapshot.hasError)
-                      const _CupertinoStaleBanner(),
-                    _CupertinoAppointmentDetailContent(
-                      detail: detail,
-                      cancellationRequested: _cancellationRequested,
-                      cancelling: _cancelling,
-                      onRefresh: _refresh,
-                      onReviewAlternative: () =>
-                          _openAlternative(detail.holdId),
-                      onOpenRoute: () => _openRoute(detail),
-                      onCallClinic: () => _callClinic(detail),
-                      onCancel: () => _cancel(detail),
-                      onOpenPetDiary: widget.onOpenPetDiary,
-                      onRebookAppointment: widget.onRebookAppointment,
-                    ),
-                  ],
-                ),
-              ],
-            );
-          },
+      child: VhPageBackdrop(
+        child: SafeArea(
+          bottom: false,
+          child: FutureBuilder<OwnerAppointmentDetail>(
+            future: _request,
+            builder: (context, snapshot) {
+              final detail = snapshot.data ?? _last;
+              if (snapshot.connectionState != ConnectionState.done &&
+                  detail == null) {
+                return const Center(child: CupertinoActivityIndicator());
+              }
+              if (detail == null) {
+                return _CupertinoAppointmentsLoadError(onRetry: _reload);
+              }
+
+              _last = detail;
+              _syncPolling(detail);
+
+              return CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  CupertinoSliverRefreshControl(onRefresh: _refresh),
+                  SliverList.list(
+                    children: [
+                      if (_stale || snapshot.hasError)
+                        const _CupertinoStaleBanner(),
+                      _CupertinoAppointmentDetailContent(
+                        detail: detail,
+                        cancellationRequested: _cancellationRequested,
+                        cancelling: _cancelling,
+                        onRefresh: _refresh,
+                        onReviewAlternative: () =>
+                            _openAlternative(detail.holdId),
+                        onOpenRoute: () => _openRoute(detail),
+                        onCallClinic: () => _callClinic(detail),
+                        onCancel: () => _cancel(detail),
+                        onOpenPetDiary: widget.onOpenPetDiary,
+                        onRebookAppointment: widget.onRebookAppointment,
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -1102,53 +1107,65 @@ class _CupertinoStatusHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tone = _cupertinoTone(context, status.tone);
+    final colors = Theme.of(context).colorScheme;
+
     return Semantics(
       label:
           'Статус записи: ${status.label}. ${status.description}. Обновлено ${_cupertinoDateTime(detail.latestStatusUpdateAt)}',
       liveRegion: true,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: tone.background,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: tone.border),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(status.icon, size: 32, color: tone.foreground),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      status.label,
-                      style: CupertinoTheme.of(context)
-                          .textTheme
-                          .navTitleTextStyle
-                          .copyWith(fontSize: 22),
-                    ),
+      child: VhGlassSurface(
+        radius: 28,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: tone.foreground.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                status.description,
-                style: CupertinoTheme.of(context).textTheme.textStyle,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Обновлено: ${_cupertinoDateTime(detail.latestStatusUpdateAt)}',
-                style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
-                      color: CupertinoDynamicColor.resolve(
-                        CupertinoColors.secondaryLabel,
-                        context,
-                      ),
-                    ),
-              ),
-            ],
-          ),
+                  child: Icon(
+                    status.icon,
+                    size: 30,
+                    color: tone.foreground,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    status.label,
+                    style: CupertinoTheme.of(context)
+                        .textTheme
+                        .navLargeTitleTextStyle
+                        .copyWith(
+                          color: colors.onSurface,
+                          fontSize: 24,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              status.description,
+              style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Обновлено · ${_cupertinoDateTime(detail.latestStatusUpdateAt)}',
+              style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                    color: colors.onSurfaceVariant,
+                    fontSize: 13,
+                  ),
+            ),
+          ],
         ),
       ),
     );
@@ -1464,39 +1481,30 @@ class _CupertinoGroupedSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: CupertinoDynamicColor.resolve(
-          CupertinoColors.secondarySystemGroupedBackground,
-          context,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: CupertinoDynamicColor.resolve(
-            CupertinoColors.separator,
-            context,
+    final colors = Theme.of(context).colorScheme;
+
+    return VhGlassSurface(
+      radius: 24,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: CupertinoTheme.of(context)
+                .textTheme
+                .navTitleTextStyle
+                .copyWith(
+                  color: colors.onSurface,
+                  fontSize: 18,
+                ),
           ),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: CupertinoTheme.of(context)
-                  .textTheme
-                  .navTitleTextStyle
-                  .copyWith(fontSize: 18),
-            ),
-            const SizedBox(height: 10),
-            for (var index = 0; index < children.length; index++) ...[
-              if (index > 0) const _CupertinoHairline(),
-              children[index],
-            ],
+          const SizedBox(height: 10),
+          for (var index = 0; index < children.length; index++) ...[
+            if (index > 0) const _CupertinoHairline(),
+            children[index],
           ],
-        ),
+        ],
       ),
     );
   }
