@@ -70,6 +70,9 @@ void main() {
     await tester.tap(find.text('Первичный приём'));
     await tester.pumpAndSettle();
 
+    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    await tester.pumpAndSettle();
+
     expect(find.text('Перед выбором времени'), findsOneWidget);
     expect(find.text('Питомец'), findsOneWidget);
     expect(find.text('Бим'), findsOneWidget);
@@ -189,6 +192,8 @@ void main() {
     await tester.tap(find.text('VetHelp Central'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Первичный приём'));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView), const Offset(0, -500));
     await tester.pumpAndSettle();
 
     expect(find.text('Барсик'), findsOneWidget);

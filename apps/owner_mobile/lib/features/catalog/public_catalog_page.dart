@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../presentation/platform/owner_platform.dart';
 import '../../presentation/widgets/owner_cupertino_feedback.dart';
+import '../../ui/vethelp_owner_components.dart';
 import 'catalog_models.dart';
 import 'public_catalog_repository.dart';
 
@@ -177,31 +178,33 @@ class _PublicCatalogPageState extends State<PublicCatalogPage> {
             child: const Icon(CupertinoIcons.refresh),
           ),
         ),
-        child: SafeArea(
-          bottom: false,
-          child: clinic == null
-              ? _CupertinoClinicsBody(
-                  search: _search,
-                  filters: _filters,
-                  request: _clinicsRequest,
-                  bookingPetName: widget.bookingPetName,
-                  bookingContextNote: widget.bookingContextNote,
-                  onChangePet: widget.onChangePet,
-                  onReload: _reloadClinics,
-                  onClearFilters: _clearFilters,
-                  onFiltersChanged: _applyFilters,
-                  onOpenClinic: _openClinic,
-                )
-              : _CupertinoClinicDetailBody(
-                  repository: widget.repository,
-                  request: _detailRequest,
-                  onRetry: _reloadDetail,
-                  onSelected: widget.onSelected,
-                  bookingPetName: widget.bookingPetName,
-                  bookingContextNote: widget.bookingContextNote,
-                  onChangeClinic: _backToClinics,
-                  onChangePet: widget.onChangePet,
-                ),
+        child: VhPageBackdrop(
+          child: SafeArea(
+            bottom: false,
+            child: clinic == null
+                ? _CupertinoClinicsBody(
+                    search: _search,
+                    filters: _filters,
+                    request: _clinicsRequest,
+                    bookingPetName: widget.bookingPetName,
+                    bookingContextNote: widget.bookingContextNote,
+                    onChangePet: widget.onChangePet,
+                    onReload: _reloadClinics,
+                    onClearFilters: _clearFilters,
+                    onFiltersChanged: _applyFilters,
+                    onOpenClinic: _openClinic,
+                  )
+                : _CupertinoClinicDetailBody(
+                    repository: widget.repository,
+                    request: _detailRequest,
+                    onRetry: _reloadDetail,
+                    onSelected: widget.onSelected,
+                    bookingPetName: widget.bookingPetName,
+                    bookingContextNote: widget.bookingContextNote,
+                    onChangeClinic: _backToClinics,
+                    onChangePet: widget.onChangePet,
+                  ),
+          ),
         ),
       ),
     );
@@ -235,72 +238,107 @@ class _CupertinoClinicsBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: CupertinoDynamicColor.resolve(
-        CupertinoColors.systemGroupedBackground,
-        context,
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _CupertinoCatalogPetContext(
-                  petName: bookingPetName,
-                  contextNote: bookingContextNote,
-                  onChangePet: onChangePet,
+    return FutureBuilder<List<CatalogClinic>>(
+      future: request,
+      builder: (context, snapshot) {
+        final hasFilters = _hasActiveCatalogFilters(filters);
+        final slivers = <Widget>[
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+              child: _CupertinoPanel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _CupertinoCatalogPetContext(
+                      petName: bookingPetName,
+                      contextNote: bookingContextNote,
+                      onChangePet: onChangePet,
+                    ),
+                    const SizedBox(height: 12),
+                    _CupertinoCatalogSearchField(
+                      controller: search,
+                      onSubmitted: onReload,
+                    ),
+                    const SizedBox(height: 12),
+                    _CupertinoCatalogFilters(
+                      filters: filters,
+                      onChanged: onFiltersChanged,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                CupertinoSearchTextField(
-                  controller: search,
-                  placeholder: 'Название, адрес или услуга',
-                  onSubmitted: (_) => onReload(),
-                ),
-                const SizedBox(height: 12),
-                _CupertinoCatalogFilters(
-                  filters: filters,
-                  onChanged: onFiltersChanged,
-                ),
-              ],
+              ),
             ),
           ),
-          Expanded(
-            child: FutureBuilder<List<CatalogClinic>>(
-              future: request,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState != ConnectionState.done) {
-                  return const Center(child: CupertinoActivityIndicator());
-                }
-                if (snapshot.hasError) {
-                  return _CupertinoCatalogError(onRetry: onReload);
-                }
-                final clinics = snapshot.data ?? const <CatalogClinic>[];
-                if (clinics.isEmpty) {
-                  final hasFilters = _hasActiveCatalogFilters(filters);
-                  return _CupertinoCatalogEmpty(
-                    text: hasFilters
-                        ? 'По текущему запросу и фильтрам активных клиник не найдено. Можно очистить фильтры и повторить поиск.'
-                        : 'По этому запросу активных клиник не найдено. Попробуйте изменить формулировку поиска.',
-                    actionLabel: hasFilters ? 'Очистить фильтры' : null,
-                    onAction: hasFilters ? onClearFilters : null,
-                  );
-                }
-                return ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
+        ];
+
+        if (snapshot.connectionState != ConnectionState.done) {
+          slivers.add(
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(child: CupertinoActivityIndicator()),
+            ),
+          );
+        } else if (snapshot.hasError) {
+          slivers.add(
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: _CupertinoCatalogError(onRetry: onReload),
+            ),
+          );
+        } else {
+          final clinics = snapshot.data ?? const <CatalogClinic>[];
+          if (clinics.isEmpty) {
+            slivers.add(
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: _CupertinoCatalogEmpty(
+                  text: hasFilters
+                      ? 'По текущему запросу и фильтрам активных клиник не найдено. Можно очистить фильтры и повторить поиск.'
+                      : 'По этому запросу активных клиник не найдено. Попробуйте изменить формулировку поиска.',
+                  actionLabel: hasFilters ? 'Очистить фильтры' : null,
+                  onAction: hasFilters ? onClearFilters : null,
+                ),
+              ),
+            );
+          } else {
+            slivers.add(
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
+                sliver: SliverList.separated(
                   itemCount: clinics.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 10),
                   itemBuilder: (context, index) => _CupertinoClinicCard(
                     clinic: clinics[index],
                     onTap: () => onOpenClinic(clinics[index]),
                   ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
+                ),
+              ),
+            );
+          }
+        }
+
+        return CustomScrollView(slivers: slivers);
+      },
+    );
+  }
+}
+
+class _CupertinoCatalogSearchField extends StatelessWidget {
+  const _CupertinoCatalogSearchField({
+    required this.controller,
+    required this.onSubmitted,
+  });
+
+  final TextEditingController controller;
+  final VoidCallback onSubmitted;
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoSearchTextField(
+      controller: controller,
+      placeholder: 'Название, адрес или услуга',
+      onSubmitted: (_) => onSubmitted(),
     );
   }
 }
@@ -731,125 +769,132 @@ class _CupertinoClinicDetailBodyState
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: CupertinoDynamicColor.resolve(
-        CupertinoColors.systemGroupedBackground,
-        context,
-      ),
-      child: FutureBuilder<CatalogClinicDetail>(
-        future: widget.request,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CupertinoActivityIndicator());
-          }
-          if (snapshot.hasError) {
-            return _CupertinoCatalogError(onRetry: widget.onRetry);
-          }
-          final detail = snapshot.data;
-          if (detail == null || detail.locations.isEmpty) {
-            return const _CupertinoCatalogEmpty(
-              text: 'У клиники пока нет активных адресов для записи.',
-            );
-          }
-          if (_selectedLocationIndex >= detail.locations.length) {
-            _selectedLocationIndex = 0;
-          }
-          final location = detail.locations[_selectedLocationIndex];
-          _ensureServicesRequest(location.locationId);
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-            children: [
-              _CupertinoClinicSummary(detail: detail),
-              const SizedBox(height: 14),
-              _CupertinoSectionHeader(title: 'Адрес'),
-              const SizedBox(height: 8),
-              for (var index = 0; index < detail.locations.length; index++) ...[
-                if (index > 0) const SizedBox(height: 8),
-                _CupertinoLocationChoice(
-                  location: detail.locations[index],
-                  selected: index == _selectedLocationIndex,
-                  onTap: () => setState(() => _selectedLocationIndex = index),
-                ),
-              ],
-              const SizedBox(height: 8),
-              _CupertinoLocationActions(location: location),
-              const SizedBox(height: 16),
-              FutureBuilder<List<CatalogService>>(
-                future: _servicesRequest,
-                builder: (context, servicesSnapshot) {
-                  if (servicesSnapshot.connectionState !=
-                      ConnectionState.done) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 32),
-                      child: Center(child: CupertinoActivityIndicator()),
-                    );
-                  }
-                  if (servicesSnapshot.hasError) {
-                    return _CupertinoInlineRetry(
-                      onRetry: () => _reloadServices(location.locationId),
-                    );
-                  }
-                  final services =
-                      servicesSnapshot.data ?? const <CatalogService>[];
-                  final selectedService = _selectedService(services);
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+    return FutureBuilder<CatalogClinicDetail>(
+      future: widget.request,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CupertinoActivityIndicator());
+        }
+        if (snapshot.hasError) {
+          return _CupertinoCatalogError(onRetry: widget.onRetry);
+        }
+        final detail = snapshot.data;
+        if (detail == null || detail.locations.isEmpty) {
+          return const _CupertinoCatalogEmpty(
+            text: 'У клиники пока нет активных адресов для записи.',
+          );
+        }
+        if (_selectedLocationIndex >= detail.locations.length) {
+          _selectedLocationIndex = 0;
+        }
+        final location = detail.locations[_selectedLocationIndex];
+        _ensureServicesRequest(location.locationId);
+
+        return FutureBuilder<List<CatalogService>>(
+          future: _servicesRequest,
+          builder: (context, servicesSnapshot) {
+            final services = servicesSnapshot.data ?? const <CatalogService>[];
+            final servicesLoaded =
+                servicesSnapshot.connectionState == ConnectionState.done &&
+                    !servicesSnapshot.hasError;
+            final selectedService =
+                servicesLoaded ? _selectedService(services) : null;
+
+            return Column(
+              children: [
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                     children: [
-                      _CupertinoServicesSection(
-                        services: services,
-                        selectedServiceId: selectedService?.id,
-                        onSelected: (service) =>
-                            setState(() => _selectedServiceId = service.id),
-                      ),
-                      const SizedBox(height: 16),
-                      if (selectedService == null)
-                        const OwnerCupertinoStatusBanner(
-                          tone: OwnerCupertinoFeedbackTone.neutral,
-                          title: 'Что будет дальше',
-                          message:
-                              'Выберите услугу, чтобы перейти к доступному времени. Слот не удерживается до выбора времени.',
-                        )
-                      else ...[
-                        _CupertinoAvailabilityHint(
-                          nextAvailableAt: detail.nextAvailableAt,
-                          hasOpenSlots: location.hasOpenSlots,
-                        ),
-                        const SizedBox(height: 16),
-                        _CupertinoBookingContextSummary(
-                          petName: widget.bookingPetName,
-                          clinicName: location.clinicName,
-                          locationAddress: location.address,
-                          service: selectedService,
-                          contextNote: widget.bookingContextNote,
-                          onChangeClinic: widget.onChangeClinic,
-                          onChangeService: () =>
-                              setState(() => _selectedServiceId = null),
-                          onChangePet: widget.onChangePet,
+                      _CupertinoClinicSummary(detail: detail),
+                      const SizedBox(height: 14),
+                      _CupertinoSectionHeader(title: 'Адрес'),
+                      const SizedBox(height: 8),
+                      for (var index = 0;
+                          index < detail.locations.length;
+                          index++) ...[
+                        if (index > 0) const SizedBox(height: 8),
+                        _CupertinoLocationChoice(
+                          location: detail.locations[index],
+                          selected: index == _selectedLocationIndex,
+                          onTap: () =>
+                              setState(() => _selectedLocationIndex = index),
                         ),
                       ],
-                      const SizedBox(height: 22),
-                      _CupertinoPrimaryButton(
-                        label: selectedService == null
-                            ? 'Выберите услугу'
-                            : 'Посмотреть время',
-                        enabled: selectedService != null,
-                        onPressed: selectedService == null
-                            ? null
-                            : () => widget.onSelected(
-                                  CatalogBookingSelection(
-                                    location: location,
-                                    service: selectedService,
-                                  ),
-                                ),
-                      ),
+                      const SizedBox(height: 8),
+                      _CupertinoLocationActions(location: location),
+                      const SizedBox(height: 16),
+                      if (servicesSnapshot.connectionState !=
+                          ConnectionState.done)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 32),
+                          child: Center(child: CupertinoActivityIndicator()),
+                        )
+                      else if (servicesSnapshot.hasError)
+                        _CupertinoInlineRetry(
+                          onRetry: () => _reloadServices(location.locationId),
+                        )
+                      else ...[
+                        _CupertinoServicesSection(
+                          services: services,
+                          selectedServiceId: selectedService?.id,
+                          onSelected: (service) =>
+                              setState(() => _selectedServiceId = service.id),
+                        ),
+                        const SizedBox(height: 16),
+                        if (selectedService == null)
+                          const OwnerCupertinoStatusBanner(
+                            tone: OwnerCupertinoFeedbackTone.neutral,
+                            title: 'Что будет дальше',
+                            message:
+                                'Выберите услугу, чтобы перейти к доступному времени. Слот не удерживается до выбора времени.',
+                          )
+                        else ...[
+                          _CupertinoAvailabilityHint(
+                            nextAvailableAt: detail.nextAvailableAt,
+                            hasOpenSlots: location.hasOpenSlots,
+                          ),
+                          const SizedBox(height: 16),
+                          _CupertinoBookingContextSummary(
+                            petName: widget.bookingPetName,
+                            clinicName: location.clinicName,
+                            locationAddress: location.address,
+                            service: selectedService,
+                            contextNote: widget.bookingContextNote,
+                            onChangeClinic: widget.onChangeClinic,
+                            onChangeService: () =>
+                                setState(() => _selectedServiceId = null),
+                            onChangePet: widget.onChangePet,
+                          ),
+                        ],
+                      ],
                     ],
-                  );
-                },
-              ),
-            ],
-          );
-        },
-      ),
+                  ),
+                ),
+                if (servicesLoaded && services.isNotEmpty)
+                  SafeArea(
+                    top: false,
+                    minimum: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                    child: _CupertinoPrimaryButton(
+                      label: selectedService == null
+                          ? 'Выберите услугу'
+                          : 'Посмотреть время',
+                      enabled: selectedService != null,
+                      onPressed: selectedService == null
+                          ? null
+                          : () => widget.onSelected(
+                                CatalogBookingSelection(
+                                  location: location,
+                                  service: selectedService,
+                                ),
+                              ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -1385,24 +1430,18 @@ class _CupertinoPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final background = CupertinoDynamicColor.resolve(
-      selected
-          ? CupertinoColors.activeBlue.withValues(alpha: 0.12)
-          : CupertinoColors.secondarySystemGroupedBackground,
-      context,
-    );
     final border = CupertinoDynamicColor.resolve(
       selected ? CupertinoColors.activeBlue : CupertinoColors.separator,
       context,
     );
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: border, width: selected ? 2 : 1),
       ),
-      child: Padding(
+      child: VhGlassSurface(
         padding: const EdgeInsets.all(14),
+        radius: 18,
         child: child,
       ),
     );
