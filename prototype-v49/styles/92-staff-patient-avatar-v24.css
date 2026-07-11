@@ -1,0 +1,100 @@
+/* v24: staff patient avatars use the same stable thumbnail wrapper pattern as owner pet thumbs. */
+@layer components {
+  .staff-patient-cell {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 10px;
+    min-inline-size: 0;
+    text-align: start;
+  }
+
+  .staff-patient-cell > span:last-child {
+    min-inline-size: 0;
+    display: grid;
+    gap: 2px;
+    text-align: start;
+  }
+
+  .staff-patient-thumb {
+    inline-size: 42px;
+    block-size: 42px;
+    min-inline-size: 42px;
+    min-block-size: 42px;
+    max-inline-size: 42px;
+    max-block-size: 42px;
+    border-radius: 14px;
+    overflow: hidden;
+    display: block;
+    flex: 0 0 42px;
+    background: var(--surface-blue, #eaf3ff);
+    border: 1px solid rgba(137, 171, 221, .34);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .72);
+  }
+
+  .staff-patient-thumb > img {
+    inline-size: 100%;
+    block-size: 100%;
+    display: block;
+    object-fit: cover;
+    object-position: center;
+    aspect-ratio: 1 / 1;
+  }
+
+  .visit-patient-head {
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 14px;
+    text-align: start;
+  }
+
+  .visit-patient-head > div {
+    min-inline-size: 0;
+    text-align: start;
+  }
+
+  .visit-patient-head h2,
+  .visit-patient-head p {
+    text-align: start;
+  }
+
+  .visit-patient-head .staff-patient-thumb,
+  .staff-patient-thumb--visit {
+    inline-size: 76px;
+    block-size: 76px;
+    min-inline-size: 76px;
+    min-block-size: 76px;
+    max-inline-size: 76px;
+    max-block-size: 76px;
+    border-radius: 24px;
+    flex-basis: 76px;
+  }
+
+  /* v23's broad media rule included direct .staff-patient-avatar and made bare images grow to 100%.
+     Keep a defensive cap for any legacy markup that may still be injected by older demos. */
+  img.staff-patient-avatar {
+    inline-size: 42px;
+    block-size: 42px;
+    max-inline-size: 42px;
+    max-block-size: 42px;
+    min-inline-size: 42px;
+    min-block-size: 42px;
+    border-radius: 14px;
+    object-fit: cover;
+    object-position: center;
+    flex: 0 0 42px;
+  }
+
+  .visit-patient-head img.staff-patient-avatar,
+  .visit-patient-card img.staff-patient-avatar {
+    inline-size: 76px;
+    block-size: 76px;
+    max-inline-size: 76px;
+    max-block-size: 76px;
+    min-inline-size: 76px;
+    min-block-size: 76px;
+    border-radius: 24px;
+    flex-basis: 76px;
+  }
+}

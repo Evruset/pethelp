@@ -1,0 +1,82 @@
+/* v45 — focused appointment details and final diary composition */
+
+/* Appointment detail: keep a single status explanation and focused actions. */
+#appointment-detail{gap:22px;}
+#appointment-detail>.status-language-card,
+#appointment-detail>.v33-status-explanation,
+#appointment-detail>.v35-status-language,
+#appointment-detail>#v36-extra-services-consent{display:none!important;}
+#appointment-detail>.v37-can-go{
+  display:grid;grid-template-columns:56px minmax(0,1fr) auto;align-items:center;gap:18px;
+  padding:24px;border-color:rgba(183,121,31,.24);
+  background:linear-gradient(135deg,rgba(255,250,238,.94),rgba(255,255,255,.88));
+}
+#appointment-detail>.v37-can-go .v37-can-go__icon{width:52px;height:52px;}
+#appointment-detail>.v37-can-go__body,#appointment-detail .v37-can-go__body{min-width:0;}
+#appointment-detail>.v37-can-go h2{margin:.2rem 0 .4rem;font-size:clamp(1.35rem,2.5vw,2rem);line-height:1.12;}
+#appointment-detail>.v37-can-go p{margin:0;line-height:1.5;}
+#appointment-detail>.v37-can-go>.btn{min-width:210px;max-width:100%;}
+#appointment-detail>.two-col{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(340px,.88fr);gap:18px;align-items:start;}
+#appointment-detail>.two-col>article{min-width:0;padding:22px;}
+#appointment-detail>.two-col .section-header{display:flex;flex-wrap:wrap;align-items:flex-start;gap:12px;}
+#appointment-detail .stepper{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;min-width:0;}
+#appointment-detail .step{min-width:0;overflow-wrap:anywhere;}
+#appointment-detail .line-list{min-width:0;}
+#appointment-detail .line-item{display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:11px;min-width:0;}
+#appointment-detail .line-item>span:nth-child(2){min-width:0;}
+#appointment-detail .line-item :where(strong,small){display:block;max-width:100%;}
+#appointment-detail .line-item>.section-link,#appointment-detail .line-item>.pill{max-width:140px;white-space:normal;text-align:right;}
+#appointment-detail .timeline{min-width:0;}
+#appointment-detail .timeline-item{grid-template-columns:30px minmax(0,1fr);min-width:0;}
+#appointment-detail .timeline-item>span:last-child{min-width:0;}
+#appointment-detail>.section-header{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin:0;}
+#appointment-detail>.doc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}
+#appointment-detail>.doc-grid .medical-doc-card{min-width:0;overflow:hidden;}
+#appointment-detail>.appointment-actions-title{margin-top:2px;}
+#appointment-detail>.appointment-action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+#appointment-detail>.appointment-action-grid>.action-card{display:grid;grid-template-columns:42px minmax(0,1fr) 18px;align-items:center;gap:12px;min-width:0;padding:16px;}
+#appointment-detail>.appointment-action-grid>.action-card>span:nth-child(2){min-width:0;}
+#appointment-detail>.appointment-action-grid>.action-card :where(strong,small){display:block;max-width:100%;}
+#appointment-detail>.appointment-action-grid>.action-card:nth-child(n+5){display:none!important;}
+
+/* Diary: history first, verification second, documents last. */
+#diary>.two-col{grid-template-columns:minmax(0,1.15fr) minmax(340px,.85fr);}
+#diary>.two-col>article:first-child{display:grid;gap:16px;}
+#diary>.two-col>article:last-child{display:grid;gap:12px;}
+#diary .ocr-explain-grid{margin:0;}
+#diary .diary-discovery{margin:0;}
+#diary .diary-list{margin:0;}
+#diary>.diary-trust-panel{margin:0;}
+#diary>.v35-ocr-proof{display:grid;gap:16px;}
+#diary .v35-ocr-grid article{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:10px;}
+#diary .v35-ocr-grid article>dl{grid-column:1/-1;width:100%;}
+#diary .v35-ocr-grid dl>div{display:grid;grid-template-columns:minmax(90px,.7fr) minmax(0,1.3fr);gap:10px;}
+#diary .v35-ocr-grid dd{margin:0;text-align:right;}
+#diary>.section-header{margin:0;}
+#diary>.doc-grid .document-thumb{min-height:180px;}
+
+@media(max-width:1180px){
+  #appointment-detail>.two-col,#diary>.two-col{grid-template-columns:1fr;}
+  #appointment-detail>.doc-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  #appointment-detail>.doc-grid .medical-doc-card:last-child{grid-column:1/-1;}
+}
+@media(max-width:760px){
+  #appointment-detail>.v37-can-go{grid-template-columns:44px minmax(0,1fr);padding:18px;}
+  #appointment-detail>.v37-can-go .v37-can-go__icon{width:42px;height:42px;}
+  #appointment-detail>.v37-can-go>.btn{grid-column:1/-1;width:100%;min-width:0;}
+  #appointment-detail>.two-col>article{padding:17px;}
+  #appointment-detail>.doc-grid,#appointment-detail>.appointment-action-grid{grid-template-columns:1fr;}
+  #appointment-detail>.doc-grid .medical-doc-card:last-child{grid-column:auto;}
+  #diary .v35-ocr-grid article{grid-template-columns:1fr;}
+  #diary .v35-ocr-grid article>dl{grid-column:auto;}
+}
+@media(max-width:520px){
+  #appointment-detail .stepper{grid-template-columns:1fr;}
+  #appointment-detail .step{display:grid;grid-template-columns:32px minmax(0,1fr);align-items:center;text-align:left;}
+  #appointment-detail .line-item{grid-template-columns:38px minmax(0,1fr);}
+  #appointment-detail .line-item>.section-link,#appointment-detail .line-item>.pill{grid-column:2;justify-self:start;max-width:100%;text-align:left;}
+  #appointment-detail>.appointment-action-grid>.action-card{grid-template-columns:38px minmax(0,1fr) 14px;padding:13px;}
+  #diary .v35-ocr-grid dl>div{grid-template-columns:1fr;gap:3px;}
+  #diary .v35-ocr-grid dd{text-align:left;}
+}
+@media print{#appointment-detail>.status-language-card,#appointment-detail>.v33-status-explanation,#appointment-detail>.v35-status-language,#appointment-detail>#v36-extra-services-consent{display:none!important;}}

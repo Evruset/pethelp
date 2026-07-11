@@ -1,0 +1,190 @@
+/* v47 — compact appointment decisions, focused diary, broader UAT data. */
+:root{
+  --v47-ink:#17233b;
+  --v47-muted:#63718a;
+  --v47-line:rgba(126,158,205,.28);
+  --v47-blue:#1767f7;
+  --v47-soft-blue:#f2f7ff;
+  --v47-soft-amber:#fff8eb;
+  --v47-soft-green:#eefaf5;
+}
+body.v47-appointment-diary-data .bp-specification-note{display:none!important;}
+
+/* Booking review: one explanation after the two essential detail cards. */
+#booking-review>.v37-can-go,
+#booking-review>.booking-truth-banner,
+#booking-review>.v35-status-language,
+#booking-review>.v36-can-go-panel{display:none!important;}
+#booking-review>.v33-review-confirmation{
+  display:grid;
+  grid-template-columns:minmax(220px,.8fr) minmax(0,1.45fr) minmax(220px,.75fr);
+  align-items:center;
+  gap:18px;
+  padding:20px;
+  overflow:hidden;
+  background:linear-gradient(120deg,rgba(244,249,255,.96),rgba(255,255,255,.94));
+}
+#booking-review .v33-system-head{min-width:0;}
+#booking-review .v33-system-head h2{margin:8px 0 6px;font-size:clamp(19px,2vw,25px);line-height:1.16;overflow-wrap:anywhere;}
+#booking-review .v33-system-head p{margin:0;line-height:1.45;}
+#booking-review .v33-status-timeline{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;min-width:0;margin:0;}
+#booking-review .v33-status-timeline>div{display:grid;grid-template-columns:28px minmax(0,1fr);align-content:start;gap:2px 8px;min-width:0;padding:11px;border:1px solid var(--v47-line);border-radius:14px;background:rgba(255,255,255,.76);}
+#booking-review .v33-status-timeline>div>span{grid-row:1/3;width:28px;height:28px;display:grid;place-items:center;border-radius:9px;background:rgba(23,103,247,.1);color:var(--v47-blue);font-weight:900;}
+#booking-review .v33-status-timeline :where(strong,small){display:block;min-width:0;overflow-wrap:anywhere;line-height:1.35;}
+#booking-review .v33-status-timeline strong{font-size:13px;}
+#booking-review .v33-status-timeline small{color:var(--v47-muted);font-size:11px;}
+#booking-review .v33-price-mini{min-width:0;padding:14px;border-radius:14px;background:var(--v47-soft-green);border:1px solid rgba(32,153,103,.18);}
+#booking-review .v33-price-mini :where(strong,span){display:block;overflow-wrap:anywhere;}
+#booking-review .v33-price-mini span{margin-top:5px;color:#526c61;font-size:12px;line-height:1.4;}
+
+/* Appointment detail: one hero, one compact status history, four practical actions. */
+#appointment-detail>.v46-appointment-hero{
+  border-color:rgba(189,142,57,.25)!important;
+  background:linear-gradient(125deg,#fffaf1 0%,#fffdf9 45%,#f3f8ff 100%);
+  box-shadow:0 18px 42px rgba(74,92,124,.10);
+}
+#appointment-detail>.v46-appointment-hero[data-appointment-state="CONFIRMED"]{border-color:rgba(32,153,103,.24)!important;background:linear-gradient(125deg,#f1fbf7,#fff 52%,#f3f8ff);}
+#appointment-detail>.v46-appointment-hero[data-appointment-state="CLINIC_CANCELLED"],
+#appointment-detail>.v46-appointment-hero[data-appointment-state="SLOT_TAKEN"]{border-color:rgba(213,83,92,.23)!important;background:linear-gradient(125deg,#fff5f5,#fff 52%,#f5f8ff);}
+#appointment-detail>.two-col{grid-template-columns:1fr!important;}
+#appointment-detail>.two-col>article:first-child{padding:0!important;overflow:hidden;background:transparent!important;box-shadow:none!important;border:0!important;}
+#appointment-detail>.two-col>article:nth-child(2){display:none!important;}
+#appointment-detail .appointment-state-panel{padding:22px;gap:15px;color:var(--v47-ink);border:1px solid rgba(192,146,60,.22);border-radius:22px;background:linear-gradient(135deg,rgba(255,249,237,.97),rgba(248,252,255,.94));}
+#appointment-detail .appointment-state-panel.status-state--confirmed{border-color:rgba(35,157,105,.22);background:linear-gradient(135deg,rgba(239,251,246,.98),rgba(248,252,255,.94));}
+#appointment-detail .appointment-state-panel.status-state--cancelled{border-color:rgba(213,83,92,.22);background:linear-gradient(135deg,rgba(255,244,244,.98),rgba(248,252,255,.94));}
+#appointment-detail .appointment-state-panel .section-header{margin:0;}
+#appointment-detail .appointment-state-panel h2{margin:7px 0 0;font-size:clamp(21px,2.3vw,30px);overflow-wrap:anywhere;}
+#appointment-detail .status-state-copy{max-width:760px;margin:0;color:#53637d;font-size:14px;line-height:1.5;}
+#appointment-detail .vh-data-freshness,
+#appointment-detail .care-decision-context{display:none!important;}
+#appointment-detail .appointment-state-panel>.timeline{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:0;min-width:0;}
+#appointment-detail .appointment-state-panel>.timeline .timeline-item{display:grid;grid-template-columns:28px minmax(0,1fr);align-items:start;gap:9px;min-width:0;margin:0;padding:11px;border:1px solid rgba(133,164,210,.24);border-radius:14px;background:rgba(255,255,255,.66);}
+#appointment-detail .appointment-state-panel>.timeline .timeline-item:before{display:none!important;}
+#appointment-detail .appointment-state-panel>.timeline .timeline-copy{min-width:0;}
+#appointment-detail .appointment-state-panel>.timeline :where(strong,small){display:block;overflow-wrap:anywhere;line-height:1.35;}
+#appointment-detail .appointment-state-panel>.timeline strong{font-size:13px;}
+#appointment-detail .appointment-state-panel>.timeline small{font-size:11px;}
+#appointment-detail .status-state__facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0;}
+#appointment-detail .status-state__fact{grid-template-columns:112px minmax(0,1fr);align-items:start;gap:10px;min-width:0;padding:10px 11px;border:1px solid rgba(133,164,210,.22);border-radius:13px;background:rgba(255,255,255,.55);}
+#appointment-detail .status-state__fact :where(dt,dd){min-width:0;overflow-wrap:anywhere;line-height:1.35;}
+#appointment-detail .status-state__fact dt{font-size:12px;}
+#appointment-detail .status-state__fact dd{font-size:13px;}
+#appointment-detail .status-state__actions{gap:8px;}
+#appointment-detail .status-state__actions .btn{min-height:40px;padding:9px 13px;font-size:13px;}
+#appointment-detail>.section-header:not(.appointment-actions-title),
+#appointment-detail>.doc-grid{display:none!important;}
+#appointment-detail>.appointment-actions-title{margin-top:4px!important;}
+#appointment-detail>.appointment-actions-title .muted{max-width:480px;text-align:right;}
+#appointment-detail>.appointment-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;}
+#appointment-detail>.appointment-action-grid>.action-card,
+#appointment-detail>.appointment-action-grid>.appointment-actions-more:nth-child(-n+4){
+  display:grid!important;
+  grid-template-columns:50px minmax(0,1fr) 14px!important;
+  align-items:center;
+  gap:11px!important;
+  min-width:0;
+  min-height:76px!important;
+  padding:11px 13px!important;
+  border-radius:17px!important;
+  text-align:left;
+}
+#appointment-detail>.appointment-action-grid>.action-card:nth-child(n+5){display:none!important;}
+#appointment-detail .appointment-action-grid .action-icon{width:48px!important;height:48px!important;display:grid!important;place-items:center;border-radius:14px!important;background:rgba(233,242,255,.82)!important;}
+#appointment-detail .appointment-action-grid .action-icon.danger{background:rgba(255,235,237,.86)!important;}
+#appointment-detail .appointment-action-grid .action-icon :where(img,svg){width:32px!important;height:32px!important;object-fit:contain!important;mix-blend-mode:multiply;}
+#appointment-detail .appointment-action-grid .action-card>span:nth-child(2){min-width:0;}
+#appointment-detail .appointment-action-grid :where(strong,small){display:block;overflow-wrap:anywhere;line-height:1.35;}
+#appointment-detail .appointment-action-grid strong{font-size:14px;}
+#appointment-detail .appointment-action-grid small{margin-top:3px;color:var(--v47-muted);font-size:11px;}
+
+/* Diary: trends first, then history and the next useful action. */
+#diary{min-width:0;}
+#diary .v47-diary-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px;}
+#diary .v47-diary-toolbar .segmented{display:inline-flex;padding:4px;border:1px solid rgba(145,177,224,.36);border-radius:13px;background:rgba(239,246,255,.72);}
+#diary .v47-diary-toolbar .segmented button{min-height:38px;padding:8px 14px;}
+#diary .v47-health-dynamics{display:grid;gap:18px;padding:23px;overflow:hidden;background:linear-gradient(135deg,rgba(241,249,255,.96),rgba(255,255,255,.93));}
+#diary .v47-health-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;min-width:0;}
+#diary .v47-health-head>div:first-child{min-width:0;}
+#diary .v47-health-head h2{margin:8px 0 6px;font-size:clamp(23px,2.8vw,34px);overflow-wrap:anywhere;}
+#diary .v47-health-head p{max-width:740px;margin:0;line-height:1.45;}
+#diary .v47-period-switch{display:flex;flex:0 0 auto;gap:4px;padding:4px;border:1px solid rgba(128,163,215,.32);border-radius:13px;background:rgba(255,255,255,.72);}
+#diary .v47-period-switch button{min-height:38px;padding:8px 11px;border:0;border-radius:9px;background:transparent;color:var(--v47-muted);font-weight:800;font-size:12px;white-space:nowrap;}
+#diary .v47-period-switch button.is-active{background:#fff;color:var(--v47-blue);box-shadow:0 5px 14px rgba(45,85,145,.10);}
+#diary .v47-health-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;min-width:0;}
+#diary .v47-health-metrics>article{min-width:0;padding:15px;border:1px solid rgba(126,158,205,.25);border-radius:17px;background:rgba(255,255,255,.76);}
+#diary .v47-metric-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;min-width:0;}
+#diary .v47-metric-top>span:first-child{min-width:0;}
+#diary .v47-metric-top small,#diary .v47-metric-top strong{display:block;overflow-wrap:anywhere;}
+#diary .v47-metric-top small{color:var(--v47-muted);font-size:12px;}
+#diary .v47-metric-top strong{margin-top:3px;font-size:20px;letter-spacing:-.03em;}
+#diary .v47-sparkline{display:block;width:100%;height:74px;margin:11px 0 8px;overflow:visible;}
+#diary .v47-chart-area{fill:rgba(23,103,247,.08);}
+#diary .v47-chart-line{fill:none;stroke:#2f78ef;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;}
+#diary .v47-sparkline circle{fill:#fff;stroke:#2f78ef;stroke-width:3;}
+#diary .v47-metric-dates{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;}
+#diary .v47-metric-dates span{min-width:0;color:var(--v47-muted);font-size:10px;line-height:1.3;overflow-wrap:anywhere;}
+#diary .v47-metric-dates span:nth-child(2){text-align:center;}
+#diary .v47-metric-dates span:last-child{text-align:right;}
+#diary .v47-health-summary{display:grid;grid-template-columns:48px minmax(0,1fr) auto;align-items:center;gap:13px;padding:13px;border:1px solid rgba(35,157,105,.20);border-radius:15px;background:rgba(237,249,244,.72);}
+#diary .v47-health-summary>img{width:48px;height:48px;object-fit:contain;mix-blend-mode:multiply;}
+#diary .v47-health-summary>span{min-width:0;}
+#diary .v47-health-summary :where(strong,small){display:block;overflow-wrap:anywhere;line-height:1.4;}
+#diary .v47-health-summary small{margin-top:3px;color:#577067;}
+#diary .v47-health-summary .btn{min-height:40px;padding:9px 13px;font-size:13px;}
+#diary .v47-diary-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(310px,.75fr);gap:14px;align-items:start;}
+#diary .v47-diary-grid>article{min-width:0;}
+#diary .v47-diary-grid .section-header{margin:0 0 12px;}
+#diary .v47-diary-grid .diary-list{display:grid;gap:8px;margin:0;}
+#diary .v47-diary-grid .diary-item{min-width:0;}
+#diary .v47-next-care{display:grid;gap:12px;}
+#diary .v47-next-care h2,#diary .v47-next-care p{margin:0;}
+#diary .v47-next-care dl{display:grid;gap:0;margin:0;}
+#diary .v47-next-care dl>div{display:grid;grid-template-columns:100px minmax(0,1fr);gap:10px;padding:9px 0;border-top:1px solid rgba(126,158,205,.24);}
+#diary .v47-next-care :where(dt,dd){min-width:0;overflow-wrap:anywhere;line-height:1.35;}
+#diary .v47-next-care dt{color:var(--v47-muted);font-size:12px;}
+#diary .v47-next-care dd{margin:0;font-weight:800;}
+#diary>.v47-documents-head{margin:8px 0 0!important;}
+#diary>.doc-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
+
+/* One visual contract for functional icons throughout the owner interface. */
+body.v47-appointment-diary-data :where(.action-icon,.line-icon,.mini-icon,.status-ico,.equipment-ico){width:36px;height:36px;display:grid;place-items:center;flex:0 0 auto;border-radius:12px;background:rgba(232,242,255,.78);}
+body.v47-appointment-diary-data :where(.action-icon,.line-icon,.mini-icon,.status-ico,.equipment-ico)>:where(img,svg){display:block;width:24px;height:24px;object-fit:contain;}
+
+/* Internal UAT persona controls stay compact and clearly outside the product UI. */
+.prototype-state-persona-summary{display:grid;gap:3px;margin-top:8px;padding:10px;border-radius:12px;background:rgba(243,247,255,.84);color:#4f607a;font-size:11px;line-height:1.4;}
+.prototype-state-persona-summary strong{color:var(--v47-ink);font-size:12px;}
+.prototype-state-dock .prototype-state-panel{max-height:min(72vh,680px);overflow:auto;overscroll-behavior:contain;}
+
+@media(max-width:1060px){
+  #booking-review>.v33-review-confirmation{grid-template-columns:1fr;}
+  #diary .v47-health-metrics{grid-template-columns:1fr 1fr;}
+  #diary .v47-health-metrics>article:last-child{grid-column:1/-1;}
+}
+@media(max-width:760px){
+  #booking-review .v33-status-timeline,
+  #appointment-detail .appointment-state-panel>.timeline,
+  #appointment-detail .status-state__facts,
+  #appointment-detail>.appointment-action-grid,
+  #diary .v47-diary-grid,
+  #diary>.doc-grid{grid-template-columns:1fr!important;}
+  #appointment-detail>.appointment-actions-title{align-items:flex-start;}
+  #appointment-detail>.appointment-actions-title .muted{text-align:left;}
+  #diary .v47-health-head{display:grid;}
+  #diary .v47-period-switch{width:100%;overflow:auto;}
+  #diary .v47-period-switch button{flex:1;}
+  #diary .v47-health-metrics{grid-template-columns:1fr;}
+  #diary .v47-health-metrics>article:last-child{grid-column:auto;}
+  #diary .v47-health-summary{grid-template-columns:42px minmax(0,1fr);}
+  #diary .v47-health-summary>img{width:42px;height:42px;}
+  #diary .v47-health-summary .btn{grid-column:1/-1;width:100%;}
+}
+@media(max-width:520px){
+  #appointment-detail .appointment-state-panel,#diary .v47-health-dynamics{padding:17px;border-radius:18px;}
+  #appointment-detail .status-state__fact{grid-template-columns:1fr;gap:3px;}
+  #diary .v47-diary-toolbar{align-items:flex-start;}
+  #diary .v47-diary-toolbar .section-link{text-align:right;}
+  #diary .v47-metric-top{align-items:center;}
+  #diary .v47-metric-top .pill{font-size:10px;}
+  #diary .v47-metric-dates{grid-template-columns:1fr;}
+  #diary .v47-metric-dates span,#diary .v47-metric-dates span:nth-child(2),#diary .v47-metric-dates span:last-child{text-align:left;}
+}

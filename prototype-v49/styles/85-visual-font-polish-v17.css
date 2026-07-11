@@ -1,0 +1,149 @@
+@layer tokens, components, responsive, utilities {
+  @layer tokens {
+    :root {
+      /* v17: softer, less muddy warning palette, still AA on white. */
+      --status-warning-fg: #8A4B00;
+      --status-warning-text: #8A4B00;
+      --status-warning-fg-aa: #8A4B00;
+      --status-warning-bg: #FFF3E8;
+      --status-warning-bg-aa: #FFF3E8;
+      --status-warning-border: rgba(214, 127, 23, .26);
+      --status-warning-accent: #D97706;
+      --vh-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+  }
+
+  @layer components {
+    html,
+    body,
+    button,
+    input,
+    select,
+    textarea,
+    .app-shell,
+    .page {
+      font-family: var(--vh-font);
+      font-kerning: normal;
+      text-rendering: optimizeLegibility;
+    }
+
+    body {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      line-height: 1.45;
+    }
+
+    h1,
+    h2,
+    h3,
+    strong,
+    .btn,
+    .pill,
+    .nav-link,
+    .toolbelt-title {
+      font-family: var(--vh-font);
+    }
+
+    .pill.orange,
+    .status-chip.warn,
+    .status-state--pending,
+    .staff-sla.is-risk,
+    .staff-pill.warning {
+      color: var(--status-warning-text);
+    }
+
+    .pill.orange,
+    .staff-pill.warning,
+    .status-chip.status-warning,
+    .status-token.status-warning {
+      background: var(--status-warning-bg-aa);
+      border-color: var(--status-warning-border);
+    }
+
+    /* Insurance policy strip: refreshed icons are white in this dark/gradient context. */
+    #insurance .policy-linear-benefits .vh-icon,
+    #insurance .policy-linear-benefits img.user-provided-icon {
+      inline-size: 23px;
+      block-size: 23px;
+      object-fit: contain;
+      filter: brightness(0) invert(1) drop-shadow(0 1px 2px rgba(10, 32, 74, .22));
+      opacity: .98;
+    }
+
+    #insurance .policy-linear-benefits span {
+      gap: 6px;
+      color: #fff;
+    }
+
+    #insurance .policy-linear-benefits small {
+      color: rgba(255, 255, 255, .92);
+      font-weight: 800;
+    }
+
+    #insurance .coverage-icon-card .cov-ico img.user-provided-icon,
+    #insurance .coverage-icon-card .cov-ico .vh-icon {
+      inline-size: 22px;
+      block-size: 22px;
+      object-fit: contain;
+    }
+
+    #appointment-detail .action-icon.danger img.user-provided-icon {
+      inline-size: 22px;
+      block-size: 22px;
+      object-fit: contain;
+      filter: saturate(1.05);
+    }
+
+    #home .care-section-header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    #home .care-section-header .section-link {
+      white-space: nowrap;
+    }
+
+    #home .home-map-link-row {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    #home .home-map-link-row > .section-link {
+      display: none;
+    }
+
+    .triage-option-icon img.user-provided-icon,
+    .status-ico.telemed-prep-icon img.user-provided-icon,
+    .pet-profile-line-list .line-icon img.user-provided-icon,
+    #doctor-detail .line-icon img.user-provided-icon {
+      inline-size: 22px;
+      block-size: 22px;
+      object-fit: contain;
+      mix-blend-mode: normal;
+    }
+
+    .status-ico.telemed-prep-icon {
+      display: grid;
+      place-items: center;
+      inline-size: 36px;
+      block-size: 36px;
+      flex: 0 0 36px;
+      border-radius: 13px;
+    }
+  }
+
+  @layer responsive {
+    @media (max-width: 767px) {
+      #home .care-section-header,
+      #home .home-map-link-row {
+        align-items: start;
+        flex-direction: column;
+      }
+    }
+  }
+}

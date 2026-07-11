@@ -1,0 +1,111 @@
+/* Generated from former inline style="..." attributes. */
+@layer utilities {
+.u-inline-001{margin-left:auto;color:#6a82aa;}
+.u-inline-002{margin-top:0;}
+.u-inline-003{color:#eee;font-size:12px;position:absolute;top:0;left:0;z-index:2;}
+.u-inline-004{color:#eee;font-size:12px;position:absolute;top:14px;left:0;z-index:2;}
+.u-inline-005{position:relative;border:0;width:100%;height:100%;}
+.u-inline-006{margin-top:4px;}
+.u-inline-007{margin:4px 0 11px;}
+.u-inline-008{margin-top:10px;}
+.u-inline-009{margin-top:13px;}
+.u-inline-010{margin-top:14px;}
+.u-inline-011{margin-top:7px;}
+.u-inline-012{display:block;}
+.u-inline-013{margin-top:16px;}
+.u-inline-014{margin-top:12px;}
+.u-inline-015{margin-top:18px;}
+.u-inline-016{color:var(--orange);}
+.u-inline-017{margin:0;}
+.u-inline-018{margin-top:6px;}
+.u-inline-019{margin-top:8px;}
+.u-inline-020{text-align:center;margin:12px 0 0;}
+.u-inline-021{margin-top:11px;}
+.u-inline-022{display:block;text-decoration:line-through;}
+.u-inline-023{margin-top:17px;}
+.u-inline-024{font-size:28px;line-height:1.12;margin-top:8px;}
+.u-inline-025{font-size:24px;margin-top:10px;}
+.u-inline-026{margin-left:8px;}
+.u-inline-027{margin-top:22px;}
+.u-inline-028{font-size:25px;margin-top:14px;}
+.u-inline-029{color:#ece5ff;}
+.u-inline-030{font-size:28px;margin-top:10px;}
+.u-inline-031{margin:7px 0 16px;color:#e7f1ff;}
+.u-inline-032{position:relative;z-index:1;}
+.u-inline-033{text-decoration:none;}
+.u-inline-034{padding:14px;background:rgba(255,255,255,.58);}
+.u-inline-035{width:56px;height:56px;}
+.u-inline-036{color:var(--red);}
+.u-inline-037{font-size:28px;margin-top:8px;}
+.u-inline-038{margin-top:5px;}
+.u-inline-039{display:block;margin-top:6px;}
+.u-inline-040{margin-left:auto;}
+.u-inline-041{margin-top:15px;}
+.u-inline-042{font-size:25px;margin-top:10px;}
+.u-inline-043{margin-top:12px;grid-template-columns:120px 1fr;}
+.u-inline-044{min-height:170px;}
+.u-inline-045{background:rgba(202,247,223,.93);}
+.u-inline-046{opacity:.82;}
+.u-inline-047{background:rgba(255,255,255,.18);color:#fff;border-color:rgba(255,255,255,.25);}
+.u-inline-048{background:rgba(255,255,255,.16);color:#fff;border-color:rgba(255,255,255,.22);max-width:510px;}
+.u-inline-049{font-size:27px;margin-top:12px;}
+.u-inline-050{max-width:600px;}
+.u-inline-051{margin-top:8px;width:100%;min-height:40px;border-radius:12px;border:1px solid rgba(159,190,235,.64);padding:0 10px;}
+
+  .media-frame,
+  .pet-photo,
+  .pet-profile-photo,
+  .doctor-avatar,
+  .clinic-photo,
+  .map-preview {
+    overflow: hidden;
+  }
+
+  .media-frame > img,
+  .pet-photo > img,
+  .pet-profile-photo > img,
+  .doctor-avatar > img,
+  .clinic-photo > img {
+    inline-size: 100%;
+    block-size: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  img[width][height] { height: auto; }
+}
+
+@layer utilities {
+  .u-mt-6 { margin-top: 6px; }
+  .u-mt-6-compact { margin: 6px 0 0; }
+  .u-mt-7 { margin-top: 7px; }
+  .u-mt-15 { margin-top: 15px; }
+  .u-block { display: block; }
+  .no-underline { text-decoration: none; }
+  .telemed-intake-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+  .waiting-status-check { margin-top: 10px; }
+
+  .vh-toast-v2 {
+    position: fixed;
+    inset-inline-end: 22px;
+    inset-block-end: 22px;
+    z-index: 9999;
+    padding: 12px 15px;
+    border-radius: 14px;
+    background: rgba(22,35,60,.93);
+    color: #fff;
+    box-shadow: 0 16px 40px rgba(22,35,60,.24);
+    font-weight: 750;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity .18s ease, transform .18s ease;
+    pointer-events: none;
+  }
+  .vh-toast-v2.is-visible { opacity: 1; transform: translateY(0); }
+
+  .native-map-photo[data-clinic-preview="vetplus"] { background-image: var(--asset-clinic-vetplus); }
+  .native-map-photo[data-clinic-preview="vetprofi"] { background-image: var(--asset-clinic-vetprofi); }
+  .native-map-photo[data-clinic-preview="zdorovy"] { background-image: var(--asset-clinic-zdorovy); }
+
+  .mobile-bottom-nav.has-clinic-route { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}

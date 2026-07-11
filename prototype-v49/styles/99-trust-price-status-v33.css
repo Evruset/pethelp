@@ -1,0 +1,412 @@
+/* VetHelp v33 — Trust, Price & Status System */
+.v33-status-system,
+.v33-price-and-reviews,
+.v33-review-confirmation,
+.v33-status-explanation,
+.v33-ocr-confidence,
+.v33-pet-decision,
+.v33-sos-panel {
+  margin: 20px 0;
+  padding: 22px;
+  border: 1px solid rgba(18, 31, 56, 0.08);
+  box-shadow: 0 18px 52px rgba(20, 28, 45, 0.08);
+}
+
+.v33-system-head {
+  display: grid;
+  gap: 8px;
+  max-width: 880px;
+}
+
+.v33-system-head h2,
+.v33-status-main h2,
+.v33-sos-copy h2 {
+  margin: 0;
+  letter-spacing: -0.03em;
+}
+
+.v33-proof-grid,
+.v33-trust-split,
+.v33-ocr-grid,
+.v33-next-step-grid {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.v33-proof-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.v33-trust-split {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(260px, 0.8fr);
+  align-items: stretch;
+}
+
+.v33-proof-card,
+.v33-price-card,
+.v33-review-card,
+.v33-data-source-card,
+.v33-ocr-grid article,
+.v33-next-step-grid span,
+.v33-price-mini {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(25, 39, 68, 0.08);
+}
+
+.v33-proof-card strong,
+.v33-price-card strong,
+.v33-review-card strong,
+.v33-data-source-card strong,
+.v33-next-step-grid strong,
+.v33-price-mini strong {
+  color: var(--ink, #10233f);
+}
+
+.v33-proof-card small,
+.v33-price-card small,
+.v33-review-card small,
+.v33-data-source-card small,
+.v33-next-step-grid small,
+.v33-price-mini span {
+  color: var(--muted, #607089);
+  line-height: 1.45;
+}
+
+.v33-proof-icon,
+.v33-status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 16px;
+  background: rgba(23, 103, 247, 0.1);
+  color: var(--primary, #1767f7);
+  flex: 0 0 auto;
+}
+
+.v33-status-icon.warning {
+  background: rgba(255, 149, 0, 0.12);
+  color: #8a4d00;
+}
+
+.v33-card-topline,
+.v33-status-main,
+.v33-sos-panel {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.v33-card-topline {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.v33-status-main {
+  align-items: center;
+}
+
+.v33-check-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.v33-check-list li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  color: var(--ink, #10233f);
+}
+
+.v33-extra-costs {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255, 149, 0, 0.08);
+  border: 1px solid rgba(255, 149, 0, 0.16);
+}
+
+.v33-review-list {
+  display: grid;
+  gap: 12px;
+}
+
+.v33-review-list blockquote {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(23, 103, 247, 0.06);
+  border: 1px solid rgba(23, 103, 247, 0.12);
+}
+
+.v33-review-list span {
+  color: var(--ink, #10233f);
+  line-height: 1.45;
+}
+
+.v33-source-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.v33-source-list div {
+  display: grid;
+  gap: 4px;
+}
+
+.v33-source-list--inline {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.v33-source-list dt,
+.v33-source-list dd {
+  margin: 0;
+}
+
+.v33-source-list dt {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--muted, #607089);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.v33-source-list dd {
+  color: var(--ink, #10233f);
+  line-height: 1.4;
+}
+
+.v33-slot-source-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.v33-source-chip,
+.v33-price-chip,
+.v33-case-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 750;
+  color: #34445c;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(25, 39, 68, 0.08);
+}
+
+.v33-source-chip {
+  color: #176b3a;
+  background: rgba(31, 185, 105, 0.1);
+  border-color: rgba(31, 185, 105, 0.18);
+}
+
+.v33-price-chip {
+  color: #4b247d;
+  background: rgba(107, 77, 230, 0.1);
+  border-color: rgba(107, 77, 230, 0.18);
+}
+
+.v33-case-chip {
+  color: #275071;
+  background: rgba(23, 103, 247, 0.08);
+  border-color: rgba(23, 103, 247, 0.16);
+}
+
+.v33-status-timeline {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.v33-status-timeline div {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(25, 39, 68, 0.08);
+}
+
+.v33-status-timeline div.active {
+  background: rgba(23, 103, 247, 0.08);
+  border-color: rgba(23, 103, 247, 0.18);
+}
+
+.v33-status-timeline span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--primary, #1767f7);
+  font-weight: 900;
+}
+
+.v33-next-step-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.v33-booking-source .v33-next-step-grid,
+.v33-insurance-status .v33-next-step-grid,
+.v33-telemed-payment .v33-next-step-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.v33-ocr-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.v33-confidence {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-weight: 900;
+}
+
+.v33-confidence.high {
+  color: #176b3a;
+  background: rgba(31, 185, 105, 0.12);
+}
+
+.v33-confidence.medium {
+  color: #8a4d00;
+  background: rgba(255, 149, 0, 0.14);
+}
+
+.v33-sos-panel {
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, rgba(255, 241, 242, 0.96), rgba(255, 255, 255, 0.92));
+  border-color: rgba(244, 180, 188, 0.78);
+}
+
+.v33-sos-copy {
+  display: grid;
+  gap: 8px;
+  max-width: 720px;
+}
+
+.v33-sos-copy p {
+  margin: 0;
+  color: #5d2830;
+  line-height: 1.5;
+}
+
+.v33-sos-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.v33-sos-actions .btn,
+.v33-sos-actions a.btn {
+  min-height: 48px;
+}
+
+.v33-b2b-task-flow {
+  margin-top: 0;
+}
+
+@media (max-width: 1024px) {
+  .v33-proof-grid,
+  .v33-trust-split,
+  .v33-status-timeline,
+  .v33-next-step-grid,
+  .v33-source-list--inline,
+  .v33-ocr-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .v33-status-system,
+  .v33-price-and-reviews,
+  .v33-review-confirmation,
+  .v33-status-explanation,
+  .v33-ocr-confidence,
+  .v33-pet-decision,
+  .v33-sos-panel {
+    margin: 14px 0;
+    padding: 16px;
+    border-radius: 26px;
+  }
+
+  .v33-proof-grid,
+  .v33-trust-split,
+  .v33-status-timeline,
+  .v33-next-step-grid,
+  .v33-source-list--inline,
+  .v33-ocr-grid,
+  .v33-booking-source .v33-next-step-grid,
+  .v33-insurance-status .v33-next-step-grid,
+  .v33-telemed-payment .v33-next-step-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .v33-status-main,
+  .v33-sos-panel {
+    align-items: flex-start;
+  }
+
+  .v33-sos-panel {
+    position: sticky;
+    bottom: 84px;
+    z-index: 28;
+    display: grid;
+  }
+
+  .v33-sos-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .v33-slot-source-row {
+    gap: 6px;
+  }
+
+  .v33-source-chip,
+  .v33-price-chip,
+  .v33-case-chip {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v33-sos-panel,
+  .v33-proof-card,
+  .v33-price-card,
+  .v33-review-card,
+  .v33-data-source-card {
+    transition: none;
+    animation: none;
+  }
+}

@@ -1,0 +1,185 @@
+/* VetHelp v30 — Design QA fixes after v29 review */
+
+/* 1. Keep all SVG sprite definitions invisible and stable. */
+.vh-icon-defs,
+.vh-icon-defs--v30 {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+/* 2. V29 decision panels were visually too heavy. Keep the medical calm UI. */
+.care-journey-advisor,
+.catalog-decision-panel,
+.clinic-trust-decision,
+.alternative-decision-summary,
+.emergency-redflags,
+.staff-action-radar {
+  box-shadow: 0 12px 32px rgba(36, 94, 180, .07);
+}
+
+.journey-action {
+  min-height: 112px;
+  align-content: start;
+}
+.journey-action strong,
+.fit-copy strong,
+.trust-decision-grid strong,
+.staff-action-list strong {
+  letter-spacing: -.01em;
+}
+.journey-icon,
+.status-ico,
+.service-icon,
+.note-icon {
+  flex: 0 0 auto;
+}
+
+/* 3. Catalog card fix: v29 fit block no longer breaks card rhythm or over-expands on mobile. */
+.clinic-card-copy {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+.clinic-card .clinic-fit-panel {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+}
+.clinic-card .fit-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.clinic-card .fit-meta span {
+  max-width: 100%;
+}
+
+/* 4. Local map preview: no external iframe, no duplicate map layers. */
+.map-panel--v30 {
+  min-height: 620px;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(58, 136, 255, .22), transparent 26%),
+    radial-gradient(circle at 76% 64%, rgba(48, 201, 153, .18), transparent 30%),
+    linear-gradient(135deg, #eaf4ff 0%, #f7fbff 100%);
+}
+.map-panel--v30 .yandex-map-widget--local {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+}
+.map-panel--v30 .map-bg,
+.map-panel--v30 .pin,
+.map-panel--v30 .map-pop {
+  display: none;
+}
+.local-map-grid {
+  position: absolute;
+  inset: 0;
+  opacity: .42;
+  background-image:
+    linear-gradient(rgba(43, 94, 150, .12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(43, 94, 150, .12) 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+.local-map-road {
+  position: absolute;
+  height: 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .86);
+  border: 1px solid rgba(154, 188, 230, .58);
+  box-shadow: 0 12px 26px rgba(67, 111, 180, .12);
+}
+.local-map-road--one { left: -8%; right: 8%; top: 38%; transform: rotate(-13deg); }
+.local-map-road--two { left: 10%; right: -12%; top: 58%; transform: rotate(17deg); }
+.local-map-road--three { width: 62%; left: 22%; top: 26%; transform: rotate(42deg); }
+.local-map-pin {
+  position: absolute;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  color: #176add;
+  background: rgba(255, 255, 255, .92);
+  border: 1px solid rgba(58, 123, 220, .24);
+  box-shadow: 0 16px 30px rgba(38, 88, 160, .18);
+}
+.local-map-pin .vh-icon { width: 21px; height: 21px; }
+.local-map-pin--primary { left: 58%; top: 36%; color: #0f68e8; transform: scale(1.08); }
+.local-map-pin--secondary { left: 22%; top: 54%; opacity: .86; }
+.local-map-pin--tertiary { right: 16%; bottom: 24%; opacity: .78; }
+.map-freshness-note {
+  display: block;
+  color: #60708a;
+  font-size: 11px;
+}
+.native-map-card {
+  z-index: 10;
+}
+
+/* 5. Booking truth banners: prevent CTA from floating awkwardly on narrow desktop. */
+.booking-truth-banner,
+.status-language-card,
+.insurance-disclaimer {
+  align-items: flex-start;
+}
+.booking-truth-banner a,
+.insurance-disclaimer a {
+  white-space: nowrap;
+}
+
+/* 6. Emergency red flags: maintain strong hierarchy, but avoid oversized red block on tablet. */
+.emergency-redflags {
+  align-items: stretch;
+}
+.redflag-actions .btn {
+  justify-content: center;
+}
+
+/* 7. Mobile polish. */
+@media (max-width: 960px) {
+  .map-panel--v30 { min-height: 420px; }
+  .catalog-viewbar { align-items: stretch; }
+}
+
+@media (max-width: 640px) {
+  .journey-actions { gap: 10px; }
+  .journey-action {
+    min-height: 0;
+    grid-template-columns: 42px 1fr;
+    grid-template-areas:
+      "icon title"
+      "icon desc";
+    align-items: center;
+    padding: 14px;
+  }
+  .journey-action .journey-icon { grid-area: icon; }
+  .journey-action strong { grid-area: title; }
+  .journey-action small { grid-area: desc; }
+
+  .clinic-card .clinic-fit-panel {
+    grid-template-columns: auto 1fr;
+    align-items: start;
+  }
+  .clinic-card .fit-score {
+    width: 58px;
+    height: 58px;
+    display: grid;
+    justify-content: center;
+    padding: 0;
+  }
+  .clinic-card .fit-meta {
+    grid-column: 1 / -1;
+    display: grid;
+  }
+  .native-map-card {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+  }
+  .map-panel--v30 { min-height: 390px; }
+  .redflag-actions { display: grid; }
+}

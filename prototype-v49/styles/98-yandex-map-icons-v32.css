@@ -1,0 +1,270 @@
+/* VetHelp v32 — Yandex maps with styled VetHelp icon overlay
+   Goal: restore real Yandex map widgets while keeping product-specific markers,
+   accessibility, stable local fallback geometry and no inline styles. */
+
+.yandex-map-widget--yandex {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  isolation: isolate;
+  background: linear-gradient(135deg, #eaf4ff 0%, #f7fbff 100%);
+}
+
+.yandex-map-widget--yandex .yandex-map-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: .72;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(58, 136, 255, .22), transparent 26%),
+    radial-gradient(circle at 76% 64%, rgba(48, 201, 153, .18), transparent 30%),
+    linear-gradient(135deg, #eaf4ff 0%, #f7fbff 100%);
+}
+
+.yandex-map-widget--yandex .yandex-map-frame {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  inline-size: 100%;
+  block-size: 100%;
+  min-block-size: 100%;
+  border: 0;
+  filter: saturate(.92) contrast(.96) brightness(1.02);
+  opacity: .94;
+}
+
+.yandex-map-widget--yandex .ymap-vh-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.ymap-brand-pill,
+.ymap-route-chip {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  color: #23466f;
+  background: rgba(255, 255, 255, .88);
+  border: 1px solid rgba(146, 180, 228, .58);
+  box-shadow: 0 14px 28px rgba(37, 76, 135, .15);
+  backdrop-filter: blur(16px);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: -.01em;
+}
+
+.ymap-brand-pill {
+  left: 16px;
+  top: 16px;
+}
+
+.ymap-route-chip {
+  right: 16px;
+  top: 16px;
+  color: #0f68e8;
+}
+
+.ymap-route-chip .vh-icon {
+  inline-size: 16px;
+  block-size: 16px;
+}
+
+.ymap-vh-marker {
+  --marker-accent: #1767f7;
+  position: absolute;
+  display: grid;
+  grid-template-columns: 44px auto;
+  align-items: center;
+  min-width: 190px;
+  filter: drop-shadow(0 16px 26px rgba(36, 77, 138, .22));
+  transform: translate(-22px, -44px);
+}
+
+.ymap-marker-icon {
+  inline-size: 44px;
+  block-size: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fff 0%, #f7fbff 100%);
+  border: 1px solid rgba(111, 157, 228, .54);
+  box-shadow: 0 16px 28px rgba(33, 88, 160, .18);
+  position: relative;
+  z-index: 2;
+}
+
+.ymap-marker-icon::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  inline-size: 12px;
+  block-size: 12px;
+  border-radius: 3px;
+  background: #fff;
+  border-right: 1px solid rgba(111, 157, 228, .54);
+  border-bottom: 1px solid rgba(111, 157, 228, .54);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.ymap-marker-icon img {
+  inline-size: 24px;
+  block-size: 24px;
+  object-fit: contain;
+  position: relative;
+  z-index: 2;
+}
+
+.ymap-marker-card {
+  display: grid;
+  gap: 1px;
+  max-width: 178px;
+  margin-left: -5px;
+  padding: 8px 10px 8px 14px;
+  border-radius: 0 16px 16px 0;
+  background: rgba(255, 255, 255, .9);
+  border: 1px solid rgba(134, 170, 222, .52);
+  border-left: 0;
+  box-shadow: 0 14px 28px rgba(34, 78, 140, .15);
+  backdrop-filter: blur(16px);
+}
+
+.ymap-marker-card strong {
+  color: #17395f;
+  font-size: 12px;
+  line-height: 1.1;
+}
+
+.ymap-marker-card small {
+  color: #60708a;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.ymap-vh-marker--primary { --marker-accent: #1767f7; }
+.ymap-vh-marker--secondary { --marker-accent: #28a074; }
+.ymap-vh-marker--diagnostic { --marker-accent: #7b61ff; }
+.ymap-vh-marker--emergency { --marker-accent: #ff3b30; }
+
+.ymap-vh-marker--primary .ymap-marker-icon,
+.ymap-vh-marker--secondary .ymap-marker-icon,
+.ymap-vh-marker--diagnostic .ymap-marker-icon,
+.ymap-vh-marker--emergency .ymap-marker-icon {
+  border-color: color-mix(in srgb, var(--marker-accent), #fff 64%);
+}
+
+.ymap-vh-marker--primary .ymap-marker-icon::before,
+.ymap-vh-marker--secondary .ymap-marker-icon::before,
+.ymap-vh-marker--diagnostic .ymap-marker-icon::before,
+.ymap-vh-marker--emergency .ymap-marker-icon::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--marker-accent), #fff 88%);
+}
+
+.yandex-map-widget--home .ymap-vh-marker--vetplus { left: 58%; top: 42%; }
+.yandex-map-widget--home .ymap-vh-marker--vetprofi { left: 24%; top: 62%; transform: translate(-22px, -44px) scale(.92); }
+.yandex-map-widget--home .ymap-vh-marker--zdorovy { left: 74%; top: 70%; transform: translate(-22px, -44px) scale(.9); }
+
+.yandex-map-widget--catalog .ymap-vh-marker--vetplus { left: 54%; top: 36%; }
+.yandex-map-widget--catalog .ymap-vh-marker--vetprofi { left: 24%; top: 56%; transform: translate(-22px, -44px) scale(.92); }
+.yandex-map-widget--catalog .ymap-vh-marker--zdorovy { left: 68%; top: 66%; transform: translate(-22px, -44px) scale(.9); }
+.yandex-map-widget--catalog .ymap-vh-marker--duty { left: 78%; top: 24%; transform: translate(-22px, -44px) scale(.88); }
+
+.map-panel--v32 {
+  background: #eaf4ff;
+}
+
+.map-panel--v32 .native-map-card {
+  z-index: 8;
+  border-color: rgba(121, 162, 224, .64);
+  box-shadow: 0 22px 48px rgba(32, 74, 132, .22);
+}
+
+.map-panel--v32 .map-list-return {
+  z-index: 9;
+  position: relative;
+}
+
+#home .map-card.rich-map .map-cta {
+  z-index: 9;
+}
+
+#home .yandex-map-widget--yandex {
+  inset: 16px;
+  border-radius: 20px;
+}
+
+#home .map-card.rich-map {
+  background: #eaf4ff;
+}
+
+@media (max-width: 960px) {
+  .ymap-marker-card {
+    max-width: 150px;
+  }
+
+  .ymap-vh-marker {
+    min-width: 160px;
+  }
+
+  .yandex-map-widget--catalog .ymap-vh-marker--duty {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  #home .yandex-map-widget--yandex {
+    inset: 12px;
+  }
+
+  .ymap-brand-pill {
+    left: 10px;
+    top: 10px;
+  }
+
+  .ymap-route-chip {
+    left: 10px;
+    right: auto;
+    top: 48px;
+  }
+
+  .ymap-vh-marker {
+    grid-template-columns: 38px auto;
+    min-width: 0;
+    transform: translate(-19px, -38px);
+  }
+
+  .ymap-marker-icon {
+    inline-size: 38px;
+    block-size: 38px;
+    border-radius: 14px;
+  }
+
+  .ymap-marker-icon img {
+    inline-size: 21px;
+    block-size: 21px;
+  }
+
+  .ymap-marker-card {
+    display: none;
+  }
+
+  .yandex-map-widget--home .ymap-vh-marker--vetplus { left: 58%; top: 48%; }
+  .yandex-map-widget--home .ymap-vh-marker--vetprofi { left: 30%; top: 67%; transform: translate(-19px, -38px) scale(.92); }
+  .yandex-map-widget--home .ymap-vh-marker--zdorovy { left: 78%; top: 68%; transform: translate(-19px, -38px) scale(.9); }
+
+  .yandex-map-widget--catalog .ymap-vh-marker--vetplus { left: 56%; top: 42%; }
+  .yandex-map-widget--catalog .ymap-vh-marker--vetprofi { left: 28%; top: 62%; transform: translate(-19px, -38px) scale(.92); }
+  .yandex-map-widget--catalog .ymap-vh-marker--zdorovy { left: 74%; top: 70%; transform: translate(-19px, -38px) scale(.9); }
+}
