@@ -1,0 +1,794 @@
+@layer components {
+  /* v11: media that must remain visible on desktop and tablet, while still allowing mobile disclosure for secondary graphics. */
+  .telemed-provider-photo,
+  .pet-thumb,
+  .provider-photo,
+  .clinic-detail-hero-media,
+  .equipment-showcase-media {
+    background-color: var(--surface-blue, #eef5ff);
+    overflow: hidden;
+  }
+
+  .telemed-provider-photo {
+    inline-size: min(280px, 34vw);
+    min-inline-size: 132px;
+    aspect-ratio: 4 / 5;
+    border-radius: 24px;
+    display: block;
+    flex: 0 0 auto;
+    background-image: none;
+  }
+
+  .telemed-provider-photo img,
+  .pet-thumb img {
+    inline-size: 100%;
+    block-size: 100%;
+    display: block;
+    object-fit: cover;
+    object-position: center 28%;
+  }
+
+  .pet-thumb {
+    inline-size: 80px;
+    block-size: 80px;
+    border-radius: 18px;
+    display: block;
+    flex: 0 0 80px;
+    background-image: none;
+  }
+
+  .pet-thumb.cat,
+  .pet-thumb.lab {
+    background-image: none;
+  }
+
+  .pet-thumb::after,
+  .pet-thumb.cat::after,
+  .pet-thumb.lab::after {
+    content: none;
+  }
+
+  .home-map-column .rich-map,
+  #home .map-card.rich-map {
+    min-block-size: 360px;
+  }
+
+  #home .yandex-map-widget,
+  #home .yandex-map-widget iframe {
+    inline-size: 100%;
+    block-size: 100%;
+    min-block-size: 360px;
+  }
+
+  #home .yandex-map-widget iframe {
+    display: block;
+    border: 0;
+    border-radius: inherit;
+  }
+
+  /* Align action-like information rows with appointment card affordance: visible border, hover, focus and arrow. */
+  .care-list .info-row,
+  #home .care-card .info-row,
+  #home .dashboard-grid .info-row,
+  .notification-list .note {
+    border: 1px solid rgba(121, 151, 195, .34);
+    box-shadow: 0 12px 28px rgba(25, 75, 135, .08);
+    transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease;
+  }
+
+  .care-list .info-row:hover,
+  #home .care-card .info-row:hover,
+  #home .dashboard-grid .info-row:hover,
+  .notification-list .note:hover,
+  .care-list .info-row:focus-visible,
+  #home .care-card .info-row:focus-visible,
+  #home .dashboard-grid .info-row:focus-visible,
+  .notification-list .note:focus-visible {
+    transform: translateY(-1px);
+    border-color: rgba(49, 110, 218, .52);
+    background: rgba(255, 255, 255, .82);
+    box-shadow: 0 18px 42px rgba(25, 75, 135, .14);
+  }
+
+  .notification-list .note.unread {
+    border-color: rgba(11, 92, 171, .42);
+  }
+
+  /* Native selects must look like part of the VetHelp design system, not browser defaults. */
+  .insurance-scope-select {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-block: 14px;
+  }
+
+  .insurance-scope-select select {
+    inline-size: 100%;
+    min-block-size: 46px;
+    border: 1px solid rgba(121, 151, 195, .38);
+    border-radius: 16px;
+    padding: 0 44px 0 14px;
+    color: var(--ink, #16233c);
+    background:
+      linear-gradient(45deg, transparent 50%, #5272a8 50%) calc(100% - 22px) 50% / 7px 7px no-repeat,
+      linear-gradient(135deg, #5272a8 50%, transparent 50%) calc(100% - 16px) 50% / 7px 7px no-repeat,
+      rgba(255, 255, 255, .82);
+    box-shadow: 0 10px 26px rgba(25, 75, 135, .08);
+    font: inherit;
+    font-weight: 750;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  .insurance-scope-select select:focus-visible {
+    outline: 3px solid var(--focus-ring, #0b62df);
+    outline-offset: 3px;
+  }
+}
+
+@layer responsive {
+  @media (max-width: 767px) {
+    .telemed-provider-photo {
+      inline-size: 100%;
+      min-inline-size: 0;
+      max-block-size: 320px;
+    }
+
+    .pet-thumb {
+      inline-size: 68px;
+      block-size: 68px;
+      flex-basis: 68px;
+    }
+
+    .insurance-scope-select {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+@layer components {
+  /* v11: key Clinic page media must not depend on background-image only. */
+  .clinic-detail-hero-media,
+  .equipment-showcase-media,
+  .gallery-tile,
+  .provider-photo {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .clinic-detail-hero-media > img,
+  .equipment-showcase-media > img,
+  .gallery-tile > img,
+  .provider-photo > img {
+    inline-size: 100%;
+    block-size: 100%;
+    display: block;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .gallery-tile > span {
+    position: absolute;
+    inset-inline-start: 12px;
+    inset-block-end: 12px;
+    z-index: 1;
+  }
+
+  .provider-photo > img {
+    border-radius: inherit;
+  }
+}
+
+@layer components {
+  /* v12: visual consistency pass for provider media, add-ons, trust badges and timelines. */
+  .provider-photo.anna,
+  .provider-photo.igor,
+  .provider-photo.katya,
+  .provider-photo.dmitry,
+  .provider-photo:has(> img) {
+    background-image: none;
+  }
+
+  .provider-photo > img {
+    inline-size: 100%;
+    block-size: 100%;
+    display: block;
+    object-fit: cover;
+    object-position: center 24%;
+  }
+
+  .add-on-row {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .add-on-icon {
+    inline-size: 44px;
+    block-size: 44px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    background: rgba(235, 244, 255, .94);
+    border: 1px solid rgba(141, 184, 241, .34);
+  }
+
+  .add-on-icon img,
+  .add-on-icon .vh-icon {
+    inline-size: 22px;
+    block-size: 22px;
+  }
+
+  .add-on-row > span:nth-child(2) {
+    min-inline-size: 0;
+    display: grid;
+    gap: 4px;
+  }
+
+  .add-on-row strong,
+  .add-on-row small {
+    display: block;
+    line-height: 1.25;
+  }
+
+  .add-on-row .btn {
+    justify-self: end;
+    white-space: nowrap;
+  }
+
+  .trust-row {
+    align-items: center;
+    gap: 8px;
+  }
+
+  .trust-badge {
+    min-block-size: 30px;
+    align-items: center;
+    line-height: 1.2;
+    white-space: normal;
+  }
+
+  .trust-badge img,
+  .trust-badge .vh-icon {
+    inline-size: 14px;
+    block-size: 14px;
+    flex: 0 0 14px;
+    margin: 0 2px 0 0;
+    object-fit: contain;
+  }
+
+  #doctor-detail .doctor-profile-photo {
+    display: grid;
+    align-content: end;
+    min-block-size: 430px;
+    border-radius: 28px;
+    overflow: hidden;
+    position: relative;
+    padding: 0;
+    background: var(--surface-blue, #eef5ff);
+  }
+
+  #doctor-detail .doctor-profile-portrait {
+    position: absolute;
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    display: block;
+    object-fit: cover;
+    object-position: center 16%;
+  }
+
+  #doctor-detail .doctor-profile-photo .specialty-strip {
+    position: relative;
+    z-index: 1;
+    margin: 14px;
+    max-inline-size: calc(100% - 28px);
+    background: rgba(255, 255, 255, .82);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, .72);
+    box-shadow: 0 16px 38px rgba(25, 75, 135, .18);
+  }
+
+  .timeline {
+    gap: 0;
+  }
+
+  .timeline-item {
+    grid-template-columns: 32px minmax(0, 1fr);
+    align-items: start;
+    gap: 12px;
+  }
+
+  .timeline-item > span:last-child,
+  .timeline-copy {
+    min-inline-size: 0;
+    display: grid;
+    gap: 4px;
+    padding-block-start: 2px;
+  }
+
+  .timeline-item strong,
+  .timeline-item small {
+    display: block;
+    line-height: 1.28;
+    overflow-wrap: anywhere;
+  }
+
+  .timeline-dot {
+    inline-size: 30px;
+    block-size: 30px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    font-size: 13px;
+    font-weight: 900;
+    border: 2px solid transparent;
+    box-sizing: border-box;
+  }
+
+  .timeline-dot img,
+  .timeline-dot svg,
+  .timeline-dot .vh-icon {
+    display: none;
+  }
+
+  .timeline-dot--done,
+  .timeline-item.done .timeline-dot {
+    color: #fff;
+    background: var(--status-success-fg, #08753f);
+    border-color: var(--status-success-fg, #08753f);
+  }
+
+  .timeline-dot--current,
+  .timeline-item:not(.done):not(.muted) .timeline-dot {
+    color: var(--blue, #2f75de);
+    background: #fff;
+    border-color: var(--blue, #2f75de);
+  }
+
+  .timeline-dot--current::after,
+  .timeline-item:not(.done):not(.muted) .timeline-dot::after {
+    content: "";
+    inline-size: 9px;
+    block-size: 9px;
+    border-radius: 999px;
+    background: currentColor;
+  }
+
+  .timeline-dot--future,
+  .timeline-item.muted .timeline-dot {
+    color: #6d7f99;
+    background: #fff;
+    border-color: #9fb1cc;
+  }
+
+  .timeline-dot--future::after,
+  .timeline-item.muted .timeline-dot::after {
+    content: "";
+    inline-size: 8px;
+    block-size: 8px;
+    border-radius: 999px;
+    border: 2px solid currentColor;
+  }
+}
+
+@layer responsive {
+  @media (max-width: 767px) {
+    .add-on-row {
+      grid-template-columns: 40px minmax(0, 1fr);
+    }
+
+    .add-on-row .btn {
+      grid-column: 1 / -1;
+      inline-size: 100%;
+      justify-content: center;
+    }
+
+    #doctor-detail .doctor-profile-photo {
+      min-block-size: 340px;
+    }
+
+    #doctor-detail .doctor-profile-photo .specialty-strip {
+      margin: 10px;
+      max-inline-size: calc(100% - 20px);
+    }
+  }
+}
+
+
+@layer tokens {
+  :root {
+    /* v13 warning palette: softer amber/ochre, WCAG AA on white. */
+    --status-warning-text: #7A5A00;
+    --status-warning-fg: #7A5A00;
+    --status-warning-fg-aa: #7A5A00;
+    --status-warning-bg-aa: #FFF6E3;
+    --status-warning-bg: #FFF6E3;
+    --status-warning-border: rgba(183, 121, 31, .24);
+    --orange: #B7791F;
+    --orange-soft: rgba(183, 121, 31, .12);
+  }
+}
+
+@layer components {
+  /* v13: one visual language for triage icons. */
+  .triage-option-icon {
+    inline-size: 40px;
+    block-size: 40px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    background: #eaf3ff;
+    color: var(--blue, #2571f5);
+    border: 1px solid rgba(141, 184, 241, .36);
+  }
+
+  .triage-option-icon.critical {
+    background: #fff0f1;
+    color: var(--status-danger-fg, #b52d40);
+    border-color: rgba(181, 45, 64, .24);
+  }
+
+  .triage-option-icon .vh-icon {
+    inline-size: 20px;
+    block-size: 20px;
+    display: block;
+    stroke-width: 1.9;
+  }
+
+  .triage-option-icon img,
+  .timeline-dot img,
+  .timeline-dot svg,
+  .timeline-dot .vh-icon {
+    display: none;
+  }
+
+  .pill.orange,
+  .status-chip.warn,
+  .status-state--pending,
+  .staff-sla.is-risk,
+  .staff-pill.warning {
+    color: var(--status-warning-text);
+  }
+
+  .pill.orange,
+  .staff-pill.warning,
+  .status-chip.status-warning,
+  .status-token.status-warning {
+    background: var(--status-warning-bg-aa);
+    border-color: var(--status-warning-border);
+  }
+
+  .alternative-status-strip {
+    background: linear-gradient(100deg, rgba(255, 250, 238, .92), rgba(255, 255, 255, .78));
+    border-color: var(--status-warning-border);
+  }
+
+  /* v13: prevent old background portraits from bleeding through real <img>. */
+  .provider-photo:has(> img),
+  .telemed-provider-photo:has(> img) {
+    background-image: none;
+  }
+
+  .trust-badge .vh-icon,
+  .trust-badge img {
+    inline-size: 14px;
+    block-size: 14px;
+    max-inline-size: 14px;
+    max-block-size: 14px;
+  }
+}
+
+@layer components {
+  /* v14: undo mobile-disclosure layout regressions for primary telemed provider media. */
+  .telemed-provider {
+    align-items: center;
+  }
+
+  .telemed-provider > .telemed-provider-photo {
+    align-self: stretch;
+  }
+
+  .telemed-provider-photo {
+    inline-size: clamp(150px, 22vw, 236px);
+    min-block-size: 212px;
+  }
+
+  .telemed-provider-photo img {
+    object-fit: cover;
+    object-position: center 24%;
+  }
+
+  /* Keep telemed/provider history rows visually coherent with appointment/info cards. */
+  #telemed .info-list {
+    gap: 10px;
+  }
+
+  #telemed .info-row,
+  .status-list .status-row {
+    min-width: 0;
+  }
+
+  #telemed .info-row strong,
+  #telemed .info-row small,
+  .status-row strong,
+  .status-row small,
+  .diary-item h3,
+  .diary-item small {
+    display: block;
+    min-width: 0;
+    text-align: start;
+  }
+
+  #telemed .info-row small,
+  .status-row small,
+  .diary-item small {
+    margin-top: 4px;
+    line-height: 1.38;
+  }
+
+  #telemed .info-row .mini-icon,
+  .telemed-prep-icon,
+  .status-ico {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+  }
+
+  .telemed-prep-icon,
+  .status-ico {
+    inline-size: 34px;
+    block-size: 34px;
+    border-radius: 12px;
+    background: rgba(23, 103, 247, .09);
+    color: var(--blue);
+  }
+
+  .status-list .status-row {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    white-space: normal;
+    overflow: visible;
+    line-height: 1.38;
+  }
+
+  .status-list .status-row .status-ico {
+    align-self: start;
+  }
+
+  /* v14: make diary rows identical whether they are anchors or buttons. */
+  .diary-item,
+  button.diary-item {
+    inline-size: 100%;
+    box-sizing: border-box;
+    border: 1px solid rgba(121, 151, 195, .30);
+    color: var(--ink);
+    font: inherit;
+    text-align: start;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  button.diary-item {
+    cursor: pointer;
+  }
+
+  .diary-item > span:nth-child(2) {
+    min-width: 0;
+    justify-self: stretch;
+    align-self: center;
+    text-align: start;
+  }
+
+  .diary-date {
+    justify-self: start;
+    align-self: center;
+    text-align: start;
+    line-height: 1.05;
+  }
+
+  .diary-date span {
+    display: block;
+    margin-top: 4px;
+    line-height: 1.25;
+  }
+
+  .diary-item > span:last-child {
+    justify-self: end;
+    align-self: center;
+  }
+
+  .diary-item:hover,
+  .diary-item:focus-visible {
+    border-color: rgba(23, 103, 247, .34);
+    background: rgba(255, 255, 255, .78);
+    box-shadow: 0 14px 30px rgba(25, 75, 135, .10);
+  }
+
+  @media (max-width: 767px) {
+    .telemed-provider {
+      grid-template-columns: 1fr;
+    }
+
+    .telemed-provider-photo {
+      inline-size: 100%;
+      max-inline-size: none;
+      min-block-size: 210px;
+      aspect-ratio: 16 / 10;
+    }
+
+    .diary-item {
+      grid-template-columns: 64px minmax(0, 1fr) 16px;
+      gap: 12px;
+    }
+  }
+}
+
+@layer components {
+  /* v15: featured telemed provider must not overlap image/content and must not look faded. */
+  #telemed .telemed-provider--featured {
+    inline-size: min(100%, 940px);
+    display: grid;
+    grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+    justify-content: start;
+    align-items: center;
+    gap: 28px;
+    padding: 24px;
+    overflow: hidden;
+  }
+
+  #telemed .telemed-provider--featured.is-pending-intake {
+    opacity: 1;
+    filter: none;
+  }
+
+  #telemed .telemed-provider--featured > .telemed-provider-photo {
+    inline-size: 100%;
+    min-inline-size: 0;
+    min-block-size: 292px;
+    block-size: 292px;
+    aspect-ratio: 4 / 5;
+    align-self: center;
+    overflow: hidden;
+    border-radius: 22px;
+    background: var(--surface-blue);
+  }
+
+  #telemed .telemed-provider--featured .telemed-provider-photo img {
+    inline-size: 100%;
+    block-size: 100%;
+    display: block;
+    object-fit: cover;
+    object-position: center 20%;
+  }
+
+  #telemed .telemed-provider-copy {
+    min-inline-size: 0;
+    max-inline-size: 620px;
+  }
+
+  #telemed .telemed-provider-copy .trust-row {
+    margin-top: 14px;
+  }
+
+  #telemed .telemed-provider-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  /* v15: telemed history rows use the same readable card grammar as notifications. */
+  #telemed .telemed-history-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  #telemed .telemed-history-note {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    min-block-size: 68px;
+    padding: 12px 14px;
+    border: 1px solid rgba(173, 197, 233, .40);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, .62);
+    text-decoration: none;
+    color: var(--ink);
+    box-shadow: 0 12px 28px rgba(25, 75, 135, .08);
+  }
+
+  #telemed .telemed-history-note:hover,
+  #telemed .telemed-history-note:focus-visible {
+    border-color: rgba(23, 103, 247, .36);
+    background: rgba(255, 255, 255, .84);
+    box-shadow: 0 16px 32px rgba(25, 75, 135, .12);
+  }
+
+  #telemed .telemed-history-note .note-icon {
+    inline-size: 42px;
+    block-size: 42px;
+    border-radius: 14px;
+    display: inline-grid;
+    place-items: center;
+    background: rgba(23, 103, 247, .10);
+    color: var(--blue);
+  }
+
+  #telemed .telemed-history-note .note-icon--documents {
+    background: rgba(91, 113, 251, .10);
+    color: #5967d8;
+  }
+
+  #telemed .telemed-history-note .note-copy {
+    min-inline-size: 0;
+  }
+
+  #telemed .telemed-history-note strong,
+  #telemed .telemed-history-note small {
+    display: block;
+    min-inline-size: 0;
+    text-align: start;
+  }
+
+  #telemed .telemed-history-note .note-copy small {
+    margin-top: 4px;
+    line-height: 1.35;
+  }
+
+  #telemed .telemed-history-note > small:last-child {
+    justify-self: end;
+    white-space: nowrap;
+  }
+
+  @media (min-width: 768px) and (max-width: 1120px) {
+    #telemed .telemed-provider--featured {
+      inline-size: 100%;
+      grid-template-columns: minmax(190px, 230px) minmax(0, 1fr);
+      gap: 22px;
+    }
+
+    #telemed .telemed-provider--featured > .telemed-provider-photo {
+      block-size: 260px;
+      min-block-size: 260px;
+    }
+  }
+
+  @media (max-width: 767px) {
+    #telemed .telemed-provider--featured {
+      inline-size: 100%;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      padding: 16px;
+    }
+
+    #telemed .telemed-provider--featured > .telemed-provider-photo {
+      block-size: auto;
+      min-block-size: 220px;
+      aspect-ratio: 16 / 10;
+    }
+
+    #telemed .telemed-provider-actions {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+
+    #telemed .telemed-provider-actions .btn {
+      inline-size: 100%;
+    }
+
+    #telemed .telemed-history-note {
+      grid-template-columns: 40px minmax(0, 1fr) auto;
+      padding: 11px 12px;
+      gap: 10px;
+    }
+  }
+}

@@ -1,0 +1,108 @@
+/* v42 — one global header pattern, reference-aligned home spacing and rebuilt emergency route */
+.topbar>.actions>*{display:none!important;}
+body.v42-headers-ready .topbar>.actions{display:flex;align-items:center;gap:10px;flex:0 0 auto;}
+body.v42-headers-ready .topbar>.actions>*{display:grid!important;}
+body.v42-headers-ready .topbar>.actions .user-mini{flex:0 0 42px;}
+.topbar.v42-actions-only{justify-content:flex-end;min-height:42px;margin-bottom:18px;}
+.topbar.v42-actions-only>span{display:none;}
+
+/* Reference alignment: equal top cards, deliberate vertical rhythm and aligned lower columns. */
+#home .hero-grid{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:30px;align-items:stretch;}
+#home .pet-hero,#home .next-card{min-height:382px;}
+#home .pet-hero{grid-template-columns:minmax(230px,292px) minmax(0,1fr);gap:54px;padding:26px;}
+#home .pet-hero .pet-photo{min-height:330px;border-radius:0;overflow:hidden;}
+#home .pet-hero .pet-copy{padding:0 0 12px;}
+#home .pet-hero .pet-name{font-size:clamp(2.25rem,4vw,3.5rem);}
+#home .pet-hero .btn{min-width:320px;max-width:100%;}
+#home .next-card{display:flex;flex-direction:column;padding:28px;}
+#home .next-card .status-list{margin:34px 0 12px;}
+#home .next-card>.btn{margin-top:auto;margin-bottom:10px;}
+#home>.section-header{margin:34px 0 16px;}
+#home .service-grid{gap:18px;}
+#home .service-card{min-height:178px;padding:24px;}
+#home .dashboard-grid{gap:28px;margin-top:26px;align-items:start;}
+#home .home-map-column{gap:0;}
+#home .dashboard-grid .section-header{min-height:42px;margin:0 0 14px;padding:0 4px;}
+#home .care-card{padding:16px;}
+#home .map-card.rich-map{min-height:484px;}
+
+/* Only the rebuilt emergency experience participates in layout and the accessibility tree. */
+#emergency>:not(.back-link):not(.topbar):not(.v42-emergency){display:none!important;}
+.v42-emergency{display:grid;gap:26px;min-width:0;}
+.v42-emergency-hero{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:28px;padding:30px;background:linear-gradient(135deg,rgba(255,247,247,.98),rgba(255,255,255,.92));border-color:rgba(217,45,61,.18);}
+.v42-emergency-hero-copy{display:grid;align-content:center;justify-items:start;gap:14px;min-width:0;}
+.v42-emergency-kicker{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(217,45,61,.10);color:#b42332;font-size:.75rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;}
+.v42-emergency-hero h2{max-width:820px;margin:0;font-size:clamp(2rem,4vw,3.45rem);line-height:1.02;letter-spacing:-.045em;color:#172036;}
+.v42-emergency-hero-copy>p{max-width:780px;margin:0;color:#55647c;font-size:1rem;line-height:1.55;}
+.v42-emergency-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px;}
+.v42-emergency-actions .btn{min-width:210px;}
+.v42-emergency-facts{display:grid;gap:10px;padding:16px;border-radius:22px;background:rgba(255,255,255,.80);border:1px solid rgba(217,45,61,.12);}
+.v42-emergency-facts div{display:grid;grid-template-columns:38px minmax(0,1fr);column-gap:10px;align-items:center;padding:10px;border-radius:16px;background:#fff;}
+.v42-emergency-facts div>span{grid-row:1/3;display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:rgba(217,45,61,.09);color:#b42332;font-weight:900;}
+.v42-emergency-facts small{color:#65748d;line-height:1.35;}
+.v42-emergency-panel{display:grid;gap:18px;padding:24px;}
+.v42-section-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;}
+.v42-section-heading h2{margin:.2rem 0 .35rem;font-size:clamp(1.45rem,2.5vw,2rem);}
+.v42-section-heading p{max-width:760px;margin:0;}
+.v42-symptom-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
+.v42-symptom-grid button{display:grid;grid-template-columns:44px minmax(0,1fr);align-items:center;gap:12px;min-height:88px;padding:14px;border:1px solid rgba(217,45,61,.14);border-radius:18px;background:#fff;color:#172036;text-align:left;}
+.v42-symptom-grid button:hover,.v42-symptom-grid button.is-selected{border-color:rgba(217,45,61,.42);background:rgba(255,244,245,.92);box-shadow:0 12px 28px rgba(180,35,48,.08);}
+.v42-symptom-grid .vh-icon{width:30px;height:30px;color:#cf3345;justify-self:center;}
+.v42-symptom-grid button>span{display:grid;gap:3px;min-width:0;}
+.v42-symptom-grid small{color:#65748d;}
+.v42-symptom-result{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:18px;background:rgba(255,247,247,.88);border:1px solid rgba(217,45,61,.14);}
+.v42-symptom-result .vh-icon{width:28px;height:28px;flex:0 0 auto;color:#cf3345;}
+.v42-symptom-result span{display:grid;gap:2px;}
+.v42-symptom-result small{color:#65748d;}
+.v42-emergency-clinics{display:grid;gap:14px;scroll-margin-top:20px;}
+.v42-emergency-clinics>.section-header{margin:0;align-items:end;}
+.v42-emergency-clinics>.section-header h2{margin:.2rem 0 0;}
+.v42-emergency-clinic-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;}
+.v42-emergency-clinic{display:grid;grid-template-columns:190px minmax(0,1fr);gap:18px;padding:18px;overflow:hidden;border:1px solid rgba(15,23,42,.08);}
+.v42-emergency-clinic.is-recommended{border-color:rgba(20,154,87,.25);background:linear-gradient(145deg,rgba(242,255,248,.94),rgba(255,255,255,.84));}
+.v42-clinic-photo{min-height:210px;border-radius:18px;background-size:cover;background-position:center;}
+.v42-clinic-photo--vetplus{background-image:url('../vethelp_media/clinic_vetplus.webp');}
+.v42-clinic-photo--vetprofi{background-image:url('../vethelp_media/clinic_vetprofi.webp');}
+.v42-clinic-copy{display:flex;flex-direction:column;gap:10px;min-width:0;}
+.v42-clinic-title{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+.v42-clinic-title h3{margin:8px 0 0;font-size:1.15rem;}
+.v42-clinic-title>strong{font-size:1.55rem;color:#1767f7;white-space:nowrap;}
+.v42-clinic-copy p{margin:0;line-height:1.45;}
+.v42-clinic-proof{padding:10px 12px;border-radius:14px;background:rgba(20,154,87,.08);color:#137c49;font-size:.8rem;font-weight:800;}
+.v42-clinic-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:auto;}
+.v42-clinic-actions .btn{width:100%;}
+.v42-emergency-note{display:flex;align-items:flex-start;gap:14px;padding:20px;}
+.v42-emergency-note>.vh-icon{width:28px;height:28px;flex:0 0 auto;color:#1767f7;}
+.v42-emergency-note p{margin:5px 0 0;color:#65748d;line-height:1.5;}
+
+@media(max-width:1180px){
+  #home .pet-hero{grid-template-columns:210px minmax(0,1fr);gap:28px;}
+  #home .pet-hero .btn{min-width:0;width:100%;}
+  .v42-emergency-clinic{grid-template-columns:150px minmax(0,1fr);}
+}
+@media(max-width:960px){
+  #home .hero-grid{grid-template-columns:1fr;}
+  #home .pet-hero,#home .next-card{min-height:auto;}
+  .v42-emergency-hero{grid-template-columns:1fr;}
+  .v42-symptom-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .v42-emergency-clinic-grid{grid-template-columns:1fr;}
+}
+@media(max-width:640px){
+  .topbar>.actions .icon-btn,.topbar>.actions .user-mini{width:38px;height:38px;flex-basis:38px;}
+  #home .pet-hero{grid-template-columns:1fr;gap:18px;padding:18px;}
+  #home .pet-hero .pet-photo{min-height:280px;}
+  #home .pet-hero .pet-copy{padding:0;}
+  #home .dashboard-grid{margin-top:20px;}
+  .v42-emergency{gap:18px;}
+  .v42-emergency-hero,.v42-emergency-panel{padding:18px;}
+  .v42-emergency-hero h2{font-size:2rem;}
+  .v42-emergency-actions{display:grid;width:100%;}
+  .v42-emergency-actions .btn{width:100%;min-width:0;}
+  .v42-section-heading{display:grid;}
+  .v42-symptom-grid{grid-template-columns:1fr;}
+  .v42-emergency-clinics>.section-header{align-items:flex-start;flex-direction:column;}
+  .v42-emergency-clinic{grid-template-columns:1fr;padding:14px;}
+  .v42-clinic-photo{min-height:180px;}
+  .v42-clinic-actions{grid-template-columns:1fr;}
+}
+@media print{#emergency>:not(.back-link):not(.topbar):not(.v42-emergency){display:none!important;}.v42-emergency-clinic-grid{grid-template-columns:1fr 1fr;}}

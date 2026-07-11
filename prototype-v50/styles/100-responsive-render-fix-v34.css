@@ -1,0 +1,192 @@
+/* VetHelp v34 — responsive render QA fixes
+   Scope: remove residual mobile horizontal overflow discovered by full 25x6 render. */
+@media (max-width: 760px) {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  .topbar {
+    min-width: 0;
+  }
+
+  .topbar > div:first-child {
+    min-width: 0;
+  }
+
+  .topbar .actions {
+    flex: 0 0 auto;
+    min-width: 0;
+    max-width: 44px;
+  }
+
+  .topbar .actions .icon-btn {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    min-height: 38px;
+    padding: 0;
+    flex: 0 0 38px;
+  }
+
+  .mobile-bottom-nav {
+    box-sizing: border-box;
+    width: auto;
+    max-width: calc(100vw - 14px);
+    min-width: 0;
+    overflow: hidden;
+    padding: 6px 4px;
+    column-gap: 0;
+  }
+
+  .mobile-bottom-nav.has-clinic-route {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .mobile-bottom-nav a {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .mobile-bottom-nav a span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-emergency-fab,
+  .prototype-state-dock {
+    box-sizing: border-box;
+    right: max(10px, env(safe-area-inset-right));
+  }
+
+  .prototype-state-toggle {
+    box-sizing: border-box;
+  }
+}
+
+@media (max-width: 420px) {
+  .mobile-bottom-nav {
+    left: 7px;
+    right: 7px;
+  }
+
+  .mobile-bottom-nav a {
+    font-size: 8.5px;
+    padding-inline: 0;
+  }
+}
+@media (max-width: 760px) {
+  .topbar {
+    width: 100%;
+    max-width: 100%;
+    justify-content: flex-start;
+  }
+
+  .topbar > div:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: calc(100% - 50px);
+  }
+
+  .topbar .actions {
+    flex: 0 0 38px;
+    width: 38px;
+    max-width: 38px;
+    margin-left: auto;
+  }
+}
+@media (max-width: 760px) {
+  .topbar .actions > :not(:first-child) {
+    display: none !important;
+  }
+}
+@media (max-width: 760px) {
+  .section-header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .section-header > .btn,
+  .section-header > .section-link {
+    margin-left: 0;
+    max-width: 100%;
+  }
+
+  #pets .section-header > .btn,
+  #diary .section-header > .btn,
+  #notifications .section-header > .btn,
+  #notifications .section-header > .btn.secondary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .staff-panel:has(.staff-table) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .staff-panel:has(.staff-table)::after {
+    content: 'Прокрутите таблицу вбок';
+    display: block;
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+  }
+}
+@media (max-width: 760px) {
+  .topbar:has(.actions .btn) {
+    flex-wrap: wrap;
+  }
+
+  .topbar:has(.actions .btn) > div:first-child {
+    max-width: 100%;
+    flex-basis: 100%;
+  }
+
+  .topbar:has(.actions .btn) .actions {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+  }
+
+  .topbar:has(.actions .btn) .actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+@media (max-width: 760px) {
+  .topbar:has(.actions .pill) {
+    flex-wrap: wrap;
+  }
+
+  .topbar:has(.actions .pill) > div:first-child {
+    max-width: 100%;
+    flex-basis: 100%;
+  }
+
+  .topbar:has(.actions .pill) .actions {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+
+  .topbar:has(.actions .pill) .actions .pill {
+    max-width: 100%;
+    white-space: normal;
+  }
+}

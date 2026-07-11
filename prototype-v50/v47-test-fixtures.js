@@ -1,0 +1,45 @@
+/* v47 qualitative UAT fixtures. Demo data only; no medical or payment claims. */
+window.VetHelpUATFixtures = Object.freeze({
+  version: 'v47',
+  simulationDate: '2026-06-25',
+  pets: [
+    { id: 'barney', name: 'Барни', species: 'собака', breed: 'вельш-корги', age: '3 года', policy: 'active', needs: ['терапевт', 'анализы', 'контроль аллергии'] },
+    { id: 'murka', name: 'Мурка', species: 'кошка', breed: 'британская', age: '2 года', policy: 'none', needs: ['вакцинация', 'плановый осмотр'] },
+    { id: 'lucky', name: 'Лаки', species: 'собака', breed: 'лабрадор', age: '9 лет', policy: 'expired', needs: ['ортопед', 'контроль подвижности'] },
+    { id: 'kesha', name: 'Кеша', species: 'птица', breed: 'волнистый попугай', age: '4 года', policy: 'none', needs: ['орнитолог', 'дистанционная первичная оценка'] },
+    { id: 'sema', name: 'Сёма', species: 'кролик', breed: 'карликовый', age: '5 лет', policy: 'none', needs: ['ратолог', 'стоматологический осмотр'] },
+  ],
+  clinics: [
+    { id: 'vetplus', name: 'ВетКлиника+', confirmation: 'instant', basePrice: 1200, driveMinutes: 7, transitMinutes: 24, walkMinutes: 48, open24h: false, capabilities: ['терапевт','рентген','лаборатория'] },
+    { id: 'vetprofi', name: 'ВетПрофи', confirmation: 'manual', basePrice: 900, driveMinutes: 16, transitMinutes: 12, walkMinutes: 31, open24h: false, capabilities: ['терапевт','ортопед','доступная среда'] },
+    { id: 'nightcare', name: 'Ночной стационар', confirmation: 'call-first', basePrice: 1800, driveMinutes: 11, transitMinutes: 37, walkMinutes: null, open24h: true, capabilities: ['реанимация','кислород','хирургия','стационар'] },
+    { id: 'district', name: 'Районная ветстанция', confirmation: 'manual', basePrice: 600, driveMinutes: 22, transitMinutes: 19, walkMinutes: 55, open24h: false, capabilities: ['терапевт','вакцинация'] },
+  ],
+  policies: [
+    { pet: 'barney', state: 'active', limit: 50000, deductible: 1000, expires: '2027-05-12' },
+    { pet: 'murka', state: 'none', limit: 0, deductible: 0, expires: null },
+    { pet: 'lucky', state: 'expired', limit: 30000, deductible: 1000, expires: '2025-11-30' },
+    { pet: 'kesha', state: 'unsupported-species', limit: 0, deductible: 0, expires: null },
+    { pet: 'sema', state: 'none', limit: 0, deductible: 0, expires: null },
+  ],
+  personas: [
+    { id: 'default', label: 'Несколько питомцев', name: 'Екатерина', income: 'средний+', transport: 'автомобиль', behaviour: 'организованная', pets: ['barney','murka','lucky'], need: 'не перепутать питомца, полис и документы при записи' },
+    { id: 'anxious_no_car', label: 'Тревожная, без авто', name: 'Елена', income: 'средний', transport: 'метро и такси', behaviour: 'тревожная', pets: ['murka'], need: 'понять срочность, реальное время в пути и можно ли ждать' },
+    { id: 'budget_multi_pet', label: 'Ограниченный бюджет', name: 'Сергей', income: 'ниже среднего', transport: 'общественный транспорт', behaviour: 'сравнивает стоимость', pets: ['barney','murka'], need: 'видеть диапазон цены, бесплатные альтернативы и согласие на допуслуги' },
+    { id: 'demanding_car', label: 'Требовательная, с авто', name: 'Марина', income: 'высокий', transport: 'автомобиль', behaviour: 'проверяет доказательства', pets: ['lucky'], need: 'сравнить специалиста, оснащение, свежесть слота и подтверждённые отзывы' },
+    { id: 'forgetful_senior', label: 'Забывчивая', name: 'Валентина', income: 'средний−', transport: 'пешком и автобус', behaviour: 'может пропустить действие', pets: ['murka'], need: 'получить простое напоминание, повтор и понятную подготовку' },
+    { id: 'stubborn_owner', label: 'Сомневающийся', name: 'Олег', income: 'средний', transport: 'автомобиль', behaviour: 'не доверяет назначениям', pets: ['barney'], need: 'увидеть причину обследования, цену и возможность отказаться без давления' },
+    { id: 'remote_low_bandwidth', label: 'Плохая связь', name: 'Амина', income: 'ниже среднего', transport: 'без автомобиля, удалённый район', behaviour: 'полагается на телефон', pets: ['sema'], need: 'получить текстовый или телефонный резервный путь при слабом интернете' },
+    { id: 'accessible_reader', label: 'Экранный диктор', name: 'Алексей', income: 'средний', transport: 'общественный транспорт', behaviour: 'использует клавиатуру и диктор', pets: ['kesha'], need: 'пройти маршрут без карты, цвета и жестов как единственных сигналов' },
+  ],
+  scenarios: [
+    { id: 'urgent_no_car_night', persona: 'anxious_no_car', pet: 'murka', state: 'emergency', businessCase: 'экстренная маршрутизация', expected: ['звонок первым действием','клиника принимает сейчас','время на такси и общественном транспорте','без обязательной регистрации'] },
+    { id: 'manual_confirmation', persona: 'default', pet: 'barney', state: 'MANUAL_CONFIRM_PENDING', businessCase: 'ручное подтверждение записи', expected: ['один статус','прогноз ответа','не ехать до подтверждения','отмена без скрытого последствия'] },
+    { id: 'alternative_slot', persona: 'forgetful_senior', pet: 'murka', state: 'ALTERNATIVE_PROPOSED', businessCase: 'перенос клиникой', expected: ['дедлайн','крупный выбор нового времени','напоминание при бездействии','сохранённый контекст питомца'] },
+    { id: 'price_sensitive', persona: 'budget_multi_pet', pet: 'barney', state: 'booking-review', businessCase: 'прозрачность цены', expected: ['базовая цена','диапазон доплат','отдельное согласие','доступная альтернатива'] },
+    { id: 'doctor_late', persona: 'demanding_car', pet: 'lucky', state: 'WAITING_DOCTOR', businessCase: 'нарушение времени онлайн-консультации', expected: ['реальный прогноз','уведомление','отмена авторизации','канал эскалации'] },
+    { id: 'weak_network', persona: 'remote_low_bandwidth', pet: 'sema', state: 'offline', businessCase: 'деградация телемедицины', expected: ['телефонный резерв','сохранённый черновик','повтор подключения','без повторного списания'] },
+    { id: 'multi_pet_policy', persona: 'default', pet: 'murka', state: 'insurance-none', businessCase: 'несколько питомцев и разные полисы', expected: ['явный выбранный питомец','состояние «нет полиса»','подбор вместо пустой карточки','отсутствие утечки данных другого питомца'] },
+    { id: 'keyboard_zoom', persona: 'accessible_reader', pet: 'kesha', state: 'accessibility', businessCase: 'доступный маршрут', expected: ['клавиатура','200% масштаб','текстовый статус','фокус не перекрыт плавающим меню'] },
+  ],
+});

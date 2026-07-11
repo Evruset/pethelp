@@ -1,0 +1,112 @@
+/* v21: dedicated PNG icon integration for logout, empty history, 24/7 and price filter. */
+@layer components {
+  .action-icon,
+  .chip-icon {
+    inline-size: 22px;
+    block-size: 22px;
+    object-fit: contain;
+    display: block;
+    flex: 0 0 auto;
+  }
+
+  .logout-button,
+  .danger-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .logout-button .action-icon,
+  .danger-action .action-icon {
+    inline-size: 24px;
+    block-size: 24px;
+  }
+
+  .empty-state {
+    text-align: center;
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    padding: 26px 18px;
+  }
+
+  .empty-state[hidden] {
+    display: none;
+  }
+
+  .empty-state-icon {
+    inline-size: 72px;
+    block-size: 72px;
+    border-radius: 24px;
+    display: grid;
+    place-items: center;
+    background: rgba(0, 82, 255, 0.08);
+    border: 1px solid rgba(0, 82, 255, 0.12);
+    margin-block-end: 6px;
+  }
+
+  .empty-state-icon img {
+    inline-size: 46px;
+    block-size: 46px;
+    object-fit: contain;
+  }
+
+  .meta-chip--with-icon,
+  .capability-pill,
+  .filter-chip--price,
+  .filter-chip--always-open,
+  .pill--with-icon,
+  .route-meta-inline,
+  .route-open-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .route-meta-inline {
+    flex-wrap: wrap;
+    gap: 6px 8px;
+  }
+
+  .meta-chip--with-icon img,
+  .capability-pill img,
+  .filter-chip--price img,
+  .filter-chip--always-open img,
+  .pill--with-icon img,
+  .route-open-chip img {
+    inline-size: 20px;
+    block-size: 20px;
+    object-fit: contain;
+  }
+
+  .filter-chip--price,
+  .filter-chip--always-open {
+    padding-inline: 12px 14px;
+  }
+
+  .pill--with-icon {
+    line-height: 1;
+  }
+
+  .pill--with-icon .chip-icon {
+    inline-size: 18px;
+    block-size: 18px;
+  }
+
+  .route-open-chip {
+    padding: 2px 8px;
+    min-block-size: 24px;
+  }
+
+  .route-open-chip .chip-icon {
+    inline-size: 18px;
+    block-size: 18px;
+  }
+
+  .u-inline-033 .mini-icon img[src$="empty_history_records.png"] {
+    inline-size: 28px;
+    block-size: 28px;
+    object-fit: contain;
+  }
+}

@@ -1,0 +1,12 @@
+/*
+  Temporary compatibility layer for VetHelp v8.
+  Previous inline CSS contained many priority overrides.
+  P2 extraction removed those declarations from legacy CSS. Add only audited, short-lived
+  compatibility overrides here during future migration. Do not add new priority overrides outside this file.
+*/
+@layer compatibility {
+  .prototype-state-dock[aria-label],
+  .prototype-state-banner[aria-label] {
+    isolation: isolate;
+  }
+}
