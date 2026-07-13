@@ -9,8 +9,9 @@ const clinicJwtSecret = process.env.VETHELP_CLINIC_JWT_SECRET
   ?? 'local-development-jwt-signing-key-not-for-shared-use';
 const jwtIssuer = process.env.JWT_ISSUER ?? 'vethelp-local';
 const jwtAudience = process.env.JWT_AUDIENCE ?? 'vethelp-api';
+const clinicEmployeeId = '33333333-3333-4333-8333-333333333333';
 
-test('local stack owner booking can be closed in portal and appears in pet diary', async ({ page, request, baseURL }) => {
+test('local stack owner booking is completed by a veterinarian and appears in pet diary', async ({ page, request, baseURL }) => {
   if (!baseURL) throw new Error('baseURL is required');
 
   await expectHealthy(request);
@@ -22,36 +23,25 @@ test('local stack owner booking can be closed in portal and appears in pet diary
 
   expect(hold.state).toBe('CONFIRMED');
 
-  const adminToken = await clinicToken({
+  const veterinarianToken = await clinicToken({
     clinicId: slot.clinicId,
     locationId,
-    role: 'CLINIC_ADMIN',
+    role: 'CLINIC_VETERINARIAN',
   });
   await page.context().addCookies([{
     name: 'vethelp_clinic_session',
-    value: adminToken,
+    value: veterinarianToken,
     url: baseURL,
     httpOnly: true,
     sameSite: 'Lax',
   }]);
 
-  await page.goto(`/clinics/${slot.clinicId}/locations/${locationId}/schedule`);
-  const scheduleRow = page.getByRole('row').filter({
-    hasText: scheduleDate(slot.startsAt),
-  }).filter({
-    hasText: '1 записей',
-  }).first();
-  await expect(scheduleRow.getByRole('button', { name: 'Закрыть приём' })).toBeEnabled();
-  await scheduleRow.getByRole('button', { name: 'Закрыть приём' }).click();
-
+  await page.goto(`/clinics/${slot.clinicId}/locations/${locationId}/vet/visits/${hold.holdId}`);
   const summary = `Local stack clinical summary ${randomUUID()}`;
-  const dialog = page.getByRole('dialog', { name: 'Закрыть приём' });
-  await expect(dialog).toBeVisible();
-  await dialog.getByLabel('Заключение по приёму').fill(summary);
-  await dialog.getByRole('button', { name: 'Закрыть приём' }).click();
-
-  await expect(page.getByRole('status')).toContainText('Приём закрыт. Заключение отправлено владельцу.');
-  await expect(scheduleRow.getByRole('button', { name: 'Закрыть приём' })).toBeDisabled();
+  await expect(page.getByRole('form', { name: 'Завершение приёма' })).toBeVisible();
+  await page.getByLabel('Клиническое заключение').fill(summary);
+  await page.getByRole('button', { name: 'Завершить приём' }).click();
+  await expect(page.getByRole('status')).toContainText('Приём завершён.');
 
   const careSummary = await apiData<{ visits: Array<{ holdId: string; state: string; clinicalSummary?: string | null }> }>(
     request,
@@ -164,14 +154,14 @@ async function createOwnerHold(
   );
 }
 
-async function clinicToken(input: { clinicId: string; locationId: string; role: 'CLINIC_ADMIN' | 'CLINIC_RECEPTIONIST' }): Promise<string> {
+async function clinicToken(input: { clinicId: string; locationId: string; role: 'CLINIC_VETERINARIAN' }): Promise<string> {
   return new SignJWT({
     roles: [input.role],
     clinicIds: [input.clinicId],
     locationIds: [input.locationId],
   })
     .setProtectedHeader({ alg: 'HS256' })
-    .setSubject('33333333-3333-4333-8333-333333333333')
+    .setSubject(clinicEmployeeId)
     .setIssuer(jwtIssuer)
     .setAudience(jwtAudience)
     .setIssuedAt()
@@ -203,13 +193,4 @@ async function apiData<T>(
     return payload.data as T;
   }
   return payload as T;
-}
-
-function scheduleDate(value: string): string {
-  return new Intl.DateTimeFormat('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
 }
