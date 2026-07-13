@@ -1,0 +1,105 @@
+name: V51 Stage 5.5 Clinical Authority
+
+on:
+  pull_request:
+    paths:
+      - 'apps/clinic-portal/app/(clinic)/clinics/**/schedule/page.tsx'
+      - 'apps/clinic-portal/tests/e2e/clinic-schedule.spec.ts'
+      - 'apps/clinic-portal/tests/e2e/veterinarian-visit-completion.spec.ts'
+      - 'apps/clinic-portal/tests/local-stack/owner-booking-to-pet-diary.spec.ts'
+      - '.github/workflows/v51-stage55-authority.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused-portal-authority:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/clinic-portal
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/clinic-portal/package.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm install
+      - name: Install Linux lightningcss native binding
+        shell: bash
+        run: |
+          version="$(node -p "require('./node_modules/lightningcss/package.json').version")"
+          npm install --no-save --package-lock=false "lightningcss-linux-x64-gnu@${version}"
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Run focused authority regression
+        shell: bash
+        run: |
+          set -o pipefail
+          npx playwright test \
+            tests/e2e/clinic-schedule.spec.ts \
+            tests/e2e/veterinarian-visit-completion.spec.ts \
+            2>&1 | tee stage55-focused.log
+      - name: Upload focused evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v51-stage55-focused-evidence
+          path: |
+            apps/clinic-portal/stage55-focused.log
+            apps/clinic-portal/playwright-report
+            apps/clinic-portal/test-results
+            apps/clinic-portal/allure-results
+          if-no-files-found: ignore
+          retention-days: 14
+
+  local-stack-authority:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.20.2
+          cache: npm
+          cache-dependency-path: apps/clinic-portal/package.json
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Install Clinic Portal dependencies
+        working-directory: apps/clinic-portal
+        run: npm install
+      - name: Install Chromium runtime dependencies
+        working-directory: apps/clinic-portal
+        run: npx playwright install --with-deps chromium
+      - name: Validate local stack contract
+        run: |
+          node --check dev/local/local-stack-e2e.mjs
+          node --check dev/local/create-clinic-token.mjs
+          docker compose -f docker-compose.local.yml config --quiet
+      - name: Run owner to veterinarian to Pet Diary journey
+        env:
+          FLUTTER_BIN: flutter
+        run: make local-stack-e2e
+      - name: Upload local-stack evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v51-stage55-local-stack-evidence
+          path: .dev-local/local-stack-e2e
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Print local stack logs on failure
+        if: failure()
+        run: docker compose -p vethelp-alpha -f docker-compose.local.yml logs --no-color --tail 500
+      - name: Stop local stack
+        if: always()
+        run: docker compose -p vethelp-alpha -f docker-compose.local.yml down
