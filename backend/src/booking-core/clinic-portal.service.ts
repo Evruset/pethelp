@@ -1,10 +1,11 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import type { PoolClient } from 'pg';
-import { JwtPayload, Role } from '../auth/auth.types';
+import { JwtPayload } from '../auth/auth.types';
 import { DomainErrors, DomainException } from '../common/domain-error';
 import { DatabaseService } from '../database/database.service';
 import { TraceContext } from '../observability/trace-context.context';
 import { CompleteAppointmentResult } from './booking.types';
+import { ClinicEmployeeAccessService } from './clinic-employee-access.service';
 
 export interface ManualConfirmationSlaResult {
   holdId: string;
@@ -25,7 +26,10 @@ interface LockedManualHold {
 export class ClinicPortalService {
   private readonly traceContext = new TraceContext();
 
-  constructor(private readonly database: DatabaseService) {}
+  constructor(
+    private readonly database: DatabaseService,
+    private readonly clinicAccess: ClinicEmployeeAccessService,
+  ) {}
 
   async initiateManualConfirmationSla(holdId: string): Promise<ManualConfirmationSlaResult> {
     return this.database.withTransaction(async (client) => {
@@ -104,7 +108,11 @@ export class ClinicPortalService {
       `, [input.holdId]);
       const hold = locked.rows[0];
       if (!hold) throw DomainErrors.holdNotFound();
-      this.assertCompletionAccess(input.employee, hold.clinic_location_id);
+      await this.clinicAccess.assertClinicalVisitCompletionAccess(
+        client,
+        input.employee,
+        hold.clinic_location_id,
+      );
 
       if (hold.state === 'COMPLETED') {
         return {
@@ -174,13 +182,6 @@ export class ClinicPortalService {
   private async setShortTransactionLimits(client: PoolClient): Promise<void> {
     await client.query("SET LOCAL lock_timeout = '50ms'");
     await client.query("SET LOCAL statement_timeout = '50ms'");
-  }
-
-  private assertCompletionAccess(employee: JwtPayload, clinicLocationId: string): void {
-    const hasRole = employee.roles.includes(Role.CLINIC_ADMIN) || employee.roles.includes(Role.CLINIC_VETERINARIAN);
-    if (!hasRole || !employee.locationIds?.includes(clinicLocationId)) {
-      throw DomainErrors.clinicScopeMismatch();
-    }
   }
 
   private async writeOutbox(

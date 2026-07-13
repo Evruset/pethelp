@@ -12,3 +12,12 @@ apps/clinic-portal/test-results/
 apps/clinic-portal/playwright-report/
 apps/clinic-portal/allure-results/
 apps/clinic-portal/allure-report/
+
+# CODEX_AGENT_STACK_START
+.codex/rag/
+.codex/cache/
+.codex/*.tmp
+# CODEX_AGENT_STACK_END
+
+.runtime/
+apps/clinic-portal/.env.local

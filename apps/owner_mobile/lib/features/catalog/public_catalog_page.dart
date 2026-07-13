@@ -1,3 +1,6 @@
+import 'dart:ui';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -87,6 +90,28 @@ class _PublicCatalogPageState extends State<PublicCatalogPage> {
   @override
   Widget build(BuildContext context) {
     final clinic = _openedClinic;
+    if (_usesCupertinoCatalog(context)) {
+      return _CupertinoCatalogScaffold(
+        clinic: clinic,
+        onBackToClinics: _backToClinics,
+        onRefresh: clinic == null ? _reloadClinics : _reloadDetail,
+        child: clinic == null
+            ? _CupertinoClinicsBody(
+                search: _search,
+                filters: _filters,
+                request: _clinicsRequest,
+                onReload: _reloadClinics,
+                onFiltersChanged: _applyFilters,
+                onOpenClinic: _openClinic,
+              )
+            : _CupertinoClinicDetailBody(
+                repository: widget.repository,
+                request: _detailRequest,
+                onRetry: _reloadDetail,
+                onSelected: widget.onSelected,
+              ),
+      );
+    }
     return PopScope(
       canPop: clinic == null,
       onPopInvokedWithResult: (didPop, result) {
@@ -131,6 +156,1328 @@ class _PublicCatalogPageState extends State<PublicCatalogPage> {
 }
 
 enum _CatalogViewMode { list, map }
+
+class _CupertinoCatalogScaffold extends StatelessWidget {
+  const _CupertinoCatalogScaffold({
+    required this.clinic,
+    required this.onBackToClinics,
+    required this.onRefresh,
+    required this.child,
+  });
+
+  final CatalogClinic? clinic;
+  final VoidCallback onBackToClinics;
+  final VoidCallback onRefresh;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final openedClinic = clinic;
+    return PopScope(
+      canPop: openedClinic == null,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && openedClinic != null) onBackToClinics();
+      },
+      child: CupertinoPageScaffold(
+        navigationBar: CupertinoNavigationBar(
+          border: null,
+          backgroundColor:
+              _cupertinoColor(context, CupertinoColors.systemBackground)
+                  .withValues(alpha: .72),
+          leading: openedClinic == null
+              ? null
+              : Semantics(
+                  button: true,
+                  label: 'Назад к списку клиник',
+                  child: CupertinoButton(
+                    minSize: 44,
+                    padding: EdgeInsets.zero,
+                    onPressed: onBackToClinics,
+                    child: const Icon(CupertinoIcons.back),
+                  ),
+                ),
+          middle: Text(openedClinic?.name ?? 'Выберите клинику'),
+          trailing: Semantics(
+            button: true,
+            label: 'Обновить каталог',
+            child: CupertinoButton(
+              minSize: 44,
+              padding: EdgeInsets.zero,
+              onPressed: onRefresh,
+              child: const Icon(CupertinoIcons.refresh),
+            ),
+          ),
+        ),
+        child: _CupertinoCatalogBackdrop(
+          child: SafeArea(top: false, child: child),
+        ),
+      ),
+    );
+  }
+}
+
+class _CupertinoCatalogBackdrop extends StatelessWidget {
+  const _CupertinoCatalogBackdrop({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final background =
+        _cupertinoColor(context, CupertinoColors.systemGroupedBackground);
+    final accent =
+        _cupertinoColor(context, CupertinoColors.activeBlue).withValues(
+      alpha: MediaQuery.platformBrightnessOf(context) == Brightness.dark
+          ? .10
+          : .08,
+    );
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [accent, background, background],
+          stops: const [0, .46, 1],
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _CupertinoClinicsBody extends StatelessWidget {
+  const _CupertinoClinicsBody({
+    required this.search,
+    required this.filters,
+    required this.request,
+    required this.onReload,
+    required this.onFiltersChanged,
+    required this.onOpenClinic,
+  });
+
+  final TextEditingController search;
+  final CatalogClinicFilters filters;
+  final Future<List<CatalogClinic>>? request;
+  final VoidCallback onReload;
+  final ValueChanged<CatalogClinicFilters> onFiltersChanged;
+  final ValueChanged<CatalogClinic> onOpenClinic;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<CatalogClinic>>(
+      future: request,
+      builder: (context, snapshot) {
+        final slivers = <Widget>[
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 10),
+              child: _CupertinoGlassSurface(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Semantics(
+                      textField: true,
+                      label: 'Поиск клиники, адреса или услуги',
+                      child: CupertinoTextField(
+                        controller: search,
+                        placeholder: 'Название, адрес или услуга',
+                        textInputAction: TextInputAction.search,
+                        minLines: 1,
+                        maxLines: 2,
+                        clearButtonMode: OverlayVisibilityMode.editing,
+                        prefix: Padding(
+                          padding: const EdgeInsetsDirectional.only(start: 12),
+                          child: Icon(
+                            CupertinoIcons.search,
+                            size: 20,
+                            color: _cupertinoColor(
+                              context,
+                              CupertinoColors.secondaryLabel,
+                            ),
+                          ),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 13,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _cupertinoColor(
+                            context,
+                            CupertinoColors.secondarySystemFill,
+                          ),
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        onSubmitted: (_) => onReload(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _CupertinoCatalogFilters(
+                      filters: filters,
+                      onChanged: onFiltersChanged,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ];
+        if (snapshot.connectionState != ConnectionState.done) {
+          slivers.add(
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: _CupertinoFeedbackState(
+                title: 'Загружаем клиники',
+                message: 'Получаем актуальный каталог VetHelp.',
+                loading: true,
+              ),
+            ),
+          );
+        } else if (snapshot.hasError) {
+          slivers.add(
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: _CupertinoFeedbackState(
+                title: 'Не удалось загрузить каталог',
+                message: 'Проверьте соединение и повторите обновление.',
+                actionLabel: 'Повторить',
+                onAction: onReload,
+                icon: CupertinoIcons.exclamationmark_circle,
+                tone: _CupertinoFeedbackTone.warning,
+              ),
+            ),
+          );
+        } else {
+          final clinics = snapshot.data ?? const <CatalogClinic>[];
+          if (clinics.isEmpty) {
+            slivers.add(
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: _CupertinoFeedbackState(
+                  title: 'Клиники не найдены',
+                  message:
+                      'Попробуйте изменить запрос или убрать активные фильтры.',
+                  icon: CupertinoIcons.search,
+                ),
+              ),
+            );
+          } else {
+            slivers.add(
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(18, 6, 18, 28),
+                sliver: SliverList.separated(
+                  itemCount: clinics.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final clinic = clinics[index];
+                    return _CupertinoClinicCard(
+                      clinic: clinic,
+                      onTap: () => onOpenClinic(clinic),
+                    );
+                  },
+                ),
+              ),
+            );
+          }
+        }
+        return CustomScrollView(slivers: slivers);
+      },
+    );
+  }
+}
+
+class _CupertinoCatalogFilters extends StatelessWidget {
+  const _CupertinoCatalogFilters({
+    required this.filters,
+    required this.onChanged,
+  });
+
+  final CatalogClinicFilters filters;
+  final ValueChanged<CatalogClinicFilters> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final serviceCode = filters.serviceCode;
+    final todaySelected =
+        filters.availableFrom != null && filters.availableTo != null;
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _CupertinoFilterPill(
+          label: 'Ближайшие окна',
+          icon: CupertinoIcons.calendar,
+          selected: filters.openNow == true,
+          onPressed: () =>
+              onChanged(filters.copyWith(openNow: filters.openNow != true)),
+        ),
+        _CupertinoFilterPill(
+          label: 'Сегодня',
+          icon: CupertinoIcons.time,
+          selected: todaySelected,
+          onPressed: () => onChanged(todaySelected
+              ? filters.copyWith(clearAvailability: true, openNow: false)
+              : filters.copyWith(
+                  availableFrom: _todayStart(),
+                  availableTo: _todayStart().add(const Duration(days: 1)),
+                  openNow: true,
+                )),
+        ),
+        _CupertinoFilterPill(
+          label: 'Первичный приём',
+          icon: CupertinoIcons.plus_app,
+          selected: serviceCode == 'GENERAL_VISIT',
+          onPressed: () => onChanged(filters.copyWith(
+            serviceCode:
+                serviceCode == 'GENERAL_VISIT' ? null : 'GENERAL_VISIT',
+            clearServiceCode: serviceCode == 'GENERAL_VISIT',
+          )),
+        ),
+        _CupertinoFilterPill(
+          label: 'Онлайн',
+          icon: CupertinoIcons.video_camera,
+          selected: filters.telemedAvailable == true,
+          onPressed: () => onChanged(filters.copyWith(
+              telemedAvailable: filters.telemedAvailable != true)),
+        ),
+        _CupertinoFilterPill(
+          label: 'Срочная помощь',
+          icon: CupertinoIcons.exclamationmark_circle,
+          selected: filters.emergencyCapability == 'TRAUMA',
+          onPressed: () => onChanged(filters.copyWith(
+            emergencyCapability:
+                filters.emergencyCapability == 'TRAUMA' ? null : 'TRAUMA',
+            clearEmergencyCapability: filters.emergencyCapability == 'TRAUMA',
+          )),
+        ),
+        _CupertinoFilterPill(
+          label: _sortLabel(filters.sort),
+          icon: CupertinoIcons.sort_down,
+          selected: true,
+          onPressed: () => onChanged(filters.copyWith(
+            sort: _nextSort(
+              filters.sort,
+              geoEnabled: filters.latitude != null && filters.longitude != null,
+            ),
+          )),
+        ),
+        if (_hasActiveCatalogFilters(filters))
+          _CupertinoFilterPill(
+            label: 'Сбросить',
+            icon: CupertinoIcons.clear,
+            selected: false,
+            onPressed: () => onChanged(const CatalogClinicFilters()),
+          ),
+      ],
+    );
+  }
+}
+
+class _CupertinoFilterPill extends StatelessWidget {
+  const _CupertinoFilterPill({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _cupertinoColor(context, CupertinoColors.activeBlue);
+    final fill = selected
+        ? accent.withValues(alpha: .18)
+        : _cupertinoColor(context, CupertinoColors.secondarySystemFill);
+    final textColor =
+        selected ? accent : _cupertinoColor(context, CupertinoColors.label);
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '$label${selected ? ', выбран' : ''}',
+      child: CupertinoButton(
+        minSize: 44,
+        padding: EdgeInsets.zero,
+        onPressed: onPressed,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: fill,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: selected
+                  ? accent.withValues(alpha: .36)
+                  : _cupertinoColor(context, CupertinoColors.separator),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 16, color: textColor),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style:
+                        CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                              color: textColor,
+                              fontWeight:
+                                  selected ? FontWeight.w700 : FontWeight.w500,
+                            ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CupertinoClinicCard extends StatelessWidget {
+  const _CupertinoClinicCard({required this.clinic, required this.onTap});
+
+  final CatalogClinic clinic;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _CupertinoGlassSurface(
+      padding: EdgeInsets.zero,
+      child: Semantics(
+        button: true,
+        label: _clinicSemanticsLabel(context, clinic),
+        child: CupertinoButton(
+          minSize: 44,
+          padding: const EdgeInsets.all(16),
+          onPressed: onTap,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _CupertinoIconBubble(
+                icon: CupertinoIcons.location,
+                color: _cupertinoColor(context, CupertinoColors.activeBlue),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      clinic.name,
+                      style: CupertinoTheme.of(context)
+                          .textTheme
+                          .navTitleTextStyle
+                          .copyWith(
+                            fontSize: 18,
+                            color: _cupertinoColor(
+                              context,
+                              CupertinoColors.label,
+                            ),
+                          ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${clinic.locationCount} адрес(а) · ${clinic.serviceCount} услуг(и)',
+                      style: CupertinoTheme.of(context)
+                          .textTheme
+                          .textStyle
+                          .copyWith(
+                            color: _cupertinoColor(
+                              context,
+                              CupertinoColors.secondaryLabel,
+                            ),
+                          ),
+                    ),
+                    if (clinic.distanceKm != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        '${_distance(clinic.distanceKm!)} от точки поиска',
+                        style: CupertinoTheme.of(context)
+                            .textTheme
+                            .textStyle
+                            .copyWith(
+                              color: _cupertinoColor(
+                                context,
+                                CupertinoColors.secondaryLabel,
+                              ),
+                            ),
+                      ),
+                    ],
+                    const SizedBox(height: 10),
+                    _CupertinoClinicBadges(clinic: clinic),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Icon(
+                CupertinoIcons.chevron_right,
+                size: 20,
+                color: _cupertinoColor(
+                  context,
+                  CupertinoColors.tertiaryLabel,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CupertinoClinicBadges extends StatelessWidget {
+  const _CupertinoClinicBadges({required this.clinic});
+
+  final CatalogClinic clinic;
+
+  @override
+  Widget build(BuildContext context) {
+    final next = clinic.nextAvailableAt;
+    return Wrap(
+      spacing: 7,
+      runSpacing: 7,
+      children: [
+        if (next != null)
+          _CupertinoInfoBadge(
+            icon: CupertinoIcons.calendar,
+            label: 'Ближайшее: ${_shortDateTime(context, next)}',
+            tone: _CupertinoBadgeTone.accent,
+          )
+        else
+          const _CupertinoInfoBadge(
+            icon: CupertinoIcons.calendar,
+            label: 'Время на следующем шаге',
+          ),
+        if (clinic.telemedAvailable)
+          const _CupertinoInfoBadge(
+            icon: CupertinoIcons.video_camera,
+            label: 'Онлайн',
+          ),
+        if (clinic.emergencyAvailable)
+          const _CupertinoInfoBadge(
+            icon: CupertinoIcons.exclamationmark_circle,
+            label: 'Срочная помощь',
+            tone: _CupertinoBadgeTone.warning,
+          ),
+      ],
+    );
+  }
+}
+
+class _CupertinoClinicDetailBody extends StatefulWidget {
+  const _CupertinoClinicDetailBody({
+    required this.repository,
+    required this.request,
+    required this.onRetry,
+    required this.onSelected,
+  });
+
+  final PublicCatalogRepository repository;
+  final Future<CatalogClinicDetail>? request;
+  final VoidCallback onRetry;
+  final ValueChanged<CatalogBookingSelection> onSelected;
+
+  @override
+  State<_CupertinoClinicDetailBody> createState() =>
+      _CupertinoClinicDetailBodyState();
+}
+
+class _CupertinoClinicDetailBodyState
+    extends State<_CupertinoClinicDetailBody> {
+  int _selectedLocationIndex = 0;
+  String? _selectedServiceId;
+  String? _loadedLocationId;
+  Future<List<CatalogService>>? _servicesRequest;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<CatalogClinicDetail>(
+      future: widget.request,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const _CupertinoFeedbackState(
+            title: 'Открываем клинику',
+            message: 'Загружаем адреса и услуги.',
+            loading: true,
+          );
+        }
+        if (snapshot.hasError) {
+          return _CupertinoFeedbackState(
+            title: 'Не удалось открыть клинику',
+            message: 'Проверьте соединение и повторите попытку.',
+            actionLabel: 'Повторить',
+            onAction: widget.onRetry,
+            icon: CupertinoIcons.exclamationmark_circle,
+            tone: _CupertinoFeedbackTone.warning,
+          );
+        }
+        final detail = snapshot.data;
+        if (detail == null || detail.locations.isEmpty) {
+          return const _CupertinoFeedbackState(
+            title: 'Нет адресов для записи',
+            message: 'Клиника пока не передала активные адреса.',
+            icon: CupertinoIcons.location,
+          );
+        }
+        if (_selectedLocationIndex >= detail.locations.length) {
+          _selectedLocationIndex = 0;
+        }
+        final location = detail.locations[_selectedLocationIndex];
+        _ensureServicesRequest(location.locationId);
+        return FutureBuilder<List<CatalogService>>(
+          future: _servicesRequest,
+          builder: (context, servicesSnapshot) {
+            final services = servicesSnapshot.data ?? const <CatalogService>[];
+            final selectedService = _selectedService(services);
+            final canContinue =
+                location.hasOpenSlots && selectedService != null;
+            final actionLabel = !location.hasOpenSlots
+                ? 'Свободного времени нет'
+                : selectedService == null
+                    ? 'Выберите услугу'
+                    : 'Выбрать время';
+            return Column(
+              children: [
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                    children: [
+                      _CupertinoClinicHero(detail: detail),
+                      const SizedBox(height: 14),
+                      _CupertinoSectionTitle(
+                        title: 'Адрес',
+                        subtitle: detail.locations.length > 1
+                            ? 'Выберите филиал перед просмотром времени.'
+                            : null,
+                      ),
+                      const SizedBox(height: 8),
+                      ...List<Widget>.generate(detail.locations.length,
+                          (index) {
+                        final item = detail.locations[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _CupertinoLocationChoice(
+                            location: item,
+                            selected: index == _selectedLocationIndex,
+                            onTap: () {
+                              setState(() {
+                                _selectedLocationIndex = index;
+                                _selectedServiceId = null;
+                                _loadedLocationId = null;
+                                _servicesRequest = null;
+                              });
+                            },
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 8),
+                      _CupertinoSectionTitle(
+                        title: 'Услуга',
+                        subtitle:
+                            'Выберите услугу. Дату и время откроем на следующем экране.',
+                      ),
+                      const SizedBox(height: 8),
+                      if (servicesSnapshot.connectionState !=
+                          ConnectionState.done)
+                        const _CupertinoFeedbackState(
+                          title: 'Загружаем услуги',
+                          message: 'Получаем актуальный список услуг клиники.',
+                          loading: true,
+                          compact: true,
+                        )
+                      else if (servicesSnapshot.hasError)
+                        _CupertinoFeedbackState(
+                          title: 'Не удалось загрузить услуги',
+                          message:
+                              'Повторите обновление услуг для выбранного адреса.',
+                          actionLabel: 'Повторить',
+                          onAction: () => _reloadServices(location.locationId),
+                          icon: CupertinoIcons.exclamationmark_circle,
+                          tone: _CupertinoFeedbackTone.warning,
+                          compact: true,
+                        )
+                      else if (services.isEmpty)
+                        const _CupertinoFeedbackState(
+                          title: 'Активные услуги не найдены',
+                          message:
+                              'Клиника пока не передала услуги для записи.',
+                          icon: CupertinoIcons.search,
+                          compact: true,
+                        )
+                      else
+                        ...services.map((service) => Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: _CupertinoServiceChoice(
+                                service: service,
+                                selected: service.id == selectedService?.id,
+                                onTap: () => setState(
+                                    () => _selectedServiceId = service.id),
+                              ),
+                            )),
+                      const SizedBox(height: 4),
+                      _CupertinoBookingContext(
+                        location: location,
+                        service: selectedService,
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 8, 18, 16),
+                  child: _CupertinoPrimaryAction(
+                    label: actionLabel,
+                    enabled: canContinue,
+                    semanticsLabel: selectedService == null
+                        ? 'Выберите услугу перед выбором времени'
+                        : 'Выбрать время для услуги ${selectedService.displayName}',
+                    onPressed: canContinue
+                        ? () {
+                            final service = selectedService;
+                            widget.onSelected(CatalogBookingSelection(
+                              location: location,
+                              service: service,
+                            ));
+                          }
+                        : null,
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _ensureServicesRequest(String locationId) {
+    if (_loadedLocationId == locationId && _servicesRequest != null) return;
+    _loadedLocationId = locationId;
+    _selectedServiceId = null;
+    _servicesRequest = widget.repository.listLocationServices(locationId);
+  }
+
+  void _reloadServices(String locationId) {
+    setState(() {
+      _loadedLocationId = locationId;
+      _servicesRequest = widget.repository.listLocationServices(locationId);
+    });
+  }
+
+  CatalogService? _selectedService(List<CatalogService> services) {
+    if (services.isEmpty) return null;
+    final selectedId = _selectedServiceId;
+    if (selectedId != null) {
+      for (final service in services) {
+        if (service.id == selectedId) return service;
+      }
+    }
+    return services.first;
+  }
+}
+
+class _CupertinoClinicHero extends StatelessWidget {
+  const _CupertinoClinicHero({required this.detail});
+
+  final CatalogClinicDetail detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final next = detail.nextAvailableAt;
+    return _CupertinoGlassSurface(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _CupertinoIconBubble(
+            icon: CupertinoIcons.location_solid,
+            color: _cupertinoColor(context, CupertinoColors.activeBlue),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  detail.name,
+                  style: CupertinoTheme.of(context)
+                      .textTheme
+                      .navTitleTextStyle
+                      .copyWith(
+                        fontSize: 20,
+                        color: _cupertinoColor(context, CupertinoColors.label),
+                      ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${detail.locationCount} адрес(а) · ${detail.serviceCount} услуг(и)',
+                  style:
+                      CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                            color: _cupertinoColor(
+                              context,
+                              CupertinoColors.secondaryLabel,
+                            ),
+                          ),
+                ),
+                const SizedBox(height: 10),
+                _CupertinoClinicBadges(clinic: detail),
+                if (next != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Ближайшее время из каталога: ${_fullDateTime(context, next)}',
+                    style:
+                        CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                              color: _cupertinoColor(
+                                context,
+                                CupertinoColors.secondaryLabel,
+                              ),
+                            ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CupertinoLocationChoice extends StatelessWidget {
+  const _CupertinoLocationChoice({
+    required this.location,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final CatalogLocation location;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _CupertinoGlassSurface(
+      selected: selected,
+      padding: EdgeInsets.zero,
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label:
+            'Адрес ${location.address}. ${location.hasOpenSlots ? 'Есть свободное время.' : 'Свободного времени нет.'}',
+        child: CupertinoButton(
+          minSize: 44,
+          padding: const EdgeInsets.all(14),
+          onPressed: onTap,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                selected
+                    ? CupertinoIcons.check_mark_circled_solid
+                    : CupertinoIcons.circle,
+                color: selected
+                    ? _cupertinoColor(context, CupertinoColors.activeBlue)
+                    : _cupertinoColor(context, CupertinoColors.tertiaryLabel),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      location.address,
+                      style: CupertinoTheme.of(context)
+                          .textTheme
+                          .textStyle
+                          .copyWith(
+                            color: _cupertinoColor(
+                              context,
+                              CupertinoColors.label,
+                            ),
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    if (location.phone != null) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        location.phone!,
+                        style: CupertinoTheme.of(context)
+                            .textTheme
+                            .textStyle
+                            .copyWith(
+                              color: _cupertinoColor(
+                                context,
+                                CupertinoColors.secondaryLabel,
+                              ),
+                            ),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    _CupertinoInfoBadge(
+                      icon: CupertinoIcons.calendar,
+                      label: location.hasOpenSlots
+                          ? 'Есть свободное время'
+                          : 'Свободного времени нет',
+                      tone: location.hasOpenSlots
+                          ? _CupertinoBadgeTone.accent
+                          : _CupertinoBadgeTone.neutral,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CupertinoServiceChoice extends StatelessWidget {
+  const _CupertinoServiceChoice({
+    required this.service,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final CatalogService service;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _cupertinoColor(context, CupertinoColors.activeBlue);
+    return _CupertinoGlassSurface(
+      selected: selected,
+      padding: EdgeInsets.zero,
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label:
+            'Услуга ${service.displayName}. ${service.durationMinutes} минут. Выбрать услугу.',
+        child: CupertinoButton(
+          minSize: 44,
+          padding: const EdgeInsets.all(14),
+          onPressed: onTap,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _CupertinoIconBubble(
+                icon: selected
+                    ? CupertinoIcons.check_mark_circled_solid
+                    : CupertinoIcons.plus_app,
+                color: selected
+                    ? accent
+                    : _cupertinoColor(context, CupertinoColors.systemGrey),
+                compact: true,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      service.displayName,
+                      style: CupertinoTheme.of(context)
+                          .textTheme
+                          .textStyle
+                          .copyWith(
+                            color: _cupertinoColor(
+                              context,
+                              CupertinoColors.label,
+                            ),
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${service.durationMinutes} мин · ${_price(service)}',
+                      style: CupertinoTheme.of(context)
+                          .textTheme
+                          .textStyle
+                          .copyWith(
+                            color: _cupertinoColor(
+                              context,
+                              CupertinoColors.secondaryLabel,
+                            ),
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                selected
+                    ? CupertinoIcons.check_mark_circled_solid
+                    : CupertinoIcons.chevron_right,
+                size: 20,
+                color: selected
+                    ? accent
+                    : _cupertinoColor(context, CupertinoColors.tertiaryLabel),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CupertinoBookingContext extends StatelessWidget {
+  const _CupertinoBookingContext({
+    required this.location,
+    required this.service,
+  });
+
+  final CatalogLocation location;
+  final CatalogService? service;
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedService = service;
+    return _CupertinoGlassSurface(
+      fill: _cupertinoColor(context, CupertinoColors.activeBlue).withValues(
+        alpha: MediaQuery.platformBrightnessOf(context) == Brightness.dark
+            ? .16
+            : .11,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            CupertinoIcons.calendar,
+            color: _cupertinoColor(context, CupertinoColors.activeBlue),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              selectedService == null
+                  ? 'Выберите услугу, чтобы посмотреть доступное время.'
+                  : 'Дальше выберите дату и время для «${selectedService.displayName}» в ${location.clinicName}. До выбора времени запись не создаётся.',
+              style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                    color: _cupertinoColor(context, CupertinoColors.label),
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CupertinoPrimaryAction extends StatelessWidget {
+  const _CupertinoPrimaryAction({
+    required this.label,
+    required this.enabled,
+    required this.semanticsLabel,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool enabled;
+  final String semanticsLabel;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final fill = enabled
+        ? _cupertinoColor(context, CupertinoColors.activeBlue)
+        : _cupertinoColor(context, CupertinoColors.systemFill);
+    final foreground = enabled
+        ? CupertinoColors.white
+        : _cupertinoColor(context, CupertinoColors.secondaryLabel);
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: semanticsLabel,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: fill,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: enabled
+              ? [
+                  BoxShadow(
+                    color: _cupertinoColor(context, CupertinoColors.activeBlue)
+                        .withValues(alpha: .22),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ]
+              : null,
+        ),
+        child: CupertinoButton(
+          minSize: 52,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          onPressed: enabled ? onPressed : null,
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                  color: foreground,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CupertinoSectionTitle extends StatelessWidget {
+  const _CupertinoSectionTitle({required this.title, this.subtitle});
+
+  final String title;
+  final String? subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = _cupertinoColor(context, CupertinoColors.secondaryLabel);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style:
+              CupertinoTheme.of(context).textTheme.navTitleTextStyle.copyWith(
+                    fontSize: 18,
+                    color: _cupertinoColor(context, CupertinoColors.label),
+                  ),
+        ),
+        if (subtitle != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            subtitle!,
+            style: CupertinoTheme.of(context)
+                .textTheme
+                .textStyle
+                .copyWith(color: secondary),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+enum _CupertinoBadgeTone { neutral, accent, warning }
+
+class _CupertinoInfoBadge extends StatelessWidget {
+  const _CupertinoInfoBadge({
+    required this.icon,
+    required this.label,
+    this.tone = _CupertinoBadgeTone.neutral,
+  });
+
+  final IconData icon;
+  final String label;
+  final _CupertinoBadgeTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = switch (tone) {
+      _CupertinoBadgeTone.accent =>
+        _cupertinoColor(context, CupertinoColors.activeBlue),
+      _CupertinoBadgeTone.warning =>
+        _cupertinoColor(context, CupertinoColors.systemRed),
+      _ => _cupertinoColor(context, CupertinoColors.secondaryLabel),
+    };
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: accent.withValues(alpha: .20)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: accent),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                      color: accent,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CupertinoIconBubble extends StatelessWidget {
+  const _CupertinoIconBubble({
+    required this.icon,
+    required this.color,
+    this.compact = false,
+  });
+
+  final IconData icon;
+  final Color color;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = compact ? 38.0 : 46.0;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .14),
+        borderRadius: BorderRadius.circular(size / 2),
+      ),
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: Icon(icon, size: compact ? 20 : 23, color: color),
+      ),
+    );
+  }
+}
+
+class _CupertinoGlassSurface extends StatelessWidget {
+  const _CupertinoGlassSurface({
+    required this.child,
+    this.padding = const EdgeInsets.all(16),
+    this.selected = false,
+    this.fill,
+  });
+
+  final Widget child;
+  final EdgeInsets padding;
+  final bool selected;
+  final Color? fill;
+
+  @override
+  Widget build(BuildContext context) {
+    final brightness = MediaQuery.platformBrightnessOf(context);
+    final accent = _cupertinoColor(context, CupertinoColors.activeBlue);
+    final surface = fill ??
+        _cupertinoColor(context, CupertinoColors.systemBackground).withValues(
+          alpha: brightness == Brightness.dark ? .68 : .78,
+        );
+    final border = selected
+        ? accent.withValues(alpha: .74)
+        : _cupertinoColor(context, CupertinoColors.separator)
+            .withValues(alpha: .42);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: surface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: border, width: selected ? 1.6 : 1),
+            boxShadow: brightness == Brightness.dark
+                ? null
+                : [
+                    BoxShadow(
+                      color:
+                          _cupertinoColor(context, CupertinoColors.systemGrey)
+                              .withValues(alpha: .12),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+          ),
+          child: Padding(padding: padding, child: child),
+        ),
+      ),
+    );
+  }
+}
+
+enum _CupertinoFeedbackTone { neutral, warning }
+
+class _CupertinoFeedbackState extends StatelessWidget {
+  const _CupertinoFeedbackState({
+    required this.title,
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+    this.icon,
+    this.loading = false,
+    this.compact = false,
+    this.tone = _CupertinoFeedbackTone.neutral,
+  });
+
+  final String title;
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+  final IconData? icon;
+  final bool loading;
+  final bool compact;
+  final _CupertinoFeedbackTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = tone == _CupertinoFeedbackTone.warning
+        ? _cupertinoColor(context, CupertinoColors.systemRed)
+        : _cupertinoColor(context, CupertinoColors.activeBlue);
+    final content = _CupertinoGlassSurface(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          if (loading)
+            const CupertinoActivityIndicator(radius: 14)
+          else
+            Icon(icon ?? CupertinoIcons.search, size: 32, color: accent),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style:
+                CupertinoTheme.of(context).textTheme.navTitleTextStyle.copyWith(
+                      fontSize: 18,
+                      color: _cupertinoColor(context, CupertinoColors.label),
+                    ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                  color: _cupertinoColor(
+                    context,
+                    CupertinoColors.secondaryLabel,
+                  ),
+                ),
+          ),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: 12),
+            _CupertinoPrimaryAction(
+              label: actionLabel!,
+              enabled: true,
+              semanticsLabel: actionLabel!,
+              onPressed: onAction,
+            ),
+          ],
+        ],
+      ),
+    );
+    if (compact) return content;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: content,
+      ),
+    );
+  }
+}
 
 class _ClinicsBody extends StatelessWidget {
   const _ClinicsBody({
@@ -554,44 +1901,46 @@ class _ClinicCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const CircleAvatar(child: Icon(Icons.local_hospital_outlined)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(clinic.name,
-                        style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 4),
-                    Text(
-                        '${clinic.locationCount} адрес(а) · ${clinic.serviceCount} услуг(и)'),
-                    if (clinic.distanceKm != null) ...[
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const CircleAvatar(child: Icon(Icons.local_hospital_outlined)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(clinic.name,
+                          style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: 4),
-                      Text('${_distance(clinic.distanceKm!)} от точки поиска',
-                          style: Theme.of(context).textTheme.bodySmall),
+                      Text(
+                          '${clinic.locationCount} адрес(а) · ${clinic.serviceCount} услуг(и)'),
+                      if (clinic.distanceKm != null) ...[
+                        const SizedBox(height: 4),
+                        Text('${_distance(clinic.distanceKm!)} от точки поиска',
+                            style: Theme.of(context).textTheme.bodySmall),
+                      ],
+                      const SizedBox(height: 8),
+                      badges,
                     ],
-                    const SizedBox(height: 8),
-                    badges,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                        next == null
+                            ? 'Нет окон'
+                            : _shortDateTime(context, next),
+                        style: Theme.of(context).textTheme.labelMedium),
+                    const SizedBox(height: 6),
+                    const Icon(Icons.chevron_right),
                   ],
                 ),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                      next == null ? 'Нет окон' : _shortDateTime(context, next),
-                      style: Theme.of(context).textTheme.labelMedium),
-                  const SizedBox(height: 6),
-                  const Icon(Icons.chevron_right),
-                ],
-              ),
-            ],
-          ),
+              ],
+            ),
           ),
         ),
       ),
@@ -757,14 +2106,13 @@ class _ClinicDetailBodyState extends State<_ClinicDetailBody> {
                           ? 'Выберите услугу перед выбором времени'
                           : 'Выбрать время для услуги ${selectedService.displayName}',
                       child: FilledButton.icon(
-                        onPressed:
-                            location.hasOpenSlots && selectedService != null
-                                ? () =>
-                                    widget.onSelected(CatalogBookingSelection(
-                                      location: location,
-                                      service: selectedService,
-                                    ))
-                                : null,
+                        onPressed: location.hasOpenSlots &&
+                                selectedService != null
+                            ? () => widget.onSelected(CatalogBookingSelection(
+                                  location: location,
+                                  service: selectedService,
+                                ))
+                            : null,
                         icon: const Icon(Icons.calendar_month_outlined),
                         label: Text(!location.hasOpenSlots
                             ? 'Свободных окон нет'
@@ -797,14 +2145,13 @@ class _ClinicDetailBodyState extends State<_ClinicDetailBody> {
                           ? 'Выберите услугу перед выбором времени'
                           : 'Выбрать время для услуги ${selectedService.displayName}',
                       child: FilledButton.icon(
-                        onPressed:
-                            location.hasOpenSlots && selectedService != null
-                                ? () =>
-                                    widget.onSelected(CatalogBookingSelection(
-                                      location: location,
-                                      service: selectedService,
-                                    ))
-                                : null,
+                        onPressed: location.hasOpenSlots &&
+                                selectedService != null
+                            ? () => widget.onSelected(CatalogBookingSelection(
+                                  location: location,
+                                  service: selectedService,
+                                ))
+                            : null,
                         icon: const Icon(Icons.calendar_month_outlined),
                         label: Text(!location.hasOpenSlots
                             ? 'Свободных окон нет'
@@ -1032,29 +2379,29 @@ class _LocationChoice extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           onTap: onTap,
           child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              Icon(selected
-                  ? Icons.radio_button_checked
-                  : Icons.radio_button_off),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(location.address,
-                        style: Theme.of(context).textTheme.titleSmall),
-                    if (location.phone != null) Text(location.phone!),
-                  ],
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Icon(selected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_off),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(location.address,
+                          style: Theme.of(context).textTheme.titleSmall),
+                      if (location.phone != null) Text(location.phone!),
+                    ],
+                  ),
                 ),
-              ),
-              Chip(
-                label: Text(location.hasOpenSlots ? 'Есть окна' : 'Нет окон'),
-                visualDensity: VisualDensity.compact,
-              ),
-            ],
-          ),
+                Chip(
+                  label: Text(location.hasOpenSlots ? 'Есть окна' : 'Нет окон'),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1351,6 +2698,41 @@ class _LocationSnapshot {
 
   final List<CatalogService> services;
   final List<CatalogAvailabilitySlot> slots;
+}
+
+Color _cupertinoColor(BuildContext context, Color color) =>
+    CupertinoDynamicColor.resolve(color, context);
+
+bool _usesCupertinoCatalog(BuildContext context) =>
+    Theme.of(context).platform == TargetPlatform.iOS;
+
+bool _hasActiveCatalogFilters(CatalogClinicFilters filters) {
+  return filters.serviceCode != null ||
+      filters.latitude != null ||
+      filters.longitude != null ||
+      filters.availableFrom != null ||
+      filters.availableTo != null ||
+      filters.openNow == true ||
+      filters.telemedAvailable == true ||
+      filters.emergencyCapability != null ||
+      filters.sort != 'soonest';
+}
+
+String _clinicSemanticsLabel(BuildContext context, CatalogClinic clinic) {
+  final parts = <String>[
+    'Клиника ${clinic.name}.',
+    '${clinic.locationCount} адрес(а).',
+    '${clinic.serviceCount} услуг(и).',
+  ];
+  final next = clinic.nextAvailableAt;
+  if (next != null) {
+    parts.add('Ближайшее время: ${_shortDateTime(context, next)}.');
+  }
+  if (clinic.distanceKm != null) {
+    parts.add('${_distance(clinic.distanceKm!)} от точки поиска.');
+  }
+  parts.add('Открыть услуги.');
+  return parts.join(' ');
 }
 
 String _shortDateTime(BuildContext context, DateTime value) {

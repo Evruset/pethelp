@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { HoldAuditTrail, ManualConfirmationQueue, ManualConfirmationQueueItem } from '@/lib/api/clinic-queue';
+import { BookingHold, BookingHoldParseError, BookingHoldState, parseBookingHold } from '@/lib/api/booking-hold';
 import { AlternativeSlotDrawer } from './AlternativeSlotDrawer';
 
-type Props = { clinicId: string; locationId: string; initialQueue: ManualConfirmationQueue };
+type Props = { clinicId: string; locationId: string; initialQueue: ManualConfirmationQueue; canInspectHold: boolean; canReplayHold: boolean };
 type RowState = 'idle' | 'confirming' | 'declining' | 'requestingNotes' | 'fenced';
 
 const SLA_CRITICAL_MS = 180000;
@@ -43,7 +44,7 @@ function errorCode(payload: unknown): string {
     : 'BACKEND_UNAVAILABLE';
 }
 
-export function ClinicQueueClientV2({ clinicId, locationId, initialQueue }: Props) {
+export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canInspectHold, canReplayHold }: Props) {
   const [queue, setQueue] = useState(initialQueue);
   const [offsetMs, setOffsetMs] = useState(() => Date.parse(initialQueue.serverNow) - Date.now());
   const [now, setNow] = useState(Date.now());
@@ -56,6 +57,7 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue }: Prop
   const [auditTrail, setAuditTrail] = useState<HoldAuditTrail | null>(null);
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState<string | null>(null);
+  const [holdItem, setHoldItem] = useState<ManualConfirmationQueueItem | null>(null);
   const commandKeys = useRef(new Map<string, string>());
 
   const commandKey = (holdId: string, action: 'confirm' | 'decline' | 'requestNotes'): string => `${holdId}:${action}`;
@@ -299,7 +301,7 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue }: Prop
                   </tr>
                 </thead>
                 <tbody>
-                  {queue.items.map((item, index) => <QueueRow key={item.holdId} item={item} position={index + 1} serverNowMs={serverNowMs} state={rowState[item.holdId] ?? 'idle'} canAct={firstActionableIndex === index} onConfirm={confirm} onDecline={decline} onAlternative={setAlternativeItem} onNotes={setNotesItem} onAudit={openAudit} />)}
+                  {queue.items.map((item, index) => <QueueRow key={item.holdId} item={item} position={index + 1} serverNowMs={serverNowMs} state={rowState[item.holdId] ?? 'idle'} canAct={firstActionableIndex === index} onConfirm={confirm} onDecline={decline} onAlternative={setAlternativeItem} onNotes={setNotesItem} onAudit={openAudit} onHold={canInspectHold ? setHoldItem : undefined} />)}
                 </tbody>
               </table>
             </div>
@@ -309,6 +311,7 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue }: Prop
       <AlternativeSlotDrawer locationId={locationId} item={alternativeItem} onClose={() => setAlternativeItem(null)} onProposed={async () => { setNotice('Альтернативное время отправлено владельцу.'); await refresh(true); }} />
       <RequestNotesDrawer item={notesItem} submitting={notesItem ? rowState[notesItem.holdId] === 'requestingNotes' : false} onClose={() => setNotesItem(null)} onSubmit={requestNotes} />
       <AuditTrailDrawer item={auditItem} trail={auditTrail} loading={auditLoading} error={auditError} onClose={() => { setAuditItem(null); setAuditTrail(null); setAuditError(null); }} />
+      {canInspectHold ? <BookingHoldDrawer item={holdItem} canReplay={canReplayHold} onClose={() => setHoldItem(null)} /> : null}
     </main>
   );
 }
@@ -317,7 +320,7 @@ function Empty() {
   return <div className="px-6 py-16 text-center"><p className="text-lg font-semibold text-slate-900">Нет заявок, ожидающих подтверждения</p><p className="mt-2 text-sm text-slate-600">Новые заявки появятся здесь в порядке поступления.</p></div>;
 }
 
-function QueueRow({ item, position, serverNowMs, state, canAct, onConfirm, onDecline, onAlternative, onNotes, onAudit }: { item: ManualConfirmationQueueItem; position: number; serverNowMs: number; state: RowState; canAct: boolean; onConfirm: (item: ManualConfirmationQueueItem) => void; onDecline: (item: ManualConfirmationQueueItem) => void; onAlternative: (item: ManualConfirmationQueueItem) => void; onNotes: (item: ManualConfirmationQueueItem) => void; onAudit: (item: ManualConfirmationQueueItem) => void }) {
+function QueueRow({ item, position, serverNowMs, state, canAct, onConfirm, onDecline, onAlternative, onNotes, onAudit, onHold }: { item: ManualConfirmationQueueItem; position: number; serverNowMs: number; state: RowState; canAct: boolean; onConfirm: (item: ManualConfirmationQueueItem) => void; onDecline: (item: ManualConfirmationQueueItem) => void; onAlternative: (item: ManualConfirmationQueueItem) => void; onNotes: (item: ManualConfirmationQueueItem) => void; onAudit: (item: ManualConfirmationQueueItem) => void; onHold?: (item: ManualConfirmationQueueItem) => void }) {
   const remainingMs = Date.parse(item.confirmationSlaExpiresAt) - serverNowMs;
   const breached = remainingMs <= 0;
   const critical = !breached && remainingMs <= SLA_CRITICAL_MS;
@@ -341,7 +344,7 @@ function QueueRow({ item, position, serverNowMs, state, canAct, onConfirm, onDec
       <td className="px-4 py-4 align-top text-sm text-slate-700"><p>{item.service?.displayName ?? 'Услуга не указана'}</p>{item.latestAudit ? <p className="mt-2 text-xs text-slate-500">Последнее: {auditAction(item.latestAudit.action)} · {dt(item.latestAudit.occurredAt)}</p> : null}</td>
       <td className="px-4 py-4 align-top"><p className="text-sm font-medium text-slate-800">{dt(item.slot.startsAt)}</p><p className="mt-1 text-xs text-slate-600">{tm(item.slot.startsAt)}-{tm(item.slot.endsAt)}</p></td>
       <td className="px-4 py-4 align-top"><span className={`inline-flex rounded-full px-2.5 py-1 text-sm font-semibold ${(critical || breached) ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'}`} aria-live={critical || breached ? 'polite' : undefined}>{breached ? 'SLA истёк' : `Осталось ${clock(remainingMs)}`}</span>{(critical || breached) ? <p className="mt-2 text-xs font-medium text-red-800">{breached ? 'Заявка передана в автоматическую обработку.' : 'Срок подтверждения истекает.'}</p> : !canAct ? <p className="mt-2 text-xs text-slate-600">Сначала обработайте более раннюю заявку.</p> : null}</td>
-      <td className="px-4 py-4 align-top"><div className="flex flex-col gap-2"><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onConfirm(item)} className="w-full rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">{actionLabel}</button><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onAlternative(item)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Другое время</button><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onNotes(item)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Уточнения</button><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onDecline(item)} className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Отклонить</button><button type="button" onClick={() => onAudit(item)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">История</button></div></td>
+      <td className="px-4 py-4 align-top"><div className="flex flex-col gap-2"><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onConfirm(item)} className="w-full rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">{actionLabel}</button><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onAlternative(item)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Другое время</button><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onNotes(item)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Уточнения</button><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onDecline(item)} className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Отклонить</button>{onHold ? <button type="button" onClick={() => onHold(item)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Состояние удержания</button> : null}<button type="button" onClick={() => onAudit(item)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">История</button></div></td>
     </tr>
   );
 }
@@ -432,4 +435,83 @@ function AuditTrailDrawer({ item, trail, loading, error, onClose }: { item: Manu
       </aside>
     </div>
   );
+}
+
+const HOLD_LABELS: Record<BookingHoldState, string> = {
+  MANUAL_CONFIRM_PENDING: 'Ожидает подтверждения клиникой',
+  MIS_RESERVATION_PENDING: 'Ожидает подтверждения внешней системой',
+  MIS_HELD: 'Слот удерживается',
+  CONFIRMED: 'Запись подтверждена',
+  EXPIRED: 'Срок удержания истёк',
+  RELEASED: 'Удержание освобождено',
+  MIS_BOOKING_FAILED: 'Внешнее бронирование не завершено',
+};
+
+function BookingHoldDrawer({ item, canReplay, onClose }: { item: ManualConfirmationQueueItem | null; canReplay: boolean; onClose: () => void }) {
+  const [hold, setHold] = useState<BookingHold | null>(null);
+  const [phase, setPhase] = useState<'initial-loading' | 'unavailable' | 'recoverable' | 'retrying' | 'ready'>('initial-loading');
+  const requestRef = useRef<AbortController | null>(null);
+  const replayButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [replayOpen, setReplayOpen] = useState(false);
+
+  const load = useCallback(async (retry = false) => {
+    if (!item || requestRef.current) return;
+    const controller = new AbortController();
+    requestRef.current = controller;
+    setHold(null);
+    setPhase(retry ? 'retrying' : 'initial-loading');
+    try {
+      const response = await fetch(`/api/booking-holds/${item.holdId}`, { cache: 'no-store', signal: controller.signal });
+      if (!response.ok) {
+        setPhase(response.status >= 500 ? 'recoverable' : 'unavailable');
+        return;
+      }
+      const payload: unknown = await response.json().catch(() => null);
+      setHold(parseBookingHold(payload));
+      setPhase('ready');
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      setPhase(error instanceof BookingHoldParseError ? 'unavailable' : 'recoverable');
+    } finally {
+      if (requestRef.current === controller) requestRef.current = null;
+    }
+  }, [item]);
+
+  useEffect(() => {
+    if (!item) return;
+    void load();
+    return () => {
+      requestRef.current?.abort();
+      requestRef.current = null;
+    };
+  }, [item?.holdId]); // a selected item is the request identity
+
+  useEffect(() => { setReplayOpen(false); }, [item?.holdId]);
+  if (!item) return null;
+  return (
+    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="hold-inspector-title">
+      <button type="button" aria-label="Close" className="absolute inset-0 bg-slate-950/40" onClick={onClose} />
+      <aside aria-labelledby="hold-inspector-title" className="absolute right-0 top-0 flex h-full w-full max-w-xl flex-col bg-white shadow-2xl">
+        <header className="border-b border-slate-200 px-6 py-5"><p className="text-sm font-semibold text-blue-700">VetHelp</p><h2 id="hold-inspector-title" className="mt-1 text-2xl font-semibold text-slate-950">Состояние удержания слота</h2><p className="mt-2 text-sm text-slate-600">{item.pet.name} · {dt(item.slot.startsAt)}</p></header>
+        <section className="flex-1 overflow-y-auto px-6 py-4" aria-live="polite">
+          {phase === 'initial-loading' ? <p role="status" className="text-sm text-slate-600">Загружаем состояние удержания…</p> : null}
+          {phase === 'unavailable' ? <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Состояние удержания сейчас недоступно.</p> : null}
+          {(phase === 'recoverable' || phase === 'retrying') ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900" role="alert"><p>Не удалось загрузить состояние удержания.</p>{phase === 'retrying' ? <p role="status" className="mt-2">Повторная попытка выполняется…</p> : null}<button type="button" disabled={phase === 'retrying'} onClick={() => void load(true)} className="mt-3 rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60">{phase === 'retrying' ? 'Повторная попытка…' : 'Повторить'}</button></div> : null}
+          {phase === 'ready' && hold ? <dl className="space-y-4"><div><dt className="text-sm text-slate-600">Статус</dt><dd className="mt-1 text-base font-semibold text-slate-950">{HOLD_LABELS[hold.state]}</dd></div><div><dt className="text-sm text-slate-600">Слот</dt><dd className="mt-1 break-all text-sm text-slate-900">{hold.slotId}</dd></div><div><dt className="text-sm text-slate-600">Начало визита</dt><dd className="mt-1 text-sm text-slate-900"><time dateTime={hold.startsAt}>{dt(hold.startsAt)}</time></dd></div><div><dt className="text-sm text-slate-600">Окончание визита</dt><dd className="mt-1 text-sm text-slate-900"><time dateTime={hold.endsAt}>{dt(hold.endsAt)}</time></dd></div><div><dt className="text-sm text-slate-600">Действует до</dt><dd className="mt-1 text-sm text-slate-900"><time dateTime={hold.expiresAt}>{dt(hold.expiresAt)}</time></dd></div></dl> : null}
+        </section>
+        <footer className="flex gap-3 border-t border-slate-200 px-6 py-4">{canReplay ? <button ref={replayButtonRef} type="button" onClick={() => setReplayOpen(true)} className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">История обработки</button> : null}<button type="button" onClick={onClose} className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Закрыть</button></footer>
+      </aside>
+      {replayOpen ? <BookingReplayPanel holdId={item.holdId} onClose={() => { setReplayOpen(false); queueMicrotask(() => replayButtonRef.current?.focus()); }} /> : null}
+    </div>
+  );
+}
+
+type ReplayEvent = { id: string; occurredAt: string; label: string; source: string; outcome: string; description?: string };
+function BookingReplayPanel({ holdId, onClose }: { holdId: string; onClose: () => void }) {
+  const [events, setEvents] = useState<ReplayEvent[] | null>(null); const [phase, setPhase] = useState<'initial-loading' | 'ready' | 'empty' | 'recoverable' | 'retrying' | 'unavailable'>('initial-loading'); const requestRef = useRef<AbortController | null>(null);
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
+  const load = useCallback(async (retry = false) => { if (requestRef.current) return; const controller = new AbortController(); requestRef.current = controller; setEvents(null); setPhase(retry ? 'retrying' : 'initial-loading'); try { const response = await fetch(`/api/booking-holds/${holdId}/events`, { cache: 'no-store', signal: controller.signal }); if (!response.ok) { setPhase(response.status >= 500 ? 'recoverable' : 'unavailable'); return; } const payload: unknown = await response.json().catch(() => null); if (!payload || typeof payload !== 'object' || (payload as { holdId?: unknown }).holdId !== holdId || !Array.isArray((payload as { events?: unknown }).events)) { setPhase('unavailable'); return; } const result = (payload as { events: ReplayEvent[] }).events; if (!result.every((event) => event && typeof event.id === 'string' && typeof event.occurredAt === 'string' && typeof event.label === 'string' && typeof event.source === 'string' && typeof event.outcome === 'string')) { setPhase('unavailable'); return; } setEvents(result); setPhase(result.length ? 'ready' : 'empty'); } catch { if (!controller.signal.aborted) setPhase('recoverable'); } finally { if (requestRef.current === controller) requestRef.current = null; } }, [holdId]);
+  useEffect(() => { void load(); return () => { requestRef.current?.abort(); requestRef.current = null; }; }, [load]);
+  useEffect(() => { headingRef.current?.focus(); }, []);
+  return <div className="fixed inset-0 z-[60]"><div aria-hidden="true" tabIndex={-1} className="absolute inset-0 bg-slate-950/40" onClick={onClose} /><section role="dialog" aria-modal="true" aria-labelledby="booking-replay-title" className="absolute bottom-0 right-0 flex h-[85vh] w-full max-w-xl flex-col bg-white shadow-2xl sm:top-0 sm:h-full"><header className="border-b border-slate-200 px-6 py-5"><h2 ref={headingRef} tabIndex={-1} id="booking-replay-title" className="text-2xl font-semibold text-slate-950">История обработки</h2></header><section className="flex-1 overflow-y-auto px-6 py-4" aria-live="polite">{phase === 'initial-loading' ? <p role="status">Загружаем историю обработки…</p> : null}{phase === 'empty' ? <p>История обработки пока пуста.</p> : null}{phase === 'unavailable' ? <p role="alert">История обработки сейчас недоступна.</p> : null}{(phase === 'recoverable' || phase === 'retrying') ? <div role="alert"><p>Не удалось загрузить историю обработки.</p><button type="button" disabled={phase === 'retrying'} onClick={() => void load(true)}>{phase === 'retrying' ? 'Повторная попытка…' : 'Повторить'}</button></div> : null}{phase === 'ready' ? <ol className="space-y-3">{events?.map((event) => <li key={event.id} className="rounded-xl border border-slate-200 p-3"><p className="font-semibold">{event.label}</p><p>{event.source} · {event.outcome}</p><time dateTime={event.occurredAt}>{dt(event.occurredAt)}</time></li>)}</ol> : null}</section><footer className="border-t border-slate-200 p-4"><button type="button" onClick={onClose}>Закрыть историю обработки</button></footer></section></div>;
 }

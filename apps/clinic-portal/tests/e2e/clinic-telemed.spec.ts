@@ -66,6 +66,8 @@ let connectMode: ConnectMode = 'success';
 let startRequests: Array<{ caseId: string; subject: string | null }> = [];
 let connectRequests: Array<{ caseId: string; sessionId: string; subject: string | null }> = [];
 let workspaceRequests: Array<{ caseId: string; subject: string | null; body: unknown }> = [];
+let capabilityMode: 'allowed' | 'denied' = 'allowed';
+let queueMode: 'success' | 'denied' = 'success';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -105,6 +107,41 @@ test('blocks location-owned telemed route and URL tampering', async ({ page, con
   });
 
   expect(queueReads).toBe(0);
+});
+
+test('gates the platform queue by telemed.vet.queue.read without clinic scope authority', async ({ page, context, baseURL }) => {
+  await addClinicSession(context, baseURL, vetA, ['TELEMED_VETERINARIAN'], ['wrong-clinic'], ['wrong-location']);
+  await page.goto('/telemed/vet');
+  await expect(page.getByTestId('telemed-vet-workspace')).toBeVisible();
+  expect(queueReads).toBe(1);
+});
+
+test('denied capability fails closed before the platform queue request', async ({ page, context, baseURL }) => {
+  capabilityMode = 'denied';
+  await addClinicSession(context, baseURL, vetA, ['TELEMED_VETERINARIAN']);
+  await page.goto('/telemed/vet');
+  await expect(page.getByText('403 Access Denied')).toBeVisible();
+  await expect(page.getByTestId('telemed-vet-workspace')).toHaveCount(0);
+  expect(queueReads).toBe(0);
+});
+
+test('session loading and error do not flash the telemed workspace and offer retry', async ({ page, context, baseURL }) => {
+  await addClinicSession(context, baseURL, vetA, ['TELEMED_VETERINARIAN']);
+  await page.route('**/api/auth/session', async (route) => { await new Promise((resolve) => setTimeout(resolve, 150)); await route.fulfill({ status: 503, body: '{"code":"SESSION_UNAVAILABLE"}' }); });
+  await page.goto('/telemed/vet');
+  await expect(page.getByText('Загрузка доступа…')).toBeVisible();
+  await expect(page.getByTestId('telemed-vet-workspace')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Повторить' })).toBeVisible();
+  const results = await new AxeBuilder({ page }).include('main').withTags(['wcag2a', 'wcag2aa']).analyze();
+  expect(results.violations).toEqual([]);
+});
+
+test('backend queue denial remains the normalized unavailable state', async ({ page, context, baseURL }) => {
+  queueMode = 'denied';
+  await addClinicSession(context, baseURL, vetA, ['TELEMED_VETERINARIAN']);
+  await page.goto('/telemed/vet');
+  await expect(page.getByText('403 Access Denied')).toBeVisible();
+  expect(queueReads).toBe(1);
 });
 
 test('shows only the current veterinarian queue and assigned workspace', async ({ page, context, baseURL }) => {
@@ -288,12 +325,14 @@ async function addClinicSession(
   baseURL: string | undefined,
   subject: string,
   roles: string[],
+  clinicIds = [clinicId],
+  locationIds = [locationId],
 ) {
   if (!baseURL) throw new Error('baseURL is required');
   const token = await new SignJWT({
     roles,
-    clinicIds: [clinicId],
-    locationIds: [locationId],
+    clinicIds,
+    locationIds,
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setSubject(subject)
@@ -318,6 +357,8 @@ function resetBackend() {
   startRequests = [];
   connectRequests = [];
   workspaceRequests = [];
+  capabilityMode = 'allowed';
+  queueMode = 'success';
 }
 
 function queueFor(subject: string | null) {
@@ -336,8 +377,19 @@ function handleBackendRequest(request: IncomingMessage, response: ServerResponse
   const url = new URL(request.url ?? '/', `http://${request.headers.host ?? `127.0.0.1:${mockBackendPort}`}`);
   const subject = subjectFromRequest(request);
 
+  if (request.method === 'GET' && url.pathname === '/v1/auth/session') {
+    const authorization = Array.isArray(request.headers.authorization) ? request.headers.authorization[0] : request.headers.authorization;
+    const payload = decodeJwt((authorization ?? '').replace(/^Bearer\s+/i, ''));
+    const roles = Array.isArray(payload.roles) ? payload.roles.filter((value): value is string => typeof value === 'string') : [];
+    const clinicIds = Array.isArray(payload.clinicIds) ? payload.clinicIds.filter((value): value is string => typeof value === 'string') : [];
+    const locationIds = Array.isArray(payload.locationIds) ? payload.locationIds.filter((value): value is string => typeof value === 'string') : [];
+    sendJson(response, 200, { subjectId: subject, roles, effectiveCapabilities: capabilityMode === 'allowed' && roles.includes('TELEMED_VETERINARIAN') ? ['telemed.vet.queue.read'] : [], clinicScopes: clinicIds.flatMap((id) => locationIds.map((location) => ({ clinicId: id, locationId: location }))) });
+    return;
+  }
+
   if (request.method === 'GET' && url.pathname === '/v1/telemed/vet/queue') {
     queueReads += 1;
+    if (queueMode === 'denied') { sendJson(response, 403, { code: 'TELEMED_VET_ACCESS_DENIED' }); return; }
     sendJson(response, 200, queueFor(subject));
     return;
   }

@@ -1,0 +1,21 @@
+model = "gpt-5.6-terra"
+model_reasoning_effort = "low"
+model_reasoning_summary = "none"
+model_verbosity = "low"
+plan_mode_reasoning_effort = "low"
+project_doc_max_bytes = 8000
+tool_output_token_limit = 3200
+sandbox_mode = "workspace-write"
+[features]
+memories = false
+multi_agent = false
+fast_mode = false
+[agents]
+max_threads = 1
+max_depth = 1
+[mcp_servers.openaiDeveloperDocs]
+enabled = false
+[mcp_servers.context7]
+enabled = false
+[mcp_servers.playwright]
+enabled = false

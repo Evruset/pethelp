@@ -33,6 +33,7 @@ export default defineConfig({
       VETHELP_API_BASE_URL: `http://127.0.0.1:${mockBackendPort}`,
       VETHELP_CLINIC_JWT_SECRET: 'clinic-e2e-secret-at-least-32-bytes',
       NEXT_TELEMETRY_DISABLED: '1',
+      PORTAL_V51_SHELL: 'true',
     },
   },
 });

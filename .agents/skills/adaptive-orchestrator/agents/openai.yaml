@@ -1,0 +1,6 @@
+interface:
+  display_name: "Adaptive Orchestrator"
+  short_description: "Validates, delegates, verifies, and explains the result"
+  default_prompt: "$adaptive-orchestrator\n\nDescribe the development task in your own words. The orchestrator will ask only necessary questions and choose the agents and models automatically."
+policy:
+  allow_implicit_invocation: true

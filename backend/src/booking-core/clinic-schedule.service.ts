@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import type { PoolClient } from 'pg';
 import { JwtPayload } from '../auth/auth.types';
 import { DomainErrors } from '../common/domain-error';
+import { featureFlags } from '../config/feature-flags.config';
 import { DatabaseService } from '../database/database.service';
 import { TraceContext } from '../observability/trace-context.context';
 import { ClinicEmployeeAccessService } from './clinic-employee-access.service';
@@ -218,7 +219,7 @@ export class ClinicScheduleService {
   async listSlots(input: { clinicId: string; locationId: string; employee: JwtPayload; from: string; to: string }): Promise<ClinicScheduleResult> {
     return this.database.withTransaction(async (client) => {
       await client.query("SET LOCAL statement_timeout = '250ms'");
-      await this.assertClinicLocation(client, input.employee, input.clinicId, input.locationId);
+      await this.assertScheduleSlotsReadAccess(client, input.employee, input.clinicId, input.locationId);
       const serverNow = await this.dbNow(client);
       const result = await client.query<ScheduleSlotRow>(`
         SELECT s.id, s.service_id, service.display_name AS service_name,
@@ -1170,6 +1171,16 @@ export class ClinicScheduleService {
   private async assertClinicLocation(client: PoolClient, employee: JwtPayload, clinicId: string, locationId: string): Promise<void> {
     if (!employee.clinicIds?.includes(clinicId)) throw DomainErrors.clinicScopeMismatch();
     await this.clinicAccess.assertLocationAccess(client, employee, locationId);
+    await this.assertActiveClinicLocation(client, clinicId, locationId);
+  }
+
+  private async assertScheduleSlotsReadAccess(client: PoolClient, employee: JwtPayload, clinicId: string, locationId: string): Promise<void> {
+    if (!featureFlags.SCHEDULE_READ_CAPABILITY_V1) return this.assertClinicLocation(client, employee, clinicId, locationId);
+    await this.clinicAccess.assertScheduleReadAccess(client, employee, clinicId, locationId);
+    await this.assertActiveClinicLocation(client, clinicId, locationId);
+  }
+
+  private async assertActiveClinicLocation(client: PoolClient, clinicId: string, locationId: string): Promise<void> {
     const location = await client.query<{ id: string }>(`
       SELECT id
       FROM clinic_schema.clinic_locations

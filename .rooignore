@@ -1,0 +1,73 @@
+# Version control internals
+.git/
+
+# Dependencies
+node_modules/
+.pnpm-store/
+vendor/
+
+# Large lock files: temporarily unignore for dependency-update tasks
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Build and framework output
+dist/
+build/
+.next/
+out/
+coverage/
+.nyc_output/
+.turbo/
+
+# Test and report output
+playwright-report/
+test-results/
+allure-results/
+allure-report/
+reports/generated/
+
+# IDE and caches
+.idea/
+.vscode/.ropeproject/
+.cache/
+.tmp/
+temp/
+.DS_Store
+
+# Logs and dumps
+*.log
+logs/
+*.dump
+*.sql.gz
+
+# Archives and recordings
+*.zip
+*.tar
+*.tgz
+*.gz
+*.7z
+*.mov
+*.mp4
+*.avi
+*.mkv
+
+# Large design/source documents: temporarily unignore when needed
+*.pdf
+*.psd
+*.sketch
+*.fig
+
+# Generated artifacts
+generated/
+docs/generated/
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/

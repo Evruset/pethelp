@@ -106,6 +106,12 @@ export async function getTelemedVetQueue(session: ClinicSession): Promise<Teleme
   return response.json() as Promise<TelemedVetQueue>;
 }
 
+export async function getTelemedVetAuditTrail(session: ClinicSession, caseId: string): Promise<unknown> {
+  const response = await fetch(`${backendBaseUrl()}/v1/telemed/vet/cases/${caseId}/audit-trail`, { headers: authHeaders(session), cache: 'no-store' });
+  if (!response.ok) throw new TelemedVetBackendError(response.status, await parseErrorCode(response));
+  return response.json();
+}
+
 export async function assignTelemedCase(
   session: ClinicSession,
   caseId: string,

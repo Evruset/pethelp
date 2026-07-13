@@ -9,11 +9,13 @@ import { OwnerPetController } from './owner-pet.controller';
 import { OwnerPetService } from './owner-pet.service';
 import { RolesGuard } from './roles.guard';
 import { WorkerAuthGuard } from './worker-auth.guard';
+import { CapabilityEvaluatorService } from './capability-evaluator.service';
+import { EffectiveSessionController } from './effective-session.controller';
 
 @Global()
 @Module({
   imports: [JwtModule.register({})],
-  controllers: [OwnerAuthController, OwnerProfileController, OwnerPetController],
+  controllers: [OwnerAuthController, OwnerProfileController, OwnerPetController, EffectiveSessionController],
   providers: [
     JwtAuthGuard,
     RolesGuard,
@@ -22,6 +24,7 @@ import { WorkerAuthGuard } from './worker-auth.guard';
     OwnerAppointmentsService,
     OwnerPetService,
     OcrDocumentWorker,
+    CapabilityEvaluatorService,
   ],
   exports: [
     JwtModule,
@@ -31,6 +34,7 @@ import { WorkerAuthGuard } from './worker-auth.guard';
     OwnerAuthService,
     OwnerAppointmentsService,
     OwnerPetService,
+    CapabilityEvaluatorService,
   ],
 })
 export class AuthModule {}

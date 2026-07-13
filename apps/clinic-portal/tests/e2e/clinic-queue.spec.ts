@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { AxeBuilder } from '@axe-core/playwright';
 import type { BrowserContext, Page } from '@playwright/test';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { SignJWT } from 'jose';
@@ -34,6 +35,7 @@ let server: Server;
 let items: QueueItem[] = [];
 let confirmMode: ConfirmMode = 'success';
 let alternativeMode: AlternativeMode = 'success';
+let sessionMode: 'allowed' | 'denied' | 'error' = 'allowed';
 let queueReads = 0;
 let confirmRequests: Array<{ holdId: string; ifMatch: string | undefined; idempotencyKey: string | undefined }> = [];
 let alternativeRequests: Array<{ holdId: string; newSlotId: string; ifMatch: string | undefined; idempotencyKey: string | undefined }> = [];
@@ -59,7 +61,48 @@ test('redirects unauthenticated clinic users to forbidden', async ({ page }) => 
   await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
 
   await expect(page).toHaveURL(/\/forbidden\?reason=session_required$/);
-  await expect(page.getByText('403 Access Denied')).toBeVisible();
+  await expect(page.getByText('403 Access Denied').first()).toBeVisible();
+});
+
+test('shows the queue navigation and content only after booking.queue.read is granted', async ({ page, context, baseURL }) => {
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+
+  await expect(page.getByRole('link', { name: 'Открыть очередь записей' }).first()).toBeVisible();
+  await expect(rowFor(page, 'Барс')).toBeVisible();
+});
+
+test('fails closed for a denied effective session and direct queue URL never renders protected data', async ({ page, context, baseURL }) => {
+  sessionMode = 'denied';
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+
+  await expect(page.getByText('403 Access Denied').first()).toBeVisible();
+  await expect(rowFor(page, 'Барс')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Открыть очередь записей' })).toHaveCount(0);
+  expect(queueReads).toBe(0);
+});
+
+test('does not flash queue navigation while session capability loading and exposes an accessible retry on session error', async ({ page, context, baseURL }) => {
+  await addClinicSession(context, baseURL);
+  let sessionRequestedResolve: (() => void) | undefined;
+  const sessionRequested = new Promise<void>((resolve) => { sessionRequestedResolve = resolve; });
+  let releaseSession: (() => void) | undefined;
+  const sessionRelease = new Promise<void>((resolve) => { releaseSession = resolve; });
+  await page.route('**/api/auth/session', async (route) => {
+    sessionRequestedResolve?.();
+    await sessionRelease;
+    await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ code: 'SESSION_UNAVAILABLE' }) });
+  });
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  await sessionRequested;
+
+  await expect(page.getByText('Загрузка доступа…').first()).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Открыть очередь записей' })).toHaveCount(0);
+  releaseSession?.();
+  await expect(page.getByText('Доступ к capability-разделам недоступен. Повторить').first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Повторить' }).first()).toBeVisible();
+  expect((await new AxeBuilder({ page }).include('.vh-clinic-nav').analyze()).violations).toEqual([]);
 });
 
 test('blocks clinic location URL tampering before backend queue fetch', async ({ page, context, baseURL }) => {
@@ -67,8 +110,8 @@ test('blocks clinic location URL tampering before backend queue fetch', async ({
 
   await page.goto(`/clinics/${clinicId}/locations/${forbiddenLocationId}/queue`);
 
-  await expect(page.getByText('403 Access Denied')).toBeVisible();
-  await expect(page.getByText('Нет доступа к этой локации')).toBeVisible();
+  await expect(page.getByText('403 Access Denied').first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Нет доступа к этой локации', exact: true }).first()).toBeVisible();
   expect(queueReads).toBe(0);
 });
 
@@ -177,6 +220,7 @@ function resetBackend() {
   items = makeQueueItems();
   confirmMode = 'success';
   alternativeMode = 'success';
+  sessionMode = 'allowed';
   queueReads = 0;
   confirmRequests = [];
   alternativeRequests = [];
@@ -186,6 +230,19 @@ function handleBackendRequest(request: IncomingMessage, response: ServerResponse
   const url = new URL(request.url ?? '/', `http://${request.headers.host ?? `127.0.0.1:${mockBackendPort}`}`);
   const queuePath = `/v1/clinic/${clinicId}/locations/${locationId}/booking-queue`;
   const slotsPath = `/v1/clinic-locations/${locationId}/slots`;
+  if (request.method === 'GET' && url.pathname === '/v1/auth/session') {
+    if (sessionMode === 'error') {
+      sendJson(response, 503, { code: 'SESSION_UNAVAILABLE' });
+      return;
+    }
+    sendJson(response, 200, {
+      subjectId: 'clinic-user-e2e',
+      roles: ['CLINIC_RECEPTIONIST'],
+      effectiveCapabilities: sessionMode === 'allowed' ? ['booking.queue.read'] : [],
+      clinicScopes: [{ clinicId, locationId }],
+    });
+    return;
+  }
   if (request.method === 'GET' && url.pathname === queuePath) {
     queueReads += 1;
     sendJson(response, 200, { clinicId, locationId, serverNow, items });

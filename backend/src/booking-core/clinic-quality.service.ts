@@ -58,8 +58,7 @@ export class ClinicQualityService {
   async dashboard(input: { clinicId: string; locationId: string; employee: JwtPayload; from: string; to: string }): Promise<ClinicQualityDashboard> {
     return this.database.withTransaction(async (client) => {
       await client.query("SET LOCAL statement_timeout = '350ms'");
-      if (!input.employee.clinicIds?.includes(input.clinicId)) throw DomainErrors.clinicScopeMismatch();
-      await this.clinicAccess.assertLocationAccess(client, input.employee, input.locationId);
+      await this.clinicAccess.assertQualityReadAccess(client, input.employee, input.clinicId, input.locationId);
       const location = await client.query<{ id: string }>(`
         SELECT id
         FROM clinic_schema.clinic_locations

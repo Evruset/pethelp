@@ -7,7 +7,10 @@ import { createHmac } from 'node:crypto';
 import nock from 'nock';
 import request from 'supertest';
 import { BookingErrorFilter } from '../src/common/booking-error.filter';
+import { CapabilityEvaluatorService } from '../src/auth/capability-evaluator.service';
+import { Role } from '../src/auth/auth.types';
 import { config } from '../src/config';
+import { featureFlags } from '../src/config/feature-flags.config';
 import { DatabaseService } from '../src/database/database.service';
 import { TelemedSessionStartWorker } from '../src/modules/telemed/telemed-session-start.worker';
 import { NestRoot } from '../src/nest-root-full';
@@ -39,6 +42,26 @@ const IDS = {
 const acquiringBaseUrl = 'https://acquiring.smoke.test';
 const acquiringWebhookSecret = 'platform-smoke-acquiring-webhook-secret';
 const providerPaymentId = 'smoke-provider-payment-001';
+const QUALITY = {
+  allowed: '10101010-1010-4010-8010-101010101010',
+  deniedRole: '20202020-2020-4020-8020-202020202020',
+  otherClinicEmployee: '30303030-3030-4030-8030-303030303030',
+  otherLocationEmployee: '40404040-4040-4040-8040-404040404040',
+  inactiveMembershipEmployee: '50505050-5050-4050-8050-505050505050',
+  revokedMembershipEmployee: '60606060-6060-4060-8060-606060606060',
+  clinic: '70707070-7070-4070-8070-707070707070',
+  location: '80808080-8080-4080-8080-808080808080',
+  otherClinic: '90909090-9090-4090-8090-909090909090',
+  sameClinicOtherLocation: 'a0a0a0a0-a0a0-40a0-80a0-a0a0a0a0a0a0',
+  otherClinicLocation: 'b0b0b0b0-b0b0-40b0-80b0-b0b0b0b0b0b0',
+};
+const REPLAY = {
+  owner: 'c0c0c0c0-c0c0-40c0-80c0-c0c0c0c0c0c0',
+  pet: 'd0d0d0d0-d0d0-40d0-80d0-d0d0d0d0d0d0',
+  service: 'e0e0e0e0-e0e0-40e0-80e0-e0e0e0e0e0e0',
+  slot: 'f0f0f0f0-f0f0-40f0-80f0-f0f0f0f0f0f0',
+  hold: 'abababab-1111-4111-8111-111111111111',
+};
 
 type HoldSnapshot = {
   id: string;
@@ -281,6 +304,705 @@ describe('VetHelp platform smoke: owner → Level C clinic → payment → telem
   });
 });
 
+describe('Clinic quality dashboard quality.read HTTP matrix', () => {
+  let app: INestApplication;
+  let database: DatabaseService;
+  let jwt: JwtService;
+
+  beforeAll(async () => {
+    app = await NestFactory.create(NestRoot, { logger: false });
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
+    app.useGlobalFilters(new BookingErrorFilter());
+    await app.init();
+
+    database = app.get(DatabaseService);
+    jwt = app.get(JwtService);
+    await resetQualityFixtures(database);
+  });
+
+  afterAll(async () => {
+    await app?.close();
+  });
+
+  const dashboard = (token: string) => request(app.getHttpServer())
+    .get(`/v1/clinic/${QUALITY.clinic}/locations/${QUALITY.location}/quality-dashboard`)
+    .query({ from: '2026-01-01T00:00:00.000Z', to: '2026-02-01T00:00:00.000Z' })
+    .set('Authorization', `Bearer ${token}`);
+
+  const tokenFor = (input: { sub: string; roles: Role[]; clinicIds?: string[]; locationIds?: string[] }) => jwt.signAsync(
+    input,
+    { secret: config.jwtSecret, issuer: config.jwtIssuer, audience: config.jwtAudience, algorithm: 'HS256' },
+  );
+
+  const expectNormalizedDeny = (body: Record<string, unknown>) => {
+    expect(body).toMatchObject({ statusCode: 403, code: 'CLINIC_SCOPE_MISMATCH', message: 'Clinic scope mismatch' });
+    expect(JSON.stringify(body)).not.toMatch(/capability|quality\.read|membership|role/i);
+    expect(body).not.toHaveProperty('clinicId');
+    expect(body).not.toHaveProperty('locationId');
+    expect(body).not.toHaveProperty('metrics');
+  };
+
+  if (featureFlags.QUALITY_READ_CAPABILITY_V1) {
+    it('allows an active receptionist with matching quality.read role, clinic/location scopes and membership', async () => {
+      const evaluator = app.get(CapabilityEvaluatorService);
+      const allowed = jest.spyOn(evaluator, 'assertAllowed');
+      const response = await dashboard(await tokenFor({
+        sub: QUALITY.allowed,
+        roles: [Role.CLINIC_RECEPTIONIST],
+        clinicIds: [QUALITY.clinic],
+        locationIds: [QUALITY.location],
+      })).expect(200);
+
+      expect(response.body).toMatchObject({ clinicId: QUALITY.clinic, locationId: QUALITY.location });
+      expect(response.body.metrics).toBeDefined();
+      expect(allowed).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+        capability: 'quality.read',
+        resource: { aggregateType: 'quality.dashboard', clinicId: QUALITY.clinic, locationId: QUALITY.location },
+      }));
+      allowed.mockRestore();
+    });
+
+    it('denies an active member whose role has no quality.read capability', async () => {
+      const response = await dashboard(await tokenFor({
+        sub: QUALITY.deniedRole,
+        roles: [Role.CLINIC_VETERINARIAN],
+        clinicIds: [QUALITY.clinic],
+        locationIds: [QUALITY.location],
+      })).expect(403);
+
+      expect(response.body).toEqual({
+        code: 'ROLE_FORBIDDEN',
+        message: 'The current principal has no required role.',
+        requiredRoles: [Role.CLINIC_RECEPTIONIST, Role.CLINIC_ADMIN],
+      });
+      expect(response.body).not.toHaveProperty('clinicId');
+      expect(response.body).not.toHaveProperty('metrics');
+    });
+
+    it('denies a member scoped to another clinic without returning target clinic data', async () => {
+      const response = await dashboard(await tokenFor({
+        sub: QUALITY.otherClinicEmployee,
+        roles: [Role.CLINIC_RECEPTIONIST],
+        clinicIds: [QUALITY.otherClinic],
+        locationIds: [QUALITY.otherClinicLocation],
+      })).expect(403);
+      expectNormalizedDeny(response.body);
+    });
+
+    it('denies a member in the same clinic when the target location is outside the effective scope', async () => {
+      const response = await dashboard(await tokenFor({
+        sub: QUALITY.otherLocationEmployee,
+        roles: [Role.CLINIC_RECEPTIONIST],
+        clinicIds: [QUALITY.clinic],
+        locationIds: [QUALITY.sameClinicOtherLocation],
+      })).expect(403);
+      expectNormalizedDeny(response.body);
+    });
+
+    it('denies an employee with no active membership for the target location', async () => {
+      const response = await dashboard(await tokenFor({
+        sub: QUALITY.inactiveMembershipEmployee,
+        roles: [Role.CLINIC_RECEPTIONIST],
+        clinicIds: [QUALITY.clinic],
+        locationIds: [QUALITY.location],
+      })).expect(403);
+      expectNormalizedDeny(response.body);
+    });
+
+    it('denies an explicitly revoked membership for the target location', async () => {
+      const response = await dashboard(await tokenFor({
+        sub: QUALITY.revokedMembershipEmployee,
+        roles: [Role.CLINIC_RECEPTIONIST],
+        clinicIds: [QUALITY.clinic],
+        locationIds: [QUALITY.location],
+      })).expect(403);
+      expectNormalizedDeny(response.body);
+    });
+
+    it('denies a JWT without a location scope', async () => {
+      const response = await dashboard(await tokenFor({
+        sub: QUALITY.allowed,
+        roles: [Role.CLINIC_RECEPTIONIST],
+        clinicIds: [QUALITY.clinic],
+      })).expect(403);
+      expectNormalizedDeny(response.body);
+    });
+
+    it('denies a JWT with an incompatible clinic scope', async () => {
+      const response = await dashboard(await tokenFor({
+        sub: QUALITY.allowed,
+        roles: [Role.CLINIC_RECEPTIONIST],
+        clinicIds: [QUALITY.otherClinic],
+        locationIds: [QUALITY.location],
+      })).expect(403);
+      expectNormalizedDeny(response.body);
+    });
+
+    it('denies a JWT with an incompatible location scope', async () => {
+      const response = await dashboard(await tokenFor({
+        sub: QUALITY.allowed,
+        roles: [Role.CLINIC_RECEPTIONIST],
+        clinicIds: [QUALITY.clinic],
+        locationIds: [QUALITY.sameClinicOtherLocation],
+      })).expect(403);
+      expectNormalizedDeny(response.body);
+    });
+
+    it('uses the centralized evaluator and keeps its deny reason out of the HTTP response', async () => {
+      const evaluator = app.get(CapabilityEvaluatorService);
+      const denied = jest.spyOn(evaluator, 'assertAllowed');
+      const response = await dashboard(await tokenFor({
+        sub: QUALITY.allowed,
+        roles: [Role.CLINIC_RECEPTIONIST],
+        clinicIds: [QUALITY.clinic],
+      })).expect(403);
+
+      expect(denied).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ capability: 'quality.read' }));
+      expectNormalizedDeny(response.body);
+      denied.mockRestore();
+    });
+  } else {
+    it('uses the legacy rollback access path and preserves its HTTP contract', async () => {
+      const response = await dashboard(await tokenFor({
+        sub: QUALITY.allowed,
+        roles: [Role.CLINIC_RECEPTIONIST],
+        locationIds: [QUALITY.location],
+      })).expect(200);
+
+      expect(response.body).toMatchObject({ clinicId: QUALITY.clinic, locationId: QUALITY.location });
+      // The centralized evaluator would reject this legacy token because its
+      // clinicIds scope is absent; successful HTTP access proves rollback.
+      expect(response.body.metrics).toBeDefined();
+    });
+  }
+});
+
+describe('Clinic schedule slots schedule.read HTTP matrix', () => {
+  let app: INestApplication;
+  let database: DatabaseService;
+  let jwt: JwtService;
+
+  beforeAll(async () => {
+    app = await NestFactory.create(NestRoot, { logger: false });
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
+    app.useGlobalFilters(new BookingErrorFilter());
+    await app.init();
+    database = app.get(DatabaseService);
+    jwt = app.get(JwtService);
+    await resetQualityFixtures(database);
+  });
+
+  afterAll(async () => {
+    await app?.close();
+  });
+
+  const slots = (token: string) => request(app.getHttpServer())
+    .get(`/v1/clinic/${QUALITY.clinic}/locations/${QUALITY.location}/schedule/slots`)
+    .query({ from: '2026-01-01T00:00:00.000Z', to: '2026-02-01T00:00:00.000Z' })
+    .set('Authorization', `Bearer ${token}`);
+
+  const tokenFor = (input: { sub: string; roles: Role[]; clinicIds?: string[]; locationIds?: string[] }) => jwt.signAsync(
+    input,
+    { secret: config.jwtSecret, issuer: config.jwtIssuer, audience: config.jwtAudience, algorithm: 'HS256' },
+  );
+
+  const expectScopedDeny = (body: Record<string, unknown>) => {
+    expect(body).toMatchObject({ statusCode: 403, code: 'CLINIC_SCOPE_MISMATCH', message: 'Clinic scope mismatch' });
+    expect(JSON.stringify(body)).not.toMatch(/capability|schedule\.read|membership|role/i);
+    expect(body).not.toHaveProperty('clinicId');
+    expect(body).not.toHaveProperty('locationId');
+    expect(body).not.toHaveProperty('slots');
+  };
+
+  if (featureFlags.SCHEDULE_READ_CAPABILITY_V1) {
+    it('allows an active receptionist with matching schedule.read and clinic/location scopes', async () => {
+      const evaluator = app.get(CapabilityEvaluatorService);
+      const allowed = jest.spyOn(evaluator, 'assertAllowed');
+      const response = await slots(await tokenFor({
+        sub: QUALITY.allowed,
+        roles: [Role.CLINIC_RECEPTIONIST],
+        clinicIds: [QUALITY.clinic],
+        locationIds: [QUALITY.location],
+      })).expect(200);
+
+      expect(response.body).toMatchObject({ clinicId: QUALITY.clinic, locationId: QUALITY.location });
+      expect(response.body.slots).toEqual([]);
+      expect(allowed).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+        capability: 'schedule.read',
+        resource: { aggregateType: 'schedule.slots', clinicId: QUALITY.clinic, locationId: QUALITY.location },
+      }));
+      allowed.mockRestore();
+    });
+
+    it('denies an active member without the schedule.read role', async () => {
+      const response = await slots(await tokenFor({
+        sub: QUALITY.deniedRole,
+        roles: [Role.CLINIC_VETERINARIAN],
+        clinicIds: [QUALITY.clinic],
+        locationIds: [QUALITY.location],
+      })).expect(403);
+      expect(response.body).toEqual({
+        code: 'ROLE_FORBIDDEN',
+        message: 'The current principal has no required role.',
+        requiredRoles: [Role.CLINIC_RECEPTIONIST, Role.CLINIC_ADMIN],
+      });
+      expect(response.body).not.toHaveProperty('slots');
+    });
+
+    it.each([
+      ['cross clinic', QUALITY.otherClinicEmployee, [QUALITY.otherClinic], [QUALITY.otherClinicLocation]],
+      ['cross location', QUALITY.otherLocationEmployee, [QUALITY.clinic], [QUALITY.sameClinicOtherLocation]],
+      ['inactive membership', QUALITY.inactiveMembershipEmployee, [QUALITY.clinic], [QUALITY.location]],
+      ['revoked membership', QUALITY.revokedMembershipEmployee, [QUALITY.clinic], [QUALITY.location]],
+      ['missing location scope', QUALITY.allowed, [QUALITY.clinic], undefined],
+      ['incompatible clinic scope', QUALITY.allowed, [QUALITY.otherClinic], [QUALITY.location]],
+      ['incompatible location scope', QUALITY.allowed, [QUALITY.clinic], [QUALITY.sameClinicOtherLocation]],
+    ])('denies %s without returning schedule data', async (_name, sub, clinicIds, locationIds) => {
+      const response = await slots(await tokenFor({
+        sub,
+        roles: [Role.CLINIC_RECEPTIONIST],
+        clinicIds,
+        locationIds,
+      })).expect(403);
+      expectScopedDeny(response.body);
+    });
+
+    it('uses the centralized evaluator and normalizes its deny response', async () => {
+      const evaluator = app.get(CapabilityEvaluatorService);
+      const denied = jest.spyOn(evaluator, 'assertAllowed');
+      const response = await slots(await tokenFor({
+        sub: QUALITY.allowed,
+        roles: [Role.CLINIC_RECEPTIONIST],
+        locationIds: [QUALITY.location],
+      })).expect(403);
+      expect(denied).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ capability: 'schedule.read' }));
+      expectScopedDeny(response.body);
+      denied.mockRestore();
+    });
+  } else {
+    it('preserves the legacy schedule slots contract when rollback is enabled', async () => {
+      const response = await slots(await tokenFor({
+        sub: QUALITY.allowed,
+        roles: [Role.CLINIC_RECEPTIONIST],
+        clinicIds: [QUALITY.clinic],
+        locationIds: [QUALITY.location],
+      })).expect(200);
+      expect(response.body).toMatchObject({ clinicId: QUALITY.clinic, locationId: QUALITY.location, slots: [] });
+    });
+  }
+});
+
+describe('Booking hold events booking.replay.read HTTP matrix', () => {
+  let app: INestApplication;
+  let database: DatabaseService;
+  let jwt: JwtService;
+
+  beforeAll(async () => {
+    app = await NestFactory.create(NestRoot, { logger: false });
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
+    app.useGlobalFilters(new BookingErrorFilter());
+    await app.init();
+    database = app.get(DatabaseService);
+    jwt = app.get(JwtService);
+    await resetReplayFixtures(database);
+  });
+
+  afterAll(async () => {
+    await app?.close();
+  });
+
+  const replay = (token: string) => request(app.getHttpServer())
+    .get(`/v1/booking-holds/${REPLAY.hold}/events`)
+    .set('Authorization', `Bearer ${token}`);
+
+  const tokenFor = (input: { sub: string; roles: Role[]; clinicIds?: string[]; locationIds?: string[] }) => jwt.signAsync(
+    input,
+    { secret: config.jwtSecret, issuer: config.jwtIssuer, audience: config.jwtAudience, algorithm: 'HS256' },
+  );
+
+  const expectScopedDeny = (body: Record<string, unknown>) => {
+    expect(body).toMatchObject({ statusCode: 403, code: 'CLINIC_SCOPE_MISMATCH', message: 'Clinic scope mismatch' });
+    expect(JSON.stringify(body)).not.toMatch(/capability|booking\.replay\.read|membership|role/i);
+    expect(body).not.toHaveProperty('holdId');
+    expect(body).not.toHaveProperty('events');
+  };
+
+  if (featureFlags.BOOKING_REPLAY_READ_CAPABILITY_V1) {
+    it('allows an active receptionist with matching replay capability and scopes', async () => {
+      const evaluator = app.get(CapabilityEvaluatorService);
+      const allowed = jest.spyOn(evaluator, 'assertAllowed');
+      const response = await replay(await tokenFor({
+        sub: QUALITY.allowed,
+        roles: [Role.CLINIC_RECEPTIONIST],
+        clinicIds: [QUALITY.clinic],
+        locationIds: [QUALITY.location],
+      })).expect(200);
+      expect(response.body).toMatchObject({ holdId: REPLAY.hold, events: [] });
+      expect(allowed).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+        capability: 'booking.replay.read',
+        resource: { aggregateType: 'booking.hold.replay', clinicId: QUALITY.clinic, locationId: QUALITY.location },
+      }));
+      allowed.mockRestore();
+    });
+
+    it('denies a role without booking.replay.read', async () => {
+      const response = await replay(await tokenFor({
+        sub: QUALITY.deniedRole,
+        roles: [Role.CLINIC_VETERINARIAN],
+        clinicIds: [QUALITY.clinic],
+        locationIds: [QUALITY.location],
+      })).expect(403);
+      expect(response.body).toEqual({
+        code: 'ROLE_FORBIDDEN',
+        message: 'The current principal has no required role.',
+        requiredRoles: [Role.OWNER, Role.CLINIC_RECEPTIONIST, Role.CLINIC_ADMIN, Role.SYSTEM_WORKER],
+      });
+    });
+
+    it.each([
+      ['cross clinic', QUALITY.otherClinicEmployee, [QUALITY.otherClinic], [QUALITY.otherClinicLocation]],
+      ['cross location', QUALITY.otherLocationEmployee, [QUALITY.clinic], [QUALITY.sameClinicOtherLocation]],
+      ['inactive membership', QUALITY.inactiveMembershipEmployee, [QUALITY.clinic], [QUALITY.location]],
+      ['revoked membership', QUALITY.revokedMembershipEmployee, [QUALITY.clinic], [QUALITY.location]],
+      ['missing location scope', QUALITY.allowed, [QUALITY.clinic], undefined],
+      ['incompatible clinic scope', QUALITY.allowed, [QUALITY.otherClinic], [QUALITY.location]],
+      ['incompatible location scope', QUALITY.allowed, [QUALITY.clinic], [QUALITY.sameClinicOtherLocation]],
+    ])('denies %s without returning hold events', async (_name, sub, clinicIds, locationIds) => {
+      const response = await replay(await tokenFor({
+        sub,
+        roles: [Role.CLINIC_RECEPTIONIST],
+        clinicIds,
+        locationIds,
+      })).expect(403);
+      expectScopedDeny(response.body);
+    });
+
+    it('uses the centralized evaluator and normalizes replay denial', async () => {
+      const evaluator = app.get(CapabilityEvaluatorService);
+      const denied = jest.spyOn(evaluator, 'assertAllowed');
+      const response = await replay(await tokenFor({
+        sub: QUALITY.allowed,
+        roles: [Role.CLINIC_RECEPTIONIST],
+        locationIds: [QUALITY.location],
+      })).expect(403);
+      expect(denied).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ capability: 'booking.replay.read' }));
+      expectScopedDeny(response.body);
+      denied.mockRestore();
+    });
+  } else {
+    it('preserves the legacy clinic replay contract when rollback is enabled', async () => {
+      const response = await replay(await tokenFor({
+        sub: QUALITY.allowed,
+        roles: [Role.CLINIC_RECEPTIONIST],
+        locationIds: [QUALITY.location],
+      })).expect(200);
+      expect(response.body).toMatchObject({ holdId: REPLAY.hold, events: [] });
+    });
+  }
+});
+
+describe('Booking hold booking.hold.read HTTP matrix', () => {
+  let app: INestApplication;
+  let database: DatabaseService;
+  let jwt: JwtService;
+
+  beforeAll(async () => {
+    app = await NestFactory.create(NestRoot, { logger: false });
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
+    app.useGlobalFilters(new BookingErrorFilter());
+    await app.init();
+    database = app.get(DatabaseService);
+    jwt = app.get(JwtService);
+    await resetReplayFixtures(database);
+  });
+
+  afterAll(async () => {
+    await app?.close();
+  });
+
+  const hold = (token: string) => request(app.getHttpServer())
+    .get(`/v1/booking-holds/${REPLAY.hold}`)
+    .set('Authorization', `Bearer ${token}`);
+
+  const tokenFor = (input: { sub: string; roles: Role[]; clinicIds?: string[]; locationIds?: string[] }) => jwt.signAsync(
+    input,
+    { secret: config.jwtSecret, issuer: config.jwtIssuer, audience: config.jwtAudience, algorithm: 'HS256' },
+  );
+
+  const expectScopedDeny = (body: Record<string, unknown>) => {
+    expect(body).toMatchObject({ statusCode: 403, code: 'CLINIC_SCOPE_MISMATCH', message: 'Clinic scope mismatch' });
+    expect(JSON.stringify(body)).not.toMatch(/capability|booking\.hold\.read|membership|role/i);
+    expect(body).not.toHaveProperty('holdId');
+    expect(body).not.toHaveProperty('slotId');
+    expect(body).not.toHaveProperty('clinicLocationId');
+  };
+
+  if (featureFlags.BOOKING_HOLD_READ_CAPABILITY_V1) {
+    it('allows an active receptionist with matching booking.hold.read capability and scopes', async () => {
+      const evaluator = app.get(CapabilityEvaluatorService);
+      const allowed = jest.spyOn(evaluator, 'assertAllowed');
+      const response = await hold(await tokenFor({
+        sub: QUALITY.allowed,
+        roles: [Role.CLINIC_RECEPTIONIST],
+        clinicIds: [QUALITY.clinic],
+        locationIds: [QUALITY.location],
+      })).expect(200);
+      expect(response.body).toMatchObject({ holdId: REPLAY.hold, clinicLocationId: QUALITY.location });
+      expect(allowed).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+        capability: 'booking.hold.read',
+        resource: { aggregateType: 'booking.hold', clinicId: QUALITY.clinic, locationId: QUALITY.location },
+      }));
+      allowed.mockRestore();
+    });
+
+    it('denies an incompatible role before reading hold data', async () => {
+      const response = await hold(await tokenFor({
+        sub: QUALITY.deniedRole,
+        roles: [Role.CLINIC_VETERINARIAN],
+        clinicIds: [QUALITY.clinic],
+        locationIds: [QUALITY.location],
+      })).expect(403);
+      expect(response.body).toEqual({
+        code: 'ROLE_FORBIDDEN',
+        message: 'The current principal has no required role.',
+        requiredRoles: [Role.OWNER, Role.CLINIC_RECEPTIONIST, Role.CLINIC_ADMIN, Role.SYSTEM_WORKER],
+      });
+    });
+
+    it.each([
+      ['cross clinic', QUALITY.otherClinicEmployee, [QUALITY.otherClinic], [QUALITY.otherClinicLocation]],
+      ['cross location', QUALITY.otherLocationEmployee, [QUALITY.clinic], [QUALITY.sameClinicOtherLocation]],
+      ['inactive membership', QUALITY.inactiveMembershipEmployee, [QUALITY.clinic], [QUALITY.location]],
+      ['revoked membership', QUALITY.revokedMembershipEmployee, [QUALITY.clinic], [QUALITY.location]],
+      ['missing location JWT scope', QUALITY.allowed, [QUALITY.clinic], undefined],
+      ['incompatible clinic JWT scope', QUALITY.allowed, [QUALITY.otherClinic], [QUALITY.location]],
+      ['incompatible location JWT scope', QUALITY.allowed, [QUALITY.clinic], [QUALITY.sameClinicOtherLocation]],
+    ])('denies %s with a normalized response and no hold data', async (_name, sub, clinicIds, locationIds) => {
+      const response = await hold(await tokenFor({ sub, roles: [Role.CLINIC_RECEPTIONIST], clinicIds, locationIds })).expect(403);
+      expectScopedDeny(response.body);
+    });
+
+    it('keeps the owner and system-worker legacy paths unchanged', async () => {
+      await expect(hold(await tokenFor({ sub: REPLAY.owner, roles: [Role.OWNER] }))).resolves.toMatchObject({ status: 200 });
+      await expect(hold(await tokenFor({ sub: QUALITY.allowed, roles: [Role.SYSTEM_WORKER] }))).resolves.toMatchObject({ status: 200 });
+    });
+  } else {
+    it('preserves the legacy clinic hold contract when rollback is enabled', async () => {
+      const response = await hold(await tokenFor({
+        sub: QUALITY.allowed,
+        roles: [Role.CLINIC_RECEPTIONIST],
+        locationIds: [QUALITY.location],
+      })).expect(200);
+      expect(response.body).toMatchObject({ holdId: REPLAY.hold, clinicLocationId: QUALITY.location });
+    });
+  }
+});
+
+describe('Telemed veterinarian queue telemed.vet.queue.read HTTP matrix', () => {
+  let app: INestApplication;
+  let jwt: JwtService;
+
+  beforeAll(async () => {
+    app = await NestFactory.create(NestRoot, { logger: false });
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
+    app.useGlobalFilters(new BookingErrorFilter());
+    await app.init();
+    jwt = app.get(JwtService);
+  });
+
+  afterAll(async () => {
+    await app?.close();
+  });
+
+  const queue = (token: string) => request(app.getHttpServer())
+    .get('/v1/telemed/vet/queue')
+    .set('Authorization', `Bearer ${token}`);
+
+  const tokenFor = (input: { sub: string; roles: Role[]; clinicIds?: string[]; locationIds?: string[] }) => jwt.signAsync(
+    input,
+    { secret: config.jwtSecret, issuer: config.jwtIssuer, audience: config.jwtAudience, algorithm: 'HS256' },
+  );
+
+  if (featureFlags.TELEMED_VET_QUEUE_READ_CAPABILITY_V1) {
+    it('allows a platform veterinarian and uses the centralized platform resource descriptor', async () => {
+      const evaluator = app.get(CapabilityEvaluatorService);
+      const allowed = jest.spyOn(evaluator, 'assertAllowed');
+      const response = await queue(await tokenFor({ sub: QUALITY.allowed, roles: [Role.TELEMED_VETERINARIAN] })).expect(200);
+      expect(response.body).toMatchObject({ availableCases: expect.any(Array), assignedCases: expect.any(Array) });
+      expect(allowed).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+        capability: 'telemed.vet.queue.read',
+        resource: { aggregateType: 'telemed.vet.queue' },
+      }));
+      allowed.mockRestore();
+    });
+
+    it('denies a non-veterinarian role without returning queue data', async () => {
+      const response = await queue(await tokenFor({ sub: QUALITY.allowed, roles: [Role.CLINIC_RECEPTIONIST] })).expect(403);
+      expect(response.body).toEqual({
+        code: 'ROLE_FORBIDDEN',
+        message: 'The current principal has no required role.',
+        requiredRoles: [Role.TELEMED_VETERINARIAN],
+      });
+      expect(response.body).not.toHaveProperty('availableCases');
+      expect(response.body).not.toHaveProperty('assignedCases');
+    });
+
+    it('does not treat clinic/location JWT claims as authority for the platform queue', async () => {
+      const response = await queue(await tokenFor({
+        sub: QUALITY.allowed,
+        roles: [Role.TELEMED_VETERINARIAN],
+        clinicIds: [QUALITY.otherClinic],
+        locationIds: [QUALITY.otherClinicLocation],
+      })).expect(200);
+      expect(response.body).toMatchObject({ availableCases: expect.any(Array), assignedCases: expect.any(Array) });
+    });
+  } else {
+    it('preserves the legacy telemedicine veterinarian queue contract when rollback is enabled', async () => {
+      const response = await queue(await tokenFor({ sub: QUALITY.allowed, roles: [Role.TELEMED_VETERINARIAN] })).expect(200);
+      expect(response.body).toMatchObject({ availableCases: expect.any(Array), assignedCases: expect.any(Array) });
+    });
+  }
+});
+
+describe('Telemed veterinarian audit trail assignment/data-category HTTP matrix', () => {
+  const caseId = '71717171-7171-4171-8171-717171717171';
+  const forbiddenCaseId = '72727272-7272-4272-8272-727272727272';
+  let app: INestApplication;
+  let database: DatabaseService;
+  let jwt: JwtService;
+
+  beforeAll(async () => {
+    app = await NestFactory.create(NestRoot, { logger: false });
+    await app.init();
+    database = app.get(DatabaseService);
+    await resetFixtures(database);
+    jwt = app.get(JwtService);
+    await database.query(`
+      INSERT INTO telemed_schema.telemed_intakes (id, owner_id, pet_id, category, symptom_duration, consent_version, eligibility_outcome, routing_target)
+      VALUES
+        ('73737373-7373-4373-8373-737373737373', $1::uuid, $2::uuid, 'GENERAL_QUESTION', 'NO_SYMPTOMS', 'v1', 'TELEMED_ELIGIBLE', 'TELEMED_PAYMENT_QUEUE'),
+        ('74747474-7474-4474-8474-747474747474', $1::uuid, $2::uuid, 'VOMITING_DIARRHEA', 'NO_SYMPTOMS', 'v1', 'TELEMED_ELIGIBLE', 'TELEMED_PAYMENT_QUEUE'),
+        ('75757575-7575-4575-8575-757575757575', $1::uuid, $2::uuid, 'GENERAL_QUESTION', 'NO_SYMPTOMS', 'v1', 'TELEMED_ELIGIBLE', 'TELEMED_PAYMENT_QUEUE')
+      ON CONFLICT (id) DO NOTHING
+    `, [IDS.owner, IDS.pet]);
+    await database.query(`
+      INSERT INTO telemed_schema.telemed_cases (id, intake_id, owner_id, pet_id, state, assigned_employee_id)
+      VALUES
+        ($3::uuid, '73737373-7373-4373-8373-737373737373'::uuid, $1::uuid, $2::uuid, 'ASSIGNED', $4::uuid),
+        ($5::uuid, '74747474-7474-4474-8474-747474747474'::uuid, $1::uuid, $2::uuid, 'ASSIGNED', $4::uuid)
+      ON CONFLICT (id) DO UPDATE SET assigned_employee_id = EXCLUDED.assigned_employee_id
+    `, [IDS.owner, IDS.pet, caseId, QUALITY.allowed, forbiddenCaseId]);
+    await database.query(`
+      INSERT INTO telemed_schema.telemed_case_events (case_id, actor_type, actor_id, event_type, payload_json)
+      VALUES
+        ($1::uuid, 'TELEMED_VETERINARIAN', $2::uuid, 'ASSIGNED', '{"ownerPhone":"+79990000000","ownerEmail":"owner@example.test","token":"secret","stack":"trace","authorizationReason":"internal","internalHost":"host","secret":"value","nested":{"unsafe":true}}')
+      ON CONFLICT DO NOTHING
+    `, [caseId, QUALITY.allowed]);
+  });
+
+  afterAll(async () => app?.close());
+
+  const tokenFor = (input: { sub: string; roles: Role[]; clinicIds?: string[]; locationIds?: string[] }) => jwt.signAsync(
+    input, { secret: config.jwtSecret, issuer: config.jwtIssuer, audience: config.jwtAudience, algorithm: 'HS256' },
+  );
+  const audit = (id: string, token: string) => request(app.getHttpServer())
+    .get(`/v1/telemed/vet/cases/${id}/audit-trail`).set('Authorization', `Bearer ${token}`);
+
+  if (featureFlags.TELEMED_VET_AUDIT_TRAIL_READ_CAPABILITY_V1) {
+    it('allows the assigned veterinarian, including irrelevant clinic/location claims', async () => {
+      const response = await audit(caseId, await tokenFor({ sub: QUALITY.allowed, roles: [Role.TELEMED_VETERINARIAN], clinicIds: [QUALITY.otherClinic], locationIds: [QUALITY.otherClinicLocation] })).expect(200);
+      expect(response.body).toMatchObject({ caseId, items: expect.any(Array) });
+      expect(response.body.items).toEqual(expect.arrayContaining([expect.objectContaining({ eventType: 'ASSIGNED', summaryCode: 'ASSIGNED', createdAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T.*Z$/) })]));
+      expect(response.body.items[0]).toEqual(expect.objectContaining({ id: expect.any(String), eventType: expect.any(String), summaryCode: expect.any(String), createdAt: expect.any(String) }));
+      expect(Object.keys(response.body.items[0]).sort()).toEqual(['createdAt', 'eventType', 'id', 'summaryCode']);
+      expect(JSON.stringify(response.body)).not.toMatch(/ownerPhone|ownerEmail|token|stack|authorizationReason|internalHost|secret|nested|payload/i);
+    });
+    it('denies role, unassigned doctor, and forbidden category without audit data leakage', async () => {
+      const roleDenied = await audit(caseId, await tokenFor({ sub: QUALITY.allowed, roles: [Role.CLINIC_RECEPTIONIST] })).expect(403);
+      const unassigned = await audit(caseId, await tokenFor({ sub: QUALITY.deniedRole, roles: [Role.TELEMED_VETERINARIAN] })).expect(403);
+      const forbidden = await audit(forbiddenCaseId, await tokenFor({ sub: QUALITY.allowed, roles: [Role.TELEMED_VETERINARIAN] })).expect(403);
+      expect(roleDenied.body).not.toHaveProperty('items');
+      for (const response of [unassigned, forbidden]) {
+        expect(response.body).toEqual({ code: 'CLINIC_SCOPE_MISMATCH', message: 'Clinic scope mismatch' });
+        expect(response.body).not.toHaveProperty('items');
+        expect(response.body).not.toHaveProperty('caseId');
+      }
+    });
+  } else {
+    it('preserves the assigned-veterinarian legacy audit trail contract when rollback is enabled', async () => {
+      const response = await audit(caseId, await tokenFor({ sub: QUALITY.allowed, roles: [Role.TELEMED_VETERINARIAN] })).expect(200);
+      expect(response.body).toMatchObject({ caseId, items: expect.any(Array) });
+    });
+  }
+});
+
+describe('Operational SLO snapshot ops.slo.snapshot.read HTTP matrix', () => {
+  let app: INestApplication;
+  let jwt: JwtService;
+
+  beforeAll(async () => {
+    app = await NestFactory.create(NestRoot, { logger: false });
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
+    app.useGlobalFilters(new BookingErrorFilter());
+    await app.init();
+    jwt = app.get(JwtService);
+  });
+
+  afterAll(async () => {
+    await app?.close();
+  });
+
+  const snapshot = (token: string) => request(app.getHttpServer())
+    .get('/v1/ops/slo-snapshot')
+    .set('Authorization', `Bearer ${token}`);
+
+  const tokenFor = (input: { sub: string; roles: Role[]; clinicIds?: string[]; locationIds?: string[] }) => jwt.signAsync(
+    input,
+    { secret: config.jwtSecret, issuer: config.jwtIssuer, audience: config.jwtAudience, algorithm: 'HS256' },
+  );
+
+  if (featureFlags.OPS_SLO_SNAPSHOT_READ_CAPABILITY_V1) {
+    it('allows a platform admin through the centralized platform descriptor', async () => {
+      const evaluator = app.get(CapabilityEvaluatorService);
+      const allowed = jest.spyOn(evaluator, 'assertAllowed');
+      const response = await snapshot(await tokenFor({ sub: QUALITY.allowed, roles: [Role.PLATFORM_ADMIN] })).expect(200);
+      expect(response.body).toMatchObject({ technical: expect.any(Object), security: expect.any(Object), business: expect.any(Object) });
+      expect(allowed).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+        capability: 'ops.slo.snapshot.read',
+        resource: { aggregateType: 'ops.slo.snapshot', authorityModel: 'platform' },
+      }));
+      allowed.mockRestore();
+    });
+
+    it('denies a role without the platform capability without returning operational data', async () => {
+      const response = await snapshot(await tokenFor({ sub: QUALITY.allowed, roles: [Role.CLINIC_ADMIN] })).expect(403);
+      expect(response.body).toEqual({
+        code: 'ROLE_FORBIDDEN',
+        message: 'The current principal has no required role.',
+        requiredRoles: [Role.PLATFORM_ADMIN, Role.SECURITY_AUDITOR],
+      });
+      expect(response.body).not.toHaveProperty('technical');
+      expect(response.body).not.toHaveProperty('security');
+      expect(response.body).not.toHaveProperty('business');
+    });
+
+    it('does not make clinic or location claims authority for the platform snapshot', async () => {
+      const response = await snapshot(await tokenFor({
+        sub: QUALITY.allowed,
+        roles: [Role.PLATFORM_ADMIN],
+        clinicIds: [QUALITY.otherClinic],
+        locationIds: [QUALITY.otherClinicLocation],
+      })).expect(200);
+      expect(response.body).toMatchObject({ technical: expect.any(Object), security: expect.any(Object), business: expect.any(Object) });
+    });
+  } else {
+    it('preserves the legacy operational SLO snapshot contract when rollback is enabled', async () => {
+      const response = await snapshot(await tokenFor({ sub: QUALITY.allowed, roles: [Role.PLATFORM_ADMIN] })).expect(200);
+      expect(response.body).toMatchObject({ technical: expect.any(Object), security: expect.any(Object), business: expect.any(Object) });
+    });
+  }
+});
+
 async function assertHttpLockBudget(database: DatabaseService): Promise<void> {
   await database.withTransaction(async (client) => {
     await client.query("SET LOCAL lock_timeout = '50ms'");
@@ -331,4 +1053,68 @@ async function resetFixtures(database: DatabaseService): Promise<void> {
       ($2::uuid, $3::uuid, $4::uuid, clock_timestamp() + interval '3 hours', clock_timestamp() + interval '210 minutes', 1, 'AVAILABLE', 'LEVEL_C', clock_timestamp()),
       ($5::uuid, $6::uuid, $4::uuid, clock_timestamp() + interval '4 hours', clock_timestamp() + interval '270 minutes', 1, 'AVAILABLE', 'LEVEL_C', clock_timestamp())
   `, [IDS.slot1, IDS.slot2, IDS.location, IDS.service, IDS.inactiveSlot, IDS.inactiveLocation]);
+}
+
+async function resetQualityFixtures(database: DatabaseService): Promise<void> {
+  await database.query('TRUNCATE clinic_schema.clinics CASCADE');
+  await database.query('TRUNCATE pet_schema.pets, identity_schema.users CASCADE');
+  await database.query('TRUNCATE booking_schema.outbox_events, booking_schema.idempotency_records, audit_schema.audit_log CASCADE');
+
+  await database.query(`
+    INSERT INTO identity_schema.users (id) VALUES
+      ($1::uuid), ($2::uuid), ($3::uuid), ($4::uuid), ($5::uuid), ($6::uuid)
+  `, [
+    QUALITY.allowed,
+    QUALITY.deniedRole,
+    QUALITY.otherClinicEmployee,
+    QUALITY.otherLocationEmployee,
+    QUALITY.inactiveMembershipEmployee,
+    QUALITY.revokedMembershipEmployee,
+  ]);
+  await database.query(`
+    INSERT INTO clinic_schema.clinics (id, legal_name, public_name) VALUES
+      ($1::uuid, 'Quality LLC', 'Quality Clinic'),
+      ($2::uuid, 'Other Quality LLC', 'Other Quality Clinic')
+  `, [QUALITY.clinic, QUALITY.otherClinic]);
+  await database.query(`
+    INSERT INTO clinic_schema.clinic_locations (id, clinic_id, address) VALUES
+      ($1::uuid, $2::uuid, 'Quality street 1'),
+      ($3::uuid, $2::uuid, 'Quality street 2'),
+      ($4::uuid, $5::uuid, 'Other quality street 1')
+  `, [QUALITY.location, QUALITY.clinic, QUALITY.sameClinicOtherLocation, QUALITY.otherClinicLocation, QUALITY.otherClinic]);
+  await database.query(`
+    INSERT INTO clinic_schema.employee_location_memberships (employee_id, clinic_location_id, role, active, revoked_at) VALUES
+      ($1::uuid, $2::uuid, 'CLINIC_RECEPTIONIST', true, NULL),
+      ($3::uuid, $2::uuid, 'CLINIC_VETERINARIAN', true, NULL),
+      ($4::uuid, $5::uuid, 'CLINIC_RECEPTIONIST', true, NULL),
+      ($6::uuid, $7::uuid, 'CLINIC_RECEPTIONIST', true, NULL),
+      ($8::uuid, $2::uuid, 'CLINIC_RECEPTIONIST', false, clock_timestamp()),
+      ($9::uuid, $2::uuid, 'CLINIC_RECEPTIONIST', false, clock_timestamp())
+  `, [
+    QUALITY.allowed,
+    QUALITY.location,
+    QUALITY.deniedRole,
+    QUALITY.otherClinicEmployee,
+    QUALITY.otherClinicLocation,
+    QUALITY.otherLocationEmployee,
+    QUALITY.sameClinicOtherLocation,
+    QUALITY.inactiveMembershipEmployee,
+    QUALITY.revokedMembershipEmployee,
+  ]);
+}
+
+async function resetReplayFixtures(database: DatabaseService): Promise<void> {
+  await resetQualityFixtures(database);
+  await database.query('INSERT INTO identity_schema.users (id) VALUES ($1::uuid)', [REPLAY.owner]);
+  await database.query(`INSERT INTO pet_schema.pets (id, owner_id, name, species) VALUES ($1::uuid, $2::uuid, 'Replay pet', 'DOG')`, [REPLAY.pet, REPLAY.owner]);
+  await database.query(`INSERT INTO clinic_schema.clinic_services (id, clinic_location_id, code, display_name, duration_minutes) VALUES ($1::uuid, $2::uuid, 'REPLAY', 'Replay service', 30)`, [REPLAY.service, QUALITY.location]);
+  await database.query(`
+    INSERT INTO clinic_schema.appointment_slots (
+      id, clinic_location_id, service_id, starts_at, ends_at, capacity, status, integration_mode, last_freshness_sync
+    ) VALUES ($1::uuid, $2::uuid, $3::uuid, clock_timestamp() + interval '2 hours', clock_timestamp() + interval '150 minutes', 1, 'AVAILABLE', 'LEVEL_C', clock_timestamp())
+  `, [REPLAY.slot, QUALITY.location, REPLAY.service]);
+  await database.query(`
+    INSERT INTO booking_schema.booking_holds (id, slot_id, owner_id, pet_id, state, expires_at, confirmation_sla_expires_at, state_changed_at)
+    VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, 'MANUAL_CONFIRM_PENDING', clock_timestamp() + interval '10 minutes', clock_timestamp() + interval '15 minutes', clock_timestamp())
+  `, [REPLAY.hold, REPLAY.slot, REPLAY.owner, REPLAY.pet]);
 }

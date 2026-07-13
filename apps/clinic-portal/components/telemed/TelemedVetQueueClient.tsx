@@ -1,6 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useEffectiveSession } from '@/components/auth/EffectiveSessionProvider';
+import { parseTelemedAuditTrail, type TelemedAuditCode, type TelemedAuditTrail } from '@/lib/api/telemed-audit';
 import type { TelemedVetCase, TelemedVetQueue } from '@/lib/api/telemed-vet';
 
 type Props = {
@@ -365,6 +367,7 @@ function CaseWorkspace({ item, busy, policy, roomStatus, onUpdate, onStartSessio
       </section>
 
       <aside className="space-y-4">
+        <AuditTrail caseId={item.caseId} />
         <section className="rounded-lg border border-slate-200 bg-slate-50 p-4">
           <h3 className="text-sm font-semibold text-slate-950">Restricted output policy</h3>
           <p className="mt-3 text-xs font-semibold uppercase text-slate-500">Allowed</p>
@@ -405,6 +408,17 @@ function CaseWorkspace({ item, busy, policy, roomStatus, onUpdate, onStartSessio
       </aside>
     </div>
   );
+}
+
+const auditLabels: Record<TelemedAuditCode, string> = { ASSIGNED: 'Консультация назначена врачу', SAFETY_ESCALATED: 'Консультация передана в сценарий повышенного внимания', RECOMMENDATION_SAVED: 'Рекомендации сохранены', FOLLOW_UP_ROUTED: 'Назначен следующий маршрут', SESSION_STARTED: 'Консультация начата', DOCTOR_CONNECTED: 'Врач подключился', OWNER_CANCELLED: 'Владелец отменил консультацию', DOCTOR_TIMEOUT: 'Истекло время ожидания врача' };
+
+function AuditTrail({ caseId }: { caseId: string }) {
+  const { loading: sessionLoading, error: sessionError, hasCapability } = useEffectiveSession();
+  const [state, setState] = useState<'idle' | 'loading' | 'ready' | 'unavailable' | 'error'>('idle'); const [trail, setTrail] = useState<TelemedAuditTrail | null>(null); const [retry, setRetry] = useState(0);
+  const allowed = !sessionLoading && !sessionError && hasCapability('telemed.vet.audit-trail.read');
+  useEffect(() => { if (!allowed) { setTrail(null); setState('idle'); return; } const controller = new AbortController(); setTrail(null); setState('loading'); void fetch(`/api/telemed/vet/cases/${caseId}/audit-trail`, { cache: 'no-store', signal: controller.signal }).then(async (response) => { const payload = await response.json().catch(() => null); if (controller.signal.aborted) return; if (response.status === 401 || response.status === 403 || response.status === 404) { setState('unavailable'); return; } if (!response.ok) { setState('error'); return; } const parsed = parseTelemedAuditTrail(payload); if (!parsed || parsed.caseId !== caseId) { setState('unavailable'); return; } setTrail(parsed); setState('ready'); }).catch(() => { if (!controller.signal.aborted) setState('error'); }); return () => controller.abort(); }, [allowed, caseId, retry]);
+  if (!allowed) return null;
+  return <section className="rounded-lg border border-slate-200 p-4" aria-labelledby="telemed-audit-title" aria-live="polite"> <h3 id="telemed-audit-title" className="text-sm font-semibold text-slate-950">История консультации</h3>{state === 'loading' || state === 'idle' ? <p className="mt-2 text-sm text-slate-600" aria-busy="true">Загрузка истории…</p> : null}{state === 'unavailable' ? <p className="mt-2 text-sm text-slate-600">История консультации сейчас недоступна</p> : null}{state === 'error' ? <div className="mt-2 text-sm text-slate-600"><p>Не удалось получить историю консультации</p><button type="button" className="mt-2 min-h-11 rounded bg-slate-900 px-3 text-white disabled:opacity-50" onClick={() => setRetry((value) => value + 1)}>Повторить</button></div> : null}{state === 'ready' && trail?.items.length === 0 ? <p className="mt-2 text-sm text-slate-600">История событий пока пуста</p> : null}{state === 'ready' && trail?.items.length ? <ol className="mt-3 space-y-3">{trail.items.map((entry) => <li key={entry.id} className="border-l-2 border-slate-300 pl-3"><p className="text-sm font-medium text-slate-900">{auditLabels[entry.summaryCode]}</p><time className="text-xs text-slate-600" dateTime={entry.createdAt}>{new Date(entry.createdAt).toLocaleString('ru-RU')}</time></li>)}</ol> : null}</section>;
 }
 
 function Info({ label, value }: { label: string; value: string }) {

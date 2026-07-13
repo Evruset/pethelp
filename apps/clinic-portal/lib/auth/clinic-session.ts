@@ -49,7 +49,7 @@ export function canAccessClinicLocation(
   clinicId: string,
   locationId: string,
 ): boolean {
-  const hasRole = session.roles.includes('CLINIC_RECEPTIONIST') || session.roles.includes('CLINIC_ADMIN');
+  const hasRole = session.roles.includes('CLINIC_RECEPTIONIST') || session.roles.includes('CLINIC_ADMIN') || session.roles.includes('CLINIC_VETERINARIAN');
   return hasRole && session.clinicIds.includes(clinicId) && session.locationIds.includes(locationId);
 }
 
