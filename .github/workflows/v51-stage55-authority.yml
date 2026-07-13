@@ -86,15 +86,20 @@ jobs:
           node --check dev/local/create-clinic-token.mjs
           docker compose -f docker-compose.local.yml config --quiet
       - name: Run owner to veterinarian to Pet Diary journey
+        shell: bash
         env:
           FLUTTER_BIN: flutter
-        run: make local-stack-e2e
+        run: |
+          set -o pipefail
+          make local-stack-e2e 2>&1 | tee stage55-local-stack.log
       - name: Upload local-stack evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: v51-stage55-local-stack-evidence
-          path: .dev-local/local-stack-e2e
+          path: |
+            stage55-local-stack.log
+            .dev-local/local-stack-e2e
           if-no-files-found: ignore
           retention-days: 14
       - name: Print local stack logs on failure
