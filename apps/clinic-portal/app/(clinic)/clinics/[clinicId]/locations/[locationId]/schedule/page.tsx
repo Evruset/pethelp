@@ -1,6 +1,7 @@
 import { ClinicScheduleClient } from '@/components/schedule/ClinicScheduleClient';
 import { ClinicScheduleBackendError, getClinicSchedule } from '@/lib/api/clinic-schedule';
 import { canAccessClinicLocation, getClinicSession } from '@/lib/auth/clinic-session';
+import { getEffectiveSession, hasCapability, hasClinicScope } from '@/lib/auth/effective-session';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,6 +42,13 @@ export default async function ClinicSchedulePage({ params }: PageProps) {
 
   if (!session || !canAccessClinicLocation(session, clinicId, locationId)) {
     return <AccessDenied />;
+  }
+
+  try {
+    const effectiveSession = await getEffectiveSession(session);
+    if (!hasCapability(effectiveSession, 'schedule.read') || !hasClinicScope(effectiveSession, clinicId, locationId)) return <AccessDenied />;
+  } catch {
+    return <ServiceUnavailable />;
   }
 
   const from = new Date().toISOString();

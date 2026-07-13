@@ -55,6 +55,7 @@ class BookingHoldRequestCoordinator {
 enum BookingHoldFailureAction {
   slotLockedRetry,
   refreshAvailability,
+  preserveSelectionAndRefresh,
   showGenericError,
 }
 
@@ -62,8 +63,9 @@ BookingHoldFailureAction actionForBookingHoldFailure(
   BookingMarketplaceApiException error,
 ) {
   if (error.retryable) return BookingHoldFailureAction.slotLockedRetry;
-  if (error.slotUnavailable) {
-    return BookingHoldFailureAction.refreshAvailability;
+  if (error.slotUnavailable || error.code == 'SLOT_VERSION_STALE') {
+    return BookingHoldFailureAction.preserveSelectionAndRefresh;
   }
+  if (error.holdExpired) return BookingHoldFailureAction.refreshAvailability;
   return BookingHoldFailureAction.showGenericError;
 }

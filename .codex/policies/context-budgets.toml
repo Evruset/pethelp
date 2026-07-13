@@ -1,0 +1,38 @@
+# Soft budgets interpreted by the adaptive-orchestrator skill.
+# Crossing 80% requires re-planning. Crossing 100% requires stopping scope expansion.
+
+[small]
+complexity = ["C0"]
+risk = ["R0", "R1"]
+max_initial_files = 5
+max_total_files_read = 10
+max_search_queries = 6
+max_tool_calls_before_replan = 12
+max_implementers = 1
+max_validators = 1
+max_repair_cycles = 1
+max_command_output_lines = 100
+
+[standard]
+complexity = ["C1", "C2"]
+risk = ["R0", "R1", "R2"]
+max_initial_files = 8
+max_total_files_read = 24
+max_search_queries = 12
+max_tool_calls_before_replan = 28
+max_implementers = 2
+max_validators = 2
+max_repair_cycles = 2
+max_command_output_lines = 140
+
+[complex]
+complexity = ["C3"]
+risk = ["R2", "R3"]
+max_initial_files = 12
+max_total_files_read = 45
+max_search_queries = 20
+max_tool_calls_before_replan = 45
+max_implementers = 3
+max_validators = 3
+max_repair_cycles = 2
+max_command_output_lines = 180

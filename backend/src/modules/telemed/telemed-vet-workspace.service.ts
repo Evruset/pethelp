@@ -1,10 +1,14 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import type { PoolClient } from 'pg';
+import { Capability } from '../../auth/capability';
+import { CapabilityEvaluatorService } from '../../auth/capability-evaluator.service';
 import { JwtPayload } from '../../auth/auth.types';
 import { DomainException } from '../../common/domain-error';
+import { featureFlags } from '../../config/feature-flags.config';
 import { DatabaseService } from '../../database/database.service';
 import { UpdateTelemedCaseWorkspaceDto } from './dto/update-telemed-case-workspace.dto';
 import { DoctorConnectionResult, TelemedService, TelemedSessionResult } from './telemed.service';
+import { projectTelemedAuditEvent, UnsupportedTelemedAuditEventError } from './telemed-audit-projection';
 
 interface TelemedVetCaseRow {
   case_id: string;
@@ -97,11 +101,19 @@ export class TelemedVetWorkspaceService {
   constructor(
     private readonly database: DatabaseService,
     private readonly telemedService: TelemedService,
+    private readonly capabilities: CapabilityEvaluatorService = new CapabilityEvaluatorService(),
   ) {}
 
   async queue(input: { employee: JwtPayload; limit: number }): Promise<TelemedVetQueueResult> {
     return this.database.withTransaction(async (client) => {
       await client.query("SET LOCAL statement_timeout = '250ms'");
+      if (featureFlags.TELEMED_VET_QUEUE_READ_CAPABILITY_V1) {
+        await this.capabilities.assertAllowed(client, {
+          actor: input.employee,
+          capability: Capability.TELEMED_VET_QUEUE_READ,
+          resource: { aggregateType: 'telemed.vet.queue' },
+        });
+      }
       const serverNow = await this.dbNow(client);
       const rows = await this.readQueueRows(client, input.employee.sub, input.limit);
       return {
@@ -246,7 +258,29 @@ export class TelemedVetWorkspaceService {
   async auditTrail(input: { caseId: string; employee: JwtPayload; limit: number }) {
     return this.database.withTransaction(async (client) => {
       await client.query("SET LOCAL statement_timeout = '250ms'");
-      await this.assertAssignedCase(client, input.caseId, input.employee.sub);
+      if (featureFlags.TELEMED_VET_AUDIT_TRAIL_READ_CAPABILITY_V1) {
+        const policy = await client.query<{ assigned_employee_id: string | null; category: string }>(`
+          SELECT telemed_case.assigned_employee_id::text, intake.category
+          FROM telemed_schema.telemed_cases telemed_case
+          JOIN telemed_schema.telemed_intakes intake ON intake.id = telemed_case.intake_id
+          WHERE telemed_case.id = $1::uuid
+          FOR SHARE
+        `, [input.caseId]);
+        const row = policy.rows[0];
+        if (!row) throw new DomainException(HttpStatus.NOT_FOUND, 'TELEMED_CASE_NOT_FOUND', 'Telemedicine case not found');
+        await this.capabilities.assertAllowed(client, {
+          actor: input.employee,
+          capability: Capability.TELEMED_VET_AUDIT_TRAIL_READ,
+          resource: {
+            aggregateType: 'telemed.vet.audit-trail',
+            authorityModel: 'platform-assignment',
+            assignedEmployeeId: row.assigned_employee_id,
+            dataCategory: row.category,
+          },
+        });
+      } else {
+        await this.assertAssignedCase(client, input.caseId, input.employee.sub);
+      }
       const serverNow = await this.dbNow(client);
       const result = await client.query<TelemedCaseEventRow>(`
         SELECT id::text, actor_type, actor_id::text, event_type, payload_json, created_at
@@ -255,18 +289,12 @@ export class TelemedVetWorkspaceService {
         ORDER BY created_at DESC, id DESC
         LIMIT $2
       `, [input.caseId, input.limit]);
-      return {
-        caseId: input.caseId,
-        serverNow: serverNow.toISOString(),
-        items: result.rows.map((row) => ({
-          id: row.id,
-          actorType: row.actor_type,
-          actorId: row.actor_id,
-          eventType: row.event_type,
-          payload: row.payload_json,
-          createdAt: row.created_at.toISOString(),
-        })),
-      };
+      try {
+        return { caseId: input.caseId, serverNow: serverNow.toISOString(), items: result.rows.map((row) => projectTelemedAuditEvent({ id: row.id, eventType: row.event_type, createdAt: row.created_at })) };
+      } catch (error) {
+        if (error instanceof UnsupportedTelemedAuditEventError) throw new DomainException(HttpStatus.INTERNAL_SERVER_ERROR, 'TELEMED_AUDIT_EVENT_UNSUPPORTED', 'Telemedicine audit event contract is unsupported');
+        throw error;
+      }
     });
   }
 

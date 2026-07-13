@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { CurrentUser } from '../../auth/current-user.decorator';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
@@ -35,6 +35,19 @@ export class InsuranceController {
   @ApiUnauthorizedResponse({ description: 'Bearer JWT is missing or invalid.' })
   async createProfile(@Body() dto: CreateInsuranceProfileDto, @CurrentUser() owner: JwtPayload) {
     return this.insurance.createProfile(owner.sub, dto);
+  }
+
+  @Delete('profiles/:profileId/consent')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Revoke owner consent for an insurance profile' })
+  @ApiParam({ name: 'profileId', type: 'string', format: 'uuid' })
+  @ApiOkResponse({ description: 'Consent is revoked; profile is hidden from active owner lists and audit is appended.' })
+  @ApiNotFoundResponse({ description: 'Profile is absent or does not belong to the owner.' })
+  async revokeProfileConsent(@Param('profileId') profileId: string, @CurrentUser() owner: JwtPayload) {
+    if (!UUID.test(profileId)) {
+      throw new BadRequestException({ code: 'INVALID_REQUEST', message: 'profileId must be a UUID.' });
+    }
+    return this.insurance.revokeProfileConsent(owner.sub, profileId);
   }
 
   @Post('coverage-checks')

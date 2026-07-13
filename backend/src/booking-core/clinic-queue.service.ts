@@ -100,7 +100,7 @@ export class ClinicQueueService {
       if (!input.employee.clinicIds?.includes(input.clinicId)) {
         throw DomainErrors.clinicScopeMismatch();
       }
-      await this.clinicAccess.assertLocationAccess(client, input.employee, input.locationId);
+      await this.clinicAccess.assertBookingQueueReadAccess(client, input.employee, input.clinicId, input.locationId);
       await this.assertLocationBelongsToClinic(client, input.clinicId, input.locationId);
 
       const serverNow = await this.dbNow(client);
@@ -155,7 +155,7 @@ export class ClinicQueueService {
       if (!input.employee.clinicIds?.includes(input.clinicId)) {
         throw DomainErrors.clinicScopeMismatch();
       }
-      await this.clinicAccess.assertLocationAccess(client, input.employee, input.locationId);
+      await this.clinicAccess.assertBookingQueueReadAccess(client, input.employee, input.clinicId, input.locationId);
       await this.assertLocationBelongsToClinic(client, input.clinicId, input.locationId);
       await this.assertHoldBelongsToLocation(client, input.holdId, input.locationId);
 

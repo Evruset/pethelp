@@ -1,5 +1,6 @@
 import { ClinicQualityBackendError, getClinicQualityDashboard, type ClinicQualityDashboard, type QualityMetric } from '@/lib/api/clinic-quality';
 import { canAccessClinicLocation, getClinicSession } from '@/lib/auth/clinic-session';
+import { getEffectiveSession, hasCapability, hasClinicScope } from '@/lib/auth/effective-session';
 
 export const dynamic = 'force-dynamic';
 
@@ -117,6 +118,13 @@ export default async function ClinicQualityPage({ params }: PageProps) {
   const { clinicId, locationId } = await params;
   const session = await getClinicSession();
   if (!session || !canAccessClinicLocation(session, clinicId, locationId)) return <AccessDenied />;
+
+  try {
+    const effectiveSession = await getEffectiveSession(session);
+    if (!hasCapability(effectiveSession, 'quality.read') || !hasClinicScope(effectiveSession, clinicId, locationId)) return <AccessDenied />;
+  } catch {
+    return <ServiceUnavailable />;
+  }
 
   const to = new Date().toISOString();
   const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();

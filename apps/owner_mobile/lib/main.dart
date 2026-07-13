@@ -29,6 +29,7 @@ class VetHelpOwnerApp extends StatelessWidget {
     return MaterialApp(
       title: 'VetHelp',
       theme: VetHelpTheme.light(),
+      darkTheme: VetHelpTheme.dark(),
       builder: VetHelpTheme.frameBuilder,
       home: const OwnerJourneyLauncher(),
     );

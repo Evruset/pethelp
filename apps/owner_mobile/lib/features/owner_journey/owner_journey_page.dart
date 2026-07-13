@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../../core/e2e/owner_e2e_hooks.dart';
 import '../appointments/owner_appointments_page.dart';
 import '../appointments/owner_appointments_repository.dart';
 import '../booking/alternative_slot/alternative_slot_repository.dart';
@@ -66,6 +67,29 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    registerOwnerE2EHook('openHome', () => _selectTab(0));
+    registerOwnerE2EHook('openAppointments', () => _selectTab(1));
+    registerOwnerE2EHook('openPet', () => _selectTab(2));
+    registerOwnerE2EHook('openOnline', () => _selectTab(3));
+  }
+
+  @override
+  void dispose() {
+    unregisterOwnerE2EHook('openHome');
+    unregisterOwnerE2EHook('openAppointments');
+    unregisterOwnerE2EHook('openPet');
+    unregisterOwnerE2EHook('openOnline');
+    super.dispose();
+  }
+
+  void _selectTab(int index) {
+    if (!mounted) return;
+    setState(() => _index = index);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final wide = _usesWideMaterialLayout(width);
@@ -113,7 +137,7 @@ class _OwnerJourneyPageState extends State<OwnerJourneyPage> {
           ? null
           : NavigationBar(
               selectedIndex: _index,
-              onDestinationSelected: (index) => setState(() => _index = index),
+              onDestinationSelected: _selectTab,
               destinations: _destinations,
             ),
     );
@@ -553,9 +577,8 @@ class _OwnerHomePageState extends State<OwnerHomePage> {
                 icon: CupertinoIcons.doc_text,
                 title: 'Медкарта',
                 subtitle: 'Здоровье и документы',
-                onPressed: pet == null
-                    ? widget.onManagePets
-                    : widget.onOpenCare,
+                onPressed:
+                    pet == null ? widget.onManagePets : widget.onOpenCare,
               ),
               VhServiceTile(
                 icon: CupertinoIcons.shield,

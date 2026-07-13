@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import type { PoolClient } from 'pg';
 import { JwtPayload } from '../auth/auth.types';
 import { DomainErrors } from '../common/domain-error';
+import { featureFlags } from '../config/feature-flags.config';
 import { DatabaseService } from '../database/database.service';
 import { TraceContext } from '../observability/trace-context.context';
 import { ClinicEmployeeAccessService } from './clinic-employee-access.service';
@@ -201,6 +202,11 @@ export interface ClinicScheduleResult {
   slots: ClinicScheduleSlot[];
 }
 
+export interface ClinicScheduleExportAttemptResult {
+  accepted: true;
+  serverNow: string;
+}
+
 @Injectable()
 export class ClinicScheduleService {
   private readonly traceContext = new TraceContext();
@@ -213,7 +219,7 @@ export class ClinicScheduleService {
   async listSlots(input: { clinicId: string; locationId: string; employee: JwtPayload; from: string; to: string }): Promise<ClinicScheduleResult> {
     return this.database.withTransaction(async (client) => {
       await client.query("SET LOCAL statement_timeout = '250ms'");
-      await this.assertClinicLocation(client, input.employee, input.clinicId, input.locationId);
+      await this.assertScheduleSlotsReadAccess(client, input.employee, input.clinicId, input.locationId);
       const serverNow = await this.dbNow(client);
       const result = await client.query<ScheduleSlotRow>(`
         SELECT s.id, s.service_id, service.display_name AS service_name,
@@ -1139,9 +1145,42 @@ export class ClinicScheduleService {
     });
   }
 
+  async recordExportAttempt(input: {
+    clinicId: string;
+    locationId: string;
+    employee: JwtPayload;
+    format: 'JSON' | 'CSV';
+    scope: 'SCHEDULE' | 'SLOTS';
+    rowsCount: number;
+  }): Promise<ClinicScheduleExportAttemptResult> {
+    return this.database.withTransaction(async (client) => {
+      await client.query("SET LOCAL statement_timeout = '250ms'");
+      await this.assertClinicLocation(client, input.employee, input.clinicId, input.locationId);
+      const serverNow = await this.dbNow(client);
+      await this.writeAudit(client, 'CLINIC_EMPLOYEE', input.employee.sub, 'export.download.attempted', input.locationId, this.traceContext.getCorrelationId() ?? null, {
+        clinicId: input.clinicId,
+        locationId: input.locationId,
+        format: input.format,
+        scope: input.scope,
+        rowsCount: input.rowsCount,
+      }, 'clinic_location');
+      return { accepted: true, serverNow: serverNow.toISOString() };
+    });
+  }
+
   private async assertClinicLocation(client: PoolClient, employee: JwtPayload, clinicId: string, locationId: string): Promise<void> {
     if (!employee.clinicIds?.includes(clinicId)) throw DomainErrors.clinicScopeMismatch();
     await this.clinicAccess.assertLocationAccess(client, employee, locationId);
+    await this.assertActiveClinicLocation(client, clinicId, locationId);
+  }
+
+  private async assertScheduleSlotsReadAccess(client: PoolClient, employee: JwtPayload, clinicId: string, locationId: string): Promise<void> {
+    if (!featureFlags.SCHEDULE_READ_CAPABILITY_V1) return this.assertClinicLocation(client, employee, clinicId, locationId);
+    await this.clinicAccess.assertScheduleReadAccess(client, employee, clinicId, locationId);
+    await this.assertActiveClinicLocation(client, clinicId, locationId);
+  }
+
+  private async assertActiveClinicLocation(client: PoolClient, clinicId: string, locationId: string): Promise<void> {
     const location = await client.query<{ id: string }>(`
       SELECT id
       FROM clinic_schema.clinic_locations
@@ -1479,7 +1518,7 @@ export class ClinicScheduleService {
     ]);
   }
 
-  private async writeAudit(client: PoolClient, actorType: string, actorId: string, action: string, aggregateId: string, correlationId: string, payload: Record<string, unknown>, aggregateType = 'appointment_slot'): Promise<void> {
+  private async writeAudit(client: PoolClient, actorType: string, actorId: string, action: string, aggregateId: string, correlationId: string | null, payload: Record<string, unknown>, aggregateType = 'appointment_slot'): Promise<void> {
     await client.query(`
       INSERT INTO audit_schema.audit_log (actor_type, actor_id, action, aggregate_type, aggregate_id, correlation_id, payload_json)
       VALUES ($1, $2, $3, $7, $4::uuid, $5::uuid, $6::jsonb)

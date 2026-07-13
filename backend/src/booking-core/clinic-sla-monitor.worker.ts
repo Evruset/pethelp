@@ -132,6 +132,8 @@ export class ClinicSlaMonitorWorker {
         ) ON CONFLICT (deduplication_key) DO NOTHING
       `, [
         hold.correlation_id,
+        this.traceContext.getCausationId() ?? null,
+        this.traceContext.getTraceparent() ?? null,
         hold.id,
         null,
         hold.id,

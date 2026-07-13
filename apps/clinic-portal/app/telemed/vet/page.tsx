@@ -1,7 +1,8 @@
-import { TelemedVetQueueClient } from '@/components/telemed/TelemedVetQueueClient';
+import { TelemedVetQueueCapabilityGate } from '@/components/telemed/TelemedVetQueueCapabilityGate';
 import { getTelemedVetQueue, TelemedVetBackendError } from '@/lib/api/telemed-vet';
 import { getClinicSession } from '@/lib/auth/clinic-session';
 import { isTelemedVeterinarian } from '@/lib/auth/telemed-vet-session';
+import { getEffectiveSession, hasCapability } from '@/lib/auth/effective-session';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,8 +36,14 @@ export default async function PlatformTelemedVetQueuePage() {
   const session = await getClinicSession();
   if (!isTelemedVeterinarian(session)) return <AccessDenied />;
   try {
+    const effectiveSession = await getEffectiveSession(session);
+    if (!hasCapability(effectiveSession, 'telemed.vet.queue.read')) return <AccessDenied />;
+  } catch {
+    return <ServiceUnavailable />;
+  }
+  try {
     const queue = await getTelemedVetQueue(session);
-    return <TelemedVetQueueClient initialQueue={queue} />;
+    return <TelemedVetQueueCapabilityGate initialQueue={queue} />;
   } catch (error) {
     if (error instanceof TelemedVetBackendError && error.status === 403) return <AccessDenied />;
     return <ServiceUnavailable />;

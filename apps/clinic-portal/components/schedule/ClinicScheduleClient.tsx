@@ -1216,7 +1216,7 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
                       <td className="px-4 py-4 align-top text-sm text-slate-700"><p>{slot.staff?.displayName ?? 'Специалист не задан'}</p><p className="mt-1 text-xs text-slate-500">{slot.resource?.displayName ?? 'Ресурс не задан'}</p></td>
                       <td className="px-4 py-4 align-top">
                         {slotBusy ? (
-                          <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800">
+                          <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800" role="status">
                             <span className="vh-cupertino-spinner" aria-hidden="true" />
                             {activeSlotAction.retryAttempt > 0 ? `Повтор ${activeSlotAction.retryAttempt}/3` : 'Отправляем'}
                           </span>

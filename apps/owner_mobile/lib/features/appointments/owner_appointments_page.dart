@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/e2e/owner_e2e_hooks.dart';
 import '../../presentation/platform/owner_platform.dart';
 import '../../presentation/widgets/owner_cupertino_feedback.dart';
 import '../booking/alternative_slot/alternative_slot_page.dart';
@@ -213,6 +214,32 @@ class _OwnerAppointmentsPageState extends State<OwnerAppointmentsPage> {
       );
 }
 
+void _registerOpenFirstAppointmentDetail({
+  required BuildContext context,
+  required OwnerAppointment first,
+  required OwnerAppointmentsRepository repository,
+  required AlternativeSlotRepository? alternativeSlotRepository,
+  required TargetPlatform? platformOverride,
+  required VoidCallback? onOpenPetDiary,
+  required VoidCallback? onRebookAppointment,
+}) {
+  registerOwnerE2EHook('openFirstAppointmentDetail', () {
+    Navigator.of(context).push(ownerPageRoute<void>(
+      context: context,
+      platform: platformOverride,
+      builder: (_) => OwnerAppointmentDetailPage(
+        holdId: first.holdId,
+        initialSummary: first,
+        repository: repository,
+        alternativeSlotRepository: alternativeSlotRepository,
+        platformOverride: platformOverride,
+        onOpenPetDiary: onOpenPetDiary,
+        onRebookAppointment: onRebookAppointment,
+      ),
+    ));
+  });
+}
+
 class _AppointmentsLoadError extends StatelessWidget {
   const _AppointmentsLoadError({required this.onRetry});
 
@@ -300,6 +327,16 @@ class _AppointmentsList extends StatelessWidget {
       );
     }
 
+    _registerOpenFirstAppointmentDetail(
+      context: context,
+      first: rows.first,
+      repository: repository,
+      alternativeSlotRepository: alternativeSlotRepository,
+      platformOverride: platformOverride,
+      onOpenPetDiary: onOpenPetDiary,
+      onRebookAppointment: onRebookAppointment,
+    );
+
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: ListView.separated(
@@ -341,6 +378,17 @@ class _CupertinoAppointmentsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (rows.isNotEmpty) {
+      _registerOpenFirstAppointmentDetail(
+        context: context,
+        first: rows.first,
+        repository: repository,
+        alternativeSlotRepository: alternativeSlotRepository,
+        platformOverride: platformOverride,
+        onOpenPetDiary: onOpenPetDiary,
+        onRebookAppointment: onRebookAppointment,
+      );
+    }
     if (rows.isEmpty) {
       return CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),

@@ -13,6 +13,17 @@ class VetHelpSurfaceTokens extends ThemeExtension<VetHelpSurfaceTokens> {
     required this.desktopBackdrop,
     required this.contentMaxWidth,
     required this.cardRadius,
+    this.spaceXs = 4,
+    this.spaceSm = 8,
+    this.spaceMd = 16,
+    this.spaceLg = 24,
+    this.spaceXl = 32,
+    this.fieldRadius = 16,
+    this.focusRing = Colors.teal,
+    this.focusRingWidth = 2,
+    this.success = Colors.green,
+    this.warning = Colors.orange,
+    this.info = Colors.blue,
   });
 
   final Color groupedSurface;
@@ -22,6 +33,19 @@ class VetHelpSurfaceTokens extends ThemeExtension<VetHelpSurfaceTokens> {
   final double contentMaxWidth;
   final double cardRadius;
 
+  /// Semantic layout and interaction tokens shared by native primitives.
+  final double spaceXs;
+  final double spaceSm;
+  final double spaceMd;
+  final double spaceLg;
+  final double spaceXl;
+  final double fieldRadius;
+  final Color focusRing;
+  final double focusRingWidth;
+  final Color success;
+  final Color warning;
+  final Color info;
+
   @override
   VetHelpSurfaceTokens copyWith({
     Color? groupedSurface,
@@ -30,6 +54,17 @@ class VetHelpSurfaceTokens extends ThemeExtension<VetHelpSurfaceTokens> {
     Color? desktopBackdrop,
     double? contentMaxWidth,
     double? cardRadius,
+    double? spaceXs,
+    double? spaceSm,
+    double? spaceMd,
+    double? spaceLg,
+    double? spaceXl,
+    double? fieldRadius,
+    Color? focusRing,
+    double? focusRingWidth,
+    Color? success,
+    Color? warning,
+    Color? info,
   }) {
     return VetHelpSurfaceTokens(
       groupedSurface: groupedSurface ?? this.groupedSurface,
@@ -38,6 +73,17 @@ class VetHelpSurfaceTokens extends ThemeExtension<VetHelpSurfaceTokens> {
       desktopBackdrop: desktopBackdrop ?? this.desktopBackdrop,
       contentMaxWidth: contentMaxWidth ?? this.contentMaxWidth,
       cardRadius: cardRadius ?? this.cardRadius,
+      spaceXs: spaceXs ?? this.spaceXs,
+      spaceSm: spaceSm ?? this.spaceSm,
+      spaceMd: spaceMd ?? this.spaceMd,
+      spaceLg: spaceLg ?? this.spaceLg,
+      spaceXl: spaceXl ?? this.spaceXl,
+      fieldRadius: fieldRadius ?? this.fieldRadius,
+      focusRing: focusRing ?? this.focusRing,
+      focusRingWidth: focusRingWidth ?? this.focusRingWidth,
+      success: success ?? this.success,
+      warning: warning ?? this.warning,
+      info: info ?? this.info,
     );
   }
 
@@ -52,6 +98,18 @@ class VetHelpSurfaceTokens extends ThemeExtension<VetHelpSurfaceTokens> {
       contentMaxWidth:
           contentMaxWidth + (other.contentMaxWidth - contentMaxWidth) * t,
       cardRadius: cardRadius + (other.cardRadius - cardRadius) * t,
+      spaceXs: spaceXs + (other.spaceXs - spaceXs) * t,
+      spaceSm: spaceSm + (other.spaceSm - spaceSm) * t,
+      spaceMd: spaceMd + (other.spaceMd - spaceMd) * t,
+      spaceLg: spaceLg + (other.spaceLg - spaceLg) * t,
+      spaceXl: spaceXl + (other.spaceXl - spaceXl) * t,
+      fieldRadius: fieldRadius + (other.fieldRadius - fieldRadius) * t,
+      focusRing: Color.lerp(focusRing, other.focusRing, t)!,
+      focusRingWidth:
+          focusRingWidth + (other.focusRingWidth - focusRingWidth) * t,
+      success: Color.lerp(success, other.success, t)!,
+      warning: Color.lerp(warning, other.warning, t)!,
+      info: Color.lerp(info, other.info, t)!,
     );
   }
 }
@@ -78,6 +136,11 @@ class VetHelpTheme {
       desktopBackdrop: colors.surfaceContainerLow,
       contentMaxWidth: 560,
       cardRadius: 24,
+      fieldRadius: 16,
+      focusRing: colors.primary,
+      success: Colors.green.shade700,
+      warning: Colors.orange.shade800,
+      info: Colors.blue.shade700,
     );
 
     return base.copyWith(
@@ -114,8 +177,10 @@ class VetHelpTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: colors.surfaceContainerLowest,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: tokens.spaceMd,
+          vertical: tokens.spaceMd,
+        ),
         border: OutlineInputBorder(
           borderRadius: fieldRadius,
           borderSide: BorderSide(color: tokens.hairline),
@@ -126,7 +191,10 @@ class VetHelpTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: fieldRadius,
-          borderSide: BorderSide(color: colors.primary, width: 2),
+          borderSide: BorderSide(
+            color: tokens.focusRing,
+            width: tokens.focusRingWidth,
+          ),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: fieldRadius,

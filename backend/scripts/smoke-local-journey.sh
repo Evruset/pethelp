@@ -61,6 +61,10 @@ json_value "$tmpdir/acquiring-health.json" 'data.status'
 request_json GET "$MOCK_ACQUIRING_BASE/__mock/state" "" "$tmpdir/acquiring-state.json"
 json_value "$tmpdir/acquiring-state.json" 'Array.isArray(data.intents)'
 
+step "mock MIS baseline"
+request_json GET "$MOCK_MIS_BASE/__mock/state" "" "$tmpdir/mis-state-before.json"
+mis_reservations_before="$(json_value "$tmpdir/mis-state-before.json" 'data.reservations.length')"
+
 step "emergency capability fixture"
 request_json GET "$API_BASE/v1/emergency/clinics?species=DOG&requiredCapabilities=OXYGEN_SUPPORT&latitude=55.7558&longitude=37.6173&limit=5" "" "$tmpdir/emergency.json"
 json_value "$tmpdir/emergency.json" 'data[0]?.matchingCapabilities?.includes("OXYGEN_SUPPORT")'
@@ -152,6 +156,14 @@ if [[ "${FEATURE_MIS_INTEGRATION:-false}" == "true" ]]; then
 
   printf 'Expected mock MIS reservation was not observed for hold %s\n' "$hold_id" >&2
   exit 1
+else
+  step "autonomous booking did not call MIS"
+  request_json GET "$MOCK_MIS_BASE/__mock/state" "" "$tmpdir/mis-state-after.json"
+  mis_reservations_after="$(json_value "$tmpdir/mis-state-after.json" 'data.reservations.length')"
+  if [[ "$mis_reservations_after" != "$mis_reservations_before" ]]; then
+    printf 'Expected no new MIS reservation in autonomous mode, before=%s after=%s\n' "$mis_reservations_before" "$mis_reservations_after" >&2
+    exit 1
+  fi
 fi
 
 printf '\nlocal smoke passed\n'

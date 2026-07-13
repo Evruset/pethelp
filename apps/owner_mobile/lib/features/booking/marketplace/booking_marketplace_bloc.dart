@@ -250,7 +250,8 @@ class BookingMarketplaceBloc
         _requestCoordinator.releaseSlot(selectedSlot.id);
         emit(BookingMarketplaceError(
           selectedDay: readyState.selectedDay,
-          message: 'Это время уже заняли. Выберите другое время.',
+          message:
+              'Выбранное время всё ещё занято другим запросом. Подберите другое время.',
           slots: readyState.slots,
           selectedSlot: selectedSlot,
           showSlotUnavailableDialog: true,
@@ -262,7 +263,17 @@ class BookingMarketplaceBloc
         emit(BookingMarketplaceLoading(selectedDay: readyState.selectedDay));
         await _load(
           emit,
-          notice: 'Это время уже заняли. Выберите другое время.',
+          notice: 'Время подтверждения истекло. Показываем актуальные окна.',
+        );
+        return;
+      }
+      if (action == BookingHoldFailureAction.preserveSelectionAndRefresh) {
+        _requestCoordinator.releaseSlot(selectedSlot.id);
+        await _load(
+          emit,
+          notice:
+              'Это время сейчас недоступно. Обновили расписание, выбранный слот оставлен для ручного повтора.',
+          selectedSlot: selectedSlot,
         );
         return;
       }
@@ -276,7 +287,7 @@ class BookingMarketplaceBloc
       emit(BookingMarketplaceError(
         selectedDay: readyState.selectedDay,
         message:
-            'Не удалось оформить запись. Проверьте соединение и повторите попытку.',
+            'Не удалось создать заявку. Проверьте соединение и повторите попытку.',
         slots: readyState.slots,
         selectedSlot: selectedSlot,
       ));
@@ -301,13 +312,18 @@ class BookingMarketplaceBloc
         nextDelay: delay,
       ));
       await _retryDelay(delay);
+      _requestCoordinator.releaseSlot(selectedSlot.id);
+      final retryContext = _requestCoordinator.contextFor(
+        slotId: selectedSlot.id,
+        petId: requestContext.petId,
+      );
 
       try {
         final hold = await _repository.createHold(
-          slotId: requestContext.slotId,
-          petId: requestContext.petId,
-          correlationId: requestContext.correlationId,
-          idempotencyKey: requestContext.idempotencyKey,
+          slotId: retryContext.slotId,
+          petId: retryContext.petId,
+          correlationId: retryContext.correlationId,
+          idempotencyKey: retryContext.idempotencyKey,
         );
         emit(BookingMarketplaceHoldCreated(hold));
         return true;
@@ -321,7 +337,17 @@ class BookingMarketplaceBloc
           emit(BookingMarketplaceLoading(selectedDay: readyState.selectedDay));
           await _load(
             emit,
-            notice: 'Это время уже заняли. Выберите другое время.',
+            notice: 'Это время уже занято. Показываем актуальные окна.',
+          );
+          return true;
+        }
+        if (action == BookingHoldFailureAction.preserveSelectionAndRefresh) {
+          _requestCoordinator.releaseSlot(selectedSlot.id);
+          await _load(
+            emit,
+            notice:
+                'Это время сейчас недоступно. Обновили расписание, выбранный слот оставлен для ручного повтора.',
+            selectedSlot: selectedSlot,
           );
           return true;
         }
@@ -336,7 +362,7 @@ class BookingMarketplaceBloc
         emit(BookingMarketplaceError(
           selectedDay: readyState.selectedDay,
           message:
-              'Не удалось оформить запись. Проверьте соединение и повторите попытку.',
+              'Не удалось создать заявку. Проверьте соединение и повторите попытку.',
           slots: readyState.slots,
           selectedSlot: selectedSlot,
         ));
@@ -350,6 +376,7 @@ class BookingMarketplaceBloc
   Future<void> _load(
     Emitter<BookingMarketplaceState> emit, {
     String? notice,
+    BookingSlot? selectedSlot,
   }) async {
     emit(BookingMarketplaceLoading(selectedDay: _selectedDay));
     try {
@@ -362,6 +389,7 @@ class BookingMarketplaceBloc
       emit(BookingMarketplaceReady(
         selectedDay: _selectedDay,
         slots: slots,
+        selectedSlot: selectedSlot,
         notice: notice,
       ));
     } on BookingMarketplaceApiException catch (error) {
@@ -386,7 +414,12 @@ class BookingMarketplaceBloc
         'Не удалось подтвердить доступ к профилю питомца.',
       'EXTERNAL_PATIENT_MAPPING_REQUIRED' =>
         'Клиника пока не может принять запись для этого питомца. Выберите другую клинику.',
-      'HOLD_EXPIRED' => 'Это время уже заняли. Выберите другое время.',
+      'HOLD_EXPIRED' =>
+        'Время для подтверждения уже истекло. Обновите доступные окна.',
+      'SLOT_ALREADY_TAKEN' =>
+        'Это время уже занято другим владельцем. Обновите расписание и выберите доступное окно.',
+      'SLOT_VERSION_STALE' =>
+        'Расписание обновилось. Проверьте актуальные окна и повторите действие вручную.',
       _ => 'Не удалось выполнить действие. Повторите попытку.',
     };
   }

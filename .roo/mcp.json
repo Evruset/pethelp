@@ -1,0 +1,42 @@
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp@latest"
+      ],
+      "alwaysAllow": [],
+      "disabled": true,
+      "timeout": 60
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest"
+      ],
+      "alwaysAllow": [],
+      "disabled": true,
+      "timeout": 120
+    },
+    "github-readonly": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "GITHUB_PERSONAL_ACCESS_TOKEN=${env:GITHUB_PERSONAL_ACCESS_TOKEN}",
+        "-e",
+        "GITHUB_TOOLSETS=repos,issues,pull_requests",
+        "-e",
+        "GITHUB_READ_ONLY=1",
+        "ghcr.io/github/github-mcp-server"
+      ],
+      "alwaysAllow": [],
+      "disabled": true,
+      "timeout": 120
+    }
+  }
+}

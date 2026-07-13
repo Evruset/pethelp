@@ -26,7 +26,7 @@ export type DoctorConnectionResult = {
 
 export type TelemedVetCase = {
   caseId: string;
-  state: 'QUEUED' | 'ASSIGNED' | 'DOCTOR_JOINED' | 'IN_PROGRESS';
+  state: 'QUEUED' | 'ASSIGNED' | 'DOCTOR_JOINED' | 'IN_PROGRESS' | 'CANCELLED' | 'CANCELLED_BY_OWNER' | 'EXPIRED';
   queuePriority: number;
   urgencyBand: string;
   serviceLevel: string;
@@ -104,6 +104,12 @@ export async function getTelemedVetQueue(session: ClinicSession): Promise<Teleme
   });
   if (!response.ok) throw new TelemedVetBackendError(response.status, await parseErrorCode(response));
   return response.json() as Promise<TelemedVetQueue>;
+}
+
+export async function getTelemedVetAuditTrail(session: ClinicSession, caseId: string): Promise<unknown> {
+  const response = await fetch(`${backendBaseUrl()}/v1/telemed/vet/cases/${caseId}/audit-trail`, { headers: authHeaders(session), cache: 'no-store' });
+  if (!response.ok) throw new TelemedVetBackendError(response.status, await parseErrorCode(response));
+  return response.json();
 }
 
 export async function assignTelemedCase(

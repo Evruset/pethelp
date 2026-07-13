@@ -6,6 +6,7 @@ import 'package:vethelp_owner_mobile/features/catalog/catalog_models.dart';
 import 'package:vethelp_owner_mobile/features/catalog/public_catalog_page.dart';
 import 'package:vethelp_owner_mobile/features/catalog/public_catalog_repository.dart';
 import 'package:vethelp_owner_mobile/presentation/pages/owner_adaptive_shell.dart';
+import 'package:vethelp_owner_mobile/presentation/widgets/adaptive_hit_target.dart';
 
 void main() {
   testWidgets('iOS production shell renders four real root tabs',
@@ -167,6 +168,23 @@ void main() {
     expect(theme.brightness, Brightness.dark);
     expect(theme.scaffoldBackgroundColor, isA<CupertinoDynamicColor>());
     expect(theme.primaryColor, isA<CupertinoDynamicColor>());
+  });
+
+  testWidgets('adaptive hit target enforces Apple minimum tap area',
+      (tester) async {
+    await tester.pumpWidget(
+      const Directionality(
+        textDirection: TextDirection.ltr,
+        child: AdaptiveHitTarget(
+          semanticLabel: 'Small action',
+          child: SizedBox.square(dimension: 8),
+        ),
+      ),
+    );
+
+    final size = tester.getSize(find.byType(AdaptiveHitTarget));
+    expect(size.width, greaterThanOrEqualTo(kVetHelpMinTapTarget));
+    expect(size.height, greaterThanOrEqualTo(kVetHelpMinTapTarget));
   });
 }
 

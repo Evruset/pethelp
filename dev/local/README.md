@@ -18,9 +18,109 @@ This stack runs without a cloud account, provider sandbox account, production cr
 
 - Docker Desktop with Compose v2.
 - Git.
+- Node.js 20.20.2 available at `~/.nvm/versions/node/v20.20.2/bin` or on `PATH`.
+- Flutter with Chrome support for the owner web app. By default the launcher uses `~/develop/flutter-3.27.4/bin/flutter` when present, otherwise `flutter` from `PATH`.
 - At least 6 GB RAM assigned to Docker Desktop.
 
-## Start
+## Start everything with one command
+
+From the repository root:
+
+```bash
+make local-dev
+```
+
+On macOS you can also double-click:
+
+```text
+VetHelp Local.command
+```
+
+The launcher starts:
+
+- Docker local stack: PostgreSQL, backend, mock MIS, mock acquiring, mock cloud and LiveKit.
+- Local seed data for owner, clinic, marketplace slots and clinic queue.
+- Clinic Portal dev server on `http://localhost:3001`.
+- Owner Flutter web app on `http://localhost:3002`.
+- A local clinic employee session, opened automatically when `OPEN=1`.
+
+Runtime logs and PID files are stored under `.dev-local/`.
+
+Useful switches:
+
+```bash
+OPEN=0 make local-dev                 # do not open browser windows
+START_OWNER=0 make local-dev          # skip Flutter owner web app
+FLUTTER_BIN=/path/to/flutter make local-dev
+```
+
+Run browser-recorded owner mobile web scenarios:
+
+```bash
+make owner-web-e2e
+```
+
+The command builds Flutter web with the local owner token and E2E diagnostics
+enabled, then drives the app in Chromium through visible UI clicks. It records
+video, Playwright trace, per-step screenshots and a network summary under
+`.dev-local/owner-mobile-web-e2e/`. The diagnostic
+`window.vethelpOwnerE2E` object is enabled only for this E2E build; the command
+also performs a production web build and fails if that object is present in the
+production bundle.
+
+Run the real local-stack cross-channel booking journey:
+
+```bash
+make local-up
+make local-seed
+make local-stack-e2e
+```
+
+This suite uses the real backend at `http://127.0.0.1:3000`, PostgreSQL, the
+seeded local owner and clinic employee identities, Clinic Portal, and Flutter
+Owner Web. It covers autonomous owner booking, clinic schedule completion,
+Owner Pet Diary readback, and owner cancellation. Screenshots, videos, traces,
+network summaries, JSON backend snapshots and backend failure logs are written
+under `.dev-local/local-stack-e2e/`. External MIS/acquiring services remain the
+local mock containers; autonomous booking asserts that no MIS reservation event
+is emitted while `FEATURE_MIS_INTEGRATION=false` and
+`FEATURE_ONLINE_PAYMENTS=false`.
+
+The same suite is available in GitHub Actions as the manual/nightly
+`Local Stack Cross-Channel E2E` workflow. It uploads the
+`local-stack-e2e-evidence` artifact with a 14-day retention window.
+
+Run Flutter integration tests for the owner booking and insurance flows:
+
+```bash
+make owner-integration-test
+```
+
+This is the canonical local command. For `OWNER_DEVICE=chrome`, the launcher
+checks Chrome/Chromium, finds or starts a compatible ChromeDriver on port
+`4444`, runs `flutter drive`, and cleans up the ChromeDriver process it started.
+If ChromeDriver is not installed, the command fails before running Flutter with a
+clear setup message. For a connected iOS/Android device, pass its device id:
+
+```bash
+OWNER_DEVICE=00008120-001A559911F3C01E make owner-integration-test
+```
+
+Optional overrides:
+
+```bash
+FLUTTER_BIN=/path/to/flutter make owner-integration-test
+CHROMEDRIVER_BIN=/path/to/chromedriver make owner-integration-test
+CHROME_EXECUTABLE=/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome make owner-integration-test
+```
+
+Stop all local processes and containers:
+
+```bash
+make local-dev-down
+```
+
+## Manual start
 
 From the repository root:
 

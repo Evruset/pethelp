@@ -27,6 +27,16 @@ async function main() {
   required(manualQueue.responses?.['200'], 'Manual queue must document 200');
   required(manualQueue.responses?.['403'], 'Manual queue must document 403');
 
+  const completeVisit = document.paths?.['/v1/clinic/booking-holds/{holdId}/complete']?.post;
+  required(completeVisit, 'POST /v1/clinic/booking-holds/{holdId}/complete is missing');
+  required(completeVisit.security?.some((item) => item.bearerAuth), 'Complete visit must require bearerAuth');
+  required(completeVisit.responses?.['403'], 'Complete visit must document 403');
+  required(
+    completeVisit['x-required-capabilities']?.length === 1
+      && completeVisit['x-required-capabilities'][0] === 'clinical.visit.complete',
+    'Complete visit must require only clinical.visit.complete',
+  );
+
   const alternativeSnapshot = document.paths?.['/v1/booking-holds/{holdId}/alternative']?.get;
   required(alternativeSnapshot, 'GET owner alternative slot snapshot is missing');
   required(alternativeSnapshot.security?.some((item) => item.bearerAuth), 'Alternative snapshot must require bearerAuth');

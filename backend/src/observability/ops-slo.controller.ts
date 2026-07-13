@@ -1,10 +1,14 @@
 import { BadRequestException, Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { Role } from '../auth/auth.types';
+import { Capability } from '../auth/capability';
+import { CapabilityEvaluatorService } from '../auth/capability-evaluator.service';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtPayload, Role } from '../auth/auth.types';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { DatabaseService } from '../database/database.service';
+import { featureFlags } from '../config/feature-flags.config';
 import { ObservabilityMetricsService } from './observability.metrics';
 
 interface SloSnapshotRow {
@@ -43,12 +47,20 @@ export class OpsSloController {
   constructor(
     private readonly database: DatabaseService,
     private readonly metrics: ObservabilityMetricsService,
+    private readonly capabilities: CapabilityEvaluatorService,
   ) {}
 
   @Get('slo-snapshot')
   @ApiOperation({ summary: 'Read operational SLO snapshot for dashboards' })
   @ApiOkResponse({ description: 'Aggregated technical and security metrics from PostgreSQL source of truth.' })
-  async snapshot() {
+  async snapshot(@CurrentUser() actor: JwtPayload) {
+    if (featureFlags.OPS_SLO_SNAPSHOT_READ_CAPABILITY_V1) {
+      await this.database.withTransaction((client) => this.capabilities.assertAllowed(client, {
+        actor,
+        capability: Capability.OPS_SLO_SNAPSHOT_READ,
+        resource: { aggregateType: 'ops.slo.snapshot', authorityModel: 'platform' },
+      }));
+    }
     const result = await this.database.query<SloSnapshotRow>(`
       WITH server_time AS (SELECT clock_timestamp() AS now)
       SELECT

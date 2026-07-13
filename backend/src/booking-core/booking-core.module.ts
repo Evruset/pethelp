@@ -23,11 +23,13 @@ import { ClinicSlaMonitorWorker } from './clinic-sla-monitor.worker';
 import { OwnerAlternativeAcceptanceService } from './owner-alternative-acceptance.service';
 import { OwnerAlternativeSnapshotController } from './owner-alternative-snapshot.controller';
 import { OwnerAlternativeSnapshotService } from './owner-alternative-snapshot.service';
+import { VeterinarianVisitReadController } from './veterinarian-visit-read.controller';
+import { VeterinarianVisitReadService } from './veterinarian-visit-read.service';
 
 @NestModule({
   imports: [AuthModule],
-  controllers: [BookingController, ClinicPortalController, ClinicQualityController, ClinicQueueController, ClinicScheduleController, OwnerAlternativeSnapshotController, BookingEventReplayController],
-  providers: [BookingRepository, BookingService, BookingHoldCreationService, BookingHoldReadService, BookingSecurityService, ClinicEmployeeAccessService, ClinicPortalService, ClinicQualityService, ClinicQueueService, ClinicScheduleService, ClinicSlaMonitorWorker, AlternativeSlotService, AlternativeSlotExpirationWorker, OwnerAlternativeSnapshotService, OwnerAlternativeAcceptanceService, BookingEventReplayService],
+  controllers: [BookingController, ClinicPortalController, ClinicQualityController, ClinicQueueController, ClinicScheduleController, OwnerAlternativeSnapshotController, BookingEventReplayController, VeterinarianVisitReadController],
+  providers: [BookingRepository, BookingService, BookingHoldCreationService, BookingHoldReadService, BookingSecurityService, ClinicEmployeeAccessService, ClinicPortalService, ClinicQualityService, ClinicQueueService, ClinicScheduleService, ClinicSlaMonitorWorker, AlternativeSlotService, AlternativeSlotExpirationWorker, OwnerAlternativeSnapshotService, OwnerAlternativeAcceptanceService, BookingEventReplayService, VeterinarianVisitReadService],
   exports: [BookingService, ClinicPortalService, AlternativeSlotService, ClinicQueueService, ClinicQualityService, ClinicScheduleService, OwnerAlternativeSnapshotService, BookingEventReplayService],
 })
 export class BookingCoreModule {}

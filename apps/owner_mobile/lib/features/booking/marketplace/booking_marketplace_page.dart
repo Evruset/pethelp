@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../core/e2e/owner_e2e_hooks.dart';
 import '../../../presentation/platform/owner_platform.dart';
 import '../../../presentation/widgets/owner_cupertino_feedback.dart';
 import 'booking_hold_status_page.dart';
@@ -14,7 +15,7 @@ class BookingMarketplacePage extends StatelessWidget {
   const BookingMarketplacePage({
     super.key,
     required this.clinicName,
-    required this.locationAddress,
+    this.locationAddress = '',
     required this.serviceName,
     required this.serviceId,
     required this.petName,
@@ -87,6 +88,7 @@ class _BookingMarketplaceView extends StatelessWidget {
       child: BlocConsumer<BookingMarketplaceBloc, BookingMarketplaceState>(
         listener: (context, state) {
           if (state is BookingMarketplaceHoldCreated) {
+            setOwnerE2EMarker('bookingState', 'holdCreated');
             Navigator.of(context).pushReplacement(
               ownerPageRoute<void>(
                 context: context,
@@ -107,6 +109,7 @@ class _BookingMarketplaceView extends StatelessWidget {
             );
           }
           if (state is BookingMarketplaceError) {
+            setOwnerE2EMarker('bookingState', 'error');
             _handleMarketplaceError(context, state, usesCupertino);
           }
         },
@@ -284,6 +287,11 @@ class _CupertinoMarketplaceReady extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<BookingMarketplaceBloc>();
+    _registerBookingE2EHooks(
+      bloc: bloc,
+      state: state,
+      interactionsBlocked: creatingHold || lockingSlot != null,
+    );
     final today = _dayStart(DateTime.now().toUtc());
     final days =
         List<DateTime>.generate(3, (index) => today.add(Duration(days: index)));
@@ -1138,6 +1146,11 @@ class _MarketplaceReady extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<BookingMarketplaceBloc>();
+    _registerBookingE2EHooks(
+      bloc: bloc,
+      state: state,
+      interactionsBlocked: creatingHold || lockingSlot != null,
+    );
     final today = _dayStart(DateTime.now().toUtc());
     final days =
         List<DateTime>.generate(3, (index) => today.add(Duration(days: index)));
@@ -1342,6 +1355,24 @@ class _MaterialSlotSections extends StatelessWidget {
       ],
     );
   }
+}
+
+void _registerBookingE2EHooks({
+  required BookingMarketplaceBloc bloc,
+  required BookingMarketplaceReady state,
+  required bool interactionsBlocked,
+}) {
+  setOwnerE2EMarker('bookingState', 'ready');
+  registerOwnerE2EHook('bookingSelectFirstSlot', () {
+    if (state.slots.isNotEmpty) {
+      bloc.add(BookingMarketplaceSlotSelected(state.slots.first));
+    }
+  });
+  registerOwnerE2EHook('bookingSubmitHold', () {
+    if (state.selectedSlot != null && !interactionsBlocked) {
+      bloc.add(const BookingMarketplaceHoldRequested());
+    }
+  });
 }
 
 class _MarketplaceError extends StatelessWidget {

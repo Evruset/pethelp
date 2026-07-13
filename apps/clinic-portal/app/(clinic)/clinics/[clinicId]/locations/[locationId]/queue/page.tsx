@@ -1,6 +1,7 @@
 import { ClinicQueueClientV2 } from '@/components/queue/ClinicQueueClientV2';
 import { ClinicBackendError, getManualConfirmationQueue } from '@/lib/api/clinic-queue';
 import { canAccessClinicLocation, getClinicSession } from '@/lib/auth/clinic-session';
+import { getEffectiveSession, hasCapability, hasClinicScope } from '@/lib/auth/effective-session';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,12 +53,18 @@ export default async function ClinicQueuePage({ params }: PageProps) {
   }
 
   try {
-    const queue = await getManualConfirmationQueue(session, clinicId, locationId);
-    return <ClinicQueueClientV2 clinicId={clinicId} locationId={locationId} initialQueue={queue} />;
-  } catch (error) {
-    if (error instanceof ClinicBackendError && error.status === 403) {
-      return <AccessDenied />;
+    const effectiveSession = await getEffectiveSession(session);
+    if (!hasCapability(effectiveSession, 'booking.queue.read') || !hasClinicScope(effectiveSession, clinicId, locationId)) return <AccessDenied />;
+    const canInspectHold = hasCapability(effectiveSession, 'booking.hold.read') && hasClinicScope(effectiveSession, clinicId, locationId);
+    const canReplayHold = hasCapability(effectiveSession, 'booking.replay.read') && hasClinicScope(effectiveSession, clinicId, locationId);
+    try {
+      const queue = await getManualConfirmationQueue(session, clinicId, locationId);
+      return <ClinicQueueClientV2 clinicId={clinicId} locationId={locationId} initialQueue={queue} canInspectHold={canInspectHold} canReplayHold={canReplayHold} />;
+    } catch (error) {
+      if (error instanceof ClinicBackendError && error.status === 403) return <AccessDenied />;
+      return <ServiceUnavailable />;
     }
+  } catch {
     return <ServiceUnavailable />;
   }
 }

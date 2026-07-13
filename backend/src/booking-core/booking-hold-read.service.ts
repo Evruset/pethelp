@@ -32,13 +32,15 @@ export class BookingHoldReadService {
         state: string;
         expires_at: Date;
         clinic_location_id: string;
+        clinic_id: string;
         starts_at: Date;
         ends_at: Date;
       }>(`
         SELECT h.id::text AS hold_id, h.owner_id::text, h.slot_id::text, h.state, h.expires_at,
-               s.clinic_location_id::text, s.starts_at, s.ends_at
+               s.clinic_location_id::text, location.clinic_id::text, s.starts_at, s.ends_at
         FROM booking_schema.booking_holds h
         JOIN clinic_schema.appointment_slots s ON s.id = h.slot_id
+        JOIN clinic_schema.clinic_locations location ON location.id = s.clinic_location_id
         WHERE h.id = $1::uuid
         FOR SHARE OF h, s
       `, [holdId]);
@@ -48,7 +50,7 @@ export class BookingHoldReadService {
       if (actor.roles.includes(Role.OWNER)) {
         if (hold.owner_id !== actor.sub) throw DomainErrors.holdOwnerMismatch();
       } else if (!actor.roles.includes(Role.SYSTEM_WORKER)) {
-        await this.clinicAccess.assertLocationAccess(client, actor, hold.clinic_location_id);
+        await this.clinicAccess.assertBookingHoldReadAccess(client, actor, hold.clinic_id, hold.clinic_location_id);
       }
 
       return {

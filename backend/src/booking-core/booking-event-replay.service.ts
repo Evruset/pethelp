@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JwtPayload, Role } from '../auth/auth.types';
 import { DomainErrors } from '../common/domain-error';
+import { featureFlags } from '../config/feature-flags.config';
 import { DatabaseService } from '../database/database.service';
 import { ClinicEmployeeAccessService } from './clinic-employee-access.service';
 
@@ -47,10 +48,12 @@ export class BookingEventReplayService {
       const hold = await client.query<{
         owner_id: string;
         clinic_location_id: string;
+        clinic_id: string;
       }>(`
-        SELECT h.owner_id::text, s.clinic_location_id::text
+        SELECT h.owner_id::text, s.clinic_location_id::text, location.clinic_id::text
         FROM booking_schema.booking_holds h
         JOIN clinic_schema.appointment_slots s ON s.id = h.slot_id
+        JOIN clinic_schema.clinic_locations location ON location.id = s.clinic_location_id
         WHERE h.id = $1::uuid
         FOR SHARE OF h, s
       `, [holdId]);
@@ -60,7 +63,11 @@ export class BookingEventReplayService {
       if (actor.roles.includes(Role.OWNER)) {
         if (scope.owner_id !== actor.sub) throw DomainErrors.holdOwnerMismatch();
       } else if (!actor.roles.includes(Role.SYSTEM_WORKER)) {
-        await this.clinicAccess.assertLocationAccess(client, actor, scope.clinic_location_id);
+        if (featureFlags.BOOKING_REPLAY_READ_CAPABILITY_V1) {
+          await this.clinicAccess.assertBookingReplayReadAccess(client, actor, scope.clinic_id, scope.clinic_location_id);
+        } else {
+          await this.clinicAccess.assertLocationAccess(client, actor, scope.clinic_location_id);
+        }
       }
 
       const events = await client.query<{

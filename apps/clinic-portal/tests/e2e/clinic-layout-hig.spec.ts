@@ -9,6 +9,8 @@ const serviceId = '66666666-6666-4666-8666-666666666666';
 const staffId = '77777777-7777-4777-8777-777777777777';
 const resourceId = '88888888-8888-4888-8888-888888888888';
 const slotId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const occupiedSlotId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+const blackoutSlotId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const mockBackendPort = 3212;
 const jwtSecret = 'clinic-e2e-secret-at-least-32-bytes';
 
@@ -139,6 +141,17 @@ test('shows accessible slide-over when slot retry is exhausted', async ({ page, 
   await expect(dialog.getByRole('button', { name: 'Обновить расписание' })).toBeVisible();
 });
 
+test('captures schedule occupied and blackout visual baseline', async ({ page, context, baseURL }) => {
+  await addAdminSession(context, baseURL);
+
+  await page.goto(route());
+
+  await expect(page.getByTestId(`schedule-slot-${occupiedSlotId}`)).toContainText('Заполнен');
+  await expect(page.getByTestId(`schedule-slot-${blackoutSlotId}`)).toContainText('Закрыт');
+  await expect(page.getByTestId(`schedule-slot-${occupiedSlotId}`).getByRole('button', { name: 'Blackout' })).toBeDisabled();
+  await expect(page.getByTestId(`schedule-slot-${blackoutSlotId}`).getByRole('button', { name: 'Blackout' })).toBeDisabled();
+  await expect(page).toHaveScreenshot('schedule-occupied-blackout.png', { fullPage: true });
+});
 function route(): string {
   return `/clinics/${clinicId}/locations/${locationId}/schedule`;
 }
@@ -238,24 +251,77 @@ function makeSchedule() {
     resources,
     periods: [],
     workingHours: [],
-    slots: [{
-      id: slotId,
-      service: { id: serviceId, displayName: 'Первичный приём' },
-      staff: staff[0],
-      resource: resources[0],
-      startsAt: '2026-06-29T11:00:00.000Z',
-      endsAt: '2026-06-29T11:30:00.000Z',
-      capacity: 1,
-      bookedCount: 0,
-      heldCount: 0,
-      state: 'OPEN',
-      status: 'AVAILABLE',
-      source: 'LOCAL',
-      integrationMode: 'AUTONOMOUS',
-      lastFreshnessSync: null,
-      stale: false,
-      version: 1,
-      bookingHold: null,
-    }],
+    slots: [
+      makeSlot({
+        id: slotId,
+        startsAt: '2026-06-29T11:00:00.000Z',
+        endsAt: '2026-06-29T11:30:00.000Z',
+        staff: staff[0],
+        resource: resources[0],
+        bookedCount: 0,
+        heldCount: 0,
+        state: 'OPEN',
+        status: 'AVAILABLE',
+      }),
+      makeSlot({
+        id: occupiedSlotId,
+        startsAt: '2026-06-29T12:00:00.000Z',
+        endsAt: '2026-06-29T12:30:00.000Z',
+        staff: staff[0],
+        resource: resources[0],
+        bookedCount: 1,
+        heldCount: 0,
+        state: 'OPEN',
+        status: 'BOOKED',
+      }),
+      makeSlot({
+        id: blackoutSlotId,
+        startsAt: '2026-06-29T13:00:00.000Z',
+        endsAt: '2026-06-29T13:30:00.000Z',
+        staff: staff[0],
+        resource: resources[0],
+        bookedCount: 0,
+        heldCount: 0,
+        state: 'CLOSED',
+        status: 'AVAILABLE',
+      }),
+    ],
+  };
+}
+
+function makeSlot(input: {
+  id: string;
+  startsAt: string;
+  endsAt: string;
+  staff: { id: string; displayName: string };
+  resource: { id: string; displayName: string };
+  bookedCount: number;
+  heldCount: number;
+  state: string;
+  status: string;
+}) {
+  return {
+    id: input.id,
+    service: { id: serviceId, displayName: 'Первичный приём' },
+    staff: input.staff,
+    resource: input.resource,
+    startsAt: input.startsAt,
+    endsAt: input.endsAt,
+    capacity: 1,
+    bookedCount: input.bookedCount,
+    heldCount: input.heldCount,
+    state: input.state,
+    status: input.status,
+    source: 'LOCAL',
+    integrationMode: 'AUTONOMOUS',
+    lastFreshnessSync: null,
+    stale: false,
+    version: 1,
+    bookingHold: input.bookedCount > 0 ? {
+      id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      state: 'CONFIRMED',
+      ownerId: 'owner-schedule-visual',
+      petId: 'pet-schedule-visual',
+    } : null,
   };
 }

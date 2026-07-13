@@ -1,0 +1,121 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Codex mode: Fast (Luna/low)",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/codex-mode.sh fast",
+      "problemMatcher": []
+    },
+    {
+      "label": "Codex mode: Standard (Terra/low)",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/codex-mode.sh standard",
+      "problemMatcher": []
+    },
+    {
+      "label": "Codex mode: Deep (Sol/high)",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/codex-mode.sh deep",
+      "problemMatcher": []
+    },
+    {
+      "label": "Codex mode: Parallel mixed models",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/codex-mode.sh parallel",
+      "problemMatcher": []
+    },
+    {
+      "label": "Codex mode: Research + Docs MCP",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/codex-mode.sh research",
+      "problemMatcher": []
+    },
+    {
+      "label": "Codex mode: UI debug + Playwright",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/codex-mode.sh ui-debug",
+      "problemMatcher": []
+    },
+    {
+      "label": "Codex mode: Parallel review",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/codex-mode.sh review",
+      "problemMatcher": []
+    },
+    {
+      "label": "Codex mode: Show current",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/codex-mode.sh status",
+      "problemMatcher": []
+    },
+    {
+      "label": "Codex RAG: Reindex docs",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/rag-index.sh",
+      "problemMatcher": []
+    },
+    {
+      "label": "Codex mode: Adaptive Orchestrator (recommended)",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/codex-mode.sh orchestrator",
+      "problemMatcher": []
+    },
+    {
+      "label": "Codex mode: Budget Orchestrator (recommended)",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/codex-mode.sh orchestrator",
+      "problemMatcher": []
+    },
+    {
+      "label": "Codex index: Rebuild repository map",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/repo-map-index.sh",
+      "problemMatcher": []
+    },
+    {
+      "label": "Codex index: Rebuild documentation RAG",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/rag-index.sh",
+      "problemMatcher": []
+    },
+    {
+      "label": "Codex search: Scout repository",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/codex-scout.sh \"${input:codexSearch}\"",
+      "problemMatcher": []
+    },
+    {
+      "label": "Codex tests: Show affected tests",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/affected-tests.sh",
+      "problemMatcher": []
+    },
+    {
+      "label": "Codex budget: Show small",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/context-budget.sh small",
+      "problemMatcher": []
+    },
+    {
+      "label": "Codex budget: Show standard",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/context-budget.sh standard",
+      "problemMatcher": []
+    },
+    {
+      "label": "Codex budget: Show complex",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/context-budget.sh complex",
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "codexSearch",
+      "type": "promptString",
+      "description": "Symbol, route, error, or business term",
+      "default": "appointment"
+    }
+  ]
+}

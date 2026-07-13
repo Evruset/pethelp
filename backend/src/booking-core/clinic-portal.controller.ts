@@ -1,5 +1,6 @@
 import { BadRequestException, Body, Controller, Headers, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiConflictResponse, ApiCreatedResponse, ApiHeader, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConflictResponse, ApiCreatedResponse, ApiExtension, ApiForbiddenResponse, ApiHeader, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
+import { Capability } from '../auth/capability';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload, Role } from '../auth/auth.types';
@@ -93,11 +94,13 @@ export class ClinicPortalController {
   @Post('clinic/booking-holds/:holdId/complete')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.CLINIC_ADMIN, Role.CLINIC_VETERINARIAN)
+  @Roles(Role.CLINIC_VETERINARIAN)
   @ApiBearerAuth(SWAGGER_BEARER_AUTH)
-  @ApiOperation({ summary: 'Закрытие приёма врачом или администратором с публикацией заключения владельцу' })
+  @ApiOperation({ summary: 'Закрытие приёма врачом с публикацией заключения владельцу' })
+  @ApiExtension('x-required-capabilities', [Capability.CLINICAL_VISIT_COMPLETE])
   @ApiHeader({ name: 'X-Correlation-ID', required: true, schema: { type: 'string', format: 'uuid' } })
   @ApiOkResponse({ description: 'Приём закрыт, заключение сохранено, push-событие поставлено в outbox.' })
+  @ApiForbiddenResponse({ description: 'Требуются capability clinical.visit.complete и активная membership врача в локации.' })
   @ApiConflictResponse({ description: 'SLOT_LOCKED_RETRY.' })
   @ApiUnprocessableEntityResponse({ description: 'INVALID_STATE_TRANSITION или невалидное заключение.' })
   async completeAppointment(
