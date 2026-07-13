@@ -31,7 +31,11 @@ jobs:
       - run: npm install
       - run: npm run typecheck
       - run: npx playwright install --with-deps chromium
-      - run: npm run e2e
+      - name: Run Portal E2E
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run e2e 2>&1 | tee e2e.log
       - name: Generate Allure report
         if: always()
         run: npm run allure:generate
@@ -41,6 +45,7 @@ jobs:
         with:
           name: clinic-portal-ui-evidence
           path: |
+            apps/clinic-portal/e2e.log
             apps/clinic-portal/allure-report
             apps/clinic-portal/allure-results
             apps/clinic-portal/playwright-report
