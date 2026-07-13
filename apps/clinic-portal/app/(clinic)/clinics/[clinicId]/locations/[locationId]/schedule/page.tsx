@@ -53,12 +53,13 @@ export default async function ClinicSchedulePage({ params }: PageProps) {
 
   const from = new Date().toISOString();
   const to = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
-  const canCompleteAppointments = session.roles.includes('CLINIC_ADMIN')
-    || session.roles.includes('CLINIC_VETERINARIAN');
 
   try {
     const schedule = await getClinicSchedule(session, clinicId, locationId, from, to);
-    return <ClinicScheduleClient clinicId={clinicId} locationId={locationId} initialSchedule={schedule} canCompleteAppointments={canCompleteAppointments} />;
+    // Clinical completion is intentionally unavailable from the administrative
+    // schedule. Veterinarians complete visits in the dedicated capability-gated
+    // /vet/visits workspace.
+    return <ClinicScheduleClient clinicId={clinicId} locationId={locationId} initialSchedule={schedule} canCompleteAppointments={false} />;
   } catch (error) {
     if (error instanceof ClinicScheduleBackendError && error.status === 403) {
       return <AccessDenied />;
