@@ -29,6 +29,11 @@ jobs:
           distribution: temurin
           java-version: '21'
       - run: npm install
+      - name: Install Linux lightningcss native binding
+        shell: bash
+        run: |
+          version="$(node -p "require('./node_modules/lightningcss/package.json').version")"
+          npm install --no-save --package-lock=false "lightningcss-linux-x64-gnu@${version}"
       - run: npm run typecheck
       - run: npx playwright install --with-deps chromium
       - name: Run Portal E2E
