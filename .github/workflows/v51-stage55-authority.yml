@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'apps/clinic-portal/app/(clinic)/clinics/**/schedule/page.tsx'
+      - 'apps/clinic-portal/app/(clinic)/clinics/**/vet/**'
       - 'apps/clinic-portal/tests/e2e/clinic-schedule.spec.ts'
       - 'apps/clinic-portal/tests/e2e/veterinarian-visit-completion.spec.ts'
       - 'apps/clinic-portal/tests/local-stack/owner-booking-to-pet-diary.spec.ts'
