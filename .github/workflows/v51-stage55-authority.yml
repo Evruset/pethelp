@@ -77,6 +77,12 @@ jobs:
       - name: Install Clinic Portal dependencies
         working-directory: apps/clinic-portal
         run: npm install
+      - name: Install Linux lightningcss native binding
+        working-directory: apps/clinic-portal
+        shell: bash
+        run: |
+          version="$(node -p "require('./node_modules/lightningcss/package.json').version")"
+          npm install --no-save --package-lock=false "lightningcss-linux-x64-gnu@${version}"
       - name: Install Chromium runtime dependencies
         working-directory: apps/clinic-portal
         run: npx playwright install --with-deps chromium
