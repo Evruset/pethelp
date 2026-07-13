@@ -14,20 +14,11 @@ const resourceId = '88888888-8888-4888-8888-888888888888';
 const mockBackendPort = 3212;
 const jwtSecret = 'clinic-e2e-secret-at-least-32-bytes';
 
-type CompletionMode = 'success' | 'invalid-state';
-
-type CompletionRequest = {
-  holdId: string;
-  summary: string;
-  correlationId: string | undefined;
-  authorization: string | undefined;
-};
-
 let server: Server;
 let scheduleReads = 0;
-let completionMode: CompletionMode = 'success';
-let completionRequests: CompletionRequest[] = [];
-let schedule = makeSchedule('CONFIRMED');
+let completionRequests = 0;
+
+const schedule = makeSchedule();
 
 test.describe.configure({ mode: 'serial' });
 
@@ -44,9 +35,7 @@ test.afterAll(async () => {
 
 test.beforeEach(() => {
   scheduleReads = 0;
-  completionMode = 'success';
-  completionRequests = [];
-  schedule = makeSchedule('CONFIRMED');
+  completionRequests = 0;
 });
 
 test.afterEach(async ({ page }, testInfo) => {
@@ -54,7 +43,7 @@ test.afterEach(async ({ page }, testInfo) => {
 });
 
 test('denies the schedule page without an authenticated clinic session', async ({ page }, testInfo) => {
-  await uiStep(page, testInfo, 'Открыть расписание без сессии', () => page.goto(`/clinics/${clinicId}/locations/${locationId}/schedule`));
+  await uiStep(page, testInfo, 'Открыть расписание без сессии', () => page.goto(route()));
 
   await uiStep(page, testInfo, 'Проверить запрет доступа к расписанию', async () => {
     await expect(page).toHaveURL(/\/forbidden\?reason=session_required$/);
@@ -62,68 +51,33 @@ test('denies the schedule page without an authenticated clinic session', async (
   });
 });
 
-test('does not render appointment completion action for a receptionist', async ({ page, context, baseURL }, testInfo) => {
+test('does not expose clinical completion to a receptionist', async ({ page, context, baseURL }, testInfo) => {
   await addClinicSession(context, baseURL, ['CLINIC_RECEPTIONIST']);
-  await uiStep(page, testInfo, 'Открыть расписание под ресепционистом', () => page.goto(`/clinics/${clinicId}/locations/${locationId}/schedule`));
+  await uiStep(page, testInfo, 'Открыть расписание под ресепционистом', () => page.goto(route()));
 
-  await uiStep(page, testInfo, 'Проверить скрытие закрытия приёма для роли', async () => {
+  await assertAdministrativeScheduleHasNoClinicalAction(page, testInfo, 'Проверить отсутствие клинического действия у ресепциониста');
+});
+
+test('does not expose clinical completion to a clinic administrator', async ({ page, context, baseURL }, testInfo) => {
+  await addClinicSession(context, baseURL, ['CLINIC_ADMIN']);
+  await uiStep(page, testInfo, 'Открыть расписание администратора', () => page.goto(route()));
+
+  await assertAdministrativeScheduleHasNoClinicalAction(page, testInfo, 'Проверить отсутствие клинического действия у администратора');
+});
+
+async function assertAdministrativeScheduleHasNoClinicalAction(page: Page, testInfo: Parameters<typeof uiStep>[1], title: string) {
+  await uiStep(page, testInfo, title, async () => {
     await expect(slotRow(page)).toContainText('Заполнен');
     await expect(slotRow(page).getByRole('button', { name: 'Закрыть приём' })).toHaveCount(0);
-    expect(completionRequests).toHaveLength(0);
+    await expect(page.getByLabel('Заключение по приёму')).toHaveCount(0);
+    expect(completionRequests).toBe(0);
+    expect(scheduleReads).toBeGreaterThanOrEqual(1);
   });
-});
+}
 
-test('closes a confirmed appointment and refreshes the authoritative schedule', async ({ page, context, baseURL }, testInfo) => {
-  await addClinicSession(context, baseURL, ['CLINIC_ADMIN']);
-  await uiStep(page, testInfo, 'Открыть расписание администратора', () => page.goto(`/clinics/${clinicId}/locations/${locationId}/schedule`));
-
-  await uiStep(page, testInfo, 'Проверить доступность закрытия приёма', async () => {
-    await expect(slotRow(page).getByRole('button', { name: 'Закрыть приём' })).toBeEnabled();
-  });
-
-  const summary = 'Состояние стабильное, назначена контрольная консультация.';
-  await uiStep(page, testInfo, 'Отправить clinical summary', async () => {
-    await slotRow(page).getByRole('button', { name: 'Закрыть приём' }).click();
-    const dialog = page.getByRole('dialog', { name: 'Закрыть приём' });
-    await expect(dialog).toBeVisible();
-    await dialog.getByLabel('Заключение по приёму').fill(summary);
-    await dialog.getByRole('button', { name: 'Закрыть приём' }).click();
-  });
-
-  await uiStep(page, testInfo, 'Проверить refresh после закрытия приёма', async () => {
-    await expect(page.getByRole('status')).toContainText('Приём закрыт. Заключение отправлено владельцу.');
-    await expect(slotRow(page).getByRole('button', { name: 'Закрыть приём' })).toBeDisabled();
-    expect(completionRequests).toHaveLength(1);
-    expect(completionRequests[0]).toMatchObject({
-      holdId,
-      summary: 'Состояние стабильное, назначена контрольная консультация.',
-      authorization: expect.stringMatching(/^Bearer /),
-      correlationId: expect.stringMatching(/^[0-9a-f-]{36}$/i),
-    });
-    expect(scheduleReads).toBeGreaterThanOrEqual(2);
-  });
-});
-
-test('shows an actionable message and refreshes when appointment state is no longer confirmable', async ({ page, context, baseURL }, testInfo) => {
-  completionMode = 'invalid-state';
-  await addClinicSession(context, baseURL, ['CLINIC_ADMIN']);
-  await uiStep(page, testInfo, 'Открыть расписание перед stale-state закрытием', () => page.goto(`/clinics/${clinicId}/locations/${locationId}/schedule`));
-
-  await uiStep(page, testInfo, 'Получить stale-state при закрытии приёма', async () => {
-    await slotRow(page).getByRole('button', { name: 'Закрыть приём' }).click();
-    const dialog = page.getByRole('dialog', { name: 'Закрыть приём' });
-    await expect(dialog).toBeVisible();
-    await dialog.getByLabel('Заключение по приёму').fill('Заключение готово.');
-    await dialog.getByRole('button', { name: 'Закрыть приём' }).click();
-  });
-
-  await uiStep(page, testInfo, 'Проверить сообщение и refresh после stale-state', async () => {
-    await expect(page.getByRole('status')).toContainText('Эту запись уже нельзя закрыть из расписания.');
-    await expect(slotRow(page).getByRole('button', { name: 'Закрыть приём' })).toBeDisabled();
-    expect(completionRequests).toHaveLength(1);
-    expect(scheduleReads).toBeGreaterThanOrEqual(2);
-  });
-});
+function route(): string {
+  return `/clinics/${clinicId}/locations/${locationId}/schedule`;
+}
 
 function slotRow(page: Page) {
   return page.getByRole('row').filter({ hasText: '1 записей · 0 holds · cap 1' });
@@ -160,6 +114,16 @@ function handleBackendRequest(request: IncomingMessage, response: ServerResponse
   const schedulePath = `/v1/clinic/${clinicId}/locations/${locationId}/schedule/slots`;
   const completePath = `/v1/clinic/booking-holds/${holdId}/complete`;
 
+  if (request.method === 'GET' && url.pathname === '/v1/auth/session') {
+    sendJson(response, 200, {
+      subjectId: 'clinic-schedule-e2e',
+      roles: [],
+      effectiveCapabilities: ['schedule.read'],
+      clinicScopes: [{ clinicId, locationId }],
+    });
+    return;
+  }
+
   if (request.method === 'GET' && url.pathname === schedulePath) {
     scheduleReads += 1;
     sendJson(response, 200, schedule);
@@ -167,42 +131,12 @@ function handleBackendRequest(request: IncomingMessage, response: ServerResponse
   }
 
   if (request.method === 'POST' && url.pathname === completePath) {
-    collectBody(request)
-      .then((rawBody) => {
-        const body = rawBody ? JSON.parse(rawBody) as { summary?: string } : {};
-        completionRequests.push({
-          holdId,
-          summary: body.summary ?? '',
-          correlationId: headerValue(request, 'x-correlation-id'),
-          authorization: headerValue(request, 'authorization'),
-        });
-
-        schedule = makeSchedule('COMPLETED');
-        if (completionMode === 'invalid-state') {
-          sendJson(response, 422, { code: 'INVALID_STATE_TRANSITION' });
-          return;
-        }
-
-        sendJson(response, 200, { holdId, state: 'COMPLETED' });
-      })
-      .catch(() => sendJson(response, 400, { code: 'INVALID_REQUEST' }));
+    completionRequests += 1;
+    sendJson(response, 500, { code: 'UNEXPECTED_CLINICAL_MUTATION_FROM_SCHEDULE' });
     return;
   }
 
   sendJson(response, 404, { code: 'NOT_FOUND' });
-}
-
-async function collectBody(request: IncomingMessage): Promise<string> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of request) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  }
-  return Buffer.concat(chunks).toString('utf8');
-}
-
-function headerValue(request: IncomingMessage, name: string): string | undefined {
-  const value = request.headers[name];
-  return Array.isArray(value) ? value[0] : value;
 }
 
 function sendJson(response: ServerResponse, status: number, payload: unknown) {
@@ -213,7 +147,7 @@ function sendJson(response: ServerResponse, status: number, payload: unknown) {
   response.end(JSON.stringify(payload));
 }
 
-function makeSchedule(holdState: 'CONFIRMED' | 'COMPLETED') {
+function makeSchedule() {
   return {
     clinicId,
     locationId,
@@ -279,7 +213,7 @@ function makeSchedule(holdState: 'CONFIRMED' | 'COMPLETED') {
       version: 1,
       bookingHold: {
         id: holdId,
-        state: holdState,
+        state: 'CONFIRMED',
         ownerId: '99999999-9999-4999-8999-999999999999',
         petId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       },
