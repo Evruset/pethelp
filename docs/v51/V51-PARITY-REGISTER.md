@@ -37,8 +37,8 @@ Migration action vocabulary: `REUSE`, `MODIFY`, `REPLACE`, `REMOVE`, `MISSING`.
 | V51 ID | Prototype surface | Production route/component | Action | Status | Main gap / next proof |
 |---|---|---|---|---|---|
 | CLINIC-01 | `clinic-workspace` | no operational dashboard | MISSING | NOT_STARTED | dashboard read model and role-aware landing |
-| CLINIC-02 | `clinic-schedule` | location schedule | MODIFY | TESTED | Stage 5.5 removes clinical completion; full responsive matrix remains |
-| VET-01 | `clinic-visit` | `/vet/visits` list/detail and `VeterinarianVisitWorkspace` | MODIFY | TESTED | selected P0: prove it is the sole clinical completion UI |
+| CLINIC-02 | `clinic-schedule` | location schedule | MODIFY | TESTED | doctor-only authority proved; responsive/UAT matrix remains |
+| VET-01 | `clinic-visit` | `/vet/visits` list/detail and `VeterinarianVisitWorkspace` | MODIFY | TESTED | focused and local-stack evidence passed; full Portal regression must be green before integration |
 | CLINIC-03 | `clinic-appointments` | queue only; registry absent | MISSING | NOT_STARTED | appointment list/detail/check-in/reschedule |
 | CLINIC-04 | `clinic-patients` | absent | MISSING | NOT_STARTED | treatment-scoped/admin patient registry |
 | CLINIC-05 | `clinic-patient` | absent | MISSING | NOT_STARTED | category-filtered patient detail |
@@ -64,4 +64,5 @@ Migration action vocabulary: `REUSE`, `MODIFY`, `REPLACE`, `REMOVE`, `MISSING`.
 | Authority | `schedule.read` never implies `clinical.visit.complete`; backend remains final authority |
 | Required tests | schedule admin/reception negative UI matrix; veterinarian completion suite; local-stack owner → veterinarian → Pet Diary |
 | Feature flag | none; this closes an unsafe legacy UI path |
-| Status | IMPLEMENTED; CI validation pending |
+| Evidence | Stage 5.5 run 10: typecheck/build PASS, focused Playwright 11/11, local-stack Playwright 1/1 |
+| Status | TESTED; ready for integration after the full Portal regression veto is resolved |
