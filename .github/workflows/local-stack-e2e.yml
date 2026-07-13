@@ -46,6 +46,22 @@ jobs:
           node --check dev/local/create-clinic-token.mjs
           docker compose -f docker-compose.local.yml config --quiet
 
+      - name: Start and seed local stack
+        shell: bash
+        run: |
+          make local-up
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000/v1/health >/dev/null; then
+              break
+            fi
+            if [ "$attempt" -eq 60 ]; then
+              echo 'Backend did not become healthy' >&2
+              exit 1
+            fi
+            sleep 2
+          done
+          make local-seed
+
       - name: Run real local-stack cross-channel E2E
         env:
           FLUTTER_BIN: flutter
