@@ -7,121 +7,88 @@
 Repository: `Evruset/pethelp`
 Baseline on `main`: `a36a33297708294f922b60b7fad68cef04621335`
 Active branch: `agent/v51-stage-55-authority-orchestration`
-Active chat: `CLINIC-AUTHORITY-01`
-Selected slice: Stage 5.5 — clinical authority hardening.
-Complexity/risk: C2 / R3 because this is a clinical-role boundary with an existing test harness and no schema change.
+Work Chat: `CLINIC-AUTHORITY-01` — `COMPLETE`, branch `READY_FOR_INTEGRATION`
+Pull request: draft PR #62
+Selected slice: Stage 5.5 — clinical authority hardening
+Complexity/risk: C2 / R3
 
 ## Sources of truth
 
-- product/route inventory: `docs/v51/00-route-api-role-matrix.md`;
-- gap evidence: `docs/v51/00-current-state-gap-analysis.md`;
-- parity: `docs/v51/V51-PARITY-REGISTER.md`;
-- program: `docs/v51/V51-PROGRAM-PLAN.md`;
-- chat ownership: `docs/ai/chat-registry.md`;
-- adaptive workflow: `.agents/skills/adaptive-orchestrator/SKILL.md`.
-
-## Backend verification environment
-
-- Use the existing `docker-compose.local.yml` backend service for focused backend HTTP/e2e tests.
-- Use the container `DATABASE_URL`; do not use localhost PostgreSQL.
-- Canonical execution uses `docker compose exec -T backend`.
-- If the backend dev container stops because of unrelated fixture workers, restart it once and retry only the interrupted command.
-- Node must be >=20.9 for Clinic Portal production builds; validated baseline is Node 22.22.2.
+- `docs/v51/00-route-api-role-matrix.md`
+- `docs/v51/00-current-state-gap-analysis.md`
+- `docs/v51/V51-PARITY-REGISTER.md`
+- `docs/v51/V51-PROGRAM-PLAN.md`
+- `docs/ai/chat-registry.md`
+- `docs/ai/handoffs/CLINIC-AUTHORITY-01.md`
+- `.agents/skills/adaptive-orchestrator/SKILL.md`
 
 ## Closed foundations
 
-### Stage 3 — centralized capabilities
+### Stage 3
 
-Closed and verified capabilities include:
+Centralized capabilities are implemented for clinical visit completion/read, booking queue/hold/replay, quality, schedule, telemedicine veterinarian queue/audit and ops SLO. Backend capabilities and active scopes remain authoritative; frontend capabilities are fail-closed UX hints.
 
-- `clinical.visit.complete`;
-- `clinical.visit.workspace.read`;
-- `booking.queue.read`;
-- `quality.read`;
-- `schedule.read`;
-- `booking.hold.read`;
-- `booking.replay.read`;
-- `telemed.vet.queue.read`;
-- `telemed.vet.audit-trail.read`;
-- `ops.slo.snapshot.read`.
+### Stage 4
 
-The backend derives capabilities and active scopes. JWT capability-shaped claims are never final authority. Endpoint authorization remains authoritative; frontend capabilities are fail-closed UX hints.
-
-### Stage 4 — frontend capability consumption
-
-Completed surfaces:
-
-- clinic queue;
-- quality;
-- schedule read;
-- platform veterinarian telemed queue;
-- ops SLO/security.
-
-The V51 shell remains feature-flagged and the existing legacy shell remains available for rollout compatibility.
+Capability-aware frontend consumption exists for queue, quality, schedule, veterinarian telemedicine and ops/security. V51 shell rollout remains feature-flagged.
 
 ### Stage 5.1–5.4
 
-Completed:
+Completed and previously verified:
 
-- veterinarian visit LIST and DETAIL read projections;
-- dedicated veterinarian visit portal routes;
-- doctor-only clinical completion UI and focused 8-test completion suite;
-- strict visit DTO parser hardening;
-- display-safe telemedicine audit trail DTO and portal timeline;
+- veterinarian visit list/detail read projections;
+- doctor-only clinical completion;
+- strict visit DTO parsing;
+- display-safe telemedicine audit timeline;
 - booking hold inspector;
 - booking replay history.
 
-Prior focused evidence recorded in the repository handoff:
+## Stage 5.5 result
 
-- veterinarian read suite 6/6;
-- veterinarian completion 8/8;
-- telemedicine audit 6/6 plus shared telemed 15/15;
-- hold inspector 7/7;
-- replay 7/7;
-- queue 9/9;
-- portal typecheck/build PASS.
+The administrative schedule previously exposed `Закрыть приём` to `CLINIC_ADMIN` or `CLINIC_VETERINARIAN`. This violated the authority rule that `schedule.read` must never imply `clinical.visit.complete`.
 
-## Stage 5.5 selected issue
+Stage 5.5 now provides:
 
-The administrative schedule route was still computing:
+- no clinical completion control for receptionist or clinic administrator in the schedule;
+- zero completion requests from the schedule regression;
+- dedicated `/vet/**` routes wrapped by `EffectiveSessionProvider`;
+- veterinarian-only completion through `VeterinarianVisitWorkspace`;
+- completion status derived from authoritative `visit.status === 'COMPLETED'` after refresh;
+- real owner booking → veterinarian completion → Pet Diary readback;
+- V51 Parity Register, Program Plan, Chat Registry, bootstrap and handoff templates;
+- Linux `lightningcss` setup in Portal and local-stack workflows;
+- corrected local-stack workflow sequence: start → health wait → seed → E2E.
 
-```text
-CLINIC_ADMIN || CLINIC_VETERINARIAN → canCompleteAppointments
-```
+## Stage 5.5 validation
 
-and exposing a `Закрыть приём` action that accepted a clinical summary. This contradicted the established V51 authority boundary because `schedule.read` must never imply `clinical.visit.complete`.
+Workflow run: `29276212856`.
 
-The dedicated veterinarian workspace already exists and is capability-gated. Stage 5.5 therefore removes the schedule UI path without changing the backend mutation contract or migrations.
+| Gate | Result |
+|---|---|
+| Clinic Portal typecheck | PASS |
+| Clinic Portal production build | PASS |
+| Schedule + veterinarian completion Playwright | 11/11 passed |
+| Local stack startup and seed | PASS |
+| Owner → veterinarian → Pet Diary Playwright | 1/1 passed |
+| Backend/OpenAPI/migrations | unchanged |
 
-## Stage 5.5 changes
+Artifacts and digests are recorded in `docs/ai/handoffs/CLINIC-AUTHORITY-01.md`.
 
-- administrative schedule always disables the legacy clinical completion surface;
-- focused schedule E2E now proves both receptionist and clinic administrator see no completion action and produce zero completion requests;
-- local-stack owner booking journey now uses a `CLINIC_VETERINARIAN` session and `/vet/visits/:holdId` to complete the visit before verifying Pet Diary;
-- initial parity/program/chat registries and bootstrap/handoff templates were added.
+## Integration veto
 
-## Stage 5.5 required checks
+The complete Clinic Portal workflow is still red. The bounded Stage 5.5 gate is green, but it cannot override the full-suite veto. PR #62 must remain draft and must not be merged until the full Portal regression is green.
 
-Run on Node 22.22.2 where applicable:
-
-1. `npm run typecheck` in `apps/clinic-portal`;
-2. Clinic Portal production build;
-3. focused `clinic-schedule.spec.ts`;
-4. focused `veterinarian-visit-completion.spec.ts`;
-5. local-stack `owner-booking-to-pet-diary.spec.ts` when Docker/local stack is available;
-6. `git diff --check`.
-
-Do not claim Stage 5.5 complete until required CI/focused checks are recorded with exit codes and pass counts.
+Known integration debt includes legacy test fixtures that predate mandatory effective-session reads and Linux visual-baseline verification. Resolve these without weakening fail-closed authorization or snapshot assertions.
 
 ## Constraints still in force
 
-- do not edit or rename applied migrations;
-- do not weaken backend `clinical.visit.complete` capability enforcement;
-- do not restore clinic-admin clinical authority;
-- do not mix booking, appointment, visit, payment or telemed state ownership;
+- do not rename or rewrite applied migrations;
+- do not weaken `clinical.visit.complete` enforcement;
+- do not restore clinic-admin or receptionist clinical authority;
+- do not treat booking, appointment, visit, payment or telemedicine states as interchangeable;
 - do not commit secrets, `.env.local`, generated Flutter/iOS files or `backend/package-lock.json`;
-- do not merge this branch before validation.
+- do not merge PR #62 while the full Portal workflow is red.
 
 ## Next single action
 
-Validate Stage 5.5. If all required checks pass, update the chat registry, parity row and handoff to `COMPLETE`, then integrate. The next bounded product slice should be selected from the parity register; current candidate is the clinic appointment registry read foundation.
+Create an integration/QA repair chat limited to the remaining full Clinic Portal workflow failures for PR #62. After the workflow is green, mark the PR ready and integrate Stage 5.5. Only then start the next product slice, currently the clinic appointment registry read foundation.
