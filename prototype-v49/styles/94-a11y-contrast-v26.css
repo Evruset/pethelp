@@ -1,0 +1,35 @@
+@layer components {
+  .pill--in-exam,
+  .status-chip--in-exam,
+  .status-state--in-exam,
+  .pill.purple[data-a11y-status-icon],
+  .staff-pill.visit {
+    color: #4B247D;
+    background: #F1E9FF;
+    border-color: #D8C7FF;
+    font-weight: 700;
+  }
+
+  .staff-sla.is-risk,
+  .staff-pill.warning,
+  .status-chip.warn,
+  .status-state--pending {
+    color: #8A1C1C;
+    background: #FFF1F2;
+    border-color: #F4B4BC;
+    font-weight: 700;
+  }
+
+  .staff-kpi .label {
+    font-weight: 700;
+  }
+
+  .nav-group .nav-link .nav-ico img,
+  .nav-group .nav-link .nav-ico svg,
+  .icon-btn img,
+  .icon-btn svg,
+  .prototype-state-toggle img,
+  .prototype-state-toggle svg {
+    pointer-events: none;
+  }
+}

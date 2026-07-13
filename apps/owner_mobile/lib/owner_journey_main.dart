@@ -1,9 +1,13 @@
+import 'dart:async';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/e2e/owner_e2e_hooks.dart';
 import 'core/offline/outbox_repository.dart';
+import 'features/appointments/owner_appointments_page.dart';
 import 'features/appointments/owner_appointments_repository.dart';
 import 'features/auth/owner_auth_repository.dart';
 import 'features/auth/owner_session.dart';
@@ -23,32 +27,63 @@ import 'features/owner_journey/owner_journey_page.dart';
 import 'features/owner_journey/phone_entry_page.dart';
 import 'features/pets/owner_pet.dart';
 import 'features/pets/owner_pet_repository.dart';
+import 'features/pets/owner_pets_page.dart';
 import 'features/telemed/owner_telemed_page.dart';
 import 'features/telemed/owner_telemed_repository.dart';
 import 'features/telemed/waiting_room/telemed_room_access_repository.dart';
 import 'features/telemed/waiting_room/telemed_waiting_room_repository.dart';
+import 'presentation/pages/owner_adaptive_shell.dart';
+import 'presentation/platform/owner_platform.dart';
 import 'ui/vethelp_ios_theme.dart';
 
 void main() => runApp(const VetHelpOwnerJourneyApp());
 
 class VetHelpOwnerJourneyApp extends StatelessWidget {
-  const VetHelpOwnerJourneyApp({super.key});
+  const VetHelpOwnerJourneyApp({super.key, this.platformOverride});
+
+  final TargetPlatform? platformOverride;
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
+  Widget build(BuildContext context) {
+    if (ownerUsesCupertino(platform: platformOverride)) {
+      return CupertinoApp(
         title: 'VetHelp',
-        theme: VetHelpTheme.light(),
-        darkTheme: VetHelpTheme.dark(),
-        builder: VetHelpTheme.frameBuilder,
         locale: const Locale('ru'),
         supportedLocales: const [Locale('ru'), Locale('en')],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        home: const OwnerJourneyEntry(),
+        builder: (context, child) {
+          final brightness = MediaQuery.platformBrightnessOf(context);
+          return CupertinoTheme(
+            data: VetHelpCupertinoTheme.data(context),
+            child: Theme(
+              data: brightness == Brightness.dark
+                  ? VetHelpTheme.dark()
+                  : VetHelpTheme.light(),
+              child: child ?? const SizedBox.shrink(),
+            ),
+          );
+        },
+        home: OwnerJourneyEntry(platformOverride: platformOverride),
       );
+    }
+
+    return MaterialApp(
+      title: 'VetHelp',
+      theme: VetHelpTheme.light(),
+      builder: VetHelpTheme.frameBuilder,
+      locale: const Locale('ru'),
+      supportedLocales: const [Locale('ru'), Locale('en')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      home: OwnerJourneyEntry(platformOverride: platformOverride),
+    );
+  }
 }
 
 class OwnerJourneyEntry extends StatefulWidget {
-  const OwnerJourneyEntry({super.key});
+  const OwnerJourneyEntry({super.key, this.platformOverride});
+
+  final TargetPlatform? platformOverride;
+
   @override
   State<OwnerJourneyEntry> createState() => _OwnerJourneyEntryState();
 }
@@ -61,8 +96,7 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
       String.fromEnvironment('VETHELP_E2E_CLINIC_NAME');
   static const _e2eLocationId =
       String.fromEnvironment('VETHELP_E2E_LOCATION_ID');
-  static const _e2eServiceId =
-      String.fromEnvironment('VETHELP_E2E_SERVICE_ID');
+  static const _e2eServiceId = String.fromEnvironment('VETHELP_E2E_SERVICE_ID');
   static const _e2eServiceName =
       String.fromEnvironment('VETHELP_E2E_SERVICE_NAME');
   final _bootstrapOwnerJwt = const String.fromEnvironment('VETHELP_OWNER_JWT');
@@ -72,6 +106,7 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   late final OutboxRepository _ownerOutbox;
   late final String _ownerDeviceId;
   int _ownerDeviceSequence = 0;
+  int _iosSelectedTab = 0;
   bool _petBootstrapInFlight = false;
   bool _petBootstrapCompleted = false;
 
@@ -82,6 +117,8 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
           : 'http://10.0.2.2:3000';
   String get _accessToken => _session?.accessToken ?? _bootstrapOwnerJwt;
   bool get _hasOwnerSession => _accessToken.isNotEmpty;
+  bool get _usesCupertino =>
+      ownerUsesCupertino(platform: widget.platformOverride);
 
   @override
   void initState() {
@@ -110,9 +147,7 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
     registerOwnerE2EHook('openInsurance', _openInsuranceCheck);
     registerOwnerE2EHook('openBooking', _openE2EBooking);
     registerOwnerE2EHook('back', () {
-      if (mounted) {
-        Navigator.of(context).maybePop();
-      }
+      if (mounted) Navigator.of(context).maybePop();
     });
   }
 
@@ -157,19 +192,44 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   @override
   Widget build(BuildContext context) {
     if (_hasOwnerSession) {
+      final appointmentsRepository = HttpOwnerAppointmentsRepository(
+        baseUrl: Uri.parse(_apiBaseUrl),
+        accessToken: _token,
+      );
+      final alternativeSlotRepository = AlternativeSlotRepository(
+        baseUrl: Uri.parse(_apiBaseUrl),
+        accessTokenProvider: _token,
+      );
+      final petsRepository = _petsRepository();
+
+      if (_usesCupertino) {
+        return _OwnerIosAuthenticatedShell(
+          onBrowseClinics: _openCatalogForOwner,
+          onCatalogSelection: _openBooking,
+          onRequestTelemed: _openTelemedIntake,
+          onRequestInsurance: _openInsuranceCheck,
+          onRequestEmergency: _openEmergency,
+          onOpenCare: _openCare,
+          petsRepository: petsRepository,
+          appointmentsRepository: appointmentsRepository,
+          alternativeSlotRepository: alternativeSlotRepository,
+          catalogRepository:
+              HttpPublicCatalogRepository(baseUrl: Uri.parse(_apiBaseUrl)),
+          selectedPet: _selectedPet,
+          onPetSelected: _selectPet,
+          selectedTabIndex: _iosSelectedTab,
+        );
+      }
+
       return OwnerJourneyPage(
         onBrowseClinics: _openCatalogForOwner,
         onRequestTelemed: _openTelemedIntake,
         onRequestInsurance: _openInsuranceCheck,
         onRequestEmergency: _openEmergency,
         onOpenCare: _openCare,
-        petsRepository: _petsRepository(),
-        appointmentsRepository: HttpOwnerAppointmentsRepository(
-            baseUrl: Uri.parse(_apiBaseUrl), accessToken: _token),
-        alternativeSlotRepository: AlternativeSlotRepository(
-          baseUrl: Uri.parse(_apiBaseUrl),
-          accessTokenProvider: _token,
-        ),
+        petsRepository: petsRepository,
+        appointmentsRepository: appointmentsRepository,
+        alternativeSlotRepository: alternativeSlotRepository,
         selectedPet: _selectedPet,
         onPetSelected: _selectPet,
       );
@@ -183,13 +243,18 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
     );
   }
 
-  void _openPhoneEntry() => Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => PhoneEntryPage(
-          onBack: () => Navigator.of(context).pop(),
-          repository: HttpOwnerAuthRepository(baseUrl: Uri.parse(_apiBaseUrl)),
-          onAuthenticated: _completeAuthentication,
+  void _openPhoneEntry() => Navigator.of(context).push(
+        ownerPageRoute<void>(
+          context: context,
+          platform: widget.platformOverride,
+          builder: (_) => PhoneEntryPage(
+            onBack: () => Navigator.of(context).pop(),
+            repository:
+                HttpOwnerAuthRepository(baseUrl: Uri.parse(_apiBaseUrl)),
+            onAuthenticated: _completeAuthentication,
+          ),
         ),
-      ));
+      );
 
   void _completeAuthentication(OwnerSession session) {
     final hasPendingBooking = _pendingBooking != null;
@@ -203,7 +268,8 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
       _selectExistingPet();
       if (hasPendingBooking && mounted) {
         _showMessage(
-            'Добавьте или выберите питомца: запись всегда создаётся для конкретного питомца.');
+          'Добавьте или выберите питомца: запись всегда создаётся для конкретного питомца.',
+        );
       }
     });
   }
@@ -248,13 +314,27 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   }
 
   void _openCatalog(
-          {required ValueChanged<CatalogBookingSelection> onSelected}) =>
+          {required ValueChanged<CatalogBookingSelection> onSelected,
+          String? contextNote}) =>
       Navigator.of(context).push(
-        MaterialPageRoute<void>(
+        ownerPageRoute<void>(
+          context: context,
+          platform: widget.platformOverride,
           builder: (_) => PublicCatalogPage(
             repository:
                 HttpPublicCatalogRepository(baseUrl: Uri.parse(_apiBaseUrl)),
             onSelected: onSelected,
+            platformOverride: widget.platformOverride,
+            bookingPetName: _selectedPet?.name,
+            bookingContextNote: contextNote,
+            onChangePet: _selectedPet == null
+                ? null
+                : () {
+                    Navigator.of(context).maybePop();
+                    _showMessage(
+                      'Вы можете изменить питомца во вкладке «Питомцы», затем вернуться к записи.',
+                    );
+                  },
           ),
         ),
       );
@@ -266,18 +346,27 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
       return;
     }
     final location = selection.location;
-    Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => BookingMarketplacePage(
-        clinicName: location.clinicName,
-        serviceName: selection.service.displayName,
-        serviceId: selection.service.id,
-        petName: pet.name,
-        clinicLocationId: location.locationId,
-        petId: pet.id,
-        repository: HttpBookingMarketplaceRepository(
-            baseUrl: Uri.parse(_apiBaseUrl), accessTokenProvider: _token),
+    Navigator.of(context).push(
+      ownerPageRoute<void>(
+        context: context,
+        platform: widget.platformOverride,
+        builder: (_) => BookingMarketplacePage(
+          clinicName: location.clinicName,
+          locationAddress: location.address,
+          serviceName: selection.service.displayName,
+          serviceId: selection.service.id,
+          petName: pet.name,
+          clinicLocationId: location.locationId,
+          petId: pet.id,
+          repository: HttpBookingMarketplaceRepository(
+            baseUrl: Uri.parse(_apiBaseUrl),
+            accessTokenProvider: _token,
+          ),
+          platformOverride: widget.platformOverride,
+          onOpenAppointments: _openAppointmentsTab,
+        ),
       ),
-    ));
+    );
   }
 
   void _openE2EBooking() {
@@ -285,13 +374,15 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
         _e2eLocationId.isEmpty ||
         _e2eServiceId.isEmpty) {
       _showMessage(
-          'Local E2E booking requires VETHELP_E2E_CLINIC_ID, VETHELP_E2E_LOCATION_ID and VETHELP_E2E_SERVICE_ID.');
+        'Local E2E booking requires VETHELP_E2E_CLINIC_ID, VETHELP_E2E_LOCATION_ID and VETHELP_E2E_SERVICE_ID.',
+      );
       return;
     }
     _openBooking(CatalogBookingSelection(
       location: CatalogLocation(
         clinicId: _e2eClinicId,
-        clinicName: _e2eClinicName.isNotEmpty ? _e2eClinicName : 'VetHelp Pilot',
+        clinicName:
+            _e2eClinicName.isNotEmpty ? _e2eClinicName : 'VetHelp Pilot',
         locationId: _e2eLocationId,
         address: 'Moscow, Pilotnaya 1',
         phone: null,
@@ -312,25 +403,37 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
     ));
   }
 
+  void _openAppointmentsTab() {
+    setState(() {
+      _iosSelectedTab = 2;
+    });
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
   void _openTelemedIntake() {
-    Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => OwnerTelemedPage(
-        repository: HttpOwnerTelemedRepository(
-          baseUrl: Uri.parse(_apiBaseUrl),
-          accessTokenProvider: _token,
+    Navigator.of(context).push(
+      ownerPageRoute<void>(
+        context: context,
+        platform: widget.platformOverride,
+        builder: (_) => OwnerTelemedPage(
+          repository: HttpOwnerTelemedRepository(
+            baseUrl: Uri.parse(_apiBaseUrl),
+            accessTokenProvider: _token,
+          ),
+          waitingRepository: HttpTelemedWaitingRepository(
+            baseUrl: Uri.parse(_apiBaseUrl),
+            accessTokenProvider: _token,
+          ),
+          roomAccessRepository: HttpTelemedRoomAccessRepository(
+            baseUrl: Uri.parse(_apiBaseUrl),
+            accessTokenProvider: _token,
+          ),
+          onRequestEmergency: _openEmergency,
+          onBrowseClinics: _openCatalogForOwner,
+          platformOverride: widget.platformOverride,
         ),
-        waitingRepository: HttpTelemedWaitingRepository(
-          baseUrl: Uri.parse(_apiBaseUrl),
-          accessTokenProvider: _token,
-        ),
-        roomAccessRepository: HttpTelemedRoomAccessRepository(
-          baseUrl: Uri.parse(_apiBaseUrl),
-          accessTokenProvider: _token,
-        ),
-        onRequestEmergency: _openEmergency,
-        onBrowseClinics: _openCatalogForOwner,
       ),
-    ));
+    );
   }
 
   void _openInsuranceCheck() {
@@ -340,15 +443,19 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
           'Сначала добавьте или выберите питомца на вкладке «Питомец».');
       return;
     }
-    Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => CoverageCheckPage(
-        pet: pet,
-        repository: CoverageCheckRepository(
-          baseUrl: Uri.parse(_apiBaseUrl),
-          accessTokenProvider: _token,
+    Navigator.of(context).push(
+      ownerPageRoute<void>(
+        context: context,
+        platform: widget.platformOverride,
+        builder: (_) => CoverageCheckPage(
+          pet: pet,
+          repository: CoverageCheckRepository(
+            baseUrl: Uri.parse(_apiBaseUrl),
+            accessTokenProvider: _token,
+          ),
         ),
       ),
-    ));
+    );
   }
 
   void _openCare() {
@@ -358,27 +465,232 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
           'Сначала добавьте или выберите питомца на вкладке «Питомец».');
       return;
     }
-    Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => OwnerPetCarePage(
-        pet: pet,
-        repository: HttpOwnerPetCareRepository(
-          baseUrl: Uri.parse(_apiBaseUrl),
-          accessTokenProvider: _token,
+    Navigator.of(context).push(
+      ownerPageRoute<void>(
+        context: context,
+        platform: widget.platformOverride,
+        builder: (_) => OwnerPetCarePage(
+          pet: pet,
+          repository: HttpOwnerPetCareRepository(
+            baseUrl: Uri.parse(_apiBaseUrl),
+            accessTokenProvider: _token,
+          ),
+          onRebookVisit: _openRepeatBookingFromCare,
+          platformOverride: widget.platformOverride,
         ),
       ),
-    ));
+    );
+  }
+
+  void _openRepeatBookingFromCare(OwnerPetCareRebookIntent intent) {
+    setState(() {
+      _selectedPet = intent.pet;
+      _petBootstrapCompleted = true;
+    });
+    _showMessage(
+      'Выберите удобное время для ${intent.pet.name}. Слот не бронируется до подтверждения.',
+    );
+    _openCatalog(
+      contextNote:
+          'Это повторная запись по контексту прошлого визита. Клиника и услуга выбираются заново, а время будет проверено отдельно.',
+      onSelected: (selection) {
+        Navigator.of(context).pop();
+        _openBooking(selection);
+      },
+    );
   }
 
   void _openEmergency() {
-    Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => EmergencyTriagePage(
-        repository: EmergencyRepository(baseUrl: Uri.parse(_apiBaseUrl)),
+    Navigator.of(context).push(
+      ownerPageRoute<void>(
+        context: context,
+        platform: widget.platformOverride,
+        builder: (_) => EmergencyTriagePage(
+          repository: EmergencyRepository(baseUrl: Uri.parse(_apiBaseUrl)),
+          platformOverride: widget.platformOverride,
+        ),
       ),
-    ));
+    );
   }
 
-  void _showMessage(String text) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  void _showMessage(String text) {
+    unawaited(
+      showOwnerMessage(
+        context,
+        text,
+        platform: widget.platformOverride,
+      ),
+    );
+  }
+}
+
+class _OwnerIosAuthenticatedShell extends StatefulWidget {
+  const _OwnerIosAuthenticatedShell({
+    required this.onBrowseClinics,
+    required this.onCatalogSelection,
+    required this.onRequestTelemed,
+    required this.onRequestInsurance,
+    required this.onRequestEmergency,
+    required this.onOpenCare,
+    required this.petsRepository,
+    required this.appointmentsRepository,
+    required this.alternativeSlotRepository,
+    required this.catalogRepository,
+    required this.selectedPet,
+    required this.onPetSelected,
+    required this.selectedTabIndex,
+  });
+
+  final VoidCallback onBrowseClinics;
+  final ValueChanged<CatalogBookingSelection> onCatalogSelection;
+  final VoidCallback onRequestTelemed;
+  final VoidCallback onRequestInsurance;
+  final VoidCallback onRequestEmergency;
+  final VoidCallback onOpenCare;
+  final OwnerPetRepository petsRepository;
+  final OwnerAppointmentsRepository appointmentsRepository;
+  final AlternativeSlotRepository alternativeSlotRepository;
+  final PublicCatalogRepository catalogRepository;
+  final OwnerPet? selectedPet;
+  final ValueChanged<OwnerPet> onPetSelected;
+  final int selectedTabIndex;
+
+  @override
+  State<_OwnerIosAuthenticatedShell> createState() =>
+      _OwnerIosAuthenticatedShellState();
+}
+
+class _OwnerIosAuthenticatedShellState
+    extends State<_OwnerIosAuthenticatedShell> {
+  late final CupertinoTabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController =
+        CupertinoTabController(initialIndex: widget.selectedTabIndex);
+    registerOwnerE2EHook('openHome', () => _selectTab(0));
+    registerOwnerE2EHook('openAppointments', () => _selectTab(2));
+    registerOwnerE2EHook('openPet', () => _selectTab(3));
+  }
+
+  @override
+  void didUpdateWidget(covariant _OwnerIosAuthenticatedShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_tabController.index != widget.selectedTabIndex) {
+      _tabController.index = widget.selectedTabIndex;
+    }
+  }
+
+  @override
+  void dispose() {
+    unregisterOwnerE2EHook('openHome');
+    unregisterOwnerE2EHook('openAppointments');
+    unregisterOwnerE2EHook('openPet');
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _selectTab(int index) {
+    setState(() {
+      _tabController.index = index;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return OwnerAdaptiveShell(
+      platformOverride: TargetPlatform.iOS,
+      controller: _tabController,
+      home: _OwnerIosHomeTab(
+        selectedPet: widget.selectedPet,
+        appointmentsRepository: widget.appointmentsRepository,
+        onBrowseClinics: widget.onBrowseClinics,
+        onManagePets: () => _selectTab(3),
+        onOpenAppointments: () => _selectTab(2),
+        onOpenCare: widget.onOpenCare,
+        onRequestTelemed: widget.onRequestTelemed,
+        onRequestInsurance: widget.onRequestInsurance,
+        onRequestEmergency: widget.onRequestEmergency,
+      ),
+      clinics: PublicCatalogPage(
+        platformOverride: TargetPlatform.iOS,
+        repository: widget.catalogRepository,
+        onSelected: widget.onCatalogSelection,
+        bookingPetName: widget.selectedPet?.name,
+        onChangePet: widget.selectedPet == null ? null : () => _selectTab(3),
+      ),
+      appointments: OwnerAppointmentsPage(
+        repository: widget.appointmentsRepository,
+        alternativeSlotRepository: widget.alternativeSlotRepository,
+        platformOverride: TargetPlatform.iOS,
+        onOpenPetDiary: widget.selectedPet == null ? null : widget.onOpenCare,
+        onRebookAppointment:
+            widget.selectedPet == null ? null : widget.onBrowseClinics,
+      ),
+      pets: OwnerPetsPage(
+        repository: widget.petsRepository,
+        platformOverride: TargetPlatform.iOS,
+        onPetSelected: (pet) {
+          widget.onPetSelected(pet);
+          _selectTab(0);
+        },
+        onOpenPetCare: (pet) {
+          widget.onPetSelected(pet);
+          widget.onOpenCare();
+        },
+      ),
+    );
+  }
+}
+
+class _OwnerIosHomeTab extends StatelessWidget {
+  const _OwnerIosHomeTab({
+    required this.selectedPet,
+    required this.appointmentsRepository,
+    required this.onBrowseClinics,
+    required this.onManagePets,
+    required this.onOpenAppointments,
+    required this.onOpenCare,
+    required this.onRequestTelemed,
+    required this.onRequestInsurance,
+    required this.onRequestEmergency,
+  });
+
+  final OwnerPet? selectedPet;
+  final OwnerAppointmentsRepository appointmentsRepository;
+  final VoidCallback onBrowseClinics;
+  final VoidCallback onManagePets;
+  final VoidCallback onOpenAppointments;
+  final VoidCallback onOpenCare;
+  final VoidCallback onRequestTelemed;
+  final VoidCallback onRequestInsurance;
+  final VoidCallback onRequestEmergency;
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoPageScaffold(
+      navigationBar: const CupertinoNavigationBar(
+        middle: Text('VetHelp'),
+        transitionBetweenRoutes: false,
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: OwnerHomePage(
+          platformOverride: TargetPlatform.iOS,
+          selectedPet: selectedPet,
+          appointmentsRepository: appointmentsRepository,
+          onBrowseClinics: onBrowseClinics,
+          onManagePets: onManagePets,
+          onOpenAppointments: onOpenAppointments,
+          onOpenCare: onOpenCare,
+          onRequestTelemed: onRequestTelemed,
+          onRequestInsurance: onRequestInsurance,
+          onRequestEmergency: onRequestEmergency,
+        ),
+      ),
+    );
+  }
 }
 
 class _GuestStartPage extends StatelessWidget {

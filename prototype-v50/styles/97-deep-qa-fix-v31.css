@@ -1,0 +1,89 @@
+/* VetHelp v31 — Deep QA fixes
+   Scope: mobile/tablet visual QA after v30, no business model changes. */
+
+/* The prototype state dock is useful for stakeholder review, but on phones its
+   long uppercase label covered primary CTAs and content. Keep the control,
+   collapse it to a small accessible gear, and keep it above bottom navigation. */
+@media (max-width: 760px) {
+  .prototype-state-dock {
+    right: 12px;
+    bottom: calc(var(--mobile-nav-h, 74px) + var(--safe-area-bottom, 0px) + 8px);
+    gap: 6px;
+    justify-items: end;
+  }
+
+  .prototype-state-dock::before {
+    display: none;
+    content: none;
+  }
+
+  .prototype-state-toggle {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 999px;
+    box-shadow: 0 10px 24px rgba(33, 73, 135, .18);
+  }
+
+  .prototype-state-toggle span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .prototype-state-toggle .vh-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .prototype-state-panel {
+    width: min(330px, calc(100vw - 24px));
+    max-height: min(58vh, 430px);
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+/* Add safe scroll space so the last CTA or clinic task card is not hidden by
+   the bottom navigation and the collapsed prototype control. */
+@media (max-width: 760px) {
+  .content {
+    padding-bottom: calc(var(--mobile-nav-h, 74px) + var(--safe-area-bottom, 0px) + 24px);
+  }
+
+  .page {
+    scroll-margin-bottom: calc(var(--mobile-nav-h, 74px) + 24px);
+  }
+}
+
+/* Mobile B2B pages should read as action cards, not squeezed desktop panels. */
+@media (max-width: 760px) {
+  #clinic-workspace .staff-action-radar,
+  #clinic-workspace .staff-panel,
+  #clinic-schedule .staff-panel,
+  #clinic-visit .staff-panel {
+    border-radius: 20px;
+  }
+
+  #clinic-workspace .workspace-metrics,
+  #clinic-schedule .workspace-metrics,
+  #clinic-visit .workspace-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Reduce accidental visual competition between the diagnostic map preview and
+   core booking/catalog decisions on small screens. */
+@media (max-width: 760px) {
+  .catalog-map,
+  .home-map-preview,
+  .map-preview {
+    min-height: 210px;
+  }
+}

@@ -1,5 +1,7 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../../presentation/platform/owner_platform.dart';
 import 'emergency_page.dart';
 import 'emergency_repository.dart';
 
@@ -8,9 +10,14 @@ const double _space = 16;
 const double _spaceLarge = 24;
 
 class EmergencyTriagePage extends StatefulWidget {
-  const EmergencyTriagePage({super.key, required this.repository});
+  const EmergencyTriagePage({
+    super.key,
+    required this.repository,
+    this.platformOverride,
+  });
 
   final EmergencyRepository repository;
+  final TargetPlatform? platformOverride;
 
   @override
   State<EmergencyTriagePage> createState() => _EmergencyTriagePageState();
@@ -22,6 +29,7 @@ class _EmergencyTriagePageState extends State<EmergencyTriagePage> {
   bool _acknowledged = false;
   bool _loading = false;
   bool _draftRestored = false;
+  bool _showTriage = false;
   String? _error;
   String? _draftMessage;
 
@@ -83,16 +91,23 @@ class _EmergencyTriagePageState extends State<EmergencyTriagePage> {
 
   void _openClinics({EmergencyTriageDecision? decision}) {
     final capabilities = decision?.requiredCapabilities;
-    Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
-      builder: (_) => EmergencyPage(
-        repository: widget.repository,
-        initialSpecies: _species,
-        initialCapabilities: capabilities == null || capabilities.isEmpty
-            ? const <String>['OXYGEN_SUPPORT']
-            : capabilities,
-        triageDecision: decision,
+    final usesCupertino = _usesCupertino(context);
+    Navigator.of(context).pushReplacement(
+      ownerPageRoute<void>(
+        context: context,
+        platform: usesCupertino ? TargetPlatform.iOS : widget.platformOverride,
+        builder: (_) => EmergencyPage(
+          repository: widget.repository,
+          initialSpecies: _species,
+          initialCapabilities: capabilities == null || capabilities.isEmpty
+              ? const <String>['OXYGEN_SUPPORT']
+              : capabilities,
+          triageDecision: decision,
+          platformOverride:
+              usesCupertino ? TargetPlatform.iOS : widget.platformOverride,
+        ),
       ),
-    ));
+    );
   }
 
   Future<void> _saveDraft() async {
@@ -118,6 +133,9 @@ class _EmergencyTriagePageState extends State<EmergencyTriagePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_usesCupertino(context)) {
+      return _buildCupertino(context);
+    }
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('Срочная помощь')),
@@ -220,6 +238,85 @@ class _EmergencyTriagePageState extends State<EmergencyTriagePage> {
       ),
     );
   }
+
+  bool _usesCupertino(BuildContext context) {
+    final themedPlatform =
+        context.findAncestorWidgetOfExactType<Theme>()?.data.platform;
+    return ownerUsesCupertino(
+      platform: widget.platformOverride ?? themedPlatform,
+    );
+  }
+
+  Widget _buildCupertino(BuildContext context) {
+    return CupertinoPageScaffold(
+      navigationBar: const CupertinoNavigationBar(
+        middle: Text('Срочная помощь'),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+          children: [
+            const _CupertinoEmergencyWarning(),
+            const SizedBox(height: _space),
+            _CupertinoPrimaryEmergencyAction(
+              onPressed: _loading ? null : () => _openClinics(),
+            ),
+            const SizedBox(height: _spaceSmall),
+            CupertinoButton(
+              minSize: 44,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              onPressed: _loading
+                  ? null
+                  : () => setState(() {
+                        _showTriage = true;
+                      }),
+              child: const Text('Уточнить, какая помощь нужна'),
+            ),
+            if (_draftMessage != null && !_showTriage) ...[
+              const SizedBox(height: _spaceSmall),
+              _CupertinoDraftStatusBanner(
+                message: _draftMessage!,
+                restored: _draftRestored,
+                onClear: _loading ? null : _clearDraft,
+              ),
+            ],
+            if (_showTriage) ...[
+              const SizedBox(height: _spaceLarge),
+              _CupertinoTriageForm(
+                species: _species,
+                signals: _signals,
+                acknowledged: _acknowledged,
+                loading: _loading,
+                error: _error,
+                draftMessage: _draftMessage,
+                draftRestored: _draftRestored,
+                onSpeciesChanged: (value) {
+                  setState(() => _species = value);
+                  _saveDraft();
+                },
+                onSignalsChanged: (next) {
+                  setState(() {
+                    _signals
+                      ..clear()
+                      ..addAll(next);
+                  });
+                  _saveDraft();
+                },
+                onAcknowledgedChanged: (value) {
+                  setState(() => _acknowledged = value);
+                  _saveDraft();
+                },
+                onSubmit: _submit,
+                onOpenClinics: () => _openClinics(),
+                onClearDraft: _clearDraft,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _SafetyCard extends StatelessWidget {
@@ -241,6 +338,518 @@ class _SafetyCard extends StatelessWidget {
             const Expanded(
               child: Text(
                   'Если питомец задыхается, потерял сознание, идёт сильное кровотечение или были судороги, не ждите: звоните в срочную клинику.'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CupertinoEmergencyWarning extends StatelessWidget {
+  const _CupertinoEmergencyWarning({this.redFlag = false});
+
+  final bool redFlag;
+
+  @override
+  Widget build(BuildContext context) {
+    final message = redFlag
+        ? 'Не ждите онлайн-ответа. Откройте срочные клиники или позвоните.'
+        : 'Если питомец задыхается, потерял сознание, идёт сильное кровотечение или были судороги, не ждите онлайн-ответа.';
+    return Semantics(
+      liveRegion: true,
+      label: 'Важное предупреждение. $message',
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: CupertinoDynamicColor.resolve(
+            CupertinoColors.systemRed.withValues(alpha: 0.16),
+            context,
+          ),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: CupertinoDynamicColor.resolve(
+              CupertinoColors.systemRed,
+              context,
+            ),
+            width: 1.2,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                CupertinoIcons.exclamationmark_triangle_fill,
+                color: CupertinoDynamicColor.resolve(
+                  CupertinoColors.systemRed,
+                  context,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  message,
+                  style:
+                      CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CupertinoPrimaryEmergencyAction extends StatelessWidget {
+  const _CupertinoPrimaryEmergencyAction({required this.onPressed});
+
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Найти срочную клинику сейчас',
+      child: CupertinoButton(
+        minSize: 52,
+        color: CupertinoColors.systemRed,
+        borderRadius: BorderRadius.circular(16),
+        onPressed: onPressed,
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(CupertinoIcons.location_fill, color: CupertinoColors.white),
+            SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                'Найти срочную клинику сейчас',
+                style: TextStyle(
+                  color: CupertinoColors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CupertinoTriageForm extends StatelessWidget {
+  const _CupertinoTriageForm({
+    required this.species,
+    required this.signals,
+    required this.acknowledged,
+    required this.loading,
+    required this.error,
+    required this.draftMessage,
+    required this.draftRestored,
+    required this.onSpeciesChanged,
+    required this.onSignalsChanged,
+    required this.onAcknowledgedChanged,
+    required this.onSubmit,
+    required this.onOpenClinics,
+    required this.onClearDraft,
+  });
+
+  final String species;
+  final Set<String> signals;
+  final bool acknowledged;
+  final bool loading;
+  final String? error;
+  final String? draftMessage;
+  final bool draftRestored;
+  final ValueChanged<String> onSpeciesChanged;
+  final ValueChanged<Set<String>> onSignalsChanged;
+  final ValueChanged<bool> onAcknowledgedChanged;
+  final VoidCallback onSubmit;
+  final VoidCallback onOpenClinics;
+  final VoidCallback onClearDraft;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasRedFlag = signals.any(_isRedFlagSignal);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Уточнить помощь',
+          style: CupertinoTheme.of(context)
+              .textTheme
+              .navTitleTextStyle
+              .copyWith(fontSize: 22),
+        ),
+        const SizedBox(height: _spaceSmall),
+        Text(
+          'Ответы помогут подобрать профиль клиники. Это не диагноз.',
+          style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                color: CupertinoDynamicColor.resolve(
+                  CupertinoColors.secondaryLabel,
+                  context,
+                ),
+              ),
+        ),
+        if (hasRedFlag) ...[
+          const SizedBox(height: _space),
+          const _CupertinoEmergencyWarning(redFlag: true),
+        ],
+        const SizedBox(height: _space),
+        _CupertinoGroupedPanel(
+          title: 'Питомец',
+          child: CupertinoSlidingSegmentedControl<String>(
+            groupValue: species,
+            children: const {
+              'DOG': Padding(
+                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                child: Text('Собака'),
+              ),
+              'CAT': Padding(
+                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                child: Text('Кошка'),
+              ),
+              'OTHER': Padding(
+                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                child: Text('Другой'),
+              ),
+            },
+            onValueChanged: (value) {
+              if (loading || value == null) return;
+              onSpeciesChanged(value);
+            },
+          ),
+        ),
+        const SizedBox(height: _space),
+        _CupertinoGroupedPanel(
+          title: 'Что происходит сейчас',
+          child: _CupertinoSignalList(
+            selected: signals,
+            enabled: !loading,
+            onChanged: onSignalsChanged,
+          ),
+        ),
+        const SizedBox(height: _space),
+        _CupertinoDisclaimerRow(
+          acknowledged: acknowledged,
+          enabled: !loading,
+          onChanged: onAcknowledgedChanged,
+        ),
+        if (error != null) ...[
+          const SizedBox(height: _spaceSmall),
+          _CupertinoTriageError(message: error!),
+        ],
+        if (draftMessage != null) ...[
+          const SizedBox(height: _spaceSmall),
+          _CupertinoDraftStatusBanner(
+            message: draftMessage!,
+            restored: draftRestored,
+            onClear: loading ? null : onClearDraft,
+          ),
+        ],
+        const SizedBox(height: _space),
+        CupertinoButton(
+          minSize: 52,
+          color: acknowledged
+              ? CupertinoColors.activeBlue
+              : CupertinoDynamicColor.resolve(
+                  CupertinoColors.tertiarySystemFill,
+                  context,
+                ),
+          borderRadius: BorderRadius.circular(16),
+          onPressed: acknowledged && !loading ? onSubmit : null,
+          child: loading
+              ? const CupertinoActivityIndicator(color: CupertinoColors.white)
+              : Text(
+                  acknowledged
+                      ? 'Проверить симптомы'
+                      : 'Подтвердите дисклеймер',
+                  style: TextStyle(
+                    color: acknowledged
+                        ? CupertinoColors.white
+                        : CupertinoDynamicColor.resolve(
+                            CupertinoColors.secondaryLabel,
+                            context,
+                          ),
+                  ),
+                ),
+        ),
+        const SizedBox(height: _spaceSmall),
+        _CupertinoPrimaryEmergencyAction(
+          onPressed: loading ? null : onOpenClinics,
+        ),
+      ],
+    );
+  }
+}
+
+class _CupertinoGroupedPanel extends StatelessWidget {
+  const _CupertinoGroupedPanel({
+    required this.title,
+    required this.child,
+  });
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: CupertinoDynamicColor.resolve(
+          CupertinoColors.secondarySystemGroupedBackground,
+          context,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: CupertinoDynamicColor.resolve(
+            CupertinoColors.separator,
+            context,
+          ),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: CupertinoTheme.of(context)
+                  .textTheme
+                  .navTitleTextStyle
+                  .copyWith(fontSize: 18),
+            ),
+            const SizedBox(height: 12),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CupertinoSignalList extends StatelessWidget {
+  const _CupertinoSignalList({
+    required this.selected,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final Set<String> selected;
+  final bool enabled;
+  final ValueChanged<Set<String>> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var index = 0; index < _signals.length; index++) ...[
+          if (index > 0)
+            Padding(
+              padding: const EdgeInsets.only(left: 34),
+              child: ColoredBox(
+                color: CupertinoDynamicColor.resolve(
+                  CupertinoColors.separator,
+                  context,
+                ),
+                child: const SizedBox(height: 0.5, width: double.infinity),
+              ),
+            ),
+          _CupertinoSignalRow(
+            signal: _signals[index],
+            selected: selected.contains(_signals[index].code),
+            enabled: enabled,
+            onChanged: (value) {
+              final next = Set<String>.from(selected);
+              if (value) {
+                next.add(_signals[index].code);
+              } else {
+                next.remove(_signals[index].code);
+              }
+              onChanged(next);
+            },
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _CupertinoSignalRow extends StatelessWidget {
+  const _CupertinoSignalRow({
+    required this.signal,
+    required this.selected,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final _SignalOption signal;
+  final bool selected;
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      toggled: selected,
+      enabled: enabled,
+      label: signal.label,
+      child: CupertinoButton(
+        minSize: 44,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        onPressed: enabled ? () => onChanged(!selected) : null,
+        child: Row(
+          children: [
+            Icon(
+              _cupertinoSignalIcon(signal.code),
+              size: 22,
+              color: CupertinoDynamicColor.resolve(
+                _isRedFlagSignal(signal.code)
+                    ? CupertinoColors.systemRed
+                    : CupertinoColors.activeBlue,
+                context,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                signal.label,
+                style: CupertinoTheme.of(context).textTheme.textStyle,
+              ),
+            ),
+            Icon(
+              selected
+                  ? CupertinoIcons.check_mark_circled_solid
+                  : CupertinoIcons.circle,
+              color: selected
+                  ? CupertinoColors.activeBlue
+                  : CupertinoDynamicColor.resolve(
+                      CupertinoColors.tertiaryLabel,
+                      context,
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CupertinoDisclaimerRow extends StatelessWidget {
+  const _CupertinoDisclaimerRow({
+    required this.acknowledged,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final bool acknowledged;
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: CupertinoDynamicColor.resolve(
+          CupertinoColors.secondarySystemGroupedBackground,
+          context,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: CupertinoDynamicColor.resolve(
+            CupertinoColors.separator,
+            context,
+          ),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CupertinoSwitch(
+              value: acknowledged,
+              onChanged: enabled ? onChanged : null,
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Понимаю: это не диагноз. При тяжёлом состоянии нужно звонить в клинику сразу.',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CupertinoTriageError extends StatelessWidget {
+  const _CupertinoTriageError({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      liveRegion: true,
+      child: Text(
+        _safeEmergencyMessage(message),
+        style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+              color: CupertinoDynamicColor.resolve(
+                CupertinoColors.systemRed,
+                context,
+              ),
+            ),
+      ),
+    );
+  }
+}
+
+class _CupertinoDraftStatusBanner extends StatelessWidget {
+  const _CupertinoDraftStatusBanner({
+    required this.message,
+    required this.restored,
+    required this.onClear,
+  });
+
+  final String message;
+  final bool restored;
+  final VoidCallback? onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: CupertinoDynamicColor.resolve(
+          CupertinoColors.tertiarySystemFill,
+          context,
+        ),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            const Icon(CupertinoIcons.doc_text),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                restored ? '$message. Это не медицинское заключение.' : message,
+                style: CupertinoTheme.of(context).textTheme.textStyle,
+              ),
+            ),
+            CupertinoButton(
+              minSize: 44,
+              padding: EdgeInsets.zero,
+              onPressed: onClear,
+              child: const Icon(CupertinoIcons.xmark_circle),
             ),
           ],
         ),
@@ -373,4 +982,39 @@ String _messageFor(String code) {
     _ =>
       'Не удалось проверить симптомы. Можно открыть список срочных клиник сразу.',
   };
+}
+
+bool _isRedFlagSignal(String code) => const <String>{
+      'BREATHING_DISTRESS',
+      'COLLAPSE_OR_UNCONSCIOUS',
+      'SEIZURE',
+      'SEVERE_BLEEDING',
+      'MAJOR_TRAUMA',
+      'TOXIN_INGESTION',
+      'BLOAT_OR_BLOCKED_URINATION',
+    }.contains(code);
+
+IconData _cupertinoSignalIcon(String code) => switch (code) {
+      'BREATHING_DISTRESS' => CupertinoIcons.wind,
+      'COLLAPSE_OR_UNCONSCIOUS' => CupertinoIcons.exclamationmark_triangle_fill,
+      'SEIZURE' => CupertinoIcons.bolt,
+      'SEVERE_BLEEDING' => CupertinoIcons.drop,
+      'MAJOR_TRAUMA' => CupertinoIcons.bandage,
+      'TOXIN_INGESTION' => CupertinoIcons.lab_flask,
+      'BLOAT_OR_BLOCKED_URINATION' => CupertinoIcons.exclamationmark_circle,
+      'PERSISTENT_VOMITING_DIARRHEA' => CupertinoIcons.drop_triangle,
+      'PAIN_OR_LAMENESS' => CupertinoIcons.bandage,
+      'SKIN_EAR_EYE' => CupertinoIcons.eye,
+      'ROUTINE_QUESTION' => CupertinoIcons.calendar,
+      _ => CupertinoIcons.question_circle,
+    };
+
+String _safeEmergencyMessage(String message) {
+  final hasTechnicalToken =
+      RegExp(r'\b[A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+\b').hasMatch(message);
+  final hasHttpStatus = RegExp(r'\b[45]\d\d\b').hasMatch(message);
+  if (hasTechnicalToken || hasHttpStatus) {
+    return 'Не удалось проверить симптомы. Можно открыть список срочных клиник сразу.';
+  }
+  return message;
 }

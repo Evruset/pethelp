@@ -1,8 +1,11 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../presentation/platform/owner_platform.dart';
+import '../../../presentation/widgets/owner_cupertino_feedback.dart';
 import 'telemed_live_call_view.dart';
 import 'telemed_room_access_repository.dart';
 import 'telemed_waiting_room_bloc.dart';
@@ -20,6 +23,7 @@ class TelemedWaitingRoomPage extends StatelessWidget {
     required this.roomAccessRepository,
     this.onBrowseClinics,
     this.liveCallBuilder,
+    this.platformOverride,
   });
 
   final String sessionId;
@@ -27,6 +31,7 @@ class TelemedWaitingRoomPage extends StatelessWidget {
   final TelemedRoomAccessRepository roomAccessRepository;
   final VoidCallback? onBrowseClinics;
   final TelemedLiveCallBuilder? liveCallBuilder;
+  final TargetPlatform? platformOverride;
 
   @override
   Widget build(BuildContext context) {
@@ -38,19 +43,75 @@ class TelemedWaitingRoomPage extends StatelessWidget {
       child: _TelemedWaitingRoomView(
         onBrowseClinics: onBrowseClinics,
         liveCallBuilder: liveCallBuilder,
+        platformOverride: platformOverride,
       ),
     );
   }
 }
 
 class _TelemedWaitingRoomView extends StatelessWidget {
-  const _TelemedWaitingRoomView({this.onBrowseClinics, this.liveCallBuilder});
+  const _TelemedWaitingRoomView({
+    this.onBrowseClinics,
+    this.liveCallBuilder,
+    this.platformOverride,
+  });
 
   final VoidCallback? onBrowseClinics;
   final TelemedLiveCallBuilder? liveCallBuilder;
+  final TargetPlatform? platformOverride;
 
   @override
   Widget build(BuildContext context) {
+    if (_usesCupertino(context)) {
+      return CupertinoPageScaffold(
+        navigationBar: const CupertinoNavigationBar(
+          middle: Text('Консультация VetHelp'),
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: BlocBuilder<TelemedWaitingBloc, TelemedWaitingState>(
+            builder: (context, state) {
+              return switch (state) {
+                TelemedWaitingLoading() => const _CupertinoWaitingSkeleton(),
+                TelemedWaitingForDoctor(
+                  snapshot: final snapshot,
+                  cancelError: final cancelError,
+                ) =>
+                  _CupertinoWaitingForDoctor(
+                    snapshot: snapshot,
+                    cancelError: cancelError,
+                    onBrowseClinics: onBrowseClinics,
+                  ),
+                TelemedWaitingCancelling(snapshot: final snapshot) =>
+                  _CupertinoWaitingForDoctor(
+                    snapshot: snapshot,
+                    isCancelling: true,
+                    onBrowseClinics: onBrowseClinics,
+                  ),
+                TelemedConnectingRoom() => const _CupertinoConnectingRoom(),
+                TelemedRoomReady(access: final access) => _RoomReady(
+                    access: access,
+                    liveCallBuilder: liveCallBuilder,
+                  ),
+                TelemedDoctorTimeout(snapshot: final snapshot) =>
+                  _CupertinoDoctorTimeout(
+                    snapshot: snapshot,
+                    onBrowseClinics: onBrowseClinics,
+                  ),
+                TelemedCompleted() => const _CupertinoCompleted(),
+                TelemedCancelled(snapshot: final snapshot) =>
+                  _CupertinoCancelled(
+                    snapshot: snapshot,
+                    onBrowseClinics: onBrowseClinics,
+                  ),
+                TelemedWaitingError(message: final message) =>
+                  _CupertinoWaitingError(message: message),
+              };
+            },
+          ),
+        ),
+      );
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('Консультация VetHelp')),
       body: BlocBuilder<TelemedWaitingBloc, TelemedWaitingState>(
@@ -86,6 +147,12 @@ class _TelemedWaitingRoomView extends StatelessWidget {
       ),
     );
   }
+
+  bool _usesCupertino(BuildContext context) {
+    final themedPlatform =
+        context.findAncestorWidgetOfExactType<Theme>()?.data.platform;
+    return ownerUsesCupertino(platform: platformOverride ?? themedPlatform);
+  }
 }
 
 class _WaitingSkeleton extends StatelessWidget {
@@ -103,6 +170,15 @@ class _WaitingSkeleton extends StatelessWidget {
         _PlaceholderCard(height: 72),
       ],
     );
+  }
+}
+
+class _CupertinoWaitingSkeleton extends StatelessWidget {
+  const _CupertinoWaitingSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(child: CupertinoActivityIndicator());
   }
 }
 
@@ -243,6 +319,191 @@ class _WaitingForDoctor extends StatelessWidget {
   }
 }
 
+class _CupertinoWaitingForDoctor extends StatelessWidget {
+  const _CupertinoWaitingForDoctor({
+    required this.snapshot,
+    this.isCancelling = false,
+    this.cancelError,
+    this.onBrowseClinics,
+  });
+
+  final TelemedWaitingSnapshot snapshot;
+  final bool isCancelling;
+  final String? cancelError;
+  final VoidCallback? onBrowseClinics;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(0, 12, 0, 24),
+            children: [
+              CupertinoListSection.insetGrouped(
+                header: const Text('Статус'),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Semantics(
+                      liveRegion: true,
+                      label:
+                          'Ожидаем врача. Следующее действие: оставайтесь на экране и проверяйте статус.',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Icon(CupertinoIcons.hourglass, size: 48),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Ожидаем подключения врача',
+                            style: CupertinoTheme.of(context)
+                                .textTheme
+                                .navTitleTextStyle
+                                .copyWith(fontSize: 22),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Мы не обещаем подключение до подтверждённого backend state. Обновите статус, если экран долго не меняется.',
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: _CupertinoServerCountdown(snapshot: snapshot),
+                  ),
+                ],
+              ),
+              CupertinoListSection.insetGrouped(
+                header: const Text('Безопасность'),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          'При ухудшении состояния питомца не ждите консультацию.',
+                        ),
+                        if (onBrowseClinics != null) ...[
+                          const SizedBox(height: 10),
+                          CupertinoButton(
+                            minSize: 44,
+                            color: CupertinoDynamicColor.resolve(
+                              CupertinoColors.tertiarySystemFill,
+                              context,
+                            ),
+                            borderRadius: BorderRadius.circular(14),
+                            onPressed: onBrowseClinics,
+                            child: const Text('Выбрать клинику'),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (cancelError != null)
+                CupertinoListSection.insetGrouped(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Semantics(
+                        liveRegion: true,
+                        child: Text(
+                          _safeWaitingText(cancelError!),
+                          style: TextStyle(
+                            color: CupertinoDynamicColor.resolve(
+                              CupertinoColors.systemRed,
+                              context,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ),
+        SafeArea(
+          minimum: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              CupertinoButton.filled(
+                minSize: 52,
+                onPressed: isCancelling
+                    ? null
+                    : () => context
+                        .read<TelemedWaitingBloc>()
+                        .add(const TelemedWaitingRefreshRequested()),
+                child: const Text('Проверить статус'),
+              ),
+              const SizedBox(height: 8),
+              CupertinoButton(
+                minSize: 52,
+                color: CupertinoDynamicColor.resolve(
+                  CupertinoColors.tertiarySystemFill,
+                  context,
+                ),
+                borderRadius: BorderRadius.circular(14),
+                onPressed: isCancelling ? null : () => _confirmCancel(context),
+                child: isCancelling
+                    ? const CupertinoActivityIndicator()
+                    : Text(
+                        'Отменить консультацию',
+                        style: TextStyle(
+                          color: CupertinoDynamicColor.resolve(
+                            CupertinoColors.systemRed,
+                            context,
+                          ),
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _confirmCancel(BuildContext context) async {
+    final confirmed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (dialogContext) => CupertinoAlertDialog(
+        title: const Text('Отменить онлайн-консультацию?'),
+        content: const Padding(
+          padding: EdgeInsets.only(top: 8),
+          child: Text(
+            'Если врач ещё не подключился, VetHelp отменит ожидание и поставит отмену авторизации оплаты в очередь.',
+          ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Продолжить ожидание'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Да, отменить'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      context
+          .read<TelemedWaitingBloc>()
+          .add(const TelemedWaitingCancelRequested());
+    }
+  }
+}
+
 class _CancelConfirmationSheet extends StatelessWidget {
   const _CancelConfirmationSheet();
 
@@ -282,6 +543,70 @@ class _CancelConfirmationSheet extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _CupertinoServerCountdown extends StatefulWidget {
+  const _CupertinoServerCountdown({required this.snapshot});
+
+  final TelemedWaitingSnapshot snapshot;
+
+  @override
+  State<_CupertinoServerCountdown> createState() =>
+      _CupertinoServerCountdownState();
+}
+
+class _CupertinoServerCountdownState extends State<_CupertinoServerCountdown> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final remaining = widget.snapshot.remainingAt(DateTime.now().toUtc());
+    final totalSeconds = remaining.inSeconds.clamp(0, 3600);
+    final minutes = (totalSeconds ~/ 60).toString().padLeft(2, '0');
+    final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
+    final critical = totalSeconds <= 30;
+    return Semantics(
+      liveRegion: critical,
+      label: critical
+          ? 'Проверяем статус подключения врача.'
+          : 'Ожидаем врача. Осталось $minutes минут $seconds секунд.',
+      child: Row(
+        children: [
+          Icon(
+            critical
+                ? CupertinoIcons.exclamationmark_triangle
+                : CupertinoIcons.clock,
+            color: critical
+                ? CupertinoDynamicColor.resolve(
+                    CupertinoColors.systemRed,
+                    context,
+                  )
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              critical
+                  ? 'Проверяем статус подключения'
+                  : 'Ожидаем врача: $minutes:$seconds',
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -343,6 +668,24 @@ class _ConnectingRoom extends StatelessWidget {
       SizedBox(height: 16),
       Text('Врач подключился. Готовим консультацию...')
     ]));
+  }
+}
+
+class _CupertinoConnectingRoom extends StatelessWidget {
+  const _CupertinoConnectingRoom();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CupertinoActivityIndicator(),
+          SizedBox(height: 16),
+          Text('Врач подключился. Готовим консультацию...'),
+        ],
+      ),
+    );
   }
 }
 
@@ -415,12 +758,50 @@ class _DoctorTimeout extends StatelessWidget {
   }
 }
 
+class _CupertinoDoctorTimeout extends StatelessWidget {
+  const _CupertinoDoctorTimeout({required this.snapshot, this.onBrowseClinics});
+
+  final TelemedWaitingSnapshot snapshot;
+  final VoidCallback? onBrowseClinics;
+
+  @override
+  Widget build(BuildContext context) {
+    return _CupertinoTerminalState(
+      icon: CupertinoIcons.clock,
+      title: 'Врач не вышел на связь',
+      message: _doctorTimeoutMessage(snapshot.refundState),
+      onBrowseClinics: onBrowseClinics,
+      primaryLabel: 'Выбрать клинику',
+      primaryAction: onBrowseClinics == null
+          ? null
+          : () {
+              final navigator = Navigator.of(context);
+              if (navigator.canPop()) navigator.pop();
+              onBrowseClinics?.call();
+            },
+    );
+  }
+}
+
 class _Completed extends StatelessWidget {
   const _Completed();
 
   @override
   Widget build(BuildContext context) {
     return const Center(child: Text('Консультация завершена'));
+  }
+}
+
+class _CupertinoCompleted extends StatelessWidget {
+  const _CupertinoCompleted();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _CupertinoTerminalState(
+      icon: CupertinoIcons.check_mark_circled,
+      title: 'Консультация завершена',
+      message: 'Рекомендации врача появятся в истории консультаций.',
+    );
   }
 }
 
@@ -480,6 +861,102 @@ class _Cancelled extends StatelessWidget {
   }
 }
 
+class _CupertinoCancelled extends StatelessWidget {
+  const _CupertinoCancelled({required this.snapshot, this.onBrowseClinics});
+
+  final TelemedWaitingSnapshot snapshot;
+  final VoidCallback? onBrowseClinics;
+
+  @override
+  Widget build(BuildContext context) {
+    return _CupertinoTerminalState(
+      icon: CupertinoIcons.check_mark_circled,
+      title: 'Консультация отменена',
+      message: _cancelledMessage(snapshot.refundState),
+      primaryLabel: 'Вернуться к истории',
+      primaryAction: () => Navigator.of(context).pop(),
+      secondaryLabel: onBrowseClinics == null ? null : 'Выбрать клинику',
+      secondaryAction: onBrowseClinics == null
+          ? null
+          : () {
+              final navigator = Navigator.of(context);
+              if (navigator.canPop()) navigator.pop();
+              onBrowseClinics?.call();
+            },
+    );
+  }
+}
+
+class _CupertinoTerminalState extends StatelessWidget {
+  const _CupertinoTerminalState({
+    required this.icon,
+    required this.title,
+    required this.message,
+    this.primaryLabel,
+    this.primaryAction,
+    this.secondaryLabel,
+    this.secondaryAction,
+    this.onBrowseClinics,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final String? primaryLabel;
+  final VoidCallback? primaryAction;
+  final String? secondaryLabel;
+  final VoidCallback? secondaryAction;
+  final VoidCallback? onBrowseClinics;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Icon(icon, size: 56),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: CupertinoTheme.of(context)
+                  .textTheme
+                  .navTitleTextStyle
+                  .copyWith(fontSize: 22),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(message, textAlign: TextAlign.center),
+            if (primaryLabel != null && primaryAction != null) ...[
+              const SizedBox(height: 20),
+              CupertinoButton.filled(
+                minSize: 44,
+                onPressed: primaryAction,
+                child: Text(primaryLabel!),
+              ),
+            ],
+            if (secondaryLabel != null && secondaryAction != null) ...[
+              const SizedBox(height: 8),
+              CupertinoButton(
+                minSize: 44,
+                color: CupertinoDynamicColor.resolve(
+                  CupertinoColors.tertiarySystemFill,
+                  context,
+                ),
+                borderRadius: BorderRadius.circular(14),
+                onPressed: secondaryAction,
+                child: Text(secondaryLabel!),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _Error extends StatelessWidget {
   const _Error({required this.message});
 
@@ -491,6 +968,21 @@ class _Error extends StatelessWidget {
         child: Padding(
             padding: const EdgeInsets.all(24),
             child: Text(message, textAlign: TextAlign.center)));
+  }
+}
+
+class _CupertinoWaitingError extends StatelessWidget {
+  const _CupertinoWaitingError({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return OwnerCupertinoEmptyState(
+      icon: CupertinoIcons.cloud,
+      title: 'Не удалось обновить консультацию',
+      message: _safeWaitingText(message),
+    );
   }
 }
 
@@ -513,6 +1005,16 @@ String _doctorTimeoutMessage(String? refundState) => switch (refundState) {
       'NOT_REQUIRED' => 'Оплата не требовала дополнительных действий.',
       _ => 'Проверяем автоматическую отмену авторизации оплаты.',
     };
+
+String _safeWaitingText(String value) {
+  final hasTechnicalToken =
+      RegExp(r'\b[A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+\b').hasMatch(value);
+  final hasHttpStatus = RegExp(r'\b[45]\d\d\b').hasMatch(value);
+  if (hasTechnicalToken || hasHttpStatus) {
+    return 'Статус консультации обновляется. Попробуйте проверить ещё раз.';
+  }
+  return value;
+}
 
 class _PlaceholderCard extends StatelessWidget {
   const _PlaceholderCard({required this.height});

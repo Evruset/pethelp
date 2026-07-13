@@ -1,0 +1,292 @@
+/* v19: final layout polish requested after v18. */
+#home .home-map-link-row {
+  align-items: center;
+  margin-block-end: 10px;
+}
+
+#home .map-section-label {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 18px;
+  line-height: 1.25;
+  font-weight: 850;
+  color: var(--ink, #17233c);
+}
+
+#home .home-map-title-copy,
+#home .home-map-link-row small {
+  display: none;
+}
+
+/* Appointment thumbnails: show the whole photo inside the square instead of cropping landscape clinic photos. */
+.appointment-card .appt-photo {
+  display: grid;
+  place-items: center;
+  inline-size: 92px;
+  block-size: 92px;
+  border-radius: 22px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #f8fbff 0%, #eaf3ff 100%);
+}
+
+.appointment-card .appt-photo > img {
+  inline-size: 100%;
+  block-size: 100%;
+  box-sizing: border-box;
+  padding: 6px;
+  object-fit: contain;
+  object-position: center;
+  border-radius: 18px;
+}
+
+.appointment-card[href="#telemed"] .appt-photo > img,
+.appointment-card[href="#telemed-summary"] .appt-photo > img {
+  padding: 0;
+  object-fit: cover;
+  object-position: center 22%;
+}
+
+/* Native booking select uses the same VetHelp control language as insurance selects. */
+.booking-service-field {
+  display: grid;
+  gap: 8px;
+  margin-block-end: 14px;
+}
+
+.booking-service-field > span {
+  font-weight: 850;
+  color: var(--ink, #17233c);
+}
+
+.booking-service-field select,
+.booking-service-field .vh-design-select {
+  inline-size: 100%;
+  min-block-size: 46px;
+  border: 1px solid rgba(121, 151, 195, .38);
+  border-radius: 16px;
+  padding: 0 44px 0 14px;
+  color: var(--ink, #16233c);
+  background:
+    linear-gradient(45deg, transparent 50%, #5272a8 50%) calc(100% - 22px) 50% / 7px 7px no-repeat,
+    linear-gradient(135deg, #5272a8 50%, transparent 50%) calc(100% - 16px) 50% / 7px 7px no-repeat,
+    rgba(255, 255, 255, .86);
+  box-shadow: 0 10px 26px rgba(25, 75, 135, .08);
+  font: inherit;
+  font-weight: 750;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.booking-service-field select:focus-visible,
+.booking-service-field .vh-design-select:focus-visible {
+  outline: 3px solid var(--focus-ring, #0b62df);
+  outline-offset: 3px;
+}
+
+.booking-service-field small {
+  display: block;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+/* Alternative slots are now a service-option-like row: left date, middle copy, right state/chevron. */
+.alt-slot {
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-block-size: 74px;
+  padding: 13px 15px;
+  text-align: start;
+}
+
+.alt-date {
+  inline-size: 64px;
+  block-size: 52px;
+  display: grid;
+  place-items: start;
+  align-content: center;
+  justify-content: start;
+  gap: 3px;
+  padding: 8px 10px;
+  border-radius: 16px;
+  background: rgba(73, 139, 255, .12);
+  color: var(--blue, #2f75de);
+  box-sizing: border-box;
+  text-align: start;
+}
+
+.alt-date b,
+.alt-date small,
+.alt-slot-copy strong,
+.alt-slot-copy small {
+  display: block;
+}
+
+.alt-date b {
+  font-size: 20px;
+  line-height: .95;
+}
+
+.alt-date small {
+  margin-block-start: 2px;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 850;
+  color: currentColor;
+}
+
+.alt-slot-copy {
+  min-inline-size: 0;
+  display: grid;
+  gap: 5px;
+  justify-items: start;
+  text-align: start;
+}
+
+.alt-slot-copy strong {
+  font-size: 18px;
+  line-height: 1.16;
+}
+
+.alt-slot-copy small {
+  line-height: 1.32;
+  overflow-wrap: anywhere;
+}
+
+.alt-slot > .pill,
+.alt-slot-chevron {
+  justify-self: end;
+  white-space: nowrap;
+}
+
+/* Doctor detail: compact two-zone component, not giant portrait + giant pills. */
+#doctor-detail .doctor-profile-photo.doctor-profile-card {
+  display: grid;
+  grid-template-columns: minmax(155px, 0.92fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+  min-block-size: 260px;
+  padding: 14px;
+  border-radius: 28px;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(244, 249, 255, .96), rgba(232, 243, 255, .92));
+}
+
+#doctor-detail .doctor-profile-media {
+  min-inline-size: 0;
+  min-block-size: 230px;
+  overflow: hidden;
+  border-radius: 22px;
+  background: #eaf3ff;
+  box-shadow: 0 16px 34px rgba(25, 75, 135, .12);
+}
+
+#doctor-detail .doctor-profile-media .doctor-profile-portrait {
+  inline-size: 100%;
+  block-size: 100%;
+  min-block-size: 230px;
+  max-block-size: none;
+  display: block;
+  object-fit: cover;
+  object-position: center 14%;
+  padding: 0;
+}
+
+#doctor-detail .doctor-specialty-panel {
+  min-inline-size: 0;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 2px;
+}
+
+#doctor-detail .doctor-specialty-title {
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 900;
+  color: var(--muted, #627392);
+  margin-block-end: 2px;
+}
+
+#doctor-detail .doctor-specialty-panel .specialty-pill {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-block-size: 46px;
+  padding: 10px 12px;
+  border-radius: 17px;
+  background: rgba(255, 255, 255, .72);
+  border: 1px solid rgba(171, 196, 234, .38);
+  color: #3d5f96;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.22;
+}
+
+#doctor-detail .doctor-specialty-panel .specialty-pill img {
+  inline-size: 22px;
+  block-size: 22px;
+  object-fit: contain;
+  justify-self: center;
+}
+
+#doctor-detail .doctor-specialty-panel .specialty-pill span:last-child {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.add-on-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.3;
+}
+
+.add-on-status img,
+.add-on-status .vh-icon {
+  inline-size: 18px;
+  block-size: 18px;
+  flex: 0 0 18px;
+  object-fit: contain;
+}
+
+@media (min-width: 768px) and (max-width: 1120px) {
+  #doctor-detail .doctor-profile-photo.doctor-profile-card {
+    grid-template-columns: minmax(140px, .8fr) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .appointment-card .appt-photo {
+    inline-size: 72px;
+    block-size: 72px;
+  }
+
+  .appointment-card .appt-photo > img {
+    padding: 5px;
+  }
+
+  .alt-slot {
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+
+  .alt-slot > .pill,
+  .alt-slot-chevron {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  #doctor-detail .doctor-profile-photo.doctor-profile-card {
+    grid-template-columns: 1fr;
+    padding: 12px;
+  }
+
+  #doctor-detail .doctor-profile-media {
+    min-block-size: 260px;
+  }
+
+  #doctor-detail .doctor-specialty-panel {
+    grid-template-columns: 1fr;
+  }
+}

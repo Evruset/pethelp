@@ -112,14 +112,12 @@ export class BookingHoldCreationService {
 
         const initialState: HoldState = requiresMisReservation
           ? 'MIS_RESERVATION_PENDING'
-          : featureFlags.FEATURE_MIS_INTEGRATION
-            ? 'MANUAL_CONFIRM_PENDING'
-            : 'CONFIRMED';
+          : 'CONFIRMED';
 
         /*
-         * The 15-minute clinic SLA is set atomically with the Level-C hold.
-         * A one-minute grace on expires_at guarantees the SLA worker wins the
-         * race against the generic TTL worker and can record SLA_BREACHED.
+         * Manual SLA fields are kept for legacy/manual states. Owner catalog
+         * Level-C booking is finalized atomically below and does not enter the
+         * clinic confirmation queue.
          */
         const hold = await client.query<HoldRow>(`
           INSERT INTO booking_schema.booking_holds (
@@ -193,6 +191,7 @@ export class BookingHoldCreationService {
             input.correlationId,
             JSON.stringify({ slotId: input.slotId, clinicLocationId: slot.clinic_location_id, autoApproved: true }),
           ]);
+          result.appointmentId = appointment.rows[0].id;
           await this.writeOutbox(client, 'booking.confirmed.v1', input.correlationId, hold.rows[0].id, hold.rows[0].version, {
             holdId: hold.rows[0].id,
             appointmentId: appointment.rows[0].id,

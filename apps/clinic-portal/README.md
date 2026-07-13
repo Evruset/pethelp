@@ -48,6 +48,26 @@ docker compose -p "$PROJECT" -f "$REPO/docker-compose.local.yml" exec -T backend
 - **«Подтвердить»** переводит заявку через backend workflow и она исчезает из списка `MANUAL_CONFIRM_PENDING`;
 - **«Другое время»** открывает drawer, где предложение альтернативного слота переводит исходную заявку в `ALTERNATIVE_PENDING`; очередь также обновляется authoritative snapshot.
 
+## Real local-stack E2E
+
+Обычный `npm run e2e` запускает Clinic Portal против mock backend и подходит для PR. Для проверки настоящей цепочки backend + BFF + UI есть opt-in контур:
+
+```bash
+make local-up
+make local-seed
+make local-stack-e2e
+```
+
+Сценарий проходит через реальные endpoints:
+
+```text
+owner OTP → public catalog → available slot → create hold
+→ Clinic Portal schedule → close appointment
+→ owner Pet Diary care-summary
+```
+
+Он ожидает backend на `http://127.0.0.1:3000` и запускает portal на отдельном Playwright-порту. Для другого backend URL задай `VETHELP_API_BASE_URL`. Та же проверка доступна из папки приложения как `npm run e2e:local-stack`.
+
 ## Route
 
 ```text

@@ -1,0 +1,137 @@
+/* v40 — insurance marketplace, instant clinic slots and telemed doctor cards */
+:root{--v40-gap:16px;--v40-pad:22px;--v40-radius:24px;--v40-border:rgba(15,23,42,.10);--v40-muted:#64748b;--v40-ink:#0f172a;--v40-blue:#2563eb;--v40-green:#089669;--v40-orange:#d97706;}
+body.v40-insurance-catalog-polish{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}
+.v40-insurance-catalog-polish .page{gap:24px;}
+.v40-insurance-catalog-polish .glass{box-sizing:border-box;}
+.v40-insurance-catalog-polish select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,#64748b 50%),linear-gradient(135deg,#64748b 50%,transparent 50%);background-position:calc(100% - 18px) 52%,calc(100% - 12px) 52%;background-size:6px 6px,6px 6px;background-repeat:no-repeat;}
+.v40-insurance-catalog-polish select:focus,.v40-insurance-catalog-polish input:focus,.v40-insurance-catalog-polish button:focus-visible,.v40-insurance-catalog-polish a:focus-visible{outline:3px solid rgba(37,99,235,.25);outline-offset:2px;}
+/* Catalog */
+.v40-catalog-search-panel{padding:var(--v40-pad);display:grid;gap:18px;}
+.v40-catalog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;}
+.v40-catalog-head h2,.v40-insurance-hero h2,.v40-offer-card h3,.v40-policy-card h2,.v40-coverage-card h2{margin:.15rem 0 .4rem;letter-spacing:-.025em;line-height:1.08;}
+.v40-catalog-head p{max-width:760px;margin:0;}
+.v40-clinic-search{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:10px;border:1px solid var(--v40-border);border-radius:22px;background:#fff;box-shadow:0 10px 28px rgba(15,23,42,.05);}
+.v40-search-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:14px;background:rgba(37,99,235,.08);color:var(--v40-blue);}
+.v40-clinic-search .search{border:0;box-shadow:none;background:transparent;min-height:44px;padding:0;font-weight:700;color:var(--v40-ink);}
+.v40-clinic-search .search:focus{outline:0;}
+.v40-filter-row{display:flex;gap:10px;overflow:auto;padding-bottom:2px;scrollbar-width:none;}
+.v40-filter-row::-webkit-scrollbar{display:none;}
+.v40-filter-row .filter{white-space:nowrap;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--v40-border);background:#fff;color:var(--v40-ink);font-weight:800;box-shadow:0 8px 20px rgba(15,23,42,.04);}
+.v40-filter-row .filter.active{background:rgba(37,99,235,.10);border-color:rgba(37,99,235,.24);color:#1d4ed8;}
+.v40-filter-row .chip-icon{width:18px;height:18px;object-fit:contain;}
+.v40-clinic-results{display:grid;gap:14px;}
+.v40-clinic-result{display:grid;grid-template-columns:150px minmax(0,1fr) 150px;gap:18px;align-items:stretch;padding:18px;border:1px solid rgba(15,23,42,.08);}
+.v40-clinic-result.is-recommended{background:linear-gradient(180deg,rgba(239,253,246,.96),rgba(255,255,255,.92));border-color:rgba(8,150,105,.25);}
+.v40-clinic-photo{min-height:150px;border-radius:22px;background-size:cover;background-position:center;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35);}
+.v40-clinic-photo--vetplus{background-image:url('../vethelp_media/clinic_vetplus.webp');}
+.v40-clinic-photo--vetprofi{background-image:url('../vethelp_media/clinic_vetprofi.webp');}
+.v40-clinic-photo--zdorovy{background-image:url('../vethelp_media/clinic_zdorovy.webp');}
+.v40-clinic-main{display:grid;gap:10px;min-width:0;}
+.v40-clinic-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.v40-clinic-title-row h3{margin:0;font-size:1.25rem;letter-spacing:-.02em;}
+.v40-badges,.v40-clinic-footer{display:flex;flex-wrap:wrap;gap:8px;}
+.v40-badges span,.v40-clinic-footer span{display:inline-flex;align-items:center;min-height:32px;border-radius:999px;padding:0 10px;background:#fff;border:1px solid rgba(15,23,42,.08);font-size:.84rem;font-weight:800;}
+.v40-clinic-footer span{font-weight:700;color:#334155;background:rgba(248,250,252,.95);}
+.v40-slot-strip{display:flex;gap:10px;overflow:auto;padding-bottom:2px;}
+.v40-slot{min-width:146px;display:grid;gap:3px;padding:12px 14px;border-radius:18px;background:#fff;border:1px solid rgba(15,23,42,.10);text-decoration:none;color:var(--v40-ink);box-shadow:0 10px 24px rgba(15,23,42,.05);}
+.v40-slot:hover{transform:translateY(-1px);}
+.v40-slot strong{font-size:.98rem;}
+.v40-slot small{color:var(--v40-muted);font-size:.78rem;line-height:1.2;}
+.v40-slot.is-confirmed{background:linear-gradient(180deg,#ecfdf5,#fff);border-color:rgba(8,150,105,.25);}
+.v40-slot.is-confirmed small{color:#08753f;font-weight:800;}
+.v40-care-fit{display:flex;flex-direction:column;gap:6px;align-items:flex-start;justify-content:center;padding:14px;border-radius:20px;background:rgba(15,23,42,.035);border:1px solid rgba(15,23,42,.06);}
+.v40-care-fit strong{font-size:2rem;line-height:1;color:#0f766e;letter-spacing:-.05em;}
+.v40-care-fit small{font-weight:900;color:var(--v40-muted);text-transform:uppercase;letter-spacing:.08em;}
+.v40-care-fit p{margin:4px 0 0;font-size:.84rem;line-height:1.35;color:#334155;}
+.v40-safe-note{padding:20px;}
+.v40-note-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
+.v40-note-grid span{display:grid;gap:4px;padding:14px;border-radius:18px;background:#fff;border:1px solid rgba(15,23,42,.08);}
+.v40-note-grid small{color:var(--v40-muted);line-height:1.35;}
+/* Insurance */
+.v40-insurance-hero{padding:26px;display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:18px;align-items:center;background:linear-gradient(135deg,rgba(239,246,255,.95),rgba(255,255,255,.92));}
+.v40-insurance-hero p{max-width:760px;margin:0;}
+.v40-policy-status{display:grid;gap:6px;justify-items:start;padding:18px;border-radius:22px;background:#fff;border:1px solid rgba(37,99,235,.16);box-shadow:0 12px 28px rgba(37,99,235,.08);}
+.v40-policy-status strong{font-size:1.3rem;}
+.v40-insurance-search{display:grid;grid-template-columns:1.1fr 1fr .7fr auto;gap:12px;align-items:end;padding:18px;border-radius:24px;background:rgba(255,255,255,.78);border:1px solid rgba(15,23,42,.08);box-shadow:0 14px 32px rgba(15,23,42,.06);}
+.v40-insurance-search label{display:grid;gap:7px;font-size:.84rem;font-weight:800;color:var(--v40-muted);}
+.v40-insurance-search select{min-height:46px;border-radius:16px;border:1px solid rgba(15,23,42,.12);background-color:#fff;padding:0 38px 0 14px;color:var(--v40-ink);font-weight:800;box-shadow:0 8px 20px rgba(15,23,42,.04);}
+.v40-insurance-offers{display:grid;gap:14px;}
+.v40-offer-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;}
+.v40-offer-card{display:flex;flex-direction:column;gap:12px;padding:20px;min-height:320px;border:1px solid rgba(15,23,42,.08);}
+.v40-offer-card.is-featured{background:linear-gradient(180deg,rgba(239,253,246,.96),rgba(255,255,255,.92));border-color:rgba(8,150,105,.24);}
+.v40-offer-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.v40-insurer-logo{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#2563eb,#14b8a6);color:#fff;font-weight:900;letter-spacing:-.04em;box-shadow:0 12px 24px rgba(37,99,235,.18);}
+.v40-offer-card h3{font-size:1.06rem;}
+.v40-offer-card p{margin:0;color:var(--v40-muted);font-size:.92rem;line-height:1.43;}
+.v40-offer-card dl{display:grid;gap:8px;margin:auto 0 0;}
+.v40-offer-card dl div{display:grid;gap:2px;padding-top:8px;border-top:1px solid rgba(15,23,42,.07);}
+.v40-offer-card dt{font-size:.74rem;color:var(--v40-muted);}
+.v40-offer-card dd{margin:0;font-weight:900;color:#1f2937;font-size:.88rem;}
+.v40-offer-card .btn{width:100%;}
+.v40-insurance-layout{display:grid;grid-template-columns:.95fr 1.3fr;gap:18px;align-items:start;}
+.v40-policy-card,.v40-coverage-card{padding:22px;}
+.v40-policy-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;}
+.v40-policy-benefits{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:18px 0;}
+.v40-policy-benefits span{display:grid;place-items:center;gap:7px;min-height:92px;padding:10px;border-radius:18px;background:#fff;border:1px solid rgba(15,23,42,.08);font-weight:800;text-align:center;}
+.v40-policy-benefits img,.v40-coverage-icon-grid img,.v40-coverage-check-box img{width:28px;height:28px;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(15,23,42,.10));}
+.v40-policy-benefits small{font-size:.75rem;color:#334155;}
+.v40-insurer-proof{display:flex;gap:12px;align-items:center;padding:14px;border-radius:18px;background:rgba(37,99,235,.06);border:1px solid rgba(37,99,235,.12);}
+.v40-insurer-proof small{display:block;color:var(--v40-muted);margin-top:2px;}
+.v40-coverage-icon-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px;}
+.v40-coverage-icon-grid>div{display:flex;gap:12px;align-items:center;padding:14px;border-radius:18px;background:#fff;border:1px solid rgba(15,23,42,.08);}
+.v40-coverage-icon-grid small{display:block;color:var(--v40-muted);margin-top:2px;}
+.cov-ico{display:grid;place-items:center;flex:0 0 auto;width:42px;height:42px;border-radius:14px;background:rgba(37,99,235,.08);}
+.v40-coverage-check-box{display:flex;gap:12px;align-items:center;margin-top:14px;padding:16px;border-radius:18px;background:linear-gradient(135deg,rgba(239,246,255,.98),rgba(255,255,255,.92));border:1px solid rgba(37,99,235,.16);}
+.coverage-check-figure{display:grid;place-items:center;width:46px;height:46px;border-radius:15px;background:#fff;}
+.v40-coverage-check-box small{display:block;color:var(--v40-muted);margin-top:2px;line-height:1.35;}
+.v40-insurance-terms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px;}
+.v40-insurance-terms div{display:grid;gap:4px;padding:14px;border-radius:16px;background:#fff;border:1px solid rgba(15,23,42,.08);}
+.v40-insurance-terms strong{font-size:1.05rem;}
+.v40-insurance-terms small{color:var(--v40-muted);line-height:1.3;}
+.v40-insurance-scope-select{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
+.v40-insurance-scope-select select{min-height:46px;border-radius:16px;border:1px solid rgba(15,23,42,.12);background-color:#fff;padding:0 38px 0 14px;font-weight:800;color:var(--v40-ink);}
+.v40-coverage-card .btn.full{width:100%;margin-top:12px;}
+.v40-insurance-note{display:flex;gap:10px;align-items:flex-start;padding:18px;border:1px solid rgba(217,119,6,.18);background:rgba(255,251,235,.75);}
+.v40-insurance-note span{color:#6b4a00;line-height:1.45;}
+/* Telemed doctors */
+.v40-telemed-doctors{display:grid;gap:14px;}
+.v40-doctor-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}
+.v40-doctor-card{display:grid;grid-template-columns:112px minmax(0,1fr);gap:14px;padding:16px;border:1px solid rgba(15,23,42,.08);}
+.v40-doctor-card .telemed-provider-photo{width:112px;min-height:150px;border-radius:20px;overflow:hidden;background:rgba(15,23,42,.04);}
+.v40-doctor-card .telemed-provider-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+.v40-doctor-card h3{margin:.2rem 0;font-size:1.08rem;letter-spacing:-.02em;}
+.v40-doctor-card p{margin:.2rem 0;}
+.v40-doctor-card .trust-row{gap:6px;margin:.35rem 0;}
+.v40-doctor-card .trust-badge{font-size:.78rem;white-space:nowrap;}
+.v40-doctor-card .telemed-provider-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.v40-doctor-card .telemed-provider-actions .btn{min-height:40px;padding-inline:12px;}
+/* Buttons consistency */
+.v40-insurance-catalog-polish button.primary,.v40-insurance-catalog-polish .btn{border-radius:14px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 16px;text-decoration:none;font-weight:900;line-height:1;border:1px solid transparent;}
+.v40-insurance-catalog-polish button.primary,.v40-insurance-catalog-polish .btn:not(.secondary){background:var(--brand,#2563eb);color:#fff;}
+.v40-insurance-catalog-polish .btn.secondary{background:#fff;color:var(--v40-ink);border-color:rgba(15,23,42,.12);}
+@media (max-width: 1080px){
+  .v40-clinic-result{grid-template-columns:124px minmax(0,1fr);}
+  .v40-care-fit{grid-column:1/-1;}
+  .v40-offer-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .v40-insurance-layout{grid-template-columns:1fr;}
+  .v40-doctor-grid{grid-template-columns:1fr;}
+}
+@media (max-width: 760px){
+  .v40-catalog-head,.v40-insurance-hero,.v40-policy-card-head{display:grid;grid-template-columns:1fr;}
+  .v40-clinic-search{grid-template-columns:auto 1fr;}
+  .v40-clinic-search button{grid-column:1/-1;width:100%;}
+  .v40-clinic-result{grid-template-columns:1fr;padding:14px;}
+  .v40-clinic-photo{min-height:170px;}
+  .v40-clinic-title-row{align-items:flex-start;flex-direction:column;}
+  .v40-note-grid,.v40-insurance-search,.v40-offer-grid,.v40-policy-benefits,.v40-coverage-icon-grid,.v40-insurance-terms,.v40-insurance-scope-select{grid-template-columns:1fr;}
+  .v40-doctor-card{grid-template-columns:92px minmax(0,1fr);padding:14px;}
+  .v40-doctor-card .telemed-provider-photo{width:92px;min-height:126px;border-radius:18px;}
+  .v40-doctor-card .telemed-provider-actions .btn{width:100%;}
+}
+@media print{.v40-clinic-result,.v40-offer-card,.v40-policy-card,.v40-coverage-card,.v40-doctor-card{break-inside:avoid;page-break-inside:avoid;}}
+/* v40 mobile overflow hardening */
+.v40-catalog-search-panel,.v40-clinic-results,.v40-clinic-result,.v40-clinic-main,.v40-filter-row,.v40-slot-strip,.v40-care-fit{min-width:0;max-width:100%;}
+.v40-filter-row,.v40-slot-strip{overflow-x:auto;overflow-y:hidden;}
+@media (max-width:760px){.v40-clinic-title-row,.v40-clinic-footer,.v40-badges{min-width:0;max-width:100%;}.v40-clinic-footer span,.v40-badges span{max-width:100%;white-space:normal}.v40-slot{min-width:132px}.v40-catalog-search-panel{padding:18px}}
+body.v40-insurance-catalog-polish{max-width:100%;overflow-x:hidden;}
+html{max-width:100%;overflow-x:hidden;}

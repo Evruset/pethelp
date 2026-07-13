@@ -1,0 +1,380 @@
+/* VetHelp v38 — Simplified UX/UI consistency
+   Purpose: simplify owner navigation, unify buttons/spacing/typography and fix visual debt from v37 UAT feedback. */
+:root{
+  --v38-font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, "Noto Sans", sans-serif;
+  --v38-page-max: 1480px;
+  --v38-gap: 20px;
+  --v38-gap-sm: 12px;
+  --v38-gap-lg: 28px;
+  --v38-radius: 24px;
+  --v38-radius-sm: 16px;
+  --v38-line: rgba(40,56,82,.12);
+  --v38-blue: var(--blue,#1767f7);
+  --v38-ink: var(--ink,#16233c);
+  --v38-muted: var(--muted,#65748d);
+  --v38-surface: rgba(255,255,255,.88);
+  --v38-shadow: 0 18px 48px rgba(34,74,130,.10);
+}
+body.v38-simplified-navigation,
+body.v38-simplified-navigation :where(button,input,textarea,select){
+  font-family:var(--v38-font-sans)!important;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+body.v38-simplified-navigation .app-shell{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  grid-template-rows:auto 1fr;
+  max-width:none;
+  min-height:100vh;
+}
+body.v38-simplified-navigation .sidebar{display:none!important;}
+body.v38-simplified-navigation .main{
+  width:100%;
+  max-width:var(--v38-page-max);
+  margin-inline:auto;
+  padding:28px 30px calc(var(--mobile-nav-h,74px) + 42px)!important;
+  min-width:0;
+}
+.v38-top-nav{
+  position:sticky;
+  top:0;
+  z-index:980;
+  min-height:72px;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:18px;
+  padding:12px clamp(18px,3vw,42px);
+  border-bottom:1px solid rgba(157,185,229,.44);
+  background:rgba(246,250,255,.86);
+  backdrop-filter:blur(22px);
+  box-shadow:0 12px 32px rgba(40,80,140,.08);
+}
+.v38-top-brand,.v38-top-primary a,.v38-top-sos{
+  min-height:44px;
+  display:inline-flex;
+  align-items:center;
+  gap:9px;
+  border-radius:999px;
+  text-decoration:none;
+  font-weight:850;
+  color:var(--v38-muted);
+  white-space:nowrap;
+}
+.v38-top-brand{color:var(--v38-ink);font-size:18px;}
+.v38-top-brand .brand-mark{width:42px;height:42px;}
+.v38-top-primary{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-width:0;
+  overflow:auto;
+  scrollbar-width:none;
+}
+.v38-top-primary::-webkit-scrollbar{display:none;}
+.v38-top-primary a{padding:0 15px;}
+.v38-top-primary a .vh-icon,.v38-top-sos .vh-icon{width:19px;height:19px;}
+.v38-top-primary a:hover,.v38-top-primary a.active{
+  color:var(--v38-blue);
+  background:rgba(23,103,247,.10);
+}
+.v38-top-sos{
+  padding:0 16px;
+  color:#b42318;
+  background:#fff1f0;
+  border:1px solid rgba(180,35,24,.18);
+}
+/* Global readable blocks */
+body.v38-simplified-navigation :where(.glass,.v37-can-go,.v37-primary-decision,.v36rf-catalog-smart,.v35-panel,.v33-status-system,.coverage-flow,.policy-card){
+  border-radius:var(--v38-radius)!important;
+  border:1px solid var(--v38-line)!important;
+}
+body.v38-simplified-navigation .page{
+  display:none;
+  gap:var(--v38-gap);
+}
+body.v38-simplified-navigation .page.active{display:block;}
+body.v38-simplified-navigation .page > :where(section,article,div.glass,.two-col,.hero-grid,.dashboard-grid){
+  margin-block:var(--v38-gap)!important;
+}
+body.v38-simplified-navigation :where(h1,h2,h3){
+  font-family:var(--v38-font-sans)!important;
+  letter-spacing:-.025em;
+  line-height:1.12;
+  color:var(--v38-ink);
+}
+body.v38-simplified-navigation :where(p,small,li,span,dd,dt){line-height:1.46;}
+body.v38-simplified-navigation .topbar{margin-bottom:20px;}
+body.v38-simplified-navigation .topbar h1{font-size:clamp(30px,3.6vw,46px);}
+body.v38-simplified-navigation .subtitle{max-width:760px;}
+/* Buttons: fixes raw button.primary / button.secondary and old .secondary links */
+body.v38-simplified-navigation :where(.btn,a.btn,button.primary,button.secondary,a.secondary,.secondary,button.sort-chip,.v35-filter,.v36rf-pet-toggle){
+  min-height:44px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  border-radius:14px;
+  padding:10px 16px;
+  font:800 14px/1 var(--v38-font-sans);
+  text-decoration:none;
+  cursor:pointer;
+  transition:background .16s ease,border-color .16s ease,transform .16s ease,box-shadow .16s ease;
+}
+body.v38-simplified-navigation :where(.btn,button.primary,a.btn:not(.secondary)){
+  border:1px solid rgba(23,103,247,.20)!important;
+  background:linear-gradient(135deg,var(--v38-blue),#4d8cff)!important;
+  color:#fff!important;
+  box-shadow:0 10px 22px rgba(23,103,247,.20);
+}
+body.v38-simplified-navigation :where(button.secondary,a.secondary,.secondary):not(.pill):not(.meta-chip):not(.trust-badge){
+  border:1px solid rgba(23,103,247,.18)!important;
+  background:rgba(255,255,255,.88)!important;
+  color:var(--v38-blue)!important;
+  box-shadow:0 8px 18px rgba(27,72,141,.08);
+}
+body.v38-simplified-navigation :where(.btn,button.primary,button.secondary,a.secondary,.secondary):hover{
+  transform:translateY(-1px);
+}
+body.v38-simplified-navigation :where(.btn,button.primary,button.secondary,a.secondary,.secondary):focus-visible,
+.v38-top-primary a:focus-visible,.v38-top-sos:focus-visible,.v38-top-brand:focus-visible{
+  outline:3px solid rgba(23,103,247,.24);
+  outline-offset:3px;
+}
+/* Simplified home: user asked first screen to focus on clinic booking / emergency / online. */
+#home > .v37-can-go,
+#home > .v37-decision-cta,
+#home > .care-journey-advisor{display:none!important;}
+.v38-home-search-hero{
+  display:grid;
+  grid-template-columns:minmax(0,1.15fr) minmax(360px,.85fr);
+  gap:22px;
+  padding:24px;
+  background:linear-gradient(135deg,rgba(255,255,255,.94),rgba(238,246,255,.86));
+  box-shadow:var(--v38-shadow);
+}
+.v38-home-hero-copy{display:grid;align-content:center;gap:12px;min-width:0;}
+.v38-kicker{font-size:12px;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:#47607f;}
+.v38-home-search-hero h2{font-size:clamp(30px,4vw,50px);margin:0;}
+.v38-home-search-hero p{max-width:720px;margin:0;color:var(--v38-muted);font-size:16px;}
+.v38-search-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px;
+  margin-top:4px;
+  max-width:760px;
+}
+.v38-search-row input{
+  min-height:48px;
+  padding:0 16px;
+  border-radius:16px;
+  border:1px solid rgba(157,185,229,.70);
+  background:#fff;
+  color:var(--v38-ink);
+  font-size:15px;
+}
+.v38-home-hero-actions{display:grid;grid-template-columns:1fr;gap:12px;}
+.v38-action-card{
+  min-height:92px;
+  display:grid;
+  grid-template-columns:52px minmax(0,1fr);
+  grid-template-rows:auto auto;
+  align-items:center;
+  column-gap:14px;
+  padding:16px;
+  border-radius:20px;
+  background:#fff;
+  border:1px solid var(--v38-line);
+  text-decoration:none;
+  color:var(--v38-ink);
+  box-shadow:0 8px 20px rgba(40,80,140,.06);
+}
+.v38-action-card .vh-icon{grid-row:1/3;width:28px;height:28px;justify-self:center;color:var(--v38-blue);}
+.v38-action-card strong{font-size:17px;}
+.v38-action-card small{color:var(--v38-muted);}
+.v38-action-card.is-primary{border-color:rgba(23,103,247,.22);background:#f4f8ff;}
+.v38-action-card.is-critical{border-color:rgba(180,35,24,.22);background:#fff1f0;color:#7a271a;}
+.v38-action-card.is-critical .vh-icon{color:#b42318;}
+#home .service-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--v38-gap-sm);}
+#home .service-card{min-height:138px;}
+#home .dashboard-grid{grid-template-columns:minmax(0,.85fr) minmax(360px,1.15fr);}
+/* Make catalog simpler: hide duplicate explanatory layers; keep clean cards, map and quick filters. */
+#catalog > .v37-primary-decision,
+#catalog > .catalog-decision-panel,
+#catalog > .v33-catalog-proof,
+#catalog > .v35-catalog-trust,
+#catalog > .v36-decision-entry{display:none!important;}
+#catalog .marketplace-toolbelt{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:16px;
+  padding:16px;
+}
+#catalog .toolbelt-title{font-size:18px;font-weight:900;}
+#catalog .toolbelt-copy{display:block;margin-top:3px;color:var(--v38-muted);}
+#catalog .toolbelt-chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+#catalog .toolbelt-chips button{
+  background:#fff!important;
+  color:#43536e!important;
+  border:1px solid rgba(157,185,229,.55)!important;
+  box-shadow:none;
+}
+#catalog .toolbelt-chips button.active{background:rgba(23,103,247,.10)!important;color:var(--v38-blue)!important;border-color:rgba(23,103,247,.24)!important;}
+#catalog .toolbelt-chips .vh-icon{width:18px;height:18px;}
+#catalog .v36rf-catalog-smart{padding:18px!important;}
+#catalog .v36rf-module-head p{max-width:760px;}
+#catalog .v36rf-smart-card-list{gap:14px!important;}
+#catalog .v36rf-smart-card{border-radius:20px!important;}
+/* Decision comparison exists as secondary route but now follows the same visual system. */
+#decision-comparison .page-head,
+#decision-comparison .v36-page-head{margin-bottom:16px;}
+#decision-comparison .v37-primary-decision,
+#decision-comparison .v36-decision-summary,
+#decision-comparison .v36-methodology{padding:22px!important;box-shadow:var(--v38-shadow);}
+#decision-comparison .v36-compare-grid,
+#decision-comparison .v37-comparison-grid{gap:14px!important;}
+/* Insurance icons: visible white tiles, no blending into background. */
+#insurance .policy-linear-benefits{
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:10px;
+  margin-top:16px;
+}
+#insurance .policy-linear-benefits span{
+  min-height:86px;
+  display:grid!important;
+  place-items:center;
+  gap:6px;
+  padding:10px;
+  border-radius:18px;
+  border:1px solid rgba(157,185,229,.38);
+  background:rgba(255,255,255,.92)!important;
+}
+#insurance .policy-linear-benefits .vh-icon,
+#insurance .policy-linear-benefits img.user-provided-icon{
+  width:30px!important;
+  height:30px!important;
+  padding:6px;
+  border-radius:12px;
+  background:#eef6ff!important;
+  color:var(--v38-blue);
+  filter:none!important;
+  mix-blend-mode:normal!important;
+  object-fit:contain;
+}
+#insurance .policy-linear-benefits small{font-weight:800;color:var(--v38-ink)!important;}
+.v38-insurance-after-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+  margin-top:16px;
+}
+.v38-insurance-card{
+  display:grid;
+  gap:7px;
+  padding:16px;
+  border-radius:18px;
+  border:1px solid var(--v38-line);
+  background:#fff;
+}
+.v38-insurance-card strong{font-size:16px;color:var(--v38-ink);}
+.v38-insurance-card span{color:var(--v38-muted);}
+/* Telemed provider: remove half-empty layout and match other cards. */
+#telemed .telemed-provider--featured.v38-provider-compact,
+#telemed .telemed-provider--featured.is-pending-intake{
+  width:100%;
+  max-width:980px;
+  display:grid!important;
+  grid-template-columns:180px minmax(0,1fr)!important;
+  gap:18px;
+  align-items:center;
+  padding:18px!important;
+}
+#telemed .telemed-provider--featured .telemed-provider-photo{
+  min-height:160px!important;
+  height:160px!important;
+  border-radius:20px!important;
+  overflow:hidden;
+}
+#telemed .telemed-provider-copy{align-content:center;}
+#telemed .telemed-provider-actions{display:flex;gap:10px;flex-wrap:wrap;}
+/* B2B buttons from user feedback */
+#clinic-workspace button.primary,
+#clinic-workspace button.secondary,
+#clinic-schedule button.primary,
+#clinic-schedule button.secondary{min-width:120px;}
+/* Bottom nav follows SberHealth-like primary owner actions requested by user. */
+body.v38-simplified-navigation .mobile-bottom-nav{
+  display:grid!important;
+  position:fixed;
+  left:50%;
+  transform:translateX(-50%);
+  right:auto;
+  bottom:calc(10px + var(--safe-area-bottom,0px));
+  width:min(760px,calc(100vw - 20px));
+  height:var(--mobile-nav-h,74px);
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  z-index:990;
+  padding:7px;
+  border-radius:24px;
+  border:1px solid rgba(157,185,229,.55);
+  background:rgba(255,255,255,.94);
+  box-shadow:0 18px 44px rgba(27,72,141,.22);
+  backdrop-filter:blur(20px);
+}
+body.v38-simplified-navigation .mobile-bottom-nav a{
+  min-width:0;
+  display:grid;
+  justify-items:center;
+  gap:3px;
+  padding:6px 2px;
+  border-radius:16px;
+  color:#65748d;
+  text-decoration:none;
+  font-size:10px;
+  font-weight:850;
+}
+body.v38-simplified-navigation .mobile-bottom-nav a .vh-icon{width:22px;height:22px;}
+body.v38-simplified-navigation .mobile-bottom-nav a.active{color:var(--v38-blue);background:rgba(23,103,247,.10);}
+@media(max-width:1100px){
+  .v38-top-nav{grid-template-columns:auto 1fr;}
+  .v38-top-sos{grid-column:2;justify-self:end;grid-row:1;}
+  .v38-top-primary{grid-column:1/-1;justify-content:flex-start;}
+  .v38-home-search-hero{grid-template-columns:1fr;}
+  #home .dashboard-grid{grid-template-columns:1fr;}
+  #catalog .marketplace-toolbelt{grid-template-columns:1fr;}
+  #catalog .toolbelt-chips{justify-content:flex-start;}
+  .v38-insurance-after-grid{grid-template-columns:1fr;}
+}
+@media(max-width:760px){
+  body.v38-simplified-navigation .main{padding:18px 14px calc(var(--mobile-nav-h,74px) + var(--safe-area-bottom,0px) + 28px)!important;}
+  .v38-top-nav{padding:9px 12px;min-height:60px;gap:8px;}
+  .v38-top-brand strong{display:none;}
+  .v38-top-primary{gap:6px;}
+  .v38-top-primary a{padding:0 10px;font-size:12px;}
+  .v38-top-primary a .vh-icon{width:17px;height:17px;}
+  .v38-top-sos{min-height:40px;padding:0 12px;}
+  .v38-home-search-hero{padding:17px;border-radius:20px!important;}
+  .v38-search-row{grid-template-columns:1fr;}
+  .v38-home-hero-actions{gap:10px;}
+  #home .service-grid{grid-template-columns:1fr;}
+  #insurance .policy-linear-benefits{grid-template-columns:repeat(2,minmax(0,1fr));}
+  #telemed .telemed-provider--featured.v38-provider-compact,
+  #telemed .telemed-provider--featured.is-pending-intake{grid-template-columns:1fr!important;max-width:none;}
+  #telemed .telemed-provider--featured .telemed-provider-photo{height:190px!important;}
+  body.v38-simplified-navigation .mobile-emergency-fab{display:none!important;}
+}
+@media print{
+  .v38-top-nav,.mobile-bottom-nav{display:none!important;}
+  body.v38-simplified-navigation .main{max-width:none;padding:0!important;}
+  body.v38-simplified-navigation .page{break-after:page;page-break-after:always;}
+}
+.v38-insurance-after-grid-inner{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;width:100%;}
+@media(max-width:1100px){.v38-insurance-after-grid-inner{grid-template-columns:1fr;}}
+@media(min-width:961px){
+  body.v38-simplified-navigation .mobile-bottom-nav{display:none!important;}
+  body.v38-simplified-navigation .main{padding-bottom:56px!important;}
+}

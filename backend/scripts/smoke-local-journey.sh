@@ -121,9 +121,16 @@ request_json POST "$API_BASE/v1/booking-holds" \
 hold_id="$(json_value "$tmpdir/create-hold.json" 'data.holdId')"
 hold_state="$(json_value "$tmpdir/create-hold.json" 'data.state')"
 printf 'hold=%s state=%s\n' "$hold_id" "$hold_state"
-if [[ "$hold_state" != "CONFIRMED" && "$hold_state" != "MIS_RESERVATION_PENDING" ]]; then
-  printf 'Expected hold state CONFIRMED or MIS_RESERVATION_PENDING, got %s\n' "$hold_state" >&2
-  exit 1
+if [[ "${FEATURE_MIS_INTEGRATION:-false}" == "true" ]]; then
+  if [[ "$hold_state" != "MIS_RESERVATION_PENDING" ]]; then
+    printf 'Expected MIS hold state MIS_RESERVATION_PENDING, got %s\n' "$hold_state" >&2
+    exit 1
+  fi
+else
+  if [[ "$hold_state" != "CONFIRMED" ]]; then
+    printf 'Expected autonomous hold state CONFIRMED, got %s\n' "$hold_state" >&2
+    exit 1
+  fi
 fi
 
 step "owner appointments"
@@ -134,7 +141,22 @@ step "hold details"
 request_json GET "$API_BASE/v1/booking-holds/$hold_id" "" "$tmpdir/hold-details.json" "${auth_header[@]}"
 json_value "$tmpdir/hold-details.json" 'data.holdId'
 
-if [[ "$hold_state" == "CONFIRMED" ]]; then
+if [[ "${FEATURE_MIS_INTEGRATION:-false}" == "true" ]]; then
+  step "mock MIS result"
+  for attempt in 1 2 3 4 5; do
+    request_json GET "$MOCK_MIS_BASE/__mock/state" "" "$tmpdir/mis-state.json"
+    reservation_count="$(json_value "$tmpdir/mis-state.json" 'data.reservations.length' || true)"
+    if [[ "${reservation_count:-0}" != "0" ]]; then
+      json_value "$tmpdir/mis-state.json" 'data.reservations[0].status'
+      printf '\nlocal smoke passed\n'
+      exit 0
+    fi
+    sleep 1
+  done
+
+  printf 'Expected mock MIS reservation was not observed for hold %s\n' "$hold_id" >&2
+  exit 1
+else
   step "autonomous booking did not call MIS"
   request_json GET "$MOCK_MIS_BASE/__mock/state" "" "$tmpdir/mis-state-after.json"
   mis_reservations_after="$(json_value "$tmpdir/mis-state-after.json" 'data.reservations.length')"
@@ -142,21 +164,6 @@ if [[ "$hold_state" == "CONFIRMED" ]]; then
     printf 'Expected no new MIS reservation in autonomous mode, before=%s after=%s\n' "$mis_reservations_before" "$mis_reservations_after" >&2
     exit 1
   fi
-  printf '\nlocal smoke passed\n'
-  exit 0
 fi
 
-step "mock MIS result"
-for attempt in 1 2 3 4 5; do
-  request_json GET "$MOCK_MIS_BASE/__mock/state" "" "$tmpdir/mis-state.json"
-  reservation_count="$(json_value "$tmpdir/mis-state.json" 'data.reservations.length' || true)"
-  if [[ "${reservation_count:-0}" != "0" ]]; then
-    json_value "$tmpdir/mis-state.json" 'data.reservations[0].status'
-    printf '\nlocal smoke passed\n'
-    exit 0
-  fi
-  sleep 1
-done
-
-printf 'Expected mock MIS reservation was not observed for hold %s\n' "$hold_id" >&2
-exit 1
+printf '\nlocal smoke passed\n'

@@ -11,7 +11,7 @@ npm run migrate:create -- add_feature_name
 npm run migrate:down -- --count 1
 ```
 
-`node-pg-migrate` reads `DATABASE_URL` directly. This repository intentionally has no `database.json`: it would not be consumed by the tool and would become misleading dead configuration.
+`node-pg-migrate` reads the connection string from `DATABASE_URL`. `database.json` documents the migration directory plus the `public.schema_migrations` history table; command scripts remain explicit about those values to keep local and CI execution deterministic.
 
 The runner records applied migrations in `public.schema_migrations`. `node-pg-migrate` does not natively persist source checksums, so `migrate:up` also records SHA-256 values in `public.schema_migration_checksums`; `migrate:verify` fails if an existing migration file has changed or disappeared.
 

@@ -21,3 +21,4 @@ apps/clinic-portal/allure-report/
 
 .runtime/
 apps/clinic-portal/.env.local
+backend/.storage/

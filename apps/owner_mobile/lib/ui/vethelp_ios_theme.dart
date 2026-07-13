@@ -123,7 +123,7 @@ class VetHelpTheme {
 
   static ThemeData _theme(Brightness brightness) {
     final colors = ColorScheme.fromSeed(
-      seedColor: Colors.teal,
+      seedColor: Colors.blue,
       brightness: brightness,
     );
     final base = ThemeData(useMaterial3: true, colorScheme: colors);
@@ -131,11 +131,11 @@ class VetHelpTheme {
     final fieldRadius = BorderRadius.circular(16);
     final tokens = VetHelpSurfaceTokens(
       groupedSurface: colors.surfaceContainerLowest,
-      glassSurface: colors.surface.withValues(alpha: .86),
+      glassSurface: colors.surface.withValues(alpha: .82),
       hairline: colors.outlineVariant.withValues(alpha: .72),
       desktopBackdrop: colors.surfaceContainerLow,
       contentMaxWidth: 560,
-      cardRadius: 22,
+      cardRadius: 24,
       fieldRadius: 16,
       focusRing: colors.primary,
       success: Colors.green.shade700,
@@ -299,15 +299,14 @@ class VetHelpCupertinoTheme {
   const VetHelpCupertinoTheme._();
 
   static CupertinoThemeData data(BuildContext context) {
-    final brightness = MediaQuery.platformBrightnessOf(context);
     return CupertinoThemeData(
-      brightness: brightness,
+      brightness: MediaQuery.platformBrightnessOf(context),
       primaryColor: CupertinoColors.activeBlue,
       scaffoldBackgroundColor: CupertinoColors.systemGroupedBackground,
       barBackgroundColor: CupertinoColors.systemBackground,
-      textTheme: CupertinoTextThemeData(
+      textTheme: const CupertinoTextThemeData(
         primaryColor: CupertinoColors.label,
-        textStyle: const TextStyle(
+        textStyle: TextStyle(
           color: CupertinoColors.label,
           fontFamily: '.SF Pro Text',
         ),

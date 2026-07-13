@@ -1,0 +1,41 @@
+/* v41 — policies for multiple pets and collision-free telemed cards */
+.v41-pet-policy-card [hidden]{display:none!important;}
+.v41-pet-policy-card{display:grid;gap:18px;min-width:0;overflow:hidden;}
+.v41-policy-pet-picker{display:grid;gap:10px;padding-bottom:16px;border-bottom:1px solid rgba(15,23,42,.08);}
+.v41-policy-pet-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+.v41-policy-pet-tab{display:flex;align-items:center;gap:9px;min-width:0;min-height:58px;padding:8px;border:1px solid rgba(15,23,42,.10);border-radius:16px;background:#fff;color:var(--v40-ink);text-align:left;cursor:pointer;}
+.v41-policy-pet-tab:hover{border-color:rgba(37,99,235,.28);background:rgba(239,246,255,.72);}
+.v41-policy-pet-tab.is-active{border-color:rgba(37,99,235,.38);background:rgba(37,99,235,.08);box-shadow:inset 0 0 0 1px rgba(37,99,235,.08);}
+.v41-policy-pet-tab img{width:38px;height:38px;flex:0 0 38px;border-radius:12px;object-fit:cover;}
+.v41-policy-pet-tab span{display:grid;min-width:0;gap:2px;}
+.v41-policy-pet-tab strong,.v41-policy-pet-tab small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.v41-policy-pet-tab strong{font-size:.86rem;}
+.v41-policy-pet-tab small{font-size:.68rem;color:var(--v40-muted);}
+.v41-policy-empty{display:flex;align-items:center;gap:12px;padding:16px;border:1px dashed rgba(37,99,235,.28);border-radius:18px;background:rgba(239,246,255,.72);}
+.v41-policy-empty-icon{display:grid;place-items:center;width:44px;height:44px;flex:0 0 44px;border-radius:14px;background:#fff;color:var(--v40-blue);font-size:1.4rem;font-weight:900;}
+.v41-policy-empty span:last-child{display:grid;gap:3px;min-width:0;}
+.v41-policy-empty small{color:var(--v40-muted);line-height:1.35;}
+.v41-pet-policy-card.is-uninsured .v40-policy-card-head{align-items:center;}
+
+/* Three cards need a vertical media layout so copy and actions never enter the photo column. */
+#telemed .v40-doctor-card{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:220px auto;align-items:stretch;gap:14px;min-width:0;overflow:hidden;}
+#telemed .v40-doctor-card>.telemed-provider-photo{inline-size:100%!important;width:100%!important;min-inline-size:0!important;min-block-size:0!important;height:220px!important;aspect-ratio:auto!important;align-self:auto;border-radius:20px;}
+#telemed .v40-doctor-card>.telemed-provider-copy{display:grid;align-content:start;min-width:0;max-width:none;}
+#telemed .v40-doctor-card .trust-row{display:flex;flex-wrap:wrap;min-width:0;}
+#telemed .v40-doctor-card .trust-badge{max-width:100%;white-space:normal;}
+#telemed .v40-doctor-card .telemed-provider-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;}
+#telemed .v40-doctor-card .telemed-provider-actions .btn{width:100%;min-width:0;white-space:normal;text-align:center;}
+
+@media (max-width:1080px) and (min-width:761px){
+  #telemed .v40-doctor-card{grid-template-columns:180px minmax(0,1fr)!important;grid-template-rows:auto;}
+  #telemed .v40-doctor-card>.telemed-provider-photo{width:180px!important;height:220px!important;}
+}
+@media (max-width:760px){
+  .v41-policy-pet-tabs{grid-template-columns:1fr;}
+  .v41-policy-pet-tab strong,.v41-policy-pet-tab small{white-space:normal;}
+  .v41-pet-policy-card .v40-policy-card-head .btn{width:100%;}
+  #telemed .v40-doctor-card{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:210px auto;}
+  #telemed .v40-doctor-card>.telemed-provider-photo{width:100%!important;height:210px!important;border-radius:18px;}
+  #telemed .v40-doctor-card .telemed-provider-actions{grid-template-columns:1fr;}
+}
+@media print{.v41-policy-pet-tabs{grid-template-columns:repeat(3,minmax(0,1fr));}}

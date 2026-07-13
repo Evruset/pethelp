@@ -1,0 +1,89 @@
+/* VetHelp v50 — role-specific clinic workspace and resilient content layouts. */
+.v49-clinic-client-alignment .v48-telemed-layout {
+  grid-template-columns:minmax(310px,360px) minmax(0,1fr);
+}
+.v49-clinic-client-alignment .v48-telemed-item {
+  grid-template-columns:48px minmax(0,1fr);
+  grid-template-areas:"photo copy" "photo status";
+  align-items:start;
+  gap:6px 10px;
+  min-width:0;
+  padding:11px;
+}
+.v49-clinic-client-alignment .v48-telemed-item>img { grid-area:photo; width:48px; height:48px; border-radius:15px; }
+.v49-clinic-client-alignment .v50-telemed-copy { grid-area:copy; min-width:0; }
+.v49-clinic-client-alignment .v50-telemed-copy strong,
+.v49-clinic-client-alignment .v50-telemed-copy>span,
+.v49-clinic-client-alignment .v50-telemed-copy small { display:block; max-width:100%; overflow-wrap:anywhere; }
+.v49-clinic-client-alignment .v50-telemed-copy strong { color:var(--ink); font-size:13px; line-height:1.25; }
+.v49-clinic-client-alignment .v50-telemed-copy>span { margin-top:2px; color:#3e506b; font-size:12px; font-weight:760; line-height:1.3; }
+.v49-clinic-client-alignment .v50-telemed-copy small { margin-top:4px; color:var(--muted); font-size:10px; line-height:1.35; }
+.v49-clinic-client-alignment .v50-telemed-status { grid-area:status; min-width:0; }
+.v49-clinic-client-alignment .v50-telemed-status .v48-status {
+  max-width:100%;
+  white-space:normal;
+  line-height:1.25;
+  text-align:left;
+}
+
+.v49-clinic-client-alignment .v50-slot-facts { grid-template-columns:1fr; }
+.v49-clinic-client-alignment .v50-slot-facts .v48-fact { min-width:0; padding:11px 12px; }
+.v49-clinic-client-alignment .v50-slot-facts .v48-fact strong,
+.v49-clinic-client-alignment .v50-slot-facts .v48-fact small { display:block; overflow-wrap:anywhere; }
+.v49-clinic-client-alignment .v50-slot-facts .v48-fact small { margin-top:3px; color:var(--muted); font-size:11px; line-height:1.35; }
+.v49-clinic-client-alignment .v50-slot-person {
+  align-items:flex-start;
+  padding:12px;
+  border:1px solid rgba(166,195,236,.52);
+  border-radius:16px;
+  background:rgba(255,255,255,.62);
+}
+.v49-clinic-client-alignment .v50-slot-person>span { min-width:0; }
+.v49-clinic-client-alignment .v50-slot-person strong,
+.v49-clinic-client-alignment .v50-slot-person small { overflow-wrap:anywhere; line-height:1.35; }
+.v49-clinic-client-alignment .v50-slot-actions { display:grid; grid-template-columns:1fr; }
+.v49-clinic-client-alignment .v50-slot-actions .btn { width:100%; min-width:0; padding-inline:12px; }
+
+.v49-clinic-client-alignment .v50-visit-patient { display:grid; gap:12px; min-width:0; }
+.v49-clinic-client-alignment .v50-visit-patient .v48-patient-hero { align-items:flex-start; min-width:0; }
+.v49-clinic-client-alignment .v50-visit-patient .v48-patient-hero>div { min-width:0; }
+.v49-clinic-client-alignment .v50-visit-patient .v48-patient-hero h2,
+.v49-clinic-client-alignment .v50-visit-patient .v48-patient-hero p { overflow-wrap:anywhere; }
+.v49-clinic-client-alignment .v50-visit-patient .v48-alert span { min-width:0; }
+.v49-clinic-client-alignment .v50-patient-facts { display:grid; gap:0; margin:0; }
+.v49-clinic-client-alignment .v50-patient-facts>div {
+  display:grid;
+  grid-template-columns:minmax(78px,.7fr) minmax(0,1.3fr);
+  gap:8px;
+  padding:9px 0;
+  border-bottom:1px solid rgba(166,195,236,.42);
+}
+.v49-clinic-client-alignment .v50-patient-facts>div:last-child { border-bottom:0; }
+.v49-clinic-client-alignment .v50-patient-facts dt { color:var(--muted); font-size:10px; font-weight:850; text-transform:uppercase; letter-spacing:.035em; }
+.v49-clinic-client-alignment .v50-patient-facts dd { margin:0; color:var(--ink); font-size:11px; font-weight:800; line-height:1.35; overflow-wrap:anywhere; }
+.v49-clinic-client-alignment .v50-visit-progress ol { display:grid; gap:0; margin:12px 0 0; padding:0; list-style:none; }
+.v49-clinic-client-alignment .v50-visit-progress li { position:relative; display:grid; grid-template-columns:28px minmax(0,1fr); gap:9px; padding:0 0 16px; }
+.v49-clinic-client-alignment .v50-visit-progress li:not(:last-child)::after { content:""; position:absolute; left:13px; top:28px; bottom:0; width:2px; background:rgba(166,195,236,.58); }
+.v49-clinic-client-alignment .v50-visit-progress li>span { position:relative; z-index:1; width:28px; height:28px; display:grid; place-items:center; border-radius:50%; color:#6b7b92; background:#edf3fb; font-size:11px; font-weight:900; }
+.v49-clinic-client-alignment .v50-visit-progress li.is-done>span { color:#fff; background:var(--green); }
+.v49-clinic-client-alignment .v50-visit-progress li.is-current>span { color:#fff; background:var(--blue); }
+.v49-clinic-client-alignment .v50-visit-progress strong,
+.v49-clinic-client-alignment .v50-visit-progress small { display:block; overflow-wrap:anywhere; }
+.v49-clinic-client-alignment .v50-visit-progress small { margin-top:2px; color:var(--muted); font-size:10px; line-height:1.35; }
+
+body[data-clinic-role="doctor"] .v48-admin-tabs { border-color:rgba(127,96,233,.22); }
+body[data-clinic-role="doctor"] .v48-admin-tabs a.active { color:#6847bd; background:rgba(127,96,233,.10); }
+body[data-clinic-role="doctor"] .v48-role-switch button.is-active { color:#6847bd; }
+body[data-clinic-role="doctor"] .v48-admin-title-line .pill { color:#6847bd; border-color:rgba(127,96,233,.20); background:rgba(127,96,233,.09); }
+
+@media(max-width:1280px){
+  .v49-clinic-client-alignment .v48-visit-layout { grid-template-columns:260px minmax(0,1fr); }
+}
+@media(max-width:1060px){
+  .v49-clinic-client-alignment .v48-telemed-layout { grid-template-columns:1fr; }
+  .v49-clinic-client-alignment .v48-telemed-list { grid-template-columns:repeat(2,minmax(0,1fr)); max-height:none; }
+}
+@media(max-width:720px){
+  .v49-clinic-client-alignment .v48-telemed-list { grid-template-columns:1fr; }
+  .v49-clinic-client-alignment .v50-patient-facts>div { grid-template-columns:92px minmax(0,1fr); }
+}

@@ -1,0 +1,65 @@
+@layer responsive {
+  @media (min-width: 1121px) {
+    .desktop-shell, .app-shell { display: grid; }
+    .tablet-shell, .mobile-shell, .tablet-top-nav { display: none; }
+  }
+
+  @media (min-width: 768px) and (max-width: 1120px) {
+    .tablet-shell { display: block; }
+    .app-shell { display: block; }
+    .sidebar { display: none; }
+    .tablet-top-nav { display: flex; }
+    .mobile-bottom-nav { display: none; }
+
+    .glass {
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+
+    .hero-grid,
+    .page-grid,
+    .dashboard-grid,
+    .booking-layout,
+    .detail-layout,
+    .clinic-workspace-grid,
+    .clinic-visit-grid,
+    .clinic-schedule-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 767px) {
+    .mobile-shell { display: block; }
+    .tablet-shell, .tablet-top-nav { display: none; }
+    .sidebar { display: none; }
+
+    .main { padding-inline: 14px; }
+
+    .glass {
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+
+    .secondary-visual,
+    .media-secondary,
+    [data-mobile-secondary-visual="true"] {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.001ms;
+      animation-iteration-count: 1;
+      scroll-behavior: auto;
+      transition-duration: 0.001ms;
+    }
+  }
+}
+
+@layer responsive {
+  @media (max-width: 767px) {
+    .telemed-intake-actions { flex-direction: column; }
+  }
+}

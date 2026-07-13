@@ -31,13 +31,11 @@ describe('Telemed owner cancellation', () => {
   let cancellation: TelemedOwnerCancellationServiceInstance;
   let telemed: TelemedServiceInstance;
   let ownerSessions: TelemedOwnerSessionServiceInstance;
-  let traceContext: InstanceType<typeof TraceContext>;
 
   beforeAll(() => {
     database = new DatabaseService();
-    traceContext = new TraceContext();
-    cancellation = new TelemedOwnerCancellationService(database, traceContext);
-    telemed = new TelemedService(database, traceContext, new LiveKitService());
+    cancellation = new TelemedOwnerCancellationService(database);
+    telemed = new TelemedService(database, new TraceContext(), new LiveKitService());
     ownerSessions = new TelemedOwnerSessionService(database);
   });
 

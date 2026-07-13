@@ -1,0 +1,26 @@
+@layer reset, tokens, legacy, layout, components, prototype, responsive, utilities, compatibility;
+
+@layer reset {
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body { margin: 0; }
+  img, svg, video, canvas { max-inline-size: 100%; }
+  button, input, select, textarea { font: inherit; }
+}
+
+@layer tokens {
+  :root {
+    --status-success-fg: #08753f;
+    --status-warning-fg: #7A5A00;
+    --status-warning-text: #7A5A00;
+    --status-warning-bg: #FFF6E3;
+    --status-warning-border: rgba(183, 121, 31, .24);
+    --status-danger-fg: #b52d40;
+    --status-info-fg: #1557b0;
+    --focus-ring: #0b62df;
+    --touch-target-min: 44px;
+    --layout-desktop-min: 1121px;
+    --layout-tablet-min: 768px;
+    --layout-mobile-max: 767px;
+  }
+}

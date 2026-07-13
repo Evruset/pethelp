@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../presentation/widgets/adaptive_hit_target.dart';
+import '../../../presentation/platform/owner_platform.dart';
 import 'booking_marketplace_repository.dart';
 
 class BookingSlotGrid extends StatelessWidget {
@@ -13,6 +14,7 @@ class BookingSlotGrid extends StatelessWidget {
     required this.lockingSlot,
     required this.lockedSlot,
     required this.onSlotSelected,
+    this.showServiceName = false,
   });
 
   final List<BookingSlot> slots;
@@ -20,6 +22,7 @@ class BookingSlotGrid extends StatelessWidget {
   final BookingSlot? lockingSlot;
   final BookingSlot? lockedSlot;
   final ValueChanged<BookingSlot> onSlotSelected;
+  final bool showServiceName;
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +48,7 @@ class BookingSlotGrid extends StatelessWidget {
             locking: locking,
             locked: locked,
             enabled: !interactionsBlocked && slot.remainingCapacity > 0,
+            showServiceName: showServiceName,
             onTap: () {
               HapticFeedback.lightImpact();
               onSlotSelected(slot);
@@ -65,6 +69,7 @@ class BookingSlotTile extends StatelessWidget {
     required this.locked,
     required this.enabled,
     required this.onTap,
+    this.showServiceName = true,
   });
 
   final BookingSlot slot;
@@ -73,6 +78,7 @@ class BookingSlotTile extends StatelessWidget {
   final bool locked;
   final bool enabled;
   final VoidCallback onTap;
+  final bool showServiceName;
 
   @override
   Widget build(BuildContext context) {
@@ -95,7 +101,10 @@ class BookingSlotTile extends StatelessWidget {
             : colors.surface;
 
     return AnimatedScale(
-      duration: const Duration(milliseconds: 140),
+      duration: ownerMotionDuration(
+        context,
+        const Duration(milliseconds: 140),
+      ),
       scale: active ? 0.98 : 1,
       child: AdaptiveHitTarget(
         enabled: enabled,
@@ -103,7 +112,10 @@ class BookingSlotTile extends StatelessWidget {
         semanticLabel: 'Выбрать время $time',
         child: AnimatedContainer(
           key: ValueKey<String>('booking-slot-${slot.id}'),
-          duration: const Duration(milliseconds: 160),
+          duration: ownerMotionDuration(
+            context,
+            const Duration(milliseconds: 160),
+          ),
           constraints: const BoxConstraints(minHeight: kVetHelpMinTapTarget),
           decoration: BoxDecoration(
             color: background,
@@ -124,6 +136,7 @@ class BookingSlotTile extends StatelessWidget {
               selected: selected,
               locking: locking,
               locked: locked,
+              showServiceName: showServiceName,
             ),
           ),
         ),
@@ -142,6 +155,7 @@ class _SlotTileContent extends StatelessWidget {
     required this.selected,
     required this.locking,
     required this.locked,
+    required this.showServiceName,
   });
 
   final String time;
@@ -152,6 +166,7 @@ class _SlotTileContent extends StatelessWidget {
   final bool selected;
   final bool locking;
   final bool locked;
+  final bool showServiceName;
 
   @override
   Widget build(BuildContext context) {
@@ -216,7 +231,7 @@ class _SlotTileContent extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        if (service != null && !compact)
+        if (showServiceName && service != null && !compact)
           Text(
             service!,
             style: Theme.of(context)

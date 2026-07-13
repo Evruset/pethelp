@@ -73,7 +73,6 @@
 .vh-ds-feedback--error { border-color: var(--vh-critical); color: var(--vh-critical); }
 .vh-ds-dialog, .vh-ds-sheet { max-width: min(560px, calc(100vw - 32px)); padding: var(--vh-space-xl); border: 1px solid var(--vh-border); border-radius: var(--vh-radius-lg); background: var(--vh-surface); color: var(--vh-text); box-shadow: var(--vh-shadow-card); }
 .vh-ds-sheet { width: min(420px, 100vw); min-height: 100dvh; margin-left: auto; border-radius: var(--vh-radius-lg) 0 0 var(--vh-radius-lg); }
-
 @media (prefers-color-scheme: dark) {
   :root {
     --vh-bg: #101418;
@@ -179,7 +178,6 @@ input[type="reset"] {
 .vh-v51-skip-link:focus {
   transform: translateY(0);
 }
-
 html {
   -webkit-text-size-adjust: 100%;
 }

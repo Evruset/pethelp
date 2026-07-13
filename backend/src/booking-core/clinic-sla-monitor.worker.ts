@@ -135,6 +135,8 @@ export class ClinicSlaMonitorWorker {
         this.traceContext.getCausationId() ?? null,
         this.traceContext.getTraceparent() ?? null,
         hold.id,
+        null,
+        hold.id,
         breached.rows[0].version,
         hold.slot_id,
         `clinic.sla.breached.v1:${hold.id}:${breached.rows[0].version}`,
@@ -142,10 +144,11 @@ export class ClinicSlaMonitorWorker {
 
       await client.query(`
         INSERT INTO audit_schema.audit_log (
-          actor_type, actor_id, action, aggregate_type, aggregate_id, correlation_id, payload_json
+          actor_type, actor_id, action, aggregate_type, aggregate_id,
+          correlation_id, causation_id, traceparent, payload_json
         ) VALUES (
           'SYSTEM_WORKER', NULL, 'CLINIC_MANUAL_CONFIRMATION_SLA_BREACHED',
-          'booking_hold', $1::uuid, $2::uuid,
+          'booking_hold', $1::uuid, $2::uuid, $1::uuid, NULL,
           jsonb_build_object('slotId', $3::uuid, 'confirmationSlaBreached', true)
         )
       `, [hold.id, hold.correlation_id, hold.slot_id]);

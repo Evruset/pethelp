@@ -1,0 +1,242 @@
+/* v20: final visual polish for icons, map header, clinic hero and staff controls. */
+
+/* Doctor detail specialty chips: white icons on a consistent blue chip. */
+#doctor-detail .doctor-specialty-panel .specialty-pill {
+  background: linear-gradient(135deg, rgba(77, 132, 226, .96), rgba(95, 150, 238, .92));
+  border-color: rgba(255, 255, 255, .32);
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(49, 108, 206, .18);
+}
+
+#doctor-detail .doctor-specialty-panel .specialty-pill img {
+  filter: brightness(0) invert(1);
+  opacity: .98;
+}
+
+#doctor-detail .doctor-specialty-title {
+  color: #385887;
+}
+
+/* Home map header must look like the neighbouring section header, not like uppercase microcopy. */
+#home .home-map-link-row.map-section-header,
+#home .map-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-block-end: 10px;
+}
+
+#home .map-section-header h2 {
+  margin: 0;
+  color: var(--ink, #17233c);
+  font-size: clamp(18px, 1.4vw, 22px);
+  line-height: 1.2;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+#home .map-section-label {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Clinic detail hero: keep the facade photo controlled instead of taking the full page height. */
+#clinic .clinic-detail-hero {
+  max-inline-size: 780px;
+  margin-inline: 0;
+}
+
+#clinic .clinic-detail-hero-media {
+  inline-size: 100%;
+  block-size: clamp(210px, 28vw, 340px);
+  aspect-ratio: auto;
+  display: block;
+  border-radius: 22px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #f6faff, #eaf3ff);
+}
+
+#clinic .clinic-detail-hero-media > img {
+  inline-size: 100%;
+  block-size: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+}
+
+#clinic .clinic-detail-hero figcaption {
+  text-align: start;
+}
+
+/* Emergency page: headings/copy stay left aligned inside the operational list. */
+#emergency .emergency-group,
+#emergency .emergency-group h2,
+#emergency .emergency-group .group-copy,
+#emergency .emergency-card,
+#emergency .emergency-card h3,
+#emergency .emergency-card small {
+  text-align: start;
+}
+
+#emergency .emergency-group h2 {
+  margin-block: 0 4px;
+}
+
+#emergency .emergency-group .group-copy {
+  max-inline-size: 760px;
+  margin-inline: 0;
+}
+
+#emergency .emergency-card > span:not(.btn):not(.emergency-photo) {
+  min-inline-size: 0;
+  display: grid;
+  gap: 7px;
+  justify-items: start;
+}
+
+/* Profile rows: same hover/focus language as clickable notes/cards. */
+#profile .profile-settings > .setting-row {
+  color: inherit;
+  background: rgba(255, 255, 255, .62);
+  border: 1px solid rgba(166, 195, 236, .38);
+  border-radius: 18px;
+  box-shadow: 0 10px 26px rgba(25, 75, 135, .07);
+  transition: transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease;
+}
+
+#profile .profile-settings > .setting-row:hover,
+#profile .profile-settings > .setting-row:focus-visible {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, .86);
+  border-color: rgba(92, 139, 220, .42);
+  box-shadow: 0 16px 36px rgba(35, 94, 180, .14);
+  outline: 0;
+}
+
+#profile .profile-settings > .setting-row + .setting-row {
+  border-top: 1px solid rgba(166, 195, 236, .38);
+}
+
+/* Clinic workspace nav: new image icons and consistent sizing. */
+.clinic-workspace-nav .nav-ico img,
+.clinic-workspace-nav .nav-ico .vh-icon {
+  inline-size: 22px;
+  block-size: 22px;
+  object-fit: contain;
+}
+
+/* Staff status rows must not split label/value onto separate lines. */
+.staff-status-stack {
+  min-inline-size: 176px;
+}
+
+.staff-status-line {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.staff-status-label {
+  inline-size: auto;
+  min-inline-size: 44px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.staff-pill,
+.staff-sla {
+  white-space: nowrap;
+}
+
+.staff-table td:nth-child(4) {
+  min-inline-size: 190px;
+}
+
+/* Staff selects use the same visual system as owner selects. */
+.staff-filterbar select,
+.staff-schedule-sidebar select,
+.staff-critical-card select {
+  min-block-size: 44px;
+  border: 1px solid rgba(121, 151, 195, .38);
+  border-radius: 15px;
+  padding: 0 42px 0 13px;
+  color: var(--ink, #16233c);
+  background:
+    linear-gradient(45deg, transparent 50%, #5272a8 50%) calc(100% - 21px) 50% / 7px 7px no-repeat,
+    linear-gradient(135deg, #5272a8 50%, transparent 50%) calc(100% - 15px) 50% / 7px 7px no-repeat,
+    rgba(255, 255, 255, .88);
+  box-shadow: 0 10px 26px rgba(25, 75, 135, .08);
+  font: inherit;
+  font-weight: 750;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.staff-filterbar select:focus-visible,
+.staff-schedule-sidebar select:focus-visible,
+.staff-critical-card select:focus-visible {
+  outline: 3px solid var(--focus-ring, #0b62df);
+  outline-offset: 3px;
+}
+
+.staff-critical-card select {
+  inline-size: 100%;
+  margin-block-start: 8px;
+}
+
+/* Staff tabs: anchors remain navigation; accidental action buttons get the same styling. */
+.staff-nav-tabs a,
+.staff-nav-tabs button,
+button[data-prototype-action="Расписание"],
+button[data-prototype-action="Визит"] {
+  min-block-size: 38px;
+  border: 1px solid rgba(121, 151, 195, .34);
+  border-radius: 14px;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, .72);
+  color: #31537f;
+  font: inherit;
+  font-weight: 850;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(25, 75, 135, .08);
+}
+
+.staff-nav-tabs a:hover,
+.staff-nav-tabs a:focus-visible,
+.staff-nav-tabs button:hover,
+.staff-nav-tabs button:focus-visible,
+button[data-prototype-action="Расписание"]:hover,
+button[data-prototype-action="Расписание"]:focus-visible,
+button[data-prototype-action="Визит"]:hover,
+button[data-prototype-action="Визит"]:focus-visible {
+  background: rgba(255, 255, 255, .92);
+  border-color: rgba(92, 139, 220, .46);
+  color: var(--blue, #2f75de);
+  outline: 0;
+}
+
+.staff-nav-tabs a.active,
+.staff-nav-tabs button.active {
+  background: rgba(94, 144, 230, .14);
+  border-color: rgba(69, 128, 224, .34);
+  color: var(--blue, #2f75de);
+}
+
+@media (max-width: 767px) {
+  #clinic .clinic-detail-hero-media {
+    block-size: 210px;
+  }
+
+  .staff-status-stack {
+    min-inline-size: 168px;
+  }
+
+  .staff-table td:nth-child(4) {
+    min-inline-size: 180px;
+  }
+}

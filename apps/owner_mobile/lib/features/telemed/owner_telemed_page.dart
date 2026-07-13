@@ -1,6 +1,9 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../presentation/platform/owner_platform.dart';
+import '../../presentation/widgets/owner_cupertino_feedback.dart';
 import 'owner_telemed_repository.dart';
 import 'waiting_room/telemed_room_access_repository.dart';
 import 'waiting_room/telemed_waiting_room_bloc.dart';
@@ -15,6 +18,7 @@ class OwnerTelemedPage extends StatefulWidget {
     this.onCreateConsultation,
     this.onRequestEmergency,
     this.onBrowseClinics,
+    this.platformOverride,
   });
 
   final OwnerTelemedRepository repository;
@@ -26,6 +30,7 @@ class OwnerTelemedPage extends StatefulWidget {
   final VoidCallback? onCreateConsultation;
   final VoidCallback? onRequestEmergency;
   final VoidCallback? onBrowseClinics;
+  final TargetPlatform? platformOverride;
 
   @override
   State<OwnerTelemedPage> createState() => _OwnerTelemedPageState();
@@ -54,29 +59,38 @@ class _OwnerTelemedPageState extends State<OwnerTelemedPage> {
 
   Future<void> _openWaitingRoom(OwnerTelemedSession session) async {
     if (session.bucket != 'ACTIVE') return;
-    await Navigator.of(context).push(MaterialPageRoute<void>(
+    await Navigator.of(context).push(ownerPageRoute<void>(
+      context: context,
+      platform: widget.platformOverride,
       builder: (_) => TelemedWaitingRoomPage(
         sessionId: session.sessionId,
         repository: widget.waitingRepository,
         roomAccessRepository: widget.roomAccessRepository,
         onBrowseClinics: widget.onBrowseClinics,
+        platformOverride: widget.platformOverride,
       ),
     ));
     if (mounted) _reload();
   }
 
   void _openConsultationAvailability() {
-    Navigator.of(context).push(MaterialPageRoute<void>(
+    Navigator.of(context).push(ownerPageRoute<void>(
+      context: context,
+      platform: widget.platformOverride,
       builder: (_) => _TelemedIntakePage(
         repository: widget.repository,
         onRequestEmergency: widget.onRequestEmergency,
         onBrowseClinics: widget.onBrowseClinics,
+        platformOverride: widget.platformOverride,
       ),
     ));
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_usesCupertino(context)) {
+      return _buildCupertino(context);
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('Онлайн-консультации')),
       body: FutureBuilder<List<OwnerTelemedSession>>(
@@ -132,6 +146,103 @@ class _OwnerTelemedPageState extends State<OwnerTelemedPage> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  bool _usesCupertino(BuildContext context) {
+    final themedPlatform =
+        context.findAncestorWidgetOfExactType<Theme>()?.data.platform;
+    return ownerUsesCupertino(
+      platform: widget.platformOverride ?? themedPlatform,
+    );
+  }
+
+  Widget _buildCupertino(BuildContext context) {
+    return CupertinoPageScaffold(
+      navigationBar: const CupertinoNavigationBar(
+        middle: Text('Онлайн-консультации'),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: FutureBuilder<List<OwnerTelemedSession>>(
+          future: _request,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const Center(child: CupertinoActivityIndicator());
+            }
+            if (snapshot.hasError) {
+              return _CupertinoTelemedError(onRetry: _reload);
+            }
+
+            final rows = snapshot.data ?? const <OwnerTelemedSession>[];
+            final active = rows
+                .where((session) => session.bucket == 'ACTIVE')
+                .toList(growable: false);
+            final history = rows
+                .where((session) => session.bucket != 'ACTIVE')
+                .toList(growable: false);
+
+            return CustomScrollView(
+              slivers: [
+                CupertinoSliverRefreshControl(onRefresh: _refresh),
+                SliverList(
+                  delegate: SliverChildListDelegate([
+                    const SizedBox(height: 12),
+                    _CupertinoTelemedSafetyPanel(
+                      onEmergency: widget.onRequestEmergency,
+                      onBrowseClinics: widget.onBrowseClinics,
+                    ),
+                    CupertinoListSection.insetGrouped(
+                      header: const Text('Активные'),
+                      children: active.isEmpty
+                          ? [
+                              _CupertinoTelemedEmptyRow(
+                                title: 'Нет активных консультаций',
+                                text:
+                                    'Онлайн-консультация появится здесь после проверки безопасности и подтверждения backend.',
+                                actionLabel: 'Проверить онлайн-консультацию',
+                                onAction: _openConsultationAvailability,
+                              ),
+                            ]
+                          : [
+                              for (final session in active)
+                                _CupertinoTelemedSessionTile(
+                                  session: session,
+                                  active: true,
+                                  onOpen: () => _openWaitingRoom(session),
+                                  onBrowseClinics: widget.onBrowseClinics,
+                                  onEmergency: widget.onRequestEmergency,
+                                ),
+                            ],
+                    ),
+                    CupertinoListSection.insetGrouped(
+                      header: const Text('История'),
+                      children: history.isEmpty
+                          ? const [
+                              _CupertinoTelemedEmptyRow(
+                                title: 'История консультаций пуста',
+                                text:
+                                    'Завершённые и отменённые консультации появятся здесь.',
+                              ),
+                            ]
+                          : [
+                              for (final session in history)
+                                _CupertinoTelemedSessionTile(
+                                  session: session,
+                                  active: false,
+                                  onBrowseClinics: widget.onBrowseClinics,
+                                  onEmergency: widget.onRequestEmergency,
+                                ),
+                            ],
+                    ),
+                    const SizedBox(height: 24),
+                  ]),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -357,16 +468,319 @@ class _TelemedResultBlock extends StatelessWidget {
   }
 }
 
+class _CupertinoTelemedSafetyPanel extends StatelessWidget {
+  const _CupertinoTelemedSafetyPanel({
+    this.onEmergency,
+    this.onBrowseClinics,
+  });
+
+  final VoidCallback? onEmergency;
+  final VoidCallback? onBrowseClinics;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Semantics(
+        liveRegion: true,
+        label:
+            'Важно. При ухудшении состояния не ждите онлайн-ответа. Можно открыть срочные клиники или каталог клиник.',
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: CupertinoDynamicColor.resolve(
+              CupertinoColors.systemRed.withValues(alpha: 0.14),
+              context,
+            ),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: CupertinoDynamicColor.resolve(
+                CupertinoColors.systemRed,
+                context,
+              ),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      CupertinoIcons.exclamationmark_triangle_fill,
+                      color: CupertinoDynamicColor.resolve(
+                        CupertinoColors.systemRed,
+                        context,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text(
+                        'При ухудшении состояния не ждите онлайн-ответа.',
+                      ),
+                    ),
+                  ],
+                ),
+                if (onEmergency != null || onBrowseClinics != null) ...[
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (onEmergency != null)
+                        CupertinoButton(
+                          minSize: 44,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          color: CupertinoColors.systemRed,
+                          borderRadius: BorderRadius.circular(999),
+                          onPressed: onEmergency,
+                          child: const Text(
+                            'Срочные клиники',
+                            style: TextStyle(color: CupertinoColors.white),
+                          ),
+                        ),
+                      if (onBrowseClinics != null)
+                        CupertinoButton(
+                          minSize: 44,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          color: CupertinoDynamicColor.resolve(
+                            CupertinoColors.tertiarySystemFill,
+                            context,
+                          ),
+                          borderRadius: BorderRadius.circular(999),
+                          onPressed: onBrowseClinics,
+                          child: const Text('Каталог клиник'),
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CupertinoTelemedEmptyRow extends StatelessWidget {
+  const _CupertinoTelemedEmptyRow({
+    required this.title,
+    required this.text,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  final String title;
+  final String text;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      child: OwnerCupertinoEmptyState(
+        icon: CupertinoIcons.videocam,
+        title: title,
+        message: text,
+        actionLabel: actionLabel,
+        onAction: onAction,
+      ),
+    );
+  }
+}
+
+class _CupertinoTelemedSessionTile extends StatelessWidget {
+  const _CupertinoTelemedSessionTile({
+    required this.session,
+    required this.active,
+    this.onOpen,
+    this.onBrowseClinics,
+    this.onEmergency,
+  });
+
+  final OwnerTelemedSession session;
+  final bool active;
+  final VoidCallback? onOpen;
+  final VoidCallback? onBrowseClinics;
+  final VoidCallback? onEmergency;
+
+  @override
+  Widget build(BuildContext context) {
+    final presentation = _telemedPresentation(session.state);
+    final warning = session.safetyEscalation == true;
+    final paymentCopy = _paymentActionCopy(session.refundState);
+    return CupertinoListTile.notched(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      leading: Semantics(
+        label: presentation.label,
+        child: Icon(
+          presentation.cupertinoIcon,
+          color: CupertinoDynamicColor.resolve(presentation.color, context),
+        ),
+      ),
+      title: Text(presentation.label),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+                _safeTelemedText(session.serviceName ?? 'Онлайн-консультация')),
+            const SizedBox(height: 3),
+            Text('${session.petName} · ${session.clinicName}'),
+            const SizedBox(height: 3),
+            Text(_cupertinoRange(session.startsAt, session.endsAt)),
+            if (presentation.description != null) ...[
+              const SizedBox(height: 6),
+              Text(presentation.description!),
+            ],
+            if (active && session.state == 'WAITING_FOR_DOCTOR') ...[
+              const SizedBox(height: 6),
+              Text(
+                'Следующее действие: оставайтесь на экране и проверяйте статус. Дедлайн подключения врача: ${_cupertinoDateTime(session.doctorJoinDeadlineAt)}.',
+              ),
+            ],
+            if (paymentCopy != null) ...[
+              const SizedBox(height: 6),
+              Text(paymentCopy),
+            ],
+            if (session.recommendationText != null) ...[
+              const SizedBox(height: 8),
+              _CupertinoInlineTelemedBlock(
+                title: 'Рекомендация врача',
+                text: _safeTelemedText(session.recommendationText!),
+              ),
+            ],
+            if (session.followUpNotes != null) ...[
+              const SizedBox(height: 8),
+              _CupertinoInlineTelemedBlock(
+                title: 'Следующий шаг',
+                text: _safeTelemedText(session.followUpNotes!),
+              ),
+            ],
+            if (warning) ...[
+              const SizedBox(height: 8),
+              _CupertinoInlineTelemedBlock(
+                title: 'Нужен очный осмотр',
+                text:
+                    'Врач отметил, что безопаснее продолжить помощь в клинике.',
+                warning: true,
+              ),
+            ],
+            if ((warning || session.followUpNotes != null) &&
+                onBrowseClinics != null) ...[
+              const SizedBox(height: 10),
+              CupertinoButton(
+                minSize: 44,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                color: CupertinoDynamicColor.resolve(
+                  CupertinoColors.tertiarySystemFill,
+                  context,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                onPressed: onBrowseClinics,
+                child: const Text('Выбрать клинику'),
+              ),
+            ],
+            if (warning && onEmergency != null) ...[
+              const SizedBox(height: 8),
+              CupertinoButton(
+                minSize: 44,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                color: CupertinoColors.systemRed,
+                borderRadius: BorderRadius.circular(12),
+                onPressed: onEmergency,
+                child: const Text(
+                  'Срочные клиники',
+                  style: TextStyle(color: CupertinoColors.white),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      trailing:
+          active && onOpen != null ? const CupertinoListTileChevron() : null,
+      onTap: active ? onOpen : null,
+    );
+  }
+}
+
+class _CupertinoInlineTelemedBlock extends StatelessWidget {
+  const _CupertinoInlineTelemedBlock({
+    required this.title,
+    required this.text,
+    this.warning = false,
+  });
+
+  final String title;
+  final String text;
+  final bool warning;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = warning
+        ? CupertinoDynamicColor.resolve(CupertinoColors.systemRed, context)
+        : CupertinoDynamicColor.resolve(CupertinoColors.activeBlue, context);
+    return Semantics(
+      liveRegion: warning,
+      label: '$title. $text',
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            warning
+                ? CupertinoIcons.exclamationmark_triangle_fill
+                : CupertinoIcons.info_circle,
+            color: color,
+            size: 18,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: CupertinoTheme.of(context)
+                      .textTheme
+                      .textStyle
+                      .copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                Text(text),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _TelemedIntakePage extends StatefulWidget {
   const _TelemedIntakePage({
     required this.repository,
     this.onRequestEmergency,
     this.onBrowseClinics,
+    this.platformOverride,
   });
 
   final OwnerTelemedRepository repository;
   final VoidCallback? onRequestEmergency;
   final VoidCallback? onBrowseClinics;
+  final TargetPlatform? platformOverride;
 
   @override
   State<_TelemedIntakePage> createState() => _TelemedIntakePageState();
@@ -509,72 +923,170 @@ class _TelemedIntakePageState extends State<_TelemedIntakePage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Онлайн-консультация')),
-        body: SafeArea(
-          child: FutureBuilder<List<TelemedPet>>(
-            future: _petsRequest,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState != ConnectionState.done) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (snapshot.hasError) {
-                return _TelemedIntakeError(onRetry: () {
-                  setState(() {
-                    _error = null;
-                    _reloadPets();
-                  });
-                });
-              }
-              final pets = snapshot.data ?? const <TelemedPet>[];
-              if (pets.isEmpty) return const _TelemedNoPets();
-              final result = _result;
-              if (result != null) {
-                return _TelemedIntakeResultView(
-                  result: result,
-                  onRequestEmergency:
-                      widget.onRequestEmergency == null ? null : _openEmergency,
-                  onBrowseClinics:
-                      widget.onBrowseClinics == null ? null : _openClinics,
-                  onBack: () => Navigator.of(context).pop(),
-                  paymentIntent: _paymentIntent,
-                  paymentLoading: _paymentLoading,
-                  paymentError: _paymentError,
-                  onCreatePayment:
-                      result.routingTarget == 'TELEMED_PAYMENT_QUEUE'
-                          ? _createPaymentIntent
-                          : null,
-                );
-              }
-              return _TelemedIntakeForm(
-                pets: pets,
-                selectedPetId: _petId,
-                category: _category,
-                duration: _duration,
-                priorClinicVisit: _priorClinicVisit,
-                consent: _consent,
-                loading: _loading,
-                error: _error,
-                redFlags: _redFlags,
-                onPetChanged: (value) => setState(() => _petId = value),
-                onCategoryChanged: (value) => setState(() => _category = value),
-                onDurationChanged: (value) => setState(() => _duration = value),
-                onPriorClinicVisitChanged: (value) =>
-                    setState(() => _priorClinicVisit = value),
-                onConsentChanged: (value) => setState(() => _consent = value),
-                onRedFlagsChanged: (value) {
-                  setState(() {
-                    _redFlags
-                      ..clear()
-                      ..addAll(value);
-                  });
-                },
-                onSubmit: _submit,
-              );
-            },
-          ),
+  Widget build(BuildContext context) {
+    if (_usesCupertino(context)) {
+      return _buildCupertino(context);
+    }
+    return Scaffold(
+      appBar: AppBar(title: const Text('Онлайн-консультация')),
+      body: SafeArea(
+        child: _buildBody(
+          context,
+          loading: const Center(child: CircularProgressIndicator()),
+          errorBuilder: (onRetry) => _TelemedIntakeError(onRetry: onRetry),
+          emptyPets: const _TelemedNoPets(),
+          formBuilder: _materialForm,
+          resultBuilder: _materialResult,
         ),
-      );
+      ),
+    );
+  }
+
+  bool _usesCupertino(BuildContext context) {
+    final themedPlatform =
+        context.findAncestorWidgetOfExactType<Theme>()?.data.platform;
+    return ownerUsesCupertino(
+      platform: widget.platformOverride ?? themedPlatform,
+    );
+  }
+
+  Widget _buildCupertino(BuildContext context) {
+    return CupertinoPageScaffold(
+      navigationBar: const CupertinoNavigationBar(
+        middle: Text('Онлайн-консультация'),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: _buildBody(
+          context,
+          loading: const Center(child: CupertinoActivityIndicator()),
+          errorBuilder: (onRetry) =>
+              _CupertinoTelemedIntakeError(onRetry: onRetry),
+          emptyPets: const _CupertinoTelemedNoPets(),
+          formBuilder: _cupertinoForm,
+          resultBuilder: _cupertinoResult,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody(
+    BuildContext context, {
+    required Widget loading,
+    required Widget Function(VoidCallback onRetry) errorBuilder,
+    required Widget emptyPets,
+    required Widget Function(List<TelemedPet> pets) formBuilder,
+    required Widget Function(TelemedIntakeResult result) resultBuilder,
+  }) {
+    return FutureBuilder<List<TelemedPet>>(
+      future: _petsRequest,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return loading;
+        }
+        if (snapshot.hasError) {
+          return errorBuilder(() {
+            setState(() {
+              _error = null;
+              _reloadPets();
+            });
+          });
+        }
+        final pets = snapshot.data ?? const <TelemedPet>[];
+        if (pets.isEmpty) return emptyPets;
+        final result = _result;
+        if (result != null) return resultBuilder(result);
+        return formBuilder(pets);
+      },
+    );
+  }
+
+  Widget _materialForm(List<TelemedPet> pets) {
+    return _TelemedIntakeForm(
+      pets: pets,
+      selectedPetId: _petId,
+      category: _category,
+      duration: _duration,
+      priorClinicVisit: _priorClinicVisit,
+      consent: _consent,
+      loading: _loading,
+      error: _error,
+      redFlags: _redFlags,
+      onPetChanged: (value) => setState(() => _petId = value),
+      onCategoryChanged: (value) => setState(() => _category = value),
+      onDurationChanged: (value) => setState(() => _duration = value),
+      onPriorClinicVisitChanged: (value) =>
+          setState(() => _priorClinicVisit = value),
+      onConsentChanged: (value) => setState(() => _consent = value),
+      onRedFlagsChanged: _replaceRedFlags,
+      onSubmit: _submit,
+    );
+  }
+
+  Widget _cupertinoForm(List<TelemedPet> pets) {
+    return _CupertinoTelemedIntakeForm(
+      pets: pets,
+      selectedPetId: _petId,
+      category: _category,
+      duration: _duration,
+      priorClinicVisit: _priorClinicVisit,
+      consent: _consent,
+      loading: _loading,
+      error: _error,
+      redFlags: _redFlags,
+      onPetChanged: (value) => setState(() => _petId = value),
+      onCategoryChanged: (value) => setState(() => _category = value),
+      onDurationChanged: (value) => setState(() => _duration = value),
+      onPriorClinicVisitChanged: (value) =>
+          setState(() => _priorClinicVisit = value),
+      onConsentChanged: (value) => setState(() => _consent = value),
+      onRedFlagsChanged: _replaceRedFlags,
+      onSubmit: _submit,
+      onOpenEmergency:
+          widget.onRequestEmergency == null ? null : _openEmergency,
+      onBrowseClinics: widget.onBrowseClinics == null ? null : _openClinics,
+    );
+  }
+
+  Widget _materialResult(TelemedIntakeResult result) {
+    return _TelemedIntakeResultView(
+      result: result,
+      onRequestEmergency:
+          widget.onRequestEmergency == null ? null : _openEmergency,
+      onBrowseClinics: widget.onBrowseClinics == null ? null : _openClinics,
+      onBack: () => Navigator.of(context).pop(),
+      paymentIntent: _paymentIntent,
+      paymentLoading: _paymentLoading,
+      paymentError: _paymentError,
+      onCreatePayment: result.routingTarget == 'TELEMED_PAYMENT_QUEUE'
+          ? _createPaymentIntent
+          : null,
+    );
+  }
+
+  Widget _cupertinoResult(TelemedIntakeResult result) {
+    return _CupertinoTelemedIntakeResultView(
+      result: result,
+      onRequestEmergency:
+          widget.onRequestEmergency == null ? null : _openEmergency,
+      onBrowseClinics: widget.onBrowseClinics == null ? null : _openClinics,
+      onBack: () => Navigator.of(context).pop(),
+      paymentIntent: _paymentIntent,
+      paymentLoading: _paymentLoading,
+      paymentError: _paymentError,
+      onCreatePayment: result.routingTarget == 'TELEMED_PAYMENT_QUEUE'
+          ? _createPaymentIntent
+          : null,
+    );
+  }
+
+  void _replaceRedFlags(Set<String> value) {
+    setState(() {
+      _redFlags
+        ..clear()
+        ..addAll(value);
+    });
+  }
 }
 
 class _TelemedIntakeForm extends StatelessWidget {
@@ -718,6 +1230,380 @@ class _TelemedIntakeForm extends StatelessWidget {
           label: Text(loading ? 'Проверяем' : 'Проверить возможность онлайн'),
         ),
       ],
+    );
+  }
+}
+
+class _CupertinoTelemedIntakeForm extends StatelessWidget {
+  const _CupertinoTelemedIntakeForm({
+    required this.pets,
+    required this.selectedPetId,
+    required this.category,
+    required this.duration,
+    required this.priorClinicVisit,
+    required this.consent,
+    required this.loading,
+    required this.error,
+    required this.redFlags,
+    required this.onPetChanged,
+    required this.onCategoryChanged,
+    required this.onDurationChanged,
+    required this.onPriorClinicVisitChanged,
+    required this.onConsentChanged,
+    required this.onRedFlagsChanged,
+    required this.onSubmit,
+    this.onOpenEmergency,
+    this.onBrowseClinics,
+  });
+
+  final List<TelemedPet> pets;
+  final String? selectedPetId;
+  final String category;
+  final String duration;
+  final bool priorClinicVisit;
+  final bool consent;
+  final bool loading;
+  final String? error;
+  final Set<String> redFlags;
+  final ValueChanged<String?> onPetChanged;
+  final ValueChanged<String> onCategoryChanged;
+  final ValueChanged<String> onDurationChanged;
+  final ValueChanged<bool> onPriorClinicVisitChanged;
+  final ValueChanged<bool> onConsentChanged;
+  final ValueChanged<Set<String>> onRedFlagsChanged;
+  final VoidCallback onSubmit;
+  final VoidCallback? onOpenEmergency;
+  final VoidCallback? onBrowseClinics;
+
+  @override
+  Widget build(BuildContext context) {
+    final pet = _selectedPet(pets, selectedPetId);
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(0, 12, 0, 28),
+      children: [
+        const _CupertinoTelemedSafetyPanel(),
+        CupertinoListSection.insetGrouped(
+          header: const Text('Проверка безопасности'),
+          footer: const Text(
+            'Онлайн-консультация не заменяет срочную помощь, очный осмотр, диагноз, рецепт или страховое решение.',
+          ),
+          children: [
+            _CupertinoPickerTile(
+              label: 'Питомец',
+              value: pet == null
+                  ? 'Выберите питомца'
+                  : '${pet.name} · ${_speciesLabel(pet.species)}',
+              enabled: !loading,
+              onTap: () => _showPetSheet(context),
+            ),
+            _CupertinoPickerTile(
+              label: 'Тема вопроса',
+              value: _optionLabel(_telemedCategories, category),
+              enabled: !loading && selectedPetId != null,
+              onTap: () => _showOptionSheet(
+                context,
+                title: 'Тема вопроса',
+                options: _telemedCategories,
+                selected: category,
+                onSelected: onCategoryChanged,
+              ),
+            ),
+            _CupertinoPickerTile(
+              label: 'Как давно',
+              value: _durationLabel(duration),
+              enabled: !loading,
+              onTap: () => _showDurationSheet(context),
+            ),
+            _CupertinoSwitchTile(
+              label: 'Уже были в клинике',
+              value: priorClinicVisit,
+              enabled: !loading,
+              onChanged: onPriorClinicVisitChanged,
+            ),
+          ],
+        ),
+        CupertinoListSection.insetGrouped(
+          header: const Text('Срочные признаки'),
+          footer: redFlags.isEmpty
+              ? const Text('Если есть тяжёлые признаки, лучше не ждать онлайн.')
+              : const Text(
+                  'Не ждите онлайн-ответа. Откройте срочные клиники или позвоните.',
+                ),
+          children: [
+            for (final option in _telemedRedFlags)
+              _CupertinoTelemedToggleRow(
+                label: option.label,
+                selected: redFlags.contains(option.code),
+                enabled: !loading,
+                warning: true,
+                onChanged: (value) {
+                  final next = Set<String>.from(redFlags);
+                  value ? next.add(option.code) : next.remove(option.code);
+                  onRedFlagsChanged(next);
+                },
+              ),
+          ],
+        ),
+        CupertinoListSection.insetGrouped(
+          header: const Text('Согласие'),
+          children: [
+            Semantics(
+              label:
+                  'Согласие на ограничения онлайн-консультации. Это не экстренная помощь, не диагноз, не рецепт и не страховое решение.',
+              toggled: consent,
+              child: _CupertinoSwitchTile(
+                label:
+                    'Понимаю ограничения онлайн-консультации и хочу продолжить',
+                value: consent,
+                enabled: !loading,
+                onChanged: onConsentChanged,
+              ),
+            ),
+          ],
+        ),
+        if (error != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+            child: Semantics(
+              liveRegion: true,
+              child: Text(
+                _safeTelemedText(error!),
+                style: TextStyle(
+                  color: CupertinoDynamicColor.resolve(
+                    CupertinoColors.systemRed,
+                    context,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: CupertinoButton.filled(
+            minSize: 52,
+            onPressed:
+                consent && selectedPetId != null && !loading ? onSubmit : null,
+            child: loading
+                ? const CupertinoActivityIndicator(color: CupertinoColors.white)
+                : const Text('Проверить возможность онлайн'),
+          ),
+        ),
+        if (onOpenEmergency != null || onBrowseClinics != null) ...[
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                if (onOpenEmergency != null)
+                  Expanded(
+                    child: CupertinoButton(
+                      minSize: 44,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      color: CupertinoColors.systemRed,
+                      borderRadius: BorderRadius.circular(14),
+                      onPressed: loading ? null : onOpenEmergency,
+                      child: const Text(
+                        'Срочно',
+                        style: TextStyle(color: CupertinoColors.white),
+                      ),
+                    ),
+                  ),
+                if (onOpenEmergency != null && onBrowseClinics != null)
+                  const SizedBox(width: 8),
+                if (onBrowseClinics != null)
+                  Expanded(
+                    child: CupertinoButton(
+                      minSize: 44,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      color: CupertinoDynamicColor.resolve(
+                        CupertinoColors.tertiarySystemFill,
+                        context,
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      onPressed: loading ? null : onBrowseClinics,
+                      child: const Text('Клиники'),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  void _showPetSheet(BuildContext context) {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (context) => CupertinoActionSheet(
+        title: const Text('Питомец'),
+        actions: [
+          for (final pet in pets)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(context).pop();
+                onPetChanged(pet.id);
+              },
+              child: Text('${pet.name} · ${_speciesLabel(pet.species)}'),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Отмена'),
+        ),
+      ),
+    );
+  }
+
+  void _showOptionSheet(
+    BuildContext context, {
+    required String title,
+    required List<_TelemedOption> options,
+    required String selected,
+    required ValueChanged<String> onSelected,
+  }) {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (context) => CupertinoActionSheet(
+        title: Text(title),
+        actions: [
+          for (final option in options)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(context).pop();
+                onSelected(option.code);
+              },
+              child: Text(option.label),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Отмена'),
+        ),
+      ),
+    );
+  }
+
+  void _showDurationSheet(BuildContext context) {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (context) => CupertinoActionSheet(
+        title: const Text('Как давно'),
+        actions: [
+          for (final option in _durationOptions.entries)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(context).pop();
+                onDurationChanged(option.key);
+              },
+              child: Text(option.value),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Отмена'),
+        ),
+      ),
+    );
+  }
+}
+
+class _CupertinoPickerTile extends StatelessWidget {
+  const _CupertinoPickerTile({
+    required this.label,
+    required this.value,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final String label;
+  final String value;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoListTile.notched(
+      title: Text(label),
+      subtitle: Text(value),
+      trailing: const CupertinoListTileChevron(),
+      onTap: enabled ? onTap : null,
+    );
+  }
+}
+
+class _CupertinoSwitchTile extends StatelessWidget {
+  const _CupertinoSwitchTile({
+    required this.label,
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final String label;
+  final bool value;
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoListTile.notched(
+      title: Text(label),
+      trailing: CupertinoSwitch(
+        value: value,
+        onChanged: enabled ? onChanged : null,
+      ),
+      onTap: enabled ? () => onChanged(!value) : null,
+    );
+  }
+}
+
+class _CupertinoTelemedToggleRow extends StatelessWidget {
+  const _CupertinoTelemedToggleRow({
+    required this.label,
+    required this.selected,
+    required this.enabled,
+    required this.warning,
+    required this.onChanged,
+  });
+
+  final String label;
+  final bool selected;
+  final bool enabled;
+  final bool warning;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      toggled: selected,
+      enabled: enabled,
+      label: label,
+      child: CupertinoListTile.notched(
+        leading: Icon(
+          warning
+              ? CupertinoIcons.exclamationmark_triangle
+              : CupertinoIcons.circle,
+          color: CupertinoDynamicColor.resolve(
+            warning ? CupertinoColors.systemRed : CupertinoColors.activeBlue,
+            context,
+          ),
+        ),
+        title: Text(label),
+        trailing: Icon(
+          selected
+              ? CupertinoIcons.check_mark_circled_solid
+              : CupertinoIcons.circle,
+          color: selected
+              ? CupertinoColors.activeBlue
+              : CupertinoDynamicColor.resolve(
+                  CupertinoColors.tertiaryLabel,
+                  context,
+                ),
+        ),
+        onTap: enabled ? () => onChanged(!selected) : null,
+      ),
     );
   }
 }
@@ -876,6 +1762,150 @@ class _TelemedIntakeResultView extends StatelessWidget {
   }
 }
 
+class _CupertinoTelemedIntakeResultView extends StatelessWidget {
+  const _CupertinoTelemedIntakeResultView({
+    required this.result,
+    required this.onBack,
+    required this.paymentIntent,
+    required this.paymentLoading,
+    required this.paymentError,
+    this.onRequestEmergency,
+    this.onBrowseClinics,
+    this.onCreatePayment,
+  });
+
+  final TelemedIntakeResult result;
+  final VoidCallback onBack;
+  final TelemedPaymentIntent? paymentIntent;
+  final bool paymentLoading;
+  final String? paymentError;
+  final VoidCallback? onRequestEmergency;
+  final VoidCallback? onBrowseClinics;
+  final VoidCallback? onCreatePayment;
+
+  @override
+  Widget build(BuildContext context) {
+    final view = _cupertinoEligibilityView(context, result.outcome);
+    final paymentReady = result.routingTarget == 'TELEMED_PAYMENT_QUEUE' &&
+        onCreatePayment != null;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(0, 12, 0, 28),
+      children: [
+        CupertinoListSection.insetGrouped(
+          header: const Text('Результат проверки'),
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Semantics(
+                liveRegion: true,
+                label: '${view.title}. ${view.description}',
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(view.icon, color: view.foreground),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            view.title,
+                            style: CupertinoTheme.of(context)
+                                .textTheme
+                                .navTitleTextStyle
+                                .copyWith(fontSize: 18),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(view.description),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        CupertinoListSection.insetGrouped(
+          header: const Text('Ограничения'),
+          children: [
+            for (final guardrail in result.guardrails.take(5))
+              CupertinoListTile.notched(
+                leading: const Icon(CupertinoIcons.check_mark_circled),
+                title: Text(_guardrailLabel(guardrail)),
+              ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (result.routingTarget == 'EMERGENCY_ROUTE' &&
+                  onRequestEmergency != null)
+                CupertinoButton(
+                  minSize: 52,
+                  color: CupertinoColors.systemRed,
+                  borderRadius: BorderRadius.circular(16),
+                  onPressed: onRequestEmergency,
+                  child: const Text(
+                    'Открыть срочные клиники',
+                    style: TextStyle(color: CupertinoColors.white),
+                  ),
+                )
+              else if (result.routingTarget == 'CLINIC_BOOKING' &&
+                  onBrowseClinics != null)
+                CupertinoButton.filled(
+                  minSize: 52,
+                  borderRadius: BorderRadius.circular(16),
+                  onPressed: onBrowseClinics,
+                  child: const Text('Выбрать клинику'),
+                )
+              else if (paymentReady)
+                CupertinoButton.filled(
+                  minSize: 52,
+                  borderRadius: BorderRadius.circular(16),
+                  onPressed: paymentLoading ? null : onCreatePayment,
+                  child: paymentLoading
+                      ? const CupertinoActivityIndicator(
+                          color: CupertinoColors.white,
+                        )
+                      : const Text('Продолжить к следующему шагу'),
+                ),
+              if (paymentIntent != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  'Backend подготовил оплату: ${paymentIntent!.amount} ${paymentIntent!.currency}. Правила отмены: ${paymentIntent!.refundPolicyVersion}.',
+                  textAlign: TextAlign.center,
+                ),
+              ],
+              if (paymentError != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  _safeTelemedText(paymentError!),
+                  style: TextStyle(
+                    color: CupertinoDynamicColor.resolve(
+                      CupertinoColors.systemRed,
+                      context,
+                    ),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+              const SizedBox(height: 8),
+              CupertinoButton(
+                minSize: 44,
+                onPressed: onBack,
+                child: const Text('Вернуться'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _TelemedIntakeError extends StatelessWidget {
   const _TelemedIntakeError({required this.onRetry});
 
@@ -906,6 +1936,24 @@ class _TelemedIntakeError extends StatelessWidget {
       );
 }
 
+class _CupertinoTelemedIntakeError extends StatelessWidget {
+  const _CupertinoTelemedIntakeError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return OwnerCupertinoEmptyState(
+      icon: CupertinoIcons.cloud,
+      title: 'Не удалось загрузить питомцев',
+      message:
+          'Повторная попытка обновит список питомцев для онлайн-консультации.',
+      actionLabel: 'Обновить питомцев',
+      onAction: onRetry,
+    );
+  }
+}
+
 class _TelemedNoPets extends StatelessWidget {
   const _TelemedNoPets();
 
@@ -919,6 +1967,19 @@ class _TelemedNoPets extends StatelessWidget {
           ),
         ),
       );
+}
+
+class _CupertinoTelemedNoPets extends StatelessWidget {
+  const _CupertinoTelemedNoPets();
+
+  @override
+  Widget build(BuildContext context) {
+    return const OwnerCupertinoEmptyState(
+      icon: CupertinoIcons.paw,
+      title: 'Нужен питомец',
+      message: 'Для онлайн-консультации нужно добавить питомца в профиль.',
+    );
+  }
 }
 
 class _TelemedOption {
@@ -1084,11 +2145,57 @@ class _TelemedError extends StatelessWidget {
   }
 }
 
+class _CupertinoTelemedError extends StatelessWidget {
+  const _CupertinoTelemedError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return OwnerCupertinoEmptyState(
+      icon: CupertinoIcons.cloud,
+      title: 'Не удалось загрузить консультации',
+      message:
+          'Повторная попытка обновит список онлайн-консультаций и их текущие статусы.',
+      actionLabel: 'Обновить консультации',
+      onAction: onRetry,
+    );
+  }
+}
+
 class _StateView {
   const _StateView(this.label, this.icon, this.color, {this.description});
 
   final String label;
   final IconData icon;
+  final Color color;
+  final String? description;
+}
+
+class _CupertinoEligibilityView {
+  const _CupertinoEligibilityView({
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.foreground,
+  });
+
+  final String title;
+  final String description;
+  final IconData icon;
+  final Color foreground;
+}
+
+class _TelemedPresentation {
+  const _TelemedPresentation({
+    required this.label,
+    required this.cupertinoIcon,
+    required this.color,
+    this.description,
+  });
+
+  final String label;
+  final IconData cupertinoIcon;
   final Color color;
   final String? description;
 }
@@ -1114,7 +2221,12 @@ _StateView _state(String value, ColorScheme colors) => switch (value) {
           Icons.schedule_outlined,
           colors.error,
           description:
-              'Консультация не состоялась. Статус оплаты проверяется автоматически.',
+              'Консультация не состоялась. Статус авторизации оплаты проверяется автоматически.',
+        ),
+      'CANCELLED' => _StateView(
+          'Консультация отменена',
+          Icons.cancel_outlined,
+          colors.primary,
         ),
       _ => _StateView(
           'Статус обновляется',
@@ -1123,20 +2235,72 @@ _StateView _state(String value, ColorScheme colors) => switch (value) {
         ),
     };
 
+_TelemedPresentation _telemedPresentation(String value) => switch (value) {
+      'WAITING_FOR_DOCTOR' => const _TelemedPresentation(
+          label: 'Ожидаем врача',
+          cupertinoIcon: CupertinoIcons.hourglass,
+          color: CupertinoColors.activeBlue,
+          description:
+              'Подключение начнётся только после подтверждения статуса backend.',
+        ),
+      'CONNECTED' => const _TelemedPresentation(
+          label: 'Врач подключился',
+          cupertinoIcon: CupertinoIcons.videocam_circle,
+          color: CupertinoColors.activeGreen,
+        ),
+      'COMPLETED' => const _TelemedPresentation(
+          label: 'Консультация завершена',
+          cupertinoIcon: CupertinoIcons.check_mark_circled,
+          color: CupertinoColors.activeBlue,
+        ),
+      'DOCTOR_TIMEOUT' => const _TelemedPresentation(
+          label: 'Врач не подключился',
+          cupertinoIcon: CupertinoIcons.clock,
+          color: CupertinoColors.systemRed,
+          description:
+              'Консультация не состоялась. Статус авторизации оплаты проверяется автоматически.',
+        ),
+      'CANCELLED' => const _TelemedPresentation(
+          label: 'Консультация отменена',
+          cupertinoIcon: CupertinoIcons.xmark_circle,
+          color: CupertinoColors.secondaryLabel,
+        ),
+      _ => const _TelemedPresentation(
+          label: 'Статус обновляется',
+          cupertinoIcon: CupertinoIcons.arrow_2_circlepath,
+          color: CupertinoColors.activeBlue,
+        ),
+    };
+
 String _paymentActionLabel(String value) => switch (value) {
-      'VOID_REQUESTED' => 'Отмена оплаты поставлена в очередь.',
-      'VOIDED' => 'Оплата отменена, списания не будет.',
+      'VOID_REQUESTED' => 'Отменяем авторизацию оплаты.',
+      'VOIDED' => 'Авторизация оплаты отменена, списания не будет.',
       'REFUND_PENDING' => 'Возврат поставлен в очередь.',
       'REFUNDED' => 'Возврат выполнен.',
       'NOT_REQUIRED' => 'Дополнительных действий по оплате не требуется.',
       _ => 'Статус оплаты обновляется.',
     };
 
+String? _paymentActionCopy(String? value) {
+  if (value == null || value.isEmpty) return null;
+  return _paymentActionLabel(value);
+}
+
 String _dateTime(BuildContext context, DateTime value) {
   final local = value.toLocal();
   final date = MaterialLocalizations.of(context).formatMediumDate(local);
   final time = TimeOfDay.fromDateTime(local).format(context);
   return '$date, $time';
+}
+
+String _cupertinoDateTime(DateTime value) {
+  final local = value.toLocal();
+  final day = local.day.toString().padLeft(2, '0');
+  final month = local.month.toString().padLeft(2, '0');
+  final year = local.year.toString();
+  final hour = local.hour.toString().padLeft(2, '0');
+  final minute = local.minute.toString().padLeft(2, '0');
+  return '$day.$month.$year, $hour:$minute';
 }
 
 String _range(BuildContext context, DateTime from, DateTime to) {
@@ -1146,4 +2310,96 @@ String _range(BuildContext context, DateTime from, DateTime to) {
   final start = TimeOfDay.fromDateTime(first).format(context);
   final end = TimeOfDay.fromDateTime(last).format(context);
   return '$date · $start-$end';
+}
+
+String _cupertinoRange(DateTime from, DateTime to) {
+  final first = from.toLocal();
+  final last = to.toLocal();
+  final day = first.day.toString().padLeft(2, '0');
+  final month = first.month.toString().padLeft(2, '0');
+  final startHour = first.hour.toString().padLeft(2, '0');
+  final startMinute = first.minute.toString().padLeft(2, '0');
+  final endHour = last.hour.toString().padLeft(2, '0');
+  final endMinute = last.minute.toString().padLeft(2, '0');
+  return '$day.$month · $startHour:$startMinute-$endHour:$endMinute';
+}
+
+String _safeTelemedText(String value) {
+  final hasTechnicalToken =
+      RegExp(r'\b[A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+\b').hasMatch(value);
+  final hasHttpStatus = RegExp(r'\b[45]\d\d\b').hasMatch(value);
+  if (hasTechnicalToken || hasHttpStatus) {
+    return 'Статус обновляется. Если состояние ухудшается, выберите клинику.';
+  }
+  return value;
+}
+
+TelemedPet? _selectedPet(List<TelemedPet> pets, String? selectedPetId) {
+  if (selectedPetId == null) return null;
+  for (final pet in pets) {
+    if (pet.id == selectedPetId) return pet;
+  }
+  return null;
+}
+
+String _optionLabel(List<_TelemedOption> options, String code) {
+  for (final option in options) {
+    if (option.code == code) return option.label;
+  }
+  return 'Другое';
+}
+
+const Map<String, String> _durationOptions = {
+  'NO_SYMPTOMS': 'Нет симптомов',
+  'LESS_THAN_24H': 'Меньше 24 часов',
+  'ONE_TO_THREE_DAYS': '1-3 дня',
+  'MORE_THAN_THREE_DAYS': 'Больше 3 дней',
+};
+
+String _durationLabel(String code) {
+  return _durationOptions[code] ?? '1-3 дня';
+}
+
+_CupertinoEligibilityView _cupertinoEligibilityView(
+  BuildContext context,
+  String outcome,
+) {
+  return switch (outcome) {
+    'EMERGENCY' => _CupertinoEligibilityView(
+        title: 'Нужна срочная помощь',
+        description:
+            'Онлайн-консультация не подходит. Откройте срочные клиники и звоните в проверенную клинику.',
+        icon: CupertinoIcons.exclamationmark_triangle_fill,
+        foreground:
+            CupertinoDynamicColor.resolve(CupertinoColors.systemRed, context),
+      ),
+    'SAME_DAY_CLINIC' => _CupertinoEligibilityView(
+        title: 'Лучше очный визит сегодня',
+        description:
+            'По этим симптомам безопаснее выбрать клинику, а не ждать онлайн-очередь.',
+        icon: CupertinoIcons.building_2_fill,
+        foreground: CupertinoDynamicColor.resolve(
+          CupertinoColors.systemOrange,
+          context,
+        ),
+      ),
+    'TELEMED_ELIGIBLE' => _CupertinoEligibilityView(
+        title: 'Онлайн-консультация подходит',
+        description:
+            'Можно перейти к следующему шагу, если backend подтвердит доступность консультации.',
+        icon: CupertinoIcons.videocam_circle,
+        foreground:
+            CupertinoDynamicColor.resolve(CupertinoColors.activeBlue, context),
+      ),
+    _ => _CupertinoEligibilityView(
+        title: 'Нужны уточнения',
+        description:
+            'Ответов недостаточно для безопасного онлайн-маршрута. Уточните симптомы или выберите клинику.',
+        icon: CupertinoIcons.info_circle,
+        foreground: CupertinoDynamicColor.resolve(
+          CupertinoColors.secondaryLabel,
+          context,
+        ),
+      ),
+  };
 }

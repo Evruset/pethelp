@@ -8,6 +8,7 @@ type Props = {
   clinicId: string;
   locationId: string;
   initialSchedule: ClinicSchedule;
+  canCompleteAppointments: boolean;
 };
 
 type ServiceForm = {
@@ -203,7 +204,7 @@ function csvCell(value: string | number | null | undefined): string {
   return `"${text.replace(/"/g, '""')}"`;
 }
 
-export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: Props) {
+export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, canCompleteAppointments }: Props) {
   const bookingCoordinator = useBookingCoordinator();
   const [schedule, setSchedule] = useState(initialSchedule);
   const [notice, setNotice] = useState<string | null>(null);
@@ -226,6 +227,9 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
   const [slotAction, setSlotAction] = useState<SlotActionState | null>(null);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [slotError, setSlotError] = useState<SlotErrorSheet | null>(null);
+  const [capacityDialog, setCapacityDialog] = useState<{ slot: ClinicScheduleSlot; value: string } | null>(null);
+  const [completionDialog, setCompletionDialog] = useState<{ slot: ClinicScheduleSlot; summary: string } | null>(null);
+  const [blackoutDialog, setBlackoutDialog] = useState<ClinicScheduleSlot | null>(null);
 
   const range = useMemo(() => ({
     from: new Date().toISOString(),
@@ -729,8 +733,6 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
 
   const blackout = useCallback(async (slot: ClinicScheduleSlot) => {
     if (busy) return;
-    const confirmed = window.confirm(`Закрыть окно ${dt(slot.startsAt)}? Это возможно только если нет удержаний и записей.`);
-    if (!confirmed) return;
     setBusy(true);
     setNotice(null);
     try {
@@ -769,11 +771,8 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     }
   }, [busy, clinicId, locationId, postSlotWithRetry, refresh]);
 
-  const updateCapacity = useCallback(async (slot: ClinicScheduleSlot) => {
+  const updateCapacity = useCallback(async (slot: ClinicScheduleSlot, nextCapacity: number) => {
     if (busy) return;
-    const value = window.prompt('Новая capacity для окна', String(slot.capacity));
-    if (value == null) return;
-    const nextCapacity = Number(value);
     if (!Number.isInteger(nextCapacity) || nextCapacity < 1 || nextCapacity > 50) {
       setNotice('Capacity должна быть целым числом от 1 до 50.');
       return;
@@ -816,10 +815,8 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
     }
   }, [busy, clinicId, locationId, postSlotWithRetry, refresh]);
 
-  const completeAppointment = useCallback(async (slot: ClinicScheduleSlot) => {
+  const completeAppointment = useCallback(async (slot: ClinicScheduleSlot, summary: string) => {
     if (busy || !slot.bookingHold || slot.bookingHold.state !== 'CONFIRMED') return;
-    const summary = window.prompt('Заключение по приёму');
-    if (summary == null) return;
     if (summary.trim().length < 3) {
       setNotice('Заключение должно содержать минимум 3 символа.');
       return;
@@ -1229,7 +1226,36 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
                       </td>
                       <td className="px-4 py-4 align-top text-sm text-slate-700">{slot.bookedCount} записей · {slot.heldCount} holds · cap {slot.capacity}</td>
                       <td className="px-4 py-4 align-top text-sm text-slate-700"><p>{slot.source} · {slot.integrationMode}</p>{slot.stale ? <p className="mt-1 text-xs text-amber-700">Freshness устарел</p> : <p className="mt-1 text-xs text-slate-500">Fresh</p>}</td>
-                      <td className="px-4 py-4 align-top"><div className={`flex flex-col gap-2 ${slotBusy ? 'vh-schedule-slot-actions--busy' : ''}`}><button type="button" disabled={busy || slot.state === 'CLOSED' || slot.heldCount > 0 || slot.bookedCount > 0} onClick={() => void updateCapacity(slot)} className="vh-schedule-slot-action w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Capacity</button><button type="button" disabled={busy || slot.state === 'CLOSED' || slot.heldCount > 0 || slot.bookedCount > 0} onClick={() => void blackout(slot)} className="vh-schedule-slot-action w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Blackout</button><button type="button" disabled={busy || slot.bookingHold?.state !== 'CONFIRMED'} onClick={() => void completeAppointment(slot)} className="vh-schedule-slot-action w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Закрыть приём</button></div></td>
+                      <td className="px-4 py-4 align-top">
+                        <div className={`flex flex-col gap-2 ${slotBusy ? 'vh-schedule-slot-actions--busy' : ''}`}>
+                          <button
+                            type="button"
+                            disabled={busy || slot.state === 'CLOSED' || slot.heldCount > 0 || slot.bookedCount > 0}
+                            onClick={() => setCapacityDialog({ slot, value: String(slot.capacity) })}
+                            className="vh-schedule-slot-action w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                          >
+                            Capacity
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy || slot.state === 'CLOSED' || slot.heldCount > 0 || slot.bookedCount > 0}
+                            onClick={() => setBlackoutDialog(slot)}
+                            className="vh-schedule-slot-action w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                          >
+                            Blackout
+                          </button>
+                          {canCompleteAppointments ? (
+                            <button
+                              type="button"
+                              disabled={busy || slot.bookingHold?.state !== 'CONFIRMED'}
+                              onClick={() => setCompletionDialog({ slot, summary: '' })}
+                              className="vh-schedule-slot-action w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                            >
+                              Закрыть приём
+                            </button>
+                          ) : null}
+                        </div>
+                      </td>
                     </tr>
                   );})}
                 </tbody>
@@ -1238,6 +1264,127 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule }: 
           )}
         </div>
       </section>
+      {capacityDialog ? (
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="capacity-dialog-title">
+          <button
+            type="button"
+            aria-label="Закрыть"
+            className="absolute inset-0 bg-slate-950/40"
+            onClick={() => setCapacityDialog(null)}
+            disabled={busy}
+          />
+          <section className="absolute left-1/2 top-1/2 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white shadow-2xl">
+            <header className="border-b border-slate-200 px-6 py-5">
+              <h2 id="capacity-dialog-title" className="text-xl font-semibold text-slate-950">Изменить capacity</h2>
+            </header>
+            <div className="px-6 py-5">
+              <label className="block">
+                <span className="text-sm font-semibold text-slate-700">Новая capacity</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={capacityDialog.value}
+                  onChange={(event) => setCapacityDialog((current) => current ? { ...current, value: event.target.value } : null)}
+                  className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+              </label>
+            </div>
+            <footer className="flex gap-3 border-t border-slate-200 px-6 py-4">
+              <button type="button" onClick={() => setCapacityDialog(null)} disabled={busy} className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Отмена</button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  const dialog = capacityDialog;
+                  setCapacityDialog(null);
+                  void updateCapacity(dialog.slot, Number(dialog.value));
+                }}
+                className="flex-1 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
+              >
+                Сохранить
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+      {completionDialog ? (
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="completion-dialog-title">
+          <button
+            type="button"
+            aria-label="Закрыть"
+            className="absolute inset-0 bg-slate-950/40"
+            onClick={() => setCompletionDialog(null)}
+            disabled={busy}
+          />
+          <section className="absolute left-1/2 top-1/2 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white shadow-2xl">
+            <header className="border-b border-slate-200 px-6 py-5">
+              <h2 id="completion-dialog-title" className="text-xl font-semibold text-slate-950">Закрыть приём</h2>
+            </header>
+            <div className="px-6 py-5">
+              <label className="block">
+                <span className="text-sm font-semibold text-slate-700">Заключение по приёму</span>
+                <textarea
+                  rows={5}
+                  value={completionDialog.summary}
+                  onChange={(event) => setCompletionDialog((current) => current ? { ...current, summary: event.target.value } : null)}
+                  className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+              </label>
+            </div>
+            <footer className="flex gap-3 border-t border-slate-200 px-6 py-4">
+              <button type="button" onClick={() => setCompletionDialog(null)} disabled={busy} className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Отмена</button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  const dialog = completionDialog;
+                  setCompletionDialog(null);
+                  void completeAppointment(dialog.slot, dialog.summary);
+                }}
+                className="flex-1 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
+              >
+                Закрыть приём
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+      {blackoutDialog ? (
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="blackout-dialog-title">
+          <button
+            type="button"
+            aria-label="Закрыть"
+            className="absolute inset-0 bg-slate-950/40"
+            onClick={() => setBlackoutDialog(null)}
+            disabled={busy}
+          />
+          <section className="absolute left-1/2 top-1/2 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white shadow-2xl">
+            <header className="border-b border-slate-200 px-6 py-5">
+              <h2 id="blackout-dialog-title" className="text-xl font-semibold text-slate-950">Закрыть окно</h2>
+              <p className="mt-2 text-sm text-slate-600">{dt(blackoutDialog.startsAt)} · {blackoutDialog.service?.displayName ?? 'Услуга не указана'}</p>
+            </header>
+            <div className="px-6 py-5 text-sm leading-6 text-slate-700">
+              Окно станет недоступно для записи. Действие будет зафиксировано в audit trail.
+            </div>
+            <footer className="flex gap-3 border-t border-slate-200 px-6 py-4">
+              <button type="button" onClick={() => setBlackoutDialog(null)} disabled={busy} className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Отмена</button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  const slot = blackoutDialog;
+                  setBlackoutDialog(null);
+                  void blackout(slot);
+                }}
+                className="flex-1 rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
+              >
+                Закрыть окно
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
       {slotError ? (
         <div className="vh-slide-over-backdrop" onClick={() => setSlotError(null)}>
           <aside

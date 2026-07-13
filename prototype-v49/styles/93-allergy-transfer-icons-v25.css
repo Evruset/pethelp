@@ -1,0 +1,97 @@
+@layer components {
+  /* v25: red allergy marker is a dedicated clinical warning asset. */
+  .allergy-icon {
+    background: rgba(255, 240, 240, .96);
+    border: 1px solid rgba(222, 53, 11, .18);
+    color: #bf2600;
+  }
+
+  .allergy-icon img,
+  .allergy-icon .vh-icon {
+    inline-size: 20px;
+    block-size: 20px;
+    object-fit: contain;
+  }
+
+  .pet-profile-allergy-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding-block: 12px;
+  }
+
+  .pet-profile-allergy-row .line-icon {
+    inline-size: 36px;
+    block-size: 36px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+  }
+
+  .staff-critical-card.alert-marker.allergy {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 12px;
+  }
+
+  .staff-critical-card.alert-marker.allergy .critical-icon {
+    inline-size: 38px;
+    block-size: 38px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+  }
+
+  .staff-critical-card.alert-marker.allergy .critical-icon img {
+    inline-size: 24px;
+    block-size: 24px;
+    object-fit: contain;
+  }
+
+  .staff-critical-card.alert-marker.allergy .critical-copy {
+    min-inline-size: 0;
+  }
+
+  .staff-critical-card.alert-marker.allergy .critical-copy strong,
+  .staff-critical-card.alert-marker.allergy .critical-copy small {
+    display: block;
+  }
+
+  /* v25: transfer arrow is a PNG asset positioned only between old and new time boxes. */
+  .alt-visual {
+    grid-template-columns: minmax(0, 1fr) 54px minmax(0, 1fr);
+  }
+
+  .alt-arrow {
+    inline-size: 54px;
+    block-size: 54px;
+    border-radius: 18px;
+    background: rgba(237, 243, 255, .92);
+    border: 1px solid rgba(73, 139, 255, .20);
+    box-shadow: 0 10px 22px rgba(38, 100, 245, .10);
+  }
+
+  .alt-arrow img,
+  .alt-arrow .vh-icon {
+    inline-size: 34px;
+    block-size: 34px;
+    object-fit: contain;
+  }
+}
+
+@layer responsive {
+  @media (max-width: 767px) {
+    .alt-visual {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .alt-arrow {
+      justify-self: center;
+      transform: rotate(90deg);
+    }
+  }
+}

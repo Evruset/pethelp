@@ -1,0 +1,225 @@
+
+@layer components {
+  /* v16: home care list follows notification-card pattern. */
+  #home .dashboard-grid {
+    align-items: start;
+  }
+
+  #home .care-column {
+    min-width: 0;
+  }
+
+  #home .care-section-header {
+    margin: 0 0 10px;
+  }
+
+  #home .care-card {
+    padding: 12px;
+  }
+
+  #home .care-note-list {
+    display: grid;
+    gap: 10px;
+  }
+
+  #home .care-note {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    align-items: center;
+    min-height: 64px;
+    padding: 12px 13px;
+  }
+
+  #home .care-note .note-copy,
+  #home .care-note > span:nth-child(2) {
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+    text-align: start;
+  }
+
+  #home .care-note strong,
+  #home .care-note small {
+    display: block;
+    line-height: 1.3;
+  }
+
+  #home .care-note > small:last-child {
+    justify-self: end;
+    white-space: nowrap;
+  }
+
+  #home .home-map-link-row {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 14px;
+    margin: 0 0 10px;
+  }
+
+  #home .home-map-title-copy {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  #home .map-section-label {
+    font-size: 18px;
+    line-height: 1.2;
+    font-weight: 900;
+    color: var(--ink);
+  }
+
+  #home .map-title-overlay {
+    display: none;
+  }
+
+  /* v16: prevent duplicate hero image from CSS background plus real <img>. */
+  .clinic-detail-hero-media {
+    background-image: none;
+    background-color: var(--surface-blue, #eef5ff);
+  }
+
+  .clinic-detail-hero-media > img {
+    inline-size: 100%;
+    block-size: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  .clinic-detail-hero figcaption {
+    display: grid;
+    gap: 5px;
+  }
+
+  /* v16: profile rows must read like left-aligned list items, not centered controls. */
+  #profile .profile-settings > .setting-row,
+  #profile .profile-safety-item {
+    width: 100%;
+    text-align: start;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  #profile .setting-row > span:nth-child(2),
+  #profile .profile-safety-item > span:nth-child(2) {
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+    justify-items: start;
+    text-align: start;
+  }
+
+  #profile .setting-row strong,
+  #profile .setting-row small,
+  #profile .profile-safety-item strong,
+  #profile .profile-safety-item small {
+    display: block;
+    line-height: 1.3;
+  }
+
+  #profile .profile-safety-item {
+    border: 0;
+    background: transparent;
+    border-radius: 14px;
+  }
+
+  #profile .profile-safety-item:hover,
+  #profile .profile-safety-item:focus-visible {
+    background: rgba(255,255,255,.62);
+    box-shadow: 0 12px 28px rgba(38,81,130,.10);
+  }
+
+  #profile .profile-safety-item .mini-icon img,
+  #profile .setting-ico img,
+  .pet-profile-line-list .line-icon img {
+    inline-size: 20px;
+    block-size: 20px;
+    object-fit: contain;
+  }
+
+  /* v16: appointment thumbnails keep whole clinic photos inside a square frame. */
+  .appointment-card .appt-photo {
+    background: linear-gradient(180deg, #f6f9ff 0%, #eaf2ff 100%);
+  }
+
+  .appointment-card .appt-photo > img {
+    object-fit: contain;
+    object-position: center;
+    padding: 4px;
+  }
+
+  .appointment-card[href="#telemed"] .appt-photo > img,
+  .appointment-card[href="#telemed-summary"] .appt-photo > img {
+    object-fit: cover;
+    object-position: center 22%;
+    padding: 0;
+  }
+
+  
+
+  
+
+  /* v16: urgent route badges are the same visual size. */
+  .route-active-icon,
+  .route-number {
+    inline-size: 58px;
+    block-size: 58px;
+    flex: 0 0 58px;
+  }
+
+  .route-active-icon .vh-icon,
+  .route-active-icon img {
+    inline-size: 30px;
+    block-size: 30px;
+    object-fit: contain;
+  }
+
+  /* v16: triage/prep icons use one refreshed raster system with no nested spans. */
+  .triage-option-icon,
+  .status-ico.telemed-prep-icon {
+    display: grid;
+    place-items: center;
+    inline-size: 42px;
+    block-size: 42px;
+    border-radius: 14px;
+    background: #eef5ff;
+    color: var(--blue);
+    flex: 0 0 42px;
+  }
+
+  .triage-option-icon.critical,
+  .status-ico.telemed-prep-icon.critical {
+    background: #fff0f1;
+  }
+
+  .triage-option-icon img,
+  .status-ico.telemed-prep-icon img {
+    inline-size: 24px;
+    block-size: 24px;
+    object-fit: contain;
+  }
+
+  .status-list .status-row {
+    grid-template-columns: 42px minmax(0,1fr);
+    align-items: center;
+  }
+
+  @media (max-width: 767px) {
+    #home .home-map-link-row {
+      align-items: start;
+      flex-direction: column;
+    }
+
+    #home .care-note {
+      grid-template-columns: 42px minmax(0,1fr) auto;
+    }
+
+    .route-active-icon,
+    .route-number {
+      inline-size: 50px;
+      block-size: 50px;
+      flex-basis: 50px;
+    }
+  }
+}

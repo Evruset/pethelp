@@ -1,0 +1,144 @@
+/* v46 — floating navigation, decisive appointment and calm telemedicine flow. */
+:root{
+  --v46-blue:#1767f7;
+  --v46-ink:#16233c;
+  --v46-muted:#61708a;
+  --v46-line:rgba(128,161,209,.30);
+  --v46-surface:rgba(252,254,255,.90);
+  --v46-shadow:0 18px 44px rgba(37,78,141,.16);
+}
+
+/* One navigation model: floating on wide screens, a thumb-friendly dock on phones. */
+body.v46-floating-navigation-telemed .v38-top-nav{
+  position:fixed;
+  top:14px;
+  left:50%;
+  z-index:1000;
+  width:min(1120px,calc(100vw - 48px));
+  min-height:64px;
+  transform:translateX(-50%);
+  padding:9px 12px;
+  border:1px solid rgba(136,175,227,.55);
+  border-radius:22px;
+  background:rgba(250,253,255,.88);
+  box-shadow:var(--v46-shadow);
+  backdrop-filter:blur(22px) saturate(1.15);
+  -webkit-backdrop-filter:blur(22px) saturate(1.15);
+}
+body.v46-floating-navigation-telemed .v38-top-brand{padding-inline:4px;color:var(--v46-ink);}
+body.v46-floating-navigation-telemed .v38-top-brand .brand-mark{width:38px;height:38px;}
+body.v46-floating-navigation-telemed .v38-top-primary{justify-content:center;gap:4px;}
+body.v46-floating-navigation-telemed .v38-top-primary a{min-height:42px;padding-inline:13px;font-size:13px;}
+body.v46-floating-navigation-telemed .v38-top-sos{min-height:42px;padding-inline:14px;}
+body.v46-floating-navigation-telemed .main{padding-top:108px!important;}
+@media(min-width:761px){body.v46-floating-navigation-telemed .tablet-compact-nav{display:none!important;}}
+@media(max-width:1100px) and (min-width:701px){
+  body.v46-floating-navigation-telemed .v38-top-nav{grid-template-columns:1fr auto;gap:5px 12px;}
+  body.v46-floating-navigation-telemed .v38-top-primary{grid-column:1/-1;grid-row:2;justify-content:flex-start;width:100%;}
+  body.v46-floating-navigation-telemed .main{padding-top:154px!important;}
+}
+@media(max-width:700px){
+  body.v46-floating-navigation-telemed .v38-top-nav{display:none!important;}
+  body.v46-floating-navigation-telemed .main{padding-top:18px!important;padding-bottom:calc(var(--mobile-nav-h,74px) + 34px)!important;}
+  body.v46-floating-navigation-telemed .mobile-bottom-nav{left:10px;right:10px;bottom:calc(10px + var(--safe-area-bottom,0px));height:68px;padding:6px;background:rgba(250,253,255,.91);border-color:rgba(136,175,227,.55);border-radius:21px;box-shadow:var(--v46-shadow);}
+  body.v46-floating-navigation-telemed .mobile-bottom-nav a{min-height:54px;padding:5px 2px;font-size:9px;}
+}
+
+/* New appointment decision: one status, the deadline, and three logical paths. */
+#appointment-detail>.v37-can-go{display:none!important;}
+#appointment-detail>.v46-appointment-hero{
+  display:grid;
+  grid-template-columns:minmax(0,1.35fr) minmax(250px,.85fr);
+  gap:20px 28px;
+  padding:26px;
+  overflow:hidden;
+  border-color:rgba(211,147,42,.28)!important;
+  background:linear-gradient(120deg,rgba(255,248,232,.96),rgba(255,255,255,.92) 52%,rgba(240,247,255,.88));
+}
+.v46-appointment-hero__main{min-width:0;}
+.v46-appointment-hero .kicker{display:block;margin:9px 0 3px;color:#95611b;}
+.v46-appointment-hero h2{max-width:700px;margin:0;color:var(--v46-ink);font-size:clamp(24px,3vw,38px);line-height:1.08;overflow-wrap:anywhere;}
+.v46-appointment-hero p{max-width:680px;margin:10px 0 0;color:var(--v46-muted);line-height:1.5;}
+.v46-appointment-facts{display:grid;grid-template-columns:1fr;align-content:start;gap:8px;margin:0;min-width:0;}
+.v46-appointment-facts div{display:grid;grid-template-columns:88px minmax(0,1fr);gap:10px;padding:10px 0;border-bottom:1px solid rgba(173,139,76,.18);}
+.v46-appointment-facts dt{color:var(--v46-muted);font-size:12px;font-weight:750;}
+.v46-appointment-facts dd{margin:0;color:var(--v46-ink);font-weight:850;overflow-wrap:anywhere;}
+.v46-appointment-actions{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:10px;min-width:0;}
+.v46-appointment-actions .section-link{padding:10px 4px;white-space:normal;}
+
+/* The legacy waiting panels contain the same data several times; only the concise v46 room is shown. */
+#telemed-wait>:not(.back-link):not(.topbar):not(.v46-wait-room){display:none!important;}
+#telemed-wait .v46-wait-room{display:grid;gap:16px;min-width:0;}
+.v46-wait-hero{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(255px,.8fr);gap:22px;padding:26px;overflow:hidden;background:linear-gradient(130deg,rgba(235,245,255,.96),rgba(255,255,255,.93));}
+.v46-wait-hero__copy{min-width:0;}
+.v46-wait-hero h2{margin:11px 0 8px;max-width:670px;font-size:clamp(24px,3vw,38px);line-height:1.1;overflow-wrap:anywhere;}
+.v46-wait-hero p{max-width:680px;margin:0;color:var(--v46-muted);line-height:1.52;}
+.v46-wait-hero__actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px;}
+.v46-wait-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0;align-content:center;min-width:0;}
+.v46-wait-stats div{min-width:0;padding:16px 14px;border:1px solid rgba(109,157,231,.28);border-radius:16px;background:rgba(255,255,255,.66);}
+.v46-wait-stats dt,.v46-wait-stats small{display:block;color:var(--v46-muted);font-size:12px;line-height:1.35;}
+.v46-wait-stats dd{margin:5px 0 3px;color:var(--v46-ink);font-size:23px;font-weight:900;letter-spacing:-.035em;overflow-wrap:anywhere;}
+.v46-wait-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;min-width:0;}
+.v46-wait-doctor{display:grid;grid-template-columns:98px minmax(0,1fr);align-items:center;gap:16px;padding:17px;min-width:0;}
+.v46-wait-doctor>img{width:98px;height:112px;object-fit:cover;object-position:center 26%;border-radius:15px;background:#e8f1fd;}
+.v46-wait-doctor h3,.v46-wait-prep h3{margin:9px 0 5px;font-size:20px;line-height:1.16;overflow-wrap:anywhere;}
+.v46-wait-doctor p{margin:0 0 8px;overflow-wrap:anywhere;}
+.v46-wait-prep{padding:18px 20px;min-width:0;}
+.v46-wait-prep h3{margin-top:4px;}
+.v46-wait-prep ul{display:grid;gap:9px;margin:14px 0 0;padding:0;list-style:none;}
+.v46-wait-prep li{display:grid;grid-template-columns:24px minmax(0,1fr);gap:9px;align-items:center;color:var(--v46-ink);font-size:13px;font-weight:700;line-height:1.35;}
+.v46-wait-prep li>span{width:24px;height:24px;display:grid;place-items:center;border-radius:50%;background:rgba(23,103,247,.1);color:var(--v46-blue);font-size:12px;font-weight:900;}
+.v46-wait-payment{display:flex;align-items:flex-start;gap:10px;padding:13px 15px;border:1px solid rgba(109,157,231,.24);border-radius:16px;background:rgba(244,249,255,.74);color:var(--v46-muted);font-size:13px;line-height:1.46;}
+.v46-wait-payment .vh-icon{flex:0 0 auto;width:21px;height:21px;color:var(--v46-blue);}
+.v46-wait-payment strong{color:var(--v46-ink);}
+
+/* A doctor card that answers the practical question: who joins, when and with what context. */
+#telemed-check .v46-check-doctor{display:grid;gap:16px;min-width:0;}
+.v46-check-doctor__heading{display:flex;align-items:start;justify-content:space-between;gap:12px;min-width:0;}
+.v46-check-doctor__heading h2{margin:4px 0 0;overflow-wrap:anywhere;}
+.v46-check-doctor__heading .pill{flex:0 0 auto;}
+.v46-check-doctor__body{display:grid;grid-template-columns:132px minmax(0,1fr);align-items:start;gap:18px;min-width:0;}
+#telemed-check .v46-check-doctor .telemed-provider-photo{width:132px;min-height:160px;height:160px;margin:0;border-radius:17px;overflow:hidden;}
+#telemed-check .v46-check-doctor .telemed-provider-photo img{width:100%;height:100%;object-fit:cover;object-position:center 21%;}
+.v46-check-doctor__copy{min-width:0;}
+.v46-check-doctor__copy>p{margin:0;overflow-wrap:anywhere;}
+.v46-doctor-facts{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;}
+.v46-doctor-facts span{padding:7px 9px;border:1px solid rgba(109,157,231,.25);border-radius:10px;background:rgba(240,247,255,.72);color:#49617f;font-size:12px;font-weight:800;line-height:1.25;}
+.v46-doctor-ready{display:grid;grid-template-columns:20px minmax(0,1fr);gap:8px;align-items:start;padding:11px 12px;border-radius:13px;background:rgba(232,246,239,.78);color:#355e4d;font-size:13px;line-height:1.4;}
+.v46-doctor-ready .vh-icon{width:19px;height:19px;color:#168958;}
+.v46-check-doctor__copy .small{margin-top:11px;line-height:1.42;}
+
+/* Replaces the opaque OCR label with a familiar scanning affordance. */
+#diary .ocr-proof-icon--scan{display:grid;place-items:center;color:var(--v46-blue);background:rgba(23,103,247,.10);}
+#diary .ocr-proof-icon--scan .vh-icon{width:24px;height:24px;}
+
+/* Last defensive layer against inherited narrow-card overflow. */
+.v46-appointment-hero :where(h2,p,dd,a),.v46-wait-room :where(h2,h3,p,span,small,a),.v46-check-doctor :where(h2,p,span,small){overflow-wrap:anywhere;}
+@media(max-width:860px){
+  #appointment-detail>.v46-appointment-hero,.v46-wait-hero{grid-template-columns:1fr;}
+  .v46-appointment-facts{grid-template-columns:repeat(3,minmax(0,1fr));}
+  .v46-appointment-facts div{grid-template-columns:1fr;gap:3px;}
+}
+@media(max-width:640px){
+  #appointment-detail>.v46-appointment-hero,.v46-wait-hero{padding:18px;gap:17px;border-radius:19px!important;}
+  .v46-appointment-facts,.v46-wait-stats,.v46-wait-grid{grid-template-columns:1fr;}
+  .v46-appointment-facts div{grid-template-columns:90px minmax(0,1fr);gap:8px;padding:8px 0;}
+  .v46-wait-hero__actions,.v46-appointment-actions{display:grid;grid-template-columns:1fr;}
+  .v46-wait-hero__actions .btn,.v46-appointment-actions .btn,.v46-appointment-actions .section-link{width:100%;}
+  .v46-appointment-actions .section-link{text-align:center;}
+  .v46-wait-doctor{grid-template-columns:76px minmax(0,1fr);gap:13px;padding:15px;}
+  .v46-wait-doctor>img{width:76px;height:96px;border-radius:13px;}
+  .v46-wait-prep{padding:16px;}
+  .v46-check-doctor__body{grid-template-columns:92px minmax(0,1fr);gap:13px;}
+  #telemed-check .v46-check-doctor .telemed-provider-photo{width:92px;min-height:132px;height:132px;border-radius:14px;}
+  .v46-check-doctor__heading{align-items:center;}
+  .v46-check-doctor__heading .pill{font-size:11px;}
+}
+@media(max-width:430px){
+  .v46-wait-stats{grid-template-columns:1fr 1fr;}
+  .v46-wait-stats div{padding:13px;}
+  .v46-wait-stats dd{font-size:20px;}
+  .v46-check-doctor__body{grid-template-columns:1fr;}
+  #telemed-check .v46-check-doctor .telemed-provider-photo{width:100%;height:180px;}
+}
+@media print{body.v46-floating-navigation-telemed .v38-top-nav{display:none!important;}}

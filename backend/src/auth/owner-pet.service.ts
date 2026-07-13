@@ -1,9 +1,34 @@
 import { BadRequestException, Injectable, NotFoundException, PreconditionFailedException } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import { createReadStream } from 'node:fs';
+import { mkdir, stat, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import type { ReadStream } from 'node:fs';
 import type { PoolClient } from 'pg';
 import { DatabaseService } from '../database/database.service';
 import { JwtPayload } from './auth.types';
 import { CreateOwnerPetDto, UpdateOwnerPetDto } from './dto/owner-pet.dto';
 import { ownerAppointmentPresentation, OwnerAppointmentPresentation } from './owner-appointments.service';
+
+export const PET_DOCUMENT_MAX_BYTES = 10 * 1024 * 1024;
+
+const ALLOWED_DOCUMENT_MIME_TYPES = new Map<string, string>([
+  ['image/jpeg', '.jpg'],
+  ['image/png', '.png'],
+  ['image/heic', '.heic'],
+  ['image/heif', '.heif'],
+  ['image/webp', '.webp'],
+  ['application/pdf', '.pdf'],
+]);
+
+const ALLOWED_PHOTO_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/heic', 'image/heif', 'image/webp']);
+
+export type UploadedPetFile = {
+  originalname: string;
+  mimetype: string;
+  size: number;
+  buffer?: Buffer;
+};
 
 export type OwnerPet = {
   id: string;
@@ -30,9 +55,18 @@ export type OwnerPet = {
 };
 
 export type OwnerPetCareDocument = {
-  type: 'PHOTO' | 'VACCINATION_NOTES' | 'INSURANCE_POLICY_LINK' | 'OCR_MEDICAL_HISTORY';
+  id: string;
+  type: 'PASSPORT' | 'HISTORY';
   label: string;
   value: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  createdAt: string;
+  downloadUrl: string;
+  canOpen: boolean;
+  canDelete: boolean;
+  isImage: boolean;
 };
 
 export type OwnerPetDocumentUpload = {
@@ -40,8 +74,15 @@ export type OwnerPetDocumentUpload = {
   petId: string;
   fileUrl: string;
   docType: 'PASSPORT' | 'HISTORY';
-  status: 'PROCESSING';
+  status: 'PROCESSING' | 'PROCESSED' | 'FAILED';
   createdAt: string;
+};
+
+export type OwnerPetDocumentDownload = {
+  stream: ReadStream;
+  safeFileName: string;
+  mimeType: string;
+  fileSizeBytes: number;
 };
 
 export type OwnerPetCareVisit = {
@@ -105,6 +146,20 @@ type OwnerPetRow = {
   profile_version: string | number;
   created_at: Date;
   updated_at: Date;
+};
+
+type PetDocumentRow = {
+  id: string;
+  pet_id: string;
+  owner_id: string;
+  file_url: string;
+  doc_type: 'PASSPORT' | 'HISTORY' | 'PET_PHOTO';
+  status: 'PROCESSING' | 'PROCESSED' | 'FAILED';
+  file_name: string | null;
+  mime_type: string | null;
+  file_size_bytes: number | null;
+  storage_key: string | null;
+  created_at: Date;
 };
 
 @Injectable()
@@ -248,10 +303,23 @@ export class OwnerPetService {
       LIMIT 30
     `, [owner.sub, petId]);
 
+    const documents = await this.database.query<PetDocumentRow>(`
+      SELECT
+        id, pet_id, owner_id, file_url, doc_type, status,
+        file_name, mime_type, file_size_bytes, storage_key, created_at
+      FROM pet_schema.pet_documents
+      WHERE pet_id = $1::uuid
+        AND owner_id = $2::uuid
+        AND deleted_at IS NULL
+        AND doc_type IN ('PASSPORT', 'HISTORY')
+      ORDER BY created_at DESC, id DESC
+      LIMIT 100
+    `, [petId, owner.sub]);
+
     const serverNow = await this.database.query<{ value: Date }>('SELECT clock_timestamp() AS value');
     return {
       pet,
-      documents: this.careDocuments(pet),
+      documents: documents.rows.map((row) => this.toCareDocument(row)),
       visits: visits.rows.map((row) => ({
         holdId: row.hold_id,
         appointmentId: row.appointment_id,
@@ -422,54 +490,162 @@ export class OwnerPetService {
     });
   }
 
-  async uploadDocumentPhoto(
+  async uploadDocumentFile(
     owner: JwtPayload,
     petId: string,
-    input: { fileUrl: string; docType: 'PASSPORT' | 'HISTORY' },
+    file: UploadedPetFile | undefined,
+    docType: 'PASSPORT' | 'HISTORY',
   ): Promise<OwnerPetDocumentUpload> {
-    const fileUrl = input.fileUrl.trim();
-    if (!fileUrl) {
-      throw new BadRequestException({ code: 'INVALID_DOCUMENT_URL', message: 'fileUrl must not be blank.' });
+    if (docType !== 'PASSPORT' && docType !== 'HISTORY') {
+      throw new BadRequestException({ code: 'INVALID_PET_DOCUMENT_TYPE', message: 'Document type is not supported.' });
     }
+    this.validateUploadedFile(file, { allowPdf: true });
+    await this.ensurePetOwned(owner, petId);
+    const stored = await this.storeUploadedFile(owner.sub, petId, file!);
 
     return this.database.withTransaction(async (client) => {
-      const pet = await client.query<{ id: string }>(`
-        SELECT id
-        FROM pet_schema.pets
-        WHERE id = $1::uuid AND owner_id = $2::uuid
-        FOR SHARE
-      `, [petId, owner.sub]);
-      if (!pet.rows[0]) {
-        throw new NotFoundException({ code: 'OWNER_PET_NOT_FOUND', message: 'Pet was not found.' });
-      }
-
-      const document = await client.query<{
-        id: string;
-        pet_id: string;
-        file_url: string;
-        doc_type: 'PASSPORT' | 'HISTORY';
-        status: 'PROCESSING';
-        created_at: Date;
-      }>(`
-        INSERT INTO pet_schema.pet_documents (pet_id, owner_id, file_url, doc_type, status)
-        VALUES ($1::uuid, $2::uuid, $3, $4, 'PROCESSING')
-        RETURNING id, pet_id, file_url, doc_type, status, created_at
-      `, [petId, owner.sub, fileUrl, input.docType]);
+      const document = await client.query<PetDocumentRow>(`
+        INSERT INTO pet_schema.pet_documents (
+          id, pet_id, owner_id, file_url, doc_type, status,
+          file_name, mime_type, file_size_bytes, storage_key
+        )
+        VALUES (
+          $1::uuid, $2::uuid, $3::uuid, $4, $5, 'PROCESSED',
+          $6, $7, $8::integer, $9
+        )
+        RETURNING
+          id, pet_id, owner_id, file_url, doc_type, status,
+          file_name, mime_type, file_size_bytes, storage_key, created_at
+      `, [
+        stored.documentId,
+        petId,
+        owner.sub,
+        this.documentDownloadUrl(petId, stored.documentId),
+        docType,
+        stored.fileName,
+        stored.mimeType,
+        stored.fileSizeBytes,
+        stored.storageKey,
+      ]);
 
       await this.writePetAudit(client, owner.sub, petId, 'pet.document.uploaded', {
         documentId: document.rows[0].id,
-        docType: input.docType,
+        docType,
+        mimeType: stored.mimeType,
+        fileSizeBytes: stored.fileSizeBytes,
       });
 
-      return {
-        documentId: document.rows[0].id,
-        petId: document.rows[0].pet_id,
-        fileUrl: document.rows[0].file_url,
-        docType: document.rows[0].doc_type,
-        status: document.rows[0].status,
-        createdAt: document.rows[0].created_at.toISOString(),
-      };
+      return this.toDocumentUpload(document.rows[0]);
     });
+  }
+
+  async uploadPetPhoto(owner: JwtPayload, petId: string, file: UploadedPetFile | undefined): Promise<OwnerPet> {
+    this.validateUploadedFile(file, { allowPdf: false });
+    await this.ensurePetOwned(owner, petId);
+    const stored = await this.storeUploadedFile(owner.sub, petId, file!);
+    const photoUrl = this.documentDownloadUrl(petId, stored.documentId);
+
+    return this.database.withTransaction(async (client) => {
+      await client.query(`
+        INSERT INTO pet_schema.pet_documents (
+          id, pet_id, owner_id, file_url, doc_type, status,
+          file_name, mime_type, file_size_bytes, storage_key
+        )
+        VALUES (
+          $1::uuid, $2::uuid, $3::uuid, $4, 'PET_PHOTO', 'PROCESSED',
+          $5, $6, $7::integer, $8
+        )
+      `, [
+        stored.documentId,
+        petId,
+        owner.sub,
+        photoUrl,
+        stored.fileName,
+        stored.mimeType,
+        stored.fileSizeBytes,
+        stored.storageKey,
+      ]);
+
+      const result = await client.query<OwnerPetRow>(`
+        UPDATE pet_schema.pets
+        SET photo_url = $3, profile_version = profile_version + 1, updated_at = clock_timestamp()
+        WHERE id = $1::uuid AND owner_id = $2::uuid
+        RETURNING
+          id, name, species, breed, birth_date, age_months, sex, gender,
+          weight_kg::text, sterilized, is_sterilized, chip_number,
+          allergies, chronic_conditions, vaccination_notes, photo_url,
+          insurance_policy_links, medical_history_ocr, profile_version, created_at, updated_at
+      `, [petId, owner.sub, photoUrl]);
+
+      if (!result.rows[0]) {
+        throw new NotFoundException({ code: 'OWNER_PET_NOT_FOUND', message: 'Pet was not found.' });
+      }
+
+      await this.writePetAudit(client, owner.sub, petId, 'pet.photo.uploaded', {
+        documentId: stored.documentId,
+        mimeType: stored.mimeType,
+        fileSizeBytes: stored.fileSizeBytes,
+      });
+
+      return this.toPet(result.rows[0]);
+    });
+  }
+
+  async deletePetPhoto(owner: JwtPayload, petId: string): Promise<OwnerPet> {
+    return this.database.withTransaction(async (client) => {
+      const result = await client.query<OwnerPetRow>(`
+        UPDATE pet_schema.pets
+        SET photo_url = NULL, profile_version = profile_version + 1, updated_at = clock_timestamp()
+        WHERE id = $1::uuid AND owner_id = $2::uuid
+        RETURNING
+          id, name, species, breed, birth_date, age_months, sex, gender,
+          weight_kg::text, sterilized, is_sterilized, chip_number,
+          allergies, chronic_conditions, vaccination_notes, photo_url,
+          insurance_policy_links, medical_history_ocr, profile_version, created_at, updated_at
+      `, [petId, owner.sub]);
+
+      if (!result.rows[0]) {
+        throw new NotFoundException({ code: 'OWNER_PET_NOT_FOUND', message: 'Pet was not found.' });
+      }
+
+      await this.writePetAudit(client, owner.sub, petId, 'pet.photo.deleted', {});
+      return this.toPet(result.rows[0]);
+    });
+  }
+
+  async downloadDocument(owner: JwtPayload, petId: string, documentId: string): Promise<OwnerPetDocumentDownload> {
+    const document = await this.readOwnedDocument(owner, petId, documentId);
+    if (!document.storage_key || !document.mime_type || !document.file_size_bytes) {
+      throw new NotFoundException({ code: 'OWNER_PET_DOCUMENT_NOT_FOUND', message: 'Document was not found.' });
+    }
+    const filePath = this.storagePath(document.storage_key);
+    const fileStat = await stat(filePath).catch(() => null);
+    if (!fileStat?.isFile()) {
+      throw new NotFoundException({ code: 'OWNER_PET_DOCUMENT_NOT_FOUND', message: 'Document was not found.' });
+    }
+    return {
+      stream: createReadStream(filePath),
+      safeFileName: this.safeDownloadName(document.file_name ?? 'pet-document'),
+      mimeType: document.mime_type,
+      fileSizeBytes: document.file_size_bytes,
+    };
+  }
+
+  async deleteDocument(owner: JwtPayload, petId: string, documentId: string): Promise<void> {
+    await this.ensurePetOwned(owner, petId);
+    const result = await this.database.query<{ id: string }>(`
+      UPDATE pet_schema.pet_documents
+      SET deleted_at = clock_timestamp(), updated_at = clock_timestamp()
+      WHERE id = $1::uuid
+        AND pet_id = $2::uuid
+        AND owner_id = $3::uuid
+        AND deleted_at IS NULL
+        AND doc_type IN ('PASSPORT', 'HISTORY')
+      RETURNING id
+    `, [documentId, petId, owner.sub]);
+    if (!result.rows[0]) {
+      throw new NotFoundException({ code: 'OWNER_PET_DOCUMENT_NOT_FOUND', message: 'Document was not found.' });
+    }
   }
 
   private async writePetAudit(client: PoolClient, ownerId: string, petId: string, action: string, payload: Record<string, unknown>): Promise<void> {
@@ -514,21 +690,128 @@ export class OwnerPetService {
     };
   }
 
-  private careDocuments(pet: OwnerPet): OwnerPetCareDocument[] {
-    const documents: OwnerPetCareDocument[] = [];
-    if (pet.photoUrl) {
-      documents.push({ type: 'PHOTO', label: 'Фото питомца', value: pet.photoUrl });
+  private async ensurePetOwned(owner: JwtPayload, petId: string): Promise<void> {
+    const pet = await this.database.query<{ id: string }>(`
+      SELECT id
+      FROM pet_schema.pets
+      WHERE id = $1::uuid AND owner_id = $2::uuid
+      LIMIT 1
+    `, [petId, owner.sub]);
+    if (!pet.rows[0]) {
+      throw new NotFoundException({ code: 'OWNER_PET_NOT_FOUND', message: 'Pet was not found.' });
     }
-    if (pet.vaccinationNotes) {
-      documents.push({ type: 'VACCINATION_NOTES', label: 'Вакцинация', value: pet.vaccinationNotes });
+  }
+
+  private validateUploadedFile(file: UploadedPetFile | undefined, options: { allowPdf: boolean }): asserts file is UploadedPetFile {
+    if (!file || !file.buffer || file.buffer.length === 0 || file.size <= 0) {
+      throw new BadRequestException({ code: 'EMPTY_PET_FILE', message: 'File must not be empty.' });
     }
-    for (const [index, link] of pet.insurancePolicyLinks.entries()) {
-      documents.push({ type: 'INSURANCE_POLICY_LINK', label: `Полис ${index + 1}`, value: link });
+    if (file.size > PET_DOCUMENT_MAX_BYTES || file.buffer.length > PET_DOCUMENT_MAX_BYTES) {
+      throw new BadRequestException({ code: 'PET_FILE_TOO_LARGE', message: 'File exceeds the allowed size.' });
     }
-    if (pet.medicalHistoryOcr) {
-      documents.push({ type: 'OCR_MEDICAL_HISTORY', label: 'Распознанная медкарта', value: JSON.stringify(pet.medicalHistoryOcr) });
+    if (!ALLOWED_DOCUMENT_MIME_TYPES.has(file.mimetype)) {
+      throw new BadRequestException({ code: 'UNSUPPORTED_PET_FILE_TYPE', message: 'File type is not supported.' });
     }
-    return documents;
+    if (!options.allowPdf && !ALLOWED_PHOTO_MIME_TYPES.has(file.mimetype)) {
+      throw new BadRequestException({ code: 'UNSUPPORTED_PET_FILE_TYPE', message: 'File type is not supported for pet photos.' });
+    }
+  }
+
+  private async storeUploadedFile(ownerId: string, petId: string, file: UploadedPetFile): Promise<{
+    documentId: string;
+    storageKey: string;
+    fileName: string;
+    mimeType: string;
+    fileSizeBytes: number;
+  }> {
+    const documentId = randomUUID();
+    const extension = ALLOWED_DOCUMENT_MIME_TYPES.get(file.mimetype) ?? path.extname(file.originalname).toLowerCase();
+    const fileName = this.safeDownloadName(file.originalname || `pet-document${extension}`);
+    const storageKey = path.join(ownerId, petId, `${documentId}${extension}`);
+    const filePath = this.storagePath(storageKey);
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await writeFile(filePath, file.buffer!);
+    return {
+      documentId,
+      storageKey,
+      fileName,
+      mimeType: file.mimetype,
+      fileSizeBytes: file.size,
+    };
+  }
+
+  private async readOwnedDocument(owner: JwtPayload, petId: string, documentId: string): Promise<PetDocumentRow> {
+    const result = await this.database.query<PetDocumentRow>(`
+      SELECT
+        id, pet_id, owner_id, file_url, doc_type, status,
+        file_name, mime_type, file_size_bytes, storage_key, created_at
+      FROM pet_schema.pet_documents
+      WHERE id = $1::uuid
+        AND pet_id = $2::uuid
+        AND owner_id = $3::uuid
+        AND deleted_at IS NULL
+      LIMIT 1
+    `, [documentId, petId, owner.sub]);
+    if (!result.rows[0]) {
+      throw new NotFoundException({ code: 'OWNER_PET_DOCUMENT_NOT_FOUND', message: 'Document was not found.' });
+    }
+    return result.rows[0];
+  }
+
+  private toDocumentUpload(row: PetDocumentRow): OwnerPetDocumentUpload {
+    return {
+      documentId: row.id,
+      petId: row.pet_id,
+      fileUrl: row.file_url,
+      docType: row.doc_type === 'PET_PHOTO' ? 'HISTORY' : row.doc_type,
+      status: row.status,
+      createdAt: row.created_at.toISOString(),
+    };
+  }
+
+  private toCareDocument(row: PetDocumentRow): OwnerPetCareDocument {
+    const fileName = row.file_name ?? this.documentLabel(row);
+    const mimeType = row.mime_type ?? 'application/octet-stream';
+    const sizeBytes = row.file_size_bytes ?? 0;
+    return {
+      id: row.id,
+      type: row.doc_type === 'PET_PHOTO' ? 'HISTORY' : row.doc_type,
+      label: this.documentLabel(row),
+      value: row.file_url,
+      fileName,
+      mimeType,
+      sizeBytes,
+      createdAt: row.created_at.toISOString(),
+      downloadUrl: row.file_url,
+      canOpen: Boolean(row.storage_key),
+      canDelete: row.doc_type !== 'PET_PHOTO',
+      isImage: mimeType.startsWith('image/'),
+    };
+  }
+
+  private documentLabel(row: PetDocumentRow): string {
+    if (row.file_name) return row.file_name;
+    return row.doc_type === 'PASSPORT' ? 'Документ питомца' : 'Медицинский файл';
+  }
+
+  private documentDownloadUrl(petId: string, documentId: string): string {
+    return `/v1/owner/pets/${petId}/documents/${documentId}/download`;
+  }
+
+  private storagePath(storageKey: string): string {
+    const root = process.env.PET_DOCUMENT_STORAGE_DIR ?? path.resolve(process.cwd(), '.storage', 'pet-documents');
+    const resolved = path.resolve(root, storageKey);
+    const rootResolved = path.resolve(root);
+    const relative = path.relative(rootResolved, resolved);
+    if (relative.startsWith('..') || path.isAbsolute(relative)) {
+      throw new BadRequestException({ code: 'INVALID_PET_DOCUMENT_STORAGE_KEY', message: 'Invalid document storage key.' });
+    }
+    return resolved;
+  }
+
+  private safeDownloadName(value: string): string {
+    const normalized = path.basename(value).replace(/[\r\n"]/g, '').trim();
+    return normalized.slice(0, 180) || 'pet-document';
   }
 
   private blankToNull(value: string | undefined | null): string | null {

@@ -17,9 +17,6 @@ owner-web-e2e:
 owner-integration-test:
 	PATH="$(NODE20_BIN):$$PATH" node dev/local/run-owner-integration-test.mjs
 
-local-stack-e2e:
-	PATH="$(NODE20_BIN):$$PATH" node dev/local/local-stack-e2e.mjs
-
 local-up:
 	$(COMPOSE) up -d --build
 
@@ -41,6 +38,9 @@ local-seed:
 
 local-smoke:
 	backend/scripts/smoke-local-journey.sh
+
+local-stack-e2e:
+	cd apps/clinic-portal && PATH="$(NODE20_BIN):$$PATH" npm run e2e:local-stack
 
 clinic-portal-session:
 	PATH="$(NODE20_BIN):$$PATH" node dev/local/clinic-portal-session.mjs

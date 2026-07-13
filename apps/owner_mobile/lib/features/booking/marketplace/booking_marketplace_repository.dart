@@ -37,6 +37,7 @@ class BookingSlot {
 class CreatedBookingHold {
   const CreatedBookingHold({
     required this.holdId,
+    this.appointmentId,
     required this.state,
     required this.slotId,
     required this.expiresAt,
@@ -44,6 +45,7 @@ class CreatedBookingHold {
   });
 
   final String holdId;
+  final String? appointmentId;
   final String state;
   final String slotId;
   final DateTime expiresAt;
@@ -52,6 +54,7 @@ class CreatedBookingHold {
   factory CreatedBookingHold.fromJson(Map<String, dynamic> json) {
     return CreatedBookingHold(
       holdId: json['holdId'] as String,
+      appointmentId: json['appointmentId'] as String?,
       state: json['state'] as String,
       slotId: json['slotId'] as String,
       expiresAt: DateTime.parse(json['expiresAt'] as String).toUtc(),

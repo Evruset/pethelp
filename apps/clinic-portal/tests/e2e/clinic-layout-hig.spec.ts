@@ -82,8 +82,8 @@ test('keeps correlation id stable and rotates idempotency key on slot retry', as
   });
 
   await page.goto(route());
-  page.once('dialog', (dialog) => dialog.accept());
-  await page.getByRole('button', { name: 'Blackout' }).first().click();
+  await page.getByRole('button', { name: 'Blackout' }).click();
+  await page.getByRole('dialog', { name: 'Закрыть окно' }).getByRole('button', { name: 'Закрыть окно' }).click();
   await expect(page.getByRole('status')).toContainText('Окно закрыто');
 
   expect(requests).toHaveLength(2);
@@ -108,8 +108,8 @@ test('retries SLOT_LOCKED_RETRY three times with exponential backoff', async ({ 
   });
 
   await page.goto(route());
-  page.once('dialog', (dialog) => dialog.accept());
-  await page.getByRole('button', { name: 'Blackout' }).first().click();
+  await page.getByRole('button', { name: 'Blackout' }).click();
+  await page.getByRole('dialog', { name: 'Закрыть окно' }).getByRole('button', { name: 'Закрыть окно' }).click();
   await expect(page.getByRole('dialog', { name: 'Слот недоступен' })).toBeVisible({ timeout: 12_000 });
 
   expect(requests).toHaveLength(4);
@@ -131,8 +131,8 @@ test('shows accessible slide-over when slot retry is exhausted', async ({ page, 
   });
 
   await page.goto(route());
-  page.once('dialog', (dialog) => dialog.accept());
-  await page.getByRole('button', { name: 'Blackout' }).first().click();
+  await page.getByRole('button', { name: 'Blackout' }).click();
+  await page.getByRole('dialog', { name: 'Закрыть окно' }).getByRole('button', { name: 'Закрыть окно' }).click();
 
   const dialog = page.getByRole('dialog', { name: 'Слот недоступен' });
   await expect(dialog).toBeVisible({ timeout: 12_000 });
@@ -152,7 +152,6 @@ test('captures schedule occupied and blackout visual baseline', async ({ page, c
   await expect(page.getByTestId(`schedule-slot-${blackoutSlotId}`).getByRole('button', { name: 'Blackout' })).toBeDisabled();
   await expect(page).toHaveScreenshot('schedule-occupied-blackout.png', { fullPage: true });
 });
-
 function route(): string {
   return `/clinics/${clinicId}/locations/${locationId}/schedule`;
 }

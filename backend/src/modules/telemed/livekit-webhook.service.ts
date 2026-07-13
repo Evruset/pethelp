@@ -67,9 +67,9 @@ export class LiveKitWebhookService {
 
         await this.writeSessionAudit(client, {
           sessionId: session.id,
-          actorType: 'TELEMED_VETERINARIAN',
+          actorType: 'DOCTOR',
           actorId: participantIdentity,
-          action: 'telemed.session.joined',
+          action: 'TELEMED_DOCTOR_JOINED_LIVEKIT',
           payload: { roomName, participantIdentity, role: 'doctor' },
         });
         this.logger.event('log', LiveKitWebhookService.name, 'Doctor joined LiveKit telemedicine room', {

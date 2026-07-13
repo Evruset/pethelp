@@ -53,6 +53,7 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
   const [rowState, setRowState] = useState<Record<string, RowState>>({});
   const [alternativeItem, setAlternativeItem] = useState<ManualConfirmationQueueItem | null>(null);
   const [notesItem, setNotesItem] = useState<ManualConfirmationQueueItem | null>(null);
+  const [declineItem, setDeclineItem] = useState<ManualConfirmationQueueItem | null>(null);
   const [auditItem, setAuditItem] = useState<ManualConfirmationQueueItem | null>(null);
   const [auditTrail, setAuditTrail] = useState<HoldAuditTrail | null>(null);
   const [auditLoading, setAuditLoading] = useState(false);
@@ -143,8 +144,7 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
   const decline = useCallback(async (item: ManualConfirmationQueueItem) => {
     const holdId = item.holdId;
     if ((rowState[holdId] ?? 'idle') !== 'idle') return;
-    const confirmed = window.confirm(`Отклонить заявку для ${item.pet.name}? Слот будет освобождён, владелец увидит актуальный статус.`);
-    if (!confirmed) return;
+    setDeclineItem(null);
 
     const mapKey = commandKey(holdId, 'decline');
     const key = commandKeys.current.get(mapKey) ?? crypto.randomUUID();
@@ -301,7 +301,7 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
                   </tr>
                 </thead>
                 <tbody>
-                  {queue.items.map((item, index) => <QueueRow key={item.holdId} item={item} position={index + 1} serverNowMs={serverNowMs} state={rowState[item.holdId] ?? 'idle'} canAct={firstActionableIndex === index} onConfirm={confirm} onDecline={decline} onAlternative={setAlternativeItem} onNotes={setNotesItem} onAudit={openAudit} onHold={canInspectHold ? setHoldItem : undefined} />)}
+                  {queue.items.map((item, index) => <QueueRow key={item.holdId} item={item} position={index + 1} serverNowMs={serverNowMs} state={rowState[item.holdId] ?? 'idle'} canAct={firstActionableIndex === index} onConfirm={confirm} onDecline={setDeclineItem} onAlternative={setAlternativeItem} onNotes={setNotesItem} onAudit={openAudit} onHold={canInspectHold ? setHoldItem : undefined} />)}
                 </tbody>
               </table>
             </div>
@@ -310,6 +310,7 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
       </section>
       <AlternativeSlotDrawer locationId={locationId} item={alternativeItem} onClose={() => setAlternativeItem(null)} onProposed={async () => { setNotice('Альтернативное время отправлено владельцу.'); await refresh(true); }} />
       <RequestNotesDrawer item={notesItem} submitting={notesItem ? rowState[notesItem.holdId] === 'requestingNotes' : false} onClose={() => setNotesItem(null)} onSubmit={requestNotes} />
+      <DeclineDialog item={declineItem} submitting={declineItem ? rowState[declineItem.holdId] === 'declining' : false} onClose={() => setDeclineItem(null)} onConfirm={decline} />
       <AuditTrailDrawer item={auditItem} trail={auditTrail} loading={auditLoading} error={auditError} onClose={() => { setAuditItem(null); setAuditTrail(null); setAuditError(null); }} />
       {canInspectHold ? <BookingHoldDrawer item={holdItem} canReplay={canReplayHold} onClose={() => setHoldItem(null)} /> : null}
     </main>
@@ -391,6 +392,32 @@ function RequestNotesDrawer({ item, submitting, onClose, onSubmit }: { item: Man
   );
 }
 
+function DeclineDialog({ item, submitting, onClose, onConfirm }: { item: ManualConfirmationQueueItem | null; submitting: boolean; onClose: () => void; onConfirm: (item: ManualConfirmationQueueItem) => void }) {
+  if (!item) return null;
+
+  return (
+    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="decline-title">
+      <button type="button" aria-label="Закрыть" className="absolute inset-0 bg-slate-950/40" onClick={onClose} disabled={submitting} />
+      <section className="absolute left-1/2 top-1/2 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white shadow-2xl">
+        <header className="border-b border-slate-200 px-6 py-5">
+          <p className="text-sm font-semibold text-red-700">VetHelp · booking queue</p>
+          <h2 id="decline-title" className="mt-1 text-2xl font-semibold text-slate-950">Отклонить заявку</h2>
+          <p className="mt-2 text-sm text-slate-600">{item.pet.name} · {item.service?.displayName ?? 'Услуга не указана'}</p>
+        </header>
+        <div className="px-6 py-5 text-sm text-slate-700">
+          Слот будет освобождён, а владелец увидит актуальный статус заявки.
+        </div>
+        <footer className="flex gap-3 border-t border-slate-200 px-6 py-4">
+          <button type="button" onClick={onClose} disabled={submitting} className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Отмена</button>
+          <button type="button" onClick={() => onConfirm(item)} disabled={submitting} className="flex-1 rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
+            {submitting ? 'Отклоняем...' : 'Отклонить заявку'}
+          </button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
 function AuditTrailDrawer({ item, trail, loading, error, onClose }: { item: ManualConfirmationQueueItem | null; trail: HoldAuditTrail | null; loading: boolean; error: string | null; onClose: () => void }) {
   if (!item) return null;
   return (
@@ -421,6 +448,8 @@ function AuditTrailDrawer({ item, trail, loading, error, onClose }: { item: Manu
                     <time className="shrink-0 text-xs text-slate-500">{dt(event.occurredAt)}</time>
                   </div>
                   {event.correlationId ? <p className="mt-2 text-xs text-slate-500">Correlation: {event.correlationId}</p> : null}
+                  {event.causationId ? <p className="mt-1 text-xs text-slate-500">Causation: {event.causationId}</p> : null}
+                  {event.traceparent ? <p className="mt-1 break-all text-xs text-slate-500">Traceparent: {event.traceparent}</p> : null}
                   <p className="mt-2 break-all text-xs text-slate-500">Ссылка: {event.eventRef}</p>
                   <p className="mt-1 text-xs text-slate-500">Хранить до: {dt(event.retainedUntil)}</p>
                   <pre className="mt-3 max-h-32 overflow-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-600">{JSON.stringify(event.payload, null, 2)}</pre>

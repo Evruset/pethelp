@@ -1,0 +1,83 @@
+
+/* v39 — Streamlined UAT flow fixes */
+:root{--v39-gap:16px;--v39-card-pad:20px;--v39-section-gap:24px;}
+body.v39-streamlined-flow{font-family:Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;}
+.v39-streamlined-flow .page{gap:var(--v39-section-gap);}
+.v39-streamlined-flow .glass{box-sizing:border-box;}
+.v39-section-head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:16px;}
+.v39-section-head-row h2{margin:.2rem 0 .4rem;font-size:clamp(1.35rem,2vw,2rem);line-height:1.08;letter-spacing:-.02em;}
+.v39-section-head-row p{max-width:760px;margin:0;}
+/* Home cleanup */
+#home .pet-hero{display:grid;grid-template-columns:minmax(160px,220px) 1fr;gap:20px;align-items:stretch;padding:20px;}
+#home .pet-hero .pet-copy{display:flex;flex-direction:column;gap:6px;min-width:0;}
+#home .pet-hero .pet-meta{order:1;margin:0;color:var(--muted,#64748b);}
+#home .pet-hero .kicker{order:2;margin:0;}
+#home .pet-hero .pet-name{order:3;margin:.1rem 0;font-size:clamp(1.8rem,3vw,2.6rem);line-height:1;}
+#home .pet-hero .v39-pet-card-spacer{order:4;flex:1 1 auto;min-height:10px;}
+#home .pet-hero .btn{order:5;align-self:flex-start;}
+/* Insurance marketplace */
+.v39-insurance-marketplace{padding:24px;}
+.v39-insurance-search{display:grid;grid-template-columns:1.1fr 1fr .8fr auto;gap:12px;align-items:end;margin:18px 0 20px;}
+.v39-insurance-search label{display:grid;gap:6px;font-size:.85rem;color:var(--muted,#64748b);}
+.v39-insurance-search select{min-height:44px;border-radius:14px;border:1px solid rgba(15,23,42,.12);padding:0 14px;background:#fff;font:inherit;color:inherit;}
+.v39-insurance-offers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;}
+.v39-insurance-offer{display:flex;flex-direction:column;gap:10px;min-width:0;padding:18px;border-radius:22px;background:rgba(255,255,255,.78);border:1px solid rgba(15,23,42,.08);box-shadow:0 12px 30px rgba(15,23,42,.06);}
+.v39-insurance-offer.is-recommended{background:linear-gradient(180deg,rgba(239,253,246,.98),rgba(255,255,255,.9));border-color:rgba(20,184,166,.24);}
+.v39-insurance-offer h3{margin:0;font-size:1.05rem;line-height:1.2;}
+.v39-insurance-offer p{margin:0;color:var(--muted,#64748b);font-size:.92rem;line-height:1.45;}
+.v39-insurance-offer dl{display:grid;gap:8px;margin:auto 0 0;}
+.v39-insurance-offer dl div{display:grid;grid-template-columns:76px 1fr;gap:8px;align-items:start;}
+.v39-insurance-offer dt{font-size:.75rem;color:var(--muted,#64748b);}
+.v39-insurance-offer dd{margin:0;font-weight:700;font-size:.88rem;}
+.v39-insurance-offer .btn,.v39-insurance-offer .secondary{margin-top:6px;justify-content:center;}
+.v39-insurance-market-note{margin:14px 0 0;}
+/* Insurance after visit grid */
+.v36-insurance-after{padding:24px;}
+.v36-insurance-after .v38-insurance-after-grid-inner{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;width:100%;}
+.v36-insurance-after .v38-insurance-card{display:flex;flex-direction:column;gap:8px;min-height:126px;padding:18px;border-radius:20px;background:#fff;border:1px solid rgba(15,23,42,.08);box-shadow:0 10px 24px rgba(15,23,42,.05);}
+.v36-insurance-after .v38-insurance-card strong{font-size:1rem;line-height:1.2;}
+.v36-insurance-after .v38-insurance-card span{color:var(--muted,#64748b);font-size:.92rem;line-height:1.42;}
+/* Booking simplification */
+.v39-booking-simple{padding:22px;}
+.v39-booking-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
+.v39-booking-steps span{display:flex;align-items:center;gap:10px;padding:14px;border-radius:18px;background:#fff;border:1px solid rgba(15,23,42,.08);}
+.v39-booking-steps strong{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:rgba(37,99,235,.1);color:#2563eb;flex:0 0 auto;}
+.v39-booking-steps small{font-weight:700;color:#1f2937;}
+.v39-booking-steps .is-active{border-color:rgba(37,99,235,.24);background:linear-gradient(180deg,rgba(239,246,255,.98),#fff);}
+.v39-booking-coverage{padding:22px;}
+.v39-booking-coverage .coverage-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;}
+.v39-booking-coverage .coverage-result{margin-top:14px;}
+.v39-coverage-action{margin-top:14px;min-height:44px;}
+/* Make booking page less dense */
+#booking .booking-layout{margin-top:0;}
+#booking .booking-layout .booking-summary{align-self:start;}
+/* Telemed simplification */
+.v39-telemed-simple,.v39-telemed-wait-hero,.v39-call-safety-note{padding:22px;}
+.v39-telemed-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px;}
+.v39-telemed-steps span{display:flex;gap:10px;align-items:center;padding:14px;border-radius:18px;background:#fff;border:1px solid rgba(15,23,42,.08);}
+.v39-telemed-steps strong{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:rgba(20,184,166,.12);color:#0f766e;}
+#telemed .telemed-provider--featured.v38-provider-compact{max-width:980px;margin-inline:auto;}
+#telemed .section-header{margin-top:0;}
+.v39-telemed-wait-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px;}
+#telemed-wait .v36rf-telemed-queue{padding:20px;}
+#telemed-call .call-stage{min-height:min(680px,calc(100vh - 220px));}
+/* consistent buttons */
+.v39-streamlined-flow button.primary,.v39-streamlined-flow button.secondary,.v39-streamlined-flow a.secondary,.v39-streamlined-flow .secondary{border-radius:14px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 16px;text-decoration:none;font-weight:800;line-height:1;border:1px solid rgba(15,23,42,.12);}
+.v39-streamlined-flow button.primary{background:var(--brand,#2563eb);color:#fff;border-color:transparent;}
+.v39-streamlined-flow button.secondary,.v39-streamlined-flow a.secondary,.v39-streamlined-flow .secondary{background:#fff;color:var(--ink,#0f172a);}
+/* Mobile */
+@media (max-width: 900px){
+  .v39-section-head-row{display:grid;gap:12px;}
+  .v39-insurance-search{grid-template-columns:1fr;}
+  .v39-insurance-offers{grid-template-columns:1fr 1fr;}
+  .v36-insurance-after .v38-insurance-after-grid-inner{grid-template-columns:1fr;}
+  .v39-booking-coverage .coverage-steps{grid-template-columns:1fr 1fr;}
+  .v39-telemed-steps,.v39-booking-steps{grid-template-columns:1fr;}
+}
+@media (max-width: 640px){
+  #home .pet-hero{grid-template-columns:1fr;padding:18px;}
+  .v39-insurance-offers{grid-template-columns:1fr;}
+  .v39-booking-coverage .coverage-steps{grid-template-columns:1fr;}
+  .v39-insurance-offer dl div{grid-template-columns:1fr;gap:2px;}
+}
+@media print{.v39-insurance-offer,.v39-booking-simple,.v39-booking-coverage,.v39-telemed-simple{break-inside:avoid;page-break-inside:avoid;}}

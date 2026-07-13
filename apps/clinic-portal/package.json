@@ -7,8 +7,11 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "e2e": "next build && playwright test",
-    "allure:generate": "allure generate allure-results --clean -o allure-report"
+    "e2e": "rm -rf test-results playwright-report allure-results allure-report && next build && playwright test",
+    "e2e:local-stack": "rm -rf test-results/local-stack && next build && playwright test -c playwright.local-stack.config.ts",
+    "allure:generate": "allure generate allure-results --clean -o allure-report",
+    "allure:open": "allure open allure-report",
+    "e2e:report": "npm run e2e && npm run allure:generate"
   },
   "dependencies": {
     "jose": "^6.0.0",
