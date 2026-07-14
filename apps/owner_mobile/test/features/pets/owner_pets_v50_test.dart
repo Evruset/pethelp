@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:vethelp_owner_mobile/features/care/owner_pet_care_repository.dart';
 import 'package:vethelp_owner_mobile/features/care/owner_pet_diary_v50_page.dart';
 import 'package:vethelp_owner_mobile/features/pets/owner_pet.dart';
@@ -59,6 +61,82 @@ void main() {
     expect(page.total, 21);
   });
 
+  test('PDF open fetches bytes only from the exact authenticated stream',
+      () async {
+    final requests = <http.Request>[];
+    final repository = HttpOwnerPetCareRepository(
+      baseUrl: Uri.parse('https://api.vethelp.test'),
+      accessTokenProvider: () async => 'owner-token',
+      client: MockClient((request) async {
+        requests.add(request);
+        if (requests.length == 1) {
+          return http.Response(
+              '''{
+            "fileName":"Заключение.pdf","mimeType":"application/pdf",
+            "sizeBytes":8,"lifecycleStatus":"READY",
+            "downloadUrl":"/v1/owner/pets/pet-1/documents/doc-1/download"
+          }''',
+              200,
+              headers: {'content-type': 'application/json'});
+        }
+        return http.Response.bytes('%PDF-1.4'.codeUnits, 200);
+      }),
+    );
+    final detail = await repository.readDocument('pet-1', 'doc-1');
+    expect(detail.contentBytes, isNotEmpty);
+    expect(requests, hasLength(2));
+    expect(requests.last.url.path,
+        '/v1/owner/pets/pet-1/documents/doc-1/download');
+    expect(requests.last.headers['Authorization'], 'Bearer owner-token');
+  });
+
+  test('unknown MIME remains metadata-only and never follows an arbitrary URL',
+      () async {
+    var calls = 0;
+    final repository = HttpOwnerPetCareRepository(
+      baseUrl: Uri.parse('https://api.vethelp.test'),
+      accessTokenProvider: () async => 'owner-token',
+      client: MockClient((_) async {
+        calls++;
+        return http.Response('''{
+          "fileName":"unknown.bin","mimeType":"text/html","sizeBytes":4,
+          "lifecycleStatus":"READY","downloadUrl":"https://evil.test/x"
+        }''', 200);
+      }),
+    );
+    final detail = await repository.readDocument('pet-1', 'doc-1');
+    expect(detail.contentBytes, isNull);
+    expect(calls, 1);
+  });
+
+  test('expired or rejected authenticated stream is a controlled API error',
+      () async {
+    var calls = 0;
+    final repository = HttpOwnerPetCareRepository(
+      baseUrl: Uri.parse('https://api.vethelp.test'),
+      accessTokenProvider: () async => 'expired-token',
+      client: MockClient((_) async {
+        calls++;
+        if (calls == 1) {
+          return http.Response(
+              '''{
+            "fileName":"Заключение.pdf","mimeType":"application/pdf",
+            "sizeBytes":8,"lifecycleStatus":"READY",
+            "downloadUrl":"/v1/owner/pets/pet-1/documents/doc-1/download"
+          }''',
+              200,
+              headers: {'content-type': 'application/json; charset=utf-8'});
+        }
+        return http.Response('{"code":"SESSION_EXPIRED"}', 401);
+      }),
+    );
+    await expectLater(
+      repository.readDocument('pet-1', 'doc-1'),
+      throwsA(isA<OwnerPetCareApiException>()
+          .having((error) => error.statusCode, 'statusCode', 401)),
+    );
+  });
+
   testWidgets('diary renders lifecycle states and preserves server order',
       (tester) async {
     await tester.pumpWidget(MaterialApp(
@@ -113,6 +191,7 @@ class _DiaryRepository implements OwnerPetDiaryRepository {
         mimeType: 'application/pdf',
         sizeBytes: 1200,
         status: 'READY',
+        contentBytes: null,
       );
 
   @override

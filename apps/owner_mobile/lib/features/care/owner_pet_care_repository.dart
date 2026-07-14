@@ -314,14 +314,14 @@ class OwnerPetDocumentDetail {
     required this.mimeType,
     required this.sizeBytes,
     required this.status,
-    this.previewBytes,
+    this.contentBytes,
   });
 
   final String fileName;
   final String mimeType;
   final int sizeBytes;
   final String status;
-  final Uint8List? previewBytes;
+  final Uint8List? contentBytes;
 }
 
 class HttpOwnerPetCareRepository
@@ -398,8 +398,8 @@ class HttpOwnerPetCareRepository
     }
     final mimeType = payload['mimeType'] as String? ?? '';
     final downloadUrl = payload['downloadUrl'] as String?;
-    Uint8List? previewBytes;
-    if (mimeType.startsWith('image/') &&
+    Uint8List? contentBytes;
+    if ((mimeType.startsWith('image/') || mimeType == 'application/pdf') &&
         downloadUrl == expectedDownloadPath &&
         payload['lifecycleStatus'] == 'READY') {
       final previewResponse = await _client.get(
@@ -412,14 +412,14 @@ class HttpOwnerPetCareRepository
           _errorCode(_decode(previewResponse)),
         );
       }
-      previewBytes = previewResponse.bodyBytes;
+      contentBytes = previewResponse.bodyBytes;
     }
     return OwnerPetDocumentDetail(
       fileName: payload['fileName'] as String? ?? 'Документ',
       mimeType: mimeType,
       sizeBytes: (payload['sizeBytes'] as num?)?.toInt() ?? 0,
       status: payload['lifecycleStatus'] as String? ?? 'PROCESSING',
-      previewBytes: previewBytes,
+      contentBytes: contentBytes,
     );
   }
 

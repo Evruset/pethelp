@@ -200,6 +200,12 @@ class _OwnerPetsPageState extends State<OwnerPetsPage> {
     });
   }
 
+  Future<void> _refreshPets() async {
+    final request = _loadPets();
+    setState(() => _request = request);
+    await request;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (ownerUsesCupertino(platform: widget.platformOverride)) {
@@ -297,7 +303,7 @@ class _OwnerPetsPageState extends State<OwnerPetsPage> {
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
-                CupertinoSliverRefreshControl(onRefresh: _refreshSyncStates),
+                CupertinoSliverRefreshControl(onRefresh: _refreshPets),
                 if (snapshot.hasError)
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../pets/owner_pet.dart';
 import 'owner_pet_care_repository.dart';
@@ -48,8 +49,9 @@ class _OwnerPetDiaryV50PageState extends State<OwnerPetDiaryV50Page> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (document.previewBytes != null)
-                  Image.memory(document.previewBytes!, fit: BoxFit.contain)
+                if (document.mimeType.startsWith('image/') &&
+                    document.contentBytes != null)
+                  Image.memory(document.contentBytes!, fit: BoxFit.contain)
                 else
                   const Text('Предпросмотр этого формата недоступен.'),
                 const SizedBox(height: 12),
@@ -59,6 +61,13 @@ class _OwnerPetDiaryV50PageState extends State<OwnerPetDiaryV50Page> {
             ),
           ),
           actions: [
+            if (document.mimeType == 'application/pdf' &&
+                document.contentBytes != null)
+              FilledButton.icon(
+                onPressed: () => _openPdf(document),
+                icon: const Icon(Icons.open_in_new),
+                label: const Text('Открыть документ'),
+              ),
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('Закрыть'),
@@ -75,6 +84,20 @@ class _OwnerPetDiaryV50PageState extends State<OwnerPetDiaryV50Page> {
       ));
     } finally {
       if (mounted) setState(() => _openingDocument = false);
+    }
+  }
+
+  Future<void> _openPdf(OwnerPetDocumentDetail document) async {
+    final bytes = document.contentBytes;
+    if (bytes == null) return;
+    final opened = await launchUrl(
+      Uri.dataFromBytes(bytes, mimeType: 'application/pdf'),
+      mode: LaunchMode.externalApplication,
+    );
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Не удалось открыть документ безопасным приложением.'),
+      ));
     }
   }
 
