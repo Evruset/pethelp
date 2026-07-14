@@ -1,6 +1,6 @@
 import { ClinicPortalShell } from '@/components/layout/ClinicPortalShell';
-import { ClinicPortalShellV51 } from '@/components/layout/ClinicPortalShellV51';
-import { isPortalV51ShellEnabled } from '@/app/design-system/feature-flags';
+import { ClinicPortalShellV50 } from '@/components/layout/ClinicPortalShellV50';
+import { isPortalV50ShellEnabled } from '@/app/design-system/feature-flags';
 import type { ReactNode } from 'react';
 
 type LocationLayoutProps = {
@@ -14,8 +14,8 @@ type LocationLayoutProps = {
 export default async function ClinicLocationLayout({ children, params }: LocationLayoutProps) {
   const { clinicId, locationId } = await params;
 
-  if (isPortalV51ShellEnabled()) {
-    return <ClinicPortalShellV51 clinicId={clinicId} locationId={locationId}>{children}</ClinicPortalShellV51>;
+  if (isPortalV50ShellEnabled()) {
+    return <ClinicPortalShellV50 clinicId={clinicId} locationId={locationId}>{children}</ClinicPortalShellV50>;
   }
 
   return <ClinicPortalShell clinicId={clinicId} locationId={locationId}>{children}</ClinicPortalShell>;

@@ -1,33 +1,8 @@
 {
-  "$schema": "https://design-tokens.github.io/community-group/format/",
-  "version": "1.0.0",
-  "color": {
-    "surface": { "canvas": "#f6f8fb", "default": "#ffffff", "elevated": "rgba(255, 255, 255, 0.86)" },
-    "content": { "default": "#182230", "muted": "#667085", "on-accent": "#ffffff" },
-    "border": { "default": "#d0d5dd", "focus": "#175cd3" },
-    "accent": { "default": "#175cd3", "soft": "#eff8ff" },
-    "success": { "default": "#027a48", "surface": "#ecfdf3" },
-    "warning": { "default": "#b54708", "surface": "#fffaeb" },
-    "danger": { "default": "#b42318", "surface": "#fef3f2" },
-    "info": { "default": "#175cd3", "surface": "#eff8ff" },
-    "status": { "success": "#027a48", "warning": "#b54708", "critical": "#b42318" }
-  },
-  "spacing": { "sm": "8px", "md": "12px", "lg": "16px", "xl": "24px" },
-  "space": { "sm": "8px", "md": "12px", "lg": "16px", "xl": "24px" },
-  "typography": {
-    "body": { "size": "16px", "line-height": "1.5", "weight": 400 },
-    "label": { "size": "14px", "line-height": "1.35", "weight": 700 },
-    "title": { "size": "20px", "line-height": "1.25", "weight": 800 },
-    "caption": { "size": "13px", "line-height": "1.35", "weight": 500 }
-  },
-  "radius": { "sm": "8px", "md": "12px", "lg": "18px", "pill": "999px" },
-  "shadow": { "card": "0 18px 60px rgba(16, 24, 40, 0.10)", "overlay": "0 20px 70px rgba(0, 0, 0, 0.34)" },
-  "motion": { "fast": "160ms", "standard": "220ms" },
-  "z-index": { "base": 0, "sticky": 10, "overlay": 50 },
-  "a11y": { "min-target": "44px", "focus-ring": "3px" },
-  "themes": {
-    "light": { "surface": "#f6f8fb", "text": "#182230", "border": "#d0d5dd", "accent": "#175cd3" },
-    "dark": { "surface": "#101418", "text": "#f5f7fa", "border": "#343b45", "accent": "#6ea8ff" },
-    "high-contrast": { "surface": "#ffffff", "text": "#000000", "border": "#000000", "accent": "#0037da" }
-  }
+  "compatibility": "V51_RUNTIME_ALIAS_ONLY",
+  "deprecated": true,
+  "canonical": "../v50/design-tokens.json",
+  "canonicalSha256": "8d78140645f9dd38450440bde9a46f910672ebbe63b6e72d099708266865d559",
+  "sourceManifestSha256": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+  "removalCondition": "Remove after all V51-named runtime consumers and deployment keys complete one compatibility release on V50 aliases."
 }

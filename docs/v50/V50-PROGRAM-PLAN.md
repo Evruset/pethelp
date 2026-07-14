@@ -17,7 +17,7 @@ Program state: V50 migration in progress
 | P0 runtime baseline | required baseline commit plus previously completed backend/portal focused checks | PASS; do not rerun without relevant changes |
 | P0 V50 source provenance | authoritative local V50 bundle, declared revision/checksum, source-derived inventory | COMPLETE: product owner confirmed `prototype-v50/index.html`; manifest registered |
 | P0 parity register | every source screen/route/state mapped to runtime, contracts, tests, evidence, blocker | COMPLETE for source registration: 30 authoritative rows, runtime status at most DISCOVERY/CONTRACT_READY |
-| P0 rollout safety | independent flags, rollback without DB downgrade | NOT_STARTED |
+| P0 rollout safety | independent flags, rollback without DB downgrade | PASS for shell contract/tests; both applications default off and were not rolled out |
 
 ## Phases
 
@@ -26,7 +26,7 @@ Program state: V50 migration in progress
 | 0 Baseline | reproducible Git/runtime/migration baseline | COMPLETE for baseline commit | no unresolved merge/data-loss/runtime veto |
 | 1 Source + parity register | authoritative inventory and complete mappings | COMPLETE for source registration | manifest verifies and all 30 rows reference its checksum |
 | 2 Architecture contract | domain, route, capability, state, rollout ownership | PARTIAL/REUSE | applicable ADRs linked per row; gaps decided before mutation |
-| 3 Design system + shells | Owner, Clinic, Vet, Ops shells with platform-native components | PARTIAL | authoritative visual acceptance across required viewports |
+| 3 Design system + shells | Owner, Clinic, Vet, Ops shells with platform-native components | SHELL FOUNDATION TESTED; business content remains partial | shell evidence PASS at required viewports; business screens still require authoritative visual acceptance |
 | 4 Session/capability/API | server-derived deny-by-default authority | PARTIAL/REUSE | each endpoint family has scope, denial, leakage and rollback tests |
 | 5 Owner core | home, pets, diary, documents, notifications, profile | PARTIAL | full owner states and contracts accepted |
 | 6 Catalog + booking | authoritative clinic/doctor/service/slot/hold journey | PARTIAL | conflict/offline/idempotency paths accepted |
@@ -41,7 +41,7 @@ Program state: V50 migration in progress
 
 ## Logical chat map
 
-Completed baseline contexts: `BASELINE-01`, `BASELINE-02`. Next planned bounded context: `V50-SHELL-01`. Later domain chats remain `OWNER-01`, `OWNER-02`, `CLINIC-01`, `CLINIC-02`, `VET-01`, `TELEMED-01`, `SAFETY-01`, `QA-01`; none is active.
+Completed contexts: `BASELINE-01`, `BASELINE-02`, `V50-SHELL-01`. Next planned bounded context: `V50-OWNER-01 / Owner Home, Selected Pet Context and Next Safe Action`. Later domain chats remain inactive.
 
 ## Program rules
 
@@ -53,4 +53,4 @@ Completed baseline contexts: `BASELINE-01`, `BASELINE-02`. Next planned bounded 
 
 ## Exactly one next slice
 
-`V50-SHELL-01 / Shared Design Tokens and Application Shells`: implement only the bounded shared shell/design foundation against the verified V50 manifest and naming-debt compatibility plan.
+`V50-OWNER-01 / Owner Home, Selected Pet Context and Next Safe Action`: implement only the bounded Owner home slice on the tested V50 shell foundation.

@@ -1,0 +1,113 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "version": "2.0.0-v50",
+  "source": {
+    "target": "V50",
+    "prototype": "prototype-v50/index.html",
+    "manifest": "prototype-v50/manifest.json",
+    "sha256": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42"
+  },
+  "color": {
+    "surface": {
+      "canvas": "#f6f8fb",
+      "default": "#ffffff",
+      "elevated": "rgba(255, 255, 255, 0.86)"
+    },
+    "content": {
+      "default": "#182230",
+      "muted": "#667085",
+      "on-accent": "#ffffff"
+    },
+    "border": {
+      "default": "#d0d5dd",
+      "focus": "#0b62df"
+    },
+    "accent": {
+      "default": "#1767f7",
+      "soft": "#eaf4ff"
+    },
+    "success": {
+      "default": "#08753f",
+      "surface": "#ecfdf3"
+    },
+    "warning": {
+      "default": "#7a5a00",
+      "surface": "#fff6e3"
+    },
+    "danger": {
+      "default": "#b52d40",
+      "surface": "#fff1f2"
+    },
+    "info": {
+      "default": "#1557b0",
+      "surface": "#eaf4ff"
+    }
+  },
+  "spacing": {
+    "xs": "4px",
+    "sm": "8px",
+    "md": "12px",
+    "lg": "16px",
+    "xl": "24px",
+    "2xl": "32px"
+  },
+  "typography": {
+    "body": { "size": "16px", "line-height": "1.5", "weight": 400 },
+    "label": { "size": "14px", "line-height": "1.35", "weight": 700 },
+    "title": { "size": "20px", "line-height": "1.25", "weight": 800 },
+    "caption": { "size": "13px", "line-height": "1.35", "weight": 500 }
+  },
+  "radius": {
+    "sm": "8px",
+    "md": "12px",
+    "lg": "18px",
+    "pill": "999px"
+  },
+  "shadow": {
+    "card": "0 18px 60px rgba(16, 24, 40, 0.10)",
+    "overlay": "0 20px 70px rgba(0, 0, 0, 0.34)"
+  },
+  "motion": {
+    "fast": "160ms",
+    "standard": "220ms",
+    "reduced": "0.01ms"
+  },
+  "z-index": {
+    "base": 0,
+    "sticky": 10,
+    "overlay": 50,
+    "emergency": 70
+  },
+  "layout": {
+    "mobile-max": "767px",
+    "tablet-min": "768px",
+    "desktop-min": "1121px",
+    "portal-sidebar": "264px",
+    "content-max": "1180px"
+  },
+  "a11y": {
+    "min-target": "44px",
+    "focus-ring": "3px",
+    "focus-offset": "3px"
+  },
+  "themes": {
+    "light": {
+      "surface": "#f6f8fb",
+      "text": "#182230",
+      "border": "#d0d5dd",
+      "accent": "#1767f7"
+    },
+    "dark": {
+      "surface": "#101418",
+      "text": "#f5f7fa",
+      "border": "#343b45",
+      "accent": "#6ea8ff"
+    },
+    "high-contrast": {
+      "surface": "#ffffff",
+      "text": "#000000",
+      "border": "#000000",
+      "accent": "#0037da"
+    }
+  }
+}

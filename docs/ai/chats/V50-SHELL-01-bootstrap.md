@@ -6,9 +6,11 @@ Domain: shared design tokens and application shells
 
 Role: bounded V50 shell implementer
 
-Branch: create only when this Work Chat starts
+Branch: `agent/v50-shell-01`
 
-Base Commit: use the integrated BASELINE-02 commit
+Base Commit: `22da293aeec1a0acd2d07d6950376e04fe740af4`
+
+Status: `COMPLETE / COMMITTED`
 
 # Goal
 
@@ -39,17 +41,17 @@ No booking, clinical, telemedicine, migration, API, or legacy-removal work.
 - `docs/v50/V50-NAMING-DEBT.md`
 - applicable design-token ADR
 
-# Starting State
+# Completed State
 
-BASELINE-02 must be COMPLETE and the V50 source gate OPEN. Runtime V51 identifiers remain compatibility debt until separately analyzed.
+BASELINE-02 is COMPLETE and committed. V50-SHELL-01 delivered the independently flagged Owner and Portal shell foundations; V51 identifiers remain compatibility aliases until a separate removal audit.
 
 # Acceptance Criteria
 
-Define focused visual/state/viewport acceptance and rollback before changing shared runtime files.
+Acceptance and rollback are recorded in `docs/v50/V50-SHELL-ARCHITECTURE.md` and the handoff.
 
 # Required Validation
 
-Select affected UI tests after file ownership is fixed; do not inherit BASELINE product-suite evidence as visual acceptance.
+Validation completed as recorded in `docs/ai/handoffs/V50-SHELL-01.md`; shell evidence does not certify business-screen content.
 
 # Git Ownership
 

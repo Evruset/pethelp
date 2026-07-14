@@ -9,11 +9,15 @@ void main() {
     final lightTokens = light.extension<VetHelpSurfaceTokens>()!;
     final darkTokens = dark.extension<VetHelpSurfaceTokens>()!;
 
-    expect(lightTokens.spaceMd, 16);
-    expect(lightTokens.spaceLg, 24);
-    expect(lightTokens.cardRadius, 22);
-    expect(lightTokens.fieldRadius, 16);
-    expect(lightTokens.focusRingWidth, 2);
+    expect(lightTokens.spaceMd, 12);
+    expect(lightTokens.spaceLg, 16);
+    expect(lightTokens.spaceXl, 24);
+    expect(lightTokens.cardRadius, 18);
+    expect(lightTokens.fieldRadius, 12);
+    expect(lightTokens.focusRingWidth, 3);
+    expect(lightTokens.contentMaxWidth, 1180);
+    expect(light.colorScheme.primary, const Color(0xFF1767F7));
+    expect(light.colorScheme.surface, const Color(0xFFF6F8FB));
     expect(lightTokens.success, isNot(lightTokens.groupedSurface));
     expect(darkTokens.focusRing, dark.colorScheme.primary);
     expect(darkTokens.info, isNotNull);
@@ -38,9 +42,9 @@ void main() {
 
     final constrained = tester.widget<ConstrainedBox>(find.byWidgetPredicate(
       (widget) =>
-          widget is ConstrainedBox && widget.constraints.maxWidth == 560,
+          widget is ConstrainedBox && widget.constraints.maxWidth == 1180,
     ));
-    expect(constrained.constraints.maxWidth, 560);
+    expect(constrained.constraints.maxWidth, 1180);
     expect(MediaQuery.textScalerOf(tester.element(find.text('stage2'))),
         const TextScaler.linear(1.5));
   });

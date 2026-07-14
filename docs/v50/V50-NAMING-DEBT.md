@@ -2,8 +2,11 @@
 
 Canonical product target is V50. The identifiers below are intentionally unchanged in BASELINE-02 because they participate in imports, environment configuration, CSS/DOM selectors, tests, or Git history.
 
+V50-SHELL-01 resolved the active shell names additively: canonical V50 identifiers are now primary, while V51 names remain compatibility aliases for one release window. No mass rename or legacy removal was performed.
+
 | Identifier | File(s) | Runtime impact | Public/internal | Safe rename strategy | Compatibility requirement | Recommended target name |
 |---|---|---|---|---|---|---|
+| `VETHELP_OWNER_V51_SHELL` | Owner shell feature-flag adapter/tests | compile-time rollout alias | operational | canonical V50 string has priority; remove only after deployment audit | exact-true fallback only when V50 is absent | `VETHELP_OWNER_V50_SHELL` (implemented) |
 | `ClinicPortalShellV51` | `apps/clinic-portal/components/layout/ClinicPortalShellV51.tsx`, location layout | React export/import and flagged shell selection | internal source API | add V50 export/wrapper, migrate imports, then remove old export after tests | old export works during rollout | `ClinicPortalShellV50` |
 | `ClinicPortalShellV51Props` | `ClinicPortalShellV51.tsx` | TypeScript type name | internal | introduce alias, migrate consumers, remove alias later | compile compatibility | `ClinicPortalShellV50Props` |
 | `ClinicPortalShellV51Client` | `ClinicPortalShellV51Client.tsx`, shell import | client component export/import | internal | additive V50 export followed by import migration | old export retained through one deprecation cycle | `ClinicPortalShellV50Client` |
@@ -18,7 +21,7 @@ Canonical product target is V50. The identifiers below are intentionally unchang
 | `docs/v51/design-tokens.json` | portal design-system test import; globals comment | compatibility data path | internal/test path | move to canonical V50 path only when the read-only import is updated in a runtime-owned slice | retain one authoritative file; do not duplicate JSON | `docs/v50/design-tokens.json` |
 | `agent/v51-stage-01-architecture` | current Git branch | Git history/worktree identity | historical | do not rename in this slice; create future V50 branches from integrated baseline | preserve history and remote coordination | future `agent/v50-*` branches |
 
-No `OWNER_V51_*` or `CLINIC_V51_*` runtime identifiers were found by the focused audit. Re-run the naming audit before any rename slice because CI/environment configuration may contain values outside the repository.
+No additional `OWNER_V51_*` or `CLINIC_V51_*` runtime identifiers were found by the focused audit. Re-run the naming audit before any removal slice because CI/environment configuration may contain values outside the repository.
 
 ## Remaining-reference classification
 

@@ -331,7 +331,7 @@ test('updates free slot capacity, handles stale conflict and blocks booked slot 
     const dialog = page.getByRole('dialog', { name: 'Изменить capacity' });
     await dialog.getByLabel('Новая capacity').fill('5');
     await dialog.getByRole('button', { name: 'Сохранить' }).click();
-    await expect(page.getByRole('status')).toContainText('Окно уже изменилось. Расписание обновлено.');
+    await expect(page.getByRole('status').filter({ hasText: 'Окно уже изменилось. Расписание обновлено.' })).toBeVisible();
     await expect(page.getByRole('row').filter({ hasText: '0 записей · 0 holds · cap 4' })).toBeVisible();
   });
 
@@ -351,7 +351,7 @@ test('creates blackout for a free slot and refreshes after stale conflict', asyn
   await uiStep(page, testInfo, 'Закрыть свободное окно через blackout', async () => {
     await page.getByRole('row').filter({ hasText: '0 записей · 0 holds · cap 1' }).getByRole('button', { name: 'Blackout' }).click();
     await page.getByRole('dialog', { name: 'Закрыть окно' }).getByRole('button', { name: 'Закрыть окно' }).click();
-    await expect(page.getByRole('status')).toContainText('Окно закрыто. Расписание обновлено.');
+    await expect(page.getByRole('status').filter({ hasText: 'Окно закрыто. Расписание обновлено.' })).toBeVisible();
     await expect(page.getByRole('row').filter({ hasText: '0 записей · 0 holds · cap 1' })).toContainText('Закрыт');
   });
 
@@ -361,7 +361,7 @@ test('creates blackout for a free slot and refreshes after stale conflict', asyn
     await page.getByRole('button', { name: 'Обновить' }).click();
     await page.getByRole('row').filter({ hasText: '0 записей · 0 holds · cap 1' }).getByRole('button', { name: 'Blackout' }).click();
     await page.getByRole('dialog', { name: 'Закрыть окно' }).getByRole('button', { name: 'Закрыть окно' }).click();
-    await expect(page.getByRole('status')).toContainText('Окно уже изменилось. Расписание обновлено.');
+    await expect(page.getByRole('status').filter({ hasText: 'Окно уже изменилось. Расписание обновлено.' })).toBeVisible();
   });
 
   expectRequest('POST', `${prefix()}/slots/${freeSlotId}/blackout`, expect.objectContaining({ reason: expect.stringContaining('Закрыто сотрудником') }), 'versioned');
@@ -474,6 +474,16 @@ async function addAdminSession(context: BrowserContext, baseURL: string | undefi
 function handleBackendRequest(request: IncomingMessage, response: ServerResponse): void {
   const url = new URL(request.url ?? '/', `http://${request.headers.host ?? `127.0.0.1:${mockBackendPort}`}`);
   const path = url.pathname;
+
+  if (request.method === 'GET' && path === '/v1/auth/session') {
+    sendJson(response, 200, {
+      subjectId: 'clinic-schedule-admin-e2e',
+      roles: ['CLINIC_ADMIN'],
+      effectiveCapabilities: ['schedule.read'],
+      clinicScopes: [{ clinicId, locationId }],
+    });
+    return;
+  }
 
   if (request.method === 'GET' && path === `${prefix()}/slots`) {
     scheduleReads += 1;

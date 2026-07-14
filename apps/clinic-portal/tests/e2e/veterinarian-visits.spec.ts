@@ -18,7 +18,10 @@ test.beforeEach(() => { mode = 'allowed'; reads = 0; listReads = 0; detailReads 
 
 test('allowed scope exposes navigation, list and keyboard detail/back flow', async ({ page, context, baseURL }) => {
   await session(context, baseURL); await page.goto(listRoute());
+  await expect(page.getByTestId('clinic-portal-shell')).toHaveAttribute('data-shell-role', 'veterinarian');
   await expect(page.getByRole('link', { name: 'Открыть приёмы врача' }).first()).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Открыть приёмы врача' }).first()).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('link', { name: 'Открыть очередь записей' })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Приёмы врача' })).toBeVisible();
   await expect(page.getByText('Milo · CAT')).toBeVisible();
   await page.getByRole('link', { name: 'Открыть приём Milo' }).focus(); await page.keyboard.press('Enter');

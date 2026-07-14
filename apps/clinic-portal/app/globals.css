@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  /* Native adapter for docs/v51/design-tokens.json. Keep --vh-* aliases stable. */
+  /* Native adapter for docs/v50/design-tokens.json. Keep --vh-* aliases stable. */
   --vh-color-surface-canvas: #f6f8fb;
   --vh-color-surface-default: #ffffff;
   --vh-color-content-default: #182230;
   --vh-color-content-muted: #667085;
-  --vh-color-accent-default: #175cd3;
-  --vh-color-accent-soft: #eff8ff;
+  --vh-color-accent-default: #1767f7;
+  --vh-color-accent-soft: #eaf4ff;
   --vh-color-border-default: #d0d5dd;
   --vh-space-sm: 8px;
   --vh-space-md: 12px;
@@ -32,13 +32,13 @@
   --vh-text: #182230;
   --vh-muted: #667085;
   --vh-border: #d0d5dd;
-  --vh-primary: #175cd3;
-  --vh-primary-soft: #eff8ff;
-  --vh-warning: #b54708;
-  --vh-warning-bg: #fffaeb;
-  --vh-critical: #b42318;
-  --vh-critical-bg: #fef3f2;
-  --vh-success: #027a48;
+  --vh-primary: #1767f7;
+  --vh-primary-soft: #eaf4ff;
+  --vh-warning: #7a5a00;
+  --vh-warning-bg: #fff6e3;
+  --vh-critical: #b52d40;
+  --vh-critical-bg: #fff1f2;
+  --vh-success: #08753f;
   --vh-shadow: 0 18px 60px rgba(16, 24, 40, 0.10);
   --vh-sidebar-width: 264px;
   color-scheme: light;
@@ -332,6 +332,10 @@ html {
   min-height: auto;
 }
 
+.vh-v50-content-compat {
+  display: contents;
+}
+
 .vh-clinic-bottom-nav {
   display: none;
 }
@@ -376,6 +380,202 @@ html {
 @media (min-width: 900px) {
   .vh-clinic-content {
     scroll-padding: 24px;
+  }
+}
+
+/* V50 role-aware clinic shell. Legacy .vh-clinic-* selectors remain the rollback surface. */
+.vh-v50-clinic-shell {
+  --vh-sidebar-width: 264px;
+}
+
+.vh-v50-skip-link {
+  white-space: nowrap;
+}
+
+.vh-v50-brand-copy,
+.vh-v50-context-path,
+.vh-v50-context-path p,
+.vh-v50-context-path h1 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.vh-v50-role-label,
+.vh-v50-authority-note {
+  margin: 0;
+  color: var(--vh-muted);
+  font-size: var(--vh-type-caption-size);
+  line-height: 1.45;
+}
+
+.vh-v50-role-label {
+  padding: 0 14px;
+  font-weight: 750;
+}
+
+.vh-v50-authority-note {
+  margin-top: auto;
+  padding: 14px;
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-md);
+}
+
+.vh-v50-clinic-shell .vh-clinic-nav-item,
+.vh-v50-clinic-shell .vh-clinic-bottom-nav-item {
+  gap: 10px;
+  border: 1px solid transparent;
+  overflow-wrap: anywhere;
+}
+
+.vh-v50-clinic-shell .vh-clinic-nav-item[aria-current="page"],
+.vh-v50-clinic-shell .vh-clinic-bottom-nav-item[aria-current="page"] {
+  border-color: color-mix(in srgb, var(--vh-primary) 28%, var(--vh-border));
+  background: var(--vh-primary-soft);
+  color: var(--vh-primary);
+}
+
+.vh-v50-nav-icon {
+  display: inline-flex;
+  flex: 0 0 28px;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--vh-primary) 12%, var(--vh-surface));
+  color: var(--vh-primary);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.vh-v50-nav-label {
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.vh-v50-shell-state {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-md);
+  color: var(--vh-muted);
+  font-size: var(--vh-type-caption-size);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.vh-v50-shell-state--error,
+.vh-v50-shell-state--forbidden {
+  border-color: color-mix(in srgb, var(--vh-critical) 44%, var(--vh-border));
+  background: var(--vh-critical-bg);
+  color: var(--vh-critical);
+}
+
+.vh-v50-shell-state button {
+  min-height: var(--vh-min-target);
+  padding: 0 12px;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+  background: var(--vh-surface);
+  color: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.vh-v50-location-badge {
+  max-width: min(42vw, 260px);
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+@media (min-width: 768px) and (max-width: 1120px) {
+  .vh-v50-clinic-shell {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr);
+    padding-bottom: 0;
+  }
+
+  .vh-v50-clinic-shell .vh-clinic-sidebar {
+    display: flex;
+    align-items: stretch;
+    gap: 18px;
+    padding: 18px 10px;
+  }
+
+  .vh-v50-clinic-shell .vh-clinic-brand {
+    justify-content: center;
+  }
+
+  .vh-v50-clinic-shell .vh-v50-brand-copy,
+  .vh-v50-clinic-shell .vh-v50-role-label,
+  .vh-v50-clinic-shell .vh-v50-authority-note,
+  .vh-v50-clinic-shell .vh-v50-nav-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .vh-v50-clinic-shell .vh-clinic-nav-item {
+    justify-content: center;
+    padding: 7px;
+  }
+
+  .vh-v50-clinic-shell .vh-clinic-bottom-nav {
+    display: none;
+  }
+
+  .vh-v50-clinic-shell .vh-clinic-content {
+    height: calc(100dvh - 72px);
+  }
+}
+
+@media (max-width: 767px) {
+  .vh-v50-clinic-shell .vh-clinic-topbar {
+    align-items: flex-start;
+    gap: 10px;
+    min-height: 80px;
+    padding: 10px 14px;
+  }
+
+  .vh-v50-clinic-shell .vh-clinic-topbar h1 {
+    font-size: 18px;
+  }
+
+  .vh-v50-clinic-shell .vh-clinic-topbar p {
+    max-width: 56vw;
+  }
+
+  .vh-v50-clinic-shell .vh-clinic-content {
+    height: calc(100dvh - 80px - 76px - env(safe-area-inset-bottom));
+  }
+
+  .vh-v50-clinic-shell .vh-clinic-bottom-nav {
+    grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
+    gap: 4px;
+    min-height: 76px;
+  }
+
+  .vh-v50-clinic-shell .vh-clinic-bottom-nav-item {
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    padding: 5px 4px;
+    font-size: 12px;
+  }
+
+  .vh-v50-clinic-shell .vh-clinic-bottom-nav .vh-v50-shell-state {
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 6px 10px;
   }
 }
 

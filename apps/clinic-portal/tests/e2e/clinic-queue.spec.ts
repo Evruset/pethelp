@@ -16,6 +16,7 @@ const alternativeSlotB = '88888888-8888-4888-8888-888888888888';
 const alternativeSlotC = '99999999-9999-4999-8999-999999999999';
 const serverNow = '2026-06-25T12:00:00.000Z';
 const jwtSecret = 'clinic-e2e-secret-at-least-32-bytes';
+const evidenceDir = process.env.V50_SHELL_EVIDENCE_DIR;
 const mockBackendPort = 3212;
 
 type QueueItem = {
@@ -97,9 +98,11 @@ test('does not flash queue navigation while session capability loading and expos
 
   await expect(page.getByText('Загрузка доступа…').first()).toBeVisible();
   await expect(page.getByRole('link', { name: 'Открыть очередь записей' })).toHaveCount(0);
+  if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-loading.png`, fullPage: true });
   releaseSession?.();
   await expect(page.getByText('Доступ к capability-разделам недоступен. Повторить').first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'Повторить' }).first()).toBeVisible();
+  if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-error-retry.png`, fullPage: true });
   expect((await new AxeBuilder({ page }).include('.vh-clinic-nav').analyze()).violations).toEqual([]);
 });
 
@@ -109,6 +112,7 @@ test('redirects unauthenticated clinic users to forbidden', async ({ page }, tes
   await uiStep(page, testInfo, 'Проверить запрет доступа без сессии', async () => {
     await expect(page).toHaveURL(/\/forbidden\?reason=session_required$/);
     await expect(page.getByText('403 Access Denied')).toBeVisible();
+    if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-session-missing-forbidden.png`, fullPage: true });
   });
 });
 
