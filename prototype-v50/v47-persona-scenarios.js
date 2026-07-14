@@ -1,47 +1,61 @@
 (() => {
   'use strict';
-  const fixtures = window.VetHelpUATFixtures;
-  if (!fixtures) return;
-  const buttons = [...document.querySelectorAll('[data-v47-persona]')];
-  const summary = document.querySelector('.prototype-state-persona-summary');
-  const toast = document.querySelector('.prototype-toast');
 
-  const render = (id) => {
-    const persona = fixtures.personas.find((item) => item.id === id) || fixtures.personas[0];
-    const petNames = persona.pets.map((petId) => fixtures.pets.find((pet) => pet.id === petId)?.name).filter(Boolean).join(', ');
-    document.body.dataset.uatPersona = persona.id;
-    buttons.forEach((button) => {
-      const selected = button.dataset.v47Persona === persona.id;
-      button.classList.toggle('is-active', selected);
-      button.setAttribute('aria-pressed', String(selected));
-    });
-    if (summary) summary.innerHTML = `<strong>${persona.name} · ${persona.label}</strong><span>${persona.transport} · достаток: ${persona.income}</span><span>Питомцы: ${petNames}</span><span>Проверяем: ${persona.need}</span>`;
-    if (toast) {
-      toast.textContent = `Тестовый профиль: ${persona.label}. Продуктовые данные не изменены.`;
-      toast.classList.add('show');
-      window.clearTimeout(window.__v47PersonaToast);
-      window.__v47PersonaToast = window.setTimeout(() => toast.classList.remove('show'), 2600);
-    }
+  const $ = (selector, root = document) => root.querySelector(selector);
+  const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+
+  const initPersonaFixtures = () => {
+    const fixtures = window.VetHelpUATFixtures;
+    if (!fixtures) return;
+
+    const buttons = $$('[data-v47-persona]');
+    const summary = $('.prototype-state-persona-summary');
+    const toast = $('.prototype-toast');
+
+    const render = (id) => {
+      const persona = fixtures.personas.find((item) => item.id === id) || fixtures.personas[0];
+      const petNames = persona.pets
+        .map((petId) => fixtures.pets.find((pet) => pet.id === petId)?.name)
+        .filter(Boolean)
+        .join(', ');
+
+      document.body.dataset.uatPersona = persona.id;
+      buttons.forEach((button) => {
+        const selected = button.dataset.v47Persona === persona.id;
+        button.classList.toggle('is-active', selected);
+        button.setAttribute('aria-pressed', String(selected));
+      });
+
+      if (summary) {
+        summary.innerHTML = `<strong>${persona.name} · ${persona.label}</strong><span>${persona.transport} · достаток: ${persona.income}</span><span>Питомцы: ${petNames}</span><span>Проверяем: ${persona.need}</span>`;
+      }
+
+      if (toast) {
+        toast.textContent = `Тестовый профиль: ${persona.label}. Продуктовые данные не изменены.`;
+        toast.classList.add('show');
+        window.clearTimeout(window.__v47PersonaToast);
+        window.__v47PersonaToast = window.setTimeout(() => toast.classList.remove('show'), 2600);
+      }
+    };
+
+    buttons.forEach((button) => button.addEventListener('click', () => render(button.dataset.v47Persona)));
+    render('default');
   };
 
-  buttons.forEach((button) => button.addEventListener('click', () => render(button.dataset.v47Persona)));
-  render('default');
-
-  document.querySelectorAll('#diary .v47-period-switch button').forEach((button) => button.addEventListener('click', () => {
-    document.querySelectorAll('#diary .v47-period-switch button').forEach((item) => {
-      const active = item === button;
-      item.classList.toggle('is-active', active);
-      item.setAttribute('aria-pressed', String(active));
+  const initDiaryPeriods = () => {
+    $$('#diary .v47-period-switch button').forEach((button) => {
+      button.addEventListener('click', () => {
+        $$('#diary .v47-period-switch button').forEach((item) => {
+          const active = item === button;
+          item.classList.toggle('is-active', active);
+          item.setAttribute('aria-pressed', String(active));
+        });
+      });
     });
-  }));
-})();
-
-/* v50: replace the overflowing mobile catalog chips with an accessible disclosure. */
-(() => {
-  'use strict';
+  };
 
   const initMobileCatalogFilters = () => {
-    const row = document.querySelector('#catalog .v40-filter-row');
+    const row = $('#catalog .v40-filter-row');
     if (!row || row.closest('.v50-mobile-filter-disclosure')) return;
 
     const details = document.createElement('details');
@@ -74,17 +88,21 @@
     details.append(summary, panel);
     panel.append(row, actions);
 
-    const filterButtons = [...row.querySelectorAll('button.filter')];
-    const count = summary.querySelector('[data-v50-filter-count]');
-    const selection = summary.querySelector('[data-v50-filter-selection]');
-    const reset = actions.querySelector('.v50-mobile-filter-reset');
-    const apply = actions.querySelector('.v50-mobile-filter-apply');
-    const live = document.getElementById('vh-live-status');
+    const filterButtons = $$('button.filter', row);
+    const count = $('[data-v50-filter-count]', summary);
+    const selection = $('[data-v50-filter-selection]', summary);
+    const reset = $('.v50-mobile-filter-reset', actions);
+    const apply = $('.v50-mobile-filter-apply', actions);
+    const live = $('#vh-live-status');
 
     const updateSummary = () => {
       const active = filterButtons.filter((button) => button.classList.contains('active'));
       const labels = active.map((button) => button.textContent.trim());
-      filterButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.classList.contains('active'))));
+
+      filterButtons.forEach((button) => {
+        button.setAttribute('aria-pressed', String(button.classList.contains('active')));
+      });
+
       count.textContent = String(active.length);
       count.hidden = active.length === 0;
       selection.textContent = labels.length === 0
@@ -104,41 +122,43 @@
     reset.addEventListener('click', () => {
       filterButtons.forEach((button) => button.classList.remove('active'));
       updateSummary();
-      live && (live.textContent = 'Фильтры каталога сброшены.');
+      if (live) live.textContent = 'Фильтры каталога сброшены.';
     });
 
     apply.addEventListener('click', () => {
       const selectedCount = filterButtons.filter((button) => button.classList.contains('active')).length;
       details.open = false;
-      live && (live.textContent = selectedCount
-        ? `Применено фильтров: ${selectedCount}. Показаны подходящие клиники.`
-        : 'Показаны все клиники.');
+      if (live) {
+        live.textContent = selectedCount
+          ? `Применено фильтров: ${selectedCount}. Показаны подходящие клиники.`
+          : 'Показаны все клиники.';
+      }
     });
 
-    details.addEventListener('toggle', () => summary.setAttribute('aria-expanded', String(details.open)));
+    details.addEventListener('toggle', () => {
+      summary.setAttribute('aria-expanded', String(details.open));
+    });
 
     const mobileQuery = window.matchMedia('(max-width: 760px)');
     const syncViewportMode = (event) => {
       details.open = !event.matches;
       summary.setAttribute('aria-expanded', String(details.open));
     };
+
     syncViewportMode(mobileQuery);
-    if (typeof mobileQuery.addEventListener === 'function') mobileQuery.addEventListener('change', syncViewportMode);
-    else mobileQuery.addListener(syncViewportMode);
+    if (typeof mobileQuery.addEventListener === 'function') {
+      mobileQuery.addEventListener('change', syncViewportMode);
+    } else {
+      mobileQuery.addListener(syncViewportMode);
+    }
 
     updateSummary();
   };
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initMobileCatalogFilters, { once: true });
-  else initMobileCatalogFilters();
-})();
+  const installMobilePolishStyles = () => {
+    const existing = $('#v50-mobile-polish-runtime-styles');
+    if (existing) existing.remove();
 
-/* v50 mobile polish: real pet photo, four-item navigation and top-safe toasts. */
-(() => {
-  'use strict';
-
-  const installStyles = () => {
-    if (document.getElementById('v50-mobile-polish-runtime-styles')) return;
     const style = document.createElement('style');
     style.id = 'v50-mobile-polish-runtime-styles';
     style.textContent = `
@@ -152,11 +172,161 @@
         object-position:center 38%;
       }
       #pet-profile .pet-profile-photo{position:relative;min-height:320px;}
+
+      .skip-link{
+        position:fixed!important;
+        top:calc(env(safe-area-inset-top,0px) + 8px)!important;
+        left:12px!important;
+        right:12px!important;
+        width:auto!important;
+        max-width:none!important;
+        opacity:0!important;
+        pointer-events:none!important;
+        transform:translateY(calc(-100% - 24px))!important;
+        transition:opacity .16s ease,transform .16s ease!important;
+      }
+      .skip-link:focus-visible{
+        opacity:1!important;
+        pointer-events:auto!important;
+        transform:translateY(0)!important;
+      }
+
+      .mobile-bottom-nav [data-mobile-route="decision-comparison"],
+      .mobile-bottom-nav a[href="#decision-comparison"]{
+        display:none!important;
+      }
+      .mobile-bottom-nav,
       .mobile-bottom-nav.v50-mobile-nav-four{
         grid-template-columns:repeat(4,minmax(0,1fr))!important;
       }
+
       @media(max-width:760px){
         #pet-profile .pet-profile-photo{min-height:280px;}
+
+        .mobile-bottom-nav{
+          min-height:64px!important;
+          padding:5px!important;
+        }
+        .mobile-bottom-nav a{
+          min-height:50px!important;
+          gap:2px!important;
+          padding:4px 2px!important;
+        }
+        .mobile-bottom-nav a .vh-icon,
+        .mobile-bottom-nav a>img{
+          width:20px!important;
+          height:20px!important;
+        }
+        .mobile-bottom-nav a>span{
+          font-size:9px!important;
+          line-height:1.1!important;
+        }
+
+        body:not(.admin-route) .main :where(
+          .mini-icon,
+          .quick-action-icon,
+          .action-icon,
+          .line-icon,
+          .cov-ico,
+          .setting-ico,
+          .note-icon,
+          .status-ico
+        ){
+          width:42px!important;
+          height:42px!important;
+          min-width:42px!important;
+          flex:0 0 42px!important;
+          padding:0!important;
+          margin:0!important;
+          display:grid!important;
+          place-items:center!important;
+          border-radius:12px!important;
+          box-sizing:border-box!important;
+        }
+        body:not(.admin-route) .main :where(
+          .mini-icon,
+          .quick-action-icon,
+          .action-icon,
+          .line-icon,
+          .cov-ico,
+          .setting-ico,
+          .note-icon,
+          .status-ico
+        ) :where(svg,img){
+          width:21px!important;
+          height:21px!important;
+          max-width:21px!important;
+          max-height:21px!important;
+          object-fit:contain!important;
+        }
+
+        #appointments .status-list{
+          gap:8px!important;
+        }
+        #appointments .status-list .info-row{
+          display:grid!important;
+          grid-template-columns:42px minmax(0,1fr) 12px!important;
+          align-items:center!important;
+          gap:10px!important;
+          min-height:72px!important;
+          padding:10px 12px!important;
+          border-radius:17px!important;
+        }
+        #appointments .status-list .info-row>span:nth-child(2){
+          min-width:0!important;
+        }
+        #appointments .status-list .info-row strong{
+          display:block!important;
+          font-size:14px!important;
+          line-height:1.2!important;
+          overflow-wrap:anywhere!important;
+        }
+        #appointments .status-list .info-row small{
+          display:block!important;
+          margin-top:3px!important;
+          font-size:11px!important;
+          line-height:1.3!important;
+          overflow-wrap:anywhere!important;
+        }
+        #appointments .status-list .info-row>span:last-child{
+          justify-self:end!important;
+          font-size:20px!important;
+        }
+
+        #pets-policy-card .v40-policy-benefits{
+          display:grid!important;
+          grid-template-columns:repeat(6,minmax(0,1fr))!important;
+          gap:8px!important;
+          margin:12px 0!important;
+        }
+        #pets-policy-card .v40-policy-benefits>span{
+          grid-column:span 2!important;
+          min-width:0!important;
+          min-height:76px!important;
+          padding:8px 4px!important;
+          gap:6px!important;
+          border-radius:15px!important;
+          align-content:center!important;
+          justify-items:center!important;
+        }
+        #pets-policy-card .v40-policy-benefits>span:nth-last-child(-n+2){
+          grid-column:span 3!important;
+        }
+        #pets-policy-card .v40-policy-benefits>span img{
+          width:23px!important;
+          height:23px!important;
+          max-width:23px!important;
+          max-height:23px!important;
+          object-fit:contain!important;
+        }
+        #pets-policy-card .v40-policy-benefits>span small{
+          max-width:100%!important;
+          font-size:10px!important;
+          line-height:1.15!important;
+          text-align:center!important;
+          overflow-wrap:anywhere!important;
+        }
+
         .vh-toast-v2,
         .prototype-toast,
         .v48-toast{
@@ -168,23 +338,41 @@
           max-width:none!important;
           margin:0!important;
           z-index:12000!important;
+          transform:translateY(-8px);
         }
-        .vh-toast-v2,
-        .prototype-toast,
-        .v48-toast{transform:translateY(-8px);}
         .vh-toast-v2.is-visible,
         .prototype-toast.show,
         .prototype-toast.is-visible,
         .v48-toast.show,
-        .v48-toast.is-visible{transform:translateY(0);}
+        .v48-toast.is-visible{
+          transform:translateY(0);
+        }
+      }
+
+      @media(max-width:380px){
+        #appointments .status-list .info-row{
+          grid-template-columns:38px minmax(0,1fr) 10px!important;
+          gap:8px!important;
+          padding-inline:10px!important;
+        }
+        #appointments .status-list .quick-action-icon{
+          width:38px!important;
+          height:38px!important;
+          min-width:38px!important;
+          flex-basis:38px!important;
+        }
+        #pets-policy-card .v40-policy-benefits>span{
+          min-height:72px!important;
+        }
       }
     `;
     document.head.append(style);
   };
 
   const repairPetPhoto = () => {
-    const host = document.querySelector('#pet-profile .pet-profile-photo');
-    if (!host || host.querySelector('img.v50-pet-profile-image')) return;
+    const host = $('#pet-profile .pet-profile-photo');
+    if (!host || $('img.v50-pet-profile-image', host)) return;
+
     const image = document.createElement('img');
     image.className = 'v50-pet-profile-image';
     image.src = 'vethelp_media/pet_barney.webp';
@@ -198,24 +386,61 @@
   };
 
   const simplifyMobileNavigation = () => {
-    const nav = document.querySelector('.mobile-bottom-nav');
-    if (!nav) return false;
-    nav.querySelectorAll('[data-mobile-route="decision-comparison"], a[href="#decision-comparison"]').forEach((link) => link.remove());
-    nav.classList.add('v50-mobile-nav-four');
-    return true;
+    $$('.mobile-bottom-nav').forEach((nav) => {
+      $$('[data-mobile-route="decision-comparison"], a[href="#decision-comparison"]', nav)
+        .forEach((link) => link.remove());
+      nav.classList.add('v50-mobile-nav-four');
+      nav.style.setProperty('grid-template-columns', 'repeat(4, minmax(0, 1fr))', 'important');
+    });
+  };
+
+  const stabilizeMobileNavigation = () => {
+    simplifyMobileNavigation();
+
+    let scheduled = false;
+    const observer = new MutationObserver(() => {
+      if (scheduled) return;
+      scheduled = true;
+      window.requestAnimationFrame(() => {
+        scheduled = false;
+        simplifyMobileNavigation();
+      });
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener('hashchange', simplifyMobileNavigation);
+    window.addEventListener('pageshow', simplifyMobileNavigation);
+  };
+
+  const releaseStickySkipLink = () => {
+    const skipLink = $('.skip-link');
+    if (!skipLink) return;
+
+    const blurTouchFocus = () => {
+      if (document.activeElement === skipLink && !skipLink.matches(':focus-visible')) {
+        skipLink.blur();
+      }
+    };
+
+    window.addEventListener('pageshow', blurTouchFocus);
+    window.addEventListener('hashchange', blurTouchFocus);
+    document.addEventListener('pointerdown', blurTouchFocus, { passive: true });
+    blurTouchFocus();
   };
 
   const init = () => {
-    installStyles();
+    initPersonaFixtures();
+    initDiaryPeriods();
+    initMobileCatalogFilters();
+    installMobilePolishStyles();
     repairPetPhoto();
-    if (simplifyMobileNavigation()) return;
-    const observer = new MutationObserver(() => {
-      if (simplifyMobileNavigation()) observer.disconnect();
-    });
-    observer.observe(document.body, { childList:true, subtree:true });
-    window.setTimeout(() => observer.disconnect(), 5000);
+    stabilizeMobileNavigation();
+    releaseStickySkipLink();
   };
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once:true });
-  else init();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
 })();
