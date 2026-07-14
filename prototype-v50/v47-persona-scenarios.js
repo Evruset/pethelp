@@ -192,7 +192,9 @@
       }
 
       .mobile-bottom-nav [data-mobile-route="decision-comparison"],
-      .mobile-bottom-nav a[href="#decision-comparison"]{
+      .mobile-bottom-nav a[href="#decision-comparison"],
+      .mobile-bottom-nav [data-mobile-route="notifications"],
+      .mobile-bottom-nav a[href="#notifications"]{
         display:none!important;
       }
       .mobile-bottom-nav,
@@ -260,9 +262,89 @@
           object-fit:contain!important;
         }
 
-        #appointments .status-list{
-          gap:8px!important;
+        #home .section-header:has(+ .service-grid){
+          margin-block:18px 10px!important;
+          align-items:center!important;
         }
+        #home .section-header:has(+ .service-grid) h2{
+          font-size:24px!important;
+          margin:0!important;
+        }
+        #home .section-header:has(+ .service-grid) .section-link{
+          font-size:13px!important;
+          white-space:nowrap!important;
+        }
+        #home .service-grid{
+          display:grid!important;
+          grid-template-columns:1fr!important;
+          gap:10px!important;
+          margin-block:0 18px!important;
+        }
+        #home .service-card{
+          position:relative!important;
+          display:grid!important;
+          grid-template-columns:46px minmax(0,1fr) 16px!important;
+          grid-template-rows:auto auto!important;
+          align-items:center!important;
+          column-gap:12px!important;
+          row-gap:3px!important;
+          min-height:82px!important;
+          height:auto!important;
+          padding:12px 14px!important;
+          border-radius:18px!important;
+          overflow:hidden!important;
+        }
+        #home .service-card::after{
+          content:"›";
+          grid-column:3!important;
+          grid-row:1 / 3!important;
+          justify-self:end!important;
+          align-self:center!important;
+          color:#6d7f99!important;
+          font-size:22px!important;
+          line-height:1!important;
+        }
+        #home .service-card .service-icon{
+          grid-column:1!important;
+          grid-row:1 / 3!important;
+          width:46px!important;
+          height:46px!important;
+          min-width:46px!important;
+          display:grid!important;
+          place-items:center!important;
+          margin:0!important;
+          padding:0!important;
+          border-radius:14px!important;
+        }
+        #home .service-card .service-icon :where(svg,img){
+          width:23px!important;
+          height:23px!important;
+          max-width:23px!important;
+          max-height:23px!important;
+          object-fit:contain!important;
+        }
+        #home .service-card h3{
+          grid-column:2!important;
+          grid-row:1!important;
+          min-width:0!important;
+          margin:0!important;
+          font-size:15px!important;
+          line-height:1.2!important;
+          overflow-wrap:anywhere!important;
+        }
+        #home .service-card p{
+          grid-column:2!important;
+          grid-row:2!important;
+          display:block!important;
+          min-width:0!important;
+          margin:0!important;
+          color:#68778f!important;
+          font-size:11px!important;
+          line-height:1.3!important;
+          overflow-wrap:anywhere!important;
+        }
+
+        #appointments .status-list{gap:8px!important;}
         #appointments .status-list .info-row{
           display:grid!important;
           grid-template-columns:42px minmax(0,1fr) 12px!important;
@@ -272,9 +354,7 @@
           padding:10px 12px!important;
           border-radius:17px!important;
         }
-        #appointments .status-list .info-row>span:nth-child(2){
-          min-width:0!important;
-        }
+        #appointments .status-list .info-row>span:nth-child(2){min-width:0!important;}
         #appointments .status-list .info-row strong{
           display:block!important;
           font-size:14px!important;
@@ -309,9 +389,7 @@
           align-content:center!important;
           justify-items:center!important;
         }
-        #pets-policy-card .v40-policy-benefits>span:nth-last-child(-n+2){
-          grid-column:span 3!important;
-        }
+        #pets-policy-card .v40-policy-benefits>span:nth-last-child(-n+2){grid-column:span 3!important;}
         #pets-policy-card .v40-policy-benefits>span img{
           width:23px!important;
           height:23px!important;
@@ -344,12 +422,20 @@
         .prototype-toast.show,
         .prototype-toast.is-visible,
         .v48-toast.show,
-        .v48-toast.is-visible{
-          transform:translateY(0);
-        }
+        .v48-toast.is-visible{transform:translateY(0);}
       }
 
       @media(max-width:380px){
+        #home .service-card{
+          grid-template-columns:42px minmax(0,1fr) 14px!important;
+          column-gap:10px!important;
+          padding-inline:11px!important;
+        }
+        #home .service-card .service-icon{
+          width:42px!important;
+          height:42px!important;
+          min-width:42px!important;
+        }
         #appointments .status-list .info-row{
           grid-template-columns:38px minmax(0,1fr) 10px!important;
           gap:8px!important;
@@ -361,9 +447,7 @@
           min-width:38px!important;
           flex-basis:38px!important;
         }
-        #pets-policy-card .v40-policy-benefits>span{
-          min-height:72px!important;
-        }
+        #pets-policy-card .v40-policy-benefits>span{min-height:72px!important;}
       }
     `;
     document.head.append(style);
@@ -385,12 +469,53 @@
     host.prepend(image);
   };
 
+  const MOBILE_NAV_ITEMS = [
+    { route: 'home', href: '#home', label: 'Главная', icon: 'i-home' },
+    { route: 'pets', href: '#pets', label: 'Питомцы', icon: 'i-paw' },
+    { route: 'appointments', href: '#appointments', label: 'Мои записи', icon: 'i-calendar' },
+    { route: 'catalog', href: '#catalog', label: 'Клиники', icon: 'i-clinic' }
+  ];
+
+  const createMobileNavLink = ({ route, href, label, icon }) => {
+    const link = document.createElement('a');
+    link.href = href;
+    link.dataset.mobileRoute = route;
+    link.setAttribute('aria-label', label);
+    link.innerHTML = `<svg aria-hidden="true" class="vh-icon" focusable="false"><use href="#${icon}"></use></svg><span>${label}</span>`;
+    return link;
+  };
+
+  const syncMobileNavActiveState = (nav) => {
+    const currentHash = window.location.hash || '#home';
+    $$('a[href]', nav).forEach((link) => {
+      const active = link.getAttribute('href') === currentHash;
+      link.classList.toggle('active', active);
+      if (active) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
+    });
+  };
+
   const simplifyMobileNavigation = () => {
     $$('.mobile-bottom-nav').forEach((nav) => {
-      $$('[data-mobile-route="decision-comparison"], a[href="#decision-comparison"]', nav)
+      $$('[data-mobile-route="decision-comparison"], a[href="#decision-comparison"], [data-mobile-route="notifications"], a[href="#notifications"]', nav)
         .forEach((link) => link.remove());
+
+      const existingByHref = new Map($$('a[href]', nav).map((link) => [link.getAttribute('href'), link]));
+      const orderedLinks = MOBILE_NAV_ITEMS.map((item) => {
+        const link = existingByHref.get(item.href) || createMobileNavLink(item);
+        link.dataset.mobileRoute = item.route;
+        link.setAttribute('aria-label', item.label);
+        return link;
+      });
+
+      const currentLinks = $$(':scope > a', nav);
+      const needsReorder = currentLinks.length !== orderedLinks.length
+        || orderedLinks.some((link, index) => currentLinks[index] !== link);
+
+      if (needsReorder) nav.replaceChildren(...orderedLinks);
       nav.classList.add('v50-mobile-nav-four');
       nav.style.setProperty('grid-template-columns', 'repeat(4, minmax(0, 1fr))', 'important');
+      syncMobileNavActiveState(nav);
     });
   };
 
