@@ -7,7 +7,7 @@ Updated: 2026-07-14
 - `BASELINE-02`: `COMPLETE`, committed as `22da293`.
 - `V50-SHELL-01`: `COMPLETE / INTEGRATED` at `1c58ad6`.
 - `V50-OWNER-01`: `COMPLETE / INTEGRATED` at `2077b00`.
-- `V50-OWNER-02`: `PARTIALLY_COMPLETED / COMMITTED_WITH_VISUAL_BLOCKER`.
+- `V50-OWNER-02`: `PARTIALLY_COMPLETED / CLOSEOUT_EVIDENCE_FAILED_VISUAL_PARITY`.
 - Integration status: `NOT_READY_FOR_INTEGRATION`.
 - Canonical target: `V50`; source: `prototype-v50/index.html`; manifest SHA-256: `245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42`.
 - Branch/worktree: `agent/v50-owner-02` / `/Users/evrusetskiy/work/pethelp-alpha-v50-owner-02`.
@@ -63,6 +63,10 @@ Updated: 2026-07-14
 
 ## Next slice
 
-`V50-OWNER-02 / Pets, Pet Profile and Pet Diary` is implemented and tested but not integration-ready. Exact scope: `OWN-009` (`#pets` → `/owner/pets`), `OWN-010` (`#pet-profile` → `/owner/pets/:petId`) and `OWN-011` (`#diary` → `/owner/pets/:petId/diary`). Mandatory visual parity remains unverified pending a runtime/prototype screenshot harness.
+`V50-OWNER-02 / Pets, Pet Profile and Pet Diary` is implemented and tested but not integration-ready. Closeout produced 48 deterministic runtime screenshots and 12 prototype references at four viewports. Structured comparison failed all three screen-level visual gates because runtime hierarchy is materially narrower than `#pets`, `#pet-profile` and `#diary`; the program visual counter remains `0/30`.
+
+Closeout repair `e7a56b1` adds authenticated PDF byte retrieval/opening, exact-path and unknown-MIME protections, controlled 401 handling, and a real stale-list refresh path. Backend closeout tests cover additive/repeatable migration SQL, forward-only rollback, archived read-only history, normalized foreign Diary/document access and persisted document-state mapping.
+
+Independent closeout validation: `FAIL`, vetoes `2`. Evidence integrity/security/rollback pass, but visual hierarchy fails all three IDs and the required real-database migration plus Profile/deep-link/document-state matrix remains incomplete. Integration status stays `NOT_READY_FOR_INTEGRATION`.
 
 The Owner Home backend reproduction gate is `PASS`: after canonical Compose recreated its dependency volume, Jest ran 4 focused suites and passed; the final combined Owner pets/Home run passed 23/23 tests. Resolution evidence is recorded in `docs/ai/tooling-debt/V50-OWNER-01-backend-spawn-einval.md`.

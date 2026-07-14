@@ -50,6 +50,21 @@ describe('OwnerPetService V50 archive and diary contract', () => {
     await expect(service.setArchived(owner(), PET_ID, true, 4)).rejects.toBeInstanceOf(NotFoundException);
   });
 
+  it('normalizes foreign profile and diary deep links to the same pet 404', async () => {
+    const service = new OwnerPetService(new V50Database({ pet: null }).asDatabase());
+    await expect(service.read(owner(), PET_ID)).resolves.toBeUndefined();
+    await expect(service.diary(owner(), PET_ID, 20, 0)).rejects.toMatchObject({
+      response: { code: 'OWNER_PET_NOT_FOUND' },
+    });
+  });
+
+  it('allows an owned archived profile and diary as controlled read-only history', async () => {
+    const archived = { ...petRow(), archived_at: new Date('2026-07-14T12:00:00.000Z') };
+    const service = new OwnerPetService(new V50Database({ pet: archived, diary: [] }).asDatabase());
+    await expect(service.read(owner(), PET_ID)).resolves.toMatchObject({ isArchived: true });
+    await expect(service.diary(owner(), PET_ID, 20, 0)).resolves.toMatchObject({ petId: PET_ID });
+  });
+
   it('rejects missing and stale If-Match without applying archive', async () => {
     const database = new V50Database({ pet: petRow() });
     const service = new OwnerPetService(database.asDatabase());
@@ -91,6 +106,18 @@ describe('OwnerPetService V50 archive and diary contract', () => {
     expect(owned.documentAuditActions).toEqual(['pet.document.metadata.read']);
     await expect(new OwnerPetService(new V50Database({ pet: petRow() }).asDatabase())
       .documentMetadata(owner(), PET_ID, DOCUMENT_ID)).rejects.toMatchObject({ response: { code: 'OWNER_PET_DOCUMENT_NOT_FOUND' } });
+  });
+
+  it.each([
+    ['PROCESSING', 'PROCESSING'],
+    ['PROCESSED', 'READY'],
+    ['FAILED', 'FAILED'],
+  ])('maps persisted document state %s without inventing review state', async (persisted, expected) => {
+    const database = new V50Database({ pet: petRow(), document: { ...documentRow(), status: persisted } });
+    const metadata = await new OwnerPetService(database.asDatabase())
+      .documentMetadata(owner(), PET_ID, DOCUMENT_ID);
+    expect(metadata.lifecycleStatus).toBe(expected);
+    expect(metadata.lifecycleStatus).not.toBe('REVIEW_REQUIRED');
   });
 });
 

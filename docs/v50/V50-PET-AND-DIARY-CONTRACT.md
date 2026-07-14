@@ -49,6 +49,8 @@ Persisted runtime states map honestly:
 
 Unknown document types remain metadata-only with a safe unavailable/download fallback. Supported images/PDFs are never treated as executable HTML or script.
 
+Explicit PDF open first retrieves bytes from the authenticated owner-scoped stream using the exact expected internal download path. Flutter then opens an `application/pdf` data payload in an external application. It never launches a backend-provided arbitrary URL, HTML/script MIME, storage key or permanent object URL. A rejected/expired stream remains a controlled session/document error and a later explicit open performs a fresh metadata/stream request.
+
 ## Medical warnings
 
 The V50 profile may present only explicit existing fields: allergies, chronic conditions and vaccination notes. Each presentation identifies its source as profile data and uses semantic icon/text in addition to color. The client does not infer warnings from raw OCR or promote severity.

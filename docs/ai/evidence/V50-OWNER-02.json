@@ -1,19 +1,776 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 3,
   "workChatId": "V50-OWNER-02",
-  "v50Ids": ["OWN-009", "OWN-010", "OWN-011"],
+  "v50Ids": [
+    "OWN-009",
+    "OWN-010",
+    "OWN-011"
+  ],
   "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
-  "runtimeCommit": "PENDING_LOCAL_COMMIT",
+  "runtimeCommit": "e7a56b1",
   "artifactStorage": "LOCAL_PACKAGE",
-  "artifactPackageId": "v50-owner-02-local-validation",
+  "artifactPackageId": "v50-owner-02-5418a36",
+  "artifactPackageSha256": "2f335833d131a6d710fd0ee1f7ee47a7e4ae8d792da46469924ffc35ddc91c39",
   "localPathHint": "/Users/evrusetskiy/docs/ai/evidence/V50-OWNER-02",
   "createdAt": "2026-07-14",
-  "result": "TESTED_NOT_VISUALLY_VERIFIED",
+  "result": "FAIL_VISUAL_PARITY",
   "visuallyVerified": false,
-  "artifacts": [],
+  "runtimeArtifactCount": 48,
+  "prototypeReferenceCount": 12,
+  "viewports": [
+    "375x812",
+    "412x915",
+    "768x1024",
+    "1440x900"
+  ],
+  "states": [
+    "PETS_READY",
+    "PETS_EMPTY",
+    "PETS_OFFLINE_STALE",
+    "PROFILE_READY",
+    "PROFILE_WITH_WARNING",
+    "PROFILE_EDIT",
+    "PROFILE_CONFLICT",
+    "DIARY_READY",
+    "DIARY_EMPTY",
+    "DIARY_PROCESSING",
+    "DIARY_REVIEW_REQUIRED",
+    "DIARY_DOCUMENT_PREVIEW"
+  ],
+  "artifacts": [
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "1440x900",
+      "state": "DIARY_DOCUMENT_PREVIEW",
+      "artifactLogicalPath": "V50-OWNER-02/diary/1440x900/DIARY_DOCUMENT_PREVIEW.png",
+      "sha256": "343bacd227dd3344dff6e1a8a604201c66dc7ee9f88a0eaa9435f05c7bb5a795",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
+      ]
+    },
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "1440x900",
+      "state": "DIARY_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-02/diary/1440x900/DIARY_EMPTY.png",
+      "sha256": "554f029a653dc2eea716aa072013c3abf3abc76ae8f601187f83abce8d910c98",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
+      ]
+    },
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "1440x900",
+      "state": "DIARY_PROCESSING",
+      "artifactLogicalPath": "V50-OWNER-02/diary/1440x900/DIARY_PROCESSING.png",
+      "sha256": "919bd424768dfe1469d886baf34eee436b90028d59d93c116c66bbda13b82b72",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
+      ]
+    },
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "1440x900",
+      "state": "DIARY_READY",
+      "artifactLogicalPath": "V50-OWNER-02/diary/1440x900/DIARY_READY.png",
+      "sha256": "ba35b2a6372207ce25653acbd0de22b80b20f76ee5bbdcde6e990a0ad83fd3f8",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
+      ]
+    },
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "1440x900",
+      "state": "DIARY_REVIEW_REQUIRED",
+      "artifactLogicalPath": "V50-OWNER-02/diary/1440x900/DIARY_REVIEW_REQUIRED.png",
+      "sha256": "f7bfca2b6a1d6653a23c963a509f74a911431ecb86af068ce554a6ac80e21ee3",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
+      ]
+    },
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "375x812",
+      "state": "DIARY_DOCUMENT_PREVIEW",
+      "artifactLogicalPath": "V50-OWNER-02/diary/375x812/DIARY_DOCUMENT_PREVIEW.png",
+      "sha256": "b077025d7394a8138225513687214e74bc61e18dec122fbcc1c219442cd0b1da",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
+      ]
+    },
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "375x812",
+      "state": "DIARY_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-02/diary/375x812/DIARY_EMPTY.png",
+      "sha256": "301b99b598c47a024b3d209dd483aedf23d5be7ab1a5d2ec6eb619eda553b381",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
+      ]
+    },
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "375x812",
+      "state": "DIARY_PROCESSING",
+      "artifactLogicalPath": "V50-OWNER-02/diary/375x812/DIARY_PROCESSING.png",
+      "sha256": "109afbdcd8da7d25968c6646f1b9ccf24770c9d95c1b8ee2bb0cef70c8165f33",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
+      ]
+    },
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "375x812",
+      "state": "DIARY_READY",
+      "artifactLogicalPath": "V50-OWNER-02/diary/375x812/DIARY_READY.png",
+      "sha256": "7656b94e7582dc6fd62dfc1483acb1c21f66706fe127f5b2aa7bd8d3f72e7344",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
+      ]
+    },
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "375x812",
+      "state": "DIARY_REVIEW_REQUIRED",
+      "artifactLogicalPath": "V50-OWNER-02/diary/375x812/DIARY_REVIEW_REQUIRED.png",
+      "sha256": "46de6d0a3cdec4adb9a07f42fc099f1d7e53a7d1732c11e2c0ade79543e62738",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
+      ]
+    },
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "412x915",
+      "state": "DIARY_DOCUMENT_PREVIEW",
+      "artifactLogicalPath": "V50-OWNER-02/diary/412x915/DIARY_DOCUMENT_PREVIEW.png",
+      "sha256": "ee02b9d563b7ad677daf937c5be7505583b984c3cfdd4a830d5e1c63d5c8bc6c",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
+      ]
+    },
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "412x915",
+      "state": "DIARY_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-02/diary/412x915/DIARY_EMPTY.png",
+      "sha256": "f8dd2c03958ac548eb3513dfb0b01f751b31b14a269ce4993f56afb709d490ca",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
+      ]
+    },
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "412x915",
+      "state": "DIARY_PROCESSING",
+      "artifactLogicalPath": "V50-OWNER-02/diary/412x915/DIARY_PROCESSING.png",
+      "sha256": "039710c19bd0e7f3bc146a0bd50e27e331c0d17d09889cc20521377c9ac0b8ad",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
+      ]
+    },
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "412x915",
+      "state": "DIARY_READY",
+      "artifactLogicalPath": "V50-OWNER-02/diary/412x915/DIARY_READY.png",
+      "sha256": "3abc2204d84e13a9b32e105e7ddd42a444445b438195a1c74ff8794e61a76acd",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
+      ]
+    },
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "412x915",
+      "state": "DIARY_REVIEW_REQUIRED",
+      "artifactLogicalPath": "V50-OWNER-02/diary/412x915/DIARY_REVIEW_REQUIRED.png",
+      "sha256": "72087cddb0bd0b391d7cc49923b6d014e221d0c8ede8c2153deea8914d28c076",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
+      ]
+    },
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "768x1024",
+      "state": "DIARY_DOCUMENT_PREVIEW",
+      "artifactLogicalPath": "V50-OWNER-02/diary/768x1024/DIARY_DOCUMENT_PREVIEW.png",
+      "sha256": "f533084aa67fee37059440d69086a4b53586f2d0b6756089228917802d0d3fd3",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
+      ]
+    },
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "768x1024",
+      "state": "DIARY_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-02/diary/768x1024/DIARY_EMPTY.png",
+      "sha256": "5eb6ecabe57ba5b2eeab796e39bf6ae53c59d9583545dcb5a89644eacad12dca",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
+      ]
+    },
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "768x1024",
+      "state": "DIARY_PROCESSING",
+      "artifactLogicalPath": "V50-OWNER-02/diary/768x1024/DIARY_PROCESSING.png",
+      "sha256": "b059addd1e95dee9f11019f57a0a470777d6240439600e33730dd5ea777bc588",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
+      ]
+    },
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "768x1024",
+      "state": "DIARY_READY",
+      "artifactLogicalPath": "V50-OWNER-02/diary/768x1024/DIARY_READY.png",
+      "sha256": "5f6b9ff3d974b2cc9f664539b1eecfbdb21419c76b7c170291714ee7e41f091f",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
+      ]
+    },
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "768x1024",
+      "state": "DIARY_REVIEW_REQUIRED",
+      "artifactLogicalPath": "V50-OWNER-02/diary/768x1024/DIARY_REVIEW_REQUIRED.png",
+      "sha256": "69a8bfd285bbc93d62f70bb4ac3e1cefe6fe2f9b2a3fe8d075fc9a16323caded",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
+      ]
+    },
+    {
+      "v50Id": "OWN-009",
+      "prototypeDomAnchor": "#pets",
+      "prototypeRoute": "/owner/pets",
+      "viewport": "1440x900",
+      "state": "PETS_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-02/pets/1440x900/PETS_EMPTY.png",
+      "sha256": "572f295490b7084fc0a8839bbfe28c84fd31693b97906b7f0d78e05199e70168",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
+      ]
+    },
+    {
+      "v50Id": "OWN-009",
+      "prototypeDomAnchor": "#pets",
+      "prototypeRoute": "/owner/pets",
+      "viewport": "1440x900",
+      "state": "PETS_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-02/pets/1440x900/PETS_OFFLINE_STALE.png",
+      "sha256": "6a24b005af640ca0451518321cf7c11dd0eecac93c6a86f82ff4975ef525757d",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
+      ]
+    },
+    {
+      "v50Id": "OWN-009",
+      "prototypeDomAnchor": "#pets",
+      "prototypeRoute": "/owner/pets",
+      "viewport": "1440x900",
+      "state": "PETS_READY",
+      "artifactLogicalPath": "V50-OWNER-02/pets/1440x900/PETS_READY.png",
+      "sha256": "44a5b054f51595491228271e839e8a0efa3c6f31d22dacb4c30e9d950d239c7b",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
+      ]
+    },
+    {
+      "v50Id": "OWN-009",
+      "prototypeDomAnchor": "#pets",
+      "prototypeRoute": "/owner/pets",
+      "viewport": "375x812",
+      "state": "PETS_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-02/pets/375x812/PETS_EMPTY.png",
+      "sha256": "235e23acbca15211e2f4893a6eb7e88365d08dfd5e81f6b8adb75e735079cfbb",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
+      ]
+    },
+    {
+      "v50Id": "OWN-009",
+      "prototypeDomAnchor": "#pets",
+      "prototypeRoute": "/owner/pets",
+      "viewport": "375x812",
+      "state": "PETS_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-02/pets/375x812/PETS_OFFLINE_STALE.png",
+      "sha256": "303e162ad90b59d3fb86f2c03e988839b4269b8d974fcf96babccee7bba45a79",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
+      ]
+    },
+    {
+      "v50Id": "OWN-009",
+      "prototypeDomAnchor": "#pets",
+      "prototypeRoute": "/owner/pets",
+      "viewport": "375x812",
+      "state": "PETS_READY",
+      "artifactLogicalPath": "V50-OWNER-02/pets/375x812/PETS_READY.png",
+      "sha256": "3d929e4b131a22af166f34268af532c1fdb096bc2e176d6d7a274e8fea7325c7",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
+      ]
+    },
+    {
+      "v50Id": "OWN-009",
+      "prototypeDomAnchor": "#pets",
+      "prototypeRoute": "/owner/pets",
+      "viewport": "412x915",
+      "state": "PETS_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-02/pets/412x915/PETS_EMPTY.png",
+      "sha256": "fdd817807016c0bda13f573d7f4dbe493a863f5d86857238eb96b4286c92f88e",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
+      ]
+    },
+    {
+      "v50Id": "OWN-009",
+      "prototypeDomAnchor": "#pets",
+      "prototypeRoute": "/owner/pets",
+      "viewport": "412x915",
+      "state": "PETS_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-02/pets/412x915/PETS_OFFLINE_STALE.png",
+      "sha256": "0d5595ac23583427b7c7a53659f14f1f2ed436b7499b27ebd4ea68d46ef169a2",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
+      ]
+    },
+    {
+      "v50Id": "OWN-009",
+      "prototypeDomAnchor": "#pets",
+      "prototypeRoute": "/owner/pets",
+      "viewport": "412x915",
+      "state": "PETS_READY",
+      "artifactLogicalPath": "V50-OWNER-02/pets/412x915/PETS_READY.png",
+      "sha256": "7be1e505f734cd85f5678137b5da6cd21594e4feb77f3719c7781d64e6a5863a",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
+      ]
+    },
+    {
+      "v50Id": "OWN-009",
+      "prototypeDomAnchor": "#pets",
+      "prototypeRoute": "/owner/pets",
+      "viewport": "768x1024",
+      "state": "PETS_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-02/pets/768x1024/PETS_EMPTY.png",
+      "sha256": "3dc5e65523368e945ac0b12753d7d3cf69af340d38348a8cb892dd16b5dd4311",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
+      ]
+    },
+    {
+      "v50Id": "OWN-009",
+      "prototypeDomAnchor": "#pets",
+      "prototypeRoute": "/owner/pets",
+      "viewport": "768x1024",
+      "state": "PETS_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-02/pets/768x1024/PETS_OFFLINE_STALE.png",
+      "sha256": "257e144c4130c415f811953e8a012a2f660f36c4748c8dc285c7be571cb1a838",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
+      ]
+    },
+    {
+      "v50Id": "OWN-009",
+      "prototypeDomAnchor": "#pets",
+      "prototypeRoute": "/owner/pets",
+      "viewport": "768x1024",
+      "state": "PETS_READY",
+      "artifactLogicalPath": "V50-OWNER-02/pets/768x1024/PETS_READY.png",
+      "sha256": "fd12de0bd6018474dd9108e08809f0a75082c31cb83dbf25b3014352d708c3a5",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
+      ]
+    },
+    {
+      "v50Id": "OWN-010",
+      "prototypeDomAnchor": "#pet-profile",
+      "prototypeRoute": "/owner/pets/:petId",
+      "viewport": "1440x900",
+      "state": "PROFILE_CONFLICT",
+      "artifactLogicalPath": "V50-OWNER-02/profile/1440x900/PROFILE_CONFLICT.png",
+      "sha256": "1535672ff19db5add2d44520587ba978f9d439faf6b69f0c6f84f0ab98ec9591",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
+      ]
+    },
+    {
+      "v50Id": "OWN-010",
+      "prototypeDomAnchor": "#pet-profile",
+      "prototypeRoute": "/owner/pets/:petId",
+      "viewport": "1440x900",
+      "state": "PROFILE_EDIT",
+      "artifactLogicalPath": "V50-OWNER-02/profile/1440x900/PROFILE_EDIT.png",
+      "sha256": "fcfbc37b90c29a181ccfda6db07bf4147d5e595ecb9f547f95a12acb61cbf137",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
+      ]
+    },
+    {
+      "v50Id": "OWN-010",
+      "prototypeDomAnchor": "#pet-profile",
+      "prototypeRoute": "/owner/pets/:petId",
+      "viewport": "1440x900",
+      "state": "PROFILE_READY",
+      "artifactLogicalPath": "V50-OWNER-02/profile/1440x900/PROFILE_READY.png",
+      "sha256": "b573ad75b672d9f6a414237767e9872fabc3fbf8af836bb6f8e7aac6c3d27626",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
+      ]
+    },
+    {
+      "v50Id": "OWN-010",
+      "prototypeDomAnchor": "#pet-profile",
+      "prototypeRoute": "/owner/pets/:petId",
+      "viewport": "1440x900",
+      "state": "PROFILE_WITH_WARNING",
+      "artifactLogicalPath": "V50-OWNER-02/profile/1440x900/PROFILE_WITH_WARNING.png",
+      "sha256": "5c25f4320a98595eca22c4e6e85a450bcd8f80b25ad6f06cacc95a4732f88e93",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
+      ]
+    },
+    {
+      "v50Id": "OWN-010",
+      "prototypeDomAnchor": "#pet-profile",
+      "prototypeRoute": "/owner/pets/:petId",
+      "viewport": "375x812",
+      "state": "PROFILE_CONFLICT",
+      "artifactLogicalPath": "V50-OWNER-02/profile/375x812/PROFILE_CONFLICT.png",
+      "sha256": "e4e8435e4bdb5a7420cce1e65d8c1d8252a0102617ff69e170fdc143cf808241",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
+      ]
+    },
+    {
+      "v50Id": "OWN-010",
+      "prototypeDomAnchor": "#pet-profile",
+      "prototypeRoute": "/owner/pets/:petId",
+      "viewport": "375x812",
+      "state": "PROFILE_EDIT",
+      "artifactLogicalPath": "V50-OWNER-02/profile/375x812/PROFILE_EDIT.png",
+      "sha256": "3bf2d5f7b3b058669173be9a31372029fb568c554d02f5825b4bf2b11d440617",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
+      ]
+    },
+    {
+      "v50Id": "OWN-010",
+      "prototypeDomAnchor": "#pet-profile",
+      "prototypeRoute": "/owner/pets/:petId",
+      "viewport": "375x812",
+      "state": "PROFILE_READY",
+      "artifactLogicalPath": "V50-OWNER-02/profile/375x812/PROFILE_READY.png",
+      "sha256": "4afee9fa7729cde7416afde28f0e10a2f12ebadf64a6a7db60638bad875c9a06",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
+      ]
+    },
+    {
+      "v50Id": "OWN-010",
+      "prototypeDomAnchor": "#pet-profile",
+      "prototypeRoute": "/owner/pets/:petId",
+      "viewport": "375x812",
+      "state": "PROFILE_WITH_WARNING",
+      "artifactLogicalPath": "V50-OWNER-02/profile/375x812/PROFILE_WITH_WARNING.png",
+      "sha256": "b7f4629eb0fca62955a66bd76e6a29057ef8ef55bcac1415efd0180d1600af59",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
+      ]
+    },
+    {
+      "v50Id": "OWN-010",
+      "prototypeDomAnchor": "#pet-profile",
+      "prototypeRoute": "/owner/pets/:petId",
+      "viewport": "412x915",
+      "state": "PROFILE_CONFLICT",
+      "artifactLogicalPath": "V50-OWNER-02/profile/412x915/PROFILE_CONFLICT.png",
+      "sha256": "3971080f17cb37a637155a760e58dedf8fd5f8751f8164f9e9533d6c7c75ab2f",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
+      ]
+    },
+    {
+      "v50Id": "OWN-010",
+      "prototypeDomAnchor": "#pet-profile",
+      "prototypeRoute": "/owner/pets/:petId",
+      "viewport": "412x915",
+      "state": "PROFILE_EDIT",
+      "artifactLogicalPath": "V50-OWNER-02/profile/412x915/PROFILE_EDIT.png",
+      "sha256": "c5e98de5c6f88872e9786e80a13f0d2850cda7d57ee6cb55d91f555c73c88300",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
+      ]
+    },
+    {
+      "v50Id": "OWN-010",
+      "prototypeDomAnchor": "#pet-profile",
+      "prototypeRoute": "/owner/pets/:petId",
+      "viewport": "412x915",
+      "state": "PROFILE_READY",
+      "artifactLogicalPath": "V50-OWNER-02/profile/412x915/PROFILE_READY.png",
+      "sha256": "3b125e33313a88e0e39f2815bfd347ce10743c3ab6169e06831e54ed43f73531",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
+      ]
+    },
+    {
+      "v50Id": "OWN-010",
+      "prototypeDomAnchor": "#pet-profile",
+      "prototypeRoute": "/owner/pets/:petId",
+      "viewport": "412x915",
+      "state": "PROFILE_WITH_WARNING",
+      "artifactLogicalPath": "V50-OWNER-02/profile/412x915/PROFILE_WITH_WARNING.png",
+      "sha256": "33f3f09e8ebf23ee63c943ca7eaf9c3f86102bfd92d31acc17cabf106e093611",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
+      ]
+    },
+    {
+      "v50Id": "OWN-010",
+      "prototypeDomAnchor": "#pet-profile",
+      "prototypeRoute": "/owner/pets/:petId",
+      "viewport": "768x1024",
+      "state": "PROFILE_CONFLICT",
+      "artifactLogicalPath": "V50-OWNER-02/profile/768x1024/PROFILE_CONFLICT.png",
+      "sha256": "9f45637c1a88067e6c17abe3bcbbeced5b1c1c57f992ab3a5a3a213a5198e5a1",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
+      ]
+    },
+    {
+      "v50Id": "OWN-010",
+      "prototypeDomAnchor": "#pet-profile",
+      "prototypeRoute": "/owner/pets/:petId",
+      "viewport": "768x1024",
+      "state": "PROFILE_EDIT",
+      "artifactLogicalPath": "V50-OWNER-02/profile/768x1024/PROFILE_EDIT.png",
+      "sha256": "105dd69c9156f564317665afefabd27dd25f372e120752cda0f4452d7ba73c83",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
+      ]
+    },
+    {
+      "v50Id": "OWN-010",
+      "prototypeDomAnchor": "#pet-profile",
+      "prototypeRoute": "/owner/pets/:petId",
+      "viewport": "768x1024",
+      "state": "PROFILE_READY",
+      "artifactLogicalPath": "V50-OWNER-02/profile/768x1024/PROFILE_READY.png",
+      "sha256": "070c6fa978935d46a780ac12b8d340517082b2c13d15223c9ea13f94ed9c4e86",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
+      ]
+    },
+    {
+      "v50Id": "OWN-010",
+      "prototypeDomAnchor": "#pet-profile",
+      "prototypeRoute": "/owner/pets/:petId",
+      "viewport": "768x1024",
+      "state": "PROFILE_WITH_WARNING",
+      "artifactLogicalPath": "V50-OWNER-02/profile/768x1024/PROFILE_WITH_WARNING.png",
+      "sha256": "d5ddf9d76b168b6647821a9c7155f7de929f2eb55cc10179778ff1ee8c421737",
+      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "knownDifferences": [
+        "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
+      ]
+    }
+  ],
+  "prototypeReferences": [
+    {
+      "v50Id": "OWN-009",
+      "prototypeDomAnchor": "#pets",
+      "prototypeRoute": "/owner/pets",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-02/prototype/pets/375x812.png",
+      "sha256": "a2c9038074880aa2dc380b7947bbd212d149023bcbd73e71e36c7c89da33e0a3"
+    },
+    {
+      "v50Id": "OWN-009",
+      "prototypeDomAnchor": "#pets",
+      "prototypeRoute": "/owner/pets",
+      "viewport": "412x915",
+      "artifactLogicalPath": "V50-OWNER-02/prototype/pets/412x915.png",
+      "sha256": "edce48fc18f9afbff9e86ac28c9c3df6ceb076b1b1acd2e5768cf74a30170054"
+    },
+    {
+      "v50Id": "OWN-009",
+      "prototypeDomAnchor": "#pets",
+      "prototypeRoute": "/owner/pets",
+      "viewport": "768x1024",
+      "artifactLogicalPath": "V50-OWNER-02/prototype/pets/768x1024.png",
+      "sha256": "904eb1113757a03536cdc976ab526ee7f6240952a85ebec181bbc50ce6400993"
+    },
+    {
+      "v50Id": "OWN-009",
+      "prototypeDomAnchor": "#pets",
+      "prototypeRoute": "/owner/pets",
+      "viewport": "1440x900",
+      "artifactLogicalPath": "V50-OWNER-02/prototype/pets/1440x900.png",
+      "sha256": "25bdadd4dec913b32e6b8da7b94a3551ee4137586379de2775aea1471deac3ef"
+    },
+    {
+      "v50Id": "OWN-010",
+      "prototypeDomAnchor": "#pet-profile",
+      "prototypeRoute": "/owner/pets/:petId",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-02/prototype/profile/375x812.png",
+      "sha256": "0a831906fca5af1909bca7493ff36e802aa7a4f8c948b1bd4d02e41fbe0422a3"
+    },
+    {
+      "v50Id": "OWN-010",
+      "prototypeDomAnchor": "#pet-profile",
+      "prototypeRoute": "/owner/pets/:petId",
+      "viewport": "412x915",
+      "artifactLogicalPath": "V50-OWNER-02/prototype/profile/412x915.png",
+      "sha256": "ee749ebec54700b0eae69ed6a6377d8824352819f5aa3fafefb102a08905870f"
+    },
+    {
+      "v50Id": "OWN-010",
+      "prototypeDomAnchor": "#pet-profile",
+      "prototypeRoute": "/owner/pets/:petId",
+      "viewport": "768x1024",
+      "artifactLogicalPath": "V50-OWNER-02/prototype/profile/768x1024.png",
+      "sha256": "360d55212345671fa41a8d3e313e23e5ce5b285ecd001c160a3fa93ad15d9a5c"
+    },
+    {
+      "v50Id": "OWN-010",
+      "prototypeDomAnchor": "#pet-profile",
+      "prototypeRoute": "/owner/pets/:petId",
+      "viewport": "1440x900",
+      "artifactLogicalPath": "V50-OWNER-02/prototype/profile/1440x900.png",
+      "sha256": "8542a13007b7fae7866158881ce6b1971972b3799b2feda9dacdbcc8724497eb"
+    },
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-02/prototype/diary/375x812.png",
+      "sha256": "fb807f9160595a995c5c765866fd49a05b8895e8e99cf43416dbd13a3527775c"
+    },
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "412x915",
+      "artifactLogicalPath": "V50-OWNER-02/prototype/diary/412x915.png",
+      "sha256": "b74de9a475f1e952a027164712a0f63ae933e67acfa639b829db0b51d88f687e"
+    },
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "768x1024",
+      "artifactLogicalPath": "V50-OWNER-02/prototype/diary/768x1024.png",
+      "sha256": "81d045fd944b4a8b40a6a838eb0173ec9085f7b229ce22f68266a35ca4ed3b9c"
+    },
+    {
+      "v50Id": "OWN-011",
+      "prototypeDomAnchor": "#diary",
+      "prototypeRoute": "/owner/pets/:petId/diary",
+      "viewport": "1440x900",
+      "artifactLogicalPath": "V50-OWNER-02/prototype/diary/1440x900.png",
+      "sha256": "438d4eb2f1e3e53d9f68ccb63c6f25889d204896ec2058801edd321b14dd3883"
+    }
+  ],
+  "accessibilityChecks": {
+    "textScale200Percent": "PASS_WIDGET_TEST",
+    "reducedMotion": "PASS_WIDGET_TEST",
+    "finiteConstraints": "PASS_WIDGET_TEST",
+    "horizontalOverflow": "PASS_WIDGET_TEST",
+    "keyboardFocusWeb": "NOT_AUTOMATED"
+  },
   "knownDifferences": [
-    "No durable runtime screenshots were produced because this repository has no authenticated owner visual-capture harness for the new routes.",
-    "Flutter widget tests and the web build are test evidence only and do not qualify as prototype side-by-side visual verification.",
-    "Program visual counter remains 0/30."
+    "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list.",
+    "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only.",
+    "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
   ]
 }

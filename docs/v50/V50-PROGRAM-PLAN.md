@@ -41,7 +41,7 @@ Program state: V50 migration in progress
 
 ## Logical chat map
 
-Completed contexts: `BASELINE-01`, `BASELINE-02`, `V50-SHELL-01`, `V50-OWNER-01`; `V50-OWNER-02` is implemented/tested but blocked from integration by its mandatory visual-evidence gate. After that gate closes, the next planned bounded context is exactly `V50-OWNER-03 / Clinic Catalog, Clinic Detail and Doctor Discovery`. Later domain chats remain inactive.
+Completed contexts: `BASELINE-01`, `BASELINE-02`, `V50-SHELL-01`, `V50-OWNER-01`; `V50-OWNER-02` is implemented/tested and now has a complete diagnostic evidence matrix, but comparison failed visual hierarchy and it remains blocked from integration. `V50-OWNER-03` stays inactive until that gate closes.
 
 ## Program rules
 
