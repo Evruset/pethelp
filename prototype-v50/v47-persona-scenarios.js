@@ -132,3 +132,90 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initMobileCatalogFilters, { once: true });
   else initMobileCatalogFilters();
 })();
+
+/* v50 mobile polish: real pet photo, four-item navigation and top-safe toasts. */
+(() => {
+  'use strict';
+
+  const installStyles = () => {
+    if (document.getElementById('v50-mobile-polish-runtime-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'v50-mobile-polish-runtime-styles';
+    style.textContent = `
+      #pet-profile .pet-profile-photo > img.v50-pet-profile-image{
+        position:absolute;
+        inset:0;
+        width:100%;
+        height:100%;
+        display:block;
+        object-fit:cover;
+        object-position:center 38%;
+      }
+      #pet-profile .pet-profile-photo{position:relative;min-height:320px;}
+      .mobile-bottom-nav.v50-mobile-nav-four{
+        grid-template-columns:repeat(4,minmax(0,1fr))!important;
+      }
+      @media(max-width:760px){
+        #pet-profile .pet-profile-photo{min-height:280px;}
+        .vh-toast-v2,
+        .prototype-toast,
+        .v48-toast{
+          top:calc(env(safe-area-inset-top,0px) + 12px)!important;
+          right:12px!important;
+          bottom:auto!important;
+          left:12px!important;
+          width:auto!important;
+          max-width:none!important;
+          margin:0!important;
+          z-index:12000!important;
+        }
+        .vh-toast-v2,
+        .prototype-toast,
+        .v48-toast{transform:translateY(-8px);}
+        .vh-toast-v2.is-visible,
+        .prototype-toast.show,
+        .prototype-toast.is-visible,
+        .v48-toast.show,
+        .v48-toast.is-visible{transform:translateY(0);}
+      }
+    `;
+    document.head.append(style);
+  };
+
+  const repairPetPhoto = () => {
+    const host = document.querySelector('#pet-profile .pet-profile-photo');
+    if (!host || host.querySelector('img.v50-pet-profile-image')) return;
+    const image = document.createElement('img');
+    image.className = 'v50-pet-profile-image';
+    image.src = 'vethelp_media/pet_barney.webp';
+    image.alt = 'Барни, корги';
+    image.width = 1254;
+    image.height = 1254;
+    image.loading = 'eager';
+    image.decoding = 'async';
+    image.fetchPriority = 'high';
+    host.prepend(image);
+  };
+
+  const simplifyMobileNavigation = () => {
+    const nav = document.querySelector('.mobile-bottom-nav');
+    if (!nav) return false;
+    nav.querySelectorAll('[data-mobile-route="decision-comparison"], a[href="#decision-comparison"]').forEach((link) => link.remove());
+    nav.classList.add('v50-mobile-nav-four');
+    return true;
+  };
+
+  const init = () => {
+    installStyles();
+    repairPetPhoto();
+    if (simplifyMobileNavigation()) return;
+    const observer = new MutationObserver(() => {
+      if (simplifyMobileNavigation()) observer.disconnect();
+    });
+    observer.observe(document.body, { childList:true, subtree:true });
+    window.setTimeout(() => observer.disconnect(), 5000);
+  };
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once:true });
+  else init();
+})();
