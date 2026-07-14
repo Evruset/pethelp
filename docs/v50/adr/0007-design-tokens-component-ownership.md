@@ -1,12 +1,12 @@
 # ADR-0007: дизайн-токены и ownership компонентов
 
-- Статус: принято для v51
+- Статус: принято для v50
 - Дата: 2026-07-12
 - Зависимости: ADR-0003
 
 ## Контекст
 
-Прототип v51 задаёт visual language, но копирование его CSS/DOM в Next.js и Flutter создаст две несвязанные реализации. Production уже имеет `app/globals.css` и Flutter `vethelp_ios_theme.dart`; нужен общий семантический contract без runtime-зависимости платформ друг от друга.
+Прототип v50 задаёт visual language, но копирование его CSS/DOM в Next.js и Flutter создаст две несвязанные реализации. Production уже имеет `app/globals.css` и Flutter `vethelp_ios_theme.dart`; нужен общий семантический contract без runtime-зависимости платформ друг от друга.
 
 ## Альтернативы
 

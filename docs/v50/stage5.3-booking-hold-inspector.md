@@ -50,7 +50,7 @@ introduces one; it currently has no empty-hold envelope.
 - Focused Chromium coverage passes 7/7, including exact retry request count,
   capability/scope gating, normalized denials, malformed payloads and scoped
   axe checks. The shared queue regression passes 9/9.
-- The V51 shell's duplicated responsive representations made two queue-suite
+- The V50 shell's duplicated responsive representations made two queue-suite
   locators strict-mode ambiguous. The tests now use the capability-shell's
   current error copy and an exact accessible error heading; no production UI
   was changed for that locator repair.

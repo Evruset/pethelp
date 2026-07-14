@@ -24,7 +24,7 @@ backend evaluator remains authoritative for direct authenticated proxy calls.
 
 ## Authorization review
 
-`CLINIC_VETERINARIAN` is accepted by the clinic shell. Navigation and V51 use
+`CLINIC_VETERINARIAN` is accepted by the clinic shell. Navigation and V50 use
 the server-derived effective session; read capability or scope loss suppresses
 list/detail requests, and completion capability/scope/state loss suppresses the
 POST. `CLINIC_ADMIN` has no backend `clinical.visit.complete` grant. Proxies do

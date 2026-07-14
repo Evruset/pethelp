@@ -184,7 +184,7 @@ frontend-only veterinarian visit surface; no completion mutation change.
 
 ### Stage 5.1A2 — frontend veterinarian visit surface — COMPLETED
 
-- V51 owns `/vet/visits` and `/vet/visits/[holdId]`, with matching no-store
+- V50 owns `/vet/visits` and `/vet/visits/[holdId]`, with matching no-store
   portal proxies. Capability and clinic/location scope act as fail-closed UX
   gates; the backend remains the authority.
 - The navigation item is capability-scoped. List/detail display only the

@@ -1,25 +1,25 @@
-# VetHelp prototype-v51: route, API и role matrix
+# VetHelp prototype-v50: route, API и role matrix
 
 Дата снимка: 11 июля 2026 года
 
-Связанный анализ: `docs/v51/00-current-state-gap-analysis.md`
+Связанный анализ: `docs/v50/00-current-state-gap-analysis.md`
 
 ## 1. Правила чтения
 
-Матрица перечисляет все 30 уникальных значений `data-page` из `prototype-v51/index.html`. Повторный `catalog` в prototype DOM не считается отдельным экраном. Hash routes прототипа не предлагаются как production URL; они задают смысл, hierarchy и back behavior.
+Матрица перечисляет все 30 уникальных значений `data-page` из `prototype-v50/index.html`. Повторный `catalog` в prototype DOM не считается отдельным экраном. Hash routes прототипа не предлагаются как production URL; они задают смысл, hierarchy и back behavior.
 
 Production status:
 
 - **реализовано** — route/component и необходимый API существуют;
 - **частично** — сценарий собран внутри другого экрана либо отсутствует часть API/состояний;
 - **отсутствует** — route/API не найден;
-- **конфликт** — текущая реализация нарушает role/domain boundary v51.
+- **конфликт** — текущая реализация нарушает role/domain boundary v50.
 
 В колонке capability сначала указывается целевая capability, затем фактическая role enforcement. Названия target capabilities являются результатом инвентаризации, а не уже опубликованным контрактом.
 
 ## 2. Owner route matrix
 
-| Prototype route | Назначение v51 | Production route/component | API/source | Статус и основной разрыв |
+| Prototype route | Назначение v50 | Production route/component | API/source | Статус и основной разрыв |
 | --- | --- | --- | --- | --- |
 | `home` | выбранный питомец, следующий safe step, services | root `OwnerJourneyEntry` → `OwnerJourneyPage` / `_OwnerHome` | pets + `GET /v1/owner/appointments` | **частично**: real data есть; notifications/profile и deep links неполны |
 | `catalog` | search/filter clinic list, availability | `PublicCatalogPage` | `GET /v1/clinics`, `/v1/catalog/clinic-locations`, clinic locations/services/availability | **реализовано** для clinic/service/slot; локальный большой UI diff не считается опубликованным |
@@ -72,7 +72,7 @@ Production status:
 
 Целевые URL из master prompt могут быть адаптированы к текущему location-scoped convention. Матрица не требует механического переименования `/clinics/:clinicId/locations/:locationId/*`, но требует documented deep links and ownership.
 
-| Prototype route | Role semantics v51 | Current production route/component | API | Статус и разрыв |
+| Prototype route | Role semantics v50 | Current production route/component | API | Статус и разрыв |
 | --- | --- | --- | --- | --- |
 | `clinic-workspace` | admin operational dashboard или doctor personal shift | отсутствует; portal `/` — informational page | dashboard/shift read models отсутствуют | **отсутствует** |
 | `clinic-schedule` | admin services/staff/resources/availability; no doctor default | `/clinics/:clinicId/locations/:locationId/schedule`, `ClinicScheduleClient` | full schedule snapshot + 14 mutation families | **реализовано** для admin/reception; shell parity partial |
@@ -89,7 +89,7 @@ Production-only routes without a one-to-one prototype hash:
 | `/clinics/:clinicId/locations/:locationId/queue` | mature Level-C FIFO queue | target `/clinic/queue`, operational part of admin workspace |
 | `/clinics/:clinicId/locations/:locationId/quality` | quality metrics | target `/clinic/quality` |
 | `/telemed/vet` | platform `TELEMED_VETERINARIAN` queue/workspace | doctor part of target `/clinic/telemed`, ownership decision required |
-| `/ops/security` | platform security/audit view | outside clinic v51 route map |
+| `/ops/security` | platform security/audit view | outside clinic v50 route map |
 
 ## 4. Admin/reception action matrix
 
@@ -185,4 +185,4 @@ Enforcement mismatch details:
 
 ## 9. Traceability conclusion
 
-Every v51 screen now maps to production code or an explicit absence. Existing queue, schedule, owner booking, alternatives, insurance, emergency and telemed slices should be reused; no evidence supports replacing them with prototype JavaScript. The first implementation boundary must be capability/state architecture, because current routes cannot safely expose new admin/doctor read models until the P0 role conflicts above are resolved.
+Every v50 screen now maps to production code or an explicit absence. Existing queue, schedule, owner booking, alternatives, insurance, emergency and telemed slices should be reused; no evidence supports replacing them with prototype JavaScript. The first implementation boundary must be capability/state architecture, because current routes cannot safely expose new admin/doctor read models until the P0 role conflicts above are resolved.

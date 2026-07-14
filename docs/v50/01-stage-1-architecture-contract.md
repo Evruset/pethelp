@@ -1,4 +1,4 @@
-# VetHelp v51 — Этап 1: архитектурный контракт и migration plan
+# VetHelp v50 — Этап 1: архитектурный контракт и migration plan
 
 Дата: 12 июля 2026 года
 
@@ -25,7 +25,7 @@
 Проверено:
 
 - текущая local DB: `migrate:up`, `migrate:verify`, backend startup и `/v1/health`;
-- отдельная пустая DB `vethelp_v51_stage1_clean`: полный `migrate:up`, `migrate:verify`, backend startup и `/v1/health`;
+- отдельная пустая DB `vethelp_v50_stage1_clean`: полный `migrate:up`, `migrate:verify`, backend startup и `/v1/health`;
 - в обеих цепочках после восстановления порядок идёт `171938…`, `1719400000000…`, `1719400000001…`, `1719400000003…`.
 
 ## P0 authorization contract: закрыт
@@ -82,7 +82,7 @@ all contracts -> OpenAPI/flags/rollout
 - [ ] versioned semantic token schema;
 - [ ] Next/Flutter adapters и shared primitive ownership;
 - [ ] accessibility/responsive fixtures и visual baselines;
-- [ ] v51 shell primitives за flag без mocked production data.
+- [ ] v50 shell primitives за flag без mocked production data.
 
 ### Этап 3 — session, RBAC/ABAC
 

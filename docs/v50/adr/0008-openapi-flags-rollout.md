@@ -1,6 +1,6 @@
 # ADR-0008: OpenAPI-first, feature flags и staged rollout
 
-- Статус: принято для v51
+- Статус: принято для v50
 - Дата: 2026-07-12
 - Зависимости: ADR-0001—ADR-0007
 
@@ -32,7 +32,7 @@
 
 Flag descriptor: stable key, owner, purpose, default, allowed actor/location cohort, prerequisites, expiry date, kill-switch behavior и audit policy. Security enforcement не выключается client flag. Server flags разделяются минимум на read exposure, write acceptance и projection consumption, чтобы rollback не требовал down migration.
 
-Начальный набор: `CAPABILITY_EVALUATOR_V1`, `CLINICAL_VISIT_WRITES_V1`, `CLINICAL_OWNER_READS_V1`, `CLINIC_ADMIN_READ_MODELS_V1`, `CLINIC_TELEMED_DISPATCH_V1`, `CLINIC_TELEMED_DOCTOR_V1`, `REALTIME_SUBSCRIPTION_V1`, `PORTAL_V51_SHELL`, `OWNER_V51_ROUTES`. Имена — contract; реализация flag service относится к Этапу 3/12.
+Начальный набор: `CAPABILITY_EVALUATOR_V1`, `CLINICAL_VISIT_WRITES_V1`, `CLINICAL_OWNER_READS_V1`, `CLINIC_ADMIN_READ_MODELS_V1`, `CLINIC_TELEMED_DISPATCH_V1`, `CLINIC_TELEMED_DOCTOR_V1`, `REALTIME_SUBSCRIPTION_V1`, `PORTAL_V51_SHELL`, `OWNER_V50_ROUTES`. Имена — contract; реализация flag service относится к Этапу 3/12.
 
 Migration rule: применённый filename/checksum immutable. Исправления только новой additive migration; destructive cleanup — отдельная поздняя migration после доказанного отсутствия readers. Восстановление потерянного исходного имени `1719380000000_harden_audit_compliance_metadata.js` является ремонтом истории, а не новой миграцией.
 
