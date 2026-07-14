@@ -142,3 +142,201 @@ body[data-clinic-role="doctor"] .v48-admin-title-line .pill { color:#6847bd; bor
     font-size:8px;
   }
 }
+
+/* Desktop keeps the compact horizontal filter row. JavaScript opens the disclosure above 760px. */
+.v50-mobile-filter-disclosure,
+.v50-mobile-filter-panel{
+  display:contents;
+}
+.v50-mobile-filter-summary,
+.v50-mobile-filter-actions{
+  display:none;
+}
+
+/* Mobile catalog filters: one disclosure instead of an overflowing row of clipped circles. */
+@media(max-width:760px){
+  #catalog .v50-mobile-filter-disclosure{
+    display:block;
+    width:100%;
+    min-width:0;
+    border:1px solid rgba(37,99,235,.16);
+    border-radius:18px;
+    background:rgba(248,251,255,.94);
+    box-shadow:0 10px 26px rgba(37,78,141,.08);
+    overflow:hidden;
+  }
+  #catalog .v50-mobile-filter-summary{
+    display:grid;
+    grid-template-columns:42px minmax(0,1fr) auto 20px;
+    align-items:center;
+    gap:10px;
+    min-height:58px;
+    padding:8px 12px;
+    list-style:none;
+    cursor:pointer;
+    color:#17233b;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #catalog .v50-mobile-filter-summary::-webkit-details-marker{display:none;}
+  #catalog .v50-mobile-filter-summary::marker{content:"";}
+  #catalog .v50-mobile-filter-summary:focus-visible{
+    outline:3px solid rgba(37,99,235,.24);
+    outline-offset:-3px;
+  }
+  #catalog .v50-mobile-filter-summary__icon{
+    width:42px;
+    height:42px;
+    display:grid;
+    place-items:center;
+    border-radius:13px;
+    background:rgba(37,99,235,.09);
+    color:#2563eb;
+  }
+  #catalog .v50-mobile-filter-summary__icon .vh-icon{
+    width:21px;
+    height:21px;
+  }
+  #catalog .v50-mobile-filter-summary__copy{
+    min-width:0;
+    display:grid;
+    gap:2px;
+  }
+  #catalog .v50-mobile-filter-summary__copy strong{
+    font-size:15px;
+    line-height:1.2;
+  }
+  #catalog .v50-mobile-filter-summary__copy small{
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    color:#66758d;
+    font-size:11px;
+    font-weight:700;
+    line-height:1.25;
+  }
+  #catalog .v50-mobile-filter-count{
+    min-width:27px;
+    height:27px;
+    display:grid;
+    place-items:center;
+    padding-inline:7px;
+    border-radius:999px;
+    background:#2563eb;
+    color:#fff;
+    font-size:12px;
+    font-weight:900;
+  }
+  #catalog .v50-mobile-filter-chevron{
+    display:grid;
+    place-items:center;
+    color:#65748d;
+    font-size:22px;
+    line-height:1;
+    transform:translateY(-2px);
+    transition:transform .18s ease;
+  }
+  #catalog .v50-mobile-filter-disclosure[open] .v50-mobile-filter-chevron{
+    transform:translateY(2px) rotate(180deg);
+  }
+  #catalog .v50-mobile-filter-panel{
+    display:grid;
+    gap:12px;
+    padding:0 12px 12px;
+    border-top:1px solid rgba(37,99,235,.10);
+  }
+  #catalog .v40-filter-row.v50-mobile-filter-options{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:8px;
+    width:100%;
+    max-width:none;
+    overflow:visible;
+    padding:12px 0 0;
+  }
+  #catalog .v40-filter-row.v50-mobile-filter-options .filter{
+    position:relative;
+    width:100%;
+    min-width:0;
+    min-height:50px;
+    justify-content:flex-start;
+    gap:11px;
+    padding:0 46px 0 13px;
+    border-radius:14px;
+    border-color:rgba(112,143,190,.25);
+    background:#fff;
+    box-shadow:none;
+    color:#24324a;
+    font-size:14px;
+    text-align:left;
+    white-space:normal;
+  }
+  #catalog .v40-filter-row.v50-mobile-filter-options .filter::after{
+    content:"";
+    position:absolute;
+    right:14px;
+    top:50%;
+    width:20px;
+    height:20px;
+    border:2px solid #bdc9dc;
+    border-radius:7px;
+    transform:translateY(-50%);
+    box-sizing:border-box;
+  }
+  #catalog .v40-filter-row.v50-mobile-filter-options .filter.active{
+    border-color:rgba(37,99,235,.32);
+    background:rgba(37,99,235,.08);
+    color:#1d4ed8;
+  }
+  #catalog .v40-filter-row.v50-mobile-filter-options .filter.active::after{
+    content:"✓";
+    display:grid;
+    place-items:center;
+    border-color:#2563eb;
+    background:#2563eb;
+    color:#fff;
+    font-size:13px;
+    font-weight:900;
+    line-height:1;
+  }
+  #catalog .v40-filter-row.v50-mobile-filter-options .chip-icon{
+    width:22px;
+    height:22px;
+    flex:0 0 auto;
+  }
+  #catalog .v50-mobile-filter-actions{
+    display:grid;
+    grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);
+    gap:8px;
+  }
+  #catalog .v50-mobile-filter-actions button{
+    min-width:0;
+    min-height:46px;
+    border-radius:13px;
+    padding:0 10px;
+    font-size:13px;
+    font-weight:850;
+  }
+  #catalog .v50-mobile-filter-reset{
+    border:1px solid rgba(112,143,190,.28);
+    background:#fff;
+    color:#53627a;
+  }
+  #catalog .v50-mobile-filter-apply{
+    border:1px solid #2563eb;
+    background:linear-gradient(135deg,#2563eb,#4b8cff);
+    color:#fff;
+    box-shadow:0 9px 20px rgba(37,99,235,.18);
+  }
+}
+
+@media(max-width:380px){
+  #catalog .v50-mobile-filter-summary{
+    grid-template-columns:40px minmax(0,1fr) auto 18px;
+    gap:8px;
+    padding-inline:10px;
+  }
+  #catalog .v50-mobile-filter-actions{
+    grid-template-columns:1fr;
+  }
+}
