@@ -21,7 +21,7 @@ Production status:
 
 | Prototype route | Назначение v50 | Production route/component | API/source | Статус и основной разрыв |
 | --- | --- | --- | --- | --- |
-| `home` | выбранный питомец, следующий safe step, services | root `OwnerJourneyEntry` → `OwnerJourneyPage` / `_OwnerHome` | pets + `GET /v1/owner/appointments` | **частично**: real data есть; notifications/profile и deep links неполны |
+| `home` | выбранный питомец, следующий safe step, services | root `OwnerJourneyEntry` → canonical shell → flagged V50 Care Journey Home | `GET /v1/owner/home` owner-scoped read projection; legacy rollback uses pets + appointments | **частично реализовано и протестировано V50-OWNER-01**: backend owns priority/action eligibility; full prototype map/search/notifications/profile and unrelated deep links remain outside this bounded slice |
 | `catalog` | search/filter clinic list, availability | `PublicCatalogPage` | `GET /v1/clinics`, `/v1/catalog/clinic-locations`, clinic locations/services/availability | **реализовано** для clinic/service/slot; локальный большой UI diff не считается опубликованным |
 | `decision-comparison` | сравнение вариантов и decision support | отсутствует | специального API/read model нет | **отсутствует** |
 | `clinic` | clinic detail, capabilities, location/service choice | clinic drill-down внутри `PublicCatalogPage` | clinic detail/locations/services/availability | **частично**: отдельный route/deep link отсутствует |

@@ -1,6 +1,6 @@
 # V50 Parity Register
 
-Updated: 2026-07-13
+Updated: 2026-07-14
 
 Baseline: `4baf4e502e083fd6247f2dfe23626e546702fa1b`
 
@@ -38,7 +38,7 @@ All rows below are anchored to the verified V50 source and common manifest SHA-2
 
 | V50 ID | Source checksum | Domain / screen-state | Authoritative DOM anchor → target route | Current implementation / route | Required role / capability | Read API | Command API | State anchors | Responsive anchors | Flag | Tests / evidence | Action | Status / blockers |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| OWN-001 | `prototype-v50/manifest.json#sha256` | Owner / Home | `#home` → `/owner/home` | `OwnerJourneyEntry` → flagged V50 adaptive shell → owner home | `OWNER`; target `owner.home.read` | pets, `GET /v1/owner/appointments` | none | L/Ø/E/O; selected-pet, next-safe-step | D/T/M shell tested | `VETHELP_OWNER_V50_SHELL` + V51 fallback | focused affected tests 27/27 including lazy domain mounts; full Flutter 145/145; viewport shell evidence | MODIFY | DISCOVERY / business home content not certified |
+| OWN-001 | `prototype-v50/manifest.json#sha256` | Owner / Home | `#home` → `/owner/home` | `OwnerJourneyEntry` → canonical V50 shell → default-off V50 Care Journey Home | `OWNER`; owner identity only from JWT `sub` | `GET /v1/owner/home`; owned pets/appointments/telemed read projection | none; existing route callbacks only | L/Ø/E/O/T; selected pet, next-safe-step, active care, stale/offline, session-expired, unknown-action fallback | D/T/M responsive/state evidence at 375/412/768/1440 | `VETHELP_OWNER_V50_SHELL` + `OWNER_V50_HOME`; independent legacy rollback | backend 9/9; affected Flutter 16/16; analyze PASS; full Flutter 164/164; web build PASS; 10 checksum-bound visual artifacts | MODIFY | PARTIAL_IMPLEMENTATION / TESTED; shell, functional bounded slice, responsive and state coverage PASS; full prototype content parity PARTIAL and not `VISUALLY_VERIFIED` |
 | OWN-002 | `prototype-v50/manifest.json#sha256` | Owner / Catalog | `#catalog` → `/owner/catalog` | `PublicCatalogPage` | public/OWNER; public catalog read | clinics, locations, services, availability | none | L/Ø/E/O/C; filters, stale availability | D/T/M | MISSING | catalog widget/integration; `features/catalog` | REUSE | DISCOVERY / none |
 | OWN-003 | `prototype-v50/manifest.json#sha256` | Owner / Clinic comparison | `#decision-comparison` → `/owner/catalog/compare` | absent | public/OWNER; target `catalog.compare.read` | comparison read model absent | none | L/Ø/E/O; selection limits | D/T/M | MISSING | required widget + API + E2E | MISSING | DISCOVERY / contract |
 | OWN-004 | `prototype-v50/manifest.json#sha256` | Owner / Clinic details | `#clinic` → `/owner/clinics/:locationId` | drill-down inside `PublicCatalogPage`; no deep link | public/OWNER; public catalog read | clinic/location/services/availability | none | L/Ø/E/O; closed/unavailable | D/T/M | MISSING | catalog drill-down tests | MODIFY | DISCOVERY / route |
@@ -111,4 +111,4 @@ Shell structure, navigation selection, role/capability visibility, responsive mo
 
 ## Next update rule
 
-When any prototype file changes, regenerate the manifest, rerun inventory verification, diff screen/route/state identities, and update affected evidence before implementation continues. The next selected slice is `V50-OWNER-01`; shell evidence carries no business-screen visual acceptance forward.
+When any prototype file changes, regenerate the manifest, rerun inventory verification, diff screen/route/state identities, and update affected evidence before implementation continues. `V50-OWNER-01` adds bounded Home state evidence without raising the `0/30 VISUALLY_VERIFIED` count because it is not full-content side-by-side prototype acceptance. The next selected slice is exactly `V50-OWNER-02 / Pets, Pet Profile and Pet Diary`.

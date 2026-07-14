@@ -5,10 +5,11 @@ Updated: 2026-07-14
 ## Program status
 
 - `BASELINE-02`: `COMPLETE`, committed as `22da293`.
-- `V50-SHELL-01`: `COMPLETE`.
-- Integration status: `COMMITTED`.
+- `V50-SHELL-01`: `COMPLETE / INTEGRATED` at `1c58ad6`.
+- `V50-OWNER-01`: `COMPLETE`.
+- Integration status: `READY_FOR_INTEGRATION / NOT_PUSHED`.
 - Canonical target: `V50`; source: `prototype-v50/index.html`; manifest SHA-256: `245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42`.
-- Branch/worktree: `agent/v50-shell-01` / `/Users/evrusetskiy/work/pethelp-alpha-v50-shell-01`.
+- Branch/worktree: `agent/v50-owner-01` / `/Users/evrusetskiy/work/pethelp-alpha-v50-owner-01`.
 - Root worktree still contains protected user changes in `.codex/ACTIVE_MODE` and `.codex/config.toml`; this worktree does not modify them.
 
 ## Completed slice
@@ -39,6 +40,26 @@ Updated: 2026-07-14
 - V51 Portal exports, skip-link selector and content locator remain compatibility aliases for one release window.
 - Rollback is independent per application by defining its canonical V50 flag as false; no data/API rollback is needed.
 
-## Exactly one next slice
+## Completed Owner slice
 
-`V50-OWNER-01 / Owner Home, Selected Pet Context and Next Safe Action`. Do not start it in this session.
+`V50-OWNER-01 / Owner Home, Selected Pet Context and Next Safe Action`, classified `C3 / R2` because it adds a cross-domain, owner-scoped read model without changing mutation authority.
+
+- V50 scope: `OWN-001`, source anchor `#home` → runtime `/owner/home`; existing emergency entry reuses `OWN-017`, `#emergency` → `/emergency`.
+- Backend contract gate: existing pets, appointments and telemed APIs expose owner-safe data but do not provide one server-authoritative next-action priority. The slice therefore adds a minimal read-only `GET /v1/owner/home` projection.
+- Selected pet: an owner-scoped local preference is only a hint; backend and Flutter validate it against the authenticated owner's authoritative pet list before use.
+- Feature flag: `OWNER_V50_HOME`, default off, effective only when the canonical V50 shell is enabled.
+- Non-goals remain catalog/booking/telemed/insurance/emergency flow implementation, notifications/profile, Portal, mutations, migrations, payment and MIS.
+
+## V50-OWNER-01 delivery state
+
+- Runtime: default-off `OWNER_V50_HOME` composes the Care Journey Home only inside the canonical V50 shell; disabling either flag returns the legacy Home.
+- Authority: `GET /v1/owner/home` derives owner identity only from JWT `sub`, validates the selected-pet hint against owned pets, and returns one closed server-prioritized action plus at most one active-care projection.
+- Safety: stale/foreign pet hints fall back without disclosure; history telemed safety flags cannot outrank active care; unknown action codes use a non-crashing appointments fallback; offline snapshots suppress authoritative actions; Home-level 401 clears retained owner state and moves the shell to session-expired.
+- Validation: backend focused specs PASS 9/9 before repair and PASS 9/9 after repair; Flutter affected Home/shell PASS 16/16; analyze PASS; full Flutter PASS 164/164; flagged Owner web build PASS; independent post-repair validator PASS with no vetoes.
+- Durable evidence: 10 checksum-bound artifacts at `/Users/evrusetskiy/docs/ai/evidence/V50-OWNER-01/` cover `375x812`, `412x915`, `768x1024`, `1440x900`, ready/attention, no active care, no pets, loading, retryable error, offline/stale, 200% text and reduced motion.
+- Parity boundary: the bounded care-hub behavior, responsive layout and required states are implemented/tested. The complete prototype Home still includes content outside this slice, and the evidence is not a side-by-side prototype acceptance; `OWN-001` remains partial and the program stays `0/30 VISUALLY_VERIFIED`.
+- Environment note: after a pre-repair Docker backend PASS, a later independent Docker rerun was blocked before Jest by npm `spawn EINVAL`; the post-repair service spec nevertheless passed 9/9 in the implementer harness, and the independent validator accepted the repaired logic with this residual reproducibility note.
+
+## Next slice
+
+Exactly `V50-OWNER-02 / Pets, Pet Profile and Pet Diary`; it has not started.

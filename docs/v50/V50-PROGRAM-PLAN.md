@@ -1,6 +1,6 @@
 # V50 Full Product Parity Program Plan
 
-Updated: 2026-07-13
+Updated: 2026-07-14
 
 Baseline: `4baf4e502e083fd6247f2dfe23626e546702fa1b`
 
@@ -28,7 +28,7 @@ Program state: V50 migration in progress
 | 2 Architecture contract | domain, route, capability, state, rollout ownership | PARTIAL/REUSE | applicable ADRs linked per row; gaps decided before mutation |
 | 3 Design system + shells | Owner, Clinic, Vet, Ops shells with platform-native components | SHELL FOUNDATION TESTED; business content remains partial | shell evidence PASS at required viewports; business screens still require authoritative visual acceptance |
 | 4 Session/capability/API | server-derived deny-by-default authority | PARTIAL/REUSE | each endpoint family has scope, denial, leakage and rollback tests |
-| 5 Owner core | home, pets, diary, documents, notifications, profile | PARTIAL | full owner states and contracts accepted |
+| 5 Owner core | home, pets, diary, documents, notifications, profile | PARTIAL: bounded `OWN-001` Care Journey Home implemented/tested; full prototype content remains partial | full owner states and contracts accepted |
 | 6 Catalog + booking | authoritative clinic/doctor/service/slot/hold journey | PARTIAL | conflict/offline/idempotency paths accepted |
 | 7 Bookings + alternatives | lists, detail, timeline, cancel/rebook/alternative | PARTIAL | server hold/status evidence and E2E accepted |
 | 8 Clinic workspace | queue, booking operations, schedule, resources, quality, audit | PARTIAL | role-specific desktop/tablet/mobile task flow accepted |
@@ -41,7 +41,7 @@ Program state: V50 migration in progress
 
 ## Logical chat map
 
-Completed contexts: `BASELINE-01`, `BASELINE-02`, `V50-SHELL-01`. Next planned bounded context: `V50-OWNER-01 / Owner Home, Selected Pet Context and Next Safe Action`. Later domain chats remain inactive.
+Completed contexts: `BASELINE-01`, `BASELINE-02`, `V50-SHELL-01`, `V50-OWNER-01`. Next planned bounded context: exactly `V50-OWNER-02 / Pets, Pet Profile and Pet Diary`. Later domain chats remain inactive.
 
 ## Program rules
 
@@ -53,4 +53,4 @@ Completed contexts: `BASELINE-01`, `BASELINE-02`, `V50-SHELL-01`. Next planned b
 
 ## Exactly one next slice
 
-`V50-OWNER-01 / Owner Home, Selected Pet Context and Next Safe Action`: implement only the bounded Owner home slice on the tested V50 shell foundation.
+`V50-OWNER-02 / Pets, Pet Profile and Pet Diary`. Do not start it from the V50-OWNER-01 session.

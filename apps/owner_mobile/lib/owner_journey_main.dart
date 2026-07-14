@@ -25,6 +25,10 @@ import 'features/emergency/emergency_triage_page.dart';
 import 'features/insurance/coverage_check_page.dart';
 import 'features/insurance/coverage_check_repository.dart';
 import 'features/owner_journey/owner_journey_page.dart';
+import 'features/owner_journey/owner_home_feature_flag.dart';
+import 'features/owner_journey/owner_home_repository.dart';
+import 'features/owner_journey/owner_home_v50_page.dart';
+import 'features/owner_journey/owner_selected_pet_preference.dart';
 import 'features/owner_journey/phone_entry_page.dart';
 import 'features/pets/owner_pet.dart';
 import 'features/pets/owner_pet_repository.dart';
@@ -108,11 +112,14 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   OwnerPet? _selectedPet;
   CatalogBookingSelection? _pendingBooking;
   late final OutboxRepository _ownerOutbox;
+  late final OwnerHomeRepository _ownerHomeRepository;
+  late final OwnerSelectedPetPreference _selectedPetPreference;
   late final String _ownerDeviceId;
   int _ownerDeviceSequence = 0;
   int _iosSelectedTab = 0;
   bool _petBootstrapInFlight = false;
   bool _petBootstrapCompleted = false;
+  int _ownerSessionGeneration = 0;
 
   String get _apiBaseUrl => _configuredApiBaseUrl.isNotEmpty
       ? _configuredApiBaseUrl
@@ -128,6 +135,8 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   void initState() {
     super.initState();
     _ownerOutbox = OutboxRepository(InMemoryOfflineCommandStore());
+    _ownerHomeRepository = _createOwnerHomeRepository();
+    _selectedPetPreference = SharedPreferencesOwnerSelectedPetPreference();
     _ownerDeviceId = 'owner-mobile-${DateTime.now().microsecondsSinceEpoch}';
     _registerE2EHooks();
     if (_bootstrapOwnerJwt.isNotEmpty) {
@@ -163,6 +172,11 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   }
 
   Future<void> _selectExistingPet() async {
+    if (isOwnerV50HomeEnabled(
+      shellEnabled: isOwnerV50ShellEnabled(),
+    )) {
+      return;
+    }
     if (!_hasOwnerSession ||
         _selectedPet != null ||
         _petBootstrapInFlight ||
@@ -193,9 +207,18 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
         nextDeviceSequence: () => ++_ownerDeviceSequence,
       );
 
+  OwnerHomeRepository _createOwnerHomeRepository() => HttpOwnerHomeRepository(
+        baseUrl: Uri.parse(_apiBaseUrl),
+        accessToken: _token,
+      );
+
   @override
   Widget build(BuildContext context) {
     if (_hasOwnerSession) {
+      final shellEnabled = isOwnerV50ShellEnabled();
+      final homeEnabled = isOwnerV50HomeEnabled(shellEnabled: shellEnabled);
+      final preferenceOwnerId =
+          _session?.ownerId ?? safeOwnerSubjectFromJwt(_accessToken);
       final appointmentsRepository = HttpOwnerAppointmentsRepository(
         baseUrl: Uri.parse(_apiBaseUrl),
         accessToken: _token,
@@ -206,7 +229,7 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
       );
       final petsRepository = _petsRepository();
 
-      if (isOwnerV50ShellEnabled()) {
+      if (shellEnabled) {
         return _OwnerV50AuthenticatedShell(
           platformOverride: widget.platformOverride,
           onBrowseClinics: _openCatalogForOwner,
@@ -222,6 +245,12 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
               HttpPublicCatalogRepository(baseUrl: Uri.parse(_apiBaseUrl)),
           selectedPet: _selectedPet,
           onPetSelected: _selectPet,
+          ownerHomeRepository: _ownerHomeRepository,
+          selectedPetPreference: _selectedPetPreference,
+          preferenceOwnerId: preferenceOwnerId,
+          v50HomeEnabled: homeEnabled && preferenceOwnerId != null,
+          onSignIn: _openPhoneEntry,
+          sessionGeneration: _ownerSessionGeneration,
         );
       }
 
@@ -283,6 +312,7 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
     final hasPendingBooking = _pendingBooking != null;
     setState(() {
       _session = session;
+      _ownerSessionGeneration++;
       _selectedPet = null;
       _petBootstrapCompleted = false;
     });
@@ -561,6 +591,12 @@ class _OwnerV50AuthenticatedShell extends StatefulWidget {
     required this.catalogRepository,
     required this.selectedPet,
     required this.onPetSelected,
+    required this.ownerHomeRepository,
+    required this.selectedPetPreference,
+    required this.preferenceOwnerId,
+    required this.v50HomeEnabled,
+    required this.onSignIn,
+    required this.sessionGeneration,
     this.platformOverride,
   });
 
@@ -576,6 +612,12 @@ class _OwnerV50AuthenticatedShell extends StatefulWidget {
   final PublicCatalogRepository catalogRepository;
   final OwnerPet? selectedPet;
   final ValueChanged<OwnerPet> onPetSelected;
+  final OwnerHomeRepository ownerHomeRepository;
+  final OwnerSelectedPetPreference selectedPetPreference;
+  final String? preferenceOwnerId;
+  final bool v50HomeEnabled;
+  final VoidCallback onSignIn;
+  final int sessionGeneration;
   final TargetPlatform? platformOverride;
 
   @override
@@ -586,6 +628,7 @@ class _OwnerV50AuthenticatedShell extends StatefulWidget {
 class _OwnerV50AuthenticatedShellState
     extends State<_OwnerV50AuthenticatedShell> with RestorationMixin {
   late final RestorableInt _selectedIndex;
+  bool _sessionExpired = false;
 
   @override
   String? get restorationId => 'owner-v50-authenticated-shell';
@@ -606,6 +649,15 @@ class _OwnerV50AuthenticatedShellState
   @override
   void restoreState(RestorationBucket? oldBucket, bool initialRestore) {
     registerForRestoration(_selectedIndex, 'selected-destination');
+  }
+
+  @override
+  void didUpdateWidget(covariant _OwnerV50AuthenticatedShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.preferenceOwnerId != widget.preferenceOwnerId ||
+        oldWidget.sessionGeneration != widget.sessionGeneration) {
+      _sessionExpired = false;
+    }
   }
 
   @override
@@ -656,25 +708,57 @@ class _OwnerV50AuthenticatedShellState
   @override
   Widget build(BuildContext context) {
     return OwnerV50AdaptiveShell(
+      viewState: _sessionExpired
+          ? OwnerShellViewState.sessionExpired
+          : OwnerShellViewState.content,
+      onSignIn: widget.onSignIn,
       selectedIndex: _selectedIndex.value,
-      onDestinationSelected: _selectDestination,
-      selectedPetName: widget.selectedPet?.name,
-      onPetContextPressed: () => _selectDestination(3),
-      onNotifications: _showNotifications,
+      onDestinationSelected: _sessionExpired ? (_) {} : _selectDestination,
+      selectedPetName: _sessionExpired ? null : widget.selectedPet?.name,
+      onPetContextPressed: _sessionExpired ? null : () => _selectDestination(3),
+      onNotifications: _sessionExpired ? null : _showNotifications,
       onEmergency: widget.onRequestEmergency,
-      home: OwnerHomePage(
-        selectedPet: widget.selectedPet,
-        appointmentsRepository: widget.appointmentsRepository,
-        petsRepository: widget.petsRepository,
-        onBrowseClinics: () => _selectDestination(1),
-        onManagePets: () => _selectDestination(3),
-        onPetSelected: widget.onPetSelected,
-        onOpenAppointments: () => _selectDestination(2),
-        onOpenCare: widget.onOpenCare,
-        onRequestTelemed: widget.onRequestTelemed,
-        onRequestInsurance: widget.onRequestInsurance,
-        onRequestEmergency: widget.onRequestEmergency,
-      ),
+      home: widget.v50HomeEnabled
+          ? OwnerHomeV50Page(
+              repository: widget.ownerHomeRepository,
+              preference: widget.selectedPetPreference,
+              ownerId: widget.preferenceOwnerId!,
+              sessionGeneration: widget.sessionGeneration,
+              onPetSelected: (pet) => widget.onPetSelected(
+                OwnerPet(
+                  id: pet.id,
+                  name: pet.name,
+                  species: pet.species,
+                  breed: pet.breed,
+                  photoUrl: pet.photoUrl,
+                ),
+              ),
+              onBrowseClinics: () => _selectDestination(1),
+              onManagePets: () => _selectDestination(3),
+              onOpenAppointments: () => _selectDestination(2),
+              onOpenCare: widget.onOpenCare,
+              onRequestTelemed: widget.onRequestTelemed,
+              onRequestInsurance: widget.onRequestInsurance,
+              onRequestEmergency: widget.onRequestEmergency,
+              onSessionExpired: () {
+                if (mounted && !_sessionExpired) {
+                  setState(() => _sessionExpired = true);
+                }
+              },
+            )
+          : OwnerHomePage(
+              selectedPet: widget.selectedPet,
+              appointmentsRepository: widget.appointmentsRepository,
+              petsRepository: widget.petsRepository,
+              onBrowseClinics: () => _selectDestination(1),
+              onManagePets: () => _selectDestination(3),
+              onPetSelected: widget.onPetSelected,
+              onOpenAppointments: () => _selectDestination(2),
+              onOpenCare: widget.onOpenCare,
+              onRequestTelemed: widget.onRequestTelemed,
+              onRequestInsurance: widget.onRequestInsurance,
+              onRequestEmergency: widget.onRequestEmergency,
+            ),
       clinics: PublicCatalogPage(
         platformOverride: widget.platformOverride,
         repository: widget.catalogRepository,
