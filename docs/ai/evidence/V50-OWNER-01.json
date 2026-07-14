@@ -1,85 +1,31 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "workChatId": "V50-OWNER-01",
   "v50Ids": ["OWN-001"],
   "reusedV50Ids": ["OWN-017"],
-  "prototype": {
-    "path": "prototype-v50/index.html#home",
-    "revision": "v50-clinic-role-workspaces",
-    "sha256": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42"
-  },
-  "runtimeBaseCommit": "1c58ad6",
-  "runtimeCommit": "8052ed5",
-  "runtimeCommitNote": "Runtime code commit before the evidence/status metadata amend; runtime code is identical to final branch HEAD.",
+  "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+  "runtimeCommit": "2077b00",
+  "artifactStorage": "LOCAL_PACKAGE",
+  "artifactPackageId": "v50-owner-01-2077b00",
+  "localPathHint": "/Users/evrusetskiy/docs/ai/evidence/V50-OWNER-01",
   "createdAt": "2026-07-14T19:20:23Z",
-  "artifactRoot": "/Users/evrusetskiy/docs/ai/evidence/V50-OWNER-01",
   "result": "PASS_BOUNDED_RESPONSIVE_AND_STATE_EVIDENCE",
   "visuallyVerified": false,
   "artifacts": [
-    {
-      "viewport": "375x812",
-      "state": "ready-selected-pet-attention",
-      "path": "/Users/evrusetskiy/docs/ai/evidence/V50-OWNER-01/01-mobile-ready-attention-375x812.png",
-      "sha256": "5b519fbda2a51c7b87cdf8f010ea86d472ab16d09d9488ecf3343423418486c8"
-    },
-    {
-      "viewport": "768x1024",
-      "state": "ready-selected-pet-attention",
-      "path": "/Users/evrusetskiy/docs/ai/evidence/V50-OWNER-01/02-tablet-ready-768x1024.png",
-      "sha256": "51d6ee29c3eb196d73a18975e1fc48af4425747989218e436d34fb1768874dc9"
-    },
-    {
-      "viewport": "1440x900",
-      "state": "ready-selected-pet-attention",
-      "path": "/Users/evrusetskiy/docs/ai/evidence/V50-OWNER-01/03-desktop-ready-1440x900.png",
-      "sha256": "3750b6a0353a94d3a507fc0d6e866275c8953eb203a3c5c9eec44305df64312a"
-    },
-    {
-      "viewport": "375x812",
-      "state": "no-pets",
-      "path": "/Users/evrusetskiy/docs/ai/evidence/V50-OWNER-01/04-mobile-no-pets-375x812.png",
-      "sha256": "1832e7fe1601418dca38091d91c1583ffe0d64da9baa6535e5c325e230b9c004"
-    },
-    {
-      "viewport": "375x812",
-      "state": "loading",
-      "path": "/Users/evrusetskiy/docs/ai/evidence/V50-OWNER-01/05-mobile-loading-375x812.png",
-      "sha256": "d8d0642fe838ead3cdfb69b3e1e5c7c9359e20c9911953235d2dde9f32aff1a2"
-    },
-    {
-      "viewport": "375x812",
-      "state": "retryable-error",
-      "path": "/Users/evrusetskiy/docs/ai/evidence/V50-OWNER-01/06-mobile-retryable-error-375x812.png",
-      "sha256": "8f796782ffce272b2807bd12e4a447e0d8184466eb7ce640a009c668359decc1"
-    },
-    {
-      "viewport": "375x812",
-      "state": "offline-stale",
-      "path": "/Users/evrusetskiy/docs/ai/evidence/V50-OWNER-01/07-mobile-offline-stale-375x812.png",
-      "sha256": "176828a41f6b6af47fe57fa10268da78da2edcd637e567f23d5420f8d8ceb649"
-    },
-    {
-      "viewport": "412x915",
-      "state": "ready-no-active-care",
-      "path": "/Users/evrusetskiy/docs/ai/evidence/V50-OWNER-01/08-compact-no-active-care-412x915.png",
-      "sha256": "c5b9f0710199c28892f2bff9ebeaf32b7c23232bc6a01600bb79ea167b4fc6cc"
-    },
-    {
-      "viewport": "412x915",
-      "state": "large-text-200-percent",
-      "path": "/Users/evrusetskiy/docs/ai/evidence/V50-OWNER-01/09-compact-large-text-412x915.png",
-      "sha256": "67c99bbd4b0e79ff66fcbb8050fa8cafa086273896154c26b2bd1d28fb9ae3cb"
-    },
-    {
-      "viewport": "412x915",
-      "state": "reduced-motion",
-      "path": "/Users/evrusetskiy/docs/ai/evidence/V50-OWNER-01/10-compact-reduced-motion-412x915.png",
-      "sha256": "6c3e7ea16ae7ce5257a2b2f8827287b13651cf1b40c5c2ceb3d3952118ee69d9"
-    }
+    {"viewport":"375x812","state":"ready-selected-pet-attention","artifactLogicalPath":"V50-OWNER-01/375x812/ready-selected-pet-attention.png","sha256":"5b519fbda2a51c7b87cdf8f010ea86d472ab16d09d9488ecf3343423418486c8"},
+    {"viewport":"768x1024","state":"ready-selected-pet-attention","artifactLogicalPath":"V50-OWNER-01/768x1024/ready-selected-pet-attention.png","sha256":"51d6ee29c3eb196d73a18975e1fc48af4425747989218e436d34fb1768874dc9"},
+    {"viewport":"1440x900","state":"ready-selected-pet-attention","artifactLogicalPath":"V50-OWNER-01/1440x900/ready-selected-pet-attention.png","sha256":"3750b6a0353a94d3a507fc0d6e866275c8953eb203a3c5c9eec44305df64312a"},
+    {"viewport":"375x812","state":"no-pets","artifactLogicalPath":"V50-OWNER-01/375x812/no-pets.png","sha256":"1832e7fe1601418dca38091d91c1583ffe0d64da9baa6535e5c325e230b9c004"},
+    {"viewport":"375x812","state":"loading","artifactLogicalPath":"V50-OWNER-01/375x812/loading.png","sha256":"d8d0642fe838ead3cdfb69b3e1e5c7c9359e20c9911953235d2dde9f32aff1a2"},
+    {"viewport":"375x812","state":"retryable-error","artifactLogicalPath":"V50-OWNER-01/375x812/retryable-error.png","sha256":"8f796782ffce272b2807bd12e4a447e0d8184466eb7ce640a009c668359decc1"},
+    {"viewport":"375x812","state":"offline-stale","artifactLogicalPath":"V50-OWNER-01/375x812/offline-stale.png","sha256":"176828a41f6b6af47fe57fa10268da78da2edcd637e567f23d5420f8d8ceb649"},
+    {"viewport":"412x915","state":"ready-no-active-care","artifactLogicalPath":"V50-OWNER-01/412x915/ready-no-active-care.png","sha256":"c5b9f0710199c28892f2bff9ebeaf32b7c23232bc6a01600bb79ea167b4fc6cc"},
+    {"viewport":"412x915","state":"large-text-200-percent","artifactLogicalPath":"V50-OWNER-01/412x915/large-text-200-percent.png","sha256":"67c99bbd4b0e79ff66fcbb8050fa8cafa086273896154c26b2bd1d28fb9ae3cb"},
+    {"viewport":"412x915","state":"reduced-motion","artifactLogicalPath":"V50-OWNER-01/412x915/reduced-motion.png","sha256":"6c3e7ea16ae7ce5257a2b2f8827287b13651cf1b40c5c2ceb3d3952118ee69d9"}
   ],
   "knownDifferences": [
     "Full prototype Home search, map, notifications and profile content is outside V50-OWNER-01.",
     "Artifacts are deterministic Flutter widget captures, not side-by-side prototype acceptance.",
-    "The evidence harness loads a local system text font; Material icon and button glyph rendering remains constrained by Flutter test fonts."
+    "localPathHint is non-authoritative and may not exist on another machine."
   ]
 }

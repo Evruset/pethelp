@@ -6,10 +6,11 @@ Updated: 2026-07-14
 
 - `BASELINE-02`: `COMPLETE`, committed as `22da293`.
 - `V50-SHELL-01`: `COMPLETE / INTEGRATED` at `1c58ad6`.
-- `V50-OWNER-01`: `COMPLETE`.
-- Integration status: `READY_FOR_INTEGRATION / NOT_PUSHED`.
+- `V50-OWNER-01`: `COMPLETE / INTEGRATED` at `2077b00`.
+- `V50-OWNER-02`: `PARTIALLY_COMPLETED / COMMITTED_WITH_VISUAL_BLOCKER`.
+- Integration status: `NOT_READY_FOR_INTEGRATION`.
 - Canonical target: `V50`; source: `prototype-v50/index.html`; manifest SHA-256: `245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42`.
-- Branch/worktree: `agent/v50-owner-01` / `/Users/evrusetskiy/work/pethelp-alpha-v50-owner-01`.
+- Branch/worktree: `agent/v50-owner-02` / `/Users/evrusetskiy/work/pethelp-alpha-v50-owner-02`.
 - Root worktree still contains protected user changes in `.codex/ACTIVE_MODE` and `.codex/config.toml`; this worktree does not modify them.
 
 ## Completed slice
@@ -62,4 +63,6 @@ Updated: 2026-07-14
 
 ## Next slice
 
-Exactly `V50-OWNER-02 / Pets, Pet Profile and Pet Diary`; it has not started.
+`V50-OWNER-02 / Pets, Pet Profile and Pet Diary` is implemented and tested but not integration-ready. Exact scope: `OWN-009` (`#pets` → `/owner/pets`), `OWN-010` (`#pet-profile` → `/owner/pets/:petId`) and `OWN-011` (`#diary` → `/owner/pets/:petId/diary`). Mandatory visual parity remains unverified pending a runtime/prototype screenshot harness.
+
+The Owner Home backend reproduction gate is `PASS`: after canonical Compose recreated its dependency volume, Jest ran 4 focused suites and passed; the final combined Owner pets/Home run passed 23/23 tests. Resolution evidence is recorded in `docs/ai/tooling-debt/V50-OWNER-01-backend-spawn-einval.md`.

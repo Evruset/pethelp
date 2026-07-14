@@ -55,12 +55,16 @@ class OwnerPetsPage extends StatefulWidget {
     required this.onPetSelected,
     this.onOpenPetCare,
     this.platformOverride,
+    this.selectedPetId,
+    this.onOpenPetProfile,
   });
 
   final OwnerPetRepository repository;
   final ValueChanged<OwnerPet> onPetSelected;
   final ValueChanged<OwnerPet>? onOpenPetCare;
   final TargetPlatform? platformOverride;
+  final String? selectedPetId;
+  final ValueChanged<OwnerPet>? onOpenPetProfile;
 
   @override
   State<OwnerPetsPage> createState() => _OwnerPetsPageState();
@@ -233,10 +237,20 @@ class _OwnerPetsPageState extends State<OwnerPetsPage> {
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (context, index) => _PetCard(
                     pet: pets[index],
+                    selected: pets[index].id == widget.selectedPetId,
                     syncStates: data.syncStatesFor(pets[index].id),
                     onSelect:
                         _busy ? null : () => widget.onPetSelected(pets[index]),
-                    onEdit: _busy ? null : () => _editPet(pets[index]),
+                    onEdit: _busy
+                        ? null
+                        : () {
+                            final openProfile = widget.onOpenPetProfile;
+                            if (openProfile != null) {
+                              openProfile(pets[index]);
+                            } else {
+                              _editPet(pets[index]);
+                            }
+                          },
                   ),
                 ),
         );
@@ -389,12 +403,14 @@ class _PetCard extends StatelessWidget {
     required this.syncStates,
     required this.onSelect,
     required this.onEdit,
+    required this.selected,
   });
 
   final OwnerPet pet;
   final List<OwnerPetProfileSyncState> syncStates;
   final VoidCallback? onSelect;
   final VoidCallback? onEdit;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
@@ -417,6 +433,7 @@ class _PetCard extends StatelessWidget {
         pet.sterilized! ? 'Стерилизован(а)' : 'Не стерилизован(а)',
     ];
     return Card(
+      color: selected ? Theme.of(context).colorScheme.primaryContainer : null,
       clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(4, 8, 8, 8),
@@ -438,6 +455,11 @@ class _PetCard extends StatelessWidget {
               _PetSyncChip(status: syncStatus),
               const SizedBox(width: 4),
             ],
+            if (selected)
+              const Tooltip(
+                message: 'Выбран для записи',
+                child: Icon(Icons.check_circle_outline),
+              ),
             IconButton(
               tooltip: 'Профиль',
               onPressed: onEdit,

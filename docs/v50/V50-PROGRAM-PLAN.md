@@ -41,7 +41,7 @@ Program state: V50 migration in progress
 
 ## Logical chat map
 
-Completed contexts: `BASELINE-01`, `BASELINE-02`, `V50-SHELL-01`, `V50-OWNER-01`. Next planned bounded context: exactly `V50-OWNER-02 / Pets, Pet Profile and Pet Diary`. Later domain chats remain inactive.
+Completed contexts: `BASELINE-01`, `BASELINE-02`, `V50-SHELL-01`, `V50-OWNER-01`; `V50-OWNER-02` is implemented/tested but blocked from integration by its mandatory visual-evidence gate. After that gate closes, the next planned bounded context is exactly `V50-OWNER-03 / Clinic Catalog, Clinic Detail and Doctor Discovery`. Later domain chats remain inactive.
 
 ## Program rules
 
@@ -53,4 +53,4 @@ Completed contexts: `BASELINE-01`, `BASELINE-02`, `V50-SHELL-01`, `V50-OWNER-01`
 
 ## Exactly one next slice
 
-`V50-OWNER-02 / Pets, Pet Profile and Pet Diary`. Do not start it from the V50-OWNER-01 session.
+`V50-OWNER-03 / Clinic Catalog, Clinic Detail and Doctor Discovery`. Do not start it from the V50-OWNER-02 session.

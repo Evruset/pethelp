@@ -27,6 +27,13 @@ abstract class OwnerPetRepository {
   Future<List<OwnerPetProfileSyncState>> profileSyncStates(String petId);
 }
 
+abstract class OwnerPetLifecycleRepository implements OwnerPetRepository {
+  Future<OwnerPet> archive(
+      {required String petId, required int profileVersion});
+  Future<OwnerPet> restore(
+      {required String petId, required int profileVersion});
+}
+
 sealed class OwnerPetSaveResult {
   const OwnerPetSaveResult();
 }
@@ -63,7 +70,7 @@ class OwnerPetProfileSyncState {
   final DateTime createdAt;
 }
 
-class HttpOwnerPetRepository implements OwnerPetRepository {
+class HttpOwnerPetRepository implements OwnerPetLifecycleRepository {
   HttpOwnerPetRepository({
     required Uri baseUrl,
     required Future<String> Function() accessToken,
@@ -181,6 +188,36 @@ class HttpOwnerPetRepository implements OwnerPetRepository {
   }
 
   @override
+  Future<OwnerPet> archive({
+    required String petId,
+    required int profileVersion,
+  }) =>
+      _lifecycle(petId, profileVersion, 'archive');
+
+  @override
+  Future<OwnerPet> restore({
+    required String petId,
+    required int profileVersion,
+  }) =>
+      _lifecycle(petId, profileVersion, 'restore');
+
+  Future<OwnerPet> _lifecycle(
+    String petId,
+    int profileVersion,
+    String action,
+  ) async {
+    final response = await _client.post(
+      _baseUrl.resolve('v1/owner/pets/$petId/$action'),
+      headers: await _headers(profileVersion: profileVersion),
+    );
+    final data = _decode(response);
+    if (response.statusCode != 200 || data is! Map<String, dynamic>) {
+      throw OwnerPetApiException(response.statusCode, _errorCode(data));
+    }
+    return _toPet(data);
+  }
+
+  @override
   Future<List<OwnerPetProfileSyncState>> profileSyncStates(
           String petId) async =>
       const <OwnerPetProfileSyncState>[];
@@ -219,6 +256,8 @@ class HttpOwnerPetRepository implements OwnerPetRepository {
         profileVersion: (json['profileVersion'] as num?)?.toInt() ?? 1,
         createdAt: _optionalDateTime(json['createdAt']),
         updatedAt: _optionalDateTime(json['updatedAt']),
+        archivedAt: _optionalDateTime(json['archivedAt']),
+        isArchived: json['isArchived'] as bool? ?? json['archivedAt'] != null,
       );
 
   dynamic _decode(http.Response response) {
@@ -251,7 +290,7 @@ class HttpOwnerPetRepository implements OwnerPetRepository {
           : 'BACKEND_UNAVAILABLE';
 }
 
-class OfflineCapableOwnerPetRepository implements OwnerPetRepository {
+class OfflineCapableOwnerPetRepository implements OwnerPetLifecycleRepository {
   OfflineCapableOwnerPetRepository({
     required OwnerPetRepository remote,
     required OutboxRepository outbox,
@@ -263,6 +302,22 @@ class OfflineCapableOwnerPetRepository implements OwnerPetRepository {
         _nextDeviceSequence = nextDeviceSequence;
 
   final OwnerPetRepository _remote;
+
+  OwnerPetLifecycleRepository get _lifecycleRemote {
+    final remote = _remote;
+    if (remote is OwnerPetLifecycleRepository) return remote;
+    throw const OwnerPetApiException(501, 'PET_LIFECYCLE_UNAVAILABLE');
+  }
+
+  @override
+  Future<OwnerPet> archive(
+          {required String petId, required int profileVersion}) =>
+      _lifecycleRemote.archive(petId: petId, profileVersion: profileVersion);
+
+  @override
+  Future<OwnerPet> restore(
+          {required String petId, required int profileVersion}) =>
+      _lifecycleRemote.restore(petId: petId, profileVersion: profileVersion);
   final OutboxRepository _outbox;
   final String _deviceId;
   final int Function() _nextDeviceSequence;

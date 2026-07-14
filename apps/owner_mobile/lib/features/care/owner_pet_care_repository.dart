@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
@@ -233,7 +234,98 @@ abstract class OwnerPetCareRepository {
   });
 }
 
-class HttpOwnerPetCareRepository implements OwnerPetCareRepository {
+class OwnerPetDiaryPageData {
+  const OwnerPetDiaryPageData({
+    required this.events,
+    required this.nextOffset,
+    required this.total,
+  });
+
+  final List<OwnerPetDiaryEvent> events;
+  final int? nextOffset;
+  final int total;
+
+  factory OwnerPetDiaryPageData.fromJson(Map<String, dynamic> json) =>
+      OwnerPetDiaryPageData(
+        events: (json['entries'] as List<dynamic>? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(OwnerPetDiaryEvent.fromJson)
+            .toList(growable: false),
+        nextOffset:
+            ((json['page'] as Map<String, dynamic>?)?['nextOffset'] as num?)
+                ?.toInt(),
+        total: ((json['page'] as Map<String, dynamic>?)?['total'] as num?)
+                ?.toInt() ??
+            0,
+      );
+}
+
+class OwnerPetDiaryEvent {
+  const OwnerPetDiaryEvent({
+    required this.type,
+    required this.sourceId,
+    required this.occurredAt,
+    required this.title,
+    required this.summary,
+    required this.status,
+    this.endsAt,
+    this.downloadUrl,
+  });
+
+  final String type;
+  final String sourceId;
+  final DateTime occurredAt;
+  final String title;
+  final String summary;
+  final String status;
+  final DateTime? endsAt;
+  final String? downloadUrl;
+
+  factory OwnerPetDiaryEvent.fromJson(Map<String, dynamic> json) {
+    return OwnerPetDiaryEvent(
+      type: json['type'] as String? ?? 'UNKNOWN',
+      sourceId: json['sourceId'] as String? ?? '',
+      occurredAt: DateTime.parse(json['occurredAt'] as String).toLocal(),
+      title: json['title'] as String? ?? 'Событие дневника',
+      summary: json['summary'] as String? ?? '',
+      status: json['lifecycleStatus'] as String? ?? 'READY',
+      endsAt: _optionalDateTime(json['endsAt']),
+      downloadUrl: json['downloadUrl'] as String?,
+    );
+  }
+}
+
+abstract class OwnerPetDiaryRepository {
+  Future<OwnerPetDiaryPageData> readDiary(
+    String petId, {
+    int offset = 0,
+    int limit = 20,
+  });
+
+  Future<OwnerPetDocumentDetail> readDocument(
+    String petId,
+    String documentId,
+  );
+}
+
+class OwnerPetDocumentDetail {
+  const OwnerPetDocumentDetail({
+    required this.fileName,
+    required this.mimeType,
+    required this.sizeBytes,
+    required this.status,
+    this.previewBytes,
+  });
+
+  final String fileName;
+  final String mimeType;
+  final int sizeBytes;
+  final String status;
+  final Uint8List? previewBytes;
+}
+
+class HttpOwnerPetCareRepository
+    implements OwnerPetCareRepository, OwnerPetDiaryRepository {
   HttpOwnerPetCareRepository({
     required Uri baseUrl,
     required Future<String> Function() accessTokenProvider,
@@ -258,6 +350,77 @@ class HttpOwnerPetCareRepository implements OwnerPetCareRepository {
       throw OwnerPetCareApiException(response.statusCode, _errorCode(payload));
     }
     return OwnerPetCareSummary.fromJson(payload);
+  }
+
+  @override
+  Future<OwnerPetDiaryPageData> readDiary(
+    String petId, {
+    int offset = 0,
+    int limit = 20,
+  }) async {
+    final token = await _accessTokenProvider();
+    final uri = _baseUrl.resolve('/v1/owner/pets/$petId/diary').replace(
+      queryParameters: {
+        'offset': '$offset',
+        'limit': '$limit',
+      },
+    );
+    final response = await _client.get(uri, headers: {
+      'Authorization': 'Bearer $token',
+      'Accept': 'application/json',
+    });
+    final payload = _decode(response);
+    if (response.statusCode != 200 || payload is! Map<String, dynamic>) {
+      throw OwnerPetCareApiException(response.statusCode, _errorCode(payload));
+    }
+    return OwnerPetDiaryPageData.fromJson(payload);
+  }
+
+  @override
+  Future<OwnerPetDocumentDetail> readDocument(
+    String petId,
+    String documentId,
+  ) async {
+    final token = await _accessTokenProvider();
+    final expectedDownloadPath =
+        '/v1/owner/pets/$petId/documents/$documentId/download';
+    final metadataResponse = await _client.get(
+      _baseUrl.resolve('/v1/owner/pets/$petId/documents/$documentId'),
+      headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
+    );
+    final payload = _decode(metadataResponse);
+    if (metadataResponse.statusCode != 200 ||
+        payload is! Map<String, dynamic>) {
+      throw OwnerPetCareApiException(
+        metadataResponse.statusCode,
+        _errorCode(payload),
+      );
+    }
+    final mimeType = payload['mimeType'] as String? ?? '';
+    final downloadUrl = payload['downloadUrl'] as String?;
+    Uint8List? previewBytes;
+    if (mimeType.startsWith('image/') &&
+        downloadUrl == expectedDownloadPath &&
+        payload['lifecycleStatus'] == 'READY') {
+      final previewResponse = await _client.get(
+        _baseUrl.resolve(downloadUrl!),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (previewResponse.statusCode != 200) {
+        throw OwnerPetCareApiException(
+          previewResponse.statusCode,
+          _errorCode(_decode(previewResponse)),
+        );
+      }
+      previewBytes = previewResponse.bodyBytes;
+    }
+    return OwnerPetDocumentDetail(
+      fileName: payload['fileName'] as String? ?? 'Документ',
+      mimeType: mimeType,
+      sizeBytes: (payload['sizeBytes'] as num?)?.toInt() ?? 0,
+      status: payload['lifecycleStatus'] as String? ?? 'PROCESSING',
+      previewBytes: previewBytes,
+    );
   }
 
   @override
@@ -366,6 +529,8 @@ OwnerPet _pet(Map<String, dynamic> json) {
     profileVersion: (json['profileVersion'] as num?)?.toInt() ?? 1,
     createdAt: _optionalDateTime(json['createdAt']),
     updatedAt: _optionalDateTime(json['updatedAt']),
+    archivedAt: _optionalDateTime(json['archivedAt']),
+    isArchived: json['isArchived'] as bool? ?? json['archivedAt'] != null,
   );
 }
 

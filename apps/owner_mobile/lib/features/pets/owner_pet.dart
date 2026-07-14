@@ -20,6 +20,8 @@ class OwnerPet {
     this.profileVersion = 1,
     this.createdAt,
     this.updatedAt,
+    this.archivedAt,
+    this.isArchived = false,
   });
 
   final String id;
@@ -42,4 +44,6 @@ class OwnerPet {
   final int profileVersion;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final DateTime? archivedAt;
+  final bool isArchived;
 }

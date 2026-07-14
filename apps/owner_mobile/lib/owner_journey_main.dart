@@ -17,6 +17,7 @@ import 'features/booking/marketplace/booking_marketplace_page.dart';
 import 'features/booking/marketplace/booking_marketplace_repository.dart';
 import 'features/care/owner_pet_care_page.dart';
 import 'features/care/owner_pet_care_repository.dart';
+import 'features/care/owner_pet_diary_v50_page.dart';
 import 'features/catalog/catalog_models.dart';
 import 'features/catalog/public_catalog_page.dart';
 import 'features/catalog/public_catalog_repository.dart';
@@ -32,7 +33,9 @@ import 'features/owner_journey/owner_selected_pet_preference.dart';
 import 'features/owner_journey/phone_entry_page.dart';
 import 'features/pets/owner_pet.dart';
 import 'features/pets/owner_pet_repository.dart';
+import 'features/pets/owner_pet_profile_v50_page.dart';
 import 'features/pets/owner_pets_page.dart';
+import 'features/pets/owner_pets_v50_feature_flags.dart';
 import 'features/telemed/owner_telemed_page.dart';
 import 'features/telemed/owner_telemed_repository.dart';
 import 'features/telemed/waiting_room/telemed_room_access_repository.dart';
@@ -217,6 +220,7 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
     if (_hasOwnerSession) {
       final shellEnabled = isOwnerV50ShellEnabled();
       final homeEnabled = isOwnerV50HomeEnabled(shellEnabled: shellEnabled);
+      final petsV50Flags = ownerPetsV50Flags(shellEnabled: shellEnabled);
       final preferenceOwnerId =
           _session?.ownerId ?? safeOwnerSubjectFromJwt(_accessToken);
       final appointmentsRepository = HttpOwnerAppointmentsRepository(
@@ -251,6 +255,8 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
           v50HomeEnabled: homeEnabled && preferenceOwnerId != null,
           onSignIn: _openPhoneEntry,
           sessionGeneration: _ownerSessionGeneration,
+          petsV50Flags: petsV50Flags,
+          onOpenPetProfile: _openV50PetProfile,
         );
       }
 
@@ -535,6 +541,56 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
     );
   }
 
+  void _openV50PetProfile(OwnerPet pet) {
+    final repository = _petsRepository();
+    final flags = ownerPetsV50Flags(shellEnabled: isOwnerV50ShellEnabled());
+    final diaryRepository = HttpOwnerPetCareRepository(
+      baseUrl: Uri.parse(_apiBaseUrl),
+      accessTokenProvider: _token,
+    );
+    Navigator.of(context).push(ownerPageRoute<void>(
+      context: context,
+      platform: widget.platformOverride,
+      builder: (_) => OwnerPetProfileV50Page(
+        pet: pet,
+        repository: repository,
+        onPetChanged: _selectPet,
+        onOpenDiary: flags.diary
+            ? () => Navigator.of(context).push(ownerPageRoute<void>(
+                  context: context,
+                  platform: widget.platformOverride,
+                  builder: (_) => OwnerPetDiaryV50Page(
+                    pet: pet,
+                    repository: diaryRepository,
+                  ),
+                ))
+            : null,
+        onArchiveResolved: _resolveSelectionAfterLifecycle,
+      ),
+    ));
+  }
+
+  Future<void> _resolveSelectionAfterLifecycle(OwnerPet changed) async {
+    final ownerId = _session?.ownerId ?? safeOwnerSubjectFromJwt(_accessToken);
+    final active = (await _petsRepository().list())
+        .where((pet) => !pet.isArchived)
+        .toList(growable: false);
+    if (!mounted) return;
+    final selected =
+        changed.isArchived ? (active.isEmpty ? null : active.first) : changed;
+    setState(() {
+      _selectedPet = selected;
+      _petBootstrapCompleted = true;
+    });
+    if (ownerId != null) {
+      if (selected == null) {
+        await _selectedPetPreference.clear(ownerId);
+      } else {
+        await _selectedPetPreference.write(ownerId, selected.id);
+      }
+    }
+  }
+
   void _openRepeatBookingFromCare(OwnerPetCareRebookIntent intent) {
     setState(() {
       _selectedPet = intent.pet;
@@ -597,6 +653,8 @@ class _OwnerV50AuthenticatedShell extends StatefulWidget {
     required this.v50HomeEnabled,
     required this.onSignIn,
     required this.sessionGeneration,
+    required this.petsV50Flags,
+    required this.onOpenPetProfile,
     this.platformOverride,
   });
 
@@ -618,6 +676,8 @@ class _OwnerV50AuthenticatedShell extends StatefulWidget {
   final bool v50HomeEnabled;
   final VoidCallback onSignIn;
   final int sessionGeneration;
+  final OwnerPetsV50Flags petsV50Flags;
+  final ValueChanged<OwnerPet> onOpenPetProfile;
   final TargetPlatform? platformOverride;
 
   @override
@@ -776,6 +836,9 @@ class _OwnerV50AuthenticatedShellState
       pets: OwnerPetsPage(
         repository: widget.petsRepository,
         platformOverride: widget.platformOverride,
+        selectedPetId: widget.petsV50Flags.pets ? widget.selectedPet?.id : null,
+        onOpenPetProfile:
+            widget.petsV50Flags.profile ? widget.onOpenPetProfile : null,
         onPetSelected: (pet) {
           widget.onPetSelected(pet);
           _selectDestination(0);

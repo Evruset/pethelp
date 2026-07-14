@@ -70,6 +70,17 @@ describe('OwnerHomeService', () => {
     expect(JSON.stringify(result)).not.toContain(FOREIGN_PET);
   });
 
+  it('falls back to an active owned pet when a previously selected pet is archived', async () => {
+    pets.list.mockResolvedValue([makePet(PET_ONE, 'Активный питомец', '2026-01-02T00:00:00.000Z')]);
+
+    const result = await service.read(owner, PET_TWO);
+
+    expect(pets.list).toHaveBeenCalledWith(owner);
+    expect(result.selectedPet?.id).toBe(PET_ONE);
+    expect(result.selectionSource).toBe('DEFAULT');
+    expect(JSON.stringify(result)).not.toContain(PET_TWO);
+  });
+
   it('uses owner authority for all sources and filters every aggregate to the selected pet', async () => {
     appointments.list.mockResolvedValue([
       makeAppointment('foreign-hold', FOREIGN_PET, 'ALTERNATIVE_PENDING'),
@@ -186,7 +197,7 @@ function makePet(id: string, name: string, createdAt: string): OwnerPet {
     id, name, species: 'CAT', breed: null, birthDate: null, ageMonths: null, sex: null,
     gender: null, weightKg: null, sterilized: null, isSterilized: null, chipNumber: null,
     allergies: [], chronicConditions: [], vaccinationNotes: null, photoUrl: null,
-    insurancePolicyLinks: [], medicalHistoryOcr: null, profileVersion: 1,
+    insurancePolicyLinks: [], profileVersion: 1,
     createdAt, updatedAt: createdAt,
   };
 }

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "workChatId": "V50-OWNER-02",
+  "v50Ids": ["OWN-009", "OWN-010", "OWN-011"],
+  "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+  "runtimeCommit": "PENDING_LOCAL_COMMIT",
+  "artifactStorage": "LOCAL_PACKAGE",
+  "artifactPackageId": "v50-owner-02-local-validation",
+  "localPathHint": "/Users/evrusetskiy/docs/ai/evidence/V50-OWNER-02",
+  "createdAt": "2026-07-14",
+  "result": "TESTED_NOT_VISUALLY_VERIFIED",
+  "visuallyVerified": false,
+  "artifacts": [],
+  "knownDifferences": [
+    "No durable runtime screenshots were produced because this repository has no authenticated owner visual-capture harness for the new routes.",
+    "Flutter widget tests and the web build are test evidence only and do not qualify as prototype side-by-side visual verification.",
+    "Program visual counter remains 0/30."
+  ]
+}
