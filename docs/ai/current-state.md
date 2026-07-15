@@ -72,6 +72,10 @@ Acceptance closure passes field-specific Profile validation/draft preservation, 
 
 ## Next slice
 
-`V50-OWNER-03 / Clinic Catalog, Clinic Detail and Doctor Discovery` is active on `agent/v50-owner-03` in `/Users/evrusetskiy/work/pethelp-alpha-v50-owner-03`, based on integration commit `d55b292`. Scope is limited to `OWN-002`, `OWN-004`, `OWN-018` and `OWN-019`; booking holds and V50-OWNER-04 are not started.
+`V50-OWNER-03 / Clinic Catalog, Clinic Detail and Doctor Discovery` is functionally implemented/tested on `agent/v50-owner-03` in `/Users/evrusetskiy/work/pethelp-alpha-v50-owner-03`, based on integration commit `d55b292`; runtime commit is `9a6318a`. Scope is limited to `OWN-002`, `OWN-004`, `OWN-018` and `OWN-019`; booking holds and V50-OWNER-04 were not started.
+
+Backend build and 20/20 focused catalog/auth/pet tests pass. Flutter analyze, 3/3 focused V50 tests, 21/21 catalog regression tests, the 238/238 full suite, flagged Owner web build and evidence web build pass. Package `v50-owner-03-9a6318a` contains 48/48 runtime artifacts and 16/16 prototype references across 375/412/768/1440, with package SHA-256 `4011fde69d0b0a8e7102d344b96087e48b19521b567efa8da48b1aee33393e45`.
+
+Independent read-only validation is FAIL with one veto: sampled Catalog and Clinic runtime composition, controls, imagery and hierarchy materially differ from the authoritative V50 anchors, and the mobile Clinic capture has a black top band. The evidence manifest records this visual failure honestly. `OWN-002`, `OWN-004`, `OWN-018` and `OWN-019` remain `IMPLEMENTED / TESTED` but not `VISUALLY_VERIFIED`; the counter remains `3/30`. V50-OWNER-03 is `PARTIALLY_COMPLETED / NOT_READY_FOR_INTEGRATION` pending a bounded visual repair and fresh zero-veto validation.
 
 The Owner Home backend reproduction gate is `PASS`: after canonical Compose recreated its dependency volume, Jest ran 4 focused suites and passed; the final combined Owner pets/Home run passed 23/23 tests. Resolution evidence is recorded in `docs/ai/tooling-debt/V50-OWNER-01-backend-spawn-einval.md`.

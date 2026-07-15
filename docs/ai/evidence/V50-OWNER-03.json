@@ -1,12 +1,17 @@
 {
   "schemaVersion": 1,
   "slice": "V50-OWNER-03",
-  "status": "NOT_CAPTURED",
+  "status": "FUNCTIONAL_PASS_VISUAL_FAIL",
   "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
-  "runtimeCommit": null,
-  "artifactPackageId": null,
-  "artifactPackageSha256": null,
-  "viewports": ["375x812", "412x915", "768x1024", "1440x900"],
+  "runtimeCommit": "9a6318a",
+  "artifactPackageId": "v50-owner-03-9a6318a",
+  "artifactPackageSha256": "4011fde69d0b0a8e7102d344b96087e48b19521b567efa8da48b1aee33393e45",
+  "viewports": [
+    "375x812",
+    "412x915",
+    "768x1024",
+    "1440x900"
+  ],
   "states": [
     "CATALOG_READY_LIST",
     "CATALOG_READY_MAP",
@@ -21,9 +26,830 @@
     "DOCTORS_EMPTY",
     "DOCTOR_PROFILE"
   ],
-  "v50Ids": ["OWN-002", "OWN-004", "OWN-018", "OWN-019"],
-  "prototypeAnchors": ["#catalog", "#clinic", "#doctor-select", "#doctor-detail"],
-  "artifacts": [],
-  "prototypeReferences": [],
-  "knownDifferences": []
+  "v50Ids": [
+    "OWN-002",
+    "OWN-004",
+    "OWN-018",
+    "OWN-019"
+  ],
+  "prototypeAnchors": [
+    "#catalog",
+    "#clinic",
+    "#doctor-select",
+    "#doctor-detail"
+  ],
+  "artifacts": [
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "375x812",
+      "state": "CATALOG_READY_LIST",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/CATALOG_READY_LIST.png",
+      "sha256": "a844a46a87a033d9a8225ac79911bf2b5485d0eca9f70160dd4e4b4817bc41f7",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "375x812",
+      "state": "CATALOG_READY_MAP",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/CATALOG_READY_MAP.png",
+      "sha256": "73c3b84c24cdfba02a7cc23021705da0067e6b0acf921a89731d45936446a95e",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "375x812",
+      "state": "CATALOG_FILTERED",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/CATALOG_FILTERED.png",
+      "sha256": "8e8592c9d4e99a67cc8de2ee5e26f1e44b59d7692ac41807eb453884be57312f",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "375x812",
+      "state": "CATALOG_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/CATALOG_EMPTY.png",
+      "sha256": "d87ea1f8ad686a5aed08542f969cf1e85f85bf1887ecde931f6366f6f1669af4",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "375x812",
+      "state": "CATALOG_LOCATION_DENIED",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/CATALOG_LOCATION_DENIED.png",
+      "sha256": "ecb56f7ccac38c7fe91645818997f285804387a430b1499675e53cfbdc5a3daf",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "375x812",
+      "state": "CATALOG_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/CATALOG_OFFLINE_STALE.png",
+      "sha256": "21d1f066334ade43f08429aeb1101093cf9552641cf980551eb8e30e773ea58c",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "375x812",
+      "state": "CLINIC_READY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/CLINIC_READY.png",
+      "sha256": "8419e43551d7929854180d123a1e75a4822bd8790d3381cfcdea08c2c67b187b",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "375x812",
+      "state": "CLINIC_STALE_AVAILABILITY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/CLINIC_STALE_AVAILABILITY.png",
+      "sha256": "2a19468928846ff86c4bd59066180b0a0682da66b3637f2466074e5a28492e60",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "375x812",
+      "state": "CLINIC_NO_SLOTS",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/CLINIC_NO_SLOTS.png",
+      "sha256": "407137849b5dd752a2f9ba4c06f3dd4d6f02b53959257e585cdbd1020942fe77",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "375x812",
+      "state": "DOCTORS_READY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/DOCTORS_READY.png",
+      "sha256": "ca9bf98926128b0148b1e705ed285ad8b016a33b6291e1c62ace76ff623fed05",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "375x812",
+      "state": "DOCTORS_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/DOCTORS_EMPTY.png",
+      "sha256": "a5552e95ee4711280be80cbc64e4a2665b6a321b7af37e396953936213275c31",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-019",
+      "prototypeAnchor": "#doctor-detail",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "375x812",
+      "state": "DOCTOR_PROFILE",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/DOCTOR_PROFILE.png",
+      "sha256": "355f9318ed903412e0d8ce31aab519df466a5dae232cdfe16ddf8bc8eccaa883",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "412x915",
+      "state": "CATALOG_READY_LIST",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/CATALOG_READY_LIST.png",
+      "sha256": "a2afce0d46a8f64eef00ba0b3e006e92ca1dc5323ac4a9b0a695de62cc0dce9c",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "412x915",
+      "state": "CATALOG_READY_MAP",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/CATALOG_READY_MAP.png",
+      "sha256": "6f6a5f918924e60c7fde36b5f24baddae9c20641d4f43ff3a23c70b107c3d07f",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "412x915",
+      "state": "CATALOG_FILTERED",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/CATALOG_FILTERED.png",
+      "sha256": "4ccaa00f998e36b0e396a853439b154dd39dfff52012c9cf3945a196624c1919",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "412x915",
+      "state": "CATALOG_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/CATALOG_EMPTY.png",
+      "sha256": "5aac6bad62595b9f07ee0b94aea077bdfb756c8796cf6e6ce010053893dd2b47",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "412x915",
+      "state": "CATALOG_LOCATION_DENIED",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/CATALOG_LOCATION_DENIED.png",
+      "sha256": "3f5b02a16636f2fc6607b2032c21bed2d735abc3c82093d2e845ecae1da805a9",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "412x915",
+      "state": "CATALOG_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/CATALOG_OFFLINE_STALE.png",
+      "sha256": "49f435fc6a89cebedf057a54881996fcb5ffc1a9a8ee1876257860ca0b145dcb",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "412x915",
+      "state": "CLINIC_READY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/CLINIC_READY.png",
+      "sha256": "53cf31b1126aaa097702b2f1c57e0bae57f41ef8b9e6423993d15c54d95fea32",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "412x915",
+      "state": "CLINIC_STALE_AVAILABILITY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/CLINIC_STALE_AVAILABILITY.png",
+      "sha256": "94c424f14a64af41a3854e686ad9d3c2edee821ecda78ed8e2b8dc6c2326cc8a",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "412x915",
+      "state": "CLINIC_NO_SLOTS",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/CLINIC_NO_SLOTS.png",
+      "sha256": "56fa6d5f0b9191cf96271bd5d83a855a05708182b07fb559675f8707db32930a",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "412x915",
+      "state": "DOCTORS_READY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/DOCTORS_READY.png",
+      "sha256": "c4508a5cab86526815ef2ccec154ce23bf3e8e9287f958444e1b77033ebb0ef9",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "412x915",
+      "state": "DOCTORS_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/DOCTORS_EMPTY.png",
+      "sha256": "60fa7f7e343c7547c7e230f603007cc9745d313391f7ce41a0317692f7f18180",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-019",
+      "prototypeAnchor": "#doctor-detail",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "412x915",
+      "state": "DOCTOR_PROFILE",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/DOCTOR_PROFILE.png",
+      "sha256": "a05cd5dabcc32d4b9fd0891da69d7d3b2e46c89186ac01aec493733816646c3f",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "768x1024",
+      "state": "CATALOG_READY_LIST",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/CATALOG_READY_LIST.png",
+      "sha256": "1bd35eae6186bdf605f2d0a3270a7b5af7ac286980e240547b8648df96d16505",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "768x1024",
+      "state": "CATALOG_READY_MAP",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/CATALOG_READY_MAP.png",
+      "sha256": "1f6f852ded06a1749ad825e2a45376d436d7d49b25b2e3b973c4a1651d98c769",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "768x1024",
+      "state": "CATALOG_FILTERED",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/CATALOG_FILTERED.png",
+      "sha256": "aa5f3ced807b471293955721aec26546b1447e96814b85ecae960497941be5b7",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "768x1024",
+      "state": "CATALOG_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/CATALOG_EMPTY.png",
+      "sha256": "058b8f73ee9990b93d386969e3d689b544c0bfd5cf208c6daa2738a2aba21c13",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "768x1024",
+      "state": "CATALOG_LOCATION_DENIED",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/CATALOG_LOCATION_DENIED.png",
+      "sha256": "dbc05b7fe910b7edae4708e53656ab07e626d5a29c22b042aa60616d05ff824f",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "768x1024",
+      "state": "CATALOG_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/CATALOG_OFFLINE_STALE.png",
+      "sha256": "f79d4afb55e96a26ad6179797b7959279d95807f3940544c4d9598a4763abcc4",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "768x1024",
+      "state": "CLINIC_READY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/CLINIC_READY.png",
+      "sha256": "839633eb2f20ade88bb5de07bd0721e14c7c43315fff99768f9059ce7bd61333",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "768x1024",
+      "state": "CLINIC_STALE_AVAILABILITY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/CLINIC_STALE_AVAILABILITY.png",
+      "sha256": "d9f72ffe954fbbb68238f9942142f28a6be5ad83a762b04859d5705df055778d",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "768x1024",
+      "state": "CLINIC_NO_SLOTS",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/CLINIC_NO_SLOTS.png",
+      "sha256": "bdc0d5704c619c9c5189ae693cf0e38dc6723be2faba989e995da461639a7eb5",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "768x1024",
+      "state": "DOCTORS_READY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/DOCTORS_READY.png",
+      "sha256": "3fd877e66d87510d8671b0846baf2f45aadf3814ade08cc4679a64208b0d200f",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "768x1024",
+      "state": "DOCTORS_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/DOCTORS_EMPTY.png",
+      "sha256": "2e2f2591d65ae25cceb9cf6e47fdf161eb7e11b687146e3a2c74d4c1b006245f",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-019",
+      "prototypeAnchor": "#doctor-detail",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "768x1024",
+      "state": "DOCTOR_PROFILE",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/DOCTOR_PROFILE.png",
+      "sha256": "bbfd412227581897629c967d6b4a0aa384c665324e3160665c440de831c09cad",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "1440x900",
+      "state": "CATALOG_READY_LIST",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/CATALOG_READY_LIST.png",
+      "sha256": "a3666523bf2b494d6944662ba960889725dae75cf810a6869fd4b47e6206c478",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "1440x900",
+      "state": "CATALOG_READY_MAP",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/CATALOG_READY_MAP.png",
+      "sha256": "f5c21506f984b9243cc76c20511f6af248dae5ae87ef5b54ff3d27d76d0f2db3",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "1440x900",
+      "state": "CATALOG_FILTERED",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/CATALOG_FILTERED.png",
+      "sha256": "8901f575823a03dabc53d77263f17fbc6e57b2f60e14f88c4705aae6d3ea0f15",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "1440x900",
+      "state": "CATALOG_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/CATALOG_EMPTY.png",
+      "sha256": "657ee29c155936196c5d46a41c93e6870af69c6768e62b53e102bb532b6cc625",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "1440x900",
+      "state": "CATALOG_LOCATION_DENIED",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/CATALOG_LOCATION_DENIED.png",
+      "sha256": "9b02ef8dbad9677745f0219bdb24a622ce31b8e4b789fad7f6ae765aaeaaac37",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "1440x900",
+      "state": "CATALOG_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/CATALOG_OFFLINE_STALE.png",
+      "sha256": "43af9f89fdfc6862d79cd7f66b1790abac59719bf5090e0101997ad8c8c9c68a",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "1440x900",
+      "state": "CLINIC_READY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/CLINIC_READY.png",
+      "sha256": "bb73e72de20a88dea07cd738a9832e392f15826e8538a2a1455c0b8866991851",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "1440x900",
+      "state": "CLINIC_STALE_AVAILABILITY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/CLINIC_STALE_AVAILABILITY.png",
+      "sha256": "517401fc8adc6c513cf89925c3098227d3b88d120ee321a3d10432bb8ea6b72d",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "1440x900",
+      "state": "CLINIC_NO_SLOTS",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/CLINIC_NO_SLOTS.png",
+      "sha256": "57442f8f887ae6d28e8e7e7302f7ca38ea6795d3a1bcb08021a7cf12afde0974",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "1440x900",
+      "state": "DOCTORS_READY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/DOCTORS_READY.png",
+      "sha256": "5ebf7e41f7ad7c08894894fb93711d3417c961a6e4f0b8de5f7da58b76441961",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "1440x900",
+      "state": "DOCTORS_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/DOCTORS_EMPTY.png",
+      "sha256": "7f76976cb1e4aaae1bc8483a473b7882dabe3209915af96c7bd460064d52e7d9",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-019",
+      "prototypeAnchor": "#doctor-detail",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "9a6318a",
+      "viewport": "1440x900",
+      "state": "DOCTOR_PROFILE",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/DOCTOR_PROFILE.png",
+      "sha256": "eae9eeec24bc6f12618f9a3211675f2b20bb9f80790c68f789f236a9bee3c6d8",
+      "comparisonVerdict": "FAIL_MATERIAL_COMPOSITION_DIFFERENCE",
+      "knownDifferences": [
+        "Runtime composition and hierarchy are not yet aligned to the authoritative prototype."
+      ]
+    }
+  ],
+  "prototypeReferences": [
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/catalog/375x812.png",
+      "sha256": "7e445624ba5965cbd7456c2583cd482d9189590ed246dc7abea74f0f85c3c9ac"
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/clinic/375x812.png",
+      "sha256": "193e0f81c828432c598f008761b16c1fa6fda29dd6179839448d453dc8ed2535"
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/doctors/375x812.png",
+      "sha256": "802cb4676bf91885b8bdb6b3a113c9a6b7f7b8d7091466e1a22279def733cae1"
+    },
+    {
+      "v50Id": "OWN-019",
+      "prototypeAnchor": "#doctor-detail",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/doctor/375x812.png",
+      "sha256": "a58af1155beb9fe0c8cf5c7dd4923a594b76d4c46bd0696951da97dcaa159e80"
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "412x915",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/catalog/412x915.png",
+      "sha256": "fee0f5091575c96fa1a5cc2ca8a841bca1162878ffddc1f33dc35c93c6604ae6"
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "412x915",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/clinic/412x915.png",
+      "sha256": "f35ea6824169f5a75c946f91e6f59d783f954a6e7ab1ce284910b1b55c641e44"
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "412x915",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/doctors/412x915.png",
+      "sha256": "5343071177d63c9dcbd778ad95e3732e08bd4f307e83c028a824825d81509c02"
+    },
+    {
+      "v50Id": "OWN-019",
+      "prototypeAnchor": "#doctor-detail",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "412x915",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/doctor/412x915.png",
+      "sha256": "9b6d2e384a25e7601e5ed0b19934df90c701e9ab88fa33b8eee5f12939ec85ea"
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "768x1024",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/catalog/768x1024.png",
+      "sha256": "e09ef192a7d20a2d27b034d48bdb0a9376d060075d23317da64007cdbde276ae"
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "768x1024",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/clinic/768x1024.png",
+      "sha256": "04ebabb37979c744d95f11881fb015d4529ec37ed95be2e40b180a2d5defdabd"
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "768x1024",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/doctors/768x1024.png",
+      "sha256": "e9bd407b6925c9a82c6ca1e5128e98baf6c52359fe6ef3e48804f247c949b62a"
+    },
+    {
+      "v50Id": "OWN-019",
+      "prototypeAnchor": "#doctor-detail",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "768x1024",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/doctor/768x1024.png",
+      "sha256": "e4249b99fd78ed309d27d80bd632b9e65be8ebea677cd441117cf5b58faa2cf9"
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "1440x900",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/catalog/1440x900.png",
+      "sha256": "536b13c098cec1f4f47f8f43be8887941a30c7562118499c37dfb7fb2eb89d2c"
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "1440x900",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/clinic/1440x900.png",
+      "sha256": "5f01b6690b66f4f2da3d8feaf0a475d5621c36076674f25ab698f08ae8927245"
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "1440x900",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/doctors/1440x900.png",
+      "sha256": "8e4b7e907c2868ce8ad92341d420d922fb9bf92054752ef8f4a297871f99e7fb"
+    },
+    {
+      "v50Id": "OWN-019",
+      "prototypeAnchor": "#doctor-detail",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "1440x900",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/doctor/1440x900.png",
+      "sha256": "3c6b445f9c956ae4967830bf2eed8d6a343cc9ea25ee781cd466a25348bae033"
+    }
+  ],
+  "knownDifferences": [
+    "Veto: Catalog and Clinic runtime composition, controls, imagery and hierarchy materially differ from the authoritative prototype.",
+    "The 375x812 Clinic capture includes a black top band absent from the prototype.",
+    "Doctor biography, rating, photo and specialty are intentionally omitted because no approved public contract exists."
+  ],
+  "localPathHint": "/Users/evrusetskiy/docs/ai/evidence/v50-owner-03-9a6318a",
+  "createdAt": "2026-07-15",
+  "visuallyVerified": false,
+  "runtimeArtifactCount": 48,
+  "prototypeReferenceCount": 16
 }

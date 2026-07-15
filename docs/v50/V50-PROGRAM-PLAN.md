@@ -41,7 +41,7 @@ Program state: V50 migration in progress
 
 ## Logical chat map
 
-Completed contexts: `BASELINE-01`, `BASELINE-02`, `V50-SHELL-01`, `V50-OWNER-01`, `V50-OWNER-02`. `V50-OWNER-03` is active on its isolated branch/worktree for `OWN-002`, `OWN-004`, `OWN-018` and `OWN-019`; V50-OWNER-04 remains inactive.
+Completed contexts: `BASELINE-01`, `BASELINE-02`, `V50-SHELL-01`, `V50-OWNER-01`, `V50-OWNER-02`. `V50-OWNER-03` is functionally implemented/tested but NOT_READY after one independent visual-parity veto for `OWN-002`, `OWN-004`, `OWN-018` and `OWN-019`; its bounded visual repair is the only next work and V50-OWNER-04 remains inactive.
 
 ## Program rules
 

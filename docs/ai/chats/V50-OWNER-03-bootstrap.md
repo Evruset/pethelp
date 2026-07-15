@@ -1,6 +1,6 @@
 # V50-OWNER-03 — V50 Clinic Catalog and Doctor Discovery
 
-Status: `ACTIVE`
+Status: `PARTIALLY_COMPLETED / NOT_READY_FOR_INTEGRATION`
 
 ## Task brief
 
@@ -44,6 +44,7 @@ Status: `ACTIVE`
 
 ## Verification
 
-- Focused backend public catalog/doctor/security matrix and backend build.
-- Flutter analyze, focused Catalog/Clinic/Doctor tests, full Flutter suite and flagged Owner web build.
-- Representative and full checksum-bound visual evidence, followed by a new independent read-only validator.
+- Backend build and focused public catalog/doctor/security matrix: PASS 20/20.
+- Flutter analyze, focused V50 tests, catalog regression, full 238/238 suite and flagged Owner/evidence web builds: PASS.
+- Evidence integrity: PASS 48/48 runtime, 16/16 prototype, checksum `4011fde69d0b0a8e7102d344b96087e48b19521b567efa8da48b1aee33393e45`.
+- Independent validator: FAIL with one visual-parity veto. Functional/security behavior passed; Catalog/Clinic prototype composition did not. Counter remains 3/30 and the only next work is bounded visual repair plus recapture/revalidation.
