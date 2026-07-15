@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Query } from '@nestjs/common';
+import { BadRequestException, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Query, UseGuards } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   PublicAvailabilityResponse,
@@ -8,7 +8,13 @@ import {
   PublicCatalogFilters,
   PublicCatalogService,
   PublicLocationServicesResponse,
+  PublicDoctorsResponse,
+  PublicDoctorSummary,
 } from './public-catalog.service';
+import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
+import { OptionalCurrentUser } from '../auth/optional-current-user.decorator';
+import { JwtPayload, Role } from '../auth/auth.types';
+import { OwnerPetService } from '../auth/owner-pet.service';
 
 const defaultLimit = 20;
 const maxLimit = 50;
@@ -54,8 +60,12 @@ export class PublicCatalogController {
 
 @ApiTags('Public catalog')
 @Controller('v1')
+@UseGuards(OptionalJwtAuthGuard)
 export class PublicClinicController {
-  constructor(private readonly publicCatalog: PublicCatalogService) {}
+  constructor(
+    private readonly publicCatalog: PublicCatalogService,
+    private readonly ownerPets: OwnerPetService,
+  ) {}
 
   @Get('clinics')
   @ApiOperation({ summary: 'Публичный список клиник' })
@@ -73,7 +83,10 @@ export class PublicClinicController {
     @Query('emergencyCapability') emergencyCapability?: string,
     @Query('sort') sort?: string,
     @Query('limit') rawLimit?: string,
+    @Query('selectedPetId') selectedPetId?: string,
+    @OptionalCurrentUser() actor?: JwtPayload,
   ): Promise<PublicClinicsResponse> {
+    const petContextApplied = await this.petContextApplied(actor, selectedPetId);
     const filters = this.filters({
       query,
       serviceCode,
@@ -88,15 +101,47 @@ export class PublicClinicController {
       sort,
       limit: rawLimit,
     });
+    filters.petContextApplied = petContextApplied;
     return this.publicCatalog.listClinics(filters);
   }
 
   @Get('clinics/:clinicId')
   @ApiOperation({ summary: 'Публичная карточка клиники' })
-  async readClinic(@Param('clinicId', new ParseUUIDPipe()) clinicId: string): Promise<PublicClinicDetail> {
+  async readClinic(
+    @Param('clinicId', new ParseUUIDPipe()) clinicId: string,
+  ): Promise<PublicClinicDetail> {
     const clinic = await this.publicCatalog.readClinic(clinicId);
     if (!clinic) throw new NotFoundException({ code: 'PUBLIC_CLINIC_NOT_FOUND', message: 'Clinic was not found.' });
     return clinic;
+  }
+
+  @Get('clinics/:clinicId/doctors')
+  @ApiOperation({ summary: 'Публичные активные ветеринары клиники' })
+  async listDoctors(
+    @Param('clinicId', new ParseUUIDPipe()) clinicId: string,
+    @Query('locationId') locationId?: string,
+    @Query('serviceCode') serviceCode?: string,
+    @Query('limit') rawLimit?: string,
+    @Query('selectedPetId') selectedPetId?: string,
+    @OptionalCurrentUser() actor?: JwtPayload,
+  ): Promise<PublicDoctorsResponse> {
+    return this.publicCatalog.listDoctors({
+      clinicId,
+      locationId: this.optionalUuid(locationId, 'locationId'),
+      serviceCode: this.serviceCode(serviceCode),
+      limit: this.limit(rawLimit),
+      petContextApplied: await this.petContextApplied(actor, selectedPetId),
+    });
+  }
+
+  @Get('doctors/:doctorId')
+  @ApiOperation({ summary: 'Публичный профиль активного ветеринара' })
+  async readDoctor(
+    @Param('doctorId', new ParseUUIDPipe()) doctorId: string,
+  ): Promise<PublicDoctorSummary> {
+    const doctor = await this.publicCatalog.readDoctor(doctorId);
+    if (!doctor) throw new NotFoundException({ code: 'PUBLIC_DOCTOR_NOT_FOUND', message: 'Doctor was not found.' });
+    return doctor;
   }
 
   @Get('clinics/:clinicId/locations')
@@ -253,5 +298,19 @@ export class PublicClinicController {
       throw new BadRequestException({ code: 'INVALID_AVAILABILITY_DATE', message: 'from/to must be ISO dates.' });
     }
     return value;
+  }
+
+  private optionalUuid(value: string | undefined, field: string): string | undefined {
+    if (!value) return undefined;
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) {
+      throw new BadRequestException({ code: 'INVALID_CATALOG_UUID', message: `${field} must be a UUID.` });
+    }
+    return value;
+  }
+
+  private async petContextApplied(actor: JwtPayload | undefined, selectedPetId: string | undefined): Promise<boolean> {
+    const petId = this.optionalUuid(selectedPetId, 'selectedPetId');
+    if (!petId || !actor?.roles.includes(Role.OWNER)) return false;
+    return Boolean(await this.ownerPets.readActiveCatalogContext(actor, petId));
   }
 }

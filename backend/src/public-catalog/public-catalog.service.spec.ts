@@ -64,6 +64,9 @@ describe('PublicCatalogService', () => {
         distance_km: null,
         telemed_available: true,
         emergency_available: true,
+        doctor_count: '2',
+        price_from: '1500.00',
+        availability_source_updated_at: new Date('2026-06-26T12:25:00.000Z'),
         server_now: observedAt,
       }],
     });
@@ -113,7 +116,68 @@ describe('PublicCatalogService', () => {
         distanceKm: null,
         telemedAvailable: true,
         emergencyAvailable: true,
+        doctorCount: 2,
+        priceFrom: '1500.00',
+        availability: {
+          sourceUpdatedAt: '2026-06-26T12:25:00.000Z',
+          serverNow: '2026-06-26T12:33:19.112Z',
+          freshness: 'CURRENT',
+          confirmationMode: 'CLINIC_CONFIRMATION',
+        },
+        fitReasons: [
+          'Есть ближайшее подтверждаемое окно',
+          'Доступны подтверждённые услуги',
+          'Есть ветеринарные специалисты',
+          'Экстренная возможность проверена',
+        ],
       }],
+      personalization: { applied: false },
     });
+  });
+
+  it('returns only allowlisted active veterinarian discovery fields with freshness', async () => {
+    const query = jest.fn().mockResolvedValue({ rows: [{
+      doctor_id: '33333333-3333-4333-8333-333333333333',
+      display_name: 'Анна Петрова',
+      clinic_id: '11111111-1111-4111-8111-111111111111',
+      clinic_name: 'VetHelp Pilot',
+      location_id: '22222222-2222-4222-8222-222222222222',
+      address: 'Moscow, Pilotnaya 1',
+      next_available_at: new Date('2026-06-26T13:00:00.000Z'),
+      source_updated_at: new Date('2026-06-26T12:20:00.000Z'),
+      server_now: new Date('2026-06-26T12:33:19.112Z'),
+    }] });
+    const service = new PublicCatalogService({ query } as unknown as DatabaseService);
+
+    const response = await service.listDoctors({
+      clinicId: '11111111-1111-4111-8111-111111111111',
+      serviceCode: 'general_visit',
+      limit: 20,
+      petContextApplied: true,
+    });
+
+    const [sql, params] = query.mock.calls[0] as [string, unknown[]];
+    expect(sql).toContain("staff.active = true");
+    expect(sql).toContain("staff.role = 'VETERINARIAN'");
+    expect(params).toEqual([
+      '11111111-1111-4111-8111-111111111111', null, 'GENERAL_VISIT', null, 20,
+    ]);
+    expect(response.personalization).toEqual({ applied: true });
+    expect(response.doctors[0]).toEqual({
+      id: '33333333-3333-4333-8333-333333333333',
+      displayName: 'Анна Петрова',
+      title: 'Ветеринарный врач',
+      clinic: { id: '11111111-1111-4111-8111-111111111111', name: 'VetHelp Pilot' },
+      location: { id: '22222222-2222-4222-8222-222222222222', address: 'Moscow, Pilotnaya 1' },
+      nextAvailableAt: '2026-06-26T13:00:00.000Z',
+      availability: {
+        sourceUpdatedAt: '2026-06-26T12:20:00.000Z',
+        serverNow: '2026-06-26T12:33:19.112Z',
+        freshness: 'CURRENT',
+        confirmationMode: 'CLINIC_CONFIRMATION',
+      },
+    });
+    expect(response.doctors[0]).not.toHaveProperty('bio');
+    expect(response.doctors[0]).not.toHaveProperty('rating');
   });
 });
