@@ -7,10 +7,11 @@ Updated: 2026-07-15
 - `BASELINE-02`: `COMPLETE`, committed as `22da293`.
 - `V50-SHELL-01`: `COMPLETE / INTEGRATED` at `1c58ad6`.
 - `V50-OWNER-01`: `COMPLETE / INTEGRATED` at `2077b00`.
-- `V50-OWNER-02`: `COMPLETE / READY_FOR_INTEGRATION`.
-- Integration status: `READY_FOR_INTEGRATION`.
+- `V50-OWNER-02`: `COMPLETE / INTEGRATED` at `78d9322`.
+- `V50-OWNER-03`: bootstrap pending on an isolated branch/worktree.
+- Integration status: `V50-OWNER-02_INTEGRATED / V50-OWNER-03_NOT_STARTED`.
 - Canonical target: `V50`; source: `prototype-v50/index.html`; manifest SHA-256: `245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42`.
-- Branch/worktree: `agent/v50-owner-02` / `/Users/evrusetskiy/work/pethelp-alpha-v50-owner-02`.
+- Program branch/worktree: `agent/v51-stage-01-architecture` / `/Users/evrusetskiy/work/pethelp-alpha`.
 - Root worktree still contains protected user changes in `.codex/ACTIVE_MODE` and `.codex/config.toml`; this worktree does not modify them.
 
 ## Completed slice
@@ -63,7 +64,7 @@ Updated: 2026-07-15
 
 ## Completed Owner pets slice
 
-`V50-OWNER-02 / Pets, Pet Profile and Pet Diary` is complete and ready for integration. Runtime repair `c27e21f` corrects the shared visual frame, responsive Pets/Profile/Diary hierarchy, explicit exceptional states, owner-scoped deep links, session fencing, secure document retry and keyboard focus behavior. Default-off feature flags remain the rollback boundary.
+`V50-OWNER-02 / Pets, Pet Profile and Pet Diary` is complete and integrated through `78d9322`. Runtime repair `c27e21f` corrects the shared visual frame, responsive Pets/Profile/Diary hierarchy, explicit exceptional states, owner-scoped deep links, session fencing, secure document retry and keyboard focus behavior. Default-off feature flags remain the rollback boundary.
 
 Fresh package `v50-owner-02-c27e21f` contains 48/48 runtime screenshots, 12/12 authoritative prototype references and 8/8 supplemental acceptance-state browser screenshots. Package SHA-256 is `bdf429f2e95a8da51bcd2ee2030eda23bf5c7b43456e7fc72df763ac375a9e8f`. Comparisons and independent validation are PASS, so `OWN-009..OWN-011` are `IMPLEMENTED / TESTED / VISUALLY_VERIFIED` and the program counter is `3/30 VISUALLY_VERIFIED`.
 
@@ -71,6 +72,6 @@ Acceptance closure passes field-specific Profile validation/draft preservation, 
 
 ## Next slice
 
-The next permitted slice is `V50-OWNER-03 / Clinic Catalog, Clinic Detail and Doctor Discovery`. It was not started in this session.
+The next permitted slice is `V50-OWNER-03 / Clinic Catalog, Clinic Detail and Doctor Discovery`. Its isolated branch/worktree and bounded-context bootstrap must be created before runtime implementation.
 
 The Owner Home backend reproduction gate is `PASS`: after canonical Compose recreated its dependency volume, Jest ran 4 focused suites and passed; the final combined Owner pets/Home run passed 23/23 tests. Resolution evidence is recorded in `docs/ai/tooling-debt/V50-OWNER-01-backend-spawn-einval.md`.
