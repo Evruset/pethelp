@@ -10,18 +10,39 @@ const failures = [];
 const sha = (file) => createHash('sha256').update(readFileSync(file)).digest('hex');
 
 if (manifest.artifacts.length !== 48) failures.push(`runtime count ${manifest.artifacts.length}`);
+if (manifest.prototypeReferences.length !== 12) failures.push(`prototype count ${manifest.prototypeReferences.length}`);
+if (manifest.supplementalArtifacts?.length !== 8) {
+  failures.push(`supplemental count ${manifest.supplementalArtifacts?.length ?? 0}`);
+}
 if (new Set(manifest.artifacts.map((item) => item.artifactLogicalPath)).size !== 48) {
   failures.push('duplicate runtime logical paths');
 }
 if (manifest.prototypeChecksum !== prototype.sha256) failures.push('prototype checksum mismatch');
-if (manifest.runtimeCommit !== 'e7a56b1') failures.push('runtime commit mismatch');
+const packageCommit = manifest.artifactPackageId.replace(/^v50-owner-02-/, '');
+const expectedRuntimeCommit = process.env.V50_RUNTIME_COMMIT ?? packageCommit;
+if (manifest.runtimeCommit !== expectedRuntimeCommit) failures.push('runtime commit mismatch');
+if (manifest.artifacts.some((item) => item.comparisonResult !== 'PASS')) {
+  failures.push('non-pass visual comparison');
+}
 
-for (const item of [...manifest.artifacts, ...manifest.prototypeReferences]) {
+const declaredArtifacts = [
+  ...manifest.artifacts,
+  ...manifest.prototypeReferences,
+  ...(manifest.supplementalArtifacts ?? []),
+];
+for (const item of declaredArtifacts) {
   if (item.artifactLogicalPath.startsWith('/')) failures.push(`absolute logical path ${item.artifactLogicalPath}`);
   const relativePath = item.artifactLogicalPath.replace(/^V50-OWNER-02\//, '');
   const file = join(root, relativePath);
   if (!existsSync(file)) failures.push(`missing ${relativePath}`);
   else if (sha(file) !== item.sha256) failures.push(`checksum ${relativePath}`);
+}
+if (new Set(declaredArtifacts.map((item) => item.artifactLogicalPath)).size !== 68) {
+  failures.push('duplicate package logical paths');
+}
+if ((manifest.supplementalArtifacts ?? []).some((item) =>
+  item.viewport !== '375x812' || item.result !== 'PASS_BROWSER_SCREENSHOT')) {
+  failures.push('invalid supplemental proof metadata');
 }
 
 const walk = (directory) => readdirSync(directory, { withFileTypes: true })
@@ -47,4 +68,4 @@ if (failures.length) {
   console.error(`FAIL: ${failures.join('; ')}`);
   process.exit(1);
 }
-console.log(`PASS: 48/48 runtime, ${manifest.prototypeReferences.length}/12 prototype, checksums/package/paths/states/viewports valid`);
+console.log(`PASS: 48/48 runtime, ${manifest.prototypeReferences.length}/12 prototype, 8/8 supplemental, checksums/package/paths/states/viewports valid`);

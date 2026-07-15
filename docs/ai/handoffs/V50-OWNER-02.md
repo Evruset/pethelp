@@ -1,55 +1,62 @@
 # V50-OWNER-02 handoff
 
-## Result
+## Repair result
 
-`PARTIALLY_COMPLETED / VISUAL_PARITY_FAILED`
-
-## V50 IDs and routes
-
-- `OWN-009`: `#pets` → `/owner/pets`; migration action `REUSE`.
-- `OWN-010`: `#pet-profile` → `/owner/pets/:petId`; migration action `MODIFY`.
-- `OWN-011`: `#diary` → `/owner/pets/:petId/diary`; migration action `MODIFY`.
-
-## Branch/base
+`COMPLETE / READY_FOR_INTEGRATION`
 
 - Branch/worktree: `agent/v50-owner-02` / `/Users/evrusetskiy/work/pethelp-alpha-v50-owner-02`.
-- Integrated base: `2077b00`.
-- Commit target: `feat(v50-owner): add pet profile and care diary`.
-- Push: forbidden/not performed.
+- Existing implementation commits remain unchanged: `5418a36`, `e7a56b1`, `066e658`.
+- Visual/runtime repair: `c27e21f` (`fix(v50-owner): align pet and diary visual hierarchy`).
+- Push was not performed.
 
-## Delivered contracts
+## Root visual causes and corrected components
 
-- Exact default-off pets/profile/diary flags; selected pet remains owner-keyed and is revalidated against active backend pets.
-- Versioned archive/restore with audit and forward-only nullable `archived_at`; archived history remains readable.
-- Server-ordered diary, allowlisted document metadata and authenticated image preview; raw OCR/storage internals excluded.
-- Legacy routes remain the fail-closed rollback when flag dependencies are incomplete.
+The previous runtime reused sparse mobile composition at every width, lacked a shared page/section hierarchy, rendered exceptional states outside the screen structure and treated Diary rows as generic cards. The gap matrix is `docs/ai/evidence/V50-OWNER-02-VISUAL-GAP-MATRIX.md`.
 
-## Validation
+`OwnerV50PetPageFrame`, `OwnerV50InsetSection`, status banners and pet media now provide bounded shared geometry. Pets has grouped selection plus desktop primary-pet context; Profile has a hero, facts, sourced warnings and document/Diary hierarchy; Diary has pet context, filters, server-ordered date groups, explicit statuses and a desktop context column. No lab, insurance or reminder data was fabricated.
 
-- Backend focused: 5 suites, 30/30 tests PASS; backend TypeScript build PASS in canonical Compose.
-- Flutter analyze PASS; focused Owner V50/evidence/iOS hub/care tests 67/67 PASS; full suite 220/220 PASS; owner web build PASS.
-- Visual evidence integrity: 48/48 runtime captures and 12/12 prototype references PASS checksum and dimension verification. Visual hierarchy parity fails all three IDs, so the program counter remains unchanged and the independent validator retains a completion veto.
+## Representative gate
 
-## Final evidence
+All six READY comparisons pass at `375x812` and `1440x900` for `OWN-009`, `OWN-010` and `OWN-011`. Remaining differences are limited to fallback pet media when no authoritative photo exists and prototype concepts outside the bounded backend contract.
 
-### Closeout result
+## Evidence package
 
-- Package ID: `v50-owner-02-5418a36`.
-- Runtime artifacts: `48/48`; prototype references: `12/12`.
+- Package ID: `v50-owner-02-c27e21f`.
+- Runtime commit: `c27e21f`.
+- Storage: `/Users/evrusetskiy/docs/ai/evidence/V50-OWNER-02-c27e21f`.
+- Runtime artifacts: `48/48`; prototype references: `12/12`; supplemental acceptance-state browser artifacts: `8/8` at `375x812`.
 - Viewports: `375x812`, `412x915`, `768x1024`, `1440x900`.
-- States: Pets ready/empty/offline-stale; Profile ready/warning/edit/conflict; Diary ready/empty/processing/review-required/document-preview.
-- Prototype anchors: `OWN-009 #pets`, `OWN-010 #pet-profile`, `OWN-011 #diary`.
-- Runtime commit: `e7a56b1`; original implementation commit `5418a36` remains unchanged.
-- Manifest/package checksum: `docs/ai/evidence/V50-OWNER-02.json`.
-- Visual verdict: FAIL for all three IDs. Pets lacks prototype title/insurance/current-care hierarchy; Profile lacks the prototype hero and broader grouped care sections; Diary intentionally lacks uncontracted lab dynamics/reminders.
-- Migration fixture verdict: PASS for additive/repeatable SQL and forward-only no-data-loss policy; no destructive down migration.
-- Document-access verdict: PASS for owner-scoped authenticated image/PDF bytes, exact internal path, arbitrary URL/MIME refusal, controlled 401 and access audit. PDF opens from local authenticated bytes, never a storage/permanent URL.
-- Deep-link ownership verdict: backend PASS for owned/foreign/missing Diary/document and archived owned history; full Flutter named-route deep-link table remains absent.
-- Integration readiness: `NOT_READY_FOR_INTEGRATION` because visual hierarchy and remaining Profile/deep-link state coverage do not meet closeout DoD.
-- Independent closeout validator: `FAIL`, vetoes `2`: visual hierarchy fails all three IDs; mandatory Profile/deep-link/real-database migration/document-state matrix remains incomplete. Evidence integrity, PDF/security boundary and feature-flag rollback passed.
+- Package SHA-256: `bdf429f2e95a8da51bcd2ee2030eda23bf5c7b43456e7fc72df763ac375a9e8f`.
+- Integrity: all file hashes, prototype checksum, package checksum, states, viewports and logical paths PASS; zero absolute authoritative paths and zero duplicates.
 
-`docs/ai/evidence/V50-OWNER-02.json` is checksum-bound and deliberately reports `FAIL_VISUAL_PARITY`; screenshot existence is not treated as verification.
+## Visual verdict
 
-## Next slice
+- `OWN-009`: `IMPLEMENTED / TESTED / VISUALLY_VERIFIED`.
+- `OWN-010`: `IMPLEMENTED / TESTED / VISUALLY_VERIFIED`.
+- `OWN-011`: `IMPLEMENTED / TESTED / VISUALLY_VERIFIED`.
+- Program counter: `3/30 VISUALLY_VERIFIED`.
 
-No next slice is authorized while integration is not ready. `V50-OWNER-03 / Clinic Catalog, Clinic Detail and Doctor Discovery` remains inactive.
+## Acceptance closure
+
+- Profile states: PASS for field-specific validation with raw-code suppression/draft retention, archived read-only, not-found, session-expired, offline-safe snapshot, warning, edit and conflict.
+- Deep links: PASS for profile/Diary/document routes, owned and archived access, normalized foreign/unknown results and account-switch session fencing.
+- Migration fixtures: PASS on real PostgreSQL 16 for empty, populated active, populated already archived, non-destructive down and repeated up.
+- Documents: PASS for archived metadata without binary action, network retry with fresh authorization and foreign no-leak behavior.
+- Keyboard focus: PASS for visible focus-color contracts, logical Pets/Profile/Diary traversal, Enter and Space activation, document-dialog focus return, disabled processing actions skipped, plus browser/CDP traversal with 11/12/15 unique Pets/Profile/Diary targets and no consecutive trap.
+- Feature flag rollback: PASS; exact-true/default-off dependency chain returns the legacy path without data rollback.
+
+## Tests
+
+- Backend container Node `v22.23.1`, npm `10.9.8`, PostgreSQL 16: 6 suites, 34/34 PASS; build PASS on Node `v22.22.2`/npm `10.9.7`.
+- Flutter `3.27.4`: analyze PASS; focused pets/profile/Diary/deep-link/focus/evidence 71/71 PASS; full suite 235/235 PASS.
+- Flagged web build `lib/owner_journey_main.dart`: PASS with shell/Home/Pets/Profile/Diary flags enabled.
+- Browser/CDP focus verifier: PASS for Pets, Profile and Diary with no trapped focus.
+- Evidence verifier: 48/48 runtime, 12/12 prototype, 8/8 supplemental and all integrity checks PASS.
+
+## Independent validation
+
+First read-only verdict: `FAIL` with five vetoes covering post-repair gap closure, missing supplemental visual states, incomplete keyboard/browser proof, incomplete A→logout→B session proof and premature readiness elevation. After repair, the fresh read-only validator returned `PASS` with `0` vetoes and confirmed the evidence package, focused tests, browser focus proof, session-switch flow and status-gate sequencing.
+
+## Integration readiness
+
+`READY_FOR_INTEGRATION`. `V50-OWNER-03` was not started.

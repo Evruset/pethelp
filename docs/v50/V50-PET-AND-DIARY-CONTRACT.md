@@ -1,6 +1,6 @@
 # V50 Pet Profile and Diary contract
 
-Status: `IMPLEMENTING`
+Status: `IMPLEMENTED / TESTED / VISUALLY_VERIFIED`
 
 Scope: `OWN-009` (`#pets`), `OWN-010` (`#pet-profile`), `OWN-011` (`#diary`).
 
@@ -51,6 +51,8 @@ Unknown document types remain metadata-only with a safe unavailable/download fal
 
 Explicit PDF open first retrieves bytes from the authenticated owner-scoped stream using the exact expected internal download path. Flutter then opens an `application/pdf` data payload in an external application. It never launches a backend-provided arbitrary URL, HTML/script MIME, storage key or permanent object URL. A rejected/expired stream remains a controlled session/document error and a later explicit open performs a fresh metadata/stream request.
 
+Owner deep links resolve `/owner/pets/:petId`, `/owner/pets/:petId/diary` and `/owner/pets/:petId/documents/:documentId` only after a fresh owner-scoped pet read. Foreign and unknown resources normalize to the same no-leak state. A session-generation fence replaces resolved content with a loader before any account switch request, so a previous owner's profile or document metadata cannot survive in the widget tree.
+
 ## Medical warnings
 
 The V50 profile may present only explicit existing fields: allergies, chronic conditions and vaccination notes. Each presentation identifies its source as profile data and uses semantic icon/text in addition to color. The client does not infer warnings from raw OCR or promote severity.
@@ -83,4 +85,12 @@ All are exact-true and default off. An invalid combination renders the complete 
 
 ## Residual product boundary
 
-The prototype contains health-dynamics charts and insurance/reminder concepts for which no authoritative bounded read contract exists. This slice must not fabricate them. Their omission remains a parity gap rather than a client-side estimate.
+The prototype contains health-dynamics charts and insurance/reminder concepts for which no authoritative bounded read contract exists. This slice does not fabricate them. Independent comparison treats their omission as a documented product boundary; the authoritative screen hierarchy, state behavior and responsive transformation are visually verified.
+
+## Closure evidence
+
+- Runtime repair: `c27e21f`; package: `v50-owner-02-c27e21f`.
+- Visual matrix: 48/48 PASS against 12/12 checksum-bound prototype anchors at four viewports.
+- PostgreSQL 16 migration fixtures: empty, active data, already archived, non-destructive down and repeated up PASS.
+- Ownership/session/document/focus acceptance matrix: PASS; no foreign metadata, MIME, status or bytes disclosed.
+- Feature flags remain exact-true/default-off, and disabling them returns the legacy route without schema rollback.

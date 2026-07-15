@@ -46,17 +46,14 @@ void main() {
               home: OwnerPetsPage(
             repository: repository,
             selectedPetId: _readyPet.id,
-            platformOverride: state == 'PETS_OFFLINE_STALE'
-                ? TargetPlatform.iOS
-                : TargetPlatform.android,
+            platformOverride: TargetPlatform.android,
+            staleMessage: state == 'PETS_OFFLINE_STALE'
+                ? 'Не удалось обновить список питомцев.'
+                : null,
+            onRetry: () {},
             onPetSelected: (_) {},
           )));
           await tester.pumpAndSettle();
-          if (state == 'PETS_OFFLINE_STALE') {
-            await tester.drag(
-                find.byType(CustomScrollView), const Offset(0, 300));
-            await tester.pumpAndSettle();
-          }
         } else if (state.startsWith('PROFILE_')) {
           final pet = state == 'PROFILE_WITH_WARNING' ? _warningPet : _readyPet;
           await tester.pumpWidget(MaterialApp(
@@ -69,15 +66,15 @@ void main() {
             onPetChanged: (_) {},
             onOpenDiary: () {},
             onArchiveResolved: (_) {},
+            initialStatusMessage: state == 'PROFILE_CONFLICT'
+                ? 'Профиль изменился. Показаны актуальные данные.'
+                : null,
           )));
           await tester.pumpAndSettle();
           if (state == 'PROFILE_EDIT') {
-            await tester.tap(find.byTooltip('Редактировать профиль'));
-            await tester.pumpAndSettle();
-          } else if (state == 'PROFILE_CONFLICT') {
-            await tester.tap(find.text('В архив'));
-            await tester.pumpAndSettle();
-            await tester.tap(find.widgetWithText(FilledButton, 'В архив'));
+            final action = find.byKey(const ValueKey('profile-edit-action'));
+            await tester.ensureVisible(action);
+            await tester.tap(action);
             await tester.pumpAndSettle();
           }
         } else {
@@ -89,7 +86,8 @@ void main() {
           )));
           await tester.pumpAndSettle();
           if (state == 'DIARY_DOCUMENT_PREVIEW') {
-            await tester.tap(find.text('Заключение врача'));
+            await tester.tap(find.byKey(const ValueKey(
+                'diary-document-action-22222222-2222-4222-8222-222222222222')));
             await tester.pumpAndSettle();
           }
         }

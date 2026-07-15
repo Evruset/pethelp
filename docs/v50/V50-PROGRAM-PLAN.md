@@ -41,7 +41,7 @@ Program state: V50 migration in progress
 
 ## Logical chat map
 
-Completed contexts: `BASELINE-01`, `BASELINE-02`, `V50-SHELL-01`, `V50-OWNER-01`; `V50-OWNER-02` is implemented/tested and now has a complete diagnostic evidence matrix, but comparison failed visual hierarchy and it remains blocked from integration. `V50-OWNER-03` stays inactive until that gate closes.
+Completed contexts: `BASELINE-01`, `BASELINE-02`, `V50-SHELL-01`, `V50-OWNER-01`, `V50-OWNER-02`. The Owner pets slice passed functional, migration, accessibility, 48/48 visual and independent validation gates and is ready for integration. `V50-OWNER-03` remains inactive in this session.
 
 ## Program rules
 

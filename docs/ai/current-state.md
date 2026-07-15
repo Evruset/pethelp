@@ -1,14 +1,14 @@
 # V50 program current state
 
-Updated: 2026-07-14
+Updated: 2026-07-15
 
 ## Program status
 
 - `BASELINE-02`: `COMPLETE`, committed as `22da293`.
 - `V50-SHELL-01`: `COMPLETE / INTEGRATED` at `1c58ad6`.
 - `V50-OWNER-01`: `COMPLETE / INTEGRATED` at `2077b00`.
-- `V50-OWNER-02`: `PARTIALLY_COMPLETED / CLOSEOUT_EVIDENCE_FAILED_VISUAL_PARITY`.
-- Integration status: `NOT_READY_FOR_INTEGRATION`.
+- `V50-OWNER-02`: `COMPLETE / READY_FOR_INTEGRATION`.
+- Integration status: `READY_FOR_INTEGRATION`.
 - Canonical target: `V50`; source: `prototype-v50/index.html`; manifest SHA-256: `245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42`.
 - Branch/worktree: `agent/v50-owner-02` / `/Users/evrusetskiy/work/pethelp-alpha-v50-owner-02`.
 - Root worktree still contains protected user changes in `.codex/ACTIVE_MODE` and `.codex/config.toml`; this worktree does not modify them.
@@ -30,7 +30,7 @@ Updated: 2026-07-14
 - Portal typecheck/build: PASS; focused Playwright: PASS 14/14; final full Portal E2E: PASS 95/95.
 - Visual shell evidence: PASS for Owner `375x812`, `412x915`, `768x1024`, `1440x900`; Portal `375x812`, `768x1024`, `1440x900`, `1920x1080`, plus loading, error/retry, session-missing/forbidden, reduced-motion and 200% text-scale evidence.
 - Evidence location outside Git: `/tmp/v50-shell-evidence/`.
-- Visual scope: shell PASS only. Business-screen content remains not visually verified; parity remains `0/30 VISUALLY_VERIFIED`.
+- Business-content visual counter is `3/30 VISUALLY_VERIFIED` after the V50-OWNER-02 independent validator passed.
 - Backend tests were not run because backend code did not change.
 - Independent repair review: PASS; no remaining vetoes.
 
@@ -58,15 +58,19 @@ Updated: 2026-07-14
 - Safety: stale/foreign pet hints fall back without disclosure; history telemed safety flags cannot outrank active care; unknown action codes use a non-crashing appointments fallback; offline snapshots suppress authoritative actions; Home-level 401 clears retained owner state and moves the shell to session-expired.
 - Validation: backend focused specs PASS 9/9 before repair and PASS 9/9 after repair; Flutter affected Home/shell PASS 16/16; analyze PASS; full Flutter PASS 164/164; flagged Owner web build PASS; independent post-repair validator PASS with no vetoes.
 - Durable evidence: 10 checksum-bound artifacts at `/Users/evrusetskiy/docs/ai/evidence/V50-OWNER-01/` cover `375x812`, `412x915`, `768x1024`, `1440x900`, ready/attention, no active care, no pets, loading, retryable error, offline/stale, 200% text and reduced motion.
-- Parity boundary: the bounded care-hub behavior, responsive layout and required states are implemented/tested. The complete prototype Home still includes content outside this slice, and the evidence is not a side-by-side prototype acceptance; `OWN-001` remains partial and the program stays `0/30 VISUALLY_VERIFIED`.
+- Parity boundary: the bounded care-hub behavior, responsive layout and required states are implemented/tested. The complete prototype Home still includes content outside this slice, and the evidence is not a side-by-side prototype acceptance; `OWN-001` remains partial. At V50-OWNER-01 closure the program counter was `0/30`; the current counter is recorded in the V50-OWNER-02 closure below.
 - Environment note: after a pre-repair Docker backend PASS, a later independent Docker rerun was blocked before Jest by npm `spawn EINVAL`; the post-repair service spec nevertheless passed 9/9 in the implementer harness, and the independent validator accepted the repaired logic with this residual reproducibility note.
+
+## Completed Owner pets slice
+
+`V50-OWNER-02 / Pets, Pet Profile and Pet Diary` is complete and ready for integration. Runtime repair `c27e21f` corrects the shared visual frame, responsive Pets/Profile/Diary hierarchy, explicit exceptional states, owner-scoped deep links, session fencing, secure document retry and keyboard focus behavior. Default-off feature flags remain the rollback boundary.
+
+Fresh package `v50-owner-02-c27e21f` contains 48/48 runtime screenshots, 12/12 authoritative prototype references and 8/8 supplemental acceptance-state browser screenshots. Package SHA-256 is `bdf429f2e95a8da51bcd2ee2030eda23bf5c7b43456e7fc72df763ac375a9e8f`. Comparisons and independent validation are PASS, so `OWN-009..OWN-011` are `IMPLEMENTED / TESTED / VISUALLY_VERIFIED` and the program counter is `3/30 VISUALLY_VERIFIED`.
+
+Acceptance closure passes field-specific Profile validation/draft preservation, archived/not-found/session/offline Profile states, owned/archived/foreign/unknown deep links, account-switch no-leak fencing, archived/network/foreign document states and automated keyboard focus. Browser/CDP traversal reaches 11/12/15 unique Pets/Profile/Diary targets without a consecutive trap. PostgreSQL 16 migration fixtures pass empty, active-data, already-archived, rollback-retention and repeated-run cases. Focused backend is 34/34, Flutter focused is 71/71, full Flutter is 235/235, analyze/builds pass. Independent read-only validation is PASS with zero vetoes.
 
 ## Next slice
 
-`V50-OWNER-02 / Pets, Pet Profile and Pet Diary` is implemented and tested but not integration-ready. Closeout produced 48 deterministic runtime screenshots and 12 prototype references at four viewports. Structured comparison failed all three screen-level visual gates because runtime hierarchy is materially narrower than `#pets`, `#pet-profile` and `#diary`; the program visual counter remains `0/30`.
-
-Closeout repair `e7a56b1` adds authenticated PDF byte retrieval/opening, exact-path and unknown-MIME protections, controlled 401 handling, and a real stale-list refresh path. Backend closeout tests cover additive/repeatable migration SQL, forward-only rollback, archived read-only history, normalized foreign Diary/document access and persisted document-state mapping.
-
-Independent closeout validation: `FAIL`, vetoes `2`. Evidence integrity/security/rollback pass, but visual hierarchy fails all three IDs and the required real-database migration plus Profile/deep-link/document-state matrix remains incomplete. Integration status stays `NOT_READY_FOR_INTEGRATION`.
+The next permitted slice is `V50-OWNER-03 / Clinic Catalog, Clinic Detail and Doctor Discovery`. It was not started in this session.
 
 The Owner Home backend reproduction gate is `PASS`: after canonical Compose recreated its dependency volume, Jest ran 4 focused suites and passed; the final combined Owner pets/Home run passed 23/23 tests. Resolution evidence is recorded in `docs/ai/tooling-debt/V50-OWNER-01-backend-spawn-einval.md`.

@@ -7,14 +7,14 @@
     "OWN-011"
   ],
   "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
-  "runtimeCommit": "e7a56b1",
+  "runtimeCommit": "c27e21f",
   "artifactStorage": "LOCAL_PACKAGE",
-  "artifactPackageId": "v50-owner-02-5418a36",
-  "artifactPackageSha256": "2f335833d131a6d710fd0ee1f7ee47a7e4ae8d792da46469924ffc35ddc91c39",
-  "localPathHint": "/Users/evrusetskiy/docs/ai/evidence/V50-OWNER-02",
-  "createdAt": "2026-07-14",
-  "result": "FAIL_VISUAL_PARITY",
-  "visuallyVerified": false,
+  "artifactPackageId": "v50-owner-02-c27e21f",
+  "artifactPackageSha256": "bdf429f2e95a8da51bcd2ee2030eda23bf5c7b43456e7fc72df763ac375a9e8f",
+  "localPathHint": "/Users/evrusetskiy/docs/ai/evidence/V50-OWNER-02-c27e21f",
+  "createdAt": "2026-07-15",
+  "result": "PASS_VISUAL_PARITY",
+  "visuallyVerified": true,
   "runtimeArtifactCount": 48,
   "prototypeReferenceCount": 12,
   "viewports": [
@@ -45,8 +45,8 @@
       "viewport": "1440x900",
       "state": "DIARY_DOCUMENT_PREVIEW",
       "artifactLogicalPath": "V50-OWNER-02/diary/1440x900/DIARY_DOCUMENT_PREVIEW.png",
-      "sha256": "343bacd227dd3344dff6e1a8a604201c66dc7ee9f88a0eaa9435f05c7bb5a795",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "f69b2734983ca494cf81b50e34aa1ec85ca270f37cee7eefe360d2b0f45ce535",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
       ]
@@ -58,8 +58,8 @@
       "viewport": "1440x900",
       "state": "DIARY_EMPTY",
       "artifactLogicalPath": "V50-OWNER-02/diary/1440x900/DIARY_EMPTY.png",
-      "sha256": "554f029a653dc2eea716aa072013c3abf3abc76ae8f601187f83abce8d910c98",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "2d2f6115a5579d8f50df1e356df08fe6b3eb1330e8c86d77bccd0d60d0867f61",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
       ]
@@ -71,8 +71,8 @@
       "viewport": "1440x900",
       "state": "DIARY_PROCESSING",
       "artifactLogicalPath": "V50-OWNER-02/diary/1440x900/DIARY_PROCESSING.png",
-      "sha256": "919bd424768dfe1469d886baf34eee436b90028d59d93c116c66bbda13b82b72",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "bcc0569f495ca2d950c78aa5d97c5e49f6d9e9fe46862d67abb4dc57a43a266f",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
       ]
@@ -84,8 +84,8 @@
       "viewport": "1440x900",
       "state": "DIARY_READY",
       "artifactLogicalPath": "V50-OWNER-02/diary/1440x900/DIARY_READY.png",
-      "sha256": "ba35b2a6372207ce25653acbd0de22b80b20f76ee5bbdcde6e990a0ad83fd3f8",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "df331d2fedf2d44e6abc46a0be6b1768a7ead7e7d3b4c37f354e1ec7ad3d580f",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
       ]
@@ -97,8 +97,8 @@
       "viewport": "1440x900",
       "state": "DIARY_REVIEW_REQUIRED",
       "artifactLogicalPath": "V50-OWNER-02/diary/1440x900/DIARY_REVIEW_REQUIRED.png",
-      "sha256": "f7bfca2b6a1d6653a23c963a509f74a911431ecb86af068ce554a6ac80e21ee3",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "d6535f3231db81b0f62772399a16aa5d5e3a587a604c588860c83ae65c4db46b",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
       ]
@@ -110,8 +110,8 @@
       "viewport": "375x812",
       "state": "DIARY_DOCUMENT_PREVIEW",
       "artifactLogicalPath": "V50-OWNER-02/diary/375x812/DIARY_DOCUMENT_PREVIEW.png",
-      "sha256": "b077025d7394a8138225513687214e74bc61e18dec122fbcc1c219442cd0b1da",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "0bb35c50cc5bae5693ace3ab7b758a7b1a7b3abe43df73539ca855c87ecaa11e",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
       ]
@@ -123,8 +123,8 @@
       "viewport": "375x812",
       "state": "DIARY_EMPTY",
       "artifactLogicalPath": "V50-OWNER-02/diary/375x812/DIARY_EMPTY.png",
-      "sha256": "301b99b598c47a024b3d209dd483aedf23d5be7ab1a5d2ec6eb619eda553b381",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "9a425c5760c70d98c3fd13e2e82b8f15d856dc095e31a30a8e678adb41e23d06",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
       ]
@@ -136,8 +136,8 @@
       "viewport": "375x812",
       "state": "DIARY_PROCESSING",
       "artifactLogicalPath": "V50-OWNER-02/diary/375x812/DIARY_PROCESSING.png",
-      "sha256": "109afbdcd8da7d25968c6646f1b9ccf24770c9d95c1b8ee2bb0cef70c8165f33",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "2689ddf7eee06d5d3d0b25267eb58f92d596c66154e22b5ef8f85e419f2f1c88",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
       ]
@@ -149,8 +149,8 @@
       "viewport": "375x812",
       "state": "DIARY_READY",
       "artifactLogicalPath": "V50-OWNER-02/diary/375x812/DIARY_READY.png",
-      "sha256": "7656b94e7582dc6fd62dfc1483acb1c21f66706fe127f5b2aa7bd8d3f72e7344",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "4b20db876c3364ee2856a47c59cc3dd3db65606bbbda7508e7a5297e439e32ac",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
       ]
@@ -162,8 +162,8 @@
       "viewport": "375x812",
       "state": "DIARY_REVIEW_REQUIRED",
       "artifactLogicalPath": "V50-OWNER-02/diary/375x812/DIARY_REVIEW_REQUIRED.png",
-      "sha256": "46de6d0a3cdec4adb9a07f42fc099f1d7e53a7d1732c11e2c0ade79543e62738",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "a1abca8da0177597b9ea09df84e1972ca254db734d822d2e436037d17dee6e75",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
       ]
@@ -175,8 +175,8 @@
       "viewport": "412x915",
       "state": "DIARY_DOCUMENT_PREVIEW",
       "artifactLogicalPath": "V50-OWNER-02/diary/412x915/DIARY_DOCUMENT_PREVIEW.png",
-      "sha256": "ee02b9d563b7ad677daf937c5be7505583b984c3cfdd4a830d5e1c63d5c8bc6c",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "ef1533f4cf9c390aa6cb5f9421ba645b71440d355a77367ec46bbcb4d32b2a0a",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
       ]
@@ -188,8 +188,8 @@
       "viewport": "412x915",
       "state": "DIARY_EMPTY",
       "artifactLogicalPath": "V50-OWNER-02/diary/412x915/DIARY_EMPTY.png",
-      "sha256": "f8dd2c03958ac548eb3513dfb0b01f751b31b14a269ce4993f56afb709d490ca",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "7700ce8a4ce1eb31cbba12d4a912bbee7848310963c2aa1fa1fbed34f59a3055",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
       ]
@@ -201,8 +201,8 @@
       "viewport": "412x915",
       "state": "DIARY_PROCESSING",
       "artifactLogicalPath": "V50-OWNER-02/diary/412x915/DIARY_PROCESSING.png",
-      "sha256": "039710c19bd0e7f3bc146a0bd50e27e331c0d17d09889cc20521377c9ac0b8ad",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "0a1e225c9a52f875e215f5d0cf9501c8581a54ea935507ef8905892d1f7f02c3",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
       ]
@@ -214,8 +214,8 @@
       "viewport": "412x915",
       "state": "DIARY_READY",
       "artifactLogicalPath": "V50-OWNER-02/diary/412x915/DIARY_READY.png",
-      "sha256": "3abc2204d84e13a9b32e105e7ddd42a444445b438195a1c74ff8794e61a76acd",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "786dbb44f8b7d83d8c1d5be46cc5dc04ae26bb5a570aa8db5ee0298be59e25a5",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
       ]
@@ -227,8 +227,8 @@
       "viewport": "412x915",
       "state": "DIARY_REVIEW_REQUIRED",
       "artifactLogicalPath": "V50-OWNER-02/diary/412x915/DIARY_REVIEW_REQUIRED.png",
-      "sha256": "72087cddb0bd0b391d7cc49923b6d014e221d0c8ede8c2153deea8914d28c076",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "497d8113ec8f5b9fab23ccb92b01b5971daa5ee7835c2df94274661ca5e2033f",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
       ]
@@ -240,8 +240,8 @@
       "viewport": "768x1024",
       "state": "DIARY_DOCUMENT_PREVIEW",
       "artifactLogicalPath": "V50-OWNER-02/diary/768x1024/DIARY_DOCUMENT_PREVIEW.png",
-      "sha256": "f533084aa67fee37059440d69086a4b53586f2d0b6756089228917802d0d3fd3",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "99630c18f62d36a95bbfe0fb5d0575f07a2a2a820dd42758003b28e6fc705a16",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
       ]
@@ -253,8 +253,8 @@
       "viewport": "768x1024",
       "state": "DIARY_EMPTY",
       "artifactLogicalPath": "V50-OWNER-02/diary/768x1024/DIARY_EMPTY.png",
-      "sha256": "5eb6ecabe57ba5b2eeab796e39bf6ae53c59d9583545dcb5a89644eacad12dca",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "420b5b9f3000d7e5efc2e4daf82398c9a319a0a8fea0e73613b3567cebe37c6f",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
       ]
@@ -266,8 +266,8 @@
       "viewport": "768x1024",
       "state": "DIARY_PROCESSING",
       "artifactLogicalPath": "V50-OWNER-02/diary/768x1024/DIARY_PROCESSING.png",
-      "sha256": "b059addd1e95dee9f11019f57a0a470777d6240439600e33730dd5ea777bc588",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "a0b3af552b3a3b0673ea90b8a78b8ca55aa69d4e04e1bf9a06feb32276c7664c",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
       ]
@@ -279,8 +279,8 @@
       "viewport": "768x1024",
       "state": "DIARY_READY",
       "artifactLogicalPath": "V50-OWNER-02/diary/768x1024/DIARY_READY.png",
-      "sha256": "5f6b9ff3d974b2cc9f664539b1eecfbdb21419c76b7c170291714ee7e41f091f",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "b49fdd3e0139c1ccf762bcc4ffaa791378f26dc9e17bb48e469baa39751ac0c5",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
       ]
@@ -292,8 +292,8 @@
       "viewport": "768x1024",
       "state": "DIARY_REVIEW_REQUIRED",
       "artifactLogicalPath": "V50-OWNER-02/diary/768x1024/DIARY_REVIEW_REQUIRED.png",
-      "sha256": "69a8bfd285bbc93d62f70bb4ac3e1cefe6fe2f9b2a3fe8d075fc9a16323caded",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "d393d6bded9374134512992788fbf5a9ad9344f7baf00f143a577d7f2f917eb3",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
       ]
@@ -305,8 +305,8 @@
       "viewport": "1440x900",
       "state": "PETS_EMPTY",
       "artifactLogicalPath": "V50-OWNER-02/pets/1440x900/PETS_EMPTY.png",
-      "sha256": "572f295490b7084fc0a8839bbfe28c84fd31693b97906b7f0d78e05199e70168",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "6a22038dcbef26d4877d70c0b52f8963eb87e2691bd46dca07ece7be09f4545c",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
       ]
@@ -318,8 +318,8 @@
       "viewport": "1440x900",
       "state": "PETS_OFFLINE_STALE",
       "artifactLogicalPath": "V50-OWNER-02/pets/1440x900/PETS_OFFLINE_STALE.png",
-      "sha256": "6a24b005af640ca0451518321cf7c11dd0eecac93c6a86f82ff4975ef525757d",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "c2b1198cfefe7c79711cbf133b3cd335243ece2b06ce41abfb34ba618d283150",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
       ]
@@ -331,8 +331,8 @@
       "viewport": "1440x900",
       "state": "PETS_READY",
       "artifactLogicalPath": "V50-OWNER-02/pets/1440x900/PETS_READY.png",
-      "sha256": "44a5b054f51595491228271e839e8a0efa3c6f31d22dacb4c30e9d950d239c7b",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "b488e0e0d77299a65609558b034fcac4826f3aaead157cb049a0b1002884d2be",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
       ]
@@ -344,8 +344,8 @@
       "viewport": "375x812",
       "state": "PETS_EMPTY",
       "artifactLogicalPath": "V50-OWNER-02/pets/375x812/PETS_EMPTY.png",
-      "sha256": "235e23acbca15211e2f4893a6eb7e88365d08dfd5e81f6b8adb75e735079cfbb",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "71620f84c885291af9daa510c264f9c83e5632d27381b034f97c3a0e5d6f31f2",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
       ]
@@ -357,8 +357,8 @@
       "viewport": "375x812",
       "state": "PETS_OFFLINE_STALE",
       "artifactLogicalPath": "V50-OWNER-02/pets/375x812/PETS_OFFLINE_STALE.png",
-      "sha256": "303e162ad90b59d3fb86f2c03e988839b4269b8d974fcf96babccee7bba45a79",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "024a2c5bea84a6820c563e424303b4a3ac5fef418a88f328c9162dca0a70a08f",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
       ]
@@ -370,8 +370,8 @@
       "viewport": "375x812",
       "state": "PETS_READY",
       "artifactLogicalPath": "V50-OWNER-02/pets/375x812/PETS_READY.png",
-      "sha256": "3d929e4b131a22af166f34268af532c1fdb096bc2e176d6d7a274e8fea7325c7",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "d578bc2fd5b53b4d7838f091b5a4758a474af4884783bd10ac86acdce8ded92e",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
       ]
@@ -383,8 +383,8 @@
       "viewport": "412x915",
       "state": "PETS_EMPTY",
       "artifactLogicalPath": "V50-OWNER-02/pets/412x915/PETS_EMPTY.png",
-      "sha256": "fdd817807016c0bda13f573d7f4dbe493a863f5d86857238eb96b4286c92f88e",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "41893e33a1379e5aba351ad22aa895928f190a74b01324eebd1ebf10cd4b7db4",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
       ]
@@ -396,8 +396,8 @@
       "viewport": "412x915",
       "state": "PETS_OFFLINE_STALE",
       "artifactLogicalPath": "V50-OWNER-02/pets/412x915/PETS_OFFLINE_STALE.png",
-      "sha256": "0d5595ac23583427b7c7a53659f14f1f2ed436b7499b27ebd4ea68d46ef169a2",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "a72350877f6506ec706c919c9a6185203b923103134695da320abdfbd47b8303",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
       ]
@@ -409,8 +409,8 @@
       "viewport": "412x915",
       "state": "PETS_READY",
       "artifactLogicalPath": "V50-OWNER-02/pets/412x915/PETS_READY.png",
-      "sha256": "7be1e505f734cd85f5678137b5da6cd21594e4feb77f3719c7781d64e6a5863a",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "a661a5004dcf177bd653c279da2e6b56bf352e68082332f9f2f2f17e24b52bc1",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
       ]
@@ -422,8 +422,8 @@
       "viewport": "768x1024",
       "state": "PETS_EMPTY",
       "artifactLogicalPath": "V50-OWNER-02/pets/768x1024/PETS_EMPTY.png",
-      "sha256": "3dc5e65523368e945ac0b12753d7d3cf69af340d38348a8cb892dd16b5dd4311",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "1eab8f86089fb8d235e21537f145d121a6e67d9a3b081f528c8c0669421ecaf1",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
       ]
@@ -435,8 +435,8 @@
       "viewport": "768x1024",
       "state": "PETS_OFFLINE_STALE",
       "artifactLogicalPath": "V50-OWNER-02/pets/768x1024/PETS_OFFLINE_STALE.png",
-      "sha256": "257e144c4130c415f811953e8a012a2f660f36c4748c8dc285c7be571cb1a838",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "7ec2425edad373a9dc2fa49eccbb359a7ad090664694f4dc5b766565610cade3",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
       ]
@@ -448,8 +448,8 @@
       "viewport": "768x1024",
       "state": "PETS_READY",
       "artifactLogicalPath": "V50-OWNER-02/pets/768x1024/PETS_READY.png",
-      "sha256": "fd12de0bd6018474dd9108e08809f0a75082c31cb83dbf25b3014352d708c3a5",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "7a241f3f75b3f789e8c33141948ed03852f07a5a84a7e6bb2bc59520399f4083",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list."
       ]
@@ -461,8 +461,8 @@
       "viewport": "1440x900",
       "state": "PROFILE_CONFLICT",
       "artifactLogicalPath": "V50-OWNER-02/profile/1440x900/PROFILE_CONFLICT.png",
-      "sha256": "1535672ff19db5add2d44520587ba978f9d439faf6b69f0c6f84f0ab98ec9591",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "2a0ffd4348d1a3196012eb024178057ecf8be1f0498a3dad9183c18d1a2e2347",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
       ]
@@ -474,8 +474,8 @@
       "viewport": "1440x900",
       "state": "PROFILE_EDIT",
       "artifactLogicalPath": "V50-OWNER-02/profile/1440x900/PROFILE_EDIT.png",
-      "sha256": "fcfbc37b90c29a181ccfda6db07bf4147d5e595ecb9f547f95a12acb61cbf137",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "54c4260b97058f6b796bf2f103b554c5d14c62d7647618efecf74b9c6a067f7d",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
       ]
@@ -487,8 +487,8 @@
       "viewport": "1440x900",
       "state": "PROFILE_READY",
       "artifactLogicalPath": "V50-OWNER-02/profile/1440x900/PROFILE_READY.png",
-      "sha256": "b573ad75b672d9f6a414237767e9872fabc3fbf8af836bb6f8e7aac6c3d27626",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "a307725bcce5e7fa74a5a2f593de91475ab7d38f1a6a9c93246eb6427bce144a",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
       ]
@@ -500,8 +500,8 @@
       "viewport": "1440x900",
       "state": "PROFILE_WITH_WARNING",
       "artifactLogicalPath": "V50-OWNER-02/profile/1440x900/PROFILE_WITH_WARNING.png",
-      "sha256": "5c25f4320a98595eca22c4e6e85a450bcd8f80b25ad6f06cacc95a4732f88e93",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "c298d4668816add3ec9d93c01d8cff05d0d53baa11f0adcb9d503f5497a8445e",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
       ]
@@ -513,8 +513,8 @@
       "viewport": "375x812",
       "state": "PROFILE_CONFLICT",
       "artifactLogicalPath": "V50-OWNER-02/profile/375x812/PROFILE_CONFLICT.png",
-      "sha256": "e4e8435e4bdb5a7420cce1e65d8c1d8252a0102617ff69e170fdc143cf808241",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "38b93756f15a61cf1bd331633a0d6c2ae865fe1794e3db713a799cf8e56f5c6a",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
       ]
@@ -526,8 +526,8 @@
       "viewport": "375x812",
       "state": "PROFILE_EDIT",
       "artifactLogicalPath": "V50-OWNER-02/profile/375x812/PROFILE_EDIT.png",
-      "sha256": "3bf2d5f7b3b058669173be9a31372029fb568c554d02f5825b4bf2b11d440617",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "897b16f5660fb6f4691e9025562572a4794c7fe735d86445144fe2751055f8dc",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
       ]
@@ -539,8 +539,8 @@
       "viewport": "375x812",
       "state": "PROFILE_READY",
       "artifactLogicalPath": "V50-OWNER-02/profile/375x812/PROFILE_READY.png",
-      "sha256": "4afee9fa7729cde7416afde28f0e10a2f12ebadf64a6a7db60638bad875c9a06",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "82fb9c3b769981a3328f6cf1afe56e19c9c818e6738cb57e8696994a9ebc621e",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
       ]
@@ -552,8 +552,8 @@
       "viewport": "375x812",
       "state": "PROFILE_WITH_WARNING",
       "artifactLogicalPath": "V50-OWNER-02/profile/375x812/PROFILE_WITH_WARNING.png",
-      "sha256": "b7f4629eb0fca62955a66bd76e6a29057ef8ef55bcac1415efd0180d1600af59",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "7f97c1a82b5888ee16900f88610669ec082e0fb5d148746a701188741b668418",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
       ]
@@ -565,8 +565,8 @@
       "viewport": "412x915",
       "state": "PROFILE_CONFLICT",
       "artifactLogicalPath": "V50-OWNER-02/profile/412x915/PROFILE_CONFLICT.png",
-      "sha256": "3971080f17cb37a637155a760e58dedf8fd5f8751f8164f9e9533d6c7c75ab2f",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "8c9e765e484e4ca41e41d45096f0fd74f5463c61d451c8262de8ddc4a35b7361",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
       ]
@@ -578,8 +578,8 @@
       "viewport": "412x915",
       "state": "PROFILE_EDIT",
       "artifactLogicalPath": "V50-OWNER-02/profile/412x915/PROFILE_EDIT.png",
-      "sha256": "c5e98de5c6f88872e9786e80a13f0d2850cda7d57ee6cb55d91f555c73c88300",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "19921677260fdf048aace7ee351752240e1caebb8e59ebd4109a3a48f2fda560",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
       ]
@@ -591,8 +591,8 @@
       "viewport": "412x915",
       "state": "PROFILE_READY",
       "artifactLogicalPath": "V50-OWNER-02/profile/412x915/PROFILE_READY.png",
-      "sha256": "3b125e33313a88e0e39f2815bfd347ce10743c3ab6169e06831e54ed43f73531",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "c0bd200b9993dfaccfa794e96a3901b557e65945921e421e221a6d1ac9eb1dde",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
       ]
@@ -604,8 +604,8 @@
       "viewport": "412x915",
       "state": "PROFILE_WITH_WARNING",
       "artifactLogicalPath": "V50-OWNER-02/profile/412x915/PROFILE_WITH_WARNING.png",
-      "sha256": "33f3f09e8ebf23ee63c943ca7eaf9c3f86102bfd92d31acc17cabf106e093611",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "c1b298018d2ab7361bc407b7571429966c830b1f5ec991c903dc04a8ee09bce1",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
       ]
@@ -617,8 +617,8 @@
       "viewport": "768x1024",
       "state": "PROFILE_CONFLICT",
       "artifactLogicalPath": "V50-OWNER-02/profile/768x1024/PROFILE_CONFLICT.png",
-      "sha256": "9f45637c1a88067e6c17abe3bcbbeced5b1c1c57f992ab3a5a3a213a5198e5a1",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "33dba0ee02b1ebfe3ff99ddab6a96c795e0fcbc2bc5b976a97539386d0944f19",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
       ]
@@ -630,8 +630,8 @@
       "viewport": "768x1024",
       "state": "PROFILE_EDIT",
       "artifactLogicalPath": "V50-OWNER-02/profile/768x1024/PROFILE_EDIT.png",
-      "sha256": "105dd69c9156f564317665afefabd27dd25f372e120752cda0f4452d7ba73c83",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "a8bd22fc8950052b14ec3fc3caa6660e4d209e20da065cd2c8ebb6f5f0e75592",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
       ]
@@ -643,8 +643,8 @@
       "viewport": "768x1024",
       "state": "PROFILE_READY",
       "artifactLogicalPath": "V50-OWNER-02/profile/768x1024/PROFILE_READY.png",
-      "sha256": "070c6fa978935d46a780ac12b8d340517082b2c13d15223c9ea13f94ed9c4e86",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "48e5da6cb2aa1da29097cc879fbdf2ab661e02fd254dcb3341c644ff9edfcc65",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
       ]
@@ -656,8 +656,8 @@
       "viewport": "768x1024",
       "state": "PROFILE_WITH_WARNING",
       "artifactLogicalPath": "V50-OWNER-02/profile/768x1024/PROFILE_WITH_WARNING.png",
-      "sha256": "d5ddf9d76b168b6647821a9c7155f7de929f2eb55cc10179778ff1ee8c421737",
-      "comparisonResult": "FAIL_VISUAL_HIERARCHY",
+      "sha256": "3425b6637e0016e59fde6276bce048f67bc797594036d2745b549d4aa50941c1",
+      "comparisonResult": "PASS",
       "knownDifferences": [
         "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only."
       ]
@@ -766,11 +766,79 @@
     "reducedMotion": "PASS_WIDGET_TEST",
     "finiteConstraints": "PASS_WIDGET_TEST",
     "horizontalOverflow": "PASS_WIDGET_TEST",
-    "keyboardFocusWeb": "NOT_AUTOMATED"
+    "keyboardFocusWeb": "PASS_WIDGET_ACTIONS_AND_BROWSER_CDP_NO_TRAPS"
   },
   "knownDifferences": [
     "Prototype has title, three media-rich pets, insurance and current-care sections; runtime bounded slice has an owner-scoped selected-pet management list.",
     "Prototype has hero media and broader grouped prevention/insurance/care sections; runtime shows authoritative editable profile fields and sourced warnings only.",
     "Prototype includes lab dynamics and reminder concepts without a bounded backend contract; runtime shows only server-authoritative visits, telemed and documents."
-  ]
+  ],
+  "acceptanceCoverage": {
+    "profileStates": "PASS",
+    "deepLinkOwnership": "PASS",
+    "sessionSwitchFence": "PASS_A_LOGOUT_B_REVALIDATION",
+    "realMigrationFixtures": "PASS_POSTGRESQL_16",
+    "documentFailureStates": "PASS",
+    "supplementalStateScreenshots": "PASS_8_OF_8_AT_375x812",
+    "keyboardFocus": "PASS_WIDGET_ACTIONS_AND_BROWSER_CDP_NO_TRAPS"
+  },
+  "supplementalArtifacts": [
+    {
+      "state": "PROFILE_VALIDATION_ERROR",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-02/supplemental/375x812/PROFILE_VALIDATION_ERROR.png",
+      "sha256": "48b6bc6c08b1402d2cd077e0c1fcddba0f959237f89af096b3895e81d10bb184",
+      "result": "PASS_BROWSER_SCREENSHOT"
+    },
+    {
+      "state": "PROFILE_ARCHIVED",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-02/supplemental/375x812/PROFILE_ARCHIVED.png",
+      "sha256": "d0bdacb391e36ce5fcb630d0ba55cea4559ad9b601f33195c6d96562ecd13623",
+      "result": "PASS_BROWSER_SCREENSHOT"
+    },
+    {
+      "state": "PROFILE_NOT_FOUND",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-02/supplemental/375x812/PROFILE_NOT_FOUND.png",
+      "sha256": "703ce644d9fe21222c02f195eafc1ab011c6b4d467c0522b9b427dd23a85f9a1",
+      "result": "PASS_BROWSER_SCREENSHOT"
+    },
+    {
+      "state": "PROFILE_SESSION_EXPIRED",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-02/supplemental/375x812/PROFILE_SESSION_EXPIRED.png",
+      "sha256": "7a848fde743b9a395c877e064690b608fc05747d9c9692d403fcb3e7bc0329a3",
+      "result": "PASS_BROWSER_SCREENSHOT"
+    },
+    {
+      "state": "PROFILE_OFFLINE_STALE",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-02/supplemental/375x812/PROFILE_OFFLINE_STALE.png",
+      "sha256": "e01eeea4f5f7559c2b170caef59bd8e87642d8b9b7e9334d8111b74072e3cdd1",
+      "result": "PASS_BROWSER_SCREENSHOT"
+    },
+    {
+      "state": "DOCUMENT_ARCHIVED",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-02/supplemental/375x812/DOCUMENT_ARCHIVED.png",
+      "sha256": "551774bb4a669747a2692218ff04a1b80e451b1ac3aa2f6010de24c4a95a9d32",
+      "result": "PASS_BROWSER_SCREENSHOT"
+    },
+    {
+      "state": "DOCUMENT_NETWORK_FAILURE",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-02/supplemental/375x812/DOCUMENT_NETWORK_FAILURE.png",
+      "sha256": "b7ef84ec9faaed7021de544eb28e92d10a1b0e2dd3e5cb0a3118a2b0a145f6e7",
+      "result": "PASS_BROWSER_SCREENSHOT"
+    },
+    {
+      "state": "DOCUMENT_FOREIGN",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-02/supplemental/375x812/DOCUMENT_FOREIGN.png",
+      "sha256": "703ce644d9fe21222c02f195eafc1ab011c6b4d467c0522b9b427dd23a85f9a1",
+      "result": "PASS_BROWSER_SCREENSHOT"
+    }
+  ],
+  "supplementalArtifactCount": 8
 }

@@ -56,7 +56,7 @@ Evidence package inspected: `v50-owner-02-5418a36`, package SHA-256 `2f335833d13
 | `DIARY_REVIEW_REQUIRED` | all four viewports | If and only if persisted backend state exists, review-required is visually explicit without implying verified clinical content. | Text is embedded in the generic subtitle; existing fixture fabricates the state despite the contract reserving it for persisted data. | Evidence repository, `_DiaryEventCard` | Harness-local contract mismatch plus local status presentation | VETO: `STATUS_PRESENTATION`, `SURFACE_SEMANTICS` | Keep the UI renderer for a real persisted state, but make evidence deterministic and explicitly contract-backed; never infer it from OCR confidence. |
 | `DIARY_DOCUMENT_PREVIEW` | all four viewports | Trigger remains in a differentiated document row; modal shows safe metadata/actions, has logical focus order, and returns focus to the trigger. | Generic Material dialog is detached from hierarchy; no automated focus-return proof; document action styling competes with close. | `_DiaryEventCard`, `_openDocument`, evidence preview wrapper | Local modal/action hierarchy and missing focus harness | VETO/MAJOR: `PRIMARY_CTA`, `FOCUS_ACCESSIBILITY`, `SURFACE_SEMANTICS` | Use a focused preview surface with metadata first, safe primary open only for authenticated bytes, secondary close, retry on network failure, and explicit focus return. |
 
-## Representative gate before full regeneration
+## Pre-repair representative gate
 
 The current six artifacts are a confirmed structural FAIL, not a pixel variance:
 
@@ -69,4 +69,19 @@ The current six artifacts are a confirmed structural FAIL, not a pixel variance:
 | `OWN-010` | `V50-OWNER-02/prototype/profile/1440x900.png` | `V50-OWNER-02/profile/1440x900/PROFILE_READY.png` | `FAIL_VISUAL_HIERARCHY` | Bounded media/details columns must replace the stretched mobile controls. |
 | `OWN-011` | `V50-OWNER-02/prototype/diary/1440x900.png` | `V50-OWNER-02/diary/1440x900/DIARY_READY.png` | `FAIL_VISUAL_HIERARCHY` | Bounded chronology/context composition must replace full-width generic rows. |
 
-Full 48-artifact regeneration is prohibited until all six representative comparisons pass or contain only documented native rendering differences.
+At this baseline point, full 48-artifact regeneration was prohibited until all six representative comparisons passed or contained only documented native rendering differences.
+
+## Post-repair gate closure
+
+Runtime repair `c27e21f` was captured from a clean flagged web build and compared again with the authoritative prototype checksum `245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42`. The six prerequisite comparisons now pass structurally:
+
+| V50 ID | Runtime artifact | Post-repair verdict | Closure evidence |
+|---|---|---|---|
+| `OWN-009` | `V50-OWNER-02/pets/375x812/PETS_READY.png` | `PASS` | Page context, selected-card hierarchy, bounded media and primary add action are explicit. |
+| `OWN-010` | `V50-OWNER-02/profile/375x812/PROFILE_READY.png` | `PASS` | Pet hero, grouped facts and Diary/edit/archive action priority are explicit. |
+| `OWN-011` | `V50-OWNER-02/diary/375x812/DIARY_READY.png` | `PASS` | Pet context, grouped filters, dated chronology and document treatment are explicit. |
+| `OWN-009` | `V50-OWNER-02/pets/1440x900/PETS_READY.png` | `PASS` | Bounded list/context desktop composition replaces the stretched mobile row. |
+| `OWN-010` | `V50-OWNER-02/profile/1440x900/PROFILE_READY.png` | `PASS` | Bounded identity/details columns replace stretched controls. |
+| `OWN-011` | `V50-OWNER-02/diary/1440x900/DIARY_READY.png` | `PASS` | Bounded chronology/context columns replace full-width generic rows. |
+
+Remaining differences are native Flutter typography, iconography and control rendering; they do not change hierarchy, semantics, content priority or responsive transformation. The prerequisite gate is therefore `PASS`, authorizing the full 48-artifact regeneration represented by manifest package `v50-owner-02-c27e21f`.

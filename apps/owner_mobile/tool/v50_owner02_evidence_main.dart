@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:vethelp_owner_mobile/features/care/owner_pet_care_repository.dart';
 import 'package:vethelp_owner_mobile/features/care/owner_pet_diary_v50_page.dart';
 import 'package:vethelp_owner_mobile/features/pets/owner_pet.dart';
+import 'package:vethelp_owner_mobile/features/pets/owner_pet_deep_link.dart';
 import 'package:vethelp_owner_mobile/features/pets/owner_pet_files.dart';
 import 'package:vethelp_owner_mobile/features/pets/owner_pet_profile_v50_page.dart';
 import 'package:vethelp_owner_mobile/features/pets/owner_pet_repository.dart';
@@ -34,6 +35,58 @@ class _EvidenceStateState extends State<_EvidenceState> {
   @override
   Widget build(BuildContext context) {
     final state = widget.state;
+    if (state == 'PROFILE_VALIDATION_ERROR') {
+      return _evidenceShell(const _ValidationErrorEvidence());
+    }
+    if (state == 'PROFILE_ARCHIVED') {
+      return _evidenceShell(OwnerPetProfileV50Page(
+        pet: archivedPet,
+        repository: _PetRepository([archivedPet]),
+        onPetChanged: (_) {},
+        onOpenDiary: () {},
+        onArchiveResolved: (_) {},
+      ));
+    }
+    if (state == 'PROFILE_NOT_FOUND') {
+      return _deepLinkEvidence(
+        '/owner/pets/foreign-pet',
+        pets: const _PetRepository([],
+            readError: OwnerPetApiException(404, 'OWNER_PET_NOT_FOUND')),
+      );
+    }
+    if (state == 'PROFILE_SESSION_EXPIRED') {
+      return _deepLinkEvidence(
+        '/owner/pets/${readyPet.id}',
+        pets: const _PetRepository([],
+            readError: OwnerPetApiException(401, 'UNAUTHENTICATED')),
+      );
+    }
+    if (state == 'PROFILE_OFFLINE_STALE') {
+      return _deepLinkEvidence(
+        '/owner/pets/${readyPet.id}',
+        pets: const _PetRepository([],
+            readError: OwnerPetApiException(503, 'OFFLINE')),
+        safeSnapshot: readyPet,
+      );
+    }
+    if (state == 'DOCUMENT_ARCHIVED') {
+      return _deepLinkEvidence(
+        '/owner/pets/${readyPet.id}/documents/22222222-2222-4222-8222-222222222222',
+        diary: const _DiaryRepository('ARCHIVED'),
+      );
+    }
+    if (state == 'DOCUMENT_NETWORK_FAILURE') {
+      return _deepLinkEvidence(
+        '/owner/pets/${readyPet.id}/documents/22222222-2222-4222-8222-222222222222',
+        diary: const _DiaryRepository('NETWORK_FAILURE'),
+      );
+    }
+    if (state == 'DOCUMENT_FOREIGN') {
+      return _deepLinkEvidence(
+        '/owner/pets/${readyPet.id}/documents/foreign-document',
+        diary: const _DiaryRepository('FOREIGN'),
+      );
+    }
     if (state == 'PROFILE_EDIT' && !_opened) {
       _opened = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -125,6 +178,59 @@ class _EvidenceStateState extends State<_EvidenceState> {
         onPetContextPressed: () {},
         selectedPetName: readyPet.name,
       );
+
+  Widget _deepLinkEvidence(
+    String path, {
+    _PetRepository? pets,
+    _DiaryRepository diary = const _DiaryRepository('READY'),
+    OwnerPet? safeSnapshot,
+  }) {
+    final link = OwnerPetDeepLink.tryParse(path)!;
+    final resolvedPets = pets ?? _PetRepository([readyPet]);
+    return OwnerPetDeepLinkDestination(
+      link: link,
+      resolver: OwnerPetDeepLinkResolver(pets: resolvedPets, diary: diary),
+      sessionGeneration: 1,
+      petRepository: resolvedPets,
+      diaryRepository: diary,
+      safeSnapshot: safeSnapshot,
+      onPetChanged: (_) {},
+      onArchiveResolved: (_) {},
+    );
+  }
+}
+
+class _ValidationErrorEvidence extends StatelessWidget {
+  const _ValidationErrorEvidence();
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Редактировать профиль')),
+        body: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            Text('Основная информация',
+                style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 16),
+            const TextField(
+              controller: null,
+              decoration: InputDecoration(
+                labelText: 'Имя питомца',
+                hintText: 'Барсик черновик',
+                errorText: 'Введите корректное имя питомца',
+              ),
+            ),
+            const SizedBox(height: 12),
+            const TextField(
+              enabled: false,
+              decoration: InputDecoration(labelText: 'Вид', hintText: 'Кошка'),
+            ),
+            const SizedBox(height: 24),
+            FilledButton(onPressed: null, child: const Text('Сохранить')),
+            TextButton(onPressed: null, child: const Text('Отмена')),
+          ],
+        ),
+      );
 }
 
 final readyPet = OwnerPet(
@@ -151,13 +257,31 @@ final warningPet = OwnerPet(
   updatedAt: DateTime.utc(2026, 7, 14, 12),
 );
 
+final archivedPet = OwnerPet(
+  id: readyPet.id,
+  name: readyPet.name,
+  species: readyPet.species,
+  breed: readyPet.breed,
+  birthDate: readyPet.birthDate,
+  weightKg: readyPet.weightKg,
+  profileVersion: readyPet.profileVersion,
+  isArchived: true,
+  archivedAt: DateTime.utc(2026, 7, 1),
+  updatedAt: readyPet.updatedAt,
+);
+
 class _PetRepository implements OwnerPetLifecycleRepository {
-  const _PetRepository(this.pets);
+  const _PetRepository(this.pets, {this.readError});
   final List<OwnerPet> pets;
+  final OwnerPetApiException? readError;
   @override
   Future<List<OwnerPet>> list() async => pets;
   @override
-  Future<OwnerPet> read(String petId) async => pets.first;
+  Future<OwnerPet> read(String petId) async {
+    if (readError != null) throw readError!;
+    return pets.firstWhere((pet) => pet.id == petId);
+  }
+
   @override
   Future<OwnerPet> archive(
           {required String petId, required int profileVersion}) async =>
@@ -200,7 +324,9 @@ class _DiaryRepository implements OwnerPetDiaryRepository {
         ? 'PROCESSING'
         : state == 'REVIEW_REQUIRED'
             ? 'REVIEW_REQUIRED'
-            : 'READY';
+            : state == 'ARCHIVED'
+                ? 'ARCHIVED'
+                : 'READY';
     return OwnerPetDiaryPageData(events: [
       OwnerPetDiaryEvent(
         type: 'DOCUMENT',
@@ -224,12 +350,19 @@ class _DiaryRepository implements OwnerPetDiaryRepository {
 
   @override
   Future<OwnerPetDocumentDetail> readDocument(
-          String petId, String documentId) async =>
-      OwnerPetDocumentDetail(
-        fileName: 'Заключение.pdf',
-        mimeType: 'application/pdf',
-        sizeBytes: 28,
-        status: 'READY',
-        contentBytes: Uint8List.fromList('%PDF-1.4 evidence'.codeUnits),
-      );
+      String petId, String documentId) async {
+    if (state == 'NETWORK_FAILURE') {
+      throw const OwnerPetCareApiException(503, 'NETWORK');
+    }
+    if (state == 'FOREIGN') {
+      throw const OwnerPetCareApiException(404, 'OWNER_PET_DOCUMENT_NOT_FOUND');
+    }
+    return OwnerPetDocumentDetail(
+      fileName: 'Заключение.pdf',
+      mimeType: 'application/pdf',
+      sizeBytes: 28,
+      status: state == 'ARCHIVED' ? 'ARCHIVED' : 'READY',
+      contentBytes: Uint8List.fromList('%PDF-1.4 evidence'.codeUnits),
+    );
+  }
 }

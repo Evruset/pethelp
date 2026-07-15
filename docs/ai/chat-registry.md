@@ -7,7 +7,7 @@
 | BASELINE-02 | V50 Authoritative Source Registration | Baseline | historical root worktree | COMPLETE / COMMITTED | manifest, checksum, canonical naming | `docs/ai/handoffs/BASELINE-02.md` | `22da293` | none; source gate OPEN |
 | V50-SHELL-01 | Shared Design Tokens and Application Shells | Shared UI | integrated into program branch from `agent/v50-shell-01` | COMPLETE / INTEGRATED | tokens, Owner shell, Portal role shells, rollback | `docs/ai/handoffs/V50-SHELL-01.md` | `1c58ad6` | none |
 | V50-OWNER-01 | V50 Owner Home and Next Safe Action | Owner | integrated into program branch | COMPLETE / INTEGRATED | `OWN-001` bounded Home; selected pet; server-authoritative next action | `docs/ai/handoffs/V50-OWNER-01.md` | `2077b00` | clean canonical reproduction PASS, 22/22 focused tests |
-| V50-OWNER-02 | V50 Pets, Pet Profile and Pet Diary | Owner | `agent/v50-owner-02` / `/Users/evrusetskiy/work/pethelp-alpha-v50-owner-02` | PARTIALLY_COMPLETED / VISUAL_PARITY_FAILED | `OWN-009..OWN-011`; owner pet/profile/diary/document journey | `docs/ai/handoffs/V50-OWNER-02.md` | `5418a36`, repair `e7a56b1` | 48/48 runtime artifacts exist; structured prototype comparison fails hierarchy; not integration-ready |
+| V50-OWNER-02 | V50 Pets, Pet Profile and Pet Diary | Owner | `agent/v50-owner-02` / `/Users/evrusetskiy/work/pethelp-alpha-v50-owner-02` | COMPLETE / READY_FOR_INTEGRATION | `OWN-009..OWN-011`; owner pet/profile/diary/document journey | `docs/ai/handoffs/V50-OWNER-02.md` | `5418a36`, `e7a56b1`, visual/runtime repair `c27e21f` | independent read-only validation PASS with zero vetoes; 48/48 runtime, 12/12 prototype and 8/8 supplemental evidence PASS |
 
 ## Ownership
 
