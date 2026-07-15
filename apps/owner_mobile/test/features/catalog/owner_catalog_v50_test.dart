@@ -137,6 +137,8 @@ void main() {
     final priceY = tester
         .getTopLeft(find.byKey(const ValueKey('catalog-card-price')).first)
         .dy;
+    expect(find.byKey(const ValueKey('catalog-card-freshness')), findsWidgets);
+    expect(find.text('Расписание обновлено недавно'), findsWidgets);
     expect(fitY, lessThan(availabilityY));
     expect(availabilityY, lessThan(confirmationY));
     expect(confirmationY, lessThan(priceY));
@@ -170,6 +172,24 @@ void main() {
     expect(contactY, lessThan(freshnessY));
     expect(find.textContaining('итоговая стоимость известна'), findsOneWidget);
     expect(find.text('Часы работы не опубликованы'), findsOneWidget);
+  });
+
+  testWidgets('catalog renders server-authored stale freshness explicitly',
+      (tester) async {
+    await _setMobile(tester);
+    await tester.pumpWidget(_app(
+      repository: _FakeCatalogRepository(
+        availability: CatalogAvailabilitySummary(
+          sourceUpdatedAt: DateTime.utc(2026, 7, 15, 6),
+          serverNow: DateTime.utc(2026, 7, 15, 10),
+          freshness: CatalogAvailabilityFreshness.stale,
+          confirmationMode: CatalogConfirmationMode.alternativePossible,
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Расписание устарело'), findsNWidgets(2));
   });
 
   testWidgets('clinic and doctor discovery produce a typed booking intent',
@@ -263,12 +283,16 @@ Widget _app({
     );
 
 class _FakeCatalogRepository extends PublicCatalogRepository {
-  static final _availability = CatalogAvailabilitySummary(
+  _FakeCatalogRepository({CatalogAvailabilitySummary? availability})
+      : availability = availability ?? _currentAvailability;
+
+  static final _currentAvailability = CatalogAvailabilitySummary(
     sourceUpdatedAt: DateTime.utc(2026, 7, 15, 9, 55),
     serverNow: DateTime.utc(2026, 7, 15, 10),
     freshness: CatalogAvailabilityFreshness.current,
     confirmationMode: CatalogConfirmationMode.clinicConfirmation,
   );
+  final CatalogAvailabilitySummary availability;
   static final _location = CatalogLocation(
     clinicId: 'clinic-1',
     clinicName: 'ВетКлиника Доверие',
@@ -292,7 +316,7 @@ class _FakeCatalogRepository extends PublicCatalogRepository {
         emergencyAvailable: false,
         doctorCount: 1,
         priceFrom: '1500.00',
-        availability: _availability,
+        availability: availability,
         fitReasons: const ['Есть ветеринарные специалисты'],
       );
 
@@ -307,7 +331,7 @@ class _FakeCatalogRepository extends PublicCatalogRepository {
         emergencyAvailable: false,
         doctorCount: 2,
         priceFrom: '1800.00',
-        availability: _availability,
+        availability: availability,
         fitReasons: const ['Есть первичный приём'],
       );
 
@@ -329,7 +353,7 @@ class _FakeCatalogRepository extends PublicCatalogRepository {
         emergencyAvailable: false,
         doctorCount: 1,
         priceFrom: '1500.00',
-        availability: _availability,
+        availability: availability,
         fitReasons: clinic.fitReasons,
         locations: [_location],
       );
@@ -375,6 +399,6 @@ class _FakeCatalogRepository extends PublicCatalogRepository {
         locationId: 'location-1',
         locationAddress: 'Москва, Тверская, 10',
         nextAvailableAt: DateTime.utc(2026, 7, 15, 11),
-        availability: _availability,
+        availability: availability,
       );
 }
