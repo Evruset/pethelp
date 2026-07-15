@@ -1,6 +1,6 @@
 # V50 Catalog and Doctor Discovery Contract
 
-Status: `CONTRACT_READY / R3 AUTHORIZATION REVIEWED`
+Status: `IMPLEMENTED / TESTED / VISUALLY_VERIFIED / R3 AUTHORIZATION REVIEWED`
 
 Source: V50 anchors `#catalog`, `#clinic`, `#doctor-select`, `#doctor-detail`; manifest SHA-256 `245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42`.
 
@@ -35,6 +35,8 @@ Publishability requires active clinic, active location, active staff and veterin
 
 The current schema has no biography, specialty taxonomy, credentials, photo, languages or rating contract. Those prototype fields remain documented omissions; the UI does not fabricate them. A future explicit public-profile/consent model would require a separate migration and review.
 
+Integration is ready under the strict allowlist and default-off flag. Production Doctor rollout is blocked by `PUBLIC_DOCTOR_PROFILE_CONSENT_CONTRACT_MISSING`; `V50-DOCTOR-PUBLIC-PROFILE-CONSENT-DEBT.md` defines the required auditable consent source, owners and activation gate. Visual parity certification does not close that debt.
+
 ## Emergency semantics
 
 Emergency UI is allowed only when a verified capability profile is still valid and accepting now. It is never inferred from 24/7 hours. Stale capability data removes the emergency claim but does not hide an otherwise public clinic.
@@ -50,6 +52,10 @@ Catalog state retains selected pet, filters, sorting, list/map mode and scroll c
 - `OWNER_V50_DOCTOR_DISCOVERY`
 
 All are exact-true, default-off and dependent on the canonical V50 Owner shell. Invalid combinations use legacy catalog or a safe unavailable state without mixing flows. Rollback disables the flags; no database downgrade or booking-state rollback is required.
+
+## Certification
+
+Runtime `dc762b4` and package `v50-owner-03-dc762b4` passed independent read-only validation with zero vetoes. The package contains 48 runtime and 16 authoritative prototype artifacts across four viewports; SHA-256 is `e07837d15af828090b6be02b50be06b9f1dde3d60fa37f913991a87cac60a67b`. Catalog freshness is server-authored and visibly distinguishes current/stale states. No booking hold, production rollout decision or public-profile consent is created by this certification.
 
 ## Rejected alternatives
 

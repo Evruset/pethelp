@@ -1,6 +1,6 @@
 # V50 Full Product Parity Program Plan
 
-Updated: 2026-07-14
+Updated: 2026-07-15
 
 Baseline: `4baf4e502e083fd6247f2dfe23626e546702fa1b`
 
@@ -29,7 +29,7 @@ Program state: V50 migration in progress
 | 3 Design system + shells | Owner, Clinic, Vet, Ops shells with platform-native components | SHELL FOUNDATION TESTED; business content remains partial | shell evidence PASS at required viewports; business screens still require authoritative visual acceptance |
 | 4 Session/capability/API | server-derived deny-by-default authority | PARTIAL/REUSE | each endpoint family has scope, denial, leakage and rollback tests |
 | 5 Owner core | home, pets, diary, documents, notifications, profile | PARTIAL: bounded `OWN-001` Care Journey Home implemented/tested; full prototype content remains partial | full owner states and contracts accepted |
-| 6 Catalog + booking | authoritative clinic/doctor/service/slot/hold journey | PARTIAL | conflict/offline/idempotency paths accepted |
+| 6 Catalog + booking | authoritative clinic/doctor/service/slot/hold journey | PARTIAL: Catalog/Clinic/Doctor discovery visually verified; service/date/slot/review remains | conflict/offline/idempotency paths accepted |
 | 7 Bookings + alternatives | lists, detail, timeline, cancel/rebook/alternative | PARTIAL | server hold/status evidence and E2E accepted |
 | 8 Clinic workspace | queue, booking operations, schedule, resources, quality, audit | PARTIAL | role-specific desktop/tablet/mobile task flow accepted |
 | 9 Vet workspace | assigned visit, clinical draft/sign/amend/audit | PARTIAL | clinical authority and immutability gates accepted |
@@ -41,7 +41,7 @@ Program state: V50 migration in progress
 
 ## Logical chat map
 
-Completed contexts: `BASELINE-01`, `BASELINE-02`, `V50-SHELL-01`, `V50-OWNER-01`, `V50-OWNER-02`. `V50-OWNER-03` is functionally implemented/tested but NOT_READY after one independent visual-parity veto for `OWN-002`, `OWN-004`, `OWN-018` and `OWN-019`; its bounded visual repair is the only next work and V50-OWNER-04 remains inactive.
+Completed contexts: `BASELINE-01`, `BASELINE-02`, `V50-SHELL-01`, `V50-OWNER-01`, `V50-OWNER-02`, `V50-OWNER-03`. V50-OWNER-03 is `READY_FOR_INTEGRATION`: `OWN-002`, `OWN-004`, `OWN-018` and `OWN-019` passed independent validation with zero vetoes, bringing the visual counter to `7/30`. Doctor production rollout remains blocked by `PUBLIC_DOCTOR_PROFILE_CONSENT_CONTRACT_MISSING`; V50-OWNER-04 remains inactive.
 
 ## Program rules
 
@@ -53,4 +53,4 @@ Completed contexts: `BASELINE-01`, `BASELINE-02`, `V50-SHELL-01`, `V50-OWNER-01`
 
 ## Exactly one next slice
 
-`V50-OWNER-03 / Clinic Catalog, Clinic Detail and Doctor Discovery`. Do not start it from the V50-OWNER-02 session.
+`V50-OWNER-04 / Service, Date, Slot and Booking Review`. Start it only in a fresh session after V50-OWNER-03 integration; it was not started here.

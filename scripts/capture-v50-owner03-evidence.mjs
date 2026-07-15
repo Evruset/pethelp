@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 import { inspectPngTopBand } from './v50-owner03-capture-utils.mjs';
@@ -61,11 +61,20 @@ try {
 process.exit(0);
 
 async function capture(url, file, width, height) {
+  if (process.env.V50_EVIDENCE_RESUME === 'true') {
+    try {
+      await access(file);
+      return;
+    } catch {
+      // Missing artifacts are captured below; existing commit-bound PNGs stay intact.
+    }
+  }
   const page = await context.newPage();
   const client = await context.newCDPSession(page);
   try {
     await client.send('Network.enable');
     await client.send('Network.setCacheDisabled', { cacheDisabled: true });
+    await client.send('Network.setBypassServiceWorker', { bypass: true });
     await client.send('Emulation.setDeviceMetricsOverride', {
       width, height, deviceScaleFactor: 1, mobile: width < 768,
       screenWidth: width, screenHeight: height,
