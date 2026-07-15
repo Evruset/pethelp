@@ -31,17 +31,44 @@ function command(method, params = {}) {
   return new Promise((resolve, reject) => pending.set(id, { resolve, reject }));
 }
 
-const viewports = [
+const allViewports = [
   [375, 812],
   [412, 915],
   [768, 1024],
   [1440, 900],
 ];
-const states = {
+const allStates = {
   pets: ['PETS_READY', 'PETS_EMPTY', 'PETS_OFFLINE_STALE'],
   profile: ['PROFILE_READY', 'PROFILE_WITH_WARNING', 'PROFILE_EDIT', 'PROFILE_CONFLICT'],
   diary: ['DIARY_READY', 'DIARY_EMPTY', 'DIARY_PROCESSING', 'DIARY_REVIEW_REQUIRED', 'DIARY_DOCUMENT_PREVIEW'],
 };
+const requestedViewports = new Set(
+  (process.env.V50_EVIDENCE_VIEWPORTS ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean),
+);
+const requestedStates = new Set(
+  (process.env.V50_EVIDENCE_STATES ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean),
+);
+const viewports = requestedViewports.size === 0
+  ? allViewports
+  : allViewports.filter(([width, height]) => requestedViewports.has(`${width}x${height}`));
+const states = Object.fromEntries(
+  Object.entries(allStates).map(([group, names]) => [
+    group,
+    requestedStates.size === 0
+      ? names
+      : names.filter((state) => requestedStates.has(state)),
+  ]),
+);
+if (viewports.length === 0) throw new Error('No requested evidence viewport is supported');
+if (requestedStates.size > 0 && Object.values(states).every((names) => names.length === 0)) {
+  throw new Error('No requested evidence state is supported');
+}
 
 await command('Page.enable');
 for (const [width, height] of viewports) {

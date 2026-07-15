@@ -32,6 +32,7 @@ import 'features/owner_journey/owner_home_v50_page.dart';
 import 'features/owner_journey/owner_selected_pet_preference.dart';
 import 'features/owner_journey/phone_entry_page.dart';
 import 'features/pets/owner_pet.dart';
+import 'features/pets/owner_pet_deep_link.dart';
 import 'features/pets/owner_pet_repository.dart';
 import 'features/pets/owner_pet_profile_v50_page.dart';
 import 'features/pets/owner_pets_page.dart';
@@ -257,6 +258,7 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
           sessionGeneration: _ownerSessionGeneration,
           petsV50Flags: petsV50Flags,
           onOpenPetProfile: _openV50PetProfile,
+          onOpenPetDeepLink: _openV50PetDeepLink,
         );
       }
 
@@ -570,6 +572,33 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
     ));
   }
 
+  void _openV50PetDeepLink(OwnerPetDeepLink link) {
+    final flags = ownerPetsV50Flags(shellEnabled: isOwnerV50ShellEnabled());
+    if (!flags.profile ||
+        (link.kind != OwnerPetDeepLinkKind.profile && !flags.diary)) {
+      return;
+    }
+    final pets = _petsRepository();
+    final diary = HttpOwnerPetCareRepository(
+      baseUrl: Uri.parse(_apiBaseUrl),
+      accessTokenProvider: _token,
+    );
+    Navigator.of(context).push(ownerPageRoute<void>(
+      context: context,
+      platform: widget.platformOverride,
+      builder: (_) => OwnerPetDeepLinkDestination(
+        link: link,
+        resolver: OwnerPetDeepLinkResolver(pets: pets, diary: diary),
+        sessionGeneration: _ownerSessionGeneration,
+        petRepository: pets,
+        diaryRepository: diary,
+        safeSnapshot: _selectedPet?.id == link.petId ? _selectedPet : null,
+        onPetChanged: _selectPet,
+        onArchiveResolved: _resolveSelectionAfterLifecycle,
+      ),
+    ));
+  }
+
   Future<void> _resolveSelectionAfterLifecycle(OwnerPet changed) async {
     final ownerId = _session?.ownerId ?? safeOwnerSubjectFromJwt(_accessToken);
     final active = (await _petsRepository().list())
@@ -655,6 +684,7 @@ class _OwnerV50AuthenticatedShell extends StatefulWidget {
     required this.sessionGeneration,
     required this.petsV50Flags,
     required this.onOpenPetProfile,
+    required this.onOpenPetDeepLink,
     this.platformOverride,
   });
 
@@ -678,6 +708,7 @@ class _OwnerV50AuthenticatedShell extends StatefulWidget {
   final int sessionGeneration;
   final OwnerPetsV50Flags petsV50Flags;
   final ValueChanged<OwnerPet> onOpenPetProfile;
+  final ValueChanged<OwnerPetDeepLink> onOpenPetDeepLink;
   final TargetPlatform? platformOverride;
 
   @override
@@ -689,6 +720,7 @@ class _OwnerV50AuthenticatedShellState
     extends State<_OwnerV50AuthenticatedShell> with RestorationMixin {
   late final RestorableInt _selectedIndex;
   bool _sessionExpired = false;
+  int _handledDeepLinkGeneration = -1;
 
   @override
   String? get restorationId => 'owner-v50-authenticated-shell';
@@ -704,6 +736,7 @@ class _OwnerV50AuthenticatedShellState
     registerOwnerE2EHook('openHome', () => _selectDestination(0));
     registerOwnerE2EHook('openAppointments', () => _selectDestination(2));
     registerOwnerE2EHook('openPet', () => _selectDestination(3));
+    WidgetsBinding.instance.addPostFrameCallback((_) => _openInitialDeepLink());
   }
 
   @override
@@ -717,7 +750,20 @@ class _OwnerV50AuthenticatedShellState
     if (oldWidget.preferenceOwnerId != widget.preferenceOwnerId ||
         oldWidget.sessionGeneration != widget.sessionGeneration) {
       _sessionExpired = false;
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _openInitialDeepLink());
     }
+  }
+
+  void _openInitialDeepLink() {
+    if (!mounted || _handledDeepLinkGeneration == widget.sessionGeneration) {
+      return;
+    }
+    _handledDeepLinkGeneration = widget.sessionGeneration;
+    final link = OwnerPetDeepLink.tryParse(
+      WidgetsBinding.instance.platformDispatcher.defaultRouteName,
+    );
+    if (link != null) widget.onOpenPetDeepLink(link);
   }
 
   @override

@@ -8,13 +8,15 @@ import 'package:vethelp_owner_mobile/features/pets/owner_pet_files.dart';
 import 'package:vethelp_owner_mobile/features/pets/owner_pet_profile_v50_page.dart';
 import 'package:vethelp_owner_mobile/features/pets/owner_pet_repository.dart';
 import 'package:vethelp_owner_mobile/features/pets/owner_pets_page.dart';
+import 'package:vethelp_owner_mobile/presentation/pages/owner_adaptive_shell.dart';
+import 'package:vethelp_owner_mobile/ui/vethelp_ios_theme.dart';
 
 void main() {
   final state = Uri.base.queryParameters['state'] ?? 'PETS_READY';
   runApp(MaterialApp(
     debugShowCheckedModeBanner: false,
-    theme:
-        ThemeData(useMaterial3: true, colorSchemeSeed: const Color(0xff315c4d)),
+    theme: VetHelpTheme.light(),
+    builder: VetHelpTheme.frameBuilder,
     home: _EvidenceState(state),
   ));
 }
@@ -79,17 +81,15 @@ class _EvidenceStateState extends State<_EvidenceState> {
         selectedPetId: readyPet.id,
         onPetSelected: (_) {},
       );
-      if (state != 'PETS_OFFLINE_STALE') return page;
-      return Scaffold(
-        body: Column(children: [
-          const MaterialBanner(
-            content: Text(
-                'Показаны последние данные. Не удалось обновить список питомцев.'),
-            actions: [TextButton(onPressed: null, child: Text('Обновить'))],
-          ),
-          Expanded(child: page),
-        ]),
-      );
+      return _evidenceShell(state == 'PETS_OFFLINE_STALE'
+          ? OwnerPetsPage(
+              repository: _PetRepository([readyPet]),
+              selectedPetId: readyPet.id,
+              onPetSelected: (_) {},
+              staleMessage: 'Не удалось обновить список питомцев.',
+              onRetry: () {},
+            )
+          : page);
     }
 
     if (state.startsWith('PROFILE_')) {
@@ -100,24 +100,31 @@ class _EvidenceStateState extends State<_EvidenceState> {
         onPetChanged: (_) {},
         onOpenDiary: () {},
         onArchiveResolved: (_) {},
+        initialStatusMessage: state == 'PROFILE_CONFLICT'
+            ? 'Профиль изменился. Показаны актуальные данные.'
+            : null,
       );
-      if (state != 'PROFILE_CONFLICT') return page;
-      return Scaffold(
-        body: Column(children: [
-          const MaterialBanner(
-            content: Text('Профиль изменился. Показаны актуальные данные.'),
-            actions: [TextButton(onPressed: null, child: Text('Понятно'))],
-          ),
-          Expanded(child: page),
-        ]),
-      );
+      return _evidenceShell(page);
     }
 
-    return OwnerPetDiaryV50Page(
+    return _evidenceShell(OwnerPetDiaryV50Page(
       pet: readyPet,
       repository: _DiaryRepository(state.substring('DIARY_'.length)),
-    );
+    ));
   }
+
+  Widget _evidenceShell(Widget page) => OwnerV50AdaptiveShell(
+        home: const SizedBox.shrink(),
+        clinics: const SizedBox.shrink(),
+        appointments: const SizedBox.shrink(),
+        pets: page,
+        selectedIndex: 3,
+        onDestinationSelected: (_) {},
+        onEmergency: () {},
+        onNotifications: () {},
+        onPetContextPressed: () {},
+        selectedPetName: readyPet.name,
+      );
 }
 
 final readyPet = OwnerPet(

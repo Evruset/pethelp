@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../pets/owner_pet.dart';
+import '../pets/owner_v50_pet_visuals.dart';
 import 'owner_pet_care_repository.dart';
 
 class OwnerPetDiaryV50Page extends StatefulWidget {
@@ -26,6 +27,15 @@ class _OwnerPetDiaryV50PageState extends State<OwnerPetDiaryV50Page> {
   bool _loadingMore = false;
   Object? _error;
   bool _openingDocument = false;
+  final FocusNode _documentTriggerFocus = FocusNode(
+    debugLabel: 'owner-diary-document-trigger',
+  );
+
+  @override
+  void dispose() {
+    _documentTriggerFocus.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -75,13 +85,36 @@ class _OwnerPetDiaryV50PageState extends State<OwnerPetDiaryV50Page> {
           ],
         ),
       );
+      if (mounted) _documentTriggerFocus.requestFocus();
     } on OwnerPetCareApiException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(error.statusCode == 401
-            ? 'Сессия завершена. Войдите снова.'
-            : 'Не удалось открыть документ.'),
-      ));
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(error.statusCode == 401
+              ? 'Сессия завершена'
+              : 'Документ временно недоступен'),
+          content: Text(error.statusCode == 401
+              ? 'Войдите снова, чтобы безопасно запросить документ.'
+              : 'Метаданные события сохранены. Повторная попытка выполнит новую проверку доступа владельца.'),
+          actions: [
+            if (error.statusCode != 401)
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  _openDocument(event);
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Повторить'),
+              ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Закрыть'),
+            ),
+          ],
+        ),
+      );
+      if (mounted) _documentTriggerFocus.requestFocus();
     } finally {
       if (mounted) setState(() => _openingDocument = false);
     }
@@ -136,61 +169,98 @@ class _OwnerPetDiaryV50PageState extends State<OwnerPetDiaryV50Page> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text('Дневник · ${widget.pet.name}')),
-        body: _loading && _events.isEmpty
+  Widget build(BuildContext context) => Material(
+        color: Theme.of(context).colorScheme.surfaceContainerLowest,
+        child: _loading && _events.isEmpty
             ? const Center(child: CircularProgressIndicator())
             : _error != null && _events.isEmpty
                 ? _DiaryError(onRetry: () => _load(reset: true))
-                : RefreshIndicator(
-                    onRefresh: () => _load(reset: true),
-                    child: ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-                      children: [
-                        if (_error != null)
-                          const Card(
-                            child: ListTile(
-                              leading: Icon(Icons.cloud_off_outlined),
-                              title: Text('Показаны последние данные'),
-                              subtitle: Text(
+                : OwnerV50PetPageFrame(
+                    title: 'Дневник здоровья',
+                    supportingText:
+                        'Визиты, онлайн-помощь и документы ${widget.pet.name} в одном месте.',
+                    leading: TextButton(
+                      key: const ValueKey('diary-back-action'),
+                      onPressed: () => Navigator.of(context).maybePop(),
+                      child: Text('← К карточке ${widget.pet.name}'),
+                    ),
+                    status: _error == null
+                        ? null
+                        : OwnerV50StatusBanner(
+                            key: const ValueKey('diary-stale-banner'),
+                            icon: Icons.cloud_off_outlined,
+                            title: 'Показаны последние данные',
+                            message:
                                 'Соединение недоступно. Действия с документами временно отключены.',
+                            action: TextButton(
+                              onPressed: () => _load(reset: true),
+                              child: const Text('Обновить'),
+                            ),
+                          ),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final chronology = Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            OwnerV50InsetSection(
+                              title: 'История',
+                              child: _DiaryFilters(
+                                value: _filter,
+                                onChanged: (value) {
+                                  setState(() => _filter = value);
+                                },
                               ),
                             ),
-                          ),
-                        _DiaryFilters(
-                          value: _filter,
-                          onChanged: (value) {
-                            _filter = value;
-                            _load(reset: true);
-                          },
-                        ),
-                        if (_visibleEvents.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.all(32),
-                            child: Center(
-                              child: Text('В дневнике пока нет событий.'),
+                            const SizedBox(height: 18),
+                            if (_visibleEvents.isEmpty)
+                              const _DiaryEmpty()
+                            else
+                              OwnerV50InsetSection(
+                                child: _DiaryChronology(
+                                  events: _visibleEvents,
+                                  stale: _error != null,
+                                  documentFocusNode: _documentTriggerFocus,
+                                  onOpen: _openDocument,
+                                ),
+                              ),
+                            if (_nextOffset != null) ...[
+                              const SizedBox(height: 12),
+                              OutlinedButton(
+                                onPressed: _loadingMore
+                                    ? null
+                                    : () => _load(reset: false),
+                                child: Text(_loadingMore
+                                    ? 'Загрузка…'
+                                    : 'Показать более ранние события'),
+                              ),
+                            ],
+                          ],
+                        );
+                        if (constraints.maxWidth < 760) return chronology;
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(flex: 2, child: chronology),
+                            const SizedBox(width: 22),
+                            Expanded(
+                              child: OwnerV50InsetSection(
+                                title: widget.pet.name,
+                                child: Column(
+                                  children: [
+                                    OwnerV50PetAvatar(
+                                        pet: widget.pet, size: 150),
+                                    const SizedBox(height: 14),
+                                    const Text(
+                                      'Порядок событий и статусы документов получены с сервера.',
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          )
-                        else
-                          for (final event in _visibleEvents)
-                            _DiaryEventCard(
-                              event: event,
-                              stale: _error != null,
-                              onOpen: () => _openDocument(event),
-                            ),
-                        if (_nextOffset != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: OutlinedButton(
-                              onPressed: _loadingMore
-                                  ? null
-                                  : () => _load(reset: false),
-                              child: Text(_loadingMore
-                                  ? 'Загрузка…'
-                                  : 'Показать более ранние события'),
-                            ),
-                          ),
-                      ],
+                          ],
+                        );
+                      },
                     ),
                   ),
       );
@@ -215,6 +285,7 @@ class _DiaryFilters extends StatelessWidget {
             'TELEMED': 'Онлайн',
           }.entries)
             ChoiceChip(
+              key: ValueKey('diary-filter-${option.key ?? 'all'}'),
               label: Text(option.value),
               selected: value == option.key,
               onSelected: (_) => onChanged(option.key),
@@ -228,51 +299,205 @@ class _DiaryEventCard extends StatelessWidget {
     required this.event,
     required this.stale,
     required this.onOpen,
+    this.focusNode,
   });
   final OwnerPetDiaryEvent event;
   final bool stale;
   final VoidCallback onOpen;
+  final FocusNode? focusNode;
   @override
   Widget build(BuildContext context) {
     final statusLabel = switch (event.status) {
       'PROCESSING' => 'Обрабатывается',
       'FAILED' => 'Не обработан',
       'REVIEW_REQUIRED' => 'Требует проверки',
+      'ARCHIVED' => 'В архиве',
       _ => null,
     };
     final document = event.type == 'DOCUMENT';
     final supported = document && event.downloadUrl != null;
-    return Card(
-      child: ListTile(
-        onTap: stale || !supported || event.status != 'READY' ? null : onOpen,
-        leading: Icon(
-            !document ? Icons.event_note_outlined : Icons.description_outlined),
-        title: Text(event.title),
-        subtitle: Text([
-          if (event.summary.isNotEmpty) event.summary,
-          if (statusLabel != null) statusLabel,
+    final canOpen = !stale && supported && event.status == 'READY';
+    final colors = Theme.of(context).colorScheme;
+    final card = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: colors.primaryContainer,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Icon(
+                !document
+                    ? Icons.event_note_outlined
+                    : Icons.description_outlined,
+                color: colors.primary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(event.title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        )),
+                if (event.summary.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(event.summary),
+                ],
+                if (statusLabel != null) ...[
+                  const SizedBox(height: 8),
+                  Chip(
+                    label: Text(statusLabel),
+                    avatar: Icon(
+                      event.status == 'FAILED'
+                          ? Icons.error_outline
+                          : Icons.info_outline,
+                      size: 16,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    side: BorderSide.none,
+                  ),
+                ],
+                if (document) ...[
+                  const SizedBox(height: 5),
+                  Text(
+                    canOpen
+                        ? 'Документ готов к безопасному просмотру'
+                        : event.status == 'ARCHIVED'
+                            ? 'Архивный документ доступен только как история'
+                            : 'Предпросмотр документа недоступен',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ],
+            ),
+          ),
           if (document)
-            supported
-                ? 'Документ готов к безопасному просмотру'
-                : 'Предпросмотр документа недоступен',
-        ].join('\n')),
-        trailing: stale || !supported || event.status != 'READY'
-            ? null
-            : const Icon(Icons.open_in_new),
+            IconButton(
+              key: ValueKey('diary-document-action-${event.sourceId}'),
+              focusNode: focusNode,
+              tooltip: canOpen ? 'Открыть документ' : 'Документ недоступен',
+              onPressed: canOpen ? onOpen : null,
+              icon: const Icon(Icons.open_in_new),
+            ),
+        ],
       ),
+    );
+    return Focus(
+      key: ValueKey('diary-event-${event.sourceId}'),
+      canRequestFocus: !document,
+      child: card,
     );
   }
 }
+
+class _DiaryChronology extends StatelessWidget {
+  const _DiaryChronology({
+    required this.events,
+    required this.stale,
+    required this.documentFocusNode,
+    required this.onOpen,
+  });
+
+  final List<OwnerPetDiaryEvent> events;
+  final bool stale;
+  final FocusNode documentFocusNode;
+  final ValueChanged<OwnerPetDiaryEvent> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final children = <Widget>[];
+    DateTime? previousDay;
+    for (var index = 0; index < events.length; index++) {
+      final event = events[index];
+      if (previousDay == null || !_sameDay(previousDay, event.occurredAt)) {
+        children.add(Padding(
+          padding: const EdgeInsets.fromLTRB(4, 8, 4, 6),
+          child: Text(
+            _diaryDate(event.occurredAt),
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+        ));
+      }
+      children.add(_DiaryEventCard(
+        event: event,
+        stale: stale,
+        focusNode: event.type == 'DOCUMENT' ? documentFocusNode : null,
+        onOpen: () => onOpen(event),
+      ));
+      if (index < events.length - 1) children.add(const Divider(height: 1));
+      previousDay = event.occurredAt;
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: children,
+    );
+  }
+}
+
+class _DiaryEmpty extends StatelessWidget {
+  const _DiaryEmpty();
+
+  @override
+  Widget build(BuildContext context) => OwnerV50InsetSection(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 34),
+          child: Column(
+            children: [
+              Icon(Icons.event_note_outlined,
+                  size: 52, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(height: 14),
+              Text('В дневнике пока нет событий.',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      )),
+              const SizedBox(height: 6),
+              const Text(
+                'Новые визиты и доступные владельцу документы появятся здесь в серверном порядке.',
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+bool _sameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+
+String _diaryDate(DateTime value) =>
+    '${value.day.toString().padLeft(2, '0')}.${value.month.toString().padLeft(2, '0')}.${value.year}';
 
 class _DiaryError extends StatelessWidget {
   const _DiaryError({required this.onRetry});
   final VoidCallback onRetry;
   @override
   Widget build(BuildContext context) => Center(
-        child: FilledButton.icon(
-          onPressed: onRetry,
-          icon: const Icon(Icons.refresh),
-          label: const Text('Повторить загрузку'),
+        child: OwnerV50InsetSection(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_off_outlined, size: 48),
+              const SizedBox(height: 12),
+              const Text('Дневник недоступен'),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Повторить загрузку'),
+              ),
+            ],
+          ),
         ),
       );
 }

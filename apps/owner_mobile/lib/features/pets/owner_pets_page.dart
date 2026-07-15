@@ -10,6 +10,7 @@ import '../../presentation/widgets/owner_cupertino_feedback.dart';
 import 'owner_pet.dart';
 import 'owner_pet_files.dart';
 import 'owner_pet_repository.dart';
+import 'owner_v50_pet_visuals.dart';
 
 Future<OwnerPetSaveResult?> showOwnerPetEditorBottomSheet({
   required BuildContext context,
@@ -57,6 +58,8 @@ class OwnerPetsPage extends StatefulWidget {
     this.platformOverride,
     this.selectedPetId,
     this.onOpenPetProfile,
+    this.staleMessage,
+    this.onRetry,
   });
 
   final OwnerPetRepository repository;
@@ -65,6 +68,8 @@ class OwnerPetsPage extends StatefulWidget {
   final TargetPlatform? platformOverride;
   final String? selectedPetId;
   final ValueChanged<OwnerPet>? onOpenPetProfile;
+  final String? staleMessage;
+  final VoidCallback? onRetry;
 
   @override
   State<OwnerPetsPage> createState() => _OwnerPetsPageState();
@@ -214,51 +219,129 @@ class _OwnerPetsPageState extends State<OwnerPetsPage> {
     return FutureBuilder<_PetsSnapshot>(
       future: _request,
       builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
+        if (snapshot.connectionState != ConnectionState.done &&
+            _lastSnapshot == null) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (snapshot.hasError) {
-          return Center(
-            child: FilledButton.icon(
-              onPressed: _reload,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Повторить загрузку'),
+        final data = snapshot.data ?? _lastSnapshot;
+        if (snapshot.hasError && data == null) {
+          return Material(
+            color: Theme.of(context).colorScheme.surfaceContainerLowest,
+            child: OwnerV50PetPageFrame(
+              title: 'Мои питомцы',
+              supportingText: 'Профили, здоровье и документы ваших животных.',
+              status: OwnerV50StatusBanner(
+                icon: Icons.cloud_off_outlined,
+                title: 'Не удалось загрузить питомцев',
+                message: 'Проверьте подключение и повторите попытку.',
+                action: TextButton(
+                  onPressed: _reload,
+                  child: const Text('Повторить'),
+                ),
+              ),
+              child: const SizedBox.shrink(),
             ),
           );
         }
-        final data = snapshot.data ?? const _PetsSnapshot.empty();
-        _lastSnapshot = data;
-        final pets = data.pets;
-        return Scaffold(
-          floatingActionButton: FloatingActionButton.extended(
-            onPressed: _busy ? null : _createPet,
-            icon: const Icon(Icons.add),
-            label: const Text('Добавить питомца'),
-          ),
-          body: pets.isEmpty
-              ? const _PetsEmpty()
-              : ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
-                  itemCount: pets.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) => _PetCard(
-                    pet: pets[index],
-                    selected: pets[index].id == widget.selectedPetId,
-                    syncStates: data.syncStatesFor(pets[index].id),
-                    onSelect:
-                        _busy ? null : () => widget.onPetSelected(pets[index]),
-                    onEdit: _busy
-                        ? null
-                        : () {
-                            final openProfile = widget.onOpenPetProfile;
-                            if (openProfile != null) {
-                              openProfile(pets[index]);
-                            } else {
-                              _editPet(pets[index]);
-                            }
-                          },
+        final resolved = data ?? const _PetsSnapshot.empty();
+        final stale = widget.staleMessage ??
+            (snapshot.hasError
+                ? 'Показаны последние безопасные данные.'
+                : null);
+        final pets = resolved.pets;
+        final selected = pets.cast<OwnerPet?>().firstWhere(
+              (pet) => pet?.id == widget.selectedPetId,
+              orElse: () => pets.isEmpty ? null : pets.first,
+            );
+        _lastSnapshot = resolved;
+        return Material(
+          color: Theme.of(context).colorScheme.surfaceContainerLowest,
+          child: OwnerV50PetPageFrame(
+            title: 'Мои питомцы',
+            supportingText: 'Профили, здоровье и документы ваших животных.',
+            status: stale == null
+                ? null
+                : OwnerV50StatusBanner(
+                    key: const ValueKey('pets-stale-banner'),
+                    icon: Icons.cloud_off_outlined,
+                    title: 'Показаны последние данные',
+                    message: stale,
+                    action: TextButton(
+                      onPressed: widget.onRetry ?? _reload,
+                      child: const Text('Обновить'),
+                    ),
                   ),
-                ),
+            child: pets.isEmpty
+                ? _PetsEmpty(onAdd: stale == null && !_busy ? _createPet : null)
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      final list = OwnerV50InsetSection(
+                        title: 'Питомцы',
+                        trailing: FilledButton.tonalIcon(
+                          key: const ValueKey('add-pet-action'),
+                          onPressed:
+                              stale == null && !_busy ? _createPet : null,
+                          icon: const Icon(Icons.add),
+                          label: const Text('Добавить'),
+                        ),
+                        child: Column(
+                          children: [
+                            for (var index = 0;
+                                index < pets.length;
+                                index++) ...[
+                              if (index > 0) const Divider(height: 1),
+                              _PetCard(
+                                pet: pets[index],
+                                selected:
+                                    pets[index].id == widget.selectedPetId,
+                                syncStates:
+                                    resolved.syncStatesFor(pets[index].id),
+                                onSelect: stale != null || _busy
+                                    ? null
+                                    : () => widget.onPetSelected(pets[index]),
+                                onEdit: stale != null || _busy
+                                    ? null
+                                    : () {
+                                        final openProfile =
+                                            widget.onOpenPetProfile;
+                                        if (openProfile != null) {
+                                          openProfile(pets[index]);
+                                        } else {
+                                          _editPet(pets[index]);
+                                        }
+                                      },
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                      if (constraints.maxWidth < 760) return list;
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: list),
+                          const SizedBox(width: 22),
+                          Expanded(
+                            child: _SelectedPetContext(
+                              pet: selected,
+                              onOpen: selected == null || stale != null
+                                  ? null
+                                  : () {
+                                      final openProfile =
+                                          widget.onOpenPetProfile;
+                                      if (openProfile != null) {
+                                        openProfile(selected);
+                                      } else {
+                                        _editPet(selected);
+                                      }
+                                    },
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+          ),
         );
       },
     );
@@ -438,43 +521,74 @@ class _PetCard extends StatelessWidget {
       if (pet.sterilized != null)
         pet.sterilized! ? 'Стерилизован(а)' : 'Не стерилизован(а)',
     ];
-    return Card(
-      color: selected ? Theme.of(context).colorScheme.primaryContainer : null,
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(4, 8, 8, 8),
-        child: Row(
-          children: [
-            Expanded(
-              child: ListTile(
-                onTap: onSelect,
-                leading: const CircleAvatar(child: Icon(Icons.pets)),
-                title: Text(pet.name),
-                subtitle: Text([
-                  details.join(' · '),
-                  if (health.isNotEmpty) health.join('\n'),
-                ].join('\n')),
-                isThreeLine: health.isNotEmpty,
-              ),
+    final colors = Theme.of(context).colorScheme;
+    return Semantics(
+        selected: selected,
+        button: true,
+        label:
+            '${pet.name}. ${selected ? 'Основной питомец.' : ''} Открыть профиль.',
+        child: InkWell(
+          key: ValueKey('pet-card-${pet.id}'),
+          onTap: onSelect,
+          borderRadius: BorderRadius.circular(18),
+          focusColor: colors.primary.withValues(alpha: .14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                OwnerV50PetAvatar(pet: pet, size: 68),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        pet.name,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        details.join(' · '),
+                        style: TextStyle(color: colors.onSurfaceVariant),
+                      ),
+                      if (health.isNotEmpty) ...[
+                        const SizedBox(height: 7),
+                        Text(
+                          health.join(' · '),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                      if (selected) ...[
+                        const SizedBox(height: 9),
+                        Chip(
+                          avatar: const Icon(Icons.check_circle, size: 16),
+                          label: const Text('Основной'),
+                          visualDensity: VisualDensity.compact,
+                          side: BorderSide.none,
+                          backgroundColor: colors.primaryContainer,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                if (syncStatus != null) ...[
+                  _PetSyncChip(status: syncStatus),
+                  const SizedBox(width: 4),
+                ],
+                IconButton(
+                  tooltip: 'Профиль',
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.chevron_right),
+                ),
+              ],
             ),
-            if (syncStatus != null) ...[
-              _PetSyncChip(status: syncStatus),
-              const SizedBox(width: 4),
-            ],
-            if (selected)
-              const Tooltip(
-                message: 'Выбран для записи',
-                child: Icon(Icons.check_circle_outline),
-              ),
-            IconButton(
-              tooltip: 'Профиль',
-              onPressed: onEdit,
-              icon: const Icon(Icons.edit_outlined),
-            ),
-          ],
-        ),
-      ),
-    );
+          ),
+        ));
   }
 }
 
@@ -555,15 +669,90 @@ class _PetSyncChip extends StatelessWidget {
 }
 
 class _PetsEmpty extends StatelessWidget {
-  const _PetsEmpty();
+  const _PetsEmpty({required this.onAdd});
+
+  final VoidCallback? onAdd;
 
   @override
-  Widget build(BuildContext context) => const Center(
+  Widget build(BuildContext context) => OwnerV50InsetSection(
         child: Padding(
-          padding: EdgeInsets.all(32),
-          child: Text('Добавьте питомца, чтобы продолжить запись в клинику.'),
+          padding: const EdgeInsets.symmetric(vertical: 34),
+          child: Column(
+            children: [
+              Icon(Icons.pets_outlined,
+                  size: 52, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(height: 14),
+              Text('Питомцы не добавлены',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      )),
+              const SizedBox(height: 6),
+              const Text(
+                'Добавьте питомца, чтобы видеть его профиль, дневник здоровья и выбирать его для записи.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 18),
+              FilledButton.icon(
+                key: const ValueKey('add-pet-action'),
+                onPressed: onAdd,
+                icon: const Icon(Icons.add),
+                label: const Text('Добавить питомца'),
+              ),
+            ],
+          ),
         ),
       );
+}
+
+class _SelectedPetContext extends StatelessWidget {
+  const _SelectedPetContext({required this.pet, required this.onOpen});
+
+  final OwnerPet? pet;
+  final VoidCallback? onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final pet = this.pet;
+    return OwnerV50InsetSection(
+      title: 'Основной питомец',
+      child: pet == null
+          ? const Text('Выберите питомца, чтобы открыть его профиль.')
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    OwnerV50PetAvatar(pet: pet, size: 76),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(pet.name,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.w800)),
+                          Text(
+                            [ownerPetSpeciesLabel(pet.species), pet.breed]
+                                .whereType<String>()
+                                .join(' · '),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                FilledButton.icon(
+                  onPressed: onOpen,
+                  icon: const Icon(Icons.pets_outlined),
+                  label: const Text('Открыть профиль'),
+                ),
+              ],
+            ),
+    );
+  }
 }
 
 class _CupertinoPetCard extends StatelessWidget {
@@ -1070,6 +1259,7 @@ class _PetFormState extends State<_PetForm> {
   _PetSubmitState _submitState = _PetSubmitState.idle;
   _PetSubmitState _photoState = _PetSubmitState.idle;
   String? _submitError;
+  String? _nameServerError;
   String? _photoError;
   OwnerPickedPetFile? _lastPhotoFile;
 
@@ -1168,12 +1358,13 @@ class _PetFormState extends State<_PetForm> {
                 autofocus: widget.initial == null,
                 textCapitalization: TextCapitalization.words,
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   border: OutlineInputBorder(),
                   labelText: 'Имя питомца',
+                  errorText: _nameServerError,
                 ),
                 validator: _validateName,
-                onChanged: (_) => setState(() {}),
+                onChanged: (_) => setState(() => _nameServerError = null),
               ),
               const SizedBox(height: 12),
               SegmentedButton<String>(
@@ -1310,6 +1501,7 @@ class _PetFormState extends State<_PetForm> {
     setState(() {
       _submittedOnce = true;
       _submitError = null;
+      _nameServerError = null;
     });
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() {
@@ -1354,7 +1546,12 @@ class _PetFormState extends State<_PetForm> {
       }
       setState(() {
         _submitState = _PetSubmitState.failure;
-        _submitError = _petError(error);
+        if (error.code == 'INVALID_PET_NAME') {
+          _nameServerError = 'Введите корректное имя питомца';
+          _submitError = null;
+        } else {
+          _submitError = _petError(error);
+        }
       });
     } catch (_) {
       if (!mounted) {
