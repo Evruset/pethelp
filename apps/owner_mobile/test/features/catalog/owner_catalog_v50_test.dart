@@ -138,7 +138,7 @@ void main() {
         .getTopLeft(find.byKey(const ValueKey('catalog-card-price')).first)
         .dy;
     expect(find.byKey(const ValueKey('catalog-card-freshness')), findsWidgets);
-    expect(find.text('Расписание обновлено недавно'), findsWidgets);
+    expect(find.text('Обновлено недавно'), findsWidgets);
     expect(fitY, lessThan(availabilityY));
     expect(availabilityY, lessThan(confirmationY));
     expect(confirmationY, lessThan(priceY));

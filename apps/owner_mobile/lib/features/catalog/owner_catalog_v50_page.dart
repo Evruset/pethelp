@@ -279,7 +279,7 @@ class _OwnerCatalogV50PageState extends State<OwnerCatalogV50Page> {
                       physics: const NeverScrollableScrollPhysics(),
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: columns,
-                        mainAxisExtent: compactCards ? 456 : 712,
+                        mainAxisExtent: compactCards ? 432 : 688,
                         crossAxisSpacing: 16,
                         mainAxisSpacing: 16,
                       ),
@@ -686,23 +686,6 @@ class _ClinicCard extends StatelessWidget {
                       _confirmationText(clinic.availability.confirmationMode),
                   compact: wide,
                 ),
-                const SizedBox(height: 6),
-                Row(
-                  key: const ValueKey('catalog-card-freshness'),
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.update_outlined, size: 18),
-                    const SizedBox(width: 7),
-                    Expanded(
-                      child: Text(
-                        _catalogFreshnessText(clinic.availability),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
-                    ),
-                  ],
-                ),
                 if (clinic.priceFrom != null) ...[
                   const SizedBox(height: 6),
                   _CatalogFact(
@@ -726,6 +709,7 @@ class _ClinicCard extends StatelessWidget {
                         clinicId: clinic.id,
                         clinicName: clinic.name,
                         featured: featured,
+                        availability: clinic.availability,
                         width: 140,
                         height: 140,
                       ),
@@ -749,6 +733,7 @@ class _ClinicCard extends StatelessWidget {
                     clinicId: clinic.id,
                     clinicName: clinic.name,
                     featured: featured,
+                    availability: clinic.availability,
                     width: double.infinity,
                     height: 112,
                   ),
@@ -809,6 +794,7 @@ class _ClinicMedia extends StatelessWidget {
     required this.clinicId,
     required this.clinicName,
     required this.featured,
+    required this.availability,
     required this.width,
     required this.height,
   });
@@ -816,6 +802,7 @@ class _ClinicMedia extends StatelessWidget {
   final String clinicId;
   final String clinicName;
   final bool featured;
+  final CatalogAvailabilitySummary availability;
   final double width;
   final double height;
 
@@ -824,10 +811,14 @@ class _ClinicMedia extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final tokens = Theme.of(context).extension<VetHelpSurfaceTokens>();
     final success = tokens?.success ?? colors.tertiary;
+    final freshness = _catalogFreshnessText(availability);
+    final stale =
+        availability.freshness == CatalogAvailabilityFreshness.stale ||
+            availability.freshness == CatalogAvailabilityFreshness.unavailable;
     return Semantics(
       key: ValueKey('catalog-clinic-media-$clinicId'),
       image: true,
-      label: 'Иллюстрация клиники $clinicName',
+      label: 'Иллюстрация клиники $clinicName. $freshness',
       child: ExcludeSemantics(
         child: Container(
           width: width,
@@ -888,6 +879,34 @@ class _ClinicMedia extends StatelessWidget {
                   ),
                   child: Icon(Icons.local_hospital_outlined,
                       size: 34, color: colors.primary),
+                ),
+              ),
+              Positioned(
+                right: 10,
+                bottom: 10,
+                child: Container(
+                  key: const ValueKey('catalog-card-freshness'),
+                  constraints: const BoxConstraints(maxWidth: 124),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: stale
+                        ? colors.errorContainer
+                        : colors.surface.withValues(alpha: 0.94),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    freshness,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: stale
+                              ? colors.onErrorContainer
+                              : colors.onSurface,
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
                 ),
               ),
             ],
@@ -1663,12 +1682,10 @@ String _availabilityText(CatalogAvailabilitySummary availability) =>
 
 String _catalogFreshnessText(CatalogAvailabilitySummary availability) =>
     switch (availability.freshness) {
-      CatalogAvailabilityFreshness.current => 'Расписание обновлено недавно',
-      CatalogAvailabilityFreshness.aging =>
-        'Актуальность расписания уточняется',
+      CatalogAvailabilityFreshness.current => 'Обновлено недавно',
+      CatalogAvailabilityFreshness.aging => 'Расписание уточняется',
       CatalogAvailabilityFreshness.stale => 'Расписание устарело',
-      CatalogAvailabilityFreshness.unavailable =>
-        'Актуальное расписание недоступно',
+      CatalogAvailabilityFreshness.unavailable => 'Расписание недоступно',
     };
 
 String _nextAvailableText(DateTime? value) {
