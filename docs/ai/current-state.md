@@ -8,8 +8,8 @@ Updated: 2026-07-15
 - `V50-SHELL-01`: `COMPLETE / INTEGRATED` at `1c58ad6`.
 - `V50-OWNER-01`: `COMPLETE / INTEGRATED` at `2077b00`.
 - `V50-OWNER-02`: `COMPLETE / INTEGRATED` at `78d9322`.
-- `V50-OWNER-03`: bootstrap pending on an isolated branch/worktree.
-- Integration status: `V50-OWNER-02_INTEGRATED / V50-OWNER-03_NOT_STARTED`.
+- `V50-OWNER-03`: `ACTIVE / NOT_READY_FOR_INTEGRATION`.
+- Integration status: `V50-OWNER-02_INTEGRATED / V50-OWNER-03_ACTIVE`.
 - Canonical target: `V50`; source: `prototype-v50/index.html`; manifest SHA-256: `245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42`.
 - Program branch/worktree: `agent/v51-stage-01-architecture` / `/Users/evrusetskiy/work/pethelp-alpha`.
 - Root worktree still contains protected user changes in `.codex/ACTIVE_MODE` and `.codex/config.toml`; this worktree does not modify them.
@@ -72,6 +72,6 @@ Acceptance closure passes field-specific Profile validation/draft preservation, 
 
 ## Next slice
 
-The next permitted slice is `V50-OWNER-03 / Clinic Catalog, Clinic Detail and Doctor Discovery`. Its isolated branch/worktree and bounded-context bootstrap must be created before runtime implementation.
+`V50-OWNER-03 / Clinic Catalog, Clinic Detail and Doctor Discovery` is active on `agent/v50-owner-03` in `/Users/evrusetskiy/work/pethelp-alpha-v50-owner-03`, based on integration commit `d55b292`. Scope is limited to `OWN-002`, `OWN-004`, `OWN-018` and `OWN-019`; booking holds and V50-OWNER-04 are not started.
 
 The Owner Home backend reproduction gate is `PASS`: after canonical Compose recreated its dependency volume, Jest ran 4 focused suites and passed; the final combined Owner pets/Home run passed 23/23 tests. Resolution evidence is recorded in `docs/ai/tooling-debt/V50-OWNER-01-backend-spawn-einval.md`.

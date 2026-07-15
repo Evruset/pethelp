@@ -19,6 +19,8 @@ import 'features/care/owner_pet_care_page.dart';
 import 'features/care/owner_pet_care_repository.dart';
 import 'features/care/owner_pet_diary_v50_page.dart';
 import 'features/catalog/catalog_models.dart';
+import 'features/catalog/owner_catalog_v50_feature_flags.dart';
+import 'features/catalog/owner_catalog_v50_page.dart';
 import 'features/catalog/public_catalog_page.dart';
 import 'features/catalog/public_catalog_repository.dart';
 import 'features/emergency/emergency_repository.dart';
@@ -221,6 +223,7 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
     if (_hasOwnerSession) {
       final shellEnabled = isOwnerV50ShellEnabled();
       final homeEnabled = isOwnerV50HomeEnabled(shellEnabled: shellEnabled);
+      final catalogFlags = ownerCatalogV50Flags(shellEnabled: shellEnabled);
       final petsV50Flags = ownerPetsV50Flags(shellEnabled: shellEnabled);
       final preferenceOwnerId =
           _session?.ownerId ?? safeOwnerSubjectFromJwt(_accessToken);
@@ -246,8 +249,12 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
           petsRepository: petsRepository,
           appointmentsRepository: appointmentsRepository,
           alternativeSlotRepository: alternativeSlotRepository,
-          catalogRepository:
-              HttpPublicCatalogRepository(baseUrl: Uri.parse(_apiBaseUrl)),
+          catalogRepository: HttpPublicCatalogRepository(
+            baseUrl: Uri.parse(_apiBaseUrl),
+            selectedPetId: _selectedPet?.id,
+            accessTokenProvider: _token,
+          ),
+          catalogV50Flags: catalogFlags,
           selectedPet: _selectedPet,
           onPetSelected: _selectPet,
           ownerHomeRepository: _ownerHomeRepository,
@@ -381,22 +388,50 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
         ownerPageRoute<void>(
           context: context,
           platform: widget.platformOverride,
-          builder: (_) => PublicCatalogPage(
-            repository:
-                HttpPublicCatalogRepository(baseUrl: Uri.parse(_apiBaseUrl)),
-            onSelected: onSelected,
-            platformOverride: widget.platformOverride,
-            bookingPetName: _selectedPet?.name,
-            bookingContextNote: contextNote,
-            onChangePet: _selectedPet == null
-                ? null
-                : () {
-                    Navigator.of(context).maybePop();
-                    _showMessage(
-                      'Вы можете изменить питомца во вкладке «Питомцы», затем вернуться к записи.',
-                    );
-                  },
-          ),
+          builder: (_) {
+            final flags = ownerCatalogV50Flags(
+              shellEnabled: isOwnerV50ShellEnabled(),
+            );
+            final repository = HttpPublicCatalogRepository(
+              baseUrl: Uri.parse(_apiBaseUrl),
+              selectedPetId: _selectedPet?.id,
+              accessTokenProvider: _session == null ? null : _token,
+            );
+            if (flags.catalog) {
+              return OwnerCatalogV50Page(
+                repository: repository,
+                flags: flags,
+                onSelected: onSelected,
+                selectedPetId: _selectedPet?.id,
+                selectedPetName: _selectedPet?.name,
+                initialLocation:
+                    WidgetsBinding.instance.platformDispatcher.defaultRouteName,
+                onChangePet: _selectedPet == null
+                    ? null
+                    : () {
+                        Navigator.of(context).maybePop();
+                        _showMessage(
+                          'Измените питомца во вкладке «Питомцы», затем вернитесь в каталог.',
+                        );
+                      },
+              );
+            }
+            return PublicCatalogPage(
+              repository: repository,
+              onSelected: onSelected,
+              platformOverride: widget.platformOverride,
+              bookingPetName: _selectedPet?.name,
+              bookingContextNote: contextNote,
+              onChangePet: _selectedPet == null
+                  ? null
+                  : () {
+                      Navigator.of(context).maybePop();
+                      _showMessage(
+                        'Вы можете изменить питомца во вкладке «Питомцы», затем вернуться к записи.',
+                      );
+                    },
+            );
+          },
         ),
       );
 
@@ -674,6 +709,7 @@ class _OwnerV50AuthenticatedShell extends StatefulWidget {
     required this.appointmentsRepository,
     required this.alternativeSlotRepository,
     required this.catalogRepository,
+    required this.catalogV50Flags,
     required this.selectedPet,
     required this.onPetSelected,
     required this.ownerHomeRepository,
@@ -698,6 +734,7 @@ class _OwnerV50AuthenticatedShell extends StatefulWidget {
   final OwnerAppointmentsRepository appointmentsRepository;
   final AlternativeSlotRepository alternativeSlotRepository;
   final PublicCatalogRepository catalogRepository;
+  final OwnerCatalogV50Flags catalogV50Flags;
   final OwnerPet? selectedPet;
   final ValueChanged<OwnerPet> onPetSelected;
   final OwnerHomeRepository ownerHomeRepository;
@@ -865,13 +902,24 @@ class _OwnerV50AuthenticatedShellState
               onRequestInsurance: widget.onRequestInsurance,
               onRequestEmergency: widget.onRequestEmergency,
             ),
-      clinics: PublicCatalogPage(
-        platformOverride: widget.platformOverride,
-        repository: widget.catalogRepository,
-        onSelected: widget.onCatalogSelection,
-        bookingPetName: widget.selectedPet?.name,
-        onChangePet: () => _selectDestination(3),
-      ),
+      clinics: widget.catalogV50Flags.catalog
+          ? OwnerCatalogV50Page(
+              repository: widget.catalogRepository,
+              flags: widget.catalogV50Flags,
+              onSelected: widget.onCatalogSelection,
+              selectedPetId: widget.selectedPet?.id,
+              selectedPetName: widget.selectedPet?.name,
+              initialLocation:
+                  WidgetsBinding.instance.platformDispatcher.defaultRouteName,
+              onChangePet: () => _selectDestination(3),
+            )
+          : PublicCatalogPage(
+              platformOverride: widget.platformOverride,
+              repository: widget.catalogRepository,
+              onSelected: widget.onCatalogSelection,
+              bookingPetName: widget.selectedPet?.name,
+              onChangePet: () => _selectDestination(3),
+            ),
       appointments: OwnerAppointmentsPage(
         repository: widget.appointmentsRepository,
         alternativeSlotRepository: widget.alternativeSlotRepository,

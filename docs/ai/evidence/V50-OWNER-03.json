@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "slice": "V50-OWNER-03",
+  "status": "NOT_CAPTURED",
+  "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+  "runtimeCommit": null,
+  "artifactPackageId": null,
+  "artifactPackageSha256": null,
+  "viewports": ["375x812", "412x915", "768x1024", "1440x900"],
+  "states": [
+    "CATALOG_READY_LIST",
+    "CATALOG_READY_MAP",
+    "CATALOG_FILTERED",
+    "CATALOG_EMPTY",
+    "CATALOG_LOCATION_DENIED",
+    "CATALOG_OFFLINE_STALE",
+    "CLINIC_READY",
+    "CLINIC_STALE_AVAILABILITY",
+    "CLINIC_NO_SLOTS",
+    "DOCTORS_READY",
+    "DOCTORS_EMPTY",
+    "DOCTOR_PROFILE"
+  ],
+  "v50Ids": ["OWN-002", "OWN-004", "OWN-018", "OWN-019"],
+  "prototypeAnchors": ["#catalog", "#clinic", "#doctor-select", "#doctor-detail"],
+  "artifacts": [],
+  "prototypeReferences": [],
+  "knownDifferences": []
+}
