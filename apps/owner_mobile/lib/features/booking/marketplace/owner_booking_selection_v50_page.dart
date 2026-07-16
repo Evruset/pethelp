@@ -371,7 +371,15 @@ class _OwnerBookingSelectionV50PageState
       title: 'Проверьте запись',
       supportingText:
           'Проверьте детали перед следующим этапом. Время ещё не удерживается.',
-      status: _confirmationBanner(slot),
+      status: Column(
+        children: [
+          if (_submission != BookingReviewSubmissionState.idle)
+            _submissionBanner(_submission),
+          if (_submission != BookingReviewSubmissionState.idle)
+            const SizedBox(height: 8),
+          _confirmationBanner(slot),
+        ],
+      ),
       child: LayoutBuilder(builder: (context, constraints) {
         final details = OwnerV50InsetSection(
           key: const ValueKey('booking-review-details'),
@@ -516,6 +524,28 @@ class _OwnerBookingSelectionV50PageState
         title: 'Можно ехать? Пока нет',
         message: _confirmationText(slot.confirmationMode),
         warning: slot.confirmationMode != BookingConfirmationMode.instant,
+      );
+
+  Widget _submissionBanner(BookingReviewSubmissionState state) =>
+      OwnerV50StatusBanner(
+        icon: state == BookingReviewSubmissionState.submitting
+            ? Icons.sync
+            : state == BookingReviewSubmissionState.softRetry
+                ? Icons.refresh
+                : Icons.error_outline,
+        title: switch (state) {
+          BookingReviewSubmissionState.submitting => 'Проверяем выбранное время',
+          BookingReviewSubmissionState.softRetry => 'Время нужно проверить ещё раз',
+          BookingReviewSubmissionState.finalConflict => 'Это время уже недоступно',
+          BookingReviewSubmissionState.networkAmbiguous => 'Уточняем результат отправки',
+          BookingReviewSubmissionState.offlineBlocked => 'Нет подключения к интернету',
+          BookingReviewSubmissionState.sessionExpired => 'Нужно войти снова',
+          BookingReviewSubmissionState.successReadback => 'Получен серверный статус',
+          BookingReviewSubmissionState.idle => 'Готово к отправке',
+        },
+        message: _submissionMessage(state),
+        warning: state != BookingReviewSubmissionState.submitting &&
+            state != BookingReviewSubmissionState.successReadback,
       );
 }
 

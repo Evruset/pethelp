@@ -26,7 +26,7 @@ try {
       await page.waitForTimeout(700);
       const path = `${root}/runtime/${width}x${height}/${state}.png`;
       await mkdir(`${root}/runtime/${width}x${height}`, { recursive: true });
-      await page.screenshot({ path, fullPage: true });
+      await page.screenshot({ path });
       await page.close();
       const isReview = state === 'REVIEW_READY' || state.startsWith('CREATE_HOLD_');
       runtimeArtifacts.push({
@@ -49,7 +49,7 @@ try {
       await page.waitForTimeout(500);
       const path = `${root}/prototype/${anchor}/${width}x${height}.png`;
       await mkdir(`${root}/prototype/${anchor}`, { recursive: true });
-      await page.screenshot({ path, fullPage: true });
+      await page.screenshot({ path });
       await page.close();
       prototypeArtifacts.push({
         prototypeAnchor: `#${anchor}`,

@@ -138,6 +138,17 @@ class _BookingHoldStatusPageState extends State<BookingHoldStatusPage>
                 ),
                 const SizedBox(height: 8),
                 Text(_message(state), textAlign: TextAlign.center),
+                if (widget.offline)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Semantics(
+                      liveRegion: true,
+                      child: const Text(
+                        'Нет подключения. Показан последний серверный снимок; статус может быть устаревшим.',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
                 if (_remaining case final remaining?) ...[
                   const SizedBox(height: 8),
                   Semantics(
@@ -238,6 +249,15 @@ class _BookingHoldStatusPageState extends State<BookingHoldStatusPage>
                     textAlign: TextAlign.center,
                     style: CupertinoTheme.of(context).textTheme.textStyle,
                   ),
+                  if (widget.offline) ...[
+                    const SizedBox(height: 16),
+                    OwnerCupertinoStatusBanner(
+                      tone: OwnerCupertinoFeedbackTone.warning,
+                      icon: CupertinoIcons.wifi_slash,
+                      title: 'Нет подключения',
+                      message: 'Показан последний серверный снимок; статус может быть устаревшим.',
+                    ),
+                  ],
                   if (_remaining case final remaining?) ...[
                     const SizedBox(height: 8),
                     Semantics(
