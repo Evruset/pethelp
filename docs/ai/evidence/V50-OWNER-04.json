@@ -1,0 +1,712 @@
+{
+  "schemaVersion": 1,
+  "slice": "V50-OWNER-04",
+  "status": "CERTIFIED_VISUAL_PASS",
+  "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+  "runtimeCommit": "985dd5b",
+  "artifactPackageId": "v50-owner-04-985dd5b",
+  "artifactPackageSha256": "ef340a6123d69ab81b1f7100c9c403d93b47dd6847a9ac328cc46180f6338c1b",
+  "viewports": [
+    "375x812",
+    "412x915",
+    "768x1024",
+    "1440x900"
+  ],
+  "states": [
+    "SERVICE_READY",
+    "SERVICE_EMPTY",
+    "DATE_READY",
+    "DATE_EMPTY",
+    "SLOT_READY",
+    "SLOT_SELECTED",
+    "SLOT_STALE",
+    "SLOT_EMPTY",
+    "REVIEW_READY",
+    "REVIEW_PRICE_DISCLOSURE",
+    "REVIEW_GUEST_AUTH_REQUIRED",
+    "REVIEW_OFFLINE_STALE"
+  ],
+  "v50Ids": [
+    "OWN-005",
+    "OWN-006"
+  ],
+  "prototypeAnchors": [
+    "#booking",
+    "#booking-review"
+  ],
+  "representativeGate": "8/8 PASS",
+  "artifacts": [
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "375x812",
+      "state": "SERVICE_READY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/375x812/SERVICE_READY.png",
+      "sha256": "0fffe443bb021b91c00df6253fabd25a2fba4f6c670aa837c5c4071fccf0901d",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "375x812",
+      "state": "SERVICE_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/375x812/SERVICE_EMPTY.png",
+      "sha256": "5169dd0bd383fede7ad9b4465ac63b49f97c5ef827145803aebfa2bb67822c75",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "375x812",
+      "state": "DATE_READY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/375x812/DATE_READY.png",
+      "sha256": "34cd02db30b55458c6278e2a4e2498f68d56c36668abe9b88aeaf72a0f63297b",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "375x812",
+      "state": "DATE_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/375x812/DATE_EMPTY.png",
+      "sha256": "37a5367817104de0497c4adb0873146b5ad21a07aee512b16abc7618d7c02fef",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "375x812",
+      "state": "SLOT_READY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/375x812/SLOT_READY.png",
+      "sha256": "34cd02db30b55458c6278e2a4e2498f68d56c36668abe9b88aeaf72a0f63297b",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "375x812",
+      "state": "SLOT_SELECTED",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/375x812/SLOT_SELECTED.png",
+      "sha256": "0e89812d93c19ba437a4d236fde25b92a8bedfa8808b219b787573988975a4a2",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "375x812",
+      "state": "SLOT_STALE",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/375x812/SLOT_STALE.png",
+      "sha256": "04298631ceae62d359f5e660851136d94855f0d5bc6d16bd3ae9b046b97347db",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "375x812",
+      "state": "SLOT_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/375x812/SLOT_EMPTY.png",
+      "sha256": "5c61d272c498bbcc50b42287738970da9222f9b282b127930dc77f570dcf2593",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "375x812",
+      "state": "REVIEW_READY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/375x812/REVIEW_READY.png",
+      "sha256": "53ad70d5107ad2bbe3ba6f7e06fad57d203185fa960ba5de19a4fe1e9e8ebadb",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "375x812",
+      "state": "REVIEW_PRICE_DISCLOSURE",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/375x812/REVIEW_PRICE_DISCLOSURE.png",
+      "sha256": "53ad70d5107ad2bbe3ba6f7e06fad57d203185fa960ba5de19a4fe1e9e8ebadb",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "375x812",
+      "state": "REVIEW_GUEST_AUTH_REQUIRED",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/375x812/REVIEW_GUEST_AUTH_REQUIRED.png",
+      "sha256": "7d82ff18a37087b7b48135860144ab54b1641d350a35d27cf03ccf794eda0aa8",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "375x812",
+      "state": "REVIEW_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/375x812/REVIEW_OFFLINE_STALE.png",
+      "sha256": "53ad70d5107ad2bbe3ba6f7e06fad57d203185fa960ba5de19a4fe1e9e8ebadb",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "412x915",
+      "state": "SERVICE_READY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/412x915/SERVICE_READY.png",
+      "sha256": "d1402f95cd7b8855eb363941482f7ae2249eab7e3553663f958c33e5089c8641",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "412x915",
+      "state": "SERVICE_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/412x915/SERVICE_EMPTY.png",
+      "sha256": "540e025d2264d41c514fe98963f597fa74ea59a6bad504c112d0322e78b62be1",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "412x915",
+      "state": "DATE_READY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/412x915/DATE_READY.png",
+      "sha256": "555bd17102add8da6e877055239ef14cb115c8e4bdd3031e225bc590c4c67816",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "412x915",
+      "state": "DATE_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/412x915/DATE_EMPTY.png",
+      "sha256": "2896c2764fd5305b18cefc06a7116afbc782dbded0d872228adb28912b3e4970",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "412x915",
+      "state": "SLOT_READY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/412x915/SLOT_READY.png",
+      "sha256": "555bd17102add8da6e877055239ef14cb115c8e4bdd3031e225bc590c4c67816",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "412x915",
+      "state": "SLOT_SELECTED",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/412x915/SLOT_SELECTED.png",
+      "sha256": "c64c38c71cc732cae638f57a0bab8f655f875d37445b4f5993db49daf70c99a7",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "412x915",
+      "state": "SLOT_STALE",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/412x915/SLOT_STALE.png",
+      "sha256": "e0fe6beb0e56f27abbbf2e0f1c683eb727aebdd985de7fa26bf52f057699c9d0",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "412x915",
+      "state": "SLOT_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/412x915/SLOT_EMPTY.png",
+      "sha256": "505da6b3857cc0bc030f761cc3c43db5855ca4d0995f6a0e84e1aacad280213c",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "412x915",
+      "state": "REVIEW_READY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/412x915/REVIEW_READY.png",
+      "sha256": "dc88e89dcacecdc56dea6ce7d0bda4c4b96b52d72852ae1df251fd12dea3578a",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "412x915",
+      "state": "REVIEW_PRICE_DISCLOSURE",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/412x915/REVIEW_PRICE_DISCLOSURE.png",
+      "sha256": "dc88e89dcacecdc56dea6ce7d0bda4c4b96b52d72852ae1df251fd12dea3578a",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "412x915",
+      "state": "REVIEW_GUEST_AUTH_REQUIRED",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/412x915/REVIEW_GUEST_AUTH_REQUIRED.png",
+      "sha256": "7ccfdb9cc9902337ed3972828d963931aa81cc643f898738fa66c7f4c6f55c6a",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "412x915",
+      "state": "REVIEW_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/412x915/REVIEW_OFFLINE_STALE.png",
+      "sha256": "8290be1bc5968cb9c3d8ba9e193942ceb48ea07fc673197ebe9d9116dd9be4c2",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "768x1024",
+      "state": "SERVICE_READY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/768x1024/SERVICE_READY.png",
+      "sha256": "30f4490ded32f4b0948e3d76fead82452bb1a49ae8edaec65e030519a7947e4d",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "768x1024",
+      "state": "SERVICE_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/768x1024/SERVICE_EMPTY.png",
+      "sha256": "25388528ba2bd63d14eacfca1cb601b76afe75efe036b84afd23f5d8a8d1b0db",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "768x1024",
+      "state": "DATE_READY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/768x1024/DATE_READY.png",
+      "sha256": "9176c09115cc02db659b0d0361f1b7fd93bbd10818069f56bff1151102775689",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "768x1024",
+      "state": "DATE_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/768x1024/DATE_EMPTY.png",
+      "sha256": "bc4b40bd3cc69b407b2c1d0f5bd6656aa5008e223e7b41204adc5cf3b9be44bb",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "768x1024",
+      "state": "SLOT_READY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/768x1024/SLOT_READY.png",
+      "sha256": "9176c09115cc02db659b0d0361f1b7fd93bbd10818069f56bff1151102775689",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "768x1024",
+      "state": "SLOT_SELECTED",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/768x1024/SLOT_SELECTED.png",
+      "sha256": "24a009686efb66fe077b1b36ec42001d85fb2315c7b5e9e943e1bbb7474ac047",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "768x1024",
+      "state": "SLOT_STALE",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/768x1024/SLOT_STALE.png",
+      "sha256": "3d3808c458a682fb7eb8edce1f6208834bcff7e6a379568fc7462eaf54c55c0e",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "768x1024",
+      "state": "SLOT_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/768x1024/SLOT_EMPTY.png",
+      "sha256": "70c4ff09e9a4405bb266a2367b50484af952fdbc24379726f97e559d2d1152c1",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "768x1024",
+      "state": "REVIEW_READY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/768x1024/REVIEW_READY.png",
+      "sha256": "9c21a387a279b73447a51b2ce1c02c668db4e7a836490a3b0afddd5c42a39689",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "768x1024",
+      "state": "REVIEW_PRICE_DISCLOSURE",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/768x1024/REVIEW_PRICE_DISCLOSURE.png",
+      "sha256": "9c21a387a279b73447a51b2ce1c02c668db4e7a836490a3b0afddd5c42a39689",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "768x1024",
+      "state": "REVIEW_GUEST_AUTH_REQUIRED",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/768x1024/REVIEW_GUEST_AUTH_REQUIRED.png",
+      "sha256": "6564f1cfe9e5e95e16824311cba8656b2dfd12ae3896820f4be6f3301c55802b",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "768x1024",
+      "state": "REVIEW_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/768x1024/REVIEW_OFFLINE_STALE.png",
+      "sha256": "fdea3b10cbf07db5fc30f64128e11572d8b3a0150312a30b26b4ee077e177262",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "1440x900",
+      "state": "SERVICE_READY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/1440x900/SERVICE_READY.png",
+      "sha256": "6f18fe89a2d15bd56425e6afe85a9845c748c8a3e8f57af253a8ebe189f16458",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "1440x900",
+      "state": "SERVICE_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/1440x900/SERVICE_EMPTY.png",
+      "sha256": "74d90479ba5565c1701cc372a3afe2110ea83f12ab03d8b523a98548b6e4b883",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "1440x900",
+      "state": "DATE_READY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/1440x900/DATE_READY.png",
+      "sha256": "adb322c23b562148af0a59f8d387e086b5554b0a647b9172e4ea8e6946483861",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "1440x900",
+      "state": "DATE_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/1440x900/DATE_EMPTY.png",
+      "sha256": "b169713225b58696d55b2bf2edf7b804a0fa93d32aaef1e7b3fbfa1349ba9736",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "1440x900",
+      "state": "SLOT_READY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/1440x900/SLOT_READY.png",
+      "sha256": "adb322c23b562148af0a59f8d387e086b5554b0a647b9172e4ea8e6946483861",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "1440x900",
+      "state": "SLOT_SELECTED",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/1440x900/SLOT_SELECTED.png",
+      "sha256": "73ea0cf8d25375dea8af3711c6fac0de85c55a4f89e51767de7b0827e9232e5c",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "1440x900",
+      "state": "SLOT_STALE",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/1440x900/SLOT_STALE.png",
+      "sha256": "314c2afbdaf1164da0606472f4d1cc3e59fe797745b550a950103cf626c3e8dd",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-005",
+      "prototypeAnchor": "#booking",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "1440x900",
+      "state": "SLOT_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/1440x900/SLOT_EMPTY.png",
+      "sha256": "f21d0b710ccc394e0097c3bba8fa9c77a5c10a7078f072135ff011df5febbce3",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "1440x900",
+      "state": "REVIEW_READY",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/1440x900/REVIEW_READY.png",
+      "sha256": "35b3632ea50e320eb53f977eb4cb196c8d1124dd05902f310d128769870d9706",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "1440x900",
+      "state": "REVIEW_PRICE_DISCLOSURE",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/1440x900/REVIEW_PRICE_DISCLOSURE.png",
+      "sha256": "35b3632ea50e320eb53f977eb4cb196c8d1124dd05902f310d128769870d9706",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "1440x900",
+      "state": "REVIEW_GUEST_AUTH_REQUIRED",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/1440x900/REVIEW_GUEST_AUTH_REQUIRED.png",
+      "sha256": "65c72bbecbec0c7396c3a30e3c0824c289405524ec06536b7ce97f76e2523369",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "985dd5b",
+      "viewport": "1440x900",
+      "state": "REVIEW_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-04/runtime/1440x900/REVIEW_OFFLINE_STALE.png",
+      "sha256": "c6fef68c05e40005b9ef33fc516b2a4b1a5475d3152de60c9c8b30bade55e691",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Flutter rasterization and native focus rendering may differ from the HTML prototype."
+      ]
+    }
+  ]
+}

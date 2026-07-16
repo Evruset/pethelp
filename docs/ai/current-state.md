@@ -80,8 +80,20 @@ Backend focused catalog/auth/pet tests PASS 20/20. Post-runtime Flutter analyze 
 
 Independent read-only validation is PASS with zero vetoes. `OWN-002`, `OWN-004`, `OWN-018` and `OWN-019` are `IMPLEMENTED / TESTED / VISUALLY_VERIFIED`; the counter is `7/30`. Integration readiness is PASS. Doctor production rollout remains BLOCKED by `PUBLIC_DOCTOR_PROFILE_CONSENT_CONTRACT_MISSING`; the strict allowlist/default-off mitigation and required future consent source are recorded in `docs/v50/V50-DOCTOR-PUBLIC-PROFILE-CONSENT-DEBT.md`.
 
+## V50-OWNER-04 delivery state
+
+`V50-OWNER-04` is implemented on `agent/v50-owner-04` at runtime commit
+`985dd5b`. The safe read supplies server-authored booking selection semantics;
+flagged `/owner/booking` and `/owner/booking/review` retain typed guest intent
+and stop before hold/mutation. Backend focused PASS 4/4 and build PASS; Flutter
+analyze PASS, focused PASS 4/4, full PASS 245/245, both web builds PASS. Package
+`v50-owner-04-985dd5b` verifies 48/48 runtime artifacts and 8/8 representative.
+Independent validation PASS with zero vetoes. `OWN-005` and `OWN-006` are
+IMPLEMENTED / TESTED / VISUALLY_VERIFIED; program counter is 9/30. Integration
+readiness is PASS.
+
 ## Next slice
 
-`V50-OWNER-04 / Service, Date, Slot and Booking Review` may start only in a fresh session after V50-OWNER-03 integration. It was not started here.
+`V50-OWNER-05` may start only after V50-OWNER-04 integration. It has not started.
 
 The Owner Home backend reproduction gate is `PASS`: after canonical Compose recreated its dependency volume, Jest ran 4 focused suites and passed; the final combined Owner pets/Home run passed 23/23 tests. Resolution evidence is recorded in `docs/ai/tooling-debt/V50-OWNER-01-backend-spawn-einval.md`.

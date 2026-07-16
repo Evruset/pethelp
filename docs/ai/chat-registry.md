@@ -9,7 +9,7 @@
 | V50-OWNER-01 | V50 Owner Home and Next Safe Action | Owner | integrated into program branch | COMPLETE / INTEGRATED | `OWN-001` bounded Home; selected pet; server-authoritative next action | `docs/ai/handoffs/V50-OWNER-01.md` | `2077b00` | clean canonical reproduction PASS, 22/22 focused tests |
 | V50-OWNER-02 | V50 Pets, Pet Profile and Pet Diary | Owner | integrated into program branch from `agent/v50-owner-02` | COMPLETE / INTEGRATED | `OWN-009..OWN-011`; owner pet/profile/diary/document journey | `docs/ai/handoffs/V50-OWNER-02.md` | integrated through `78d9322` | independent read-only validation PASS with zero vetoes; retained evidence package verified after integration |
 | V50-OWNER-03 | V50 Clinic Catalog and Doctor Discovery | Owner | integrated into program branch from `agent/v50-owner-03` | COMPLETE / INTEGRATED | `OWN-002`, `OWN-004`, `OWN-018`, `OWN-019` | `docs/ai/handoffs/V50-OWNER-03.md` | merge `e747f61`; runtime `dc762b4` | Doctor production rollout `BLOCKED_PENDING_PUBLIC_CONSENT_CONTRACT`; integration PASS |
-| V50-OWNER-04 | V50 Service, Slot and Booking Review | Owner | `agent/v50-owner-04` / isolated worktree | ACTIVE | `OWN-005`, `OWN-006`; read-only selection/review | `docs/ai/handoffs/V50-OWNER-04.md` | pending | evidence and independent validation pending |
+| V50-OWNER-04 | V50 Service, Slot and Booking Review | Owner | `agent/v50-owner-04` / isolated worktree | COMPLETE / READY_FOR_INTEGRATION | `OWN-005`, `OWN-006`; read-only selection/review | `docs/ai/handoffs/V50-OWNER-04.md` | runtime `985dd5b` | independent PASS, zero vetoes; evidence 48/48 |
 
 ## Ownership
 
