@@ -239,7 +239,7 @@ export class BookingService {
         WHERE EXISTS (
           SELECT 1 FROM booking_schema.booking_holds h
           WHERE h.slot_id = s.id
-            AND h.state = 'MANUAL_CONFIRM_PENDING'
+            AND h.state = ANY(ARRAY['MANUAL_CONFIRM_PENDING','MIS_RESERVATION_PENDING','MIS_RECONCILIATION_PENDING','MIS_HELD']::text[])
             AND h.expires_at <= clock_timestamp()
         )
         ORDER BY s.id
@@ -254,7 +254,9 @@ export class BookingService {
         const rows = await client.query<HoldRow>(`
           SELECT id, slot_id, owner_id, pet_id, state, expires_at, state_changed_at, version, created_at
           FROM booking_schema.booking_holds
-          WHERE slot_id = $1 AND state = 'MANUAL_CONFIRM_PENDING' AND expires_at <= clock_timestamp()
+          WHERE slot_id = $1
+            AND state = ANY(ARRAY['MANUAL_CONFIRM_PENDING','MIS_RESERVATION_PENDING','MIS_RECONCILIATION_PENDING','MIS_HELD']::text[])
+            AND expires_at <= clock_timestamp()
           FOR UPDATE
         `, [slot.id]);
         for (const hold of rows.rows) {
@@ -268,17 +270,18 @@ export class BookingService {
   }
 
   private async expireLockedHold(client: PoolClient, hold: HoldRow, slot: SlotRow, correlationId: string | null, actorType: string, reason: string): Promise<void> {
-    if (hold.state !== 'MANUAL_CONFIRM_PENDING') return;
+    if (!['MANUAL_CONFIRM_PENDING', 'MIS_RESERVATION_PENDING', 'MIS_RECONCILIATION_PENDING', 'MIS_HELD'].includes(hold.state)) return;
     const updated = await client.query<HoldRow>(`
       UPDATE booking_schema.booking_holds
       SET state = 'EXPIRED', state_changed_at = clock_timestamp(), version = version + 1, updated_at = clock_timestamp()
       WHERE id = $1
+        AND state = ANY(ARRAY['MANUAL_CONFIRM_PENDING','MIS_RESERVATION_PENDING','MIS_RECONCILIATION_PENDING','MIS_HELD']::text[])
       RETURNING id, slot_id, owner_id, pet_id, state, expires_at, state_changed_at, version, created_at
     `, [hold.id]);
     await client.query(`
       UPDATE clinic_schema.appointment_slots
       SET held_count = held_count - 1, version = version + 1, updated_at = clock_timestamp()
-      WHERE id = $1
+      WHERE id = $1 AND held_count > 0
     `, [slot.id]);
     await this.writeOutbox(client, {
       eventType: 'booking.hold.expired.v1', correlationId, aggregateType: 'booking_hold', aggregateId: hold.id,

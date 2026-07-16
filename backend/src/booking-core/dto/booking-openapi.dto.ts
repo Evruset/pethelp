@@ -29,6 +29,18 @@ export class HoldDto {
 
   @ApiProperty({ format: 'uuid', example: '62c6c50e-b43c-4406-a027-7388e4bff336' })
   correlationId!: string;
+
+  @ApiProperty({ format: 'date-time' })
+  serverNow!: string;
+
+  @ApiProperty({ minimum: 1 })
+  aggregateVersion!: number;
+
+  @ApiProperty({ enum: ['AUTOMATIC', 'MANUAL', 'MIS'] })
+  confirmationMode!: string;
+
+  @ApiProperty({ enum: ['READ_STATUS'] })
+  nextAction!: 'READ_STATUS';
 }
 
 export class ConfirmHoldDto {
