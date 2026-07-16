@@ -33,6 +33,7 @@ export const DomainErrors = {
   schedulePeriodVersionStale: () => new DomainException(HttpStatus.CONFLICT, 'SCHEDULE_PERIOD_VERSION_STALE', 'Schedule period version is stale'),
   schedulePeriodHasActiveBookings: () => new DomainException(HttpStatus.CONFLICT, 'SCHEDULE_PERIOD_HAS_ACTIVE_BOOKINGS', 'Schedule period overlaps active holds or bookings'),
   alternativeSwapNotFound: () => new DomainException(HttpStatus.NOT_FOUND, 'ALTERNATIVE_SWAP_NOT_FOUND', 'Alternative swap group not found'),
+  alternativeProposalExpired: () => new DomainException(HttpStatus.GONE, 'ALTERNATIVE_PROPOSAL_EXPIRED', 'Alternative proposal expired'),
   queueFifoViolation: () => new DomainException(HttpStatus.CONFLICT, 'QUEUE_FIFO_VIOLATION', 'Confirm the earliest pending request first'),
   slotUnavailable: () => new DomainException(HttpStatus.UNPROCESSABLE_ENTITY, 'SLOT_UNAVAILABLE', 'Slot is not available for booking'),
   holdAlreadyActive: () => new DomainException(HttpStatus.UNPROCESSABLE_ENTITY, 'HOLD_ALREADY_ACTIVE', 'Owner already has an active hold for this slot'),
