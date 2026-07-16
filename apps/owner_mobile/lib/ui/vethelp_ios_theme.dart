@@ -135,7 +135,7 @@ class VetHelpTheme {
       hairline: colors.outlineVariant.withValues(alpha: .72),
       desktopBackdrop: colors.surfaceContainerLow,
       contentMaxWidth: 560,
-      cardRadius: 24,
+      cardRadius: 22,
       fieldRadius: 16,
       focusRing: colors.primary,
       success: Colors.green.shade700,
