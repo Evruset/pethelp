@@ -8,8 +8,8 @@ Updated: 2026-07-15
 - `V50-SHELL-01`: `COMPLETE / INTEGRATED` at `1c58ad6`.
 - `V50-OWNER-01`: `COMPLETE / INTEGRATED` at `2077b00`.
 - `V50-OWNER-02`: `COMPLETE / INTEGRATED` at `78d9322`.
-- `V50-OWNER-03`: `COMPLETE / READY_FOR_INTEGRATION` at runtime `dc762b4`.
-- Integration status: `V50-OWNER-03_READY_FOR_INTEGRATION / V50-OWNER-04_INACTIVE`.
+- `V50-OWNER-03`: `COMPLETE / INTEGRATED` through merge `e747f61`; runtime `dc762b4`.
+- Integration status: `V50-OWNER-03_INTEGRATED / V50-OWNER-04_INACTIVE`.
 - Canonical target: `V50`; source: `prototype-v50/index.html`; manifest SHA-256: `245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42`.
 - Program branch/worktree: `agent/v51-stage-01-architecture` / `/Users/evrusetskiy/work/pethelp-alpha`.
 - Root worktree still contains protected user changes in `.codex/ACTIVE_MODE` and `.codex/config.toml`; this worktree does not modify them.
@@ -72,7 +72,7 @@ Acceptance closure passes field-specific Profile validation/draft preservation, 
 
 ## Completed Owner catalog and doctor slice
 
-`V50-OWNER-03 / Clinic Catalog, Clinic Detail and Doctor Discovery` is complete on `agent/v50-owner-03` in `/Users/evrusetskiy/work/pethelp-alpha-v50-owner-03`; final runtime commit is `dc762b4`. Scope remains limited to `OWN-002`, `OWN-004`, `OWN-018` and `OWN-019`; booking holds and V50-OWNER-04 were not started.
+`V50-OWNER-03 / Clinic Catalog, Clinic Detail and Doctor Discovery` is complete and integrated through merge `e747f61`; final runtime commit is `dc762b4`. Scope remains limited to `OWN-002`, `OWN-004`, `OWN-018` and `OWN-019`; booking holds and V50-OWNER-04 were not started.
 
 The repair aligns Catalog filtering, clinic-card fact priority, list/map synchronization, Clinic hero/availability/pricing/doctor-preview composition and responsive behavior with the authoritative anchors. Catalog freshness is visible and semantic, including an explicit stale state. The black top band was classified as `CAPTURE_HARNESS_DEFECT`; stable-frame, cache-disabled, service-worker-bypassed capture now rejects black bands and stale bundles.
 
