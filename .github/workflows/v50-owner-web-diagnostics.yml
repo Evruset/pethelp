@@ -10,7 +10,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  analyze:
+  validate:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -30,21 +30,31 @@ jobs:
           status=$?
           echo "status=$status" >> "$GITHUB_OUTPUT"
           exit 0
-      - name: Publish analyzer output
+      - id: tests
+        shell: bash
+        run: |
+          set +e
+          flutter test > "$RUNNER_TEMP/v50-owner-tests.txt" 2>&1
+          status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Publish validation output
         uses: actions/github-script@v7
         env:
           ANALYZE_STATUS: ${{ steps.analyze.outputs.status }}
+          TEST_STATUS: ${{ steps.tests.outputs.status }}
         with:
           script: |
             const fs = require('fs');
-            const output = fs.readFileSync(process.env.RUNNER_TEMP + '/v50-owner-analyze.txt', 'utf8');
-            const clipped = output.length > 50000 ? output.slice(-50000) : output;
+            const analyze = fs.readFileSync(process.env.RUNNER_TEMP + '/v50-owner-analyze.txt', 'utf8');
+            const tests = fs.readFileSync(process.env.RUNNER_TEMP + '/v50-owner-tests.txt', 'utf8');
+            const clip = (value) => value.length > 50000 ? value.slice(-50000) : value;
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: `## Temporary V50 Owner Web analyzer diagnostics\n\nExit code: \`${process.env.ANALYZE_STATUS}\`\n\n\`\`\`text\n${clipped}\n\`\`\``
+              body: `## Temporary V50 Owner Web validation diagnostics\n\nAnalyze exit: \`${process.env.ANALYZE_STATUS}\`\nTest exit: \`${process.env.TEST_STATUS}\`\n\n### Analyze\n\`\`\`text\n${clip(analyze)}\n\`\`\`\n\n### Tests\n\`\`\`text\n${clip(tests)}\n\`\`\``
             });
-      - name: Enforce analyzer result
-        if: steps.analyze.outputs.status != '0'
+      - name: Enforce validation result
+        if: steps.analyze.outputs.status != '0' || steps.tests.outputs.status != '0'
         run: exit 1
