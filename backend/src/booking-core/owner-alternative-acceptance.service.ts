@@ -32,6 +32,22 @@ interface HoldRow {
   version: number;
 }
 
+interface LockedSlot {
+  id: string;
+  clinic_location_id: string;
+  service_id: string | null;
+  doctor_id: string | null;
+  staff_id: string | null;
+  resource_id: string | null;
+  specialty_id: string | null;
+  starts_at: Date;
+  capacity: number;
+  booked_count: number;
+  held_count: number;
+  state: string;
+  status: string;
+}
+
 interface IdempotencyRow {
   status: string;
   response_status: number | null;
@@ -65,27 +81,32 @@ export class OwnerAlternativeAcceptanceService {
       await client.query("SET LOCAL lock_timeout = '250ms'");
       await client.query("SET LOCAL statement_timeout = '1500ms'");
 
-      // Proposal identity is the command target and therefore the first lock.
-      const swap = await this.lockProposal(client, proposalId, ownerId, bookingId);
-      if (!swap) throw DomainErrors.holdNotFound();
+      // Resolve identifiers without locks, then use the same global order as
+      // clinic proposal/supersede: hold -> sorted slots -> proposal.
+      const candidate = await this.findProposal(client, proposalId, ownerId, bookingId);
+      if (!candidate) throw DomainErrors.holdNotFound();
+      const hold = await this.lockHold(client, bookingId ?? candidate.original_hold_id);
+      if (!hold || hold.owner_id !== ownerId || hold.id !== candidate.original_hold_id) throw DomainErrors.holdNotFound();
 
       const scope = `owner.alternative.${decision.toLowerCase()}:${ownerId}`;
       const fingerprint = createHash('sha256')
-        .update(JSON.stringify({ proposalId, bookingId: bookingId ?? swap.original_hold_id, decision, expectedVersion: command.expectedVersion }))
+        .update(JSON.stringify({ proposalId, bookingId: bookingId ?? hold.id, decision, expectedVersion: command.expectedVersion }))
         .digest('hex');
       const replay = await this.acquireIdempotency(client, scope, command.idempotencyKey, fingerprint);
       if (replay) return replay as unknown as OwnerAlternativeResolution;
 
-      const hold = await this.lockHold(client, swap.original_hold_id);
-      if (!hold || hold.owner_id !== ownerId) throw DomainErrors.holdNotFound();
+      const slots = await this.lockSlots(client, [candidate.original_slot_id, candidate.alternative_slot_id]);
+      const swap = await this.lockProposal(client, proposalId, ownerId, hold.id);
+      if (!swap || swap.original_slot_id !== candidate.original_slot_id || swap.alternative_slot_id !== candidate.alternative_slot_id) {
+        throw DomainErrors.holdNotFound();
+      }
       if (swap.state !== 'PENDING' || hold.state !== 'ALTERNATIVE_PENDING' || hold.alternative_slot_id !== swap.alternative_slot_id) {
         throw DomainErrors.invalidTransition();
       }
       if (hold.version !== command.expectedVersion) throw DomainErrors.bookingVersionStale();
-      if (swap.expires_at <= await this.databaseNow(client)) throw DomainErrors.alternativeProposalExpired();
-
-      const slots = await this.lockSlots(client, [swap.original_slot_id, swap.alternative_slot_id]);
-      if (slots.size !== 2) throw DomainErrors.holdNotFound();
+      const now = await this.databaseNow(client);
+      if (swap.expires_at <= now) throw DomainErrors.alternativeProposalExpired();
+      this.assertSlotsEligible(slots, swap, now);
       const releasedSlotId = decision === 'ACCEPT' ? swap.original_slot_id : swap.alternative_slot_id;
       await this.releaseSlot(client, releasedSlotId);
 
@@ -133,7 +154,21 @@ export class OwnerAlternativeAcceptanceService {
         WHERE scope=$1 AND idempotency_key=$2::uuid
       `, [scope, command.idempotencyKey, HttpStatus.OK, JSON.stringify(result)]);
       return result;
+    }).catch((error: unknown) => {
+      const code = (error as { code?: string })?.code;
+      if (code === '55P03' || code === '57014' || code === '40P01') throw DomainErrors.slotLockedRetry();
+      throw error;
     });
+  }
+
+  private async findProposal(client: PoolClient, proposalId: string, ownerId: string, bookingId?: string): Promise<SwapRow | undefined> {
+    return (await client.query<SwapRow>(`
+      SELECT id::text, original_hold_id::text, original_slot_id::text, alternative_slot_id::text,
+             owner_id::text, expires_at, state
+      FROM booking_schema.alternative_swap_groups
+      WHERE id=$1::uuid AND owner_id=$2::uuid
+        AND ($3::uuid IS NULL OR original_hold_id=$3::uuid)
+    `, [proposalId, ownerId, bookingId ?? null])).rows[0];
   }
 
   private async lockProposal(client: PoolClient, proposalId: string, ownerId: string, bookingId?: string): Promise<SwapRow | undefined> {
@@ -154,12 +189,32 @@ export class OwnerAlternativeAcceptanceService {
     `, [holdId])).rows[0];
   }
 
-  private async lockSlots(client: PoolClient, ids: string[]): Promise<Map<string, number>> {
-    const rows = await client.query<{ id: string; held_count: number }>(`
-      SELECT id::text, held_count FROM clinic_schema.appointment_slots
+  private async lockSlots(client: PoolClient, ids: string[]): Promise<Map<string, LockedSlot>> {
+    const rows = await client.query<LockedSlot>(`
+      SELECT id::text, clinic_location_id::text, service_id::text, doctor_id::text,
+             staff_id::text, resource_id::text, specialty_id::text, starts_at,
+             capacity, booked_count, held_count, state, status
+      FROM clinic_schema.appointment_slots
       WHERE id=ANY($1::uuid[]) ORDER BY id FOR UPDATE
     `, [[...ids].sort()]);
-    return new Map(rows.rows.map((row) => [row.id, row.held_count]));
+    return new Map(rows.rows.map((row) => [row.id, row]));
+  }
+
+  private assertSlotsEligible(slots: Map<string, LockedSlot>, swap: SwapRow, now: Date): void {
+    const source = slots.get(swap.original_slot_id);
+    const proposed = slots.get(swap.alternative_slot_id);
+    if (!source || !proposed) throw DomainErrors.alternativeSlotUnavailable();
+    for (const slot of [source, proposed]) {
+      if (slot.state !== 'OPEN' || slot.status !== 'LOCKED_BY_HOLD' || slot.starts_at <= now ||
+          slot.held_count <= 0 || slot.booked_count + slot.held_count > slot.capacity) {
+        throw DomainErrors.alternativeSlotUnavailable();
+      }
+    }
+    const compatible = source.clinic_location_id === proposed.clinic_location_id &&
+      source.service_id === proposed.service_id && source.doctor_id === proposed.doctor_id &&
+      source.staff_id === proposed.staff_id && source.resource_id === proposed.resource_id &&
+      source.specialty_id === proposed.specialty_id;
+    if (!compatible) throw DomainErrors.alternativeSlotIncompatible();
   }
 
   private async releaseSlot(client: PoolClient, slotId: string): Promise<void> {
