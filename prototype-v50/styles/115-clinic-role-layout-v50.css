@@ -76,14 +76,341 @@ body[data-clinic-role="doctor"] .v48-admin-tabs a.active { color:#6847bd; backgr
 body[data-clinic-role="doctor"] .v48-role-switch button.is-active { color:#6847bd; }
 body[data-clinic-role="doctor"] .v48-admin-title-line .pill { color:#6847bd; border-color:rgba(127,96,233,.20); background:rgba(127,96,233,.09); }
 
+/* --------------------------------------------------------------------------
+   V50 product-surface cleanup and wide-screen layout normalization.
+   This file is loaded last and intentionally owns final visual overrides.
+   -------------------------------------------------------------------------- */
+
+.v50-clinic-role-workspaces .skip-link {
+  position:fixed;
+  inset-block-start:12px;
+  inset-inline-start:12px;
+  z-index:10000;
+  inline-size:max-content;
+  max-inline-size:calc(100vw - 24px);
+  min-block-size:44px;
+  display:inline-flex;
+  align-items:center;
+  padding:10px 16px;
+  border:1px solid rgba(48,105,190,.28);
+  border-radius:12px;
+  color:var(--ink,#14213d);
+  background:#fff;
+  box-shadow:0 12px 36px rgba(22,48,90,.22);
+  transform:translateY(calc(-100% - 24px));
+  transition:transform .16s ease;
+}
+.v50-clinic-role-workspaces .skip-link:focus,
+.v50-clinic-role-workspaces .skip-link:focus-visible { transform:translateY(0); }
+
+.v50-clinic-role-workspaces main {
+  inline-size:min(100%,1680px);
+  margin-inline:auto;
+}
+
+.v50-clinic-role-workspaces #v40-catalog-note-title {
+  margin-block:0;
+  line-height:1.18;
+}
+.v50-clinic-role-workspaces #v40-catalog-note-title + .v40-note-grid {
+  margin-block-start:18px;
+}
+.v50-clinic-role-workspaces .v40-note-grid {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+  align-items:stretch;
+}
+.v50-clinic-role-workspaces .v40-note-grid>span {
+  min-inline-size:0;
+  display:grid;
+  align-content:start;
+  gap:7px;
+  padding:16px;
+  border:1px solid rgba(166,195,236,.48);
+  border-radius:16px;
+  background:rgba(255,255,255,.64);
+}
+.v50-clinic-role-workspaces .v40-note-grid strong,
+.v50-clinic-role-workspaces .v40-note-grid small { display:block; margin:0; }
+.v50-clinic-role-workspaces .v40-note-grid strong { line-height:1.3; }
+.v50-clinic-role-workspaces .v40-note-grid small { color:var(--muted); line-height:1.48; }
+
+.v50-clinic-role-workspaces .v37-section-head {
+  display:grid;
+  grid-template-columns:max-content minmax(0,1fr);
+  align-items:start;
+  gap:12px 20px;
+}
+.v50-clinic-role-workspaces .v37-section-head>.pill {
+  align-self:start;
+  margin:2px 0 0;
+  white-space:nowrap;
+}
+.v50-clinic-role-workspaces .v37-section-head>div { min-inline-size:0; }
+.v50-clinic-role-workspaces .v37-section-head h2 { margin:0; line-height:1.16; }
+.v50-clinic-role-workspaces .v37-section-head p {
+  max-inline-size:76ch;
+  margin:8px 0 0;
+  line-height:1.52;
+}
+
+.v50-clinic-role-workspaces .telemed-provider-copy {
+  min-inline-size:0;
+  display:grid;
+  align-content:start;
+  gap:10px;
+}
+.v50-clinic-role-workspaces .telemed-provider-copy>.pill { justify-self:start; margin:0 0 2px; }
+.v50-clinic-role-workspaces .telemed-provider-copy h3,
+.v50-clinic-role-workspaces .telemed-provider-copy p,
+.v50-clinic-role-workspaces .telemed-provider-copy .trust-row,
+.v50-clinic-role-workspaces .telemed-provider-copy .telemed-provider-actions { margin:0; }
+.v50-clinic-role-workspaces .telemed-provider-copy h3 { line-height:1.2; }
+.v50-clinic-role-workspaces .telemed-provider-copy .trust-row {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.v50-clinic-role-workspaces .telemed-provider-copy .telemed-provider-actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  padding-block-start:4px;
+}
+.v50-clinic-role-workspaces .telemed-provider-copy .telemed-provider-actions .btn {
+  min-block-size:44px;
+  min-inline-size:148px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:10px 16px;
+}
+
+.v50-clinic-role-workspaces .section-link.small[href="#diary"] {
+  min-block-size:44px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  margin-inline-end:8px;
+  padding:8px 12px;
+  border-radius:12px;
+}
+
+.v50-clinic-role-workspaces .line-icon,
+.v50-clinic-role-workspaces .line-icon.allergy-icon {
+  inline-size:32px;
+  block-size:32px;
+  flex:0 0 32px;
+  display:grid;
+  place-items:center;
+  margin:0;
+  padding:0;
+}
+.v50-clinic-role-workspaces .line-icon img,
+.v50-clinic-role-workspaces .line-icon.allergy-icon img {
+  inline-size:24px;
+  block-size:24px;
+  margin:0;
+  object-fit:contain;
+}
+
+.v50-clinic-role-workspaces .diary-discovery {
+  display:grid;
+  grid-template-columns:minmax(260px,1fr) repeat(4,max-content);
+  gap:10px;
+  align-items:center;
+}
+.v50-clinic-role-workspaces .diary-discovery input[type="search"],
+.v50-clinic-role-workspaces .diary-discovery .diary-filter {
+  min-block-size:46px;
+  border-radius:14px;
+  box-sizing:border-box;
+}
+.v50-clinic-role-workspaces .diary-discovery input[type="search"] {
+  inline-size:100%;
+  min-inline-size:0;
+  padding-inline:15px;
+}
+.v50-clinic-role-workspaces .diary-discovery .diary-filter {
+  min-inline-size:max-content;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:10px 15px;
+  white-space:nowrap;
+}
+
+.v50-clinic-role-workspaces .v46-check-doctor {
+  display:grid;
+  gap:18px;
+}
+.v50-clinic-role-workspaces .v46-check-doctor__heading {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+}
+.v50-clinic-role-workspaces .v46-check-doctor__heading>div { min-inline-size:0; }
+.v50-clinic-role-workspaces .v46-check-doctor__heading h2 { margin:4px 0 0; line-height:1.15; }
+.v50-clinic-role-workspaces .v46-check-doctor__heading>.pill { flex:0 0 auto; }
+.v50-clinic-role-workspaces .v46-check-doctor__body {
+  display:grid;
+  grid-template-columns:minmax(150px,190px) minmax(0,1fr);
+  gap:20px;
+  align-items:start;
+}
+.v50-clinic-role-workspaces .v46-check-doctor .telemed-provider-photo {
+  inline-size:100%;
+  aspect-ratio:4/5;
+  overflow:hidden;
+  border-radius:18px;
+}
+.v50-clinic-role-workspaces .v46-check-doctor .telemed-provider-photo img {
+  inline-size:100%;
+  block-size:100%;
+  display:block;
+  object-fit:cover;
+}
+.v50-clinic-role-workspaces .v46-check-doctor__copy {
+  min-inline-size:0;
+  display:grid;
+  align-content:start;
+  gap:12px;
+}
+.v50-clinic-role-workspaces .v46-check-doctor__copy p,
+.v50-clinic-role-workspaces .v46-doctor-facts,
+.v50-clinic-role-workspaces .v46-doctor-ready { margin:0; }
+.v50-clinic-role-workspaces .v46-doctor-facts {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.v50-clinic-role-workspaces .v46-doctor-facts>span {
+  min-block-size:36px;
+  display:inline-flex;
+  align-items:center;
+  padding:7px 11px;
+  border:1px solid rgba(166,195,236,.46);
+  border-radius:999px;
+  background:rgba(255,255,255,.7);
+}
+.v50-clinic-role-workspaces .v46-doctor-ready {
+  display:grid;
+  grid-template-columns:22px minmax(0,1fr);
+  gap:10px;
+  align-items:start;
+  padding:12px 14px;
+  border:1px solid rgba(48,105,190,.18);
+  border-radius:14px;
+  background:rgba(231,240,255,.62);
+}
+.v50-clinic-role-workspaces .v46-doctor-ready .vh-icon { inline-size:20px; block-size:20px; }
+
+.v50-clinic-role-workspaces .v37-uat-readiness,
+.v50-clinic-role-workspaces [data-v37-component="uat-readiness"] { display:none!important; }
+
+.v50-clinic-role-workspaces .v40-filter-row {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:9px;
+  max-inline-size:100%;
+}
+.v50-clinic-role-workspaces .v40-filter-row .filter {
+  min-block-size:44px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  flex:0 0 auto;
+  padding:9px 14px;
+  border:1px solid rgba(126,155,198,.34);
+  border-radius:999px;
+  color:#324764;
+  background:rgba(255,255,255,.7);
+  box-shadow:none;
+  white-space:nowrap;
+}
+.v50-clinic-role-workspaces .v40-filter-row .filter:hover {
+  border-color:rgba(48,105,190,.42);
+  background:rgba(239,246,255,.9);
+}
+.v50-clinic-role-workspaces .v40-filter-row .filter.active {
+  border-color:rgba(48,105,190,.46);
+  color:#174f9f;
+  background:rgba(220,235,255,.88);
+  box-shadow:inset 0 0 0 1px rgba(48,105,190,.08);
+}
+.v50-clinic-role-workspaces .v40-filter-row .filter:focus-visible {
+  outline:3px solid rgba(48,105,190,.28);
+  outline-offset:2px;
+}
+.v50-clinic-role-workspaces .v40-filter-row .chip-icon {
+  inline-size:20px;
+  block-size:20px;
+  flex:0 0 20px;
+  object-fit:contain;
+}
+
 @media(max-width:1280px){
   .v49-clinic-client-alignment .v48-visit-layout { grid-template-columns:260px minmax(0,1fr); }
+  .v50-clinic-role-workspaces main { inline-size:min(100%,1440px); }
+  .v50-clinic-role-workspaces .diary-discovery {
+    grid-template-columns:minmax(260px,1fr) repeat(2,max-content);
+  }
+  .v50-clinic-role-workspaces .diary-discovery input[type="search"] { grid-column:1/-1; }
 }
 @media(max-width:1060px){
   .v49-clinic-client-alignment .v48-telemed-layout { grid-template-columns:1fr; }
   .v49-clinic-client-alignment .v48-telemed-list { grid-template-columns:repeat(2,minmax(0,1fr)); max-height:none; }
+  .v50-clinic-role-workspaces .v40-note-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .v50-clinic-role-workspaces .v37-section-head { grid-template-columns:1fr; gap:10px; }
+  .v50-clinic-role-workspaces .v37-section-head>.pill { justify-self:start; }
 }
 @media(max-width:720px){
   .v49-clinic-client-alignment .v48-telemed-list { grid-template-columns:1fr; }
   .v49-clinic-client-alignment .v50-patient-facts>div { grid-template-columns:92px minmax(0,1fr); }
+  .v50-clinic-role-workspaces .v40-note-grid { grid-template-columns:1fr; }
+  .v50-clinic-role-workspaces .v46-check-doctor__heading { flex-direction:column; gap:10px; }
+  .v50-clinic-role-workspaces .v46-check-doctor__body { grid-template-columns:1fr; }
+  .v50-clinic-role-workspaces .v46-check-doctor .telemed-provider-photo {
+    max-inline-size:220px;
+    aspect-ratio:1/1;
+  }
+  .v50-clinic-role-workspaces .diary-discovery {
+    display:flex;
+    gap:8px;
+    overflow-x:auto;
+    padding:2px 2px 8px;
+    scroll-padding-inline:2px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .v50-clinic-role-workspaces .diary-discovery input[type="search"] {
+    position:sticky;
+    inset-inline-start:0;
+    flex:0 0 min(78vw,320px);
+    z-index:1;
+    background:#fff;
+  }
+  .v50-clinic-role-workspaces .v40-filter-row {
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    padding:2px 12px 9px;
+    margin-inline:-12px;
+    scroll-padding-inline:12px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .v50-clinic-role-workspaces .telemed-provider-copy .telemed-provider-actions {
+    display:grid;
+    grid-template-columns:1fr;
+  }
+  .v50-clinic-role-workspaces .telemed-provider-copy .telemed-provider-actions .btn {
+    inline-size:100%;
+  }
+}
+@media(min-width:2560px){
+  .v50-clinic-role-workspaces main {
+    inline-size:min(calc(100% - 96px),1680px);
+  }
 }
