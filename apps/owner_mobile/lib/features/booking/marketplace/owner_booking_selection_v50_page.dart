@@ -12,6 +12,7 @@ class OwnerBookingSelectionV50Page extends StatefulWidget {
     required this.onContinue,
     required this.onRequireAuthentication,
     this.initialIntent,
+    this.restoreIntentToReview = true,
     this.offline = false,
   });
 
@@ -20,6 +21,7 @@ class OwnerBookingSelectionV50Page extends StatefulWidget {
   final ValueChanged<BookingSelectionContext> onContinue;
   final ValueChanged<BookingSelectionContext> onRequireAuthentication;
   final BookingSelectionContext? initialIntent;
+  final bool restoreIntentToReview;
   final bool offline;
 
   @override
@@ -41,7 +43,7 @@ class _OwnerBookingSelectionV50PageState
     _serviceId = widget.initialIntent?.serviceId ?? widget.seed.serviceId;
     _date = widget.initialIntent?.selectedDate;
     _slotId = widget.initialIntent?.slotId;
-    _restoreReview = widget.initialIntent != null;
+    _restoreReview = widget.initialIntent != null && widget.restoreIntentToReview;
     _request = _load();
   }
 

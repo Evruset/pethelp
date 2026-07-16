@@ -1,4 +1,5 @@
 import '../../catalog/owner_catalog_v50_feature_flags.dart';
+import '../../../presentation/shell/owner_shell_feature_flag.dart';
 
 const ownerV50ServiceSelectionFlagName = 'OWNER_V50_SERVICE_SELECTION';
 const ownerV50SlotSelectionFlagName = 'OWNER_V50_SLOT_SELECTION';
@@ -36,9 +37,10 @@ OwnerBookingSelectionV50Flags ownerBookingSelectionV50Flags({
 }
 
 bool isOwnerBookingSelectionV50Enabled() {
-  final catalog = ownerCatalogV50Flags(shellEnabled: true);
+  final shellEnabled = isOwnerV50ShellEnabled();
+  final catalog = ownerCatalogV50Flags(shellEnabled: shellEnabled);
   final flags = ownerBookingSelectionV50Flags(
-    shellEnabled: true,
+    shellEnabled: shellEnabled,
     clinicDetailEnabled: catalog.clinicDetail,
   );
   return flags.serviceSelection && flags.slotSelection && flags.bookingReview;
