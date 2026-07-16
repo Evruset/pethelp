@@ -1,10 +1,11 @@
 # V50 Full Product Parity Program Plan
 
-Current owner delivery: `V50-OWNER-05` completes Create Hold submission on
-`OWN-006` and the bounded server-authoritative status portion of `OWN-008`
-behind default-off flags at runtime `cc6ba06`. Transaction/security and
-product/visual gates pass with zero vetoes; accepted counter is
-`10/30 VISUALLY_VERIFIED`; final integration certification PASS.
+Current owner delivery: `V50-OWNER-06` completes `OWN-007` My Bookings and the
+bounded detail/cancellation portion of `OWN-008` behind default-off flags at
+runtime `fb24f18`. State/security and product/visual gates pass with zero
+vetoes; `OWN-007` is the one newly independent row, so the accepted counter is
+`11/30 VISUALLY_VERIFIED`; final integration certification PASS, pending
+program-branch integration.
 
 Updated: 2026-07-16
 
@@ -36,7 +37,7 @@ Program state: V50 migration in progress
 | 4 Session/capability/API | server-derived deny-by-default authority | PARTIAL/REUSE | each endpoint family has scope, denial, leakage and rollback tests |
 | 5 Owner core | home, pets, diary, documents, notifications, profile | PARTIAL: bounded `OWN-001` Care Journey Home implemented/tested; full prototype content remains partial | full owner states and contracts accepted |
 | 6 Catalog + booking | authoritative clinic/doctor/service/slot/hold journey | PARTIAL: Catalog/Clinic/Doctor discovery visually verified; service/date/slot/review remains | conflict/offline/idempotency paths accepted |
-| 7 Bookings + alternatives | lists, detail, timeline, cancel/rebook/alternative | PARTIAL | server hold/status evidence and E2E accepted |
+| 7 Bookings + alternatives | lists, detail, timeline, cancel/rebook/alternative | PARTIAL: owner list/detail/cancellation verified; alternative/rebook remains | OWNER-06 server authority, transaction and visual gates PASS |
 | 8 Clinic workspace | queue, booking operations, schedule, resources, quality, audit | PARTIAL | role-specific desktop/tablet/mobile task flow accepted |
 | 9 Vet workspace | assigned visit, clinical draft/sign/amend/audit | PARTIAL | clinical authority and immutability gates accepted |
 | 10 Telemedicine | intake through payment, queue, LiveKit and completion | PARTIAL | business/media/payment states reconciled and E2E accepted |

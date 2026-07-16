@@ -2,7 +2,7 @@ import { Module as NestModule } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { AlternativeSlotExpirationWorker } from './alternative-slot-expiration.worker';
 import { AlternativeSlotService } from './alternative-slot.service';
-import { BookingController } from './booking.controller.secure';
+import { BookingController, OwnerBookingCancellationController } from './booking.controller.secure';
 import { BookingEventReplayController } from './booking-event-replay.controller';
 import { BookingEventReplayService } from './booking-event-replay.service';
 import { BookingHoldCreationService } from './booking-hold-creation.service';
@@ -28,7 +28,7 @@ import { VeterinarianVisitReadService } from './veterinarian-visit-read.service'
 
 @NestModule({
   imports: [AuthModule],
-  controllers: [BookingController, ClinicPortalController, ClinicQualityController, ClinicQueueController, ClinicScheduleController, OwnerAlternativeSnapshotController, BookingEventReplayController, VeterinarianVisitReadController],
+  controllers: [BookingController, OwnerBookingCancellationController, ClinicPortalController, ClinicQualityController, ClinicQueueController, ClinicScheduleController, OwnerAlternativeSnapshotController, BookingEventReplayController, VeterinarianVisitReadController],
   providers: [BookingRepository, BookingService, BookingHoldCreationService, BookingHoldReadService, BookingSecurityService, ClinicEmployeeAccessService, ClinicPortalService, ClinicQualityService, ClinicQueueService, ClinicScheduleService, ClinicSlaMonitorWorker, AlternativeSlotService, AlternativeSlotExpirationWorker, OwnerAlternativeSnapshotService, OwnerAlternativeAcceptanceService, BookingEventReplayService, VeterinarianVisitReadService],
   exports: [BookingService, ClinicPortalService, AlternativeSlotService, ClinicQueueService, ClinicQualityService, ClinicScheduleService, OwnerAlternativeSnapshotService, BookingEventReplayService],
 })

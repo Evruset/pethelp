@@ -10,6 +10,9 @@ import 'core/e2e/owner_e2e_hooks.dart';
 import 'core/offline/outbox_repository.dart';
 import 'features/appointments/owner_appointments_page.dart';
 import 'features/appointments/owner_appointments_repository.dart';
+import 'features/appointments/owner_bookings_v50_feature_flags.dart';
+import 'features/appointments/owner_bookings_v50_page.dart';
+import 'features/appointments/owner_bookings_v50_repository.dart';
 import 'features/auth/owner_auth_repository.dart';
 import 'features/auth/owner_session.dart';
 import 'features/booking/alternative_slot/alternative_slot_repository.dart';
@@ -237,6 +240,12 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
         baseUrl: Uri.parse(_apiBaseUrl),
         accessToken: _token,
       );
+      final bookingsV50Flags =
+          ownerBookingsV50Flags(shellEnabled: shellEnabled);
+      final bookingsV50Repository = HttpOwnerBookingsV50Repository(
+        baseUrl: Uri.parse(_apiBaseUrl),
+        accessToken: _token,
+      );
       final alternativeSlotRepository = AlternativeSlotRepository(
         baseUrl: Uri.parse(_apiBaseUrl),
         accessTokenProvider: _token,
@@ -254,6 +263,8 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
           onOpenCare: _openCare,
           petsRepository: petsRepository,
           appointmentsRepository: appointmentsRepository,
+          bookingsV50Repository: bookingsV50Repository,
+          bookingsV50Flags: bookingsV50Flags,
           alternativeSlotRepository: alternativeSlotRepository,
           catalogRepository: HttpPublicCatalogRepository(
             baseUrl: Uri.parse(_apiBaseUrl),
@@ -806,6 +817,8 @@ class _OwnerV50AuthenticatedShell extends StatefulWidget {
     required this.onOpenCare,
     required this.petsRepository,
     required this.appointmentsRepository,
+    required this.bookingsV50Repository,
+    required this.bookingsV50Flags,
     required this.alternativeSlotRepository,
     required this.catalogRepository,
     required this.catalogV50Flags,
@@ -831,6 +844,8 @@ class _OwnerV50AuthenticatedShell extends StatefulWidget {
   final VoidCallback onOpenCare;
   final OwnerPetRepository petsRepository;
   final OwnerAppointmentsRepository appointmentsRepository;
+  final OwnerBookingsV50Repository bookingsV50Repository;
+  final OwnerBookingsV50Flags bookingsV50Flags;
   final AlternativeSlotRepository alternativeSlotRepository;
   final PublicCatalogRepository catalogRepository;
   final OwnerCatalogV50Flags catalogV50Flags;
@@ -1019,13 +1034,20 @@ class _OwnerV50AuthenticatedShellState
               bookingPetName: widget.selectedPet?.name,
               onChangePet: () => _selectDestination(3),
             ),
-      appointments: OwnerAppointmentsPage(
-        repository: widget.appointmentsRepository,
-        alternativeSlotRepository: widget.alternativeSlotRepository,
-        platformOverride: widget.platformOverride,
-        onRebookAppointment: () => _selectDestination(1),
-        onOpenPetDiary: widget.selectedPet == null ? null : widget.onOpenCare,
-      ),
+      appointments: widget.bookingsV50Flags.myBookings
+          ? OwnerBookingsV50Page(
+              repository: widget.bookingsV50Repository,
+              detailEnabled: widget.bookingsV50Flags.detail,
+              cancellationEnabled: widget.bookingsV50Flags.cancellation,
+            )
+          : OwnerAppointmentsPage(
+              repository: widget.appointmentsRepository,
+              alternativeSlotRepository: widget.alternativeSlotRepository,
+              platformOverride: widget.platformOverride,
+              onRebookAppointment: () => _selectDestination(1),
+              onOpenPetDiary:
+                  widget.selectedPet == null ? null : widget.onOpenCare,
+            ),
       pets: OwnerPetsPage(
         repository: widget.petsRepository,
         platformOverride: widget.platformOverride,

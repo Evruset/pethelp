@@ -11,6 +11,7 @@
 | V50-OWNER-03 | V50 Clinic Catalog and Doctor Discovery | Owner | integrated into program branch from `agent/v50-owner-03` | COMPLETE / INTEGRATED | `OWN-002`, `OWN-004`, `OWN-018`, `OWN-019` | `docs/ai/handoffs/V50-OWNER-03.md` | merge `e747f61`; runtime `dc762b4` | Doctor production rollout `BLOCKED_PENDING_PUBLIC_CONSENT_CONTRACT`; integration PASS |
 | V50-OWNER-04 | V50 Service, Slot and Booking Review | Owner | integrated into program branch from `agent/v50-owner-04` | COMPLETE / INTEGRATED | `OWN-005`, `OWN-006`; read-only selection/review | `docs/ai/handoffs/V50-OWNER-04.md` | merge `9e165a3`; runtime `985dd5b`; certification `d3edf71` | independent PASS, zero vetoes; evidence 48/48 runtime and 4/4 prototype references |
 | V50-OWNER-05 | V50 Hold Creation and Booking Status | Owner | integrated into program branch from `agent/v50-owner-05` | COMPLETE / INTEGRATED | `OWN-006` submit; bounded `OWN-008` authoritative status | `docs/ai/handoffs/V50-OWNER-05.md` | merge `c2bbcbf`; runtime `cc6ba06`; certification `ade242e` | all three validators PASS, zero vetoes; evidence 48/48 + 8/8 |
+| V50-OWNER-06 | V50 My Bookings and Cancellation | Owner | `agent/v50-owner-06` / isolated worktree | READY_FOR_INTEGRATION | `OWN-007`; bounded `OWN-008` detail/cancellation | `docs/ai/handoffs/V50-OWNER-06.md` | runtime `fb24f18`; certification commit | all three validators PASS, zero vetoes; evidence 48/48 + 8/8 |
 
 ## Ownership
 

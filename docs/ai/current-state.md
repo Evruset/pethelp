@@ -11,7 +11,7 @@ Updated: 2026-07-16
 - `V50-OWNER-03`: `COMPLETE / INTEGRATED` through merge `e747f61`; runtime `dc762b4`.
 - `V50-OWNER-04`: `COMPLETE / INTEGRATED` through merge `9e165a3`; runtime `985dd5b`; evidence certification `d3edf71`.
 - `V50-OWNER-05`: `COMPLETE / INTEGRATED` through merge `c2bbcbf`; runtime `cc6ba06`; certification `ade242e`.
-- Integration status: `V50-OWNER-05_INTEGRATED / V50-OWNER-06_NOT_STARTED`.
+- Integration status: `V50-OWNER-05_INTEGRATED / V50-OWNER-06_READY_FOR_INTEGRATION`.
 - Canonical target: `V50`; source: `prototype-v50/index.html`; manifest SHA-256: `245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42`.
 - Program branch/worktree: `agent/v51-stage-01-architecture` / `/Users/evrusetskiy/work/pethelp-alpha`.
 - Root worktree still contains protected user changes in `.codex/ACTIVE_MODE` and `.codex/config.toml`; this worktree does not modify them.
@@ -109,3 +109,25 @@ representative 8/8 and full visual validation PASS. Transaction/security and
 product/visual and final integration validators PASS with zero vetoes.
 
 The Owner Home backend reproduction gate is `PASS`: after canonical Compose recreated its dependency volume, Jest ran 4 focused suites and passed; the final combined Owner pets/Home run passed 23/23 tests. Resolution evidence is recorded in `docs/ai/tooling-debt/V50-OWNER-01-backend-spawn-einval.md`.
+
+## V50-OWNER-06 delivery state
+
+`V50-OWNER-06` is ready for integration on `agent/v50-owner-06`; runtime and
+runtime repair commit is `fb24f18`. `OWN-007 #appointments` now uses an owner-scoped
+server-classified list with `serverNow`, pet/bucket filters and uncapped stable
+keyset pagination. Bounded `OWN-008 #appointment-detail` has a safe timeline,
+shared backend cancellation policy, version fencing and payload-bound
+idempotency. Local holds release capacity once; confirmed/MIS bookings become
+`CANCELLATION_REQUESTED` and retain booked capacity.
+
+Canonical Compose uses Node `v22.23.1`, npm `10.9.8` and PostgreSQL `16.14`.
+Backend build PASS; focused real-PostgreSQL PASS 5/5, including 1,005-row paging
+proof and 20 concurrent cancellations with one transition/counter/audit/outbox
+effect and restored pool, plus injected outbox rollback. Flutter
+analyze/focused/full and flagged web build PASS. Immutable package
+`v50-owner-06-fb24f18` contains 48/48 runtime and 8/8
+prototype artifacts with checksum
+`5a1e3a26d5a70f0b96a8fc2c271ca49dbc5ba74f32f77f79bdf6c6f528eaeaa2`.
+Representative and full visual gates PASS. State/security and product/visual
+validators and final integration validator PASS with zero vetoes.
+`OWN-007` becomes the one new independent visually verified row; counter 11/30.

@@ -4,7 +4,8 @@ import { inspectPngTopBand } from './v50-owner03-capture-utils.mjs';
 
 const root = process.env.V50_EVIDENCE_ROOT;
 if (!root) throw new Error('V50_EVIDENCE_ROOT is required');
-const manifest = JSON.parse(await readFile('docs/ai/evidence/V50-OWNER-05.json', 'utf8'));
+const slice = process.env.V50_SLICE ?? 'V50-OWNER-05';
+const manifest = JSON.parse(await readFile(`docs/ai/evidence/${slice}.json`, 'utf8'));
 if (manifest.runtimeArtifacts.length !== 48) throw new Error('expected 48 runtime artifacts');
 if (manifest.prototypeArtifacts.length !== 8) throw new Error('expected 8 prototype artifacts');
 const requiredStates = new Set(manifest.states);
@@ -14,7 +15,7 @@ for (const item of all) {
   if (item.artifactLogicalPath.startsWith('/')) throw new Error(`absolute logical path: ${item.artifactLogicalPath}`);
   if (paths.has(item.artifactLogicalPath)) throw new Error(`duplicate logical path: ${item.artifactLogicalPath}`);
   paths.add(item.artifactLogicalPath);
-  const relative = item.artifactLogicalPath.replace('V50-OWNER-05/', '');
+  const relative = item.artifactLogicalPath.replace(`${slice}/`, '');
   const bytes = await readFile(`${root}/${relative}`);
   const digest = createHash('sha256').update(bytes).digest('hex');
   if (digest !== item.sha256) throw new Error(`hash mismatch: ${relative}`);
