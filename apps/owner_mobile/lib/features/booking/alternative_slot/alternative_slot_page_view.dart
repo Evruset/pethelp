@@ -10,15 +10,19 @@ class AlternativeSlotPage extends StatelessWidget {
       {super.key,
       required this.holdId,
       required this.repository,
-      this.offline = false});
+      this.offline = false,
+      this.evidenceInitialAccept = false});
   final String holdId;
   final AlternativeSlotRepository repository;
   final bool offline;
+  final bool evidenceInitialAccept;
   @override
   Widget build(BuildContext context) => BlocProvider(
-        create: (_) =>
-            AlternativeSlotBloc(repository: repository, offline: offline)
-              ..add(AlternativeSlotOpened(holdId)),
+        create: (_) => AlternativeSlotBloc(
+            repository: repository,
+            offline: offline,
+            evidenceInitialAccept: evidenceInitialAccept)
+          ..add(AlternativeSlotOpened(holdId)),
         child: const AlternativeSlotView(),
       );
 }

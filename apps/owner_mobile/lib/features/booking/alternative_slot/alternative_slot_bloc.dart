@@ -61,7 +61,9 @@ class AlternativeSlotErrorState extends AlternativeSlotState {
 class AlternativeSlotBloc
     extends Bloc<AlternativeSlotEvent, AlternativeSlotState> {
   AlternativeSlotBloc(
-      {required AlternativeSlotRepository repository, this.offline = false})
+      {required AlternativeSlotRepository repository,
+      this.offline = false,
+      this.evidenceInitialAccept = false})
       : _repository = repository,
         super(const AlternativeSlotLoading()) {
     on<AlternativeSlotOpened>(_opened);
@@ -71,6 +73,7 @@ class AlternativeSlotBloc
   }
   final AlternativeSlotRepository _repository;
   final bool offline;
+  final bool evidenceInitialAccept;
   final Uuid _uuid = const Uuid();
   String? _bookingId, _correlationId, _acceptKey, _declineKey;
 
@@ -81,6 +84,9 @@ class AlternativeSlotBloc
     _acceptKey ??= _uuid.v4();
     _declineKey ??= _uuid.v4();
     await _load(emit);
+    if (evidenceInitialAccept && state is AlternativeSlotActive) {
+      add(const AlternativeSlotAcceptPressed());
+    }
   }
 
   Future<void> _refresh(AlternativeSlotRefreshRequested e,

@@ -39,14 +39,6 @@ try {
       await page.goto(`http://127.0.0.1:8765/?state=${state}`, { waitUntil: 'networkidle' });
       await page.waitForSelector('flutter-view, flt-glass-pane', { timeout: 45000 });
       await page.waitForTimeout(1600);
-      if (state === 'ALTERNATIVE_ACCEPT_SUBMITTING' || state === 'ALTERNATIVE_NETWORK_AMBIGUOUS') {
-        await page.getByText('Принять новое время').click();
-        await page.waitForTimeout(400);
-      }
-      if (state === 'ALTERNATIVE_DECLINE_CONFIRMATION') {
-        await page.getByText('Не подходит').click();
-        await page.waitForTimeout(300);
-      }
       const path = `${root}/runtime/${width}x${height}/${state}.bmp`;
       await mkdir(`${root}/runtime/${width}x${height}`, { recursive: true });
       await captureCleanFrame(page, path);
