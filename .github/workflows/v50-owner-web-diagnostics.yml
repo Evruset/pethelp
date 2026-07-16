@@ -1,0 +1,50 @@
+name: V50 Owner Web Diagnostics
+
+on:
+  pull_request:
+    branches:
+      - agent/v51-stage-01-architecture
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/owner_mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - id: analyze
+        shell: bash
+        run: |
+          set +e
+          flutter analyze --no-fatal-infos > "$RUNNER_TEMP/v50-owner-analyze.txt" 2>&1
+          status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Publish analyzer output
+        uses: actions/github-script@v7
+        env:
+          ANALYZE_STATUS: ${{ steps.analyze.outputs.status }}
+        with:
+          script: |
+            const fs = require('fs');
+            const output = fs.readFileSync(process.env.RUNNER_TEMP + '/v50-owner-analyze.txt', 'utf8');
+            const clipped = output.length > 50000 ? output.slice(-50000) : output;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `## Temporary V50 Owner Web analyzer diagnostics\n\nExit code: \`${process.env.ANALYZE_STATUS}\`\n\n\`\`\`text\n${clipped}\n\`\`\``
+            });
+      - name: Enforce analyzer result
+        if: steps.analyze.outputs.status != '0'
+        run: exit 1
