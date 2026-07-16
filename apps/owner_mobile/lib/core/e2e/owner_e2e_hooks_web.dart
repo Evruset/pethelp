@@ -1,7 +1,6 @@
-// ignore_for_file: avoid_web_libraries_in_flutter
-
 import 'dart:async';
-import 'dart:js' as js;
+import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
 
 final Map<String, FutureOr<void> Function()> _callbacks =
     <String, FutureOr<void> Function()>{};
@@ -31,24 +30,24 @@ void setOwnerE2EMarker(String name, String value) {
 }
 
 void _syncWindowObject() {
-  final api = js.JsObject.jsify(<String, Object?>{});
+  final api = <String, Object?>{}.jsify() as JSObject;
   for (final entry in _callbacks.entries) {
-    api[entry.key] = js.allowInterop(() {
-      js.context['vethelpOwnerE2ELastAction'] = entry.key;
-      js.context['vethelpOwnerE2ELastError'] = null;
+    api[entry.key] = (() {
+      globalContext['vethelpOwnerE2ELastAction'] = entry.key.toJS;
+      globalContext['vethelpOwnerE2ELastError'] = null;
       try {
         final result = entry.value();
         if (result is Future<void>) {
           result.catchError((Object error) {
-            js.context['vethelpOwnerE2ELastError'] = error.toString();
+            globalContext['vethelpOwnerE2ELastError'] = error.toString().toJS;
           });
         }
       } catch (error) {
-        js.context['vethelpOwnerE2ELastError'] = error.toString();
+        globalContext['vethelpOwnerE2ELastError'] = error.toString().toJS;
       }
-    });
+    }).toJS;
   }
-  api['markers'] = js.JsObject.jsify(_markers);
-  js.context['vethelpOwnerE2E'] = api;
-  js.context['vethelpOwnerE2EReady'] = true;
+  api['markers'] = _markers.jsify();
+  globalContext['vethelpOwnerE2E'] = api;
+  globalContext['vethelpOwnerE2EReady'] = true.toJS;
 }
