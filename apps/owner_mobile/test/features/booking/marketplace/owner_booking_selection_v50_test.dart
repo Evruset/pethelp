@@ -7,13 +7,13 @@ import 'package:vethelp_owner_mobile/features/booking/marketplace/owner_booking_
 
 void main() {
   test('booking flags are default-off and require their parents', () {
-    expect(
-      ownerBookingSelectionV50Flags(
-        shellEnabled: true,
-        clinicDetailEnabled: true,
-      ).bookingReview,
-      isFalse,
+    final defaults = ownerBookingSelectionV50Flags(
+      shellEnabled: true,
+      clinicDetailEnabled: true,
     );
+    expect(defaults.bookingReview, isFalse);
+    expect(defaults.createHold, isFalse);
+    expect(defaults.bookingStatus, isFalse);
     expect(
       ownerBookingSelectionV50Flags(
         shellEnabled: true,
@@ -24,6 +24,17 @@ void main() {
       ).serviceSelection,
       isFalse,
     );
+    final invalidStatus = ownerBookingSelectionV50Flags(
+      shellEnabled: true,
+      clinicDetailEnabled: true,
+      serviceValue: 'true',
+      slotValue: 'true',
+      reviewValue: 'true',
+      createHoldValue: 'false',
+      bookingStatusValue: 'true',
+    );
+    expect(invalidStatus.createHold, isFalse);
+    expect(invalidStatus.bookingStatus, isFalse);
   });
 
   testWidgets(

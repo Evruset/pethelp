@@ -521,6 +521,12 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
     BookingSelectionSeed seed, {
     BookingSelectionContext? initialIntent,
   }) {
+    final shellEnabled = isOwnerV50ShellEnabled();
+    final catalogFlags = ownerCatalogV50Flags(shellEnabled: shellEnabled);
+    final bookingFlags = ownerBookingSelectionV50Flags(
+      shellEnabled: shellEnabled,
+      clinicDetailEnabled: catalogFlags.clinicDetail,
+    );
     Navigator.of(context).push(
       ownerPageRoute<void>(
         context: context,
@@ -533,6 +539,14 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
             baseUrl: Uri.parse(_apiBaseUrl),
             accessTokenProvider: _hasOwnerSession ? _token : null,
           ),
+          holdRepository: _hasOwnerSession
+              ? HttpBookingMarketplaceRepository(
+                  baseUrl: Uri.parse(_apiBaseUrl),
+                  accessTokenProvider: _token,
+                )
+              : null,
+          createHoldEnabled: bookingFlags.createHold,
+          bookingStatusEnabled: bookingFlags.bookingStatus,
           onRequireAuthentication: (intent) {
             setState(() {
               _pendingBookingSeed = seed;

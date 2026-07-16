@@ -10,6 +10,7 @@
 | V50-OWNER-02 | V50 Pets, Pet Profile and Pet Diary | Owner | integrated into program branch from `agent/v50-owner-02` | COMPLETE / INTEGRATED | `OWN-009..OWN-011`; owner pet/profile/diary/document journey | `docs/ai/handoffs/V50-OWNER-02.md` | integrated through `78d9322` | independent read-only validation PASS with zero vetoes; retained evidence package verified after integration |
 | V50-OWNER-03 | V50 Clinic Catalog and Doctor Discovery | Owner | integrated into program branch from `agent/v50-owner-03` | COMPLETE / INTEGRATED | `OWN-002`, `OWN-004`, `OWN-018`, `OWN-019` | `docs/ai/handoffs/V50-OWNER-03.md` | merge `e747f61`; runtime `dc762b4` | Doctor production rollout `BLOCKED_PENDING_PUBLIC_CONSENT_CONTRACT`; integration PASS |
 | V50-OWNER-04 | V50 Service, Slot and Booking Review | Owner | integrated into program branch from `agent/v50-owner-04` | COMPLETE / INTEGRATED | `OWN-005`, `OWN-006`; read-only selection/review | `docs/ai/handoffs/V50-OWNER-04.md` | merge `9e165a3`; runtime `985dd5b`; certification `d3edf71` | independent PASS, zero vetoes; evidence 48/48 runtime and 4/4 prototype references |
+| V50-OWNER-05 | V50 Hold Creation and Booking Status | Owner | `agent/v50-owner-05` / isolated worktree | COMPLETE / READY_FOR_INTEGRATION | `OWN-006` submit; bounded `OWN-008` authoritative status | `docs/ai/handoffs/V50-OWNER-05.md` | runtime `cc6ba06`; backend `9bb4d2c` | all three validators PASS, zero vetoes; evidence 48/48 + 8/8 |
 
 ## Ownership
 

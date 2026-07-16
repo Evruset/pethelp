@@ -10,7 +10,7 @@ Updated: 2026-07-16
 - `V50-OWNER-02`: `COMPLETE / INTEGRATED` at `78d9322`.
 - `V50-OWNER-03`: `COMPLETE / INTEGRATED` through merge `e747f61`; runtime `dc762b4`.
 - `V50-OWNER-04`: `COMPLETE / INTEGRATED` through merge `9e165a3`; runtime `985dd5b`; evidence certification `d3edf71`.
-- Integration status: `V50-OWNER-04_INTEGRATED / V50-OWNER-05_NOT_STARTED`.
+- Integration status: `V50-OWNER-04_INTEGRATED / V50-OWNER-05_READY_FOR_INTEGRATION`.
 - Canonical target: `V50`; source: `prototype-v50/index.html`; manifest SHA-256: `245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42`.
 - Program branch/worktree: `agent/v51-stage-01-architecture` / `/Users/evrusetskiy/work/pethelp-alpha`.
 - Root worktree still contains protected user changes in `.codex/ACTIVE_MODE` and `.codex/config.toml`; this worktree does not modify them.
@@ -96,6 +96,15 @@ readiness and integration are PASS.
 
 ## Next slice
 
-`V50-OWNER-05` is the next slice and may now start from integrated OWNER-04.
+`V50-OWNER-05 / Hold Creation and Booking Status` is complete on
+`agent/v50-owner-05`; runtime is `cc6ba06`. Canonical Booking Core now provides
+payload-bound idempotency, authoritative slot/pet/service/doctor/freshness
+validation, owner-safe status read, atomic outbox/audit/count handling and
+drift-safe expiration. Real PostgreSQL PASS 4/4 includes 100 contenders with
+exactly one success. Flutter focused/full/analyze and flagged web build pass.
+Package `v50-owner-05-cc6ba06` contains 48/48 runtime and 8/8 prototype
+artifacts with checksum `d7e36a6b7071b8e607b8beeabd6941ec9185128e50911b80c10c5cef9300339a`;
+representative 8/8 and full visual validation PASS. Transaction/security and
+product/visual and final integration validators PASS with zero vetoes.
 
 The Owner Home backend reproduction gate is `PASS`: after canonical Compose recreated its dependency volume, Jest ran 4 focused suites and passed; the final combined Owner pets/Home run passed 23/23 tests. Resolution evidence is recorded in `docs/ai/tooling-debt/V50-OWNER-01-backend-spawn-einval.md`.

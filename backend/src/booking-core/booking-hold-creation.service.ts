@@ -1,5 +1,6 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import type { PoolClient } from 'pg';
+import { createHash } from 'node:crypto';
 import { DomainErrors, DomainException } from '../common/domain-error';
 import { config } from '../config';
 import { featureFlags } from '../config/feature-flags.config';
@@ -13,11 +14,14 @@ interface IdempotencyRow {
   status: 'PROCESSING' | 'COMPLETED';
   response_status: number | null;
   response_body: Record<string, unknown> | null;
+  request_fingerprint: string | null;
 }
 
 interface PetOwnershipRow {
   owner_id: string;
   external_patient_id: string | null;
+  archived_at: Date | null;
+  species: string;
 }
 
 interface ClinicMisRow {
@@ -57,25 +61,29 @@ export class BookingHoldCreationService {
     petId: string;
     idempotencyKey: string;
     correlationId: string;
+    expectedSlotVersion?: number;
+    serviceId?: string;
+    doctorId: string | null;
   }): Promise<CreateHoldResult> {
     try {
       return await this.database.withTransaction(async (client) => {
         await this.setInteractiveTransactionLimits(client);
 
+        const idempotencyScope = `booking.create-local-hold:${input.ownerId}`;
+        const fingerprint = this.requestFingerprint(input);
+        const existing = await this.acquireIdempotency(client, idempotencyScope, input.idempotencyKey, fingerprint);
+        if (existing) return existing as unknown as CreateHoldResult;
+
         // Global interactive lock order: pet, then slot.
         const pet = await client.query<PetOwnershipRow>(`
-          SELECT owner_id, external_patient_id
+          SELECT owner_id, external_patient_id, archived_at, species
           FROM pet_schema.pets
           WHERE id = $1
           FOR SHARE
         `, [input.petId]);
-        if (!pet.rows[0] || pet.rows[0].owner_id !== input.ownerId) {
+        if (!pet.rows[0] || pet.rows[0].owner_id !== input.ownerId || pet.rows[0].archived_at !== null) {
           throw DomainErrors.petOwnershipMismatch();
         }
-
-        const idempotencyScope = `booking.create-local-hold:${input.ownerId}`;
-        const existing = await this.acquireIdempotency(client, idempotencyScope, input.idempotencyKey);
-        if (existing) return existing as unknown as CreateHoldResult;
 
         const slot = await this.repository.lockSlot(client, input.slotId);
         if (!slot) throw DomainErrors.slotNotFound();
@@ -84,6 +92,15 @@ export class BookingHoldCreationService {
 
         await this.assertNoActiveHoldForSlot(client, input.ownerId, input.slotId, now);
 
+        if (input.expectedSlotVersion !== undefined && slot.version !== input.expectedSlotVersion) throw DomainErrors.slotVersionStale();
+        if (input.serviceId !== undefined && slot.service_id !== input.serviceId) throw DomainErrors.serviceNotAvailable();
+        if ((slot.doctor_id ?? null) !== input.doctorId) throw DomainErrors.doctorNotAvailable();
+        if (!slot.last_freshness_sync || slot.last_freshness_sync.getTime() < now.getTime() - 15 * 60 * 1000) {
+          throw DomainErrors.slotVersionStale();
+        }
+        if (!slot.integration_mode || !['LEVEL_A', 'LEVEL_B', 'LEVEL_C'].includes(slot.integration_mode)) {
+          throw DomainErrors.slotUnavailable();
+        }
         if (slot.state !== 'OPEN' || slot.starts_at <= now) throw DomainErrors.slotUnavailable();
         if (slot.status === 'BOOKED' || slot.capacity - slot.booked_count - slot.held_count <= 0) {
           throw DomainErrors.slotAlreadyTaken();
@@ -98,6 +115,30 @@ export class BookingHoldCreationService {
         if (!clinic.rows[0]) throw DomainErrors.slotNotFound();
         if (clinic.rows[0].clinic_status !== 'ACTIVE' || clinic.rows[0].location_status !== 'ACTIVE') {
           throw DomainErrors.slotUnavailable();
+        }
+
+        const service = await client.query<{ active: boolean; clinic_location_id: string; supported_species: string[] | null }>(`
+          SELECT active, clinic_location_id::text, supported_species
+          FROM clinic_schema.clinic_services
+          WHERE id = $1::uuid
+        `, [slot.service_id]);
+        if (!service.rows[0]?.active || service.rows[0].clinic_location_id !== slot.clinic_location_id) {
+          throw DomainErrors.serviceNotAvailable();
+        }
+        if (service.rows[0].supported_species && !service.rows[0].supported_species.includes(pet.rows[0].species)) {
+          throw DomainErrors.serviceNotAvailable();
+        }
+
+        if (input.doctorId) {
+          const doctor = await client.query<{ id: string }>(`
+            SELECT id::text
+            FROM catalog_schema.doctors
+            WHERE id = $1::uuid
+              AND clinic_location_id = $2::uuid
+              AND active = true
+              AND public_booking_enabled = true
+          `, [input.doctorId, slot.clinic_location_id]);
+          if (!doctor.rows[0]) throw DomainErrors.doctorNotAvailable();
         }
 
         const integrationMode = slot.integration_mode ?? (clinic.rows[0].mis_type ? 'LEVEL_A' : 'LEVEL_C');
@@ -159,6 +200,10 @@ export class BookingHoldCreationService {
           slotId: input.slotId,
           expiresAt: hold.rows[0].expires_at.toISOString(),
           correlationId: input.correlationId,
+          serverNow: now.toISOString(),
+          aggregateVersion: hold.rows[0].version,
+          confirmationMode: initialState === 'CONFIRMED' ? 'AUTOMATIC' : requiresMisReservation ? 'MIS' : 'MANUAL',
+          nextAction: 'READ_STATUS',
         };
 
         await this.writeOutbox(client, 'booking.hold.created.v1', input.correlationId, hold.rows[0].id, hold.rows[0].version, {
@@ -342,7 +387,7 @@ export class BookingHoldCreationService {
 
   private async setInteractiveTransactionLimits(client: PoolClient): Promise<void> {
     await client.query("SET LOCAL lock_timeout = '50ms'");
-    await client.query("SET LOCAL statement_timeout = '50ms'");
+    await client.query("SET LOCAL statement_timeout = '250ms'");
   }
 
   private async assertNoActiveHoldForSlot(
@@ -367,24 +412,28 @@ export class BookingHoldCreationService {
     client: PoolClient,
     scope: string,
     idempotencyKey: string,
+    requestFingerprint: string,
   ): Promise<Record<string, unknown> | undefined> {
     const inserted = await client.query(`
-      INSERT INTO booking_schema.idempotency_records (scope, idempotency_key, status)
-      VALUES ($1, $2::uuid, 'PROCESSING')
+      INSERT INTO booking_schema.idempotency_records (scope, idempotency_key, status, request_fingerprint)
+      VALUES ($1, $2::uuid, 'PROCESSING', $3)
       ON CONFLICT (scope, idempotency_key) DO NOTHING
       RETURNING id
-    `, [scope, idempotencyKey]);
+    `, [scope, idempotencyKey, requestFingerprint]);
 
     if (inserted.rows[0]) return undefined;
 
     const existing = await client.query<IdempotencyRow>(`
-      SELECT status, response_status, response_body
+      SELECT status, response_status, response_body, request_fingerprint
       FROM booking_schema.idempotency_records
       WHERE scope = $1 AND idempotency_key = $2::uuid
       FOR UPDATE
     `, [scope, idempotencyKey]);
 
     if (!existing.rows[0]) throw DomainErrors.bookingUnavailable();
+    if (existing.rows[0].request_fingerprint !== null && existing.rows[0].request_fingerprint !== requestFingerprint) {
+      throw DomainErrors.idempotencyPayloadConflict();
+    }
     if (existing.rows[0].status !== 'COMPLETED' || !existing.rows[0].response_body) {
       throw DomainErrors.idempotencyInProgress();
     }
@@ -397,6 +446,19 @@ export class BookingHoldCreationService {
       );
     }
     return existing.rows[0].response_body;
+  }
+
+  private requestFingerprint(input: {
+    slotId: string; petId: string; serviceId?: string; doctorId: string | null; expectedSlotVersion?: number;
+  }): string {
+    const canonical = JSON.stringify({
+      doctorId: input.doctorId,
+      expectedSlotVersion: input.expectedSlotVersion,
+      petId: input.petId,
+      serviceId: input.serviceId,
+      slotId: input.slotId,
+    });
+    return createHash('sha256').update(canonical).digest('hex');
   }
 
   private async completeIdempotency(
@@ -447,6 +509,9 @@ export class BookingHoldCreationService {
       const pgCode = String((error as { code?: unknown }).code);
       if (pgCode === '55P03' || pgCode === '57014') return DomainErrors.slotLockedRetry();
       if (pgCode === '23505') return DomainErrors.slotAlreadyTaken();
+    }
+    if (error instanceof Error && error.message === 'timeout exceeded when trying to connect') {
+      return DomainErrors.slotLockedRetry();
     }
     this.logger.error('Unexpected booking hold creation error', error instanceof Error ? error.stack : undefined);
     return DomainErrors.bookingUnavailable();

@@ -23,6 +23,8 @@ export type MvpHoldState = Extract<HoldState, 'MANUAL_CONFIRM_PENDING' | 'ALTERN
 export interface SlotRow {
   id: string;
   clinic_location_id: string;
+  service_id?: string | null;
+  doctor_id?: string | null;
   starts_at: Date;
   ends_at: Date;
   capacity: number;
@@ -57,6 +59,10 @@ export interface CreateHoldResult {
   slotId: string;
   expiresAt: string;
   correlationId: string;
+  serverNow?: string;
+  aggregateVersion?: number;
+  confirmationMode?: 'AUTOMATIC' | 'MANUAL' | 'MIS';
+  nextAction?: 'READ_STATUS';
 }
 
 export interface ConfirmHoldResult {

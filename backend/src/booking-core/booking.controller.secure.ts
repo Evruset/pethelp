@@ -131,6 +131,9 @@ export class BookingController {
     return this.holdCreationService.createLocalHold({
       slotId: requiredUuid(dto.slotId, 'slotId'),
       petId: requiredUuid(dto.petId, 'petId'),
+      expectedSlotVersion: dto.expectedSlotVersion,
+      serviceId: dto.serviceId === undefined ? undefined : requiredUuid(dto.serviceId, 'serviceId'),
+      doctorId: dto.doctorId === null || dto.doctorId === undefined ? null : requiredUuid(dto.doctorId, 'doctorId'),
       ownerId: owner.sub,
       idempotencyKey: requiredUuid(idempotencyKey, 'Idempotency-Key'),
       correlationId: requiredUuid(originalHeader(request, 'X-Correlation-ID'), 'X-Correlation-ID'),
@@ -144,7 +147,7 @@ export class BookingController {
   @ApiOperation({ summary: 'Получение текущего статуса hold авторизованным участником' })
   @ApiParam({ name: 'holdId', type: 'string', format: 'uuid' })
   @ApiNotFoundResponse({ description: 'HOLD_NOT_FOUND.', type: ApiErrorDto })
-  @ApiForbiddenResponse({ description: 'HOLD_OWNER_MISMATCH или CLINIC_SCOPE_MISMATCH.', type: ApiErrorDto })
+  @ApiForbiddenResponse({ description: 'CLINIC_SCOPE_MISMATCH для clinic actor.', type: ApiErrorDto })
   async getHold(@Param('holdId') holdId: string, @CurrentUser() actor: JwtPayload) {
     return this.holdReadService.readForActor(requiredUuid(holdId, 'holdId'), actor);
   }

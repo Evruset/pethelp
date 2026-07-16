@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'features/booking/marketplace/booking_selection_models.dart';
 import 'features/booking/marketplace/booking_selection_repository.dart';
+import 'features/booking/marketplace/booking_marketplace_repository.dart';
+import 'features/booking/marketplace/booking_hold_status_page.dart';
 import 'features/booking/marketplace/owner_booking_selection_v50_page.dart';
 import 'ui/vethelp_ios_theme.dart';
 
@@ -13,7 +15,22 @@ class _EvidenceApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = Uri.base.queryParameters['state'] ?? 'SERVICE_READY';
-    final review = state.startsWith('REVIEW_');
+    if (state.startsWith('BOOKING_')) {
+      return MaterialApp(
+        theme: VetHelpTheme.light(),
+        home: BookingHoldStatusPage(
+          holdId: '11111111-1111-4111-8111-111111111111',
+          initialState: _holdState(state),
+          clinicName: 'Ветеринарная клиника «Добрые лапы»',
+          locationAddress: 'Москва, ул. Пилотная, 1',
+          serviceName: 'Первичный приём',
+          petName: 'Барсик',
+          offline: state == 'BOOKING_OFFLINE_STALE',
+          readHold: (_) async => _holdSnapshot(_holdState(state)),
+        ),
+      );
+    }
+    final review = state.startsWith('REVIEW_') || state.startsWith('CREATE_HOLD_');
     final hasDate = review || const {
       'DATE_READY', 'SLOT_READY', 'SLOT_SELECTED', 'SLOT_STALE', 'SLOT_EMPTY',
     }.contains(state);
@@ -55,11 +72,80 @@ class _EvidenceApp extends StatelessWidget {
         initialIntent: intent,
         restoreIntentToReview: review,
         offline: state == 'REVIEW_OFFLINE_STALE',
+        holdRepository: _EvidenceHoldRepository(state),
+        createHoldEnabled: state.startsWith('CREATE_HOLD_'),
+        bookingStatusEnabled: state.startsWith('CREATE_HOLD_'),
+        initialSubmissionState: switch (state) {
+          'CREATE_HOLD_SUBMITTING' => BookingReviewSubmissionState.submitting,
+          'CREATE_HOLD_SOFT_RETRY' => BookingReviewSubmissionState.softRetry,
+          'CREATE_HOLD_FINAL_CONFLICT' => BookingReviewSubmissionState.finalConflict,
+          _ => BookingReviewSubmissionState.idle,
+        },
         onContinue: (_) {},
         onRequireAuthentication: (_) {},
       ),
     );
   }
+}
+
+String _holdState(String state) => switch (state) {
+      'BOOKING_LOCAL_HOLD' => 'MANUAL_CONFIRM_PENDING',
+      'BOOKING_MANUAL_PENDING' => 'MANUAL_CONFIRM_PENDING',
+      'BOOKING_MIS_PENDING' => 'MIS_RESERVATION_PENDING',
+      'BOOKING_CONFIRMED' => 'CONFIRMED',
+      'BOOKING_FAILED' => 'MIS_BOOKING_FAILED',
+      'BOOKING_EXPIRED' => 'EXPIRED',
+      'BOOKING_RELEASED' => 'RELEASED',
+      'BOOKING_OFFLINE_STALE' => 'MANUAL_CONFIRM_PENDING',
+      _ => 'MANUAL_CONFIRM_PENDING',
+    };
+
+BookingHoldSnapshot _holdSnapshot(String state) => BookingHoldSnapshot(
+      holdId: '11111111-1111-4111-8111-111111111111',
+      slotId: '22222222-2222-4222-8222-222222222222',
+      state: state,
+      expiresAt: DateTime.parse('2026-07-16T08:10:00Z'),
+      startsAt: DateTime.parse('2026-07-17T06:30:00Z'),
+      endsAt: DateTime.parse('2026-07-17T07:00:00Z'),
+      serverNow: DateTime.parse('2026-07-16T08:04:30Z'),
+      aggregateVersion: 3,
+      confirmationMode: state.startsWith('MIS_') ? 'MIS' : 'MANUAL',
+      lastUpdatedAt: DateTime.parse('2026-07-16T08:04:00Z'),
+    );
+
+class _EvidenceHoldRepository implements BookingHoldCommandRepository {
+  const _EvidenceHoldRepository(this.state);
+  final String state;
+
+  @override
+  Future<CreatedBookingHold> createSelectionHold(CreateBookingHoldRequest request) async {
+    if (state == 'CREATE_HOLD_SUBMITTING') {
+      await Future<void>.delayed(const Duration(minutes: 1));
+    }
+    if (state == 'CREATE_HOLD_SOFT_RETRY') {
+      throw const BookingMarketplaceApiException(statusCode: 409, code: 'SLOT_LOCKED_RETRY');
+    }
+    if (state == 'CREATE_HOLD_FINAL_CONFLICT') {
+      throw const BookingMarketplaceApiException(statusCode: 409, code: 'SLOT_ALREADY_TAKEN');
+    }
+    return CreatedBookingHold(
+      holdId: '11111111-1111-4111-8111-111111111111',
+      state: 'MANUAL_CONFIRM_PENDING',
+      slotId: request.selection.slotId,
+      expiresAt: DateTime.parse('2026-07-16T08:10:00Z'),
+      correlationId: request.correlationId,
+    );
+  }
+
+  @override
+  Future<BookingHoldSnapshot> readHold(String holdId) async => _holdSnapshot('MANUAL_CONFIRM_PENDING');
+
+  @override
+  Future<CreatedBookingHold> createHold({required String slotId, required String petId, required String correlationId, required String idempotencyKey}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<List<BookingSlot>> listSlots({required String clinicLocationId, required String serviceId, required DateTime from, required DateTime to}) async => const [];
 }
 
 const _price = BookingPriceSnapshot(
