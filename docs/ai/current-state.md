@@ -11,7 +11,7 @@ Updated: 2026-07-16
 - `V50-OWNER-03`: `COMPLETE / INTEGRATED` through merge `e747f61`; runtime `dc762b4`.
 - `V50-OWNER-04`: `COMPLETE / INTEGRATED` through merge `9e165a3`; runtime `985dd5b`; evidence certification `d3edf71`.
 - `V50-OWNER-05`: `COMPLETE / INTEGRATED` through merge `c2bbcbf`; runtime `cc6ba06`; certification `ade242e`.
-- Integration status: `V50-OWNER-06_INTEGRATED / V50-OWNER-07_NEXT`.
+- Integration status: `V50-OWNER-06_INTEGRATED / V50-OWNER-07_ACTIVE`.
 - Canonical target: `V50`; source: `prototype-v50/index.html`; manifest SHA-256: `245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42`.
 - Program branch/worktree: `agent/v51-stage-01-architecture` / `/Users/evrusetskiy/work/pethelp-alpha`.
 - Root worktree still contains protected user changes in `.codex/ACTIVE_MODE` and `.codex/config.toml`; this worktree does not modify them.
@@ -131,4 +131,22 @@ prototype artifacts with checksum
 Representative and full visual gates PASS. State/security and product/visual
 validators and final integration validator PASS with zero vetoes. The next
 bounded context is `V50-OWNER-07 / Alternative Slot Resolution`.
-`OWN-007` becomes the one new independent visually verified row; counter 11/30.
+
+## V50-OWNER-07 delivery state
+
+`V50-OWNER-07` is ready for integration on `agent/v50-owner-07`; runtime is
+`caa9150`. `OWN-020 #alternative-slot` reuses the clinic-created Capacity-B
+reservation and adds canonical owner-scoped proposal read/accept/decline with
+booking+proposal identity, payload-bound idempotency, aggregate version fencing,
+global hold/slot/proposal lock order, authoritative deadline/readback and atomic
+counter/audit/outbox effects. Flutter is default-off, responsive, offline-safe
+and returns only a typed availability intent.
+
+Backend build PASS; PostgreSQL focused 12/12 and legacy 4/4 PASS, including
+20-way accept, 10-vs-10 resolution and clinic-supersede races with zero 5xx and
+restored pool. Flutter analyze/focused/full 265/265 and flagged web build PASS.
+Package `v50-owner-07-caa9150` verifies 48/48 runtime plus 4/4 prototype with
+SHA-256 `94745e2d51af403340224bef148ed6c47f8023551f8843c44b8813de95f9c7d0`.
+State/security and product/visual validators PASS with zero vetoes. `OWN-020`
+is IMPLEMENTED / TESTED / VISUALLY_VERIFIED; program counter is 12/30. Final
+integration validation is pending; `OWN-008` remains bounded partial.

@@ -26,6 +26,13 @@ export interface OwnerAlternativeSlotSnapshot {
   proposedSlot: OwnerAlternativeSlotSnapshot['alternativeSlot'];
   actions: { canAccept: boolean; canDecline: boolean; code: string };
   priceCopy: string;
+  context: {
+    petId: string;
+    clinicId: string;
+    locationId: string;
+    serviceId: string;
+    doctorId: string | null;
+  };
 }
 
 @Injectable()
@@ -47,6 +54,11 @@ export class OwnerAlternativeSnapshotService {
       alternative_expires_at: Date;
       proposal_state: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'REPLACED';
       server_now: Date;
+      pet_id: string;
+      clinic_id: string;
+      location_id: string;
+      service_id: string;
+      doctor_id: string | null;
     }>(`
       SELECT
         h.id::text AS hold_id,
@@ -62,6 +74,10 @@ export class OwnerAlternativeSnapshotService {
         swap.expires_at AS alternative_expires_at,
         swap.state AS proposal_state,
         clock_timestamp() AS server_now
+        ,h.pet_id::text AS pet_id, location.clinic_id::text AS clinic_id,
+        original_slot.clinic_location_id::text AS location_id,
+        original_slot.service_id::text AS service_id,
+        original_slot.doctor_id::text AS doctor_id
       FROM booking_schema.booking_holds h
       JOIN LATERAL (
         SELECT candidate.* FROM booking_schema.alternative_swap_groups candidate
@@ -70,8 +86,10 @@ export class OwnerAlternativeSnapshotService {
       ) swap ON true
       JOIN clinic_schema.appointment_slots original_slot ON original_slot.id = swap.original_slot_id
       JOIN clinic_schema.appointment_slots alternative_slot ON alternative_slot.id = swap.alternative_slot_id
+      JOIN clinic_schema.clinic_locations location ON location.id=original_slot.clinic_location_id
       WHERE h.id = $1::uuid
         AND h.owner_id = $2::uuid
+        AND original_slot.service_id IS NOT NULL
     `, [holdId, ownerId]);
 
     const row = result.rows[0];
@@ -115,6 +133,13 @@ export class OwnerAlternativeSnapshotService {
           : `ALTERNATIVE_${row.proposal_state}`,
       },
       priceCopy: 'Окончательная стоимость подтверждается клиникой.',
+      context: {
+        petId: row.pet_id,
+        clinicId: row.clinic_id,
+        locationId: row.location_id,
+        serviceId: row.service_id,
+        doctorId: row.doctor_id,
+      },
     };
   }
 }

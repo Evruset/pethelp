@@ -144,6 +144,12 @@ class AlternativeSlotBloc
         if (!accept && v.state == 'DECLINED') {
           emit(AlternativeSlotDeclinedState(ReturnToAvailabilityIntent(
               bookingId: v.bookingId,
+              petId: v.petId,
+              clinicId: v.clinicId,
+              locationId: v.locationId,
+              serviceId: v.serviceId,
+              doctorId: v.doctorId,
+              proposalId: v.proposalId,
               excludedSlotIds: [v.originalSlot.id, v.alternativeSlot.id])));
         } else {
           emit(AlternativeSlotActive(v));

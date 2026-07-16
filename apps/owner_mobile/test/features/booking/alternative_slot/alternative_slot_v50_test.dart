@@ -36,6 +36,13 @@ Map<String, dynamic> snapshot(
         'code': 'OWNER_DECISION'
       },
       'priceCopy': 'Цена не изменится',
+      'context': {
+        'petId': 'pet',
+        'clinicId': 'clinic',
+        'locationId': 'location',
+        'serviceId': 'service',
+        'doctorId': 'doctor'
+      },
     };
 
 AlternativeSlotRepository repo(MockClient client) => AlternativeSlotRepository(
@@ -175,8 +182,15 @@ void main() {
     await tester.pumpAndSettle();
     await tester.pump();
     expect(result, isA<ReturnToAvailabilityIntent>());
-    expect(
-        (result as ReturnToAvailabilityIntent).excludedSlotIds, ['old', 'new']);
+    final intent = result as ReturnToAvailabilityIntent;
+    expect(intent.excludedSlotIds, ['old', 'new']);
+    expect(intent.proposalId, proposalId);
+    expect(intent.petId, 'pet');
+    expect(intent.clinicId, 'clinic');
+    expect(intent.locationId, 'location');
+    expect(intent.serviceId, 'service');
+    expect(intent.doctorId, 'doctor');
+    expect(intent.source, 'ALTERNATIVE_DECLINED_OR_RESELECT');
   });
 
   testWidgets('offline blocks mutation', (tester) async {
@@ -191,8 +205,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(posts, 0);
     expect(find.textContaining('Нет сети'), findsOneWidget);
-    expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton,
-            'Принять новое время')).onPressed, isNull);
+    expect(find.textContaining('Подключитесь к интернету'), findsOneWidget);
   });
 
   for (final entry in {

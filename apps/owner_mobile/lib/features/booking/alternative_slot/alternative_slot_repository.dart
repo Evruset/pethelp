@@ -24,6 +24,11 @@ class AlternativeSlotSnapshot {
     required this.canDecline,
     this.priceCopy,
     this.actionCode,
+    required this.petId,
+    required this.clinicId,
+    required this.locationId,
+    required this.serviceId,
+    this.doctorId,
     required DateTime receivedAt,
   }) : _serverOffset = serverNow.difference(receivedAt.toUtc());
 
@@ -39,6 +44,8 @@ class AlternativeSlotSnapshot {
   final bool canDecline;
   final String? priceCopy;
   final String? actionCode;
+  final String petId, clinicId, locationId, serviceId;
+  final String? doctorId;
   final Duration _serverOffset;
 
   DateTime authoritativeNow(DateTime deviceNow) =>
@@ -59,8 +66,23 @@ class AlternativeResolution {
 
 class ReturnToAvailabilityIntent {
   const ReturnToAvailabilityIntent(
-      {required this.bookingId, required this.excludedSlotIds});
-  final String bookingId;
+      {required this.bookingId,
+      required this.petId,
+      required this.clinicId,
+      required this.locationId,
+      required this.serviceId,
+      this.doctorId,
+      required this.excludedSlotIds,
+      required this.proposalId,
+      this.source = 'ALTERNATIVE_DECLINED_OR_RESELECT'});
+  final String bookingId,
+      petId,
+      clinicId,
+      locationId,
+      serviceId,
+      proposalId,
+      source;
+  final String? doctorId;
   final List<String> excludedSlotIds;
 }
 
@@ -182,6 +204,7 @@ class AlternativeSlotRepository {
     final proposed = (payload['proposedSlot'] ?? payload['alternativeSlot'])
         as Map<String, dynamic>;
     final actions = payload['actions'] as Map<String, dynamic>? ?? const {};
+    final context = payload['context'] as Map<String, dynamic>? ?? const {};
     return AlternativeSlotSnapshot(
       bookingId: payload['bookingId'] as String? ?? payload['holdId'] as String,
       proposalId: (payload['proposalId'] ?? payload['swapGroupId']) as String,
@@ -201,6 +224,11 @@ class AlternativeSlotRepository {
           false,
       priceCopy: payload['priceCopy'] as String?,
       actionCode: actions['code'] as String?,
+      petId: context['petId'] as String,
+      clinicId: context['clinicId'] as String,
+      locationId: context['locationId'] as String,
+      serviceId: context['serviceId'] as String,
+      doctorId: context['doctorId'] as String?,
       receivedAt: receivedAt,
     );
   }
