@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { BookingHoldCreationService } from '../src/booking-core/booking-hold-creation.service';
 import { BookingHoldReadService } from '../src/booking-core/booking-hold-read.service';
 import { BookingRepository } from '../src/booking-core/booking.repository';
+import { BookingService } from '../src/booking-core/booking.service';
 import { Role } from '../src/auth/auth.types';
 import { DomainException } from '../src/common/domain-error';
 import { DatabaseService } from '../src/database/database.service';
@@ -13,6 +14,7 @@ describe('V50 owner booking hold/status (real PostgreSQL)', () => {
   const creation = new BookingHoldCreationService(database, new BookingRepository());
   const clinicAccess = { assertBookingHoldReadAccess: jest.fn() } as never;
   const read = new BookingHoldReadService(database, clinicAccess);
+  const booking = new BookingService(database, new BookingRepository());
 
   afterAll(async () => database.onModuleDestroy());
 
@@ -70,6 +72,69 @@ describe('V50 owner booking hold/status (real PostgreSQL)', () => {
     expect(database.poolStats().waitingCount).toBe(baseline);
     expect(database.poolStats().inUseCount).toBe(0);
   });
+
+  it('expires a pending hold exactly once and never expires a confirmed hold', async () => {
+    const fixture = await seedFixture(database, 1);
+    const created = await creation.createLocalHold(command(fixture, fixture.owners[0], fixture.pets[0], randomUUID()));
+    await database.query(`UPDATE booking_schema.booking_holds SET expires_at = clock_timestamp() - interval '1 second' WHERE id = $1::uuid`, [created.holdId]);
+
+    await expect(booking.expireHolds()).resolves.toEqual({ expired: 1 });
+    await expect(booking.expireHolds()).resolves.toEqual({ expired: 0 });
+    const expired = await database.query<{ state: string; held_count: number; events: string; audits: string }>(`
+      SELECT h.state, s.held_count,
+        (SELECT COUNT(*)::text FROM booking_schema.outbox_events WHERE aggregate_id = h.id AND event_type = 'booking.hold.expired.v1') AS events,
+        (SELECT COUNT(*)::text FROM audit_schema.audit_log WHERE aggregate_id = h.id AND action = 'booking.hold.expired') AS audits
+      FROM booking_schema.booking_holds h JOIN clinic_schema.appointment_slots s ON s.id = h.slot_id
+      WHERE h.id = $1::uuid
+    `, [created.holdId]);
+    expect(expired.rows[0]).toEqual({ state: 'EXPIRED', held_count: 0, events: '1', audits: '1' });
+
+    await database.query(`UPDATE booking_schema.booking_holds SET state = 'CONFIRMED', expires_at = clock_timestamp() - interval '1 second' WHERE id = $1::uuid`, [created.holdId]);
+    await expect(booking.expireHolds()).resolves.toEqual({ expired: 0 });
+    const terminal = await database.query<{ state: string }>('SELECT state FROM booking_schema.booking_holds WHERE id = $1::uuid', [created.holdId]);
+    expect(terminal.rows[0].state).toBe('CONFIRMED');
+  });
+
+  it('rejects archived/incompatible/stale authority and rolls back expiration drift', async () => {
+    let fixture = await seedFixture(database, 1);
+    await database.query('UPDATE pet_schema.pets SET archived_at = clock_timestamp() WHERE id = $1::uuid', [fixture.pets[0]]);
+    await expect(creation.createLocalHold(command(fixture, fixture.owners[0], fixture.pets[0], randomUUID())))
+      .rejects.toMatchObject({ status: 422, response: { code: 'PET_OWNERSHIP_MISMATCH' } });
+
+    fixture = await seedFixture(database, 1);
+    await database.query(`UPDATE clinic_schema.clinic_services SET supported_species = ARRAY['CAT']::text[] WHERE id = $1::uuid`, [fixture.serviceId]);
+    await expect(creation.createLocalHold(command(fixture, fixture.owners[0], fixture.pets[0], randomUUID())))
+      .rejects.toMatchObject({ status: 422, response: { code: 'SERVICE_NOT_AVAILABLE' } });
+
+    fixture = await seedFixture(database, 1);
+    await database.query(`UPDATE clinic_schema.appointment_slots SET last_freshness_sync = clock_timestamp() - interval '16 minutes' WHERE id = $1::uuid`, [fixture.slotId]);
+    await expect(creation.createLocalHold(command(fixture, fixture.owners[0], fixture.pets[0], randomUUID())))
+      .rejects.toMatchObject({ status: 409, response: { code: 'SLOT_VERSION_STALE' } });
+
+    fixture = await seedFixture(database, 1);
+    const specialty = await database.query<{ id: string }>(`SELECT id FROM catalog_schema.specialties ORDER BY id LIMIT 1`);
+    const doctor = await database.query<{ id: string }>(`
+      INSERT INTO catalog_schema.doctors (clinic_location_id, full_name, specialty_id, active, public_booking_enabled)
+      VALUES ($1::uuid, 'Inactive V50 doctor', $2::uuid, false, false) RETURNING id
+    `, [fixture.locationId, specialty.rows[0].id]);
+    await database.query('UPDATE clinic_schema.appointment_slots SET doctor_id = $2::uuid WHERE id = $1::uuid', [fixture.slotId, doctor.rows[0].id]);
+    await expect(creation.createLocalHold({
+      ...command(fixture, fixture.owners[0], fixture.pets[0], randomUUID()),
+      doctorId: doctor.rows[0].id,
+    })).rejects.toMatchObject({ status: 422, response: { code: 'DOCTOR_NOT_AVAILABLE' } });
+
+    fixture = await seedFixture(database, 1);
+    const created = await creation.createLocalHold(command(fixture, fixture.owners[0], fixture.pets[0], randomUUID()));
+    await database.query(`UPDATE booking_schema.booking_holds SET expires_at = clock_timestamp() - interval '1 second' WHERE id = $1::uuid`, [created.holdId]);
+    await database.query('UPDATE clinic_schema.appointment_slots SET held_count = 0 WHERE id = $1::uuid', [fixture.slotId]);
+    await expect(booking.expireHolds()).rejects.toMatchObject({ status: 503, response: { code: 'BOOKING_TEMPORARILY_UNAVAILABLE' } });
+    const rolledBack = await database.query<{ state: string; effects: string }>(`
+      SELECT state,
+        (SELECT COUNT(*)::text FROM booking_schema.outbox_events WHERE aggregate_id = $1::uuid AND event_type = 'booking.hold.expired.v1') AS effects
+      FROM booking_schema.booking_holds WHERE id = $1::uuid
+    `, [created.holdId]);
+    expect(rolledBack.rows[0]).toEqual({ state: 'MIS_RESERVATION_PENDING', effects: '0' });
+  });
 });
 
 function command(fixture: Awaited<ReturnType<typeof seedFixture>>, ownerId: string, petId: string, idempotencyKey: string) {
@@ -89,5 +154,5 @@ async function seedFixture(database: DatabaseService, count: number) {
   const location = await database.query<{ id: string }>(`INSERT INTO clinic_schema.clinic_locations (clinic_id, address) VALUES ($1::uuid, 'V50 address') RETURNING id`, [clinic.rows[0].id]);
   const service = await database.query<{ id: string }>(`INSERT INTO clinic_schema.clinic_services (clinic_location_id, code, display_name, duration_minutes) VALUES ($1::uuid, 'V50', 'V50 service', 30) RETURNING id`, [location.rows[0].id]);
   const slot = await database.query<{ id: string }>(`INSERT INTO clinic_schema.appointment_slots (clinic_location_id, service_id, starts_at, ends_at, capacity, integration_mode) VALUES ($1::uuid, $2::uuid, clock_timestamp() + interval '2 hours', clock_timestamp() + interval '150 minutes', 1, 'LEVEL_A') RETURNING id`, [location.rows[0].id, service.rows[0].id]);
-  return { owners, pets, serviceId: service.rows[0].id, slotId: slot.rows[0].id };
+  return { owners, pets, locationId: location.rows[0].id, serviceId: service.rows[0].id, slotId: slot.rows[0].id };
 }

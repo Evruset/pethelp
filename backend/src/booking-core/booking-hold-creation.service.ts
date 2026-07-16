@@ -21,6 +21,7 @@ interface PetOwnershipRow {
   owner_id: string;
   external_patient_id: string | null;
   archived_at: Date | null;
+  species: string;
 }
 
 interface ClinicMisRow {
@@ -75,7 +76,7 @@ export class BookingHoldCreationService {
 
         // Global interactive lock order: pet, then slot.
         const pet = await client.query<PetOwnershipRow>(`
-          SELECT owner_id, external_patient_id, archived_at
+          SELECT owner_id, external_patient_id, archived_at, species
           FROM pet_schema.pets
           WHERE id = $1
           FOR SHARE
@@ -94,6 +95,12 @@ export class BookingHoldCreationService {
         if (input.expectedSlotVersion !== undefined && slot.version !== input.expectedSlotVersion) throw DomainErrors.slotVersionStale();
         if (input.serviceId !== undefined && slot.service_id !== input.serviceId) throw DomainErrors.serviceNotAvailable();
         if ((slot.doctor_id ?? null) !== input.doctorId) throw DomainErrors.doctorNotAvailable();
+        if (!slot.last_freshness_sync || slot.last_freshness_sync.getTime() < now.getTime() - 15 * 60 * 1000) {
+          throw DomainErrors.slotVersionStale();
+        }
+        if (!slot.integration_mode || !['LEVEL_A', 'LEVEL_B', 'LEVEL_C'].includes(slot.integration_mode)) {
+          throw DomainErrors.slotUnavailable();
+        }
         if (slot.state !== 'OPEN' || slot.starts_at <= now) throw DomainErrors.slotUnavailable();
         if (slot.status === 'BOOKED' || slot.capacity - slot.booked_count - slot.held_count <= 0) {
           throw DomainErrors.slotAlreadyTaken();
@@ -110,13 +117,28 @@ export class BookingHoldCreationService {
           throw DomainErrors.slotUnavailable();
         }
 
-        const service = await client.query<{ active: boolean; clinic_location_id: string }>(`
-          SELECT active, clinic_location_id::text
+        const service = await client.query<{ active: boolean; clinic_location_id: string; supported_species: string[] | null }>(`
+          SELECT active, clinic_location_id::text, supported_species
           FROM clinic_schema.clinic_services
           WHERE id = $1::uuid
         `, [slot.service_id]);
         if (!service.rows[0]?.active || service.rows[0].clinic_location_id !== slot.clinic_location_id) {
           throw DomainErrors.serviceNotAvailable();
+        }
+        if (service.rows[0].supported_species && !service.rows[0].supported_species.includes(pet.rows[0].species)) {
+          throw DomainErrors.serviceNotAvailable();
+        }
+
+        if (input.doctorId) {
+          const doctor = await client.query<{ id: string }>(`
+            SELECT id::text
+            FROM catalog_schema.doctors
+            WHERE id = $1::uuid
+              AND clinic_location_id = $2::uuid
+              AND active = true
+              AND public_booking_enabled = true
+          `, [input.doctorId, slot.clinic_location_id]);
+          if (!doctor.rows[0]) throw DomainErrors.doctorNotAvailable();
         }
 
         const integrationMode = slot.integration_mode ?? (clinic.rows[0].mis_type ? 'LEVEL_A' : 'LEVEL_C');
