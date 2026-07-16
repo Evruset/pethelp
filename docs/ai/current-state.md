@@ -135,7 +135,7 @@ bounded context is `V50-OWNER-07 / Alternative Slot Resolution`.
 ## V50-OWNER-07 delivery state
 
 `V50-OWNER-07` is ready for integration on `agent/v50-owner-07`; runtime is
-`caa9150`. `OWN-020 #alternative-slot` reuses the clinic-created Capacity-B
+`670bc32`. `OWN-020 #alternative-slot` reuses the clinic-created Capacity-B
 reservation and adds canonical owner-scoped proposal read/accept/decline with
 booking+proposal identity, payload-bound idempotency, aggregate version fencing,
 global hold/slot/proposal lock order, authoritative deadline/readback and atomic
@@ -145,8 +145,8 @@ and returns only a typed availability intent.
 Backend build PASS; PostgreSQL focused 12/12 and legacy 4/4 PASS, including
 20-way accept, 10-vs-10 resolution and clinic-supersede races with zero 5xx and
 restored pool. Flutter analyze/focused/full 265/265 and flagged web build PASS.
-Package `v50-owner-07-caa9150` verifies 48/48 runtime plus 4/4 prototype with
-SHA-256 `94745e2d51af403340224bef148ed6c47f8023551f8843c44b8813de95f9c7d0`.
-State/security and product/visual validators PASS with zero vetoes. `OWN-020`
-is IMPLEMENTED / TESTED / VISUALLY_VERIFIED; program counter is 12/30. Final
-integration validation is pending; `OWN-008` remains bounded partial.
+Package `v50-owner-07-670bc32` verifies 48/48 runtime plus 4/4 prototype with
+SHA-256 `a945970478939453d58d6014eb307e68d252f58fd7938545189f604f3414601a`.
+State/security, product/visual and final integration validators PASS with zero
+vetoes. `OWN-020` is IMPLEMENTED / TESTED / VISUALLY_VERIFIED; program counter
+is 12/30. `OWN-008` remains bounded partial.
