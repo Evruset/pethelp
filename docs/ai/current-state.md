@@ -1,6 +1,6 @@
 # V50 program current state
 
-Updated: 2026-07-15
+Updated: 2026-07-16
 
 ## Program status
 
@@ -9,7 +9,8 @@ Updated: 2026-07-15
 - `V50-OWNER-01`: `COMPLETE / INTEGRATED` at `2077b00`.
 - `V50-OWNER-02`: `COMPLETE / INTEGRATED` at `78d9322`.
 - `V50-OWNER-03`: `COMPLETE / INTEGRATED` through merge `e747f61`; runtime `dc762b4`.
-- Integration status: `V50-OWNER-03_INTEGRATED / V50-OWNER-04_INACTIVE`.
+- `V50-OWNER-04`: `COMPLETE / INTEGRATED` through merge `9e165a3`; runtime `985dd5b`; evidence certification `d3edf71`.
+- Integration status: `V50-OWNER-04_INTEGRATED / V50-OWNER-05_NOT_STARTED`.
 - Canonical target: `V50`; source: `prototype-v50/index.html`; manifest SHA-256: `245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42`.
 - Program branch/worktree: `agent/v51-stage-01-architecture` / `/Users/evrusetskiy/work/pethelp-alpha`.
 - Root worktree still contains protected user changes in `.codex/ACTIVE_MODE` and `.codex/config.toml`; this worktree does not modify them.
@@ -82,18 +83,19 @@ Independent read-only validation is PASS with zero vetoes. `OWN-002`, `OWN-004`,
 
 ## V50-OWNER-04 delivery state
 
-`V50-OWNER-04` is implemented on `agent/v50-owner-04` at runtime commit
+`V50-OWNER-04` is integrated through merge `9e165a3`; runtime commit is
 `985dd5b`. The safe read supplies server-authored booking selection semantics;
 flagged `/owner/booking` and `/owner/booking/review` retain typed guest intent
 and stop before hold/mutation. Backend focused PASS 4/4 and build PASS; Flutter
 analyze PASS, focused PASS 4/4, full PASS 245/245, both web builds PASS. Package
-`v50-owner-04-985dd5b` verifies 48/48 runtime artifacts and 8/8 representative.
+`v50-owner-04-985dd5b` verifies 48/48 runtime artifacts, 4/4 prototype-reference
+artifacts, the aggregate package checksum, and 8/8 representative comparisons.
 Independent validation PASS with zero vetoes. `OWN-005` and `OWN-006` are
 IMPLEMENTED / TESTED / VISUALLY_VERIFIED; program counter is 9/30. Integration
-readiness is PASS.
+readiness and integration are PASS.
 
 ## Next slice
 
-`V50-OWNER-05` may start only after V50-OWNER-04 integration. It has not started.
+`V50-OWNER-05` is the next slice and may now start from integrated OWNER-04.
 
 The Owner Home backend reproduction gate is `PASS`: after canonical Compose recreated its dependency volume, Jest ran 4 focused suites and passed; the final combined Owner pets/Home run passed 23/23 tests. Resolution evidence is recorded in `docs/ai/tooling-debt/V50-OWNER-01-backend-spawn-einval.md`.
