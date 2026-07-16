@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'owner_bookings_v50_repository.dart';
+import '../booking/alternative_slot/alternative_slot_page.dart';
+import '../booking/alternative_slot/alternative_slot_repository.dart';
 
 class OwnerBookingsV50Page extends StatefulWidget {
   const OwnerBookingsV50Page(
@@ -8,11 +10,15 @@ class OwnerBookingsV50Page extends StatefulWidget {
       required this.repository,
       this.detailEnabled = false,
       this.cancellationEnabled = false,
+      this.alternativeResolutionEnabled = false,
+      this.alternativeRepository,
       this.initialBucket = OwnerBookingBucket.active,
       this.online = true});
   final OwnerBookingsV50Repository repository;
   final bool detailEnabled;
   final bool cancellationEnabled;
+  final bool alternativeResolutionEnabled;
+  final AlternativeSlotRepository? alternativeRepository;
   final OwnerBookingBucket initialBucket;
   final bool online;
   @override
@@ -175,18 +181,22 @@ class _OwnerBookingsV50PageState extends State<OwnerBookingsV50Page> {
                                           child: InkWell(
                                               onTap: widget.detailEnabled
                                                   ? () async {
-                                                      await Navigator.of(
-                                                              context)
-                                                          .push(MaterialPageRoute(
-                                                              builder: (_) => OwnerBookingDetailV50Page(
-                                                                  repository: widget
-                                                                      .repository,
-                                                                  id: r.id,
-                                                                  cancellationEnabled:
-                                                                      widget
-                                                                          .cancellationEnabled,
-                                                                  online: widget
-                                                                      .online)));
+                                                      await Navigator.of(context).push(MaterialPageRoute(
+                                                          builder: (_) => OwnerBookingDetailV50Page(
+                                                              repository: widget
+                                                                  .repository,
+                                                              id: r.id,
+                                                              cancellationEnabled:
+                                                                  widget
+                                                                      .cancellationEnabled,
+                                                              alternativeResolutionEnabled:
+                                                                  widget
+                                                                      .alternativeResolutionEnabled,
+                                                              alternativeRepository:
+                                                                  widget
+                                                                      .alternativeRepository,
+                                                              online: widget
+                                                                  .online)));
                                                       if (mounted) {
                                                         setState(_load);
                                                       }
@@ -239,10 +249,14 @@ class OwnerBookingDetailV50Page extends StatefulWidget {
       required this.repository,
       required this.id,
       this.cancellationEnabled = false,
+      this.alternativeResolutionEnabled = false,
+      this.alternativeRepository,
       this.online = true});
   final OwnerBookingsV50Repository repository;
   final String id;
   final bool cancellationEnabled;
+  final bool alternativeResolutionEnabled;
+  final AlternativeSlotRepository? alternativeRepository;
   final bool online;
   @override
   State<OwnerBookingDetailV50Page> createState() =>
@@ -388,6 +402,22 @@ class _OwnerBookingDetailV50PageState extends State<OwnerBookingDetailV50Page> {
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             child: Semantics(
                                 liveRegion: true, child: Text(message!))),
+                      if (widget.alternativeResolutionEnabled &&
+                          d.canReviewAlternative &&
+                          widget.alternativeRepository != null)
+                        SizedBox(
+                            height: 48,
+                            child: FilledButton(
+                                onPressed: () async {
+                                  await Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                          builder: (_) => AlternativeSlotPage(
+                                              holdId: d.id,
+                                              repository: widget
+                                                  .alternativeRepository!)));
+                                  if (mounted) setState(_refresh);
+                                },
+                                child: const Text('Ответить на предложение'))),
                       if (widget.cancellationEnabled &&
                           d.canCancel &&
                           d.cancelAction != null)

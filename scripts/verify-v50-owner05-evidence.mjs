@@ -7,7 +7,8 @@ if (!root) throw new Error('V50_EVIDENCE_ROOT is required');
 const slice = process.env.V50_SLICE ?? 'V50-OWNER-05';
 const manifest = JSON.parse(await readFile(`docs/ai/evidence/${slice}.json`, 'utf8'));
 if (manifest.runtimeArtifacts.length !== 48) throw new Error('expected 48 runtime artifacts');
-if (manifest.prototypeArtifacts.length !== 8) throw new Error('expected 8 prototype artifacts');
+const expectedPrototype = slice === 'V50-OWNER-07' ? 4 : 8;
+if (manifest.prototypeArtifacts.length !== expectedPrototype) throw new Error(`expected ${expectedPrototype} prototype artifacts`);
 const requiredStates = new Set(manifest.states);
 const paths = new Set();
 const all = [...manifest.runtimeArtifacts, ...manifest.prototypeArtifacts, ...manifest.supplementalArtifacts];
@@ -32,7 +33,7 @@ for (const viewport of manifest.viewports) {
 }
 const packageDigest = createHash('sha256').update(all.map((item) => item.sha256).sort().join('\n')).digest('hex');
 if (packageDigest !== manifest.artifactPackageSha256) throw new Error('package checksum mismatch');
-console.log(`PASS ${manifest.runtimeArtifacts.length}/48 runtime; ${manifest.prototypeArtifacts.length}/8 prototype; hashes, paths, matrix, black-rectangle gate and package checksum`);
+console.log(`PASS ${manifest.runtimeArtifacts.length}/48 runtime; ${manifest.prototypeArtifacts.length}/${expectedPrototype} prototype; hashes, paths, matrix, black-rectangle gate and package checksum`);
 
 function bmpHasDarkBand(bytes) {
   if (bytes.subarray(0, 2).toString('ascii') !== 'BM' || bytes.readUInt16LE(28) !== 24) throw new Error('unsupported BMP');

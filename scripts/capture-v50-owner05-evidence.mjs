@@ -8,9 +8,16 @@ const runtimeCommit = process.env.V50_RUNTIME_COMMIT;
 if (!root || !runtimeCommit) throw new Error('V50_EVIDENCE_ROOT and V50_RUNTIME_COMMIT are required');
 const slice = process.env.V50_SLICE ?? 'V50-OWNER-05';
 const owner06 = slice === 'V50-OWNER-06';
+const owner07 = slice === 'V50-OWNER-07';
 
 const viewports = [[375, 812], [412, 915], [768, 1024], [1440, 900]];
-const states = owner06 ? [
+const states = owner07 ? [
+  'ALTERNATIVE_READY', 'ALTERNATIVE_PRICE_CHANGED', 'ALTERNATIVE_EXPIRING',
+  'ALTERNATIVE_EXPIRED', 'ALTERNATIVE_SUPERSEDED', 'ALTERNATIVE_SLOT_UNAVAILABLE',
+  'ALTERNATIVE_ACCEPT_SUBMITTING', 'ALTERNATIVE_ACCEPTED',
+  'ALTERNATIVE_DECLINE_CONFIRMATION', 'ALTERNATIVE_DECLINED',
+  'ALTERNATIVE_OFFLINE_STALE', 'ALTERNATIVE_NETWORK_AMBIGUOUS',
+] : owner06 ? [
   'BOOKINGS_REQUIRES_ACTION', 'BOOKINGS_ACTIVE', 'BOOKINGS_HISTORY',
   'BOOKINGS_EMPTY', 'BOOKINGS_OFFLINE_STALE', 'BOOKING_DETAIL_PENDING',
   'BOOKING_DETAIL_CONFIRMED', 'BOOKING_DETAIL_TERMINAL', 'CANCEL_CONFIRMATION',
@@ -38,10 +45,10 @@ try {
       await page.close();
       const isReview = state === 'REVIEW_READY' || state.startsWith('CREATE_HOLD_');
       runtimeArtifacts.push({
-        v50Id: owner06 ? (state.startsWith('BOOKINGS_') ? 'OWN-007' : 'OWN-008') : (isReview ? 'OWN-006' : 'OWN-008'),
-        prototypeAnchor: owner06 ? (state.startsWith('BOOKINGS_') ? '#appointments' : '#appointment-detail') : (isReview ? '#booking-review' : '#appointment-detail'),
+        v50Id: owner07 ? 'OWN-020' : owner06 ? (state.startsWith('BOOKINGS_') ? 'OWN-007' : 'OWN-008') : (isReview ? 'OWN-006' : 'OWN-008'),
+        prototypeAnchor: owner07 ? '#alternative-slot' : owner06 ? (state.startsWith('BOOKINGS_') ? '#appointments' : '#appointment-detail') : (isReview ? '#booking-review' : '#appointment-detail'),
         prototypeState: state === 'BOOKING_CONFIRMED' ? 'confirmed' : state === 'CREATE_HOLD_FINAL_CONFLICT' ? 'slot-taken' : null,
-        runtimeRoute: owner06 ? (state.startsWith('BOOKINGS_') ? '/owner/bookings' : '/owner/bookings/:holdId') : (isReview ? '/owner/booking/review' : '/owner/bookings/:holdId'),
+        runtimeRoute: owner07 ? '/owner/bookings/:holdId/alternative' : owner06 ? (state.startsWith('BOOKINGS_') ? '/owner/bookings' : '/owner/bookings/:holdId') : (isReview ? '/owner/booking/review' : '/owner/bookings/:holdId'),
         viewport: `${width}x${height}`,
         state,
         artifactLogicalPath: `${slice}/runtime/${width}x${height}/${state}.bmp`,
@@ -50,7 +57,7 @@ try {
     }
   }
   for (const [width, height] of viewports) {
-    for (const anchor of owner06 ? ['appointments', 'appointment-detail'] : ['booking-review', 'appointment-detail']) {
+    for (const anchor of owner07 ? ['alternative-slot'] : owner06 ? ['appointments', 'appointment-detail'] : ['booking-review', 'appointment-detail']) {
       const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
       await page.goto(`http://127.0.0.1:8766/prototype-v50/index.html#${anchor}`, { waitUntil: 'load' });
       await page.addStyleTag({ content: '.skip-link:not(:focus){display:none!important}' });
@@ -83,8 +90,8 @@ await writeFile(`docs/ai/evidence/${slice}.json`, `${JSON.stringify({
   artifactPackageSha256,
   viewports: viewports.map(([width, height]) => `${width}x${height}`),
   states,
-  v50Ids: owner06 ? ['OWN-007', 'OWN-008'] : ['OWN-006', 'OWN-008'],
-  prototypeAnchors: owner06 ? ['#appointments', '#appointment-detail'] : ['#booking-review', '#appointment-detail'],
+  v50Ids: owner07 ? ['OWN-020'] : owner06 ? ['OWN-007', 'OWN-008'] : ['OWN-006', 'OWN-008'],
+  prototypeAnchors: owner07 ? ['#alternative-slot'] : owner06 ? ['#appointments', '#appointment-detail'] : ['#booking-review', '#appointment-detail'],
   representativeGate: 'PENDING_VALIDATION',
   runtimeArtifacts,
   prototypeArtifacts,

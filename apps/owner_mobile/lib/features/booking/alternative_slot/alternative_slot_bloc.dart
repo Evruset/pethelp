@@ -1,8 +1,5 @@
-import 'dart:async';
-
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
-
 import 'alternative_slot_repository.dart';
 
 sealed class AlternativeSlotEvent {
@@ -10,8 +7,8 @@ sealed class AlternativeSlotEvent {
 }
 
 class AlternativeSlotOpened extends AlternativeSlotEvent {
-  const AlternativeSlotOpened(this.holdId);
-  final String holdId;
+  const AlternativeSlotOpened(this.bookingId);
+  final String bookingId;
 }
 
 class AlternativeSlotAcceptPressed extends AlternativeSlotEvent {
@@ -35,37 +32,19 @@ class AlternativeSlotLoading extends AlternativeSlotState {
 }
 
 class AlternativeSlotActive extends AlternativeSlotState {
-  const AlternativeSlotActive(
-      this.snapshot, this.correlationId, this.acceptKey, this.declineKey);
-  final AlternativeSlotSnapshot snapshot;
-  final String correlationId;
-  final String acceptKey;
-  final String declineKey;
-}
-
-class AlternativeSlotAccepting extends AlternativeSlotState {
-  const AlternativeSlotAccepting(this.snapshot);
+  const AlternativeSlotActive(this.snapshot);
   final AlternativeSlotSnapshot snapshot;
 }
 
-class AlternativeSlotDeclining extends AlternativeSlotState {
-  const AlternativeSlotDeclining(this.snapshot);
+class AlternativeSlotSubmitting extends AlternativeSlotState {
+  const AlternativeSlotSubmitting(this.snapshot, this.accept);
   final AlternativeSlotSnapshot snapshot;
-}
-
-class AlternativeSlotAcceptedState extends AlternativeSlotState {
-  const AlternativeSlotAcceptedState(this.result);
-  final AlternativeSlotAccepted result;
+  final bool accept;
 }
 
 class AlternativeSlotDeclinedState extends AlternativeSlotState {
-  const AlternativeSlotDeclinedState(this.result);
-  final AlternativeSlotDeclined result;
-}
-
-class AlternativeSlotSoftRetry extends AlternativeSlotState {
-  const AlternativeSlotSoftRetry(this.message);
-  final String message;
+  const AlternativeSlotDeclinedState(this.intent);
+  final ReturnToAvailabilityIntent intent;
 }
 
 class AlternativeSlotFencedState extends AlternativeSlotState {
@@ -74,122 +53,115 @@ class AlternativeSlotFencedState extends AlternativeSlotState {
 }
 
 class AlternativeSlotErrorState extends AlternativeSlotState {
-  const AlternativeSlotErrorState(this.message);
+  const AlternativeSlotErrorState(this.message, {this.retry = true});
   final String message;
+  final bool retry;
 }
 
 class AlternativeSlotBloc
     extends Bloc<AlternativeSlotEvent, AlternativeSlotState> {
-  AlternativeSlotBloc({required AlternativeSlotRepository repository})
+  AlternativeSlotBloc(
+      {required AlternativeSlotRepository repository,
+      this.offline = false,
+      this.evidenceInitialAccept = false})
       : _repository = repository,
         super(const AlternativeSlotLoading()) {
-    on<AlternativeSlotOpened>(_onOpened);
-    on<AlternativeSlotAcceptPressed>(_onAcceptPressed);
-    on<AlternativeSlotDeclinePressed>(_onDeclinePressed);
-    on<AlternativeSlotRefreshRequested>(_onRefreshRequested);
+    on<AlternativeSlotOpened>(_opened);
+    on<AlternativeSlotRefreshRequested>(_refresh);
+    on<AlternativeSlotAcceptPressed>((e, emit) => _resolve(true, emit));
+    on<AlternativeSlotDeclinePressed>((e, emit) => _resolve(false, emit));
   }
-
   final AlternativeSlotRepository _repository;
+  final bool offline;
+  final bool evidenceInitialAccept;
   final Uuid _uuid = const Uuid();
-  String? _holdId;
-  String? _correlationId;
-  String? _acceptKey;
-  String? _declineKey;
+  String? _bookingId, _correlationId, _acceptKey, _declineKey;
 
-  Future<void> _onOpened(
-      AlternativeSlotOpened event, Emitter<AlternativeSlotState> emit) async {
-    _holdId = event.holdId;
+  Future<void> _opened(
+      AlternativeSlotOpened e, Emitter<AlternativeSlotState> emit) async {
+    _bookingId = e.bookingId;
     _correlationId ??= _uuid.v4();
     _acceptKey ??= _uuid.v4();
     _declineKey ??= _uuid.v4();
-    emit(const AlternativeSlotLoading());
     await _load(emit);
-  }
-
-  Future<void> _onRefreshRequested(AlternativeSlotRefreshRequested event,
-      Emitter<AlternativeSlotState> emit) async {
-    emit(const AlternativeSlotLoading());
-    await _load(emit);
-  }
-
-  Future<void> _onAcceptPressed(AlternativeSlotAcceptPressed event,
-      Emitter<AlternativeSlotState> emit) async {
-    final current = state;
-    if (current is! AlternativeSlotActive) return;
-
-    emit(AlternativeSlotAccepting(current.snapshot));
-    final result = await _repository.acceptAlternative(
-      holdId: current.snapshot.holdId,
-      version: current.snapshot.version,
-      correlationId: current.correlationId,
-      idempotencyKey: current.acceptKey,
-    );
-
-    switch (result) {
-      case AlternativeSlotSuccess<AlternativeSlotAccepted>(value: final value):
-        emit(AlternativeSlotAcceptedState(value));
-      case AlternativeSlotRetry<AlternativeSlotAccepted>():
-        emit(const AlternativeSlotSoftRetry('Обновляем состояние записи.'));
-        await _load(emit);
-      case AlternativeSlotFenced<AlternativeSlotAccepted>(reason: final reason):
-        emit(AlternativeSlotFencedState(reason));
-      case AlternativeSlotFailure<AlternativeSlotAccepted>(
-          message: final message
-        ):
-        emit(AlternativeSlotErrorState(message));
+    if (evidenceInitialAccept && state is AlternativeSlotActive) {
+      add(const AlternativeSlotAcceptPressed());
     }
   }
 
-  Future<void> _onDeclinePressed(AlternativeSlotDeclinePressed event,
+  Future<void> _refresh(AlternativeSlotRefreshRequested e,
       Emitter<AlternativeSlotState> emit) async {
-    final current = state;
-    if (current is! AlternativeSlotActive) return;
-
-    emit(AlternativeSlotDeclining(current.snapshot));
-    final result = await _repository.declineAlternative(
-      holdId: current.snapshot.holdId,
-      correlationId: current.correlationId,
-      idempotencyKey: current.declineKey,
-    );
-
-    switch (result) {
-      case AlternativeSlotSuccess<AlternativeSlotDeclined>(value: final value):
-        emit(AlternativeSlotDeclinedState(value));
-      case AlternativeSlotRetry<AlternativeSlotDeclined>():
-        emit(const AlternativeSlotSoftRetry('Обновляем состояние записи.'));
-        await _load(emit);
-      case AlternativeSlotFenced<AlternativeSlotDeclined>(reason: final reason):
-        emit(AlternativeSlotFencedState(reason));
-      case AlternativeSlotFailure<AlternativeSlotDeclined>(
-          message: final message
-        ):
-        emit(AlternativeSlotErrorState(message));
-    }
+    emit(const AlternativeSlotLoading());
+    await _load(emit);
   }
 
   Future<void> _load(Emitter<AlternativeSlotState> emit) async {
-    final holdId = _holdId;
-    final correlationId = _correlationId;
-    final acceptKey = _acceptKey ??= _uuid.v4();
-    final declineKey = _declineKey ??= _uuid.v4();
-    if (holdId == null || correlationId == null) {
+    final id = _bookingId;
+    if (id == null) {
       emit(const AlternativeSlotErrorState('Не удалось открыть предложение.'));
       return;
     }
-
-    final result = await _repository.readSnapshot(holdId);
+    final result = await _repository.readSnapshot(id);
     switch (result) {
-      case AlternativeSlotSuccess<AlternativeSlotSnapshot>(value: final value):
-        emit(
-            AlternativeSlotActive(value, correlationId, acceptKey, declineKey));
+      case AlternativeSlotSuccess<AlternativeSlotSnapshot>(value: final v):
+        emit(AlternativeSlotActive(v));
+      case AlternativeSlotFenced<AlternativeSlotSnapshot>(reason: final r):
+        emit(AlternativeSlotFencedState(r));
       case AlternativeSlotRetry<AlternativeSlotSnapshot>():
-        emit(const AlternativeSlotSoftRetry('Обновляем состояние записи.'));
-      case AlternativeSlotFenced<AlternativeSlotSnapshot>(reason: final reason):
-        emit(AlternativeSlotFencedState(reason));
-      case AlternativeSlotFailure<AlternativeSlotSnapshot>(
-          message: final message
-        ):
-        emit(AlternativeSlotErrorState(message));
+        emit(const AlternativeSlotErrorState(
+            'Состояние обновляется. Повторите попытку.'));
+      case AlternativeSlotFailure<AlternativeSlotSnapshot>(message: final m):
+        emit(AlternativeSlotErrorState(m));
+    }
+  }
+
+  Future<void> _resolve(bool accept, Emitter<AlternativeSlotState> emit) async {
+    final current = state;
+    if (current is! AlternativeSlotActive) return;
+    if (offline) {
+      emit(const AlternativeSlotErrorState(
+          'Нет подключения. Решение нельзя отправить офлайн.',
+          retry: false));
+      return;
+    }
+    emit(AlternativeSlotSubmitting(current.snapshot, accept));
+    final result = await _repository.resolve(
+        snapshot: current.snapshot,
+        accept: accept,
+        idempotencyKey: accept ? _acceptKey! : _declineKey!,
+        correlationId: _correlationId!);
+    if (result
+        case AlternativeSlotFenced<AlternativeResolution>(
+          reason: final reason
+        )) {
+      emit(AlternativeSlotFencedState(reason));
+      return;
+    }
+    // A command response, retry response, or transport ambiguity is never local success.
+    final readback = await _repository.readSnapshot(current.snapshot.bookingId);
+    switch (readback) {
+      case AlternativeSlotSuccess<AlternativeSlotSnapshot>(value: final v):
+        if (!accept && v.state == 'DECLINED') {
+          emit(AlternativeSlotDeclinedState(ReturnToAvailabilityIntent(
+              bookingId: v.bookingId,
+              petId: v.petId,
+              clinicId: v.clinicId,
+              locationId: v.locationId,
+              serviceId: v.serviceId,
+              doctorId: v.doctorId,
+              proposalId: v.proposalId,
+              excludedSlotIds: [v.originalSlot.id, v.alternativeSlot.id])));
+        } else {
+          emit(AlternativeSlotActive(v));
+        }
+      case AlternativeSlotFenced<AlternativeSlotSnapshot>(reason: final r):
+        emit(AlternativeSlotFencedState(r));
+      case AlternativeSlotRetry<AlternativeSlotSnapshot>():
+        emit(const AlternativeSlotErrorState(
+            'Решение отправлено. Проверяем состояние.'));
+      case AlternativeSlotFailure<AlternativeSlotSnapshot>():
+        emit(const AlternativeSlotErrorState(
+            'Не удалось подтвердить итог. Обновите экран.'));
     }
   }
 }

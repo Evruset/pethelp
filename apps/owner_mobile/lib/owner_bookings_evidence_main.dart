@@ -176,6 +176,7 @@ class _EvidenceRepository implements OwnerBookingsV50Repository {
                 : OwnerBookingBucket.active,
         aggregateVersion: 7,
         canCancel: !terminal,
+        canReviewAlternative: false,
         cancelAction: pending
             ? OwnerBookingCancelAction.releaseHold
             : OwnerBookingCancelAction.requestCancellation,

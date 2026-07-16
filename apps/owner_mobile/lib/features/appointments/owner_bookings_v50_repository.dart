@@ -95,6 +95,7 @@ class OwnerBookingDetailV50 {
       required this.bucket,
       required this.aggregateVersion,
       required this.canCancel,
+      required this.canReviewAlternative,
       required this.cancelAction,
       required this.cancellationReason,
       required this.timeline,
@@ -104,6 +105,7 @@ class OwnerBookingDetailV50 {
   final OwnerBookingBucket bucket;
   final int aggregateVersion;
   final bool canCancel;
+  final bool canReviewAlternative;
   final OwnerBookingCancelAction? cancelAction;
   final List<OwnerBookingTimelineV50> timeline;
   factory OwnerBookingDetailV50.fromJson(Map<String, dynamic> j) {
@@ -111,6 +113,7 @@ class OwnerBookingDetailV50 {
         (j['cancellationEligibility'] as Map?)?.cast<String, dynamic>() ??
         (j['actions'] as Map?)?.cast<String, dynamic>() ??
         const {};
+    final actions = (j['actions'] as Map?)?.cast<String, dynamic>() ?? const {};
     final rawAction = eligibility['action'] ??
         eligibility['command'] ??
         eligibility['cancellationPolicyCode'];
@@ -126,6 +129,7 @@ class OwnerBookingDetailV50 {
         aggregateVersion:
             ((j['aggregateVersion'] ?? j['version']) as num).toInt(),
         canCancel: eligibility['canCancel'] == true,
+        canReviewAlternative: actions['canReviewAlternative'] == true,
         cancelAction:
             rawAction == 'RELEASE_HOLD' || rawAction == 'ACTIVE_HOLD_RELEASE_V1'
                 ? OwnerBookingCancelAction.releaseHold

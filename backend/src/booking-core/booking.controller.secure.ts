@@ -27,6 +27,8 @@ import { BookingHoldCreationService } from './booking-hold-creation.service';
 import { BookingHoldReadService } from './booking-hold-read.service';
 import { BookingSecurityService } from './booking-security.service';
 import { BookingService } from './booking.service';
+import { OwnerAlternativeAcceptanceService } from './owner-alternative-acceptance.service';
+import { OwnerAlternativeSnapshotService } from './owner-alternative-snapshot.service';
 import {
   ApiErrorDto,
   ConfirmHoldDto,
@@ -46,7 +48,59 @@ function requiredUuid(value: string | undefined, field: string): string {
 @ApiTags('Owner bookings')
 @Controller('v1/owner/bookings')
 export class OwnerBookingCancellationController {
-  constructor(private readonly bookingSecurityService: BookingSecurityService) {}
+  constructor(
+    private readonly bookingSecurityService: BookingSecurityService,
+    private readonly alternativeSnapshots: OwnerAlternativeSnapshotService,
+    private readonly alternativeAcceptance: OwnerAlternativeAcceptanceService,
+  ) {}
+
+  @Get(':bookingId/alternative')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.OWNER)
+  @ApiBearerAuth(SWAGGER_BEARER_AUTH)
+  async alternative(@Param('bookingId') bookingId: string, @CurrentUser() owner: JwtPayload) {
+    return this.alternativeSnapshots.read(requiredUuid(bookingId, 'bookingId'), owner.sub);
+  }
+
+  @Post(':bookingId/alternative/:proposalId/accept')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.OWNER)
+  @ApiBearerAuth(SWAGGER_BEARER_AUTH)
+  async acceptAlternative(
+    @Param('proposalId') proposalId: string,
+    @Param('bookingId') bookingId: string,
+    @CurrentUser() owner: JwtPayload,
+    @Headers('idempotency-key') idempotencyKey?: string,
+    @Headers('if-match') ifMatch?: string,
+    @Headers('x-correlation-id') correlationId?: string,
+  ) {
+    return this.alternativeAcceptance.resolve(requiredUuid(proposalId, 'proposalId'), owner.sub, 'ACCEPT', {
+      idempotencyKey: requiredUuid(idempotencyKey, 'Idempotency-Key'),
+      correlationId: requiredUuid(correlationId, 'X-Correlation-ID'),
+      expectedVersion: requiredVersion(ifMatch, 'If-Match'),
+    }, requiredUuid(bookingId, 'bookingId'));
+  }
+
+  @Post(':bookingId/alternative/:proposalId/decline')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.OWNER)
+  @ApiBearerAuth(SWAGGER_BEARER_AUTH)
+  async declineAlternative(
+    @Param('proposalId') proposalId: string,
+    @Param('bookingId') bookingId: string,
+    @CurrentUser() owner: JwtPayload,
+    @Headers('idempotency-key') idempotencyKey?: string,
+    @Headers('if-match') ifMatch?: string,
+    @Headers('x-correlation-id') correlationId?: string,
+  ) {
+    return this.alternativeAcceptance.resolve(requiredUuid(proposalId, 'proposalId'), owner.sub, 'DECLINE', {
+      idempotencyKey: requiredUuid(idempotencyKey, 'Idempotency-Key'),
+      correlationId: requiredUuid(correlationId, 'X-Correlation-ID'),
+      expectedVersion: requiredVersion(ifMatch, 'If-Match'),
+    }, requiredUuid(bookingId, 'bookingId'));
+  }
 
   @Post(':holdId/cancel')
   @HttpCode(HttpStatus.OK)

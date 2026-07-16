@@ -17,3 +17,10 @@
 - Future gate: product decision, data inventory/backfill and migration plan
   before changing null semantics. Null must not be converted to an empty array
   or deny-by-default inside OWNER-06.
+
+## MALFORMED_CURSOR_STRICTNESS
+
+- Status: `NON_BLOCKING_HARDENING` inherited from OWNER-06.
+- Impact: some structurally malformed decoded cursor values can reach the
+  PostgreSQL cast before being normalized to `INVALID_BOOKING_CURSOR`.
+- OWNER-07 does not use this cursor and does not broaden the issue.

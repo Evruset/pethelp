@@ -38,6 +38,13 @@ describe('Owner alternative slot snapshot', () => {
       state: 'ALTERNATIVE_PENDING',
       originalSlot: { id: fixture.sourceSlotId },
       alternativeSlot: { id: fixture.alternativeSlotId },
+      context: {
+        petId: expect.any(String),
+        clinicId: expect.any(String),
+        locationId: fixture.locationId,
+        serviceId: expect.any(String),
+        doctorId: null,
+      },
     });
     expect(Date.parse(snapshot.serverNow)).not.toBeNaN();
     expect(Date.parse(snapshot.expiresAt)).toBeGreaterThan(Date.parse(snapshot.serverNow));
