@@ -16,6 +16,7 @@ import 'features/appointments/owner_bookings_v50_repository.dart';
 import 'features/auth/owner_auth_repository.dart';
 import 'features/auth/owner_session.dart';
 import 'features/booking/alternative_slot/alternative_slot_repository.dart';
+import 'features/booking/alternative_slot/alternative_slot_v50_feature_flags.dart';
 import 'features/booking/marketplace/booking_marketplace_page.dart';
 import 'features/booking/marketplace/booking_marketplace_repository.dart';
 import 'features/booking/marketplace/booking_selection_feature_flags.dart';
@@ -1039,6 +1040,9 @@ class _OwnerV50AuthenticatedShellState
               repository: widget.bookingsV50Repository,
               detailEnabled: widget.bookingsV50Flags.detail,
               cancellationEnabled: widget.bookingsV50Flags.cancellation,
+              alternativeResolutionEnabled:
+                  AlternativeSlotV50FeatureFlags.enabled,
+              alternativeRepository: widget.alternativeSlotRepository,
             )
           : OwnerAppointmentsPage(
               repository: widget.appointmentsRepository,
