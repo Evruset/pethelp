@@ -11,7 +11,7 @@ Updated: 2026-07-16
 - `V50-OWNER-03`: `COMPLETE / INTEGRATED` through merge `e747f61`; runtime `dc762b4`.
 - `V50-OWNER-04`: `COMPLETE / INTEGRATED` through merge `9e165a3`; runtime `985dd5b`; evidence certification `d3edf71`.
 - `V50-OWNER-05`: `COMPLETE / INTEGRATED` through merge `c2bbcbf`; runtime `cc6ba06`; certification `ade242e`.
-- Integration status: `V50-OWNER-05_INTEGRATED / V50-OWNER-06_READY_FOR_INTEGRATION`.
+- Integration status: `V50-OWNER-06_INTEGRATED / V50-OWNER-07_NEXT`.
 - Canonical target: `V50`; source: `prototype-v50/index.html`; manifest SHA-256: `245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42`.
 - Program branch/worktree: `agent/v51-stage-01-architecture` / `/Users/evrusetskiy/work/pethelp-alpha`.
 - Root worktree still contains protected user changes in `.codex/ACTIVE_MODE` and `.codex/config.toml`; this worktree does not modify them.
@@ -112,7 +112,7 @@ The Owner Home backend reproduction gate is `PASS`: after canonical Compose recr
 
 ## V50-OWNER-06 delivery state
 
-`V50-OWNER-06` is ready for integration on `agent/v50-owner-06`; runtime and
+`V50-OWNER-06` is complete and integrated through merge `cd63a65`; runtime and
 runtime repair commit is `fb24f18`. `OWN-007 #appointments` now uses an owner-scoped
 server-classified list with `serverNow`, pet/bucket filters and uncapped stable
 keyset pagination. Bounded `OWN-008 #appointment-detail` has a safe timeline,
@@ -129,5 +129,6 @@ analyze/focused/full and flagged web build PASS. Immutable package
 prototype artifacts with checksum
 `5a1e3a26d5a70f0b96a8fc2c271ca49dbc5ba74f32f77f79bdf6c6f528eaeaa2`.
 Representative and full visual gates PASS. State/security and product/visual
-validators and final integration validator PASS with zero vetoes.
+validators and final integration validator PASS with zero vetoes. The next
+bounded context is `V50-OWNER-07 / Alternative Slot Resolution`.
 `OWN-007` becomes the one new independent visually verified row; counter 11/30.
