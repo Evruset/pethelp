@@ -1,10 +1,12 @@
 # V50 Full Product Parity Program Plan
 
-Current owner delivery: `V50-OWNER-04` completed `OWN-005` and `OWN-006` behind
-default-off flags at runtime `985dd5b`. Its 48-artifact evidence and independent
-validator passed with zero vetoes; accepted counter is `9/30 VISUALLY_VERIFIED`.
+Current owner delivery: `V50-OWNER-05` completes Create Hold submission on
+`OWN-006` and the bounded server-authoritative status portion of `OWN-008`
+behind default-off flags at runtime `cc6ba06`. Transaction/security and
+product/visual gates pass with zero vetoes; accepted counter is
+`10/30 VISUALLY_VERIFIED`; final integration certification PASS.
 
-Updated: 2026-07-15
+Updated: 2026-07-16
 
 Baseline: `4baf4e502e083fd6247f2dfe23626e546702fa1b`
 
