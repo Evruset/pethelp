@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { JwtPayload } from './auth.types';
 
@@ -22,7 +22,7 @@ export type OwnerAppointmentSummary = {
   holdId: string;
   appointmentId: string | null;
   state: string;
-  bucket: 'ACTIVE' | 'HISTORY';
+  bucket: 'REQUIRES_ACTION' | 'ACTIVE' | 'HISTORY';
   presentation: OwnerAppointmentPresentation;
   startsAt: string;
   endsAt: string;
@@ -49,13 +49,29 @@ export type OwnerAppointmentDetail = OwnerAppointmentSummary & {
     latitude: number | null;
     longitude: number | null;
   };
-  timeline: Array<{ at: string; type: string; label: string }>;
+  timeline: Array<{
+    at: string;
+    type: string;
+    label: string;
+    occurredAt: string;
+    code: string;
+    title: string;
+    description: string;
+    isCurrent: boolean;
+  }>;
   actions: {
     canRefresh: boolean;
     canRebook: true;
     canOpenRoute: boolean;
     canReviewAlternative: boolean;
     canCancel: boolean;
+  };
+  cancellation: {
+    canCancel: boolean;
+    cancellationPolicyCode: 'ACTIVE_HOLD_RELEASE_V1' | 'CLINIC_CONFIRMATION_REQUIRED_V1';
+    cancellationDeadlineAt: null;
+    safeReason: string | null;
+    aggregateVersion: number;
   };
 };
 
@@ -66,7 +82,7 @@ export type OwnerAppointmentDetail = OwnerAppointmentSummary & {
  */
 export function ownerAppointmentPresentation(
   state: string,
-  bucket: 'ACTIVE' | 'HISTORY',
+  bucket: 'REQUIRES_ACTION' | 'ACTIVE' | 'HISTORY',
 ): OwnerAppointmentPresentation {
   if (bucket === 'HISTORY' && state === 'CONFIRMED') {
     return {
@@ -167,12 +183,12 @@ export function ownerAppointmentPresentation(
 export class OwnerAppointmentsService {
   constructor(private readonly database: DatabaseService) {}
 
-  async list(owner: JwtPayload): Promise<OwnerAppointmentSummary[]> {
+  async list(owner: JwtPayload, limit = 100): Promise<OwnerAppointmentSummary[]> {
     const result = await this.database.query<{
       hold_id: string;
       appointment_id: string | null;
       state: string;
-      bucket: 'ACTIVE' | 'HISTORY';
+      bucket: 'REQUIRES_ACTION' | 'ACTIVE' | 'HISTORY';
       starts_at: Date;
       ends_at: Date;
       clinic_id: string;
@@ -189,6 +205,7 @@ export class OwnerAppointmentsService {
         appointment.id AS appointment_id,
         hold.state AS state,
         CASE
+          WHEN hold.state = 'ALTERNATIVE_PENDING' AND slot.ends_at > server_time.value THEN 'REQUIRES_ACTION'
           WHEN slot.ends_at <= server_time.value THEN 'HISTORY'
           WHEN hold.state IN (
             'MANUAL_CONFIRM_PENDING',
@@ -220,6 +237,7 @@ export class OwnerAppointmentsService {
       WHERE hold.owner_id = $1::uuid
       ORDER BY
         CASE
+          WHEN hold.state = 'ALTERNATIVE_PENDING' AND slot.ends_at > server_time.value THEN 0
           WHEN slot.ends_at <= server_time.value THEN 1
           WHEN hold.state IN (
             'MANUAL_CONFIRM_PENDING',
@@ -230,14 +248,16 @@ export class OwnerAppointmentsService {
             'CONFIRMED',
             'CANCELLATION_REQUESTED',
             'RESCHEDULE_REQUESTED'
-          ) THEN 0
-          ELSE 1
+          ) THEN 1
+          ELSE 2
         END ASC,
-        slot.starts_at DESC,
-        hold.created_at DESC
-      LIMIT 100
+        CASE WHEN hold.state = 'ALTERNATIVE_PENDING' THEN COALESCE(hold.alternative_expires_at, hold.expires_at) END ASC,
+        CASE WHEN slot.ends_at > server_time.value THEN slot.starts_at END ASC,
+        CASE WHEN slot.ends_at <= server_time.value THEN hold.state_changed_at END DESC,
+        hold.id ASC
+      LIMIT $2
     `,
-      [owner.sub],
+      [owner.sub, limit],
     );
 
     return result.rows.map((row) => ({
@@ -257,6 +277,25 @@ export class OwnerAppointmentsService {
     }));
   }
 
+  async listV50(owner: JwtPayload, input: { bucket?: string; petId?: string; cursor?: string; limit: number }) {
+    const rows = await this.list(owner, 1000);
+    const filtered = rows.filter((row) => (!input.petId || row.pet.id === input.petId) && (!input.bucket || row.bucket === input.bucket));
+    const cursorIndex = input.cursor ? filtered.findIndex((row) => row.holdId === input.cursor) : -1;
+    if (input.cursor && cursorIndex < 0) {
+      throw new BadRequestException({ code: 'INVALID_BOOKING_CURSOR', message: 'Cursor is not valid for this booking query.' });
+    }
+    const start = cursorIndex + 1;
+    const page = filtered.slice(start, start + input.limit);
+    const now = await this.database.query<{ now: Date }>('SELECT clock_timestamp() AS now');
+    return {
+      serverNow: now.rows[0].now.toISOString(),
+      requiresAction: page.filter((row) => row.bucket === 'REQUIRES_ACTION'),
+      active: page.filter((row) => row.bucket === 'ACTIVE'),
+      history: page.filter((row) => row.bucket === 'HISTORY'),
+      nextCursor: start + input.limit < filtered.length ? page.at(-1)?.holdId ?? null : null,
+    };
+  }
+
   async read(
     owner: JwtPayload,
     holdId: string,
@@ -265,7 +304,7 @@ export class OwnerAppointmentsService {
       hold_id: string;
       appointment_id: string | null;
       state: string;
-      bucket: 'ACTIVE' | 'HISTORY';
+      bucket: 'REQUIRES_ACTION' | 'ACTIVE' | 'HISTORY';
       version: number;
       expires_at: Date;
       state_changed_at: Date;
@@ -295,6 +334,7 @@ export class OwnerAppointmentsService {
         appointment.id AS appointment_id,
         hold.state AS state,
         CASE
+          WHEN hold.state = 'ALTERNATIVE_PENDING' AND slot.ends_at > server_time.value THEN 'REQUIRES_ACTION'
           WHEN slot.ends_at <= server_time.value THEN 'HISTORY'
           WHEN hold.state IN (
             'MANUAL_CONFIRM_PENDING',
@@ -393,18 +433,26 @@ export class OwnerAppointmentsService {
             row.bucket === 'ACTIVE' &&
             [
               'MANUAL_CONFIRM_PENDING',
+              'ALTERNATIVE_PENDING',
               'MIS_RESERVATION_PENDING',
               'MIS_RECONCILIATION_PENDING',
               'MIS_HELD',
               'CONFIRMED',
             ].includes(row.state),
       },
+      cancellation: {
+        canCancel: row.bucket !== 'HISTORY' && ['MANUAL_CONFIRM_PENDING', 'ALTERNATIVE_PENDING', 'MIS_RESERVATION_PENDING', 'MIS_RECONCILIATION_PENDING', 'MIS_HELD', 'CONFIRMED'].includes(row.state),
+        cancellationPolicyCode: row.state === 'CONFIRMED' ? 'CLINIC_CONFIRMATION_REQUIRED_V1' : 'ACTIVE_HOLD_RELEASE_V1',
+        cancellationDeadlineAt: null,
+        safeReason: row.bucket === 'HISTORY' ? 'Запись уже завершена.' : null,
+        aggregateVersion: row.version,
+      },
     };
   }
 
   private async timeline(
     holdId: string,
-  ): Promise<Array<{ at: string; type: string; label: string }>> {
+  ): Promise<OwnerAppointmentDetail['timeline']> {
     const result = await this.database.query<{
       at: Date;
       type: string;
@@ -424,28 +472,56 @@ export class OwnerAppointmentsService {
                WHEN 'booking.released' THEN 'Заявка отменена'
                WHEN 'booking.cancellation_requested' THEN 'Запрошена отмена'
                WHEN 'booking.expired' THEN 'Срок заявки истёк'
-               ELSE audit.action
+               ELSE 'Статус записи обновлён'
              END AS label
       FROM audit_schema.audit_log audit
       WHERE audit.aggregate_type = 'booking_hold'
         AND audit.aggregate_id = $1::uuid
+        AND audit.action = ANY(ARRAY['booking.hold.created','mis.reservation.held','booking.confirmed','BOOKING_ALTERNATIVE_PROPOSED','booking.released','booking.hold.released','booking.cancellation_requested','booking.expired','booking.hold.expired'])
       UNION ALL
       SELECT event.occurred_at AS at, event.event_type AS type,
              CASE event.event_type
                WHEN 'booking.confirmed' THEN 'Создана подтверждённая запись'
-               ELSE event.event_type
+               ELSE 'Статус записи обновлён'
              END AS label
       FROM booking_schema.appointment_events event
       WHERE event.hold_id = $1::uuid
+        AND event.event_type = ANY(ARRAY['booking.confirmed'])
       ORDER BY at ASC
       LIMIT 30
     `,
       [holdId],
     );
-    return result.rows.map((row) => ({
+    return result.rows.map((row, index) => ({
       at: row.at.toISOString(),
       type: row.type,
       label: row.label,
+      occurredAt: row.at.toISOString(),
+      code: publicTimelineCode(row.type),
+      title: row.label,
+      description: publicTimelineDescription(row.type),
+      isCurrent: index === result.rows.length - 1,
     }));
   }
+}
+
+function publicTimelineCode(type: string): string {
+  const codes: Record<string, string> = {
+    'booking.hold.created': 'REQUEST_CREATED',
+    'mis.reservation.held': 'TIME_HELD',
+    'booking.confirmed': 'BOOKING_CONFIRMED',
+    BOOKING_ALTERNATIVE_PROPOSED: 'ACTION_REQUIRED',
+    'booking.released': 'BOOKING_RELEASED',
+    'booking.hold.released': 'BOOKING_RELEASED',
+    'booking.cancellation_requested': 'CANCELLATION_REQUESTED',
+    'booking.expired': 'BOOKING_EXPIRED',
+    'booking.hold.expired': 'BOOKING_EXPIRED',
+  };
+  return codes[type] ?? 'STATUS_UPDATED';
+}
+
+function publicTimelineDescription(type: string): string {
+  return type === 'booking.cancellation_requested'
+      ? 'Клиника должна подтвердить итог отмены.'
+      : 'Статус подтверждён сервером VetHelp.';
 }

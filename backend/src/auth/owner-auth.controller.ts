@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, NotFoundException, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, NotFoundException, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { CurrentUser } from './current-user.decorator';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -72,6 +72,25 @@ export class OwnerProfileController {
     return this.appointments.list(owner);
   }
 
+  @Get('bookings')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.OWNER)
+  @ApiBearerAuth('bearer')
+  async listBookings(
+    @CurrentUser() owner: JwtPayload,
+    @Query('bucket') bucket?: string,
+    @Query('petId') petId?: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') rawLimit?: string,
+  ) {
+    const allowedBuckets = ['REQUIRES_ACTION', 'ACTIVE', 'HISTORY'];
+    if (bucket && !allowedBuckets.includes(bucket)) throw new BadRequestException({ code: 'INVALID_BOOKING_BUCKET', message: 'Unsupported booking bucket.' });
+    if (petId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(petId)) throw new BadRequestException({ code: 'INVALID_PET_ID', message: 'petId must be a UUID.' });
+    const limit = rawLimit === undefined ? 20 : Number(rawLimit);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 50) throw new BadRequestException({ code: 'INVALID_LIMIT', message: 'limit must be between 1 and 50.' });
+    return this.appointments.listV50(owner, { bucket, petId, cursor, limit });
+  }
+
   @Get('appointments/:holdId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.OWNER)
@@ -81,6 +100,16 @@ export class OwnerProfileController {
   async appointmentDetail(@CurrentUser() owner: JwtPayload, @Param('holdId', new ParseUUIDPipe()) holdId: string) {
     const detail = await this.appointments.read(owner, holdId);
     if (!detail) throw new NotFoundException({ code: 'OWNER_APPOINTMENT_NOT_FOUND', message: 'Appointment was not found for owner.' });
+    return detail;
+  }
+
+  @Get('bookings/:holdId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.OWNER)
+  @ApiBearerAuth('bearer')
+  async bookingDetail(@CurrentUser() owner: JwtPayload, @Param('holdId', new ParseUUIDPipe()) holdId: string) {
+    const detail = await this.appointments.read(owner, holdId);
+    if (!detail) throw new NotFoundException({ code: 'OWNER_BOOKING_NOT_FOUND', message: 'Booking was not found.' });
     return detail;
   }
 }

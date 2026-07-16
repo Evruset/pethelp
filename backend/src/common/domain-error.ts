@@ -12,6 +12,7 @@ export const DomainErrors = {
   slotAlreadyTaken: () => new DomainException(HttpStatus.CONFLICT, 'SLOT_ALREADY_TAKEN', 'Slot unavailable'),
   slotLockedRetry: () => new DomainException(HttpStatus.CONFLICT, 'SLOT_LOCKED_RETRY', 'Retry shortly'),
   slotVersionStale: () => new DomainException(HttpStatus.CONFLICT, 'SLOT_VERSION_STALE', 'Slot version is stale'),
+  bookingVersionStale: () => new DomainException(HttpStatus.CONFLICT, 'BOOKING_VERSION_STALE', 'Booking version is stale'),
   idempotencyPayloadConflict: () => new DomainException(HttpStatus.CONFLICT, 'IDEMPOTENCY_PAYLOAD_CONFLICT', 'Idempotency key was already used for another request'),
   serviceNotAvailable: () => new DomainException(HttpStatus.UNPROCESSABLE_ENTITY, 'SERVICE_NOT_AVAILABLE', 'Service is not available'),
   doctorNotAvailable: () => new DomainException(HttpStatus.UNPROCESSABLE_ENTITY, 'DOCTOR_NOT_AVAILABLE', 'Doctor is not available'),

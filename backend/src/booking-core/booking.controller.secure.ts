@@ -43,6 +43,43 @@ function requiredUuid(value: string | undefined, field: string): string {
   return value;
 }
 
+@ApiTags('Owner bookings')
+@Controller('v1/owner/bookings')
+export class OwnerBookingCancellationController {
+  constructor(private readonly bookingSecurityService: BookingSecurityService) {}
+
+  @Post(':holdId/cancel')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.OWNER)
+  @ApiBearerAuth(SWAGGER_BEARER_AUTH)
+  @ApiHeader({ name: 'Idempotency-Key', required: true, schema: { type: 'string', format: 'uuid' } })
+  @ApiHeader({ name: 'If-Match', required: true, schema: { type: 'string', example: '"3"' } })
+  @ApiHeader({ name: 'X-Correlation-ID', required: true, schema: { type: 'string', format: 'uuid' } })
+  async cancel(
+    @Param('holdId') holdId: string,
+    @CurrentUser() owner: JwtPayload,
+    @Headers('idempotency-key') idempotencyKey?: string,
+    @Headers('if-match') ifMatch?: string,
+    @Headers('x-correlation-id') correlationId?: string,
+    @Body() body?: { reasonCode?: string },
+  ) {
+    const allowedReasons = ['OWNER_PLANS_CHANGED', 'PET_RECOVERED', 'OTHER'];
+    if (body?.reasonCode && !allowedReasons.includes(body.reasonCode)) {
+      throw new BadRequestException({ code: 'INVALID_CANCELLATION_REASON', message: 'Unsupported cancellation reason.' });
+    }
+    return this.bookingSecurityService.releaseHold({
+      holdId: requiredUuid(holdId, 'holdId'),
+      actor: owner,
+      idempotencyKey: requiredUuid(idempotencyKey, 'Idempotency-Key'),
+      expectedVersion: requiredVersion(ifMatch, 'If-Match'),
+      correlationId: requiredUuid(correlationId, 'X-Correlation-ID'),
+      reasonCode: body?.reasonCode,
+      normalizeOwnerNotFound: true,
+    });
+  }
+}
+
 function requiredVersion(value: string | undefined, field: string): number {
   const normalized = value?.trim().replace(/^W\//, '').replace(/^"|"$/g, '');
   const parsed = normalized ? Number.parseInt(normalized, 10) : Number.NaN;
@@ -168,12 +205,16 @@ export class BookingController {
     @CurrentUser() actor: JwtPayload,
     @Headers('idempotency-key') idempotencyKey?: string,
     @Headers('x-correlation-id') correlationHeader?: string,
+    @Headers('if-match') ifMatch?: string,
+    @Body() body?: { reasonCode?: string },
   ) {
     return this.bookingSecurityService.releaseHold({
       holdId: requiredUuid(holdId, 'holdId'),
       actor,
       idempotencyKey: requiredUuid(idempotencyKey, 'Idempotency-Key'),
       correlationId: isUuid(correlationHeader) ? correlationHeader : randomUUID(),
+      expectedVersion: ifMatch === undefined ? undefined : requiredVersion(ifMatch, 'If-Match'),
+      reasonCode: body?.reasonCode,
     });
   }
 
