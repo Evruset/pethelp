@@ -8,10 +8,12 @@ class OwnerBookingsV50Page extends StatefulWidget {
       required this.repository,
       this.detailEnabled = false,
       this.cancellationEnabled = false,
+      this.initialBucket = OwnerBookingBucket.active,
       this.online = true});
   final OwnerBookingsV50Repository repository;
   final bool detailEnabled;
   final bool cancellationEnabled;
+  final OwnerBookingBucket initialBucket;
   final bool online;
   @override
   State<OwnerBookingsV50Page> createState() => _OwnerBookingsV50PageState();
@@ -26,6 +28,7 @@ class _OwnerBookingsV50PageState extends State<OwnerBookingsV50Page> {
   @override
   void initState() {
     super.initState();
+    bucket = widget.initialBucket;
     _load();
   }
 
