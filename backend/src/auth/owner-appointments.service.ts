@@ -75,6 +75,26 @@ export type OwnerAppointmentDetail = OwnerAppointmentSummary & {
   };
 };
 
+const LOCAL_RELEASE_STATES = ['MANUAL_CONFIRM_PENDING', 'ALTERNATIVE_PENDING'];
+const EXTERNAL_CANCELLATION_STATES = [
+  'CONFIRMED',
+  'MIS_HELD',
+  'MIS_RESERVATION_PENDING',
+  'MIS_RECONCILIATION_PENDING',
+];
+
+function cancellationPolicy(state: string, bucket: OwnerAppointmentSummary['bucket']) {
+  const canCancel =
+    bucket !== 'HISTORY' &&
+    [...LOCAL_RELEASE_STATES, ...EXTERNAL_CANCELLATION_STATES].includes(state);
+  return {
+    canCancel,
+    cancellationPolicyCode: EXTERNAL_CANCELLATION_STATES.includes(state)
+      ? ('CLINIC_CONFIRMATION_REQUIRED_V1' as const)
+      : ('ACTIVE_HOLD_RELEASE_V1' as const),
+  };
+}
+
 /**
  * Maps an authoritative aggregate state to copy that is safe for an owner.
  * The client must render this object directly and must not infer a completed
@@ -278,21 +298,70 @@ export class OwnerAppointmentsService {
   }
 
   async listV50(owner: JwtPayload, input: { bucket?: string; petId?: string; cursor?: string; limit: number }) {
-    const rows = await this.list(owner, 1000);
-    const filtered = rows.filter((row) => (!input.petId || row.pet.id === input.petId) && (!input.bucket || row.bucket === input.bucket));
-    const cursorIndex = input.cursor ? filtered.findIndex((row) => row.holdId === input.cursor) : -1;
-    if (input.cursor && cursorIndex < 0) {
-      throw new BadRequestException({ code: 'INVALID_BOOKING_CURSOR', message: 'Cursor is not valid for this booking query.' });
-    }
-    const start = cursorIndex + 1;
-    const page = filtered.slice(start, start + input.limit);
     const now = await this.database.query<{ now: Date }>('SELECT clock_timestamp() AS now');
+    let cursor: { rank: number; at: string; id: string } | undefined;
+    if (input.cursor) {
+      try {
+        cursor = JSON.parse(Buffer.from(input.cursor, 'base64url').toString('utf8'));
+        if (!Number.isInteger(cursor?.rank) || !cursor?.at || !/^[0-9a-f-]{36}$/i.test(cursor?.id)) throw new Error();
+      } catch {
+        throw new BadRequestException({ code: 'INVALID_BOOKING_CURSOR', message: 'Cursor is not valid for this booking query.' });
+      }
+    }
+    const result = await this.database.query<{
+      hold_id: string; appointment_id: string | null; state: string;
+      bucket: OwnerAppointmentSummary['bucket']; bucket_rank: number; sort_at: Date;
+      starts_at: Date; ends_at: Date; clinic_id: string; clinic_name: string;
+      address: string; pet_id: string; pet_name: string; pet_species: string;
+    }>(`
+      WITH classified AS (
+        SELECT hold.id AS hold_id, appointment.id AS appointment_id, hold.state,
+          CASE WHEN hold.state='ALTERNATIVE_PENDING' AND slot.ends_at>$6 THEN 'REQUIRES_ACTION'
+               WHEN slot.ends_at<=$6 THEN 'HISTORY'
+               WHEN hold.state IN ('MANUAL_CONFIRM_PENDING','MIS_RESERVATION_PENDING','MIS_RECONCILIATION_PENDING','MIS_HELD','ALTERNATIVE_PENDING','CONFIRMED','CANCELLATION_REQUESTED','RESCHEDULE_REQUESTED') THEN 'ACTIVE'
+               ELSE 'HISTORY' END AS bucket,
+          CASE WHEN hold.state='ALTERNATIVE_PENDING' AND slot.ends_at>$6 THEN 0
+               WHEN slot.ends_at>$6 AND hold.state IN ('MANUAL_CONFIRM_PENDING','MIS_RESERVATION_PENDING','MIS_RECONCILIATION_PENDING','MIS_HELD','ALTERNATIVE_PENDING','CONFIRMED','CANCELLATION_REQUESTED','RESCHEDULE_REQUESTED') THEN 1 ELSE 2 END AS bucket_rank,
+          date_trunc('milliseconds', CASE WHEN hold.state='ALTERNATIVE_PENDING' AND slot.ends_at>$6 THEN COALESCE(hold.alternative_expires_at,hold.expires_at)
+               WHEN slot.ends_at>$6 THEN slot.starts_at ELSE hold.state_changed_at END) AS sort_at,
+          slot.starts_at,slot.ends_at,clinic.id AS clinic_id,clinic.public_name AS clinic_name,location.address,
+          pet.id AS pet_id,pet.name AS pet_name,pet.species AS pet_species
+        FROM booking_schema.booking_holds hold
+        JOIN clinic_schema.appointment_slots slot ON slot.id=hold.slot_id
+        JOIN clinic_schema.clinic_locations location ON location.id=slot.clinic_location_id
+        JOIN clinic_schema.clinics clinic ON clinic.id=location.clinic_id
+        JOIN pet_schema.pets pet ON pet.id=hold.pet_id
+        LEFT JOIN booking_schema.appointments appointment ON appointment.hold_id=hold.id
+        WHERE hold.owner_id=$1::uuid AND ($2::uuid IS NULL OR pet.id=$2::uuid)
+      )
+      SELECT * FROM classified
+      WHERE ($3::text IS NULL OR bucket=$3)
+        AND ($4::int IS NULL OR bucket_rank>$4 OR (bucket_rank=$4 AND
+          (CASE WHEN bucket_rank=2 THEN sort_at<$5::timestamptz ELSE sort_at>$5::timestamptz END
+           OR (sort_at=$5::timestamptz AND hold_id>$7::uuid))))
+      ORDER BY bucket_rank ASC,
+        CASE WHEN bucket_rank<>2 THEN sort_at END ASC,
+        CASE WHEN bucket_rank=2 THEN sort_at END DESC,
+        hold_id ASC
+      LIMIT $8
+    `, [owner.sub, input.petId ?? null, input.bucket ?? null, cursor?.rank ?? null,
+      cursor?.at ?? null, now.rows[0].now, cursor?.id ?? null, input.limit + 1]);
+    const hasMore = result.rows.length > input.limit;
+    const selected = result.rows.slice(0, input.limit);
+    const rows: OwnerAppointmentSummary[] = selected.map((row) => ({
+      holdId: row.hold_id, appointmentId: row.appointment_id, state: row.state,
+      bucket: row.bucket, presentation: ownerAppointmentPresentation(row.state, row.bucket),
+      startsAt: row.starts_at.toISOString(), endsAt: row.ends_at.toISOString(),
+      clinic: { id: row.clinic_id, name: row.clinic_name, address: row.address },
+      pet: { id: row.pet_id, name: row.pet_name, species: row.pet_species },
+    }));
+    const tail = selected.at(-1);
     return {
       serverNow: now.rows[0].now.toISOString(),
-      requiresAction: page.filter((row) => row.bucket === 'REQUIRES_ACTION'),
-      active: page.filter((row) => row.bucket === 'ACTIVE'),
-      history: page.filter((row) => row.bucket === 'HISTORY'),
-      nextCursor: start + input.limit < filtered.length ? page.at(-1)?.holdId ?? null : null,
+      requiresAction: rows.filter((row) => row.bucket === 'REQUIRES_ACTION'),
+      active: rows.filter((row) => row.bucket === 'ACTIVE'),
+      history: rows.filter((row) => row.bucket === 'HISTORY'),
+      nextCursor: hasMore && tail ? Buffer.from(JSON.stringify({ rank: tail.bucket_rank, at: tail.sort_at.toISOString(), id: tail.hold_id })).toString('base64url') : null,
     };
   }
 
@@ -388,6 +457,7 @@ export class OwnerAppointmentsService {
     if (!row) return undefined;
     const timeline = await this.timeline(row.hold_id);
     const presentation = ownerAppointmentPresentation(row.state, row.bucket);
+    const policy = cancellationPolicy(row.state, row.bucket);
     return {
       holdId: row.hold_id,
       appointmentId: row.appointment_id,
@@ -429,20 +499,10 @@ export class OwnerAppointmentsService {
         ),
         canReviewAlternative:
             row.bucket === 'ACTIVE' && row.state === 'ALTERNATIVE_PENDING',
-        canCancel:
-            row.bucket === 'ACTIVE' &&
-            [
-              'MANUAL_CONFIRM_PENDING',
-              'ALTERNATIVE_PENDING',
-              'MIS_RESERVATION_PENDING',
-              'MIS_RECONCILIATION_PENDING',
-              'MIS_HELD',
-              'CONFIRMED',
-            ].includes(row.state),
+        canCancel: policy.canCancel,
       },
       cancellation: {
-        canCancel: row.bucket !== 'HISTORY' && ['MANUAL_CONFIRM_PENDING', 'ALTERNATIVE_PENDING', 'MIS_RESERVATION_PENDING', 'MIS_RECONCILIATION_PENDING', 'MIS_HELD', 'CONFIRMED'].includes(row.state),
-        cancellationPolicyCode: row.state === 'CONFIRMED' ? 'CLINIC_CONFIRMATION_REQUIRED_V1' : 'ACTIVE_HOLD_RELEASE_V1',
+        ...policy,
         cancellationDeadlineAt: null,
         safeReason: row.bucket === 'HISTORY' ? 'Запись уже завершена.' : null,
         aggregateVersion: row.version,

@@ -28,11 +28,38 @@ describe('V50 owner bookings and cancellation (real PostgreSQL)', () => {
     const petPage = await bookings.listV50(owner, { limit: 20, petId: fixture.pet });
     expect([...petPage.requiresAction, ...petPage.active, ...petPage.history].every((row) => row.pet.id === fixture.pet)).toBe(true);
 
+    const bulkPet = randomUUID();
+    await database.query(`INSERT INTO pet_schema.pets(id,owner_id,name,species) VALUES($1,$2,'Массовый','DOG')`, [bulkPet, fixture.owner]);
+    await database.query(`
+      WITH slots AS (
+        INSERT INTO clinic_schema.appointment_slots(clinic_location_id,service_id,starts_at,ends_at,capacity,held_count,booked_count,integration_mode)
+        SELECT s.clinic_location_id,s.service_id,clock_timestamp()-(g||' hours')::interval,
+               clock_timestamp()-((g-1)||' hours')::interval,1,0,0,'LEVEL_C'
+        FROM clinic_schema.appointment_slots s CROSS JOIN generate_series(10,1014) g
+        WHERE s.id=$1::uuid RETURNING id
+      ) INSERT INTO booking_schema.booking_holds(slot_id,owner_id,pet_id,state,expires_at)
+        SELECT id,$2,$3,'RELEASED',clock_timestamp()-interval '1 day' FROM slots
+    `, [fixture.localSlot, fixture.owner, bulkPet]);
+    const filteredBeyondCap = await bookings.listV50(owner, { limit: 20, petId: fixture.pet });
+    expect([...filteredBeyondCap.requiresAction, ...filteredBeyondCap.active, ...filteredBeyondCap.history].every((row) => row.pet.id === fixture.pet)).toBe(true);
+    const thousand = await bookings.listV50(owner, { limit: 1000 });
+    expect([...thousand.requiresAction, ...thousand.active, ...thousand.history]).toHaveLength(1000);
+    expect(thousand.nextCursor).toEqual(expect.any(String));
+    const beyondThousand = await bookings.listV50(owner, { limit: 20, cursor: thousand.nextCursor! });
+    expect([...beyondThousand.requiresAction, ...beyondThousand.active, ...beyondThousand.history].length).toBeGreaterThan(0);
+
     const detail = await bookings.read(owner, fixture.localHold);
     expect(detail).toMatchObject({ holdId: fixture.localHold, cancellation: { canCancel: true, aggregateVersion: 1 } });
     expect(detail?.timeline.every((event) => !/payload|correlation|stack|mis response/i.test(JSON.stringify(event)))).toBe(true);
     await expect(bookings.read(owner, fixture.foreignHold)).resolves.toBeUndefined();
     await expect(bookings.read(owner, randomUUID())).resolves.toBeUndefined();
+
+    await database.query(`UPDATE booking_schema.booking_holds SET state='MIS_HELD' WHERE id=$1`, [fixture.localHold]);
+    const mis = await bookings.read(owner, fixture.localHold);
+    expect(mis).toMatchObject({
+      actions: { canCancel: true },
+      cancellation: { canCancel: true, cancellationPolicyCode: 'CLINIC_CONFIRMATION_REQUIRED_V1' },
+    });
   });
 
   it('releases a local hold once with payload-bound idempotency and version fencing', async () => {

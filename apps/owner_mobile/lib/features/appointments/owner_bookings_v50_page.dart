@@ -125,24 +125,32 @@ class _OwnerBookingsV50PageState extends State<OwnerBookingsV50Page> {
                                                   _load();
                                                 })),
                                         SegmentedButton<OwnerBookingBucket>(
-                                            segments: const [
+                                            style: const ButtonStyle(
+                                                visualDensity:
+                                                    VisualDensity.compact,
+                                                padding: WidgetStatePropertyAll(
+                                                    EdgeInsets.symmetric(
+                                                        horizontal: 8))),
+                                            segments: [
                                               ButtonSegment(
                                                   value: OwnerBookingBucket
                                                       .requiresAction,
-                                                  label:
-                                                      Text('Требуют действия')),
-                                              ButtonSegment(
+                                                  label: Text(MediaQuery.sizeOf(
+                                                                  context)
+                                                              .width <
+                                                          500
+                                                      ? 'Действия'
+                                                      : 'Требуют действия')),
+                                              const ButtonSegment(
                                                   value:
                                                       OwnerBookingBucket.active,
                                                   label: Text('Активные')),
-                                              ButtonSegment(
+                                              const ButtonSegment(
                                                   value: OwnerBookingBucket
                                                       .history,
                                                   label: Text('История'))
                                             ],
-                                            selected: {
-                                              bucket
-                                            },
+                                            selected: {bucket},
                                             onSelectionChanged: (v) => setState(
                                                 () => bucket = v.single))
                                       ]))),
