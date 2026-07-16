@@ -189,10 +189,10 @@ void main() {
         home: AlternativeSlotPage(
             holdId: bookingId, repository: repository, offline: true)));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Принять новое время'));
-    await tester.pumpAndSettle();
     expect(posts, 0);
-    expect(find.textContaining('нельзя отправить офлайн'), findsOneWidget);
+    expect(find.textContaining('Нет сети'), findsOneWidget);
+    expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton,
+            'Принять новое время')).onPressed, isNull);
   });
 
   for (final entry in {

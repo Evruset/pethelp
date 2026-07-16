@@ -51,34 +51,29 @@ class _EvidenceApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: VetHelpTheme.light(),
         home: state == 'ALTERNATIVE_DECLINE_CONFIRMATION'
-            ? Stack(children: [page, const _DeclineOverlay()])
+            ? _ProductionDialogFrame(child: page)
             : page);
   }
 }
 
-class _DeclineOverlay extends StatelessWidget {
-  const _DeclineOverlay();
+class _ProductionDialogFrame extends StatefulWidget {
+  const _ProductionDialogFrame({required this.child});
+  final Widget child;
   @override
-  Widget build(BuildContext context) => const ColoredBox(
-      color: Color(0x77000000),
-      child: Center(
-          child: Card(
-              margin: EdgeInsets.all(24),
-              child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Text('Отклонить предложение?',
-                        style: TextStyle(
-                            fontSize: 22, fontWeight: FontWeight.w700)),
-                    SizedBox(height: 12),
-                    Text(
-                        'Предложенное время будет освобождено, а исходная заявка останется в ожидании.'),
-                    SizedBox(height: 20),
-                    Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                      TextButton(onPressed: null, child: Text('Назад')),
-                      FilledButton(onPressed: null, child: Text('Отклонить'))
-                    ])
-                  ])))));
+  State<_ProductionDialogFrame> createState() => _ProductionDialogFrameState();
+}
+
+class _ProductionDialogFrameState extends State<_ProductionDialogFrame> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) showAlternativeDeclineDialog(context);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 http.Response _json(Object value) => http.Response(jsonEncode(value), 200,

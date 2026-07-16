@@ -42,9 +42,14 @@ class AlternativeSlotView extends StatelessWidget {
           builder: (context, state) => switch (state) {
             AlternativeSlotLoading() =>
               const Center(child: CircularProgressIndicator()),
-            AlternativeSlotActive(snapshot: final s) => _Active(snapshot: s),
+            AlternativeSlotActive(snapshot: final s) => _Active(
+                snapshot: s,
+                offline: context.read<AlternativeSlotBloc>().offline),
             AlternativeSlotSubmitting(snapshot: final s, accept: final a) =>
-              _Active(snapshot: s, busy: a ? 'accept' : 'decline'),
+              _Active(
+                  snapshot: s,
+                  busy: a ? 'accept' : 'decline',
+                  offline: context.read<AlternativeSlotBloc>().offline),
             AlternativeSlotDeclinedState() => const _Message(
                 message: 'Предложение отклонено. Возвращаем к выбору времени.'),
             AlternativeSlotFencedState(reason: final r) =>
@@ -69,22 +74,37 @@ class AlternativeSlotView extends StatelessWidget {
 }
 
 class _Active extends StatelessWidget {
-  const _Active({required this.snapshot, this.busy});
+  const _Active({required this.snapshot, this.busy, this.offline = false});
   final AlternativeSlotSnapshot snapshot;
   final String? busy;
+  final bool offline;
   @override
   Widget build(BuildContext context) {
     final expired =
         snapshot.deadline.isBefore(snapshot.authoritativeNow(DateTime.now()));
-    final accept =
-        snapshot.isPending && snapshot.canAccept && !expired && busy == null;
-    final decline =
-        snapshot.isPending && snapshot.canDecline && !expired && busy == null;
+    final accept = snapshot.isPending &&
+        snapshot.canAccept &&
+        !expired &&
+        busy == null &&
+        !offline;
+    final decline = snapshot.isPending &&
+        snapshot.canDecline &&
+        !expired &&
+        busy == null &&
+        !offline;
     return Column(children: [
       Expanded(
           child: ListView(padding: const EdgeInsets.all(16), children: [
         Text('Сравните варианты',
             style: Theme.of(context).textTheme.headlineSmall),
+        if (offline)
+          const Card(
+              color: Color(0xFFFFF4D6),
+              child: ListTile(
+                  leading: Icon(Icons.cloud_off_outlined),
+                  title: Text('Нет сети — показано сохранённое предложение'),
+                  subtitle: Text(
+                      'Подключитесь к интернету, чтобы проверить статус и отправить решение.'))),
         const SizedBox(height: 12),
         _SlotCard(
             title: 'Текущее время',
@@ -104,10 +124,11 @@ class _Active extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(child: Text(price))
                   ]))),
-        Card(
-            child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: _Countdown(snapshot: snapshot))),
+        if (snapshot.isPending)
+          Card(
+              child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: _Countdown(snapshot: snapshot))),
         if (!snapshot.isPending)
           Padding(
               padding: const EdgeInsets.only(top: 12),
@@ -142,20 +163,7 @@ class _Active extends StatelessWidget {
   }
 
   Future<void> _confirm(BuildContext context) async {
-    final ok = await showDialog<bool>(
-        context: context,
-        builder: (d) => AlertDialog(
-                title: const Text('Отклонить предложение?'),
-                content: const Text(
-                    'Предложенное время будет освобождено, а исходная заявка останется в ожидании. Новое время вы выберете самостоятельно — запись автоматически не создаётся.'),
-                actions: [
-                  TextButton(
-                      onPressed: () => Navigator.pop(d, false),
-                      child: const Text('Назад')),
-                  FilledButton(
-                      onPressed: () => Navigator.pop(d, true),
-                      child: const Text('Отклонить'))
-                ]));
+    final ok = await showAlternativeDeclineDialog(context);
     if (ok == true && context.mounted) {
       context
           .read<AlternativeSlotBloc>()
@@ -172,6 +180,22 @@ class _Active extends StatelessWidget {
         _ => 'Решение обрабатывается.'
       };
 }
+
+Future<bool?> showAlternativeDeclineDialog(BuildContext context) => showDialog<
+        bool>(
+    context: context,
+    builder: (d) => AlertDialog(
+            title: const Text('Отклонить предложение?'),
+            content: const Text(
+                'Предложенное время будет освобождено, а исходная заявка останется в ожидании. Новое время вы выберете самостоятельно — запись автоматически не создаётся.'),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(d, false),
+                  child: const Text('Назад')),
+              FilledButton(
+                  onPressed: () => Navigator.pop(d, true),
+                  child: const Text('Отклонить'))
+            ]));
 
 class _SlotCard extends StatelessWidget {
   const _SlotCard(
