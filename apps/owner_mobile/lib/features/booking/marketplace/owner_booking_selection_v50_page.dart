@@ -33,6 +33,7 @@ class OwnerBookingSelectionV50Page extends StatefulWidget {
     this.createHoldEnabled = false,
     this.bookingStatusEnabled = false,
     this.operationKeyFactory,
+    this.initialSubmissionState = BookingReviewSubmissionState.idle,
   });
 
   final BookingSelectionSeed seed;
@@ -46,6 +47,7 @@ class OwnerBookingSelectionV50Page extends StatefulWidget {
   final bool createHoldEnabled;
   final bool bookingStatusEnabled;
   final String Function()? operationKeyFactory;
+  final BookingReviewSubmissionState initialSubmissionState;
 
   @override
   State<OwnerBookingSelectionV50Page> createState() =>
@@ -59,13 +61,14 @@ class _OwnerBookingSelectionV50PageState
   String? _date;
   String? _slotId;
   late bool _restoreReview;
-  BookingReviewSubmissionState _submission = BookingReviewSubmissionState.idle;
+  late BookingReviewSubmissionState _submission;
   String? _operationKey;
   String? _correlationId;
 
   @override
   void initState() {
     super.initState();
+    _submission = widget.initialSubmissionState;
     _serviceId = widget.initialIntent?.serviceId ?? widget.seed.serviceId;
     _date = widget.initialIntent?.selectedDate;
     _slotId = widget.initialIntent?.slotId;

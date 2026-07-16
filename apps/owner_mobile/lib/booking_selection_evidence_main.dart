@@ -75,6 +75,12 @@ class _EvidenceApp extends StatelessWidget {
         holdRepository: _EvidenceHoldRepository(state),
         createHoldEnabled: state.startsWith('CREATE_HOLD_'),
         bookingStatusEnabled: state.startsWith('CREATE_HOLD_'),
+        initialSubmissionState: switch (state) {
+          'CREATE_HOLD_SUBMITTING' => BookingReviewSubmissionState.submitting,
+          'CREATE_HOLD_SOFT_RETRY' => BookingReviewSubmissionState.softRetry,
+          'CREATE_HOLD_FINAL_CONFLICT' => BookingReviewSubmissionState.finalConflict,
+          _ => BookingReviewSubmissionState.idle,
+        },
         onContinue: (_) {},
         onRequireAuthentication: (_) {},
       ),
