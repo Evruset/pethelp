@@ -49,6 +49,27 @@ type PublicAvailabilityRow = {
   server_now: Date;
 };
 
+type BookingSelectionLocationRow = {
+  clinic_id: string;
+  clinic_name: string;
+  location_id: string;
+  address: string;
+  timezone: string;
+  server_now: Date;
+};
+
+type BookingSelectionSlotRow = {
+  id: string;
+  service_id: string;
+  starts_at: Date;
+  ends_at: Date;
+  version: number;
+  source_updated_at: Date;
+  confirmation_mode: PublicConfirmationMode;
+  available_date: string;
+  local_time: string;
+};
+
 type PublicDoctorRow = {
   doctor_id: string;
   display_name: string;
@@ -153,6 +174,48 @@ export type PublicAvailabilityResponse = {
     endsAt: string;
     remainingCapacity: number;
     service: { id: string | null; name: string | null };
+  }>;
+};
+
+export type PublicBookingSelectionResponse = {
+  location: { id: string; clinicId: string; clinicName: string; address: string; timezone: string };
+  window: {
+    serverNow: string;
+    from: string;
+    to: string;
+    availableDates: string[];
+    sourceUpdatedAt: string | null;
+    freshness: PublicAvailabilityFreshness;
+  };
+  personalization: { applied: boolean; compatibility: 'NOT_EVALUATED' };
+  services: Array<{
+    id: string;
+    code: string;
+    displayName: string;
+    durationMinutes: number;
+    price: {
+      kind: 'BASE';
+      amount: string;
+      currency: string;
+      additionalCostsPossible: true;
+      finalPriceStatus: 'CLINIC_AGREEMENT_REQUIRED';
+    };
+    doctorRequired: false;
+  }>;
+  slots: Array<{
+    id: string;
+    serviceId: string;
+    startsAt: string;
+    endsAt: string;
+    localDate: string;
+    localTime: string;
+    timezone: string;
+    availabilityState: 'AVAILABLE' | 'REQUEST_ONLY' | 'STALE';
+    expectedVersion: number;
+    freshness: PublicAvailabilityFreshness;
+    confirmationMode: PublicConfirmationMode;
+    sourceUpdatedAt: string;
+    priceReference: string;
   }>;
 };
 
@@ -528,6 +591,130 @@ export class PublicCatalogService {
         remainingCapacity: Number(row.remaining_capacity),
         service: { id: row.service_id, name: row.service_name },
       })),
+    };
+  }
+
+  async readBookingSelection(input: {
+    locationId: string;
+    from: Date;
+    to: Date;
+    limit: number;
+    serviceId?: string;
+    doctorId?: string;
+    petContextApplied: boolean;
+  }): Promise<PublicBookingSelectionResponse | undefined> {
+    const locationResult = await this.database.query<BookingSelectionLocationRow>(`
+      SELECT clinic.id AS clinic_id, clinic.public_name AS clinic_name,
+             location.id AS location_id, location.address, clinic.timezone,
+             clock_timestamp() AS server_now
+      FROM clinic_schema.clinic_locations location
+      JOIN clinic_schema.clinics clinic ON clinic.id = location.clinic_id
+      WHERE location.id = $1::uuid
+        AND location.status = 'ACTIVE'
+        AND clinic.status = 'ACTIVE'
+      LIMIT 1
+    `, [input.locationId]);
+    const location = locationResult.rows[0];
+    if (!location) return undefined;
+
+    const serviceResult = await this.database.query<PublicServiceRow>(`
+      SELECT id, code, display_name, duration_minutes,
+             price_amount::text AS price_amount, currency
+      FROM clinic_schema.clinic_services
+      WHERE clinic_location_id = $1::uuid
+        AND active = true
+        AND ($2::uuid IS NULL OR id = $2::uuid)
+      ORDER BY display_name ASC, code ASC, id ASC
+    `, [input.locationId, input.serviceId ?? null]);
+
+    const slotResult = await this.database.query<BookingSelectionSlotRow>(`
+      SELECT slot.id, slot.service_id, slot.starts_at, slot.ends_at,
+             slot.version, slot.updated_at AS source_updated_at,
+             CASE WHEN slot.source = 'MANUAL'
+               THEN 'CLINIC_CONFIRMATION'
+               ELSE 'ALTERNATIVE_POSSIBLE'
+             END AS confirmation_mode,
+             to_char(slot.starts_at AT TIME ZONE $6::text, 'YYYY-MM-DD') AS available_date,
+             to_char(slot.starts_at AT TIME ZONE $6::text, 'HH24:MI') AS local_time
+      FROM clinic_schema.appointment_slots slot
+      JOIN clinic_schema.clinic_services service
+        ON service.id = slot.service_id
+       AND service.clinic_location_id = slot.clinic_location_id
+       AND service.active = true
+      LEFT JOIN clinic_schema.clinic_staff staff ON staff.id = slot.staff_id
+      WHERE slot.clinic_location_id = $1::uuid
+        AND slot.state = 'OPEN'
+        AND slot.starts_at >= GREATEST($2::timestamptz, $7::timestamptz)
+        AND slot.starts_at < $3::timestamptz
+        AND slot.capacity - slot.booked_count - slot.held_count > 0
+        AND ($4::uuid IS NULL OR slot.service_id = $4::uuid)
+        AND ($5::uuid IS NULL OR (
+          slot.staff_id = $5::uuid
+          AND staff.active = true
+          AND staff.role = 'VETERINARIAN'
+        ))
+      ORDER BY slot.starts_at ASC, slot.id ASC
+      LIMIT $8
+    `, [input.locationId, input.from, input.to, input.serviceId ?? null,
+      input.doctorId ?? null, location.timezone, location.server_now, input.limit]);
+
+    const sourceUpdatedAt = slotResult.rows.reduce<Date | null>((latest, row) =>
+      latest === null || row.source_updated_at > latest ? row.source_updated_at : latest, null);
+    const envelopeFreshness = this.freshness(sourceUpdatedAt, location.server_now, slotResult.rows.length > 0);
+    return {
+      location: {
+        id: location.location_id,
+        clinicId: location.clinic_id,
+        clinicName: location.clinic_name,
+        address: location.address,
+        timezone: location.timezone,
+      },
+      window: {
+        serverNow: location.server_now.toISOString(),
+        from: input.from.toISOString(),
+        to: input.to.toISOString(),
+        availableDates: [...new Set(slotResult.rows.map((row) => row.available_date))],
+        sourceUpdatedAt: sourceUpdatedAt?.toISOString() ?? null,
+        freshness: envelopeFreshness,
+      },
+      personalization: {
+        applied: input.petContextApplied,
+        compatibility: 'NOT_EVALUATED',
+      },
+      services: serviceResult.rows.map((row) => ({
+        id: row.id,
+        code: row.code,
+        displayName: row.display_name,
+        durationMinutes: row.duration_minutes,
+        price: {
+          kind: 'BASE',
+          amount: row.price_amount,
+          currency: row.currency,
+          additionalCostsPossible: true,
+          finalPriceStatus: 'CLINIC_AGREEMENT_REQUIRED',
+        },
+        doctorRequired: false,
+      })),
+      slots: slotResult.rows.map((row) => {
+        const freshness = this.freshness(row.source_updated_at, location.server_now, true);
+        return {
+          id: row.id,
+          serviceId: row.service_id,
+          startsAt: row.starts_at.toISOString(),
+          endsAt: row.ends_at.toISOString(),
+          localDate: row.available_date,
+          localTime: row.local_time,
+          timezone: location.timezone,
+          availabilityState: freshness === 'STALE'
+            ? 'STALE'
+            : row.confirmation_mode === 'ALTERNATIVE_POSSIBLE' ? 'REQUEST_ONLY' : 'AVAILABLE',
+          expectedVersion: row.version,
+          freshness,
+          confirmationMode: row.confirmation_mode,
+          sourceUpdatedAt: row.source_updated_at.toISOString(),
+          priceReference: `service:${row.service_id}`,
+        };
+      }),
     };
   }
 
