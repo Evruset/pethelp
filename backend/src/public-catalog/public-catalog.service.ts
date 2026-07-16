@@ -207,6 +207,8 @@ export type PublicBookingSelectionResponse = {
     serviceId: string;
     startsAt: string;
     endsAt: string;
+    localDate: string;
+    localTime: string;
     timezone: string;
     availabilityState: 'AVAILABLE' | 'REQUEST_ONLY' | 'STALE';
     expectedVersion: number;

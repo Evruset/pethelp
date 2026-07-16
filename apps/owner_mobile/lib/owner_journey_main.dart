@@ -15,6 +15,10 @@ import 'features/auth/owner_session.dart';
 import 'features/booking/alternative_slot/alternative_slot_repository.dart';
 import 'features/booking/marketplace/booking_marketplace_page.dart';
 import 'features/booking/marketplace/booking_marketplace_repository.dart';
+import 'features/booking/marketplace/booking_selection_feature_flags.dart';
+import 'features/booking/marketplace/booking_selection_models.dart';
+import 'features/booking/marketplace/booking_selection_repository.dart';
+import 'features/booking/marketplace/owner_booking_selection_v50_page.dart';
 import 'features/care/owner_pet_care_page.dart';
 import 'features/care/owner_pet_care_repository.dart';
 import 'features/care/owner_pet_diary_v50_page.dart';
@@ -117,6 +121,8 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   OwnerSession? _session;
   OwnerPet? _selectedPet;
   CatalogBookingSelection? _pendingBooking;
+  BookingSelectionSeed? _pendingBookingSeed;
+  BookingSelectionContext? _pendingBookingIntent;
   late final OutboxRepository _ownerOutbox;
   late final OwnerHomeRepository _ownerHomeRepository;
   late final OwnerSelectedPetPreference _selectedPetPreference;
@@ -324,7 +330,8 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
       );
 
   void _completeAuthentication(OwnerSession session) {
-    final hasPendingBooking = _pendingBooking != null;
+    final hasPendingBooking =
+        _pendingBooking != null || _pendingBookingSeed != null;
     setState(() {
       _session = session;
       _ownerSessionGeneration++;
@@ -344,12 +351,33 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
 
   void _selectPet(OwnerPet pet) {
     final pending = _pendingBooking;
+    final pendingSeed = _pendingBookingSeed;
+    final pendingIntent = _pendingBookingIntent;
     setState(() {
       _selectedPet = pet;
       _petBootstrapCompleted = true;
       _pendingBooking = null;
+      _pendingBookingSeed = null;
+      _pendingBookingIntent = null;
     });
-    if (pending != null) {
+    if (pendingSeed != null) {
+      final restoredSeed = BookingSelectionSeed(
+        clinicId: pendingSeed.clinicId,
+        clinicName: pendingSeed.clinicName,
+        locationId: pendingSeed.locationId,
+        locationAddress: pendingSeed.locationAddress,
+        serviceId: pendingSeed.serviceId,
+        serviceName: pendingSeed.serviceName,
+        doctorId: pendingSeed.doctorId,
+        petId: pet.id,
+        petName: pet.name,
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _openBookingSelection(restoredSeed, initialIntent: pendingIntent);
+        }
+      });
+    } else if (pending != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _openBooking(pending);
       });
@@ -357,6 +385,11 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   }
 
   void _openCatalogForGuest() => _openCatalog(onSelected: (selection) {
+        if (isOwnerBookingSelectionV50Enabled()) {
+          Navigator.of(context).pop();
+          _openBooking(selection);
+          return;
+        }
         setState(() {
           _pendingBooking = selection;
         });
@@ -436,6 +469,10 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
       );
 
   void _openBooking(CatalogBookingSelection selection) {
+    if (isOwnerBookingSelectionV50Enabled()) {
+      _openBookingSelection(_bookingSeed(selection));
+      return;
+    }
     final pet = _selectedPet;
     if (pet == null) {
       _showMessage('Для записи нужно выбрать питомца.');
@@ -460,6 +497,54 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
           ),
           platformOverride: widget.platformOverride,
           onOpenAppointments: _openAppointmentsTab,
+        ),
+      ),
+    );
+  }
+
+  BookingSelectionSeed _bookingSeed(CatalogBookingSelection selection) {
+    final pet = _selectedPet;
+    return BookingSelectionSeed(
+      clinicId: selection.location.clinicId,
+      clinicName: selection.location.clinicName,
+      locationId: selection.location.locationId,
+      locationAddress: selection.location.address,
+      serviceId: selection.service.id,
+      serviceName: selection.service.displayName,
+      doctorId: selection.doctorId,
+      petId: pet?.id,
+      petName: pet?.name,
+    );
+  }
+
+  void _openBookingSelection(
+    BookingSelectionSeed seed, {
+    BookingSelectionContext? initialIntent,
+  }) {
+    Navigator.of(context).push(
+      ownerPageRoute<void>(
+        context: context,
+        platform: widget.platformOverride,
+        settings: const RouteSettings(name: '/owner/booking'),
+        builder: (_) => OwnerBookingSelectionV50Page(
+          seed: seed,
+          initialIntent: initialIntent,
+          repository: HttpBookingSelectionRepository(
+            baseUrl: Uri.parse(_apiBaseUrl),
+            accessTokenProvider: _hasOwnerSession ? _token : null,
+          ),
+          onRequireAuthentication: (intent) {
+            setState(() {
+              _pendingBookingSeed = seed;
+              _pendingBookingIntent = intent;
+            });
+            _openPhoneEntry();
+          },
+          onContinue: (_) {
+            _showMessage(
+              'Выбор проверен. Создание удержания будет доступно на следующем этапе.',
+            );
+          },
         ),
       ),
     );
