@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import 'booking_selection_models.dart';
+
 class BookingSlot {
   const BookingSlot({
     required this.id,
@@ -71,6 +73,13 @@ class BookingHoldSnapshot {
     required this.expiresAt,
     required this.startsAt,
     required this.endsAt,
+    this.serverNow,
+    this.aggregateVersion,
+    this.confirmationMode,
+    this.statusTitle,
+    this.statusDescription,
+    this.nextActionCode,
+    this.lastUpdatedAt,
   });
 
   final String holdId;
@@ -79,6 +88,21 @@ class BookingHoldSnapshot {
   final DateTime expiresAt;
   final DateTime startsAt;
   final DateTime endsAt;
+  final DateTime? serverNow;
+  final int? aggregateVersion;
+  final String? confirmationMode;
+  final String? statusTitle;
+  final String? statusDescription;
+  final String? nextActionCode;
+  final DateTime? lastUpdatedAt;
+
+  bool get isTerminal => const {
+        'CONFIRMED',
+        'MIS_BOOKING_FAILED',
+        'SLA_BREACHED',
+        'EXPIRED',
+        'RELEASED'
+      }.contains(state);
 
   factory BookingHoldSnapshot.fromJson(Map<String, dynamic> json) {
     return BookingHoldSnapshot(
@@ -88,8 +112,28 @@ class BookingHoldSnapshot {
       expiresAt: DateTime.parse(json['expiresAt'] as String).toUtc(),
       startsAt: DateTime.parse(json['startsAt'] as String).toUtc(),
       endsAt: DateTime.parse(json['endsAt'] as String).toUtc(),
+      serverNow: _date(json['serverNow']),
+      aggregateVersion: (json['aggregateVersion'] as num?)?.toInt(),
+      confirmationMode: json['confirmationMode'] as String?,
+      statusTitle: json['statusTitle'] as String?,
+      statusDescription: json['statusDescription'] as String?,
+      nextActionCode: json['nextActionCode'] as String?,
+      lastUpdatedAt: _date(json['lastUpdatedAt']),
     );
   }
+
+  static DateTime? _date(dynamic value) =>
+      value is String ? DateTime.tryParse(value)?.toUtc() : null;
+}
+
+class CreateBookingHoldRequest {
+  const CreateBookingHoldRequest(
+      {required this.selection,
+      required this.operationKey,
+      required this.correlationId});
+  final BookingSelectionContext selection;
+  final String operationKey;
+  final String correlationId;
 }
 
 class BookingMarketplaceApiException implements Exception {
@@ -127,7 +171,13 @@ abstract class BookingMarketplaceRepository {
   Future<BookingHoldSnapshot> readHold(String holdId);
 }
 
-class HttpBookingMarketplaceRepository implements BookingMarketplaceRepository {
+abstract class BookingHoldCommandRepository
+    implements BookingMarketplaceRepository {
+  Future<CreatedBookingHold> createSelectionHold(
+      CreateBookingHoldRequest request);
+}
+
+class HttpBookingMarketplaceRepository implements BookingHoldCommandRepository {
   HttpBookingMarketplaceRepository({
     required Uri baseUrl,
     required Future<String> Function() accessTokenProvider,
@@ -197,6 +247,35 @@ class HttpBookingMarketplaceRepository implements BookingMarketplaceRepository {
         'X-Correlation-ID': correlationId,
       },
       body: jsonEncode(<String, String>{'slotId': slotId, 'petId': petId}),
+    );
+    final payload = _decode(response);
+    if (response.statusCode != 201 || payload is! Map<String, dynamic>) {
+      throw _apiException(response.statusCode, payload);
+    }
+    return CreatedBookingHold.fromJson(payload);
+  }
+
+  @override
+  Future<CreatedBookingHold> createSelectionHold(
+      CreateBookingHoldRequest request) async {
+    final token = await _accessTokenProvider();
+    final selection = request.selection;
+    final response = await _client.post(
+      _uri('v1/booking-holds'),
+      headers: <String, String>{
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+        'Idempotency-Key': request.operationKey,
+        'X-Correlation-ID': request.correlationId,
+      },
+      body: jsonEncode(<String, dynamic>{
+        'petId': selection.petId,
+        'slotId': selection.slotId,
+        'expectedSlotVersion': selection.expectedSlotVersion,
+        'serviceId': selection.serviceId,
+        'doctorId': selection.doctorId,
+      }),
     );
     final payload = _decode(response);
     if (response.statusCode != 201 || payload is! Map<String, dynamic>) {

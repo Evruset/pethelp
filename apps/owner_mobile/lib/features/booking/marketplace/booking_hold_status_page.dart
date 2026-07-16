@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -20,6 +22,8 @@ class BookingHoldStatusPage extends StatefulWidget {
     this.repository,
     this.platformOverride,
     this.onOpenAppointments,
+    this.pollInterval = const Duration(seconds: 15),
+    this.offline = false,
   }) : assert(readHold != null || repository != null);
 
   final String holdId;
@@ -32,13 +36,20 @@ class BookingHoldStatusPage extends StatefulWidget {
   final BookingMarketplaceRepository? repository;
   final TargetPlatform? platformOverride;
   final VoidCallback? onOpenAppointments;
+  final Duration pollInterval;
+  final bool offline;
 
   @override
   State<BookingHoldStatusPage> createState() => _BookingHoldStatusPageState();
 }
 
-class _BookingHoldStatusPageState extends State<BookingHoldStatusPage> {
+class _BookingHoldStatusPageState extends State<BookingHoldStatusPage>
+    with WidgetsBindingObserver {
   late Future<BookingHoldSnapshot> _snapshot;
+  BookingHoldSnapshot? _latest;
+  Timer? _pollTimer;
+  Timer? _countdownTimer;
+  bool _foreground = true;
 
   BookingHoldReader get _reader =>
       widget.readHold ?? widget.repository!.readHold;
@@ -46,12 +57,58 @@ class _BookingHoldStatusPageState extends State<BookingHoldStatusPage> {
   @override
   void initState() {
     super.initState();
-    _snapshot = _reader(widget.holdId);
+    WidgetsBinding.instance.addObserver(this);
+    _snapshot = _read();
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted && _remaining != null && _remaining! > Duration.zero) {
+        setState(() {});
+      } else if (mounted && _remaining != null) {
+        _reload(); // Expiry is resolved by the server, never locally.
+      }
+    });
+  }
+
+  Future<BookingHoldSnapshot> _read() async {
+    final result = await _reader(widget.holdId);
+    _latest = result;
+    _configurePolling();
+    return result;
+  }
+
+  void _configurePolling() {
+    _pollTimer?.cancel();
+    if (_latest?.isTerminal != false || widget.offline || !_foreground) return;
+    _pollTimer = Timer(widget.pollInterval, _reload);
   }
 
   void _reload() {
-    final next = _reader(widget.holdId);
-    setState(() => _snapshot = next);
+    if (widget.offline) return;
+    setState(() => _snapshot = _read());
+  }
+
+  Duration? get _remaining {
+    final hold = _latest;
+    if (hold == null || hold.isTerminal) return null;
+    final serverNow = hold.serverNow;
+    final offset = serverNow == null
+        ? Duration.zero
+        : serverNow.difference(DateTime.now().toUtc());
+    final value = hold.expiresAt.difference(DateTime.now().toUtc().add(offset));
+    return value.isNegative ? Duration.zero : value;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _foreground = state == AppLifecycleState.resumed;
+    _configurePolling();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _pollTimer?.cancel();
+    _countdownTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -81,6 +138,16 @@ class _BookingHoldStatusPageState extends State<BookingHoldStatusPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(_message(state), textAlign: TextAlign.center),
+                if (_remaining case final remaining?) ...[
+                  const SizedBox(height: 8),
+                  Semantics(
+                    liveRegion: true,
+                    label: 'Оставшееся время ожидания ${_countdown(remaining)}',
+                    child: Text('Ожидание: ${_countdown(remaining)}',
+                        key: const ValueKey('booking-hold-countdown'),
+                        textAlign: TextAlign.center),
+                  ),
+                ],
                 if (hold != null) ...[
                   const SizedBox(height: 24),
                   _MaterialBookingDetails(
@@ -171,6 +238,17 @@ class _BookingHoldStatusPageState extends State<BookingHoldStatusPage> {
                     textAlign: TextAlign.center,
                     style: CupertinoTheme.of(context).textTheme.textStyle,
                   ),
+                  if (_remaining case final remaining?) ...[
+                    const SizedBox(height: 8),
+                    Semantics(
+                      liveRegion: true,
+                      label:
+                          'Оставшееся время ожидания ${_countdown(remaining)}',
+                      child: Text('Ожидание: ${_countdown(remaining)}',
+                          key: const ValueKey('booking-hold-countdown'),
+                          textAlign: TextAlign.center),
+                    ),
+                  ],
                   if (!booked) ...[
                     const SizedBox(height: 16),
                     OwnerCupertinoStatusBanner(
@@ -360,13 +438,16 @@ CupertinoDynamicColor _cupertinoIconColor(String tone) => tone == 'success'
             ? CupertinoColors.systemOrange
             : CupertinoColors.activeBlue;
 
-String _title(String state) => state == 'CONFIRMED'
-    ? 'Вы записаны'
-    : state == 'EXPIRED' || state == 'SLA_BREACHED'
-        ? 'Время недоступно'
-        : state == 'RELEASED' || state == 'MIS_BOOKING_FAILED'
-            ? 'Запись не оформлена'
-            : 'Запись оформляется';
+String _title(String state) => switch (state.toUpperCase()) {
+      'CONFIRMED' => 'Запись подтверждена',
+      'MANUAL_CONFIRM_PENDING' => 'Клиника подтверждает заявку',
+      'MIS_RESERVATION_PENDING' => 'Проверяем время в расписании клиники',
+      'MIS_BOOKING_FAILED' => 'Клиника не смогла подтвердить это время',
+      'SLA_BREACHED' => 'Клиника не ответила вовремя',
+      'EXPIRED' => 'Время ожидания истекло',
+      'RELEASED' => 'Заявка больше не активна',
+      _ => 'Проверяем выбранное время',
+    };
 
 String _message(String state) => state == 'CONFIRMED'
     ? 'Детали визита доступны ниже и в разделе «Записи».'
@@ -401,6 +482,24 @@ _BookingResultStatus _bookingResultStatus(String state) {
       nextAction: 'Откройте запись, чтобы увидеть доступные действия.',
       icon: CupertinoIcons.check_mark_circled,
       tone: 'success',
+    );
+  }
+  if (normalized == 'MANUAL_CONFIRM_PENDING') {
+    return const _BookingResultStatus(
+      title: 'Клиника подтверждает заявку',
+      description: 'Заявка получена и ожидает ответа клиники.',
+      nextAction: 'Статус обновится автоматически. Можно обновить его вручную.',
+      icon: CupertinoIcons.hourglass,
+      tone: 'info',
+    );
+  }
+  if (normalized == 'MIS_RESERVATION_PENDING') {
+    return const _BookingResultStatus(
+      title: 'Проверяем время в расписании клиники',
+      description: 'Ожидаем подтверждённый ответ расписания.',
+      nextAction: 'Оставайтесь на странице или вернитесь к ней позже.',
+      icon: CupertinoIcons.clock,
+      tone: 'info',
     );
   }
   if (normalized == 'EXPIRED' || normalized == 'SLA_BREACHED') {
@@ -458,4 +557,11 @@ String _cupertinoRange(DateTime from, DateTime to) {
   final end =
       '${last.hour.toString().padLeft(2, '0')}:${last.minute.toString().padLeft(2, '0')}';
   return '$date, $start–$end';
+}
+
+String _countdown(Duration duration) {
+  final minutes = duration.inMinutes;
+  final seconds = duration.inSeconds.remainder(60);
+  return '${minutes.toString().padLeft(2, '0')}:'
+      '${seconds.toString().padLeft(2, '0')}';
 }

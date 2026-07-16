@@ -1,8 +1,23 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../../pets/owner_v50_pet_visuals.dart';
 import 'booking_selection_models.dart';
 import 'booking_selection_repository.dart';
+import 'booking_marketplace_repository.dart';
+import 'booking_hold_status_page.dart';
+
+enum BookingReviewSubmissionState {
+  idle,
+  submitting,
+  softRetry,
+  successReadback,
+  finalConflict,
+  networkAmbiguous,
+  offlineBlocked,
+  sessionExpired,
+}
 
 class OwnerBookingSelectionV50Page extends StatefulWidget {
   const OwnerBookingSelectionV50Page({
@@ -14,6 +29,10 @@ class OwnerBookingSelectionV50Page extends StatefulWidget {
     this.initialIntent,
     this.restoreIntentToReview = true,
     this.offline = false,
+    this.holdRepository,
+    this.createHoldEnabled = false,
+    this.bookingStatusEnabled = false,
+    this.operationKeyFactory,
   });
 
   final BookingSelectionSeed seed;
@@ -23,6 +42,10 @@ class OwnerBookingSelectionV50Page extends StatefulWidget {
   final BookingSelectionContext? initialIntent;
   final bool restoreIntentToReview;
   final bool offline;
+  final BookingHoldCommandRepository? holdRepository;
+  final bool createHoldEnabled;
+  final bool bookingStatusEnabled;
+  final String Function()? operationKeyFactory;
 
   @override
   State<OwnerBookingSelectionV50Page> createState() =>
@@ -36,6 +59,9 @@ class _OwnerBookingSelectionV50PageState
   String? _date;
   String? _slotId;
   late bool _restoreReview;
+  BookingReviewSubmissionState _submission = BookingReviewSubmissionState.idle;
+  String? _operationKey;
+  String? _correlationId;
 
   @override
   void initState() {
@@ -43,7 +69,8 @@ class _OwnerBookingSelectionV50PageState
     _serviceId = widget.initialIntent?.serviceId ?? widget.seed.serviceId;
     _date = widget.initialIntent?.selectedDate;
     _slotId = widget.initialIntent?.slotId;
-    _restoreReview = widget.initialIntent != null && widget.restoreIntentToReview;
+    _restoreReview =
+        widget.initialIntent != null && widget.restoreIntentToReview;
     _request = _load();
   }
 
@@ -52,6 +79,77 @@ class _OwnerBookingSelectionV50PageState
         doctorId: widget.seed.doctorId,
         selectedPetId: widget.seed.petId,
       );
+
+  String _newUuid() {
+    final bytes = List<int>.generate(16, (_) => Random.secure().nextInt(256));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
+        '${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}';
+  }
+
+  bool get _transactionalEnabled =>
+      widget.createHoldEnabled &&
+      widget.bookingStatusEnabled &&
+      widget.holdRepository != null;
+
+  Future<void> _submitHold(BookingSelectionContext intent,
+      BookingSelectionSnapshot data, BookingOptionService service) async {
+    if (_submission == BookingReviewSubmissionState.submitting) return;
+    if (widget.offline) {
+      setState(() => _submission = BookingReviewSubmissionState.offlineBlocked);
+      return;
+    }
+    final petId = intent.petId;
+    if (petId == null) {
+      widget.onRequireAuthentication(intent);
+      return;
+    }
+    _operationKey ??= widget.operationKeyFactory?.call() ?? _newUuid();
+    _correlationId ??= _newUuid();
+    setState(() => _submission = BookingReviewSubmissionState.submitting);
+    try {
+      final created = await widget.holdRepository!.createSelectionHold(
+        CreateBookingHoldRequest(
+            selection: intent,
+            operationKey: _operationKey!,
+            correlationId: _correlationId!),
+      );
+      final authoritative =
+          await widget.holdRepository!.readHold(created.holdId);
+      if (!mounted) return;
+      setState(
+          () => _submission = BookingReviewSubmissionState.successReadback);
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+        settings: const RouteSettings(name: '/owner/booking/status'),
+        builder: (_) => BookingHoldStatusPage(
+          holdId: authoritative.holdId,
+          initialState: authoritative.state,
+          clinicName: data.clinicName,
+          locationAddress: data.locationAddress,
+          serviceName: service.displayName,
+          petName: widget.seed.petName ?? 'Питомец',
+          repository: widget.holdRepository,
+        ),
+      ));
+    } on BookingMarketplaceApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _submission = switch ((error.statusCode, error.code)) {
+            (401, _) => BookingReviewSubmissionState.sessionExpired,
+            (_, 'SLOT_LOCKED_RETRY') ||
+            (_, 'SLOT_VERSION_STALE') ||
+            (_, 'BOOKING_TEMPORARILY_UNAVAILABLE') =>
+              BookingReviewSubmissionState.softRetry,
+            _ => BookingReviewSubmissionState.finalConflict,
+          });
+    } catch (_) {
+      if (mounted) {
+        setState(
+            () => _submission = BookingReviewSubmissionState.networkAmbiguous);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) => FutureBuilder<BookingSelectionSnapshot>(
@@ -322,16 +420,40 @@ class _OwnerBookingSelectionV50PageState
                 width: double.infinity,
                 child: FilledButton(
                   key: const ValueKey('booking-review-continue'),
-                  onPressed: widget.offline
-                      ? null
-                      : () => widget.seed.petId == null
-                          ? widget.onRequireAuthentication(intent)
-                          : widget.onContinue(intent),
-                  child: Text(widget.seed.petId == null
-                      ? 'Войти и продолжить'
-                      : 'Продолжить'),
+                  onPressed:
+                      _submission == BookingReviewSubmissionState.submitting
+                          ? null
+                          : () => _transactionalEnabled
+                              ? _submitHold(intent, data, service)
+                              : widget.seed.petId == null
+                                  ? widget.onRequireAuthentication(intent)
+                                  : widget.onContinue(intent),
+                  child: SizedBox(
+                    height: 24,
+                    child: Center(
+                        child: _submission ==
+                                BookingReviewSubmissionState.submitting
+                            ? const SizedBox.square(
+                                dimension: 20,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2))
+                            : Text(widget.seed.petId == null
+                                ? 'Войти и продолжить'
+                                : _transactionalEnabled
+                                    ? 'Отправить заявку'
+                                    : 'Продолжить')),
+                  ),
                 ),
               ),
+              if (_submission != BookingReviewSubmissionState.idle &&
+                  _submission != BookingReviewSubmissionState.submitting)
+                Semantics(
+                  liveRegion: true,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(_submissionMessage(_submission)),
+                  ),
+                ),
               const SizedBox(height: 8),
               const Text(
                 'Продолжение не создаёт запись и не удерживает время. Все ID будут проверены повторно.',
@@ -393,6 +515,23 @@ class _OwnerBookingSelectionV50PageState
         warning: slot.confirmationMode != BookingConfirmationMode.instant,
       );
 }
+
+String _submissionMessage(BookingReviewSubmissionState state) =>
+    switch (state) {
+      BookingReviewSubmissionState.softRetry =>
+        'Время обновилось. Повторите отправку — заявка и ваш выбор сохранены.',
+      BookingReviewSubmissionState.finalConflict =>
+        'Это время больше недоступно. Вернитесь к актуальным вариантам.',
+      BookingReviewSubmissionState.networkAmbiguous =>
+        'Ответ не получен. Повторная проверка использует тот же номер операции.',
+      BookingReviewSubmissionState.offlineBlocked =>
+        'Подключитесь к интернету, чтобы проверить время и отправить заявку.',
+      BookingReviewSubmissionState.sessionExpired =>
+        'Сессия завершилась. Войдите снова — ваш выбор сохранён.',
+      BookingReviewSubmissionState.successReadback =>
+        'Статус подтверждён сервером.',
+      _ => '',
+    };
 
 class _SlotChoice extends StatelessWidget {
   const _SlotChoice({
