@@ -11,7 +11,7 @@ Updated: 2026-07-16
 - `V50-OWNER-03`: `COMPLETE / INTEGRATED` through merge `e747f61`; runtime `dc762b4`.
 - `V50-OWNER-04`: `COMPLETE / INTEGRATED` through merge `9e165a3`; runtime `985dd5b`; evidence certification `d3edf71`.
 - `V50-OWNER-05`: `COMPLETE / INTEGRATED` through merge `c2bbcbf`; runtime `cc6ba06`; certification `ade242e`.
-- Integration status: `V50-OWNER-06_INTEGRATED / V50-OWNER-07_ACTIVE`.
+- Integration status: `V50-OWNER-07_INTEGRATED / V50-CLINIC-01_NOT_STARTED`.
 - Canonical target: `V50`; source: `prototype-v50/index.html`; manifest SHA-256: `245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42`.
 - Program branch/worktree: `agent/v51-stage-01-architecture` / `/Users/evrusetskiy/work/pethelp-alpha`.
 - Root worktree still contains protected user changes in `.codex/ACTIVE_MODE` and `.codex/config.toml`; this worktree does not modify them.
@@ -130,11 +130,11 @@ prototype artifacts with checksum
 `5a1e3a26d5a70f0b96a8fc2c271ca49dbc5ba74f32f77f79bdf6c6f528eaeaa2`.
 Representative and full visual gates PASS. State/security and product/visual
 validators and final integration validator PASS with zero vetoes. The next
-bounded context is `V50-OWNER-07 / Alternative Slot Resolution`.
+bounded context is `V50-CLINIC-01 / Clinic Queue and Booking Confirmation`.
 
 ## V50-OWNER-07 delivery state
 
-`V50-OWNER-07` is ready for integration on `agent/v50-owner-07`; runtime is
+`V50-OWNER-07` is complete and integrated through merge `71c90b3` from `agent/v50-owner-07`; runtime is
 `670bc32`. `OWN-020 #alternative-slot` reuses the clinic-created Capacity-B
 reservation and adds canonical owner-scoped proposal read/accept/decline with
 booking+proposal identity, payload-bound idempotency, aggregate version fencing,

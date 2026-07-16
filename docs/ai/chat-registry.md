@@ -2,7 +2,7 @@
 
 | Chat ID | Title | Domain | Branch/Worktree | Status | Current Slice | Handoff | Last Commit | Blockers |
 |---|---|---|---|---|---|---|---|---|
-| ROOT | V50 Program Coordinator | Program | `agent/v51-stage-01-architecture` / root worktree | ACTIVE | V50-OWNER-06 integrated; V50-OWNER-07 next | `docs/ai/current-state.md` | merge `cd63a65` | protected `.codex` changes remain untouched |
+| ROOT | V50 Program Coordinator | Program | `agent/v51-stage-01-architecture` / root worktree | ACTIVE | V50-OWNER-07 integrated; V50-CLINIC-01 next | `docs/ai/current-state.md` | merge `71c90b3` | protected `.codex` changes remain untouched |
 | BASELINE-01 | Source Provenance Gate | Baseline | historical root worktree | COMPLETE | source inventory/provenance | `docs/ai/handoffs/BASELINE-01.md` | `22da293` (integrated with BASELINE-02) | none |
 | BASELINE-02 | V50 Authoritative Source Registration | Baseline | historical root worktree | COMPLETE / COMMITTED | manifest, checksum, canonical naming | `docs/ai/handoffs/BASELINE-02.md` | `22da293` | none; source gate OPEN |
 | V50-SHELL-01 | Shared Design Tokens and Application Shells | Shared UI | integrated into program branch from `agent/v50-shell-01` | COMPLETE / INTEGRATED | tokens, Owner shell, Portal role shells, rollback | `docs/ai/handoffs/V50-SHELL-01.md` | `1c58ad6` | none |
@@ -12,7 +12,7 @@
 | V50-OWNER-04 | V50 Service, Slot and Booking Review | Owner | integrated into program branch from `agent/v50-owner-04` | COMPLETE / INTEGRATED | `OWN-005`, `OWN-006`; read-only selection/review | `docs/ai/handoffs/V50-OWNER-04.md` | merge `9e165a3`; runtime `985dd5b`; certification `d3edf71` | independent PASS, zero vetoes; evidence 48/48 runtime and 4/4 prototype references |
 | V50-OWNER-05 | V50 Hold Creation and Booking Status | Owner | integrated into program branch from `agent/v50-owner-05` | COMPLETE / INTEGRATED | `OWN-006` submit; bounded `OWN-008` authoritative status | `docs/ai/handoffs/V50-OWNER-05.md` | merge `c2bbcbf`; runtime `cc6ba06`; certification `ade242e` | all three validators PASS, zero vetoes; evidence 48/48 + 8/8 |
 | V50-OWNER-06 | V50 My Bookings and Cancellation | Owner | integrated into program branch from `agent/v50-owner-06` | COMPLETE / INTEGRATED | `OWN-007`; bounded `OWN-008` detail/cancellation | `docs/ai/handoffs/V50-OWNER-06.md` | merge `cd63a65`; runtime `fb24f18`; certification `c300627` | all three validators PASS, zero vetoes; evidence 48/48 + 8/8 |
-| V50-OWNER-07 | V50 Alternative Slot and Rebooking Resolution | Owner | `agent/v50-owner-07` / isolated worktree | READY_FOR_INTEGRATION | `OWN-020`; entry from bounded `OWN-008` | `docs/ai/handoffs/V50-OWNER-07.md` | runtime `670bc32`; certification commit | all three validators PASS; zero vetoes; evidence 48/48 + 4/4 |
+| V50-OWNER-07 | V50 Alternative Slot and Rebooking Resolution | Owner | integrated into program branch from `agent/v50-owner-07` | COMPLETE / INTEGRATED | `OWN-020`; entry from bounded `OWN-008` | `docs/ai/handoffs/V50-OWNER-07.md` | merge `71c90b3`; runtime `670bc32`; certification `7ad895d` | all three validators PASS; zero vetoes; evidence 48/48 + 4/4 |
 
 ## Ownership
 
