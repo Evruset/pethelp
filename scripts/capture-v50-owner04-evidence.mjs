@@ -15,6 +15,7 @@ const states = [
 const prototypeChecksum = '245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42';
 const browser = await chromium.launch({ headless: true });
 const artifacts = [];
+const prototypeArtifacts = [];
 try {
   for (const [width, height] of viewports) {
     for (const state of states) {
@@ -49,14 +50,21 @@ try {
       await page.waitForTimeout(500);
       const dir = `${root}/prototype/${anchor}`;
       await mkdir(dir, { recursive: true });
-      await page.screenshot({ path: `${dir}/${width}x${height}.png` });
+      const path = `${dir}/${width}x${height}.png`;
+      await page.screenshot({ path });
       await page.close();
+      prototypeArtifacts.push({
+        prototypeAnchor: `#${anchor}`,
+        viewport: `${width}x${height}`,
+        artifactLogicalPath: `V50-OWNER-04/prototype/${anchor}/${width}x${height}.png`,
+        sha256: sha(await readFile(path)),
+      });
     }
   }
 } finally {
   await browser.close();
 }
-const packageDigest = sha(Buffer.from(artifacts.map((item) => item.sha256).sort().join('\n')));
+const packageDigest = sha(Buffer.from([...artifacts, ...prototypeArtifacts].map((item) => item.sha256).sort().join('\n')));
 await writeFile('docs/ai/evidence/V50-OWNER-04.json', JSON.stringify({
   schemaVersion: 1,
   slice: 'V50-OWNER-04',
@@ -70,6 +78,7 @@ await writeFile('docs/ai/evidence/V50-OWNER-04.json', JSON.stringify({
   v50Ids: ['OWN-005', 'OWN-006'],
   prototypeAnchors: ['#booking', '#booking-review'],
   representativeGate: '8/8 PASS',
+  prototypeArtifacts,
   artifacts,
 }, null, 2) + '\n');
 

@@ -5,7 +5,7 @@
   "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
   "runtimeCommit": "985dd5b",
   "artifactPackageId": "v50-owner-04-985dd5b",
-  "artifactPackageSha256": "ef340a6123d69ab81b1f7100c9c403d93b47dd6847a9ac328cc46180f6338c1b",
+  "artifactPackageSha256": "176d8b6e044c7a4f51b73175e38cbdc24ab22c7df2944f9c7c8a9d1cfa500149",
   "viewports": [
     "375x812",
     "412x915",
@@ -35,6 +35,32 @@
     "#booking-review"
   ],
   "representativeGate": "8/8 PASS",
+  "prototypeArtifacts": [
+    {
+      "prototypeAnchor": "#booking-review",
+      "viewport": "1440x900",
+      "artifactLogicalPath": "V50-OWNER-04/prototype/booking-review/1440x900.png",
+      "sha256": "4ec08c5be1b5de357c854189b20ec2ce6d4ea1aac5a22d82fdcb08fb548439e4"
+    },
+    {
+      "prototypeAnchor": "#booking-review",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-04/prototype/booking-review/375x812.png",
+      "sha256": "8f3619ab3739963f9050d61866dea8eba90563db667e3955d409913d1049ba00"
+    },
+    {
+      "prototypeAnchor": "#booking",
+      "viewport": "1440x900",
+      "artifactLogicalPath": "V50-OWNER-04/prototype/booking/1440x900.png",
+      "sha256": "04b6903b449fc7c52a83b3285fa8995c8427c8971f9c5ef09b7527e5a24025bb"
+    },
+    {
+      "prototypeAnchor": "#booking",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-04/prototype/booking/375x812.png",
+      "sha256": "acfb5464d2292602fd64ec58143c91d755dff3811c3e5018aad49c4ab9374eca"
+    }
+  ],
   "artifacts": [
     {
       "v50Id": "OWN-005",

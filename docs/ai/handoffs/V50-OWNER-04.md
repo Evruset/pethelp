@@ -56,9 +56,9 @@ four viewports plus prototype references. Manifest:
 gate 8/8 PASS. Independent validator PASS with zero vetoes. `OWN-005` and
 `OWN-006` are VISUALLY_VERIFIED; counter is 9/30.
 
-Non-veto evidence limitation: the verifier hashes all 48 runtime PNGs but not
-the four prototype reference files or aggregate package checksum. Prototype
-checksum anchoring plus independent visual review was accepted for closure.
+Evidence-integrity debt was closed before integration: the verifier hashes all
+48 runtime PNGs and all four prototype references, rejects duplicate or
+absolute logical paths, and verifies the aggregate package checksum.
 
 Known difference: Flutter rasterization/native focus differs from HTML. Fixed
 evidence IDs exist only in the deterministic capture target, never production.
