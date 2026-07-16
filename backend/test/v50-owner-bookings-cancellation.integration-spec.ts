@@ -89,6 +89,32 @@ describe('V50 owner bookings and cancellation (real PostgreSQL)', () => {
       .rejects.toMatchObject({ status: 404, response: { code: 'HOLD_NOT_FOUND' } });
     await expect(security.releaseHold({ holdId: fixture.expiredHold, actor, idempotencyKey: randomUUID(), correlationId: randomUUID(), expectedVersion: 1, normalizeOwnerNotFound: true }))
       .rejects.toMatchObject({ status: 422, response: { code: 'INVALID_STATE_TRANSITION' } });
+    for (const state of ['COMPLETED', 'RELEASED', 'CANCELLATION_REQUESTED']) {
+      await database.query('UPDATE booking_schema.booking_holds SET state=$2,version=1 WHERE id=$1', [fixture.expiredHold, state]);
+      await expect(security.releaseHold({ holdId: fixture.expiredHold, actor, idempotencyKey: randomUUID(), correlationId: randomUUID(), expectedVersion: 1, normalizeOwnerNotFound: true }))
+        .rejects.toMatchObject({ status: 422, response: { code: 'INVALID_STATE_TRANSITION' } });
+    }
+  });
+
+  it('rolls back state, counter, audit and idempotency when outbox persistence fails', async () => {
+    const fixture = await seed(database);
+    const actor = { sub: fixture.owner, roles: [Role.OWNER] };
+    await database.query(`
+      CREATE OR REPLACE FUNCTION booking_schema.owner06_fail_outbox() RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN IF NEW.aggregate_id=$q$${fixture.localHold}$q$::uuid THEN RAISE EXCEPTION 'owner06 injected outbox failure'; END IF; RETURN NEW; END $$;
+      CREATE TRIGGER owner06_fail_outbox BEFORE INSERT ON booking_schema.outbox_events
+      FOR EACH ROW EXECUTE FUNCTION booking_schema.owner06_fail_outbox();
+    `);
+    try {
+      await expect(security.releaseHold({ holdId: fixture.localHold, actor, idempotencyKey: randomUUID(), correlationId: randomUUID(), expectedVersion: 1, normalizeOwnerNotFound: true }))
+        .rejects.toMatchObject({ status: 503, response: { code: 'BOOKING_TEMPORARILY_UNAVAILABLE' } });
+      expect(await cancellationInvariant(database, fixture.localHold, fixture.localSlot))
+        .toEqual({ state: 'MANUAL_CONFIRM_PENDING', held_count: 1, booked_count: 0, audits: '0', effects: '0' });
+      const idempotency = await database.query<{ count: string }>(`SELECT count(*)::text AS count FROM booking_schema.idempotency_records WHERE scope LIKE 'booking.owner-cancel:%'`);
+      expect(idempotency.rows[0].count).toBe('0');
+    } finally {
+      await database.query('DROP TRIGGER IF EXISTS owner06_fail_outbox ON booking_schema.outbox_events; DROP FUNCTION IF EXISTS booking_schema.owner06_fail_outbox()');
+    }
   });
 
   it('allows one logical transition across 20 concurrent cancellation requests and restores the pool', async () => {

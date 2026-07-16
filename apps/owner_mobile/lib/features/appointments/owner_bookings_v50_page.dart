@@ -323,6 +323,26 @@ class _OwnerBookingDetailV50PageState extends State<OwnerBookingDetailV50Page> {
             ? 'Войдите снова, чтобы продолжить.'
             : 'Не удалось подтвердить результат. Проверьте актуальный статус.');
       }
+    } catch (_) {
+      // The command may have committed before the transport failed. Keep the
+      // operation key for an explicit retry and only trust an authoritative
+      // readback; never claim local cancellation success.
+      try {
+        final fresh = await widget.repository.detail(widget.id);
+        if (mounted) {
+          setState(() {
+            detail = fresh;
+            request = Future.value(fresh);
+            message =
+                'Не удалось подтвердить результат. Мы проверили актуальный статус.';
+          });
+        }
+      } catch (_) {
+        if (mounted) {
+          setState(() => message =
+              'Результат пока неизвестен. Проверьте статус или повторите попытку — запрос будет безопасно продолжен.');
+        }
+      }
     } finally {
       if (mounted) setState(() => submitting = false);
     }

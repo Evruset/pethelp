@@ -301,10 +301,16 @@ export class BookingSecurityService {
           throw DomainErrors.bookingVersionStale();
         }
 
+        const externallyCancelled = ['CONFIRMED', 'MIS_HELD', 'MIS_RESERVATION_PENDING', 'MIS_RECONCILIATION_PENDING'].includes(hold.state);
+        const locallyReleasable = ['MANUAL_CONFIRM_PENDING', 'ALTERNATIVE_PENDING'].includes(hold.state);
+        if (!externallyCancelled && !locallyReleasable) {
+          throw DomainErrors.invalidTransition();
+        }
+
         // A confirmed or externally-held booking is not a local hold release. It
         // remains capacity-accounted until the clinic/external workflow confirms
         // cancellation.
-        if (['CONFIRMED', 'MIS_HELD', 'MIS_RESERVATION_PENDING', 'MIS_RECONCILIATION_PENDING'].includes(hold.state)) {
+        if (externallyCancelled) {
           const updated = await client.query<{ version: number }>(`
             UPDATE booking_schema.booking_holds
             SET state = 'CANCELLATION_REQUESTED', state_changed_at = clock_timestamp(),
