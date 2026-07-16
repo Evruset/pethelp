@@ -565,7 +565,7 @@ Widget _cupertinoHarness(
   );
 }
 
-class _FakePublicCatalogRepository implements PublicCatalogRepository {
+class _FakePublicCatalogRepository extends PublicCatalogRepository {
   _FakePublicCatalogRepository({
     this.emptyWhenFiltered = false,
     this.hasPhone = true,
@@ -729,7 +729,7 @@ Future<void> _pumpCatalog(
   await tester.pumpAndSettle();
 }
 
-class _FakeCatalogRepository implements PublicCatalogRepository {
+class _FakeCatalogRepository extends PublicCatalogRepository {
   int availabilityReads = 0;
 
   @override

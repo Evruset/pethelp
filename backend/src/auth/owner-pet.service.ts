@@ -213,6 +213,24 @@ export class OwnerPetService {
     return result.rows[0] ? this.toPet(result.rows[0]) : undefined;
   }
 
+  async readActiveCatalogContext(
+    owner: JwtPayload,
+    petId: string,
+  ): Promise<{ id: string; species: OwnerPet['species'] } | undefined> {
+    const result = await this.database.query<{
+      id: string;
+      species: OwnerPet['species'];
+    }>(`
+      SELECT id, species
+      FROM pet_schema.pets
+      WHERE id = $1::uuid
+        AND owner_id = $2::uuid
+        AND archived_at IS NULL
+      LIMIT 1
+    `, [petId, owner.sub]);
+    return result.rows[0];
+  }
+
   async careSummary(owner: JwtPayload, petId: string): Promise<OwnerPetCareSummary | undefined> {
     const pet = await this.read(owner, petId);
     if (!pet) return undefined;

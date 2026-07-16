@@ -22,15 +22,30 @@ abstract class PublicCatalogRepository {
     required DateTime from,
     required DateTime to,
   });
+  Future<List<CatalogDoctor>> listDoctors({
+    required String clinicId,
+    String? locationId,
+    String? serviceCode,
+  }) =>
+      Future.error(
+          const PublicCatalogApiException(501, 'DOCTOR_DISCOVERY_UNAVAILABLE'));
+  Future<CatalogDoctor> readDoctor(String doctorId) => Future.error(
+      const PublicCatalogApiException(501, 'DOCTOR_DISCOVERY_UNAVAILABLE'));
 }
 
 class HttpPublicCatalogRepository implements PublicCatalogRepository {
-  HttpPublicCatalogRepository({required Uri baseUrl, http.Client? client})
-      : _baseUrl = baseUrl,
+  HttpPublicCatalogRepository({
+    required Uri baseUrl,
+    this.selectedPetId,
+    this.accessTokenProvider,
+    http.Client? client,
+  })  : _baseUrl = baseUrl,
         _client = client ?? http.Client();
 
   final Uri _baseUrl;
   final http.Client _client;
+  final String? selectedPetId;
+  final Future<String> Function()? accessTokenProvider;
 
   Uri _uri(String path, [Map<String, String>? queryParameters]) {
     return _baseUrl.resolve(path).replace(queryParameters: queryParameters);
@@ -40,6 +55,7 @@ class HttpPublicCatalogRepository implements PublicCatalogRepository {
   Future<List<CatalogClinic>> listClinics(
       {String? query, CatalogClinicFilters? filters}) async {
     final parameters = <String, String>{'limit': '20'};
+    if (selectedPetId != null) parameters['selectedPetId'] = selectedPetId!;
     final selectedFilters = filters;
     final value = (selectedFilters?.query ?? query)?.trim();
     if (value != null && value.isNotEmpty) parameters['q'] = value;
@@ -76,7 +92,7 @@ class HttpPublicCatalogRepository implements PublicCatalogRepository {
 
     final response = await _client.get(
       _uri('v1/clinics', parameters),
-      headers: const {'Accept': 'application/json'},
+      headers: await _headers(),
     );
     final payload = _decode(response);
     if (response.statusCode != 200 || payload is! Map<String, dynamic>) {
@@ -97,7 +113,7 @@ class HttpPublicCatalogRepository implements PublicCatalogRepository {
   Future<CatalogClinicDetail> readClinic(String clinicId) async {
     final response = await _client.get(
       _uri('v1/clinics/$clinicId'),
-      headers: const {'Accept': 'application/json'},
+      headers: await _headers(),
     );
     final payload = _decode(response);
     if (response.statusCode != 200 || payload is! Map<String, dynamic>) {
@@ -117,6 +133,10 @@ class HttpPublicCatalogRepository implements PublicCatalogRepository {
       distanceKm: (payload['distanceKm'] as num?)?.toDouble(),
       telemedAvailable: payload['telemedAvailable'] as bool? ?? false,
       emergencyAvailable: payload['emergencyAvailable'] as bool? ?? false,
+      doctorCount: (payload['doctorCount'] as num?)?.toInt() ?? 0,
+      priceFrom: payload['priceFrom'] as String?,
+      availability: _availabilitySummary(payload['availability']),
+      fitReasons: _strings(payload['fitReasons']),
       locations: rawLocations
           .whereType<Map<String, dynamic>>()
           .map(_locationFromJson)
@@ -132,7 +152,7 @@ class HttpPublicCatalogRepository implements PublicCatalogRepository {
 
     final response = await _client.get(
       _uri('v1/catalog/clinic-locations', parameters),
-      headers: const {'Accept': 'application/json'},
+      headers: await _headers(),
     );
     final payload = _decode(response);
     if (response.statusCode != 200 || payload is! Map<String, dynamic>) {
@@ -153,7 +173,7 @@ class HttpPublicCatalogRepository implements PublicCatalogRepository {
   Future<List<CatalogService>> listLocationServices(String locationId) async {
     final response = await _client.get(
       _uri('v1/clinic-locations/$locationId/services'),
-      headers: const {'Accept': 'application/json'},
+      headers: await _headers(),
     );
     final payload = _decode(response);
     if (response.statusCode != 200 || payload is! Map<String, dynamic>) {
@@ -185,7 +205,7 @@ class HttpPublicCatalogRepository implements PublicCatalogRepository {
           'limit': '12',
         },
       ),
-      headers: const {'Accept': 'application/json'},
+      headers: await _headers(),
     );
     final payload = _decode(response);
     if (response.statusCode != 200 || payload is! Map<String, dynamic>) {
@@ -212,7 +232,102 @@ class HttpPublicCatalogRepository implements PublicCatalogRepository {
       distanceKm: (json['distanceKm'] as num?)?.toDouble(),
       telemedAvailable: json['telemedAvailable'] as bool? ?? false,
       emergencyAvailable: json['emergencyAvailable'] as bool? ?? false,
+      doctorCount: (json['doctorCount'] as num?)?.toInt() ?? 0,
+      priceFrom: json['priceFrom'] as String?,
+      availability: _availabilitySummary(json['availability']),
+      fitReasons: _strings(json['fitReasons']),
     );
+  }
+
+  @override
+  Future<List<CatalogDoctor>> listDoctors({
+    required String clinicId,
+    String? locationId,
+    String? serviceCode,
+  }) async {
+    final parameters = <String, String>{'limit': '20'};
+    if (locationId != null) parameters['locationId'] = locationId;
+    if (serviceCode != null) parameters['serviceCode'] = serviceCode;
+    if (selectedPetId != null) parameters['selectedPetId'] = selectedPetId!;
+    final response = await _client.get(
+      _uri('v1/clinics/$clinicId/doctors', parameters),
+      headers: await _headers(),
+    );
+    final payload = _decode(response);
+    if (response.statusCode != 200 || payload is! Map<String, dynamic>) {
+      throw PublicCatalogApiException(response.statusCode, _errorCode(payload));
+    }
+    final doctors = payload['doctors'];
+    if (doctors is! List) {
+      throw const PublicCatalogApiException(503, 'BACKEND_UNAVAILABLE');
+    }
+    return doctors
+        .whereType<Map<String, dynamic>>()
+        .map(_doctorFromJson)
+        .toList(growable: false);
+  }
+
+  @override
+  Future<CatalogDoctor> readDoctor(String doctorId) async {
+    final response = await _client.get(
+      _uri('v1/doctors/$doctorId'),
+      headers: await _headers(),
+    );
+    final payload = _decode(response);
+    if (response.statusCode != 200 || payload is! Map<String, dynamic>) {
+      throw PublicCatalogApiException(response.statusCode, _errorCode(payload));
+    }
+    return _doctorFromJson(payload);
+  }
+
+  CatalogDoctor _doctorFromJson(Map<String, dynamic> json) {
+    final clinic = json['clinic'] as Map<String, dynamic>;
+    final location = json['location'] as Map<String, dynamic>;
+    return CatalogDoctor(
+      id: json['id'] as String,
+      displayName: json['displayName'] as String,
+      title: json['title'] as String? ?? 'Ветеринарный врач',
+      clinicId: clinic['id'] as String,
+      clinicName: clinic['name'] as String,
+      locationId: location['id'] as String,
+      locationAddress: location['address'] as String,
+      nextAvailableAt: _optionalDate(json['nextAvailableAt']),
+      availability: _availabilitySummary(json['availability']),
+    );
+  }
+
+  CatalogAvailabilitySummary _availabilitySummary(dynamic value) {
+    if (value is! Map<String, dynamic>) {
+      return const CatalogAvailabilitySummary.unavailable();
+    }
+    return CatalogAvailabilitySummary(
+      sourceUpdatedAt: _optionalDate(value['sourceUpdatedAt']),
+      serverNow: _optionalDate(value['serverNow']),
+      freshness: switch (value['freshness']) {
+        'CURRENT' => CatalogAvailabilityFreshness.current,
+        'AGING' => CatalogAvailabilityFreshness.aging,
+        'STALE' => CatalogAvailabilityFreshness.stale,
+        _ => CatalogAvailabilityFreshness.unavailable,
+      },
+      confirmationMode: switch (value['confirmationMode']) {
+        'INSTANT' => CatalogConfirmationMode.instant,
+        'ALTERNATIVE_POSSIBLE' => CatalogConfirmationMode.alternativePossible,
+        _ => CatalogConfirmationMode.clinicConfirmation,
+      },
+    );
+  }
+
+  List<String> _strings(dynamic value) => value is List
+      ? value.whereType<String>().toList(growable: false)
+      : const <String>[];
+
+  Future<Map<String, String>> _headers() async {
+    final headers = <String, String>{'Accept': 'application/json'};
+    final provider = accessTokenProvider;
+    if (provider != null) {
+      headers['Authorization'] = 'Bearer ${await provider()}';
+    }
+    return headers;
   }
 
   CatalogLocation _locationFromJson(Map<String, dynamic> json) {

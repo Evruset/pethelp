@@ -226,7 +226,7 @@ class _PushableClinicProbe extends StatelessWidget {
   }
 }
 
-class _FakePublicCatalogRepository implements PublicCatalogRepository {
+class _FakePublicCatalogRepository extends PublicCatalogRepository {
   @override
   Future<List<CatalogClinic>> listClinics({
     String? query,

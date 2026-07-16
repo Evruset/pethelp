@@ -8,8 +8,8 @@ Updated: 2026-07-15
 - `V50-SHELL-01`: `COMPLETE / INTEGRATED` at `1c58ad6`.
 - `V50-OWNER-01`: `COMPLETE / INTEGRATED` at `2077b00`.
 - `V50-OWNER-02`: `COMPLETE / INTEGRATED` at `78d9322`.
-- `V50-OWNER-03`: bootstrap pending on an isolated branch/worktree.
-- Integration status: `V50-OWNER-02_INTEGRATED / V50-OWNER-03_NOT_STARTED`.
+- `V50-OWNER-03`: `COMPLETE / READY_FOR_INTEGRATION` at runtime `dc762b4`.
+- Integration status: `V50-OWNER-03_READY_FOR_INTEGRATION / V50-OWNER-04_INACTIVE`.
 - Canonical target: `V50`; source: `prototype-v50/index.html`; manifest SHA-256: `245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42`.
 - Program branch/worktree: `agent/v51-stage-01-architecture` / `/Users/evrusetskiy/work/pethelp-alpha`.
 - Root worktree still contains protected user changes in `.codex/ACTIVE_MODE` and `.codex/config.toml`; this worktree does not modify them.
@@ -31,7 +31,7 @@ Updated: 2026-07-15
 - Portal typecheck/build: PASS; focused Playwright: PASS 14/14; final full Portal E2E: PASS 95/95.
 - Visual shell evidence: PASS for Owner `375x812`, `412x915`, `768x1024`, `1440x900`; Portal `375x812`, `768x1024`, `1440x900`, `1920x1080`, plus loading, error/retry, session-missing/forbidden, reduced-motion and 200% text-scale evidence.
 - Evidence location outside Git: `/tmp/v50-shell-evidence/`.
-- Business-content visual counter is `3/30 VISUALLY_VERIFIED` after the V50-OWNER-02 independent validator passed.
+- Business-content visual counter is `7/30 VISUALLY_VERIFIED` after the V50-OWNER-03 independent validator passed.
 - Backend tests were not run because backend code did not change.
 - Independent repair review: PASS; no remaining vetoes.
 
@@ -70,8 +70,18 @@ Fresh package `v50-owner-02-c27e21f` contains 48/48 runtime screenshots, 12/12 a
 
 Acceptance closure passes field-specific Profile validation/draft preservation, archived/not-found/session/offline Profile states, owned/archived/foreign/unknown deep links, account-switch no-leak fencing, archived/network/foreign document states and automated keyboard focus. Browser/CDP traversal reaches 11/12/15 unique Pets/Profile/Diary targets without a consecutive trap. PostgreSQL 16 migration fixtures pass empty, active-data, already-archived, rollback-retention and repeated-run cases. Focused backend is 34/34, Flutter focused is 71/71, full Flutter is 235/235, analyze/builds pass. Independent read-only validation is PASS with zero vetoes.
 
+## Completed Owner catalog and doctor slice
+
+`V50-OWNER-03 / Clinic Catalog, Clinic Detail and Doctor Discovery` is complete on `agent/v50-owner-03` in `/Users/evrusetskiy/work/pethelp-alpha-v50-owner-03`; final runtime commit is `dc762b4`. Scope remains limited to `OWN-002`, `OWN-004`, `OWN-018` and `OWN-019`; booking holds and V50-OWNER-04 were not started.
+
+The repair aligns Catalog filtering, clinic-card fact priority, list/map synchronization, Clinic hero/availability/pricing/doctor-preview composition and responsive behavior with the authoritative anchors. Catalog freshness is visible and semantic, including an explicit stale state. The black top band was classified as `CAPTURE_HARNESS_DEFECT`; stable-frame, cache-disabled, service-worker-bypassed capture now rejects black bands and stale bundles.
+
+Backend focused catalog/auth/pet tests PASS 20/20. Post-runtime Flutter analyze PASS, affected tests PASS 48/48, full suite PASS 241/241, and both evidence and production Owner web builds PASS. Package `v50-owner-03-dc762b4` contains 48/48 runtime artifacts and 16/16 prototype references across 375/412/768/1440, with SHA-256 `e07837d15af828090b6be02b50be06b9f1dde3d60fa37f913991a87cac60a67b`; representative gate is 8/8 and black-band count is zero.
+
+Independent read-only validation is PASS with zero vetoes. `OWN-002`, `OWN-004`, `OWN-018` and `OWN-019` are `IMPLEMENTED / TESTED / VISUALLY_VERIFIED`; the counter is `7/30`. Integration readiness is PASS. Doctor production rollout remains BLOCKED by `PUBLIC_DOCTOR_PROFILE_CONSENT_CONTRACT_MISSING`; the strict allowlist/default-off mitigation and required future consent source are recorded in `docs/v50/V50-DOCTOR-PUBLIC-PROFILE-CONSENT-DEBT.md`.
+
 ## Next slice
 
-The next permitted slice is `V50-OWNER-03 / Clinic Catalog, Clinic Detail and Doctor Discovery`. Its isolated branch/worktree and bounded-context bootstrap must be created before runtime implementation.
+`V50-OWNER-04 / Service, Date, Slot and Booking Review` may start only in a fresh session after V50-OWNER-03 integration. It was not started here.
 
 The Owner Home backend reproduction gate is `PASS`: after canonical Compose recreated its dependency volume, Jest ran 4 focused suites and passed; the final combined Owner pets/Home run passed 23/23 tests. Resolution evidence is recorded in `docs/ai/tooling-debt/V50-OWNER-01-backend-spawn-einval.md`.

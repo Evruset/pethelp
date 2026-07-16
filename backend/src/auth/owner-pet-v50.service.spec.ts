@@ -58,6 +58,22 @@ describe('OwnerPetService V50 archive and diary contract', () => {
     });
   });
 
+  it('applies catalog pet context only through an active owner-scoped lookup', async () => {
+    const database = new V50Database({ pet: petRow() });
+    const context = await new OwnerPetService(database.asDatabase())
+      .readActiveCatalogContext(owner(), PET_ID);
+    expect(context).toMatchObject({ id: PET_ID, species: 'CAT' });
+    expect(database.lastPetSql).toContain('owner_id = $2::uuid');
+    expect(database.lastPetSql).toContain('archived_at IS NULL');
+    expect(database.lastPetValues).toEqual([PET_ID, OWNER_ID]);
+  });
+
+  it('normalizes unknown catalog pet context to unpersonalized absence', async () => {
+    const context = await new OwnerPetService(new V50Database({ pet: null }).asDatabase())
+      .readActiveCatalogContext(owner(), PET_ID);
+    expect(context).toBeUndefined();
+  });
+
   it('allows an owned archived profile and diary as controlled read-only history', async () => {
     const archived = { ...petRow(), archived_at: new Date('2026-07-14T12:00:00.000Z') };
     const service = new OwnerPetService(new V50Database({ pet: archived, diary: [] }).asDatabase());

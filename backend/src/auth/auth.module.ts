@@ -11,6 +11,7 @@ import { RolesGuard } from './roles.guard';
 import { WorkerAuthGuard } from './worker-auth.guard';
 import { CapabilityEvaluatorService } from './capability-evaluator.service';
 import { EffectiveSessionController } from './effective-session.controller';
+import { OptionalJwtAuthGuard } from './optional-jwt-auth.guard';
 
 @Global()
 @Module({
@@ -18,6 +19,7 @@ import { EffectiveSessionController } from './effective-session.controller';
   controllers: [OwnerAuthController, OwnerProfileController, OwnerPetController, EffectiveSessionController],
   providers: [
     JwtAuthGuard,
+    OptionalJwtAuthGuard,
     RolesGuard,
     WorkerAuthGuard,
     OwnerAuthService,
@@ -29,6 +31,7 @@ import { EffectiveSessionController } from './effective-session.controller';
   exports: [
     JwtModule,
     JwtAuthGuard,
+    OptionalJwtAuthGuard,
     RolesGuard,
     WorkerAuthGuard,
     OwnerAuthService,
