@@ -62,13 +62,14 @@ export class OwnerBookingCancellationController {
     return this.alternativeSnapshots.read(requiredUuid(bookingId, 'bookingId'), owner.sub);
   }
 
-  @Post(':proposalId/accept')
+  @Post(':bookingId/alternative/:proposalId/accept')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.OWNER)
   @ApiBearerAuth(SWAGGER_BEARER_AUTH)
   async acceptAlternative(
     @Param('proposalId') proposalId: string,
+    @Param('bookingId') bookingId: string,
     @CurrentUser() owner: JwtPayload,
     @Headers('idempotency-key') idempotencyKey?: string,
     @Headers('if-match') ifMatch?: string,
@@ -78,16 +79,17 @@ export class OwnerBookingCancellationController {
       idempotencyKey: requiredUuid(idempotencyKey, 'Idempotency-Key'),
       correlationId: requiredUuid(correlationId, 'X-Correlation-ID'),
       expectedVersion: requiredVersion(ifMatch, 'If-Match'),
-    });
+    }, requiredUuid(bookingId, 'bookingId'));
   }
 
-  @Post(':proposalId/decline')
+  @Post(':bookingId/alternative/:proposalId/decline')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.OWNER)
   @ApiBearerAuth(SWAGGER_BEARER_AUTH)
   async declineAlternative(
     @Param('proposalId') proposalId: string,
+    @Param('bookingId') bookingId: string,
     @CurrentUser() owner: JwtPayload,
     @Headers('idempotency-key') idempotencyKey?: string,
     @Headers('if-match') ifMatch?: string,
@@ -97,7 +99,7 @@ export class OwnerBookingCancellationController {
       idempotencyKey: requiredUuid(idempotencyKey, 'Idempotency-Key'),
       correlationId: requiredUuid(correlationId, 'X-Correlation-ID'),
       expectedVersion: requiredVersion(ifMatch, 'If-Match'),
-    });
+    }, requiredUuid(bookingId, 'bookingId'));
   }
 
   @Post(':holdId/cancel')

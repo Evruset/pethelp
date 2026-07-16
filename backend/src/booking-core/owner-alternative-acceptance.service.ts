@@ -60,18 +60,18 @@ export class OwnerAlternativeAcceptanceService {
     return this.alternatives.acceptAlternativeSlot(holdId, ownerId, command);
   }
 
-  async resolve(proposalId: string, ownerId: string, decision: Decision, command: ResolutionCommand): Promise<OwnerAlternativeResolution> {
+  async resolve(proposalId: string, ownerId: string, decision: Decision, command: ResolutionCommand, bookingId?: string): Promise<OwnerAlternativeResolution> {
     return this.database.withTransaction(async (client) => {
       await client.query("SET LOCAL lock_timeout = '250ms'");
       await client.query("SET LOCAL statement_timeout = '1500ms'");
 
       // Proposal identity is the command target and therefore the first lock.
-      const swap = await this.lockProposal(client, proposalId, ownerId);
+      const swap = await this.lockProposal(client, proposalId, ownerId, bookingId);
       if (!swap) throw DomainErrors.holdNotFound();
 
       const scope = `owner.alternative.${decision.toLowerCase()}:${ownerId}`;
       const fingerprint = createHash('sha256')
-        .update(JSON.stringify({ proposalId, decision, expectedVersion: command.expectedVersion }))
+        .update(JSON.stringify({ proposalId, bookingId: bookingId ?? swap.original_hold_id, decision, expectedVersion: command.expectedVersion }))
         .digest('hex');
       const replay = await this.acquireIdempotency(client, scope, command.idempotencyKey, fingerprint);
       if (replay) return replay as unknown as OwnerAlternativeResolution;
@@ -136,13 +136,15 @@ export class OwnerAlternativeAcceptanceService {
     });
   }
 
-  private async lockProposal(client: PoolClient, proposalId: string, ownerId: string): Promise<SwapRow | undefined> {
+  private async lockProposal(client: PoolClient, proposalId: string, ownerId: string, bookingId?: string): Promise<SwapRow | undefined> {
     return (await client.query<SwapRow>(`
       SELECT id::text, original_hold_id::text, original_slot_id::text, alternative_slot_id::text,
              owner_id::text, expires_at, state
       FROM booking_schema.alternative_swap_groups
-      WHERE id=$1::uuid AND owner_id=$2::uuid FOR UPDATE
-    `, [proposalId, ownerId])).rows[0];
+      WHERE id=$1::uuid AND owner_id=$2::uuid
+        AND ($3::uuid IS NULL OR original_hold_id=$3::uuid)
+      FOR UPDATE
+    `, [proposalId, ownerId, bookingId ?? null])).rows[0];
   }
 
   private async lockHold(client: PoolClient, holdId: string): Promise<HoldRow | undefined> {
