@@ -2,6 +2,7 @@ import { BadRequestException, Controller, Get, NotFoundException, Param, ParseUU
 import { ApiBadRequestResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   PublicAvailabilityResponse,
+  PublicBookingSelectionResponse,
   PublicCatalogResponse,
   PublicClinicDetail,
   PublicClinicsResponse,
@@ -168,6 +169,37 @@ export class PublicClinicController {
     const to = this.date(rawTo, new Date(from.getTime() + 14 * 24 * 60 * 60 * 1000));
     if (to <= from) throw new BadRequestException({ code: 'INVALID_AVAILABILITY_RANGE', message: 'to must be greater than from.' });
     return this.publicCatalog.readLocationAvailability({ locationId, from, to, limit: this.limit(rawLimit) });
+  }
+
+  @Get('clinic-locations/:locationId/booking-options')
+  @ApiOperation({
+    summary: 'Безопасный read-only выбор услуги, даты и времени',
+    description: 'Возвращает публичные услуги и доступные окна без capacity/counts. Ответ является intent snapshot и не создаёт hold.',
+  })
+  async readBookingOptions(
+    @Param('locationId', new ParseUUIDPipe()) locationId: string,
+    @Query('from') rawFrom?: string,
+    @Query('to') rawTo?: string,
+    @Query('limit') rawLimit?: string,
+    @Query('serviceId') serviceId?: string,
+    @Query('doctorId') doctorId?: string,
+    @Query('selectedPetId') selectedPetId?: string,
+    @OptionalCurrentUser() actor?: JwtPayload,
+  ): Promise<PublicBookingSelectionResponse> {
+    const from = this.date(rawFrom, new Date());
+    const to = this.date(rawTo, new Date(from.getTime() + 14 * 24 * 60 * 60 * 1000));
+    if (to <= from) throw new BadRequestException({ code: 'INVALID_AVAILABILITY_RANGE', message: 'to must be greater than from.' });
+    const result = await this.publicCatalog.readBookingSelection({
+      locationId,
+      from,
+      to,
+      limit: this.limit(rawLimit),
+      serviceId: this.optionalUuid(serviceId, 'serviceId'),
+      doctorId: this.optionalUuid(doctorId, 'doctorId'),
+      petContextApplied: await this.petContextApplied(actor, selectedPetId),
+    });
+    if (!result) throw new NotFoundException({ code: 'BOOKING_SELECTION_NOT_FOUND', message: 'Booking selection context was not found.' });
+    return result;
   }
 
   private query(value?: string): string | undefined {
