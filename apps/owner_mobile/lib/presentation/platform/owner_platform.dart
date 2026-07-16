@@ -2,9 +2,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+const _ownerV50WebShell = bool.fromEnvironment(
+  'OWNER_V50_WEB_SHELL',
+  defaultValue: true,
+);
+
 bool ownerUsesCupertino({TargetPlatform? platform}) {
   final effectivePlatform = platform ?? defaultTargetPlatform;
-  return !kIsWeb && effectivePlatform == TargetPlatform.iOS;
+  if (kIsWeb) return _ownerV50WebShell;
+  return effectivePlatform == TargetPlatform.iOS;
 }
 
 Route<T> ownerPageRoute<T>({
