@@ -384,10 +384,36 @@ evidence closure; production behavior is unchanged.
   PASS `57/57`; visual representative review PASS; `git diff --check` PASS.
   Tier B validator PASS after the stale in-flight poll/readback veto was fixed.
 
+## Completed slice
+
+`V50-CLINIC-01I / Clinic Queue SLA Ordering and Visibility` is `COMPLETE`.
+
+- The existing `ClinicQueueClientV2` now validates canonical timestamp shape,
+  numeric parseability, field ranges, and real calendar dates for `serverNow`
+  and every Queue timestamp before a polling snapshot can replace the last
+  valid snapshot. A malformed or technically failed read keeps the previous
+  queue visible in the explicit degraded state; it is never rendered as an
+  authoritative empty queue.
+- SLA presentation distinguishes `normal`, `due-soon`, `overdue`,
+  `not-applicable`, and `unknown` with explicit text in addition to color. One
+  shared one-second UI clock drives all rows; the separate authoritative poll
+  remains every 15 seconds. Poll responses recalibrate the server-time offset,
+  and visibility restore immediately recomputes local SLA before polling.
+- Row order is never derived from local countdowns. The backend array remains
+  authoritative, and an expired-but-not-transitioned head
+  `MANUAL_CONFIRM_PENDING` fixture stays in position while blocking later FIFO
+  actions until a valid authoritative snapshot moves or removes it.
+- Changed files: `apps/clinic-portal/components/queue/ClinicQueueClientV2.tsx`,
+  `apps/clinic-portal/tests/e2e/clinic-queue.spec.ts`, and this handoff. No new
+  screen, backend route, realtime transport, role, state-machine branch,
+  dependency, or migration was added.
+- Validation: Node 22 Portal typecheck PASS; Node 22 production build PASS;
+  focused Chromium Queue suite PASS `23/23`; backend Queue authority/integration
+  gate PASS `57/57`; `git diff --check` PASS.
+
 ## Next single action
 
-`V50-CLINIC-01I / Clinic Queue SLA Ordering and Visibility`: harden the existing
-Portal Queue SLA presentation against server-time drift, breached-item
-transitions and FIFO visibility while preserving the authoritative backend
-ordering and current V50 screen. Do not add a parallel queue UI or new backend
-route.
+`V50-CLINIC-02A / Clinic Appointments Registry Contract Discovery`: define the
+single bounded read-only registry contract and authority/test matrix for the
+existing Clinic Appointments gap before any production screen or route is
+implemented.

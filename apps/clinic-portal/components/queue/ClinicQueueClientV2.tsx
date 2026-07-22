@@ -12,6 +12,17 @@ const SLA_CRITICAL_MS = 180000;
 const POLL_MS = 15000;
 const SPECIES_LABELS: Record<string, string> = { cat: 'Кошка', dog: 'Собака' };
 
+function timestampMs(value: unknown): number | null {
+  if (typeof value !== 'string') return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.exec(value);
+  if (!match) return null;
+  const [, year, month, day, hour, minute, second] = match.map(Number);
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  if (month < 1 || month > 12 || day < 1 || day > daysInMonth || hour > 23 || minute > 59 || second > 59) return null;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 const dt = (value: string) => new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 const tm = (value: string) => new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 const species = (value: string) => SPECIES_LABELS[value.toLowerCase()] ?? value;
@@ -47,15 +58,17 @@ function errorCode(payload: unknown): string {
 function isQueuePayload(payload: unknown, clinicId: string, locationId: string): payload is ManualConfirmationQueue {
   if (!payload || typeof payload !== 'object') return false;
   const candidate = payload as Partial<ManualConfirmationQueue>;
-  if (candidate.clinicId !== clinicId || candidate.locationId !== locationId || typeof candidate.serverNow !== 'string' || !Array.isArray(candidate.items)) return false;
+  if (candidate.clinicId !== clinicId || candidate.locationId !== locationId || timestampMs(candidate.serverNow) === null || !Array.isArray(candidate.items)) return false;
   const ids = new Set<string>();
   return candidate.items.every((item) => {
     if (!item || typeof item !== 'object' || typeof item.holdId !== 'string' || !Number.isInteger(item.version) || item.version < 1 || ids.has(item.holdId)) return false;
     ids.add(item.holdId);
-    return typeof item.confirmationSlaExpiresAt === 'string'
-      && typeof item.manualConfirmPendingAt === 'string'
-      && typeof item.slot?.startsAt === 'string'
-      && typeof item.slot?.endsAt === 'string'
+    return timestampMs(item.confirmationSlaExpiresAt) !== null
+      && timestampMs(item.holdExpiresAt) !== null
+      && timestampMs(item.manualConfirmPendingAt) !== null
+      && timestampMs(item.slot?.startsAt) !== null
+      && timestampMs(item.slot?.endsAt) !== null
+      && (item.latestAudit == null || timestampMs(item.latestAudit.occurredAt) !== null)
       && typeof item.pet?.name === 'string';
   });
 }
@@ -103,7 +116,7 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
       const payload: unknown = await response.json().catch(() => null);
       if (!response.ok || !isQueuePayload(payload, clinicId, locationId)) throw new Error('queue');
       setQueue(payload);
-      setOffsetMs(Date.parse(payload.serverNow) - Date.now());
+      setOffsetMs(timestampMs(payload.serverNow)! - Date.now());
       setOnline(true);
       setLastSyncedAt(Date.now());
       if (!quiet) setNotice(null);
@@ -134,7 +147,7 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
     refreshDone.current = null;
     refreshWaiters.current.splice(0).forEach((resolve) => resolve());
     setQueue(initialQueue);
-    setOffsetMs(Date.parse(initialQueue.serverNow) - Date.now());
+    setOffsetMs((timestampMs(initialQueue.serverNow) ?? Date.now()) - Date.now());
     setOnline(true);
     setLastSyncedAt(Date.now());
     setRowState({});
@@ -155,7 +168,10 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
   useEffect(() => {
     const poller = window.setInterval(() => void refresh(true), POLL_MS);
     const onVisibility = () => {
-      if (document.visibilityState === 'visible') void refresh(true);
+      if (document.visibilityState === 'visible') {
+        setNow(Date.now());
+        void refresh(true);
+      }
     };
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
@@ -342,7 +358,8 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
   }, [refresh, rowState]);
 
   const serverNowMs = now + offsetMs;
-  const firstActionableIndex = queue.items.findIndex((item) => Date.parse(item.confirmationSlaExpiresAt) > serverNowMs);
+  const firstSlaMs = queue.items.length > 0 ? timestampMs(queue.items[0].confirmationSlaExpiresAt) : null;
+  const firstActionableIndex = firstSlaMs !== null && firstSlaMs > serverNowMs ? 0 : -1;
 
   return (
     <main className="min-h-screen px-4 py-6 sm:px-8 lg:px-12">
@@ -397,10 +414,22 @@ function Empty() {
 }
 
 function QueueRow({ item, position, serverNowMs, state, canAct, onConfirm, onDecline, onAlternative, onNotes, onAudit, onHold }: { item: ManualConfirmationQueueItem; position: number; serverNowMs: number; state: RowState; canAct: boolean; onConfirm: (item: ManualConfirmationQueueItem) => void; onDecline: (item: ManualConfirmationQueueItem) => void; onAlternative: (item: ManualConfirmationQueueItem) => void; onNotes: (item: ManualConfirmationQueueItem) => void; onAudit: (item: ManualConfirmationQueueItem) => void; onHold?: (item: ManualConfirmationQueueItem) => void }) {
-  const remainingMs = Date.parse(item.confirmationSlaExpiresAt) - serverNowMs;
-  const breached = remainingMs <= 0;
-  const critical = !breached && remainingMs <= SLA_CRITICAL_MS;
-  const blocked = breached || state === 'fenced' || !canAct;
+  const expiresAtMs = timestampMs(item.confirmationSlaExpiresAt);
+  const remainingMs = expiresAtMs === null ? null : expiresAtMs - serverNowMs;
+  const breached = remainingMs !== null && remainingMs <= 0;
+  const critical = remainingMs !== null && remainingMs > 0 && remainingMs <= SLA_CRITICAL_MS;
+  const normal = remainingMs !== null && remainingMs > SLA_CRITICAL_MS;
+  const notApplicable = item.confirmationSlaExpiresAt == null;
+  const blocked = !normal && !critical || state === 'fenced' || !canAct;
+  const slaLabel = breached
+    ? 'SLA просрочен'
+    : critical
+      ? `SLA скоро истечёт · ${clock(remainingMs!)}`
+      : normal
+        ? `SLA в норме · ${clock(remainingMs!)}`
+        : notApplicable
+          ? 'SLA не применим'
+          : 'SLA неизвестен';
   const actionLabel = state === 'confirming'
     ? 'Подтверждаем...'
     : state === 'declining'
@@ -419,7 +448,7 @@ function QueueRow({ item, position, serverNowMs, state, canAct, onConfirm, onDec
       <td className="px-4 py-4 align-top"><p className="text-sm font-semibold">{item.pet.name}</p><p className="mt-1 text-xs text-slate-600">{species(item.pet.species)}</p></td>
       <td className="px-4 py-4 align-top text-sm text-slate-700"><p>{item.service?.displayName ?? 'Услуга не указана'}</p>{item.latestAudit ? <p className="mt-2 text-xs text-slate-500">Последнее: {auditAction(item.latestAudit.action)} · {dt(item.latestAudit.occurredAt)}</p> : null}</td>
       <td className="px-4 py-4 align-top"><p className="text-sm font-medium text-slate-800">{dt(item.slot.startsAt)}</p><p className="mt-1 text-xs text-slate-600">{tm(item.slot.startsAt)}-{tm(item.slot.endsAt)}</p></td>
-      <td className="px-4 py-4 align-top"><span className={`inline-flex rounded-full px-2.5 py-1 text-sm font-semibold ${(critical || breached) ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'}`} aria-live={critical || breached ? 'polite' : undefined}>{breached ? 'SLA истёк' : `Осталось ${clock(remainingMs)}`}</span>{(critical || breached) ? <p className="mt-2 text-xs font-medium text-red-800">{breached ? 'Заявка передана в автоматическую обработку.' : 'Срок подтверждения истекает.'}</p> : !canAct ? <p className="mt-2 text-xs text-slate-600">Сначала обработайте более раннюю заявку.</p> : null}</td>
+      <td className="px-4 py-4 align-top"><span className={`inline-flex rounded-full px-2.5 py-1 text-sm font-semibold ${(critical || breached) ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'}`} aria-live={critical || breached ? 'polite' : undefined}>{slaLabel}</span>{(critical || breached) ? <p className="mt-2 text-xs font-medium text-red-800">{breached ? 'Требуется авторитетное обновление: backend ещё не перевёл заявку.' : 'Внимание: срок подтверждения истекает.'}</p> : !canAct ? <p className="mt-2 text-xs text-slate-600">Сначала обработайте более раннюю заявку.</p> : null}</td>
       <td className="px-4 py-4 align-top"><div className="flex flex-col gap-2"><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onConfirm(item)} className="w-full rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">{actionLabel}</button><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onAlternative(item)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Другое время</button><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onNotes(item)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Уточнения</button><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onDecline(item)} className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Отклонить</button>{onHold ? <button type="button" onClick={() => onHold(item)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Состояние удержания</button> : null}<button type="button" onClick={() => onAudit(item)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">История</button></div></td>
     </tr>
   );

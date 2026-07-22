@@ -143,13 +143,83 @@ test('renders backend FIFO order and SLA risk state from serverNow', async ({ pa
     await expect(rowFor(page, 'Барс')).toContainText('1');
     await expect(rowFor(page, 'Шарик')).toContainText('2');
     await expect(rowFor(page, 'Марта')).toContainText('3');
-    await expect(rowFor(page, 'Барс')).toContainText('Срок подтверждения истекает.');
+    await expect(rowFor(page, 'Барс')).toContainText('SLA скоро истечёт');
+    await expect(rowFor(page, 'Барс')).toContainText('Внимание: срок подтверждения истекает.');
+    await expect(rowFor(page, 'Шарик')).toContainText('SLA в норме');
     await expect(rowFor(page, 'Шарик')).toContainText('Сначала обработайте более раннюю заявку.');
     await expect(rowFor(page, 'Марта')).toContainText('Сначала обработайте более раннюю заявку.');
     await expect(rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' })).toBeEnabled();
     await expect(rowFor(page, 'Шарик').getByRole('button', { name: 'Ожидает очередь' })).toBeDisabled();
     if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-queue-desktop.png`, fullPage: true });
   });
+});
+
+test('keeps an expired-but-not-transitioned MANUAL_CONFIRM_PENDING fixture in authoritative position', async ({ page, context, baseURL }) => {
+  items[0] = { ...items[0], confirmationSlaExpiresAt: '2026-06-25T11:59:59.000Z' };
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+
+  await expect(rowFor(page, 'Барс')).toContainText('1');
+  await expect(rowFor(page, 'Барс')).toContainText('SLA просрочен');
+  await expect(rowFor(page, 'Барс')).toContainText('backend ещё не перевёл заявку');
+  await expect(rowFor(page, 'Барс').getByRole('button', { name: 'Недоступно' })).toBeDisabled();
+  await expect(rowFor(page, 'Шарик')).toContainText('2');
+  await expect(rowFor(page, 'Шарик').getByRole('button', { name: 'Ожидает очередь' })).toBeDisabled();
+});
+
+test('presents not-applicable and unknown SLA explicitly without relying on color', async ({ page, context, baseURL }) => {
+  items = [
+    { ...items[0], pet: { ...items[0].pet, name: 'Без SLA' }, confirmationSlaExpiresAt: null as unknown as string },
+    { ...items[1], pet: { ...items[1].pet, name: 'Неизвестный SLA' }, confirmationSlaExpiresAt: 'not-a-timestamp' },
+  ];
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+
+  await expect(rowFor(page, 'Без SLA')).toContainText('SLA не применим');
+  await expect(rowFor(page, 'Неизвестный SLA')).toContainText('SLA неизвестен');
+});
+
+test('uses one shared UI clock, preserves row order locally and accepts authoritative clock correction', async ({ page, context, baseURL }) => {
+  items[0] = { ...items[0], confirmationSlaExpiresAt: '2026-06-25T12:00:01.000Z' };
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+
+  await page.waitForTimeout(2_100);
+  await expect(rowFor(page, 'Барс')).toContainText('SLA просрочен');
+  await expect(rowFor(page, 'Барс')).toContainText('1');
+  await expect(rowFor(page, 'Шарик')).toContainText('2');
+
+  let correctedReads = 0;
+  await page.route('**/booking-queue', (route) => {
+    correctedReads += 1;
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ clinicId, locationId, serverNow: '2026-06-25T12:09:00.000Z', items }),
+    });
+  });
+  await page.getByRole('button', { name: 'Обновить' }).click();
+  await expect.poll(() => correctedReads).toBe(1);
+  await expect(rowFor(page, 'Шарик')).toContainText('SLA скоро истечёт');
+  await expect(rowFor(page, 'Барс')).toContainText('1');
+});
+
+test('recomputes SLA immediately when a hidden tab becomes visible', async ({ page, context, baseURL }) => {
+  items[0] = { ...items[0], confirmationSlaExpiresAt: '2026-06-25T12:00:01.000Z' };
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => (window as any).__queueVisibility });
+    (window as any).__queueVisibility = 'hidden';
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await page.waitForTimeout(2_100);
+  queueFailures = 1;
+  await page.evaluate(() => {
+    (window as any).__queueVisibility = 'visible';
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect(rowFor(page, 'Барс')).toContainText('SLA просрочен');
 });
 
 test('confirms the first actionable hold and refreshes authoritative queue', async ({ page, context, baseURL }, testInfo) => {
@@ -282,11 +352,12 @@ test('rejects malformed, wrong-scope and duplicate queue payloads without replac
     { clinicId, locationId, serverNow, items: [{ holdId: holdA }] },
     { clinicId: forbiddenLocationId, locationId, serverNow, items: [] },
     { clinicId, locationId, serverNow, items: [items[0], items[0]] },
+    { clinicId, locationId, serverNow, items: [{ ...items[0], confirmationSlaExpiresAt: '2026-02-30T12:00:00.000Z' }] },
   ];
   await page.route('**/api/clinic/**/booking-queue', async (route) => {
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(payloads.shift()) });
   });
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  for (let attempt = 0; attempt < 4; attempt += 1) {
     await page.getByRole('button', { name: 'Обновить' }).click();
     await expect(page.getByText(/Нет соединения · данные на/)).toBeVisible();
     await expect(rowFor(page, 'Барс')).toBeVisible();
