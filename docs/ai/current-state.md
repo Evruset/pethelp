@@ -345,7 +345,49 @@ evidence closure; production behavior is unchanged.
 
 ## Next single action
 
-`V50-CLINIC-01H / Clinic Portal Queue Integration`: connect the existing Clinic
-Portal contour to the authoritative Queue polling contract, preserving current
-design assets, clinic/location authority, reload recovery, and server-authored
-state/version semantics. Do not create a parallel UI or new backend route.
+`V50-CLINIC-01H / Clinic Portal Queue Integration` is `COMPLETE`.
+
+- The production Portal is `apps/clinic-portal`; the existing route
+  `/clinics/:clinicId/locations/:locationId/queue` continues to render
+  `components/queue/ClinicQueueClientV2.tsx`. No workspace, screen, design
+  shell, backend route, DTO, role, or state-machine branch was added.
+- The screen consumes the authoritative Queue BFF/API with clinic/location
+  scope, validates returned scope, versions, required item fields and unique
+  hold IDs, and retains the last successful snapshot only with an explicit
+  degraded timestamp. Technical errors never become a business-empty state;
+  stale/degraded rows cannot execute commands.
+- Existing 15-second polling now has one in-flight request per screen, skips
+  background polling while hidden, refreshes immediately when visible, aborts
+  and fences old-scope requests on cleanup, and coalesces overlapping manual
+  polls. A command readback encountered behind an in-flight stale poll is
+  queued and completes only after a mandatory second authoritative fetch.
+- Confirm, decline, request-notes and clinic alternative proposal remain wired
+  through the existing BFF routes with authoritative item `If-Match` and one
+  idempotency key per logical attempt. Transport/server retry reuses the key;
+  a completed denial/conflict followed by a new explicit action gets a new
+  key. Success is never optimistic: every command performs Queue readback.
+- Decline now collects the required 3–1000 character reason instead of sending
+  fixed demo text. Input remains in the dialog after transport failure and is
+  cleared only after authoritative success. Request-notes and alternative
+  selection retain their existing validation/conflict behavior.
+- Role/capability and URL-scope fail-closed behavior remains intact. Unknown
+  audit actions use a safe label instead of exposing a raw backend enum.
+  Desktop and 768px tablet evidence preserve the existing V50 hierarchy;
+  critical actions remain keyboard operable, and loading/error/degraded/
+  decline/conflict states are captured under
+  `/tmp/v50-clinic-01h-evidence/`.
+- Changed files: `apps/clinic-portal/components/queue/ClinicQueueClientV2.tsx`,
+  `apps/clinic-portal/tests/e2e/clinic-queue.spec.ts`, and this handoff. Backend
+  behavior and public contracts are unchanged.
+- Validation: Portal typecheck PASS; Node 22 production build PASS; focused
+  Chromium Queue suite PASS `19/19`; backend Queue authority/integration gate
+  PASS `57/57`; visual representative review PASS; `git diff --check` PASS.
+  Tier B validator PASS after the stale in-flight poll/readback veto was fixed.
+
+## Next single action
+
+`V50-CLINIC-01I / Clinic Queue SLA Ordering and Visibility`: harden the existing
+Portal Queue SLA presentation against server-time drift, breached-item
+transitions and FIFO visibility while preserving the authoritative backend
+ordering and current V50 screen. Do not add a parallel queue UI or new backend
+route.
