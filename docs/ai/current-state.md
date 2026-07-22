@@ -1,6 +1,6 @@
 # V50 program current state
 
-Updated: 2026-07-16
+Updated: 2026-07-22
 
 ## Program status
 
@@ -150,3 +150,29 @@ SHA-256 `a945970478939453d58d6014eb307e68d252f58fd7938545189f604f3414601a`.
 State/security, product/visual and final integration validators PASS with zero
 vetoes. `OWN-020` is IMPLEMENTED / TESTED / VISUALLY_VERIFIED; program counter
 is 12/30. `OWN-008` remains bounded partial.
+
+## Active slice
+
+`V50-CLINIC-01A / Manual Confirmation → Authoritative Owner Status` is
+`COMPLETE`. The owner hold projection derives `confirmationMode` from the
+pending manual-confirmation SLA marker or the persisted clinic-employee
+confirmation event, so a Level-C hold confirmed by clinic staff remains
+`MANUAL` instead of being misreported as `AUTOMATIC` after entering
+`CONFIRMED`.
+
+The real-PostgreSQL queue harness covers the bounded B2C → Clinic Queue →
+confirmation → owner-status readback and asserts `CONFIRMED`,
+`VIEW_APPOINTMENT`, aggregate version `2`, and `MANUAL` semantics. No route,
+DTO shape, mutation, migration, dependency, role, or scope changed.
+
+Validation: canonical Compose focused PostgreSQL suites PASS `10/10`; backend
+build PASS; `git diff --check` PASS. The prior `DOCKER_DAEMON_UNAVAILABLE`
+integration veto is resolved. No open veto remains for this bounded slice.
+
+## Next single action
+
+`V50-CLINIC-01B / Clinic Queue HTTP Authority Matrix`: add a focused HTTP-level
+matrix for the existing queue read and manual-confirmation route covering role,
+active membership, exact clinic/location scope, normalized denial, no resource
+leakage, idempotent confirmation, and authoritative owner readback. Do not add
+a route, migration, mutation, or parallel Clinic Portal UI.

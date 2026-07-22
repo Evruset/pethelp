@@ -55,6 +55,8 @@ export class BookingHoldReadService {
       await client.query("SET LOCAL statement_timeout = '250ms'");
       const result = await client.query<{
         hold_id: string; owner_id: string; slot_id: string; state: string; expires_at: Date;
+        confirmation_sla_expires_at: Date | null;
+        manually_confirmed: boolean;
         hold_version: number; updated_at: Date; server_now: Date; clinic_location_id: string;
         clinic_id: string; clinic_name: string; clinic_timezone: string; location_address: string;
         starts_at: Date; ends_at: Date; integration_mode: string; pet_id: string; pet_name: string;
@@ -62,6 +64,14 @@ export class BookingHoldReadService {
         doctor_name: string | null;
       }>(`
         SELECT h.id::text AS hold_id, h.owner_id::text, h.slot_id::text, h.state, h.expires_at,
+               h.confirmation_sla_expires_at,
+               EXISTS (
+                 SELECT 1
+                 FROM booking_schema.appointment_events event
+                 WHERE event.hold_id = h.id
+                   AND event.event_type = 'CONFIRMED'
+                   AND event.actor_type = 'CLINIC_EMPLOYEE'
+               ) AS manually_confirmed,
                h.version AS hold_version, h.updated_at, clock_timestamp() AS server_now,
                s.clinic_location_id::text, location.clinic_id::text, clinic.public_name AS clinic_name,
                clinic.timezone AS clinic_timezone, location.address AS location_address,
@@ -90,7 +100,7 @@ export class BookingHoldReadService {
 
       const status = STATUS[hold.state] ?? { title: 'Проверяем статус заявки', description: 'Получаем актуальный статус от клиники.', next: 'WAIT' as const };
       const confirmationMode = hold.integration_mode === 'LEVEL_C'
-        ? (hold.state === 'CONFIRMED' ? 'AUTOMATIC' : 'MANUAL')
+        ? (hold.confirmation_sla_expires_at || hold.manually_confirmed ? 'MANUAL' : 'AUTOMATIC')
         : 'MIS';
       return {
         holdId: hold.hold_id,
