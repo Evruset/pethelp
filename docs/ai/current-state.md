@@ -411,9 +411,33 @@ evidence closure; production behavior is unchanged.
   focused Chromium Queue suite PASS `23/23`; backend Queue authority/integration
   gate PASS `57/57`; `git diff --check` PASS.
 
+## Completed slice
+
+`V50-CLINIC-02A / Clinic Appointments Registry Contract Discovery` is
+`COMPLETE` as an evidence-only contract closure; production behavior is
+unchanged.
+
+- The existing Queue is confirmed as a manual-confirmation worklist, not an
+  appointments registry. Owner appointment reads are owner-scoped and are not
+  reusable as clinic-staff authority.
+- `docs/v50/V50-CLINIC-APPOINTMENTS-REGISTRY-CONTRACT.md` now defines one future
+  location-scoped, cursor-paginated, read-only list: admin/reception capability
+  authority, active membership and exact scope, safe projection, upcoming and
+  history ordering, cursor binding, empty-versus-technical-failure behavior,
+  side-effect freedom, rollout boundary, and the focused authority/read-model
+  test matrix.
+- Route and parity matrices record `CONTRACT_COMPLETE / IMPLEMENTATION_MISSING`.
+  No Portal route/component, backend endpoint/DTO, capability, feature flag,
+  dependency, role, mutation, state machine, migration, or Queue behavior was
+  changed.
+- Validation: Tier B contract validator PASS after bucket-boundary, cursor
+  snapshot, and evidence-traceability vetoes were resolved; `git diff --check`
+  PASS. No runtime suite is applicable because this slice changes no executable
+  code or public contract.
+
 ## Next single action
 
-`V50-CLINIC-02A / Clinic Appointments Registry Contract Discovery`: define the
-single bounded read-only registry contract and authority/test matrix for the
-existing Clinic Appointments gap before any production screen or route is
-implemented.
+`V50-CLINIC-02B / Clinic Appointments Registry Backend Read Model`: implement
+only the contracted location-scoped cursor list, centralized capability/scope
+authority, and focused PostgreSQL/HTTP matrix; do not add the Portal screen or
+appointment mutations.

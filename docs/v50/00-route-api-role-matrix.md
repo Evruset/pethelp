@@ -77,7 +77,7 @@ Production status:
 | `clinic-workspace` | admin operational dashboard или doctor personal shift | отсутствует; portal `/` — informational page | dashboard/shift read models отсутствуют | **отсутствует** |
 | `clinic-schedule` | admin services/staff/resources/availability; no doctor default | `/clinics/:clinicId/locations/:locationId/schedule`, `ClinicScheduleClient` | full schedule snapshot + 14 mutation families | **реализовано** для admin/reception; shell parity partial |
 | `clinic-visit` | assigned doctor clinical workbench | production page отсутствует | clinical visit API/schema отсутствуют | **отсутствует**; free-text complete endpoint is not replacement |
-| `clinic-appointments` | admin registry/detail/actions; doctor personal shift only | queue route covers only manual pending; registry absent | clinic appointment list/detail/check-in/reschedule APIs absent | **отсутствует/частично** |
+| `clinic-appointments` | admin registry/detail/actions; doctor personal shift only | queue route covers only manual pending; registry absent | bounded location-scoped cursor list contract defined in `V50-CLINIC-APPOINTMENTS-REGISTRY-CONTRACT.md`; production list/detail/check-in/reschedule APIs absent | **contract complete; implementation absent** |
 | `clinic-patients` | admin registry; doctor treatment-scoped registry | отсутствует | clinic patient list API absent | **отсутствует** |
 | `clinic-patient` | capability-filtered administrative/medical card | отсутствует | clinic patient detail API absent | **отсутствует** |
 | `clinic-telemed` | admin dispatcher or doctor assigned cases | location route blocks access; `/telemed/vet` is platform vet queue | vet queue exists; admin dispatcher absent | **частично/conflict in ownership model** |
