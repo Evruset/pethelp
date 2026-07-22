@@ -171,8 +171,28 @@ integration veto is resolved. No open veto remains for this bounded slice.
 
 ## Next single action
 
-`V50-CLINIC-01B / Clinic Queue HTTP Authority Matrix`: add a focused HTTP-level
-matrix for the existing queue read and manual-confirmation route covering role,
-active membership, exact clinic/location scope, normalized denial, no resource
-leakage, idempotent confirmation, and authoritative owner readback. Do not add
-a route, migration, mutation, or parallel Clinic Portal UI.
+`V50-CLINIC-01B / Clinic Queue HTTP Authority Matrix` is `COMPLETE`.
+
+- A focused real NestJS/PostgreSQL HTTP matrix covers the existing queue read
+  and manual-confirmation routes: allowed receptionist, role denial, revoked
+  and missing membership, claims without membership, missing/incompatible
+  clinic and location scopes, cross-clinic/location isolation, normalized
+  no-leak denials, and idempotent success with authoritative owner readback.
+- The matrix exposed and closed an authorization gap in the existing mutation
+  path: a matching `locationIds` claim and membership previously allowed confirm
+  with a missing or incompatible `clinicIds` claim. `assertLocationAccess` now
+  matches the JWT clinic scope against the clinic resolved server-side through
+  the active, non-revoked location membership inside the transaction.
+- Denied confirmations prove unchanged state/version and zero appointment,
+  `booking.confirmed.v1` outbox, and `booking.confirmed` audit side effects.
+- Validation: HTTP authority matrix PASS `17/17`; Clinic Queue regression PASS
+  `6/6`; backend build PASS; `git diff --check` PASS. Independent Tier B
+  validator PASS with no vetoes.
+
+## Next single action
+
+`V50-CLINIC-01C / Decline and Request-Notes HTTP Authority Matrix`: extend the
+same focused HTTP harness to the two existing queue commands only, proving
+exact clinic/location authority, idempotency, normalized no-leak denial, and
+zero denied state/version/outbox/audit effects. Do not add routes, migrations,
+roles, state transitions, or Clinic Portal UI.

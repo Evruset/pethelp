@@ -19,11 +19,19 @@ export class ClinicEmployeeAccessService {
       throw DomainErrors.clinicScopeMismatch();
     }
     if (!employee.locationIds?.includes(clinicLocationId)) throw DomainErrors.clinicScopeMismatch();
-    const membership = await client.query<{ employee_id: string }>(`
-      SELECT employee_id FROM clinic_schema.employee_location_memberships
-      WHERE employee_id = $1::uuid AND clinic_location_id = $2::uuid AND active = true FOR SHARE
+    const membership = await client.query<{ employee_id: string; clinic_id: string }>(`
+      SELECT membership.employee_id, location.clinic_id::text
+      FROM clinic_schema.employee_location_memberships membership
+      JOIN clinic_schema.clinic_locations location ON location.id = membership.clinic_location_id
+      WHERE membership.employee_id = $1::uuid
+        AND membership.clinic_location_id = $2::uuid
+        AND membership.active = true
+        AND membership.revoked_at IS NULL
+      FOR SHARE OF membership, location
     `, [employee.sub, clinicLocationId]);
-    if (!membership.rows[0]) throw DomainErrors.clinicScopeMismatch();
+    if (!membership.rows[0] || !employee.clinicIds?.includes(membership.rows[0].clinic_id)) {
+      throw DomainErrors.clinicScopeMismatch();
+    }
   }
 
   async assertBookingQueueReadAccess(client: PoolClient, employee: JwtPayload, clinicId: string, clinicLocationId: string): Promise<void> {
