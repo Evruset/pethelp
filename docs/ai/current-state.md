@@ -266,7 +266,48 @@ as a test/evidence closure with no production-code change.
 
 ## Next single action
 
-`V50-CLINIC-01F / Outbox Worker Replay Reliability`: extend the existing
-focused outbox/worker harness for Clinic Queue command events to prove retry
-and duplicate delivery cannot create duplicate downstream effects. Keep the
-slice test/evidence-first; do not add routes, migrations, roles, states, or UI.
+`V50-CLINIC-01F / Outbox Worker Replay Reliability` is `COMPLETE`.
+
+- The actual shared contract is `booking_schema.outbox_events`, UUID primary
+  key/event ID, aggregate/event metadata and JSON payload, unique optional
+  `deduplication_key`, and statuses `PENDING`, `LEASED`, `PUBLISHED`, plus the
+  bounded terminal `FAILED`. Claims are ordered by event ID, batch size is 20,
+  the lease is 30 seconds, retry delay is the existing fixed 5 seconds, and the
+  terminal limit is five claimed delivery attempts. There is no separate DLQ
+  or per-aggregate ordering guarantee.
+- Booking state, audit and outbox insertion remain in the command's PostgreSQL
+  transaction. Existing Queue HTTP evidence proves one authoritative command
+  transition/event; the focused outbox harness proves transaction rollback
+  leaves no record.
+- Two reliability defects were repaired in the common primitive without a
+  migration: poison events previously retried forever, and an abandoned
+  `LEASED` row could never be reclaimed. Failed events now become observable as
+  `FAILED` after attempt five, and an expired lease is reclaimable.
+- Reclaimed leases are fenced by the full-precision PostgreSQL `lease_until`
+  token. A stale claimant cannot publish-complete or release the newer claim;
+  only the current token can mutate it. Two-worker claim overlap and the stale
+  claimant race are covered.
+- Retry state, attempt count, safe generic `last_error`, next availability,
+  terminal structured logging with event/correlation IDs, poison isolation,
+  completed-row non-selection and restart persistence are covered. Error
+  evidence does not include event payload or provider error text.
+- Canonical Compose restart evidence proves pending delivery survives backend
+  restart, persisted failed-attempt metadata survives restart and recovers on
+  attempt two, and restart after success preserves the same attempt count and
+  `published_at` without replay.
+- Changed files: `backend/src/outbox/outbox.service.ts`,
+  `backend/src/outbox/outbox-relay.service.ts`,
+  `backend/test/booking-outbox-replay.integration-spec.ts`, and this handoff.
+  No route, DTO, role, booking state, dependency, migration, or UI changed.
+- Validation: focused PostgreSQL outbox suite PASS `5/5`; Clinic Queue and HTTP
+  version/replay regressions PASS `50/50`; backend build PASS;
+  `git diff --check` PASS. Independent Tier B validator PASS after the
+  lease-fencing veto was repaired.
+
+## Next single action
+
+`V50-CLINIC-01G / Queue Read-Model Reconnect and Recovery`: extend the existing
+Clinic Queue read harness to prove reconnect/reload recovery, authoritative
+version/state convergence, and no duplicate or missing queue items after
+commands and worker progress. Do not add routes, migrations, roles, states, or
+parallel UI.
