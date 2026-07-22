@@ -30,6 +30,9 @@ const IDS = {
   slot: '61000000-0000-4000-8000-000000000001',
   alternativeSlot: '61000000-0000-4000-8000-000000000002',
   hold: '71000000-0000-4000-8000-000000000001',
+  recoveryOlderHold: '71000000-0000-4000-8000-000000000010',
+  recoveryTieHold: '71000000-0000-4000-8000-000000000011',
+  recoveryForeignHold: '71000000-0000-4000-8000-000000000012',
 };
 
 type Actor = {
@@ -64,8 +67,8 @@ describe('Clinic Queue HTTP authority matrix', () => {
     algorithm: 'HS256',
   });
 
-  const queue = async (input: Parameters<typeof tokenFor>[0], clinicId = IDS.clinic, locationId = IDS.location) => request(app.getHttpServer())
-    .get(`/v1/clinic/${clinicId}/locations/${locationId}/booking-queue`)
+  const queue = async (input: Parameters<typeof tokenFor>[0], clinicId = IDS.clinic, locationId = IDS.location, limit?: number) => request(app.getHttpServer())
+    .get(`/v1/clinic/${clinicId}/locations/${locationId}/booking-queue${limit ? `?limit=${limit}` : ''}`)
     .set('Authorization', `Bearer ${await tokenFor(input)}`);
 
   const confirm = async (input: Actor, idempotencyKey = randomUUID(), version: number | null = 1) => {
@@ -139,6 +142,116 @@ describe('Clinic Queue HTTP authority matrix', () => {
     expect(response.body).toMatchObject({ clinicId: IDS.clinic, locationId: IDS.location });
     expect(response.body.items).toHaveLength(1);
     expect(response.body.items[0]).toMatchObject({ holdId: IDS.hold, version: 1 });
+  });
+
+  it('returns a repeatable authoritative FIFO snapshot with stable tie-breaker and no read side effects', async () => {
+    await seedRecoveryQueue(database);
+    const before = await readSideEffects(database);
+    const first = await queue(allowed());
+    const repeated = await queue(allowed());
+    expect(first.status).toBe(200);
+    expect(repeated.status).toBe(200);
+    expect(first.body.items.map((item: { holdId: string }) => item.holdId)).toEqual([
+      IDS.recoveryOlderHold, IDS.hold, IDS.recoveryTieHold,
+    ]);
+    expect(new Set(first.body.items.map((item: { holdId: string }) => item.holdId)).size).toBe(3);
+    expect(repeated.body.items).toEqual(first.body.items);
+    expect(first.body.items.every((item: { version: number }) => item.version === 1)).toBe(true);
+    expect(first.body.items).toEqual(expect.not.arrayContaining([
+      expect.objectContaining({ holdId: IDS.recoveryForeignHold }),
+    ]));
+    expect((await queue(allowed(), IDS.clinic, IDS.location, 2)).body.items.map((item: { holdId: string }) => item.holdId)).toEqual([
+      IDS.recoveryOlderHold, IDS.hold,
+    ]);
+    expect(await readSideEffects(database)).toEqual(before);
+  });
+
+  it('applies the documented default 50 and maximum 100 snapshot limits without duplicates', async () => {
+    await seedQueueVolume(database, 101);
+    const defaultPage = await queue(allowed());
+    const clampedPage = await queue(allowed(), IDS.clinic, IDS.location, 999);
+    expect(defaultPage.status).toBe(200);
+    expect(defaultPage.body.items).toHaveLength(50);
+    expect(clampedPage.status).toBe(200);
+    expect(clampedPage.body.items).toHaveLength(100);
+    expect(new Set(clampedPage.body.items.map((item: { holdId: string }) => item.holdId)).size).toBe(100);
+    expect(clampedPage.body.items.slice(0, 50)).toEqual(defaultPage.body.items);
+  });
+
+  it('polls the authoritative version after a missed non-terminal update and converges after multiple missed updates', async () => {
+    const initial = await queue(allowed());
+    expect(initial.body.items).toEqual([expect.objectContaining({ holdId: IDS.hold, version: 1 })]);
+
+    const notes = await requestNotes(allowed(), randomUUID(), 1, 'Reconnect evidence');
+    expect(notes.status).toBe(200);
+    const afterNotes = await queue(allowed());
+    expect(afterNotes.body.items).toEqual([
+      expect.objectContaining({ holdId: IDS.hold, version: 2, latestAudit: expect.objectContaining({ action: 'booking.notes.requested' }) }),
+    ]);
+
+    const proposal = await proposeAlternative(allowed(), randomUUID(), 2);
+    expect(proposal.status).toBe(201);
+    expect(proposal.body).toMatchObject({ state: 'ALTERNATIVE_PENDING' });
+    const recovered = await queue(allowed());
+    expect(recovered.status).toBe(200);
+    expect(recovered.body.items).toEqual([]);
+    expect(await alternativeSnapshot(database)).toMatchObject({ state: 'ALTERNATIVE_PENDING', version: 3 });
+  });
+
+  it('removes confirmed and declined terminal holds from the next poll and preserves owner readback', async () => {
+    const confirmed = await confirm(allowed());
+    expect(confirmed.status).toBe(200);
+    expect((await queue(allowed())).body.items).toEqual([]);
+    const ownerToken = await tokenFor({ sub: IDS.owner, roles: [Role.OWNER] });
+    const confirmedOwner = await request(app.getHttpServer())
+      .get(`/v1/booking-holds/${IDS.hold}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(confirmedOwner.body).toMatchObject({ state: 'CONFIRMED', aggregateVersion: 2 });
+
+    await resetFixtures(database);
+    const declined = await decline(allowed());
+    expect(declined.status).toBe(200);
+    expect((await queue(allowed())).body.items).toEqual([]);
+    const declinedOwner = await request(app.getHttpServer())
+      .get(`/v1/booking-holds/${IDS.hold}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(declinedOwner.body).toMatchObject({ state: 'RELEASED', aggregateVersion: 2 });
+  });
+
+  it.each(['confirm', 'request-notes'] as const)('returns only a transactionally consistent snapshot during concurrent %s', async (command) => {
+    const [read, mutation] = await Promise.all([
+      queue(allowed()),
+      command === 'confirm' ? confirm(allowed()) : requestNotes(allowed()),
+    ]);
+    expect(read.status).toBe(200);
+    expect(mutation.status).toBe(200);
+    if (command === 'request-notes') expect(read.body.items).toHaveLength(1);
+    expect(read.body.items.length).toBeLessThanOrEqual(1);
+    if (read.body.items[0]) {
+      expect(read.body.items[0]).toMatchObject({ holdId: IDS.hold });
+      if (command === 'confirm') expect(read.body.items[0].version).toBe(1);
+      else {
+        expect([1, 2]).toContain(read.body.items[0].version);
+        if (read.body.items[0].version === 2) {
+          expect(read.body.items[0].latestAudit).toMatchObject({ action: 'booking.notes.requested' });
+        }
+      }
+    }
+    const final = await queue(allowed());
+    if (command === 'confirm') expect(final.body.items).toEqual([]);
+    else expect(final.body.items).toEqual([expect.objectContaining({ holdId: IDS.hold, version: 2 })]);
+  });
+
+  it('does not normalize a technical read failure into a successful empty queue', async () => {
+    jest.spyOn(database as any, 'withTransaction').mockRejectedValueOnce(new Error('controlled read failure'));
+    const failed = await queue(allowed());
+    expect(failed.status).toBe(500);
+    expect(failed.body).not.toHaveProperty('items');
+    const recovered = await queue(allowed());
+    expect(recovered.status).toBe(200);
+    expect(recovered.body.items).toEqual([expect.objectContaining({ holdId: IDS.hold, version: 1 })]);
   });
 
   it.each([
@@ -543,6 +656,73 @@ async function commandSnapshot(database: DatabaseService) {
     FROM booking_schema.booking_holds hold
     WHERE hold.id = $1::uuid
   `, [IDS.hold, IDS.slot, IDS.alternativeSlot])).rows[0];
+}
+
+async function readSideEffects(database: DatabaseService) {
+  return (await database.query<{ outbox: string; audits: string }>(`
+    SELECT
+      (SELECT COUNT(*)::text FROM booking_schema.outbox_events) AS outbox,
+      (SELECT COUNT(*)::text FROM audit_schema.audit_log) AS audits
+  `)).rows[0];
+}
+
+async function seedRecoveryQueue(database: DatabaseService) {
+  await database.query(`
+    INSERT INTO pet_schema.pets (id, owner_id, name, species) VALUES
+      ('41000000-0000-4000-8000-000000000010', $1::uuid, 'Older queue pet', 'DOG'),
+      ('41000000-0000-4000-8000-000000000011', $1::uuid, 'Tie queue pet', 'CAT'),
+      ('41000000-0000-4000-8000-000000000012', $1::uuid, 'Foreign queue pet', 'DOG')
+  `, [IDS.owner]);
+  await database.query(`
+    INSERT INTO clinic_schema.appointment_slots
+      (id, clinic_location_id, service_id, starts_at, ends_at, capacity, held_count, status, integration_mode)
+    VALUES
+      ('61000000-0000-4000-8000-000000000010', $1::uuid, $2::uuid, clock_timestamp()+interval '4 hours', clock_timestamp()+interval '270 minutes', 1, 1, 'LOCKED_BY_HOLD', 'LEVEL_C'),
+      ('61000000-0000-4000-8000-000000000011', $1::uuid, $2::uuid, clock_timestamp()+interval '5 hours', clock_timestamp()+interval '330 minutes', 1, 1, 'LOCKED_BY_HOLD', 'LEVEL_C'),
+      ('61000000-0000-4000-8000-000000000012', $3::uuid, $4::uuid, clock_timestamp()+interval '6 hours', clock_timestamp()+interval '390 minutes', 1, 1, 'LOCKED_BY_HOLD', 'LEVEL_C')
+  `, [IDS.location, IDS.service, IDS.otherLocation, IDS.otherService]);
+  await database.query(`
+    INSERT INTO booking_schema.booking_holds
+      (id, slot_id, owner_id, pet_id, state, expires_at, confirmation_sla_expires_at, state_changed_at)
+    VALUES
+      ($2::uuid, '61000000-0000-4000-8000-000000000010', $1::uuid, '41000000-0000-4000-8000-000000000010', 'MANUAL_CONFIRM_PENDING', clock_timestamp()+interval '16 minutes', clock_timestamp()+interval '15 minutes', clock_timestamp()-interval '3 minutes'),
+      ($3::uuid, '61000000-0000-4000-8000-000000000011', $1::uuid, '41000000-0000-4000-8000-000000000011', 'MANUAL_CONFIRM_PENDING', clock_timestamp()+interval '16 minutes', clock_timestamp()+interval '15 minutes', clock_timestamp()-interval '1 minute'),
+      ($4::uuid, '61000000-0000-4000-8000-000000000012', $1::uuid, '41000000-0000-4000-8000-000000000012', 'MANUAL_CONFIRM_PENDING', clock_timestamp()+interval '16 minutes', clock_timestamp()+interval '15 minutes', clock_timestamp()-interval '2 minutes')
+  `, [IDS.owner, IDS.recoveryOlderHold, IDS.recoveryTieHold, IDS.recoveryForeignHold]);
+  await database.query(`
+    WITH marker AS (SELECT clock_timestamp()-interval '1 minute' AS changed_at)
+    UPDATE booking_schema.booking_holds h SET state_changed_at=marker.changed_at FROM marker
+    WHERE h.id=ANY($1::uuid[])
+  `, [[IDS.hold, IDS.recoveryTieHold]]);
+}
+
+async function seedQueueVolume(database: DatabaseService, count: number) {
+  await database.query(`
+    INSERT INTO pet_schema.pets (id, owner_id, name, species)
+    SELECT ('81000000-0000-4000-8000-' || lpad(series::text, 12, '0'))::uuid,
+           $1::uuid, 'Volume pet ' || series, 'CAT'
+    FROM generate_series(1, $2::integer) series
+  `, [IDS.owner, count]);
+  await database.query(`
+    INSERT INTO clinic_schema.appointment_slots
+      (id, clinic_location_id, service_id, starts_at, ends_at, capacity, held_count, status, integration_mode)
+    SELECT ('82000000-0000-4000-8000-' || lpad(series::text, 12, '0'))::uuid,
+           $1::uuid, $2::uuid, clock_timestamp()+interval '8 hours'+series*interval '1 minute',
+           clock_timestamp()+interval '8 hours'+(series+30)*interval '1 minute',
+           1, 1, 'LOCKED_BY_HOLD', 'LEVEL_C'
+    FROM generate_series(1, $3::integer) series
+  `, [IDS.location, IDS.service, count]);
+  await database.query(`
+    INSERT INTO booking_schema.booking_holds
+      (id, slot_id, owner_id, pet_id, state, expires_at, confirmation_sla_expires_at, state_changed_at)
+    SELECT ('83000000-0000-4000-8000-' || lpad(series::text, 12, '0'))::uuid,
+           ('82000000-0000-4000-8000-' || lpad(series::text, 12, '0'))::uuid,
+           $1::uuid,
+           ('81000000-0000-4000-8000-' || lpad(series::text, 12, '0'))::uuid,
+           'MANUAL_CONFIRM_PENDING', clock_timestamp()+interval '30 minutes',
+           clock_timestamp()+interval '29 minutes', clock_timestamp()-interval '10 minutes'+series*interval '1 second'
+    FROM generate_series(1, $2::integer) series
+  `, [IDS.owner, count]);
 }
 
 async function resetFixtures(database: DatabaseService) {

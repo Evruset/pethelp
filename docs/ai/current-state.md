@@ -306,8 +306,46 @@ as a test/evidence closure with no production-code change.
 
 ## Next single action
 
-`V50-CLINIC-01G / Queue Read-Model Reconnect and Recovery`: extend the existing
-Clinic Queue read harness to prove reconnect/reload recovery, authoritative
-version/state convergence, and no duplicate or missing queue items after
-commands and worker progress. Do not add routes, migrations, roles, states, or
-parallel UI.
+`V50-CLINIC-01G / Queue Read-Model Reconnect and Recovery` is `COMPLETE` as an
+evidence closure; production behavior is unchanged.
+
+- The existing read contract is
+  `GET /v1/clinic/:clinicId/locations/:locationId/booking-queue`, authorized by
+  active clinic/location membership and matching JWT scopes. PostgreSQL is the
+  authoritative source; there is no cache, cursor, SSE, or WebSocket. Recovery
+  is a repeated polling read independent of client or backend memory.
+- The response is a bounded current snapshot, not traversable pagination:
+  `limit` defaults to 50 and clamps at 100. It contains only
+  `MANUAL_CONFIRM_PENDING` rows with a confirmation SLA, ordered FIFO by
+  `state_changed_at ASC` with UUID `id ASC` as the stable tie-breaker. Each item
+  exposes the authoritative aggregate version.
+- Multi-item initial and repeated reads prove stable ordering, one row per
+  booking, default/max limits, no duplicates, no foreign-location rows, and no
+  outbox/audit side effects. A technical transaction failure remains HTTP 500
+  without an `items` field and the next poll recovers; it is not normalized to
+  a successful empty queue.
+- Read-after-write and missed-poll evidence covers confirm, request-notes,
+  decline, and request-notes followed by alternative proposal. Non-terminal
+  version/audit data converges; terminal or moved-out-of-queue states disappear
+  without stale duplicates; owner readback remains consistent.
+- Concurrent reads with confirm or request-notes return only a valid pre-commit
+  or post-commit snapshot. A returned notes version 2 is coupled to its latest
+  audit action; a visible concurrent confirm row can only be pre-commit version
+  1.
+- Canonical Compose restart preserves the exact queue items and ordering from
+  PostgreSQL. The same post-restart token remains location-scoped; a different
+  location returns 403 without queue payload disclosure.
+- Changed files: `backend/test/clinic-queue-http-authority.e2e-spec.ts` and this
+  handoff. No route, DTO, query, mutation, state machine, role, migration,
+  dependency, cache, realtime transport, or UI changed.
+- Validation: focused HTTP recovery/authority suite PASS `51/51`; Queue
+  integration regression PASS `6/6`; backend restart evidence PASS; backend
+  build PASS; `git diff --check` PASS. Tier B validator PASS after limit-boundary
+  and concurrent snapshot assertions cleared its initial test-strategy veto.
+
+## Next single action
+
+`V50-CLINIC-01H / Clinic Portal Queue Integration`: connect the existing Clinic
+Portal contour to the authoritative Queue polling contract, preserving current
+design assets, clinic/location authority, reload recovery, and server-authored
+state/version semantics. Do not create a parallel UI or new backend route.
