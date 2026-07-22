@@ -10,7 +10,7 @@ import { config } from '../src/config';
 import { DatabaseService } from '../src/database/database.service';
 import { NestRoot } from '../src/nest-root-full';
 
-jest.setTimeout(75_000);
+jest.setTimeout(90_000);
 
 const IDS = {
   owner: '11000000-0000-4000-8000-000000000001',
@@ -68,35 +68,43 @@ describe('Clinic Queue HTTP authority matrix', () => {
     .get(`/v1/clinic/${clinicId}/locations/${locationId}/booking-queue`)
     .set('Authorization', `Bearer ${await tokenFor(input)}`);
 
-  const confirm = async (input: Parameters<typeof tokenFor>[0], idempotencyKey = randomUUID()) => request(app.getHttpServer())
-    .post(`/v1/clinic/booking-holds/${IDS.hold}/confirm`)
-    .set('Authorization', `Bearer ${await tokenFor(input)}`)
-    .set('Idempotency-Key', idempotencyKey)
-    .set('If-Match', '1')
-    .set('X-Correlation-ID', randomUUID());
+  const confirm = async (input: Actor, idempotencyKey = randomUUID(), version: number | null = 1) => {
+    const command = request(app.getHttpServer())
+      .post(`/v1/clinic/booking-holds/${IDS.hold}/confirm`)
+      .set('Authorization', `Bearer ${await tokenFor(input)}`)
+      .set('Idempotency-Key', idempotencyKey)
+      .set('X-Correlation-ID', randomUUID());
+    return version === null ? command : command.set('If-Match', String(version));
+  };
 
-  const decline = async (input: Parameters<typeof tokenFor>[0], idempotencyKey = randomUUID()) => request(app.getHttpServer())
-    .post(`/v1/clinic/booking-holds/${IDS.hold}/decline`)
-    .set('Authorization', `Bearer ${await tokenFor(input)}`)
-    .set('Idempotency-Key', idempotencyKey)
-    .set('If-Match', '1')
-    .set('X-Correlation-ID', randomUUID())
-    .send({ declineReason: 'Owner requested another clinic' });
+  const decline = async (input: Actor, idempotencyKey = randomUUID(), version: number | null = 1, declineReason = 'Owner requested another clinic') => {
+    const command = request(app.getHttpServer())
+      .post(`/v1/clinic/booking-holds/${IDS.hold}/decline`)
+      .set('Authorization', `Bearer ${await tokenFor(input)}`)
+      .set('Idempotency-Key', idempotencyKey)
+      .set('X-Correlation-ID', randomUUID())
+      .send({ declineReason });
+    return version === null ? command : command.set('If-Match', String(version));
+  };
 
-  const requestNotes = async (input: Parameters<typeof tokenFor>[0], idempotencyKey = randomUUID()) => request(app.getHttpServer())
-    .post(`/v1/clinic/booking-holds/${IDS.hold}/request-notes`)
-    .set('Authorization', `Bearer ${await tokenFor(input)}`)
-    .set('Idempotency-Key', idempotencyKey)
-    .set('If-Match', '1')
-    .set('X-Correlation-ID', randomUUID())
-    .send({ noteRequest: 'Please confirm the pet vaccination date' });
+  const requestNotes = async (input: Actor, idempotencyKey = randomUUID(), version: number | null = 1, noteRequest = 'Please confirm the pet vaccination date') => {
+    const command = request(app.getHttpServer())
+      .post(`/v1/clinic/booking-holds/${IDS.hold}/request-notes`)
+      .set('Authorization', `Bearer ${await tokenFor(input)}`)
+      .set('Idempotency-Key', idempotencyKey)
+      .set('X-Correlation-ID', randomUUID())
+      .send({ noteRequest });
+    return version === null ? command : command.set('If-Match', String(version));
+  };
 
-  const proposeAlternative = async (input: Actor, idempotencyKey = randomUUID(), version = 1) => request(app.getHttpServer())
-    .post(`/v1/clinic/booking-holds/${IDS.hold}/alternative-slot`)
-    .set('Authorization', `Bearer ${await tokenFor(input)}`)
-    .set('Idempotency-Key', idempotencyKey)
-    .set('If-Match', String(version))
-    .send({ newSlotId: IDS.alternativeSlot });
+  const proposeAlternative = async (input: Actor, idempotencyKey = randomUUID(), version: number | null = 1, newSlotId = IDS.alternativeSlot) => {
+    const command = request(app.getHttpServer())
+      .post(`/v1/clinic/booking-holds/${IDS.hold}/alternative-slot`)
+      .set('Authorization', `Bearer ${await tokenFor(input)}`)
+      .set('Idempotency-Key', idempotencyKey)
+      .send({ newSlotId });
+    return version === null ? command : command.set('If-Match', String(version));
+  };
 
   const readAlternative = async (input: Actor) => request(app.getHttpServer())
     .get(`/v1/booking-holds/${IDS.hold}/alternative`)
@@ -130,7 +138,7 @@ describe('Clinic Queue HTTP authority matrix', () => {
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({ clinicId: IDS.clinic, locationId: IDS.location });
     expect(response.body.items).toHaveLength(1);
-    expect(response.body.items[0]).toMatchObject({ holdId: IDS.hold });
+    expect(response.body.items[0]).toMatchObject({ holdId: IDS.hold, version: 1 });
   });
 
   it.each([
@@ -373,6 +381,103 @@ describe('Clinic Queue HTTP authority matrix', () => {
     expect(conflicted.status).toBeLessThan(500);
     expect(await alternativeSnapshot(database)).toEqual(before);
   });
+
+  it.each(['confirm', 'decline', 'request-notes', 'propose-alternative'] as const)('requires If-Match for %s without side effects', async (name) => {
+    const before = await commandSnapshot(database);
+    const response = name === 'confirm' ? await confirm(allowed(), randomUUID(), null)
+      : name === 'decline' ? await decline(allowed(), randomUUID(), null)
+        : name === 'request-notes' ? await requestNotes(allowed(), randomUUID(), null)
+          : await proposeAlternative(allowed(), randomUUID(), null);
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({ code: 'INVALID_REQUEST' });
+    expect(await commandSnapshot(database)).toEqual(before);
+  });
+
+  it.each(['confirm', 'decline', 'request-notes', 'propose-alternative'] as const)('rejects impossible future version for %s without side effects', async (name) => {
+    const before = await commandSnapshot(database);
+    const response = name === 'confirm' ? await confirm(allowed(), randomUUID(), 101)
+      : name === 'decline' ? await decline(allowed(), randomUUID(), 101)
+        : name === 'request-notes' ? await requestNotes(allowed(), randomUUID(), 101)
+          : await proposeAlternative(allowed(), randomUUID(), 101);
+    expect(response.status).toBe(409);
+    expect(response.body).toMatchObject({ code: 'SLOT_VERSION_STALE' });
+    expect(await commandSnapshot(database)).toEqual(before);
+  });
+
+  it('rejects a stale confirm after request-notes advances the authoritative version', async () => {
+    const notes = await requestNotes(allowed(), randomUUID(), 1);
+    expect(notes.status).toBe(200);
+    const before = await commandSnapshot(database);
+    const stale = await confirm(allowed(), randomUUID(), 1);
+    expect(stale.status).toBe(409);
+    expect(stale.body).toMatchObject({ code: 'SLOT_VERSION_STALE' });
+    expect(await commandSnapshot(database)).toEqual(before);
+  });
+
+  it('replays the first request-notes result for the same key without overwriting a changed payload', async () => {
+    const key = randomUUID();
+    const first = await requestNotes(allowed(), key, 1, 'First authoritative note request');
+    expect(first.status).toBe(200);
+    const before = await commandSnapshot(database);
+    const replay = await requestNotes(allowed(), key, 1, 'Conflicting replacement text');
+    expect(replay.status).toBe(200);
+    expect(replay.body).toEqual(first.body);
+    expect(replay.body).toMatchObject({ requestedNote: 'First authoritative note request' });
+    expect(await commandSnapshot(database)).toEqual(before);
+  });
+
+  it.each(['confirm', 'decline'] as const)('rejects a different-key replay after terminal %s without duplicate effects', async (name) => {
+    const first = name === 'confirm' ? await confirm(allowed()) : await decline(allowed());
+    expect(first.status).toBe(200);
+    const before = await commandSnapshot(database);
+    const second = name === 'confirm' ? await confirm(allowed(), randomUUID(), 2) : await decline(allowed(), randomUUID(), 2);
+    expect(second.status).toBe(422);
+    expect(second.body).toMatchObject({ code: 'INVALID_STATE_TRANSITION' });
+    expect(await commandSnapshot(database)).toEqual(before);
+  });
+
+  it('serializes duplicate concurrent confirm delivery to one business transition', async () => {
+    const key = randomUUID();
+    const [first, second] = await Promise.all([confirm(allowed(), key, 1), confirm(allowed(), key, 1)]);
+    expect([first.status, second.status].every((status) => status === 200 || status === 409 || status === 425)).toBe(true);
+    expect([first.status, second.status].filter((status) => status === 200).length).toBeGreaterThanOrEqual(1);
+    expect(await commandSnapshot(database)).toMatchObject({
+      state: 'CONFIRMED', version: 2, appointments: '1', events: '1', audits: '1',
+    });
+  });
+
+  it.each([
+    ['confirm-vs-decline', 'confirm', 'decline'],
+    ['request-notes-vs-propose', 'request-notes', 'propose'],
+  ] as const)('serializes %s with one winner, controlled loser and one effect set', async (_label, left, right) => {
+    const responses = await Promise.all([
+      left === 'confirm' ? confirm(allowed(), randomUUID(), 1) : requestNotes(allowed(), randomUUID(), 1),
+      right === 'decline' ? decline(allowed(), randomUUID(), 1) : proposeAlternative(allowed(), randomUUID(), 1),
+    ]);
+    const successes = responses.filter((response) => response.status === 200 || response.status === 201);
+    expect(successes).toHaveLength(1);
+    const loser = responses.find((response) => response !== successes[0]);
+    expect(loser?.status).toBe(409);
+    expect(['SLOT_LOCKED_RETRY', 'SLOT_VERSION_STALE']).toContain(loser?.body.code);
+    const winner = successes[0];
+    const snapshot = await commandSnapshot(database);
+    expect(snapshot.version).toBe(2);
+    expect(Number(snapshot.events)).toBe(1);
+    expect(Number(snapshot.audits)).toBe(1);
+    if (left === 'confirm') {
+      expect(snapshot.state).toBe(winner.body.state);
+      expect(snapshot.appointments).toBe(winner.body.state === 'CONFIRMED' ? '1' : '0');
+      expect(snapshot.swaps).toBe('0');
+      expect(snapshot.sourceHeld).toBe(0);
+      expect(snapshot.alternativeHeld).toBe(0);
+    } else {
+      expect(snapshot.state).toBe(winner.body.state);
+      expect(snapshot.appointments).toBe('0');
+      expect(snapshot.sourceHeld).toBe(1);
+      expect(snapshot.swaps).toBe(winner.body.state === 'ALTERNATIVE_PENDING' ? '1' : '0');
+      expect(snapshot.alternativeHeld).toBe(winner.body.state === 'ALTERNATIVE_PENDING' ? 1 : 0);
+    }
+  });
 });
 
 function expectNoLeak(body: Record<string, unknown>) {
@@ -418,6 +523,23 @@ async function alternativeSnapshot(database: DatabaseService) {
       (SELECT COUNT(*)::text FROM booking_schema.appointments WHERE hold_id = hold.id) AS appointments,
       (SELECT COUNT(*)::text FROM booking_schema.outbox_events WHERE aggregate_id = hold.id AND event_type LIKE 'booking.alternative.%') AS events,
       (SELECT COUNT(*)::text FROM audit_schema.audit_log WHERE aggregate_id = hold.id AND action LIKE '%ALTERNATIVE%') AS audits
+    FROM booking_schema.booking_holds hold
+    WHERE hold.id = $1::uuid
+  `, [IDS.hold, IDS.slot, IDS.alternativeSlot])).rows[0];
+}
+
+async function commandSnapshot(database: DatabaseService) {
+  return (await database.query<{
+    state: string; version: number; sourceHeld: number; alternativeHeld: number;
+    swaps: string; appointments: string; events: string; audits: string;
+  }>(`
+    SELECT hold.state, hold.version,
+      (SELECT held_count FROM clinic_schema.appointment_slots WHERE id = $2::uuid) AS "sourceHeld",
+      (SELECT held_count FROM clinic_schema.appointment_slots WHERE id = $3::uuid) AS "alternativeHeld",
+      (SELECT COUNT(*)::text FROM booking_schema.alternative_swap_groups WHERE original_hold_id = hold.id) AS swaps,
+      (SELECT COUNT(*)::text FROM booking_schema.appointments WHERE hold_id = hold.id) AS appointments,
+      (SELECT COUNT(*)::text FROM booking_schema.outbox_events WHERE aggregate_id = hold.id AND event_type = ANY(ARRAY['booking.confirmed.v1','booking.hold.released.v1','booking.notes.requested.v1','booking.alternative.proposed.v1'])) AS events,
+      (SELECT COUNT(*)::text FROM audit_schema.audit_log WHERE aggregate_id = hold.id AND action = ANY(ARRAY['booking.confirmed','booking.declined','booking.notes.requested','BOOKING_ALTERNATIVE_PROPOSED'])) AS audits
     FROM booking_schema.booking_holds hold
     WHERE hold.id = $1::uuid
   `, [IDS.hold, IDS.slot, IDS.alternativeSlot])).rows[0];

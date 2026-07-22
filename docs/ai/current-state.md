@@ -244,8 +244,29 @@ integration veto is resolved. No open veto remains for this bounded slice.
 
 ## Next single action
 
-`V50-CLINIC-01E / Queue Command Version-Fence and Replay Matrix`: extend the
-focused HTTP harness for stale `If-Match`, same-key replay, and different-key
-terminal behavior of the existing confirm, decline, request-notes, and clinic
-alternative proposal commands. Prove zero failed-command state/version/capacity/
-outbox/audit effects. Do not add routes, migrations, roles, states, or UI.
+`V50-CLINIC-01E / Queue Command Version-Fence and Replay Matrix` is `COMPLETE`
+as a test/evidence closure with no production-code change.
+
+- The existing real NestJS/PostgreSQL HTTP harness now proves that queue reads
+  expose aggregate `version`, all four clinic commands require `If-Match`, and
+  stale or impossible future versions return controlled
+  `409 SLOT_VERSION_STALE` without state, version, capacity, appointment,
+  swap, outbox, or audit mutation.
+- Same-key replay returns the first authoritative result and creates one effect
+  set. For request-notes, a changed payload under the same key replays the first
+  note and cannot overwrite it. A different key after terminal confirm or
+  decline returns `INVALID_STATE_TRANSITION` without duplicate effects.
+- Concurrent duplicate confirm delivery produces one transition. The
+  confirm-vs-decline and request-notes-vs-alternative races produce exactly one
+  winner, a controlled `409` loser, version `2`, one success event/audit, and
+  winner-correlated final state, capacity, appointment, and swap counts.
+- Validation: focused HTTP authority suite PASS `44/44`; Clinic Queue plus
+  owner alternative regressions PASS `18/18`; backend build PASS;
+  `git diff --check` PASS. Independent Tier B validator PASS with no vetoes.
+
+## Next single action
+
+`V50-CLINIC-01F / Outbox Worker Replay Reliability`: extend the existing
+focused outbox/worker harness for Clinic Queue command events to prove retry
+and duplicate delivery cannot create duplicate downstream effects. Keep the
+slice test/evidence-first; do not add routes, migrations, roles, states, or UI.
