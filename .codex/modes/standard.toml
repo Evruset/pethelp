@@ -13,9 +13,3 @@ fast_mode = false
 [agents]
 max_threads = 1
 max_depth = 1
-[mcp_servers.openaiDeveloperDocs]
-enabled = false
-[mcp_servers.context7]
-enabled = false
-[mcp_servers.playwright]
-enabled = false
