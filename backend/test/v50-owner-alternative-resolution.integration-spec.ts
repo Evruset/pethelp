@@ -112,7 +112,7 @@ describe('V50 owner alternative proposal resolution (PostgreSQL)', () => {
       INSERT INTO clinic_schema.appointment_slots(clinic_location_id,service_id,starts_at,ends_at,capacity,status,integration_mode)
       VALUES($1::uuid,$2::uuid,clock_timestamp()+interval '4 hours',clock_timestamp()+interval '270 min',1,'AVAILABLE','LEVEL_C') RETURNING id
     `, [f.location, f.service])).rows[0].id;
-    const employee = { sub: f.employee, roles: [Role.CLINIC_RECEPTIONIST], locationIds: [f.location] };
+    const employee = { sub: f.employee, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [f.clinic], locationIds: [f.location] };
     const settled = await Promise.allSettled([
       trace.run({ correlationId: randomUUID(), userId: f.employee }, () => alternatives.proposeAlternativeSlot(f.hold, replacement, employee, { expectedVersion: 2, idempotencyKey: randomUUID() })),
       resolution.resolve(f.proposal, f.owner, decision, command()),
@@ -149,8 +149,8 @@ async function fixture(db: DatabaseService, alternatives: AlternativeSlotService
   const source = (await db.query<{ id: string }>(`INSERT INTO clinic_schema.appointment_slots(clinic_location_id,service_id,starts_at,ends_at,capacity,held_count,status,integration_mode) VALUES($1::uuid,$2::uuid,clock_timestamp()+interval '2 hours',clock_timestamp()+interval '150 min',1,1,'LOCKED_BY_HOLD','LEVEL_C') RETURNING id`, [location, service])).rows[0].id;
   const proposed = (await db.query<{ id: string }>(`INSERT INTO clinic_schema.appointment_slots(clinic_location_id,service_id,starts_at,ends_at,capacity,status,integration_mode) VALUES($1::uuid,$2::uuid,clock_timestamp()+interval '3 hours',clock_timestamp()+interval '210 min',1,'AVAILABLE','LEVEL_C') RETURNING id`, [location, service])).rows[0].id;
   const hold = (await db.query<{ id: string }>(`INSERT INTO booking_schema.booking_holds(slot_id,owner_id,pet_id,state,expires_at,confirmation_sla_expires_at) VALUES($1::uuid,$2::uuid,$3::uuid,'MANUAL_CONFIRM_PENDING',clock_timestamp()+interval '16 min',clock_timestamp()+interval '15 min') RETURNING id`, [source, owner, pet])).rows[0].id;
-  const proposal = await trace.run({ correlationId: randomUUID(), userId: employee }, () => alternatives.proposeAlternativeSlot(hold, proposed, { sub: employee, roles: [Role.CLINIC_RECEPTIONIST], locationIds: [location] }, { expectedVersion: 1, idempotencyKey: randomUUID() }));
-  return { owner, employee, location, service, source, proposed, hold, proposal: proposal.swapGroupId };
+  const proposal = await trace.run({ correlationId: randomUUID(), userId: employee }, () => alternatives.proposeAlternativeSlot(hold, proposed, { sub: employee, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [clinic], locationIds: [location] }, { expectedVersion: 1, idempotencyKey: randomUUID() }));
+  return { owner, employee, clinic, location, service, source, proposed, hold, proposal: proposal.swapGroupId };
 }
 
 async function state(db: DatabaseService, f: { hold: string; source: string; proposed: string }) {

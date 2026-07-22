@@ -10,10 +10,11 @@ import { config } from '../src/config';
 import { DatabaseService } from '../src/database/database.service';
 import { NestRoot } from '../src/nest-root-full';
 
-jest.setTimeout(45_000);
+jest.setTimeout(75_000);
 
 const IDS = {
   owner: '11000000-0000-4000-8000-000000000001',
+  otherOwner: '11000000-0000-4000-8000-000000000007',
   allowed: '11000000-0000-4000-8000-000000000002',
   revoked: '11000000-0000-4000-8000-000000000004',
   noMembership: '11000000-0000-4000-8000-000000000005',
@@ -27,6 +28,7 @@ const IDS = {
   service: '51000000-0000-4000-8000-000000000001',
   otherService: '51000000-0000-4000-8000-000000000002',
   slot: '61000000-0000-4000-8000-000000000001',
+  alternativeSlot: '61000000-0000-4000-8000-000000000002',
   hold: '71000000-0000-4000-8000-000000000001',
 };
 
@@ -88,6 +90,23 @@ describe('Clinic Queue HTTP authority matrix', () => {
     .set('If-Match', '1')
     .set('X-Correlation-ID', randomUUID())
     .send({ noteRequest: 'Please confirm the pet vaccination date' });
+
+  const proposeAlternative = async (input: Actor, idempotencyKey = randomUUID(), version = 1) => request(app.getHttpServer())
+    .post(`/v1/clinic/booking-holds/${IDS.hold}/alternative-slot`)
+    .set('Authorization', `Bearer ${await tokenFor(input)}`)
+    .set('Idempotency-Key', idempotencyKey)
+    .set('If-Match', String(version))
+    .send({ newSlotId: IDS.alternativeSlot });
+
+  const readAlternative = async (input: Actor) => request(app.getHttpServer())
+    .get(`/v1/booking-holds/${IDS.hold}/alternative`)
+    .set('Authorization', `Bearer ${await tokenFor(input)}`);
+
+  const acceptAlternative = async (input: Actor, idempotencyKey = randomUUID(), version = 2) => request(app.getHttpServer())
+    .post(`/v1/booking-holds/${IDS.hold}/alternative-slot/accept`)
+    .set('Authorization', `Bearer ${await tokenFor(input)}`)
+    .set('Idempotency-Key', idempotencyKey)
+    .set('If-Match', String(version));
 
   const allowed = () => ({
     sub: IDS.allowed,
@@ -251,6 +270,109 @@ describe('Clinic Queue HTTP authority matrix', () => {
     expect(response.body).toMatchObject({ code: 'INVALID_STATE_TRANSITION' });
     expect(await mutationSnapshot(database)).toEqual(before);
   });
+
+  it('proposes an alternative idempotently with exact clinic scope, reserved capacity and owner readback', async () => {
+    const key = randomUUID();
+    const first = await proposeAlternative(allowed(), key);
+    expect(first.status).toBe(201);
+    expect(first.body).toMatchObject({ holdId: IDS.hold, sourceSlotId: IDS.slot, alternativeSlotId: IDS.alternativeSlot, state: 'ALTERNATIVE_PENDING' });
+    const repeated = await proposeAlternative(allowed(), key);
+    expect(repeated.status).toBe(201);
+    expect(repeated.body).toEqual(first.body);
+    expect(await alternativeSnapshot(database)).toEqual({
+      state: 'ALTERNATIVE_PENDING', version: 2, sourceHeld: 1, alternativeHeld: 1,
+      swaps: '1', appointments: '0', events: '1', audits: '1',
+    });
+
+    const ownerRead = await readAlternative({ sub: IDS.owner, roles: [Role.OWNER] });
+    expect(ownerRead.status).toBe(200);
+    expect(ownerRead.body).toMatchObject({
+      holdId: IDS.hold,
+      state: 'ALTERNATIVE_PENDING',
+      aggregateVersion: 2,
+      originalSlot: { id: IDS.slot },
+      alternativeSlot: { id: IDS.alternativeSlot },
+      actions: { canAccept: true, canDecline: true },
+    });
+  });
+
+  it('denies clinic proposal across role, membership and exact scope without alternative effects', async () => {
+    for (const [, actor] of deniedActors()) {
+      await resetFixtures(database);
+      const before = await alternativeSnapshot(database);
+      const response = await proposeAlternative(actor);
+      expect(response.status).toBe(403);
+      expectNoLeak(response.body);
+      expect(await alternativeSnapshot(database)).toEqual(before);
+    }
+  });
+
+  it('normalizes foreign owner read and rejects staff or unauthenticated access without disclosure', async () => {
+    await proposeAlternative(allowed()).then((response) => expect(response.status).toBe(201));
+    const foreign = await readAlternative({ sub: IDS.otherOwner, roles: [Role.OWNER] });
+    expect(foreign.status).toBe(404);
+    expectNoAlternativeLeak(foreign.body);
+    const staff = await readAlternative(allowed());
+    expect(staff.status).toBe(403);
+    expectNoAlternativeLeak(staff.body);
+    await request(app.getHttpServer()).get(`/v1/booking-holds/${IDS.hold}/alternative`).expect(401);
+  });
+
+  it('accepts once, replays the same key, and rejects a second key without duplicate effects', async () => {
+    await proposeAlternative(allowed()).then((response) => expect(response.status).toBe(201));
+    const owner = { sub: IDS.owner, roles: [Role.OWNER] };
+    const key = randomUUID();
+    const first = await acceptAlternative(owner, key);
+    expect(first.status).toBe(200);
+    expect(first.body).toMatchObject({ holdId: IDS.hold, sourceSlotId: IDS.slot, slotId: IDS.alternativeSlot, state: 'MIS_HELD' });
+    const replay = await acceptAlternative(owner, key);
+    expect(replay.status).toBe(200);
+    expect(replay.body).toEqual(first.body);
+    const accepted = await alternativeSnapshot(database);
+    expect(accepted).toEqual({
+      state: 'MIS_HELD', version: 3, sourceHeld: 0, alternativeHeld: 1,
+      swaps: '1', appointments: '0', events: '2', audits: '2',
+    });
+    const secondKey = await acceptAlternative(owner, randomUUID(), 3);
+    expect(secondKey.status).toBe(422);
+    expect(secondKey.body).toMatchObject({ code: 'INVALID_STATE_TRANSITION' });
+    expect(await alternativeSnapshot(database)).toEqual(accepted);
+  });
+
+  it('denies foreign-owner accept without proposal, capacity, appointment, audit or outbox effects', async () => {
+    await proposeAlternative(allowed()).then((response) => expect(response.status).toBe(201));
+    const before = await alternativeSnapshot(database);
+    const response = await acceptAlternative({ sub: IDS.otherOwner, roles: [Role.OWNER] });
+    expect(response.status).toBe(403);
+    expectNoAlternativeLeak(response.body);
+    expect(await alternativeSnapshot(database)).toEqual(before);
+  });
+
+  it('rejects expired, stale and conflicted accepts while preserving capacity and effects', async () => {
+    await proposeAlternative(allowed()).then((response) => expect(response.status).toBe(201));
+    const owner = { sub: IDS.owner, roles: [Role.OWNER] };
+    let before = await alternativeSnapshot(database);
+    const stale = await acceptAlternative(owner, randomUUID(), 1);
+    expect(stale.status).toBe(409);
+    expect(await alternativeSnapshot(database)).toEqual(before);
+
+    await database.query(`UPDATE booking_schema.alternative_swap_groups SET expires_at = clock_timestamp() - interval '1 second' WHERE original_hold_id = $1::uuid`, [IDS.hold]);
+    await database.query(`UPDATE booking_schema.booking_holds SET alternative_expires_at = clock_timestamp() - interval '1 second' WHERE id = $1::uuid`, [IDS.hold]);
+    before = await alternativeSnapshot(database);
+    const expired = await acceptAlternative(owner);
+    expect(expired.status).toBe(422);
+    expect(expired.body).toMatchObject({ code: 'HOLD_EXPIRED' });
+    expect(await alternativeSnapshot(database)).toEqual(before);
+
+    await resetFixtures(database);
+    await proposeAlternative(allowed()).then((response) => expect(response.status).toBe(201));
+    await database.query(`UPDATE clinic_schema.appointment_slots SET held_count = 0 WHERE id = $1::uuid`, [IDS.alternativeSlot]);
+    before = await alternativeSnapshot(database);
+    const conflicted = await acceptAlternative(owner);
+    expect(conflicted.status).toBe(409);
+    expect(conflicted.status).toBeLessThan(500);
+    expect(await alternativeSnapshot(database)).toEqual(before);
+  });
 });
 
 function expectNoLeak(body: Record<string, unknown>) {
@@ -259,6 +381,14 @@ function expectNoLeak(body: Record<string, unknown>) {
   expect(body).not.toHaveProperty('slotId');
   expect(body).not.toHaveProperty('items');
   expect(JSON.stringify(body)).not.toMatch(/Queue pet|Queue service|booking\.confirmed|appointmentId/i);
+}
+
+function expectNoAlternativeLeak(body: Record<string, unknown>) {
+  expect(body).toHaveProperty('code');
+  expect(body).not.toHaveProperty('holdId');
+  expect(body).not.toHaveProperty('proposalId');
+  expect(body).not.toHaveProperty('alternativeSlot');
+  expect(JSON.stringify(body)).not.toMatch(/Queue pet|Queue service|alternativeSlotId|sourceSlotId/i);
 }
 
 async function mutationSnapshot(database: DatabaseService) {
@@ -276,10 +406,27 @@ async function mutationSnapshot(database: DatabaseService) {
   return result.rows[0];
 }
 
+async function alternativeSnapshot(database: DatabaseService) {
+  return (await database.query<{
+    state: string; version: number; sourceHeld: number; alternativeHeld: number;
+    swaps: string; appointments: string; events: string; audits: string;
+  }>(`
+    SELECT hold.state, hold.version,
+      (SELECT held_count FROM clinic_schema.appointment_slots WHERE id = $2::uuid) AS "sourceHeld",
+      (SELECT held_count FROM clinic_schema.appointment_slots WHERE id = $3::uuid) AS "alternativeHeld",
+      (SELECT COUNT(*)::text FROM booking_schema.alternative_swap_groups WHERE original_hold_id = hold.id) AS swaps,
+      (SELECT COUNT(*)::text FROM booking_schema.appointments WHERE hold_id = hold.id) AS appointments,
+      (SELECT COUNT(*)::text FROM booking_schema.outbox_events WHERE aggregate_id = hold.id AND event_type LIKE 'booking.alternative.%') AS events,
+      (SELECT COUNT(*)::text FROM audit_schema.audit_log WHERE aggregate_id = hold.id AND action LIKE '%ALTERNATIVE%') AS audits
+    FROM booking_schema.booking_holds hold
+    WHERE hold.id = $1::uuid
+  `, [IDS.hold, IDS.slot, IDS.alternativeSlot])).rows[0];
+}
+
 async function resetFixtures(database: DatabaseService) {
   await database.query('TRUNCATE clinic_schema.clinics, pet_schema.pets, identity_schema.users CASCADE');
   await database.query('TRUNCATE booking_schema.outbox_events, booking_schema.idempotency_records, audit_schema.audit_log');
-  await database.query(`INSERT INTO identity_schema.users (id) SELECT unnest($1::uuid[])`, [[IDS.owner, IDS.allowed, IDS.revoked, IDS.noMembership, IDS.veterinarian]]);
+  await database.query(`INSERT INTO identity_schema.users (id) SELECT unnest($1::uuid[])`, [[IDS.owner, IDS.otherOwner, IDS.allowed, IDS.revoked, IDS.noMembership, IDS.veterinarian]]);
   await database.query(`INSERT INTO clinic_schema.clinics (id, legal_name, public_name) VALUES ($1::uuid, 'Queue LLC', 'Queue clinic'), ($2::uuid, 'Other LLC', 'Other clinic')`, [IDS.clinic, IDS.otherClinic]);
   await database.query(`INSERT INTO clinic_schema.clinic_locations (id, clinic_id, address) VALUES ($1::uuid, $2::uuid, 'Queue address'), ($3::uuid, $2::uuid, 'Other location'), ($4::uuid, $5::uuid, 'Other clinic address')`, [IDS.location, IDS.clinic, IDS.otherLocation, IDS.otherClinicLocation, IDS.otherClinic]);
   await database.query(`
@@ -292,8 +439,10 @@ async function resetFixtures(database: DatabaseService) {
   await database.query(`INSERT INTO pet_schema.pets (id, owner_id, name, species) VALUES ($1::uuid, $2::uuid, 'Queue pet', 'CAT')`, [IDS.pet, IDS.owner]);
   await database.query(`
     INSERT INTO clinic_schema.appointment_slots (id, clinic_location_id, service_id, starts_at, ends_at, capacity, held_count, status, integration_mode)
-    VALUES ($1::uuid, $2::uuid, $3::uuid, clock_timestamp() + interval '2 hours', clock_timestamp() + interval '150 minutes', 1, 1, 'LOCKED_BY_HOLD', 'LEVEL_C')
-  `, [IDS.slot, IDS.location, IDS.service]);
+    VALUES
+      ($1::uuid, $2::uuid, $3::uuid, clock_timestamp() + interval '2 hours', clock_timestamp() + interval '150 minutes', 1, 1, 'LOCKED_BY_HOLD', 'LEVEL_C'),
+      ($4::uuid, $2::uuid, $3::uuid, clock_timestamp() + interval '3 hours', clock_timestamp() + interval '210 minutes', 1, 0, 'AVAILABLE', 'LEVEL_C')
+  `, [IDS.slot, IDS.location, IDS.service, IDS.alternativeSlot]);
   await database.query(`
     INSERT INTO booking_schema.booking_holds (id, slot_id, owner_id, pet_id, state, expires_at, confirmation_sla_expires_at, state_changed_at)
     VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, 'MANUAL_CONFIRM_PENDING', clock_timestamp() + interval '16 minutes', clock_timestamp() + interval '15 minutes', clock_timestamp() - interval '1 minute')

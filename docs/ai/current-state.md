@@ -213,8 +213,39 @@ integration veto is resolved. No open veto remains for this bounded slice.
 
 ## Next single action
 
-`V50-CLINIC-01D / Alternative-Slot HTTP Authority Matrix`: extend the focused
-HTTP harness for the single existing clinic alternative-slot command, proving
-exact clinic/location authority, idempotency/version fencing, denied-mutation
-side-effect isolation, and authoritative owner proposal readback. Do not add a
-route, migration, role, state transition, or Clinic Portal UI.
+`V50-CLINIC-01D / Alternative-Slot HTTP Authority and Atomicity Matrix` is
+`COMPLETE`.
+
+- Covered existing HTTP only: clinic proposal
+  `POST /v1/clinic/booking-holds/:holdId/alternative-slot`, owner snapshot
+  `GET /v1/booking-holds/:holdId/alternative`, and legacy owner accept
+  `POST /v1/booking-holds/:holdId/alternative-slot/accept`. No owner decline
+  HTTP route exists, so none was invented.
+- Clinic proposal proves role, active/non-revoked membership, exact clinic and
+  location scopes, idempotency, no-leak denial, zero denied effects, one swap
+  record, and simultaneous source/proposed capacity reservation.
+- Owner evidence proves owner-only read/accept, foreign-owner and staff denial,
+  same-key replay, different-key terminal rejection, stale version, DB-driven
+  expiry, slot conflict rollback, authoritative snapshot, and zero duplicate
+  appointment/outbox/audit effects.
+- A production defect was found and fixed: loss of the reserved alternative
+  slot returned `503 BOOKING_TEMPORARILY_UNAVAILABLE`; the legacy accept path
+  now returns the existing controlled `409 SLOT_ALREADY_TAKEN` contract without
+  state, capacity, audit, or outbox mutation.
+- Existing alternative regression fixtures now include the mandatory clinic
+  scope introduced by `01B`. Its 20-way accept and 10x10 accept/decline race
+  prove one successful transition, one effect set, no unexpected 5xx, and
+  bounded non-negative capacity.
+- Validation: HTTP authority suite PASS `29/29`; Clinic Queue regression PASS
+  `6/6`; alternative atomicity/concurrency regression PASS `12/12`; backend
+  build PASS; `git diff --check` PASS. Tier B diff-first validator PASS with no
+  vetoes; its separate environment could not reproduce runtime checks because
+  required auth/Web Crypto/PostgreSQL role setup was absent.
+
+## Next single action
+
+`V50-CLINIC-01E / Queue Command Version-Fence and Replay Matrix`: extend the
+focused HTTP harness for stale `If-Match`, same-key replay, and different-key
+terminal behavior of the existing confirm, decline, request-notes, and clinic
+alternative proposal commands. Prove zero failed-command state/version/capacity/
+outbox/audit effects. Do not add routes, migrations, roles, states, or UI.
