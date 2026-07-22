@@ -22,7 +22,7 @@ const auditAction = (value: string): string => ({
   'booking.hold.released': 'Освобождена',
   'booking.hold.expired': 'Истекла',
   'booking.notes.requested': 'Запрошены уточнения',
-}[value] ?? value);
+}[value] ?? 'Статус обновлён');
 
 function clock(ms: number): string {
   const sec = Math.max(0, Math.ceil(ms / 1000));
@@ -44,12 +44,29 @@ function errorCode(payload: unknown): string {
     : 'BACKEND_UNAVAILABLE';
 }
 
+function isQueuePayload(payload: unknown, clinicId: string, locationId: string): payload is ManualConfirmationQueue {
+  if (!payload || typeof payload !== 'object') return false;
+  const candidate = payload as Partial<ManualConfirmationQueue>;
+  if (candidate.clinicId !== clinicId || candidate.locationId !== locationId || typeof candidate.serverNow !== 'string' || !Array.isArray(candidate.items)) return false;
+  const ids = new Set<string>();
+  return candidate.items.every((item) => {
+    if (!item || typeof item !== 'object' || typeof item.holdId !== 'string' || !Number.isInteger(item.version) || item.version < 1 || ids.has(item.holdId)) return false;
+    ids.add(item.holdId);
+    return typeof item.confirmationSlaExpiresAt === 'string'
+      && typeof item.manualConfirmPendingAt === 'string'
+      && typeof item.slot?.startsAt === 'string'
+      && typeof item.slot?.endsAt === 'string'
+      && typeof item.pet?.name === 'string';
+  });
+}
+
 export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canInspectHold, canReplayHold }: Props) {
   const [queue, setQueue] = useState(initialQueue);
   const [offsetMs, setOffsetMs] = useState(() => Date.parse(initialQueue.serverNow) - Date.now());
   const [now, setNow] = useState(Date.now());
   const [notice, setNotice] = useState<string | null>(null);
   const [online, setOnline] = useState(true);
+  const [lastSyncedAt, setLastSyncedAt] = useState(Date.now());
   const [rowState, setRowState] = useState<Record<string, RowState>>({});
   const [alternativeItem, setAlternativeItem] = useState<ManualConfirmationQueueItem | null>(null);
   const [notesItem, setNotesItem] = useState<ManualConfirmationQueueItem | null>(null);
@@ -60,27 +77,75 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
   const [auditError, setAuditError] = useState<string | null>(null);
   const [holdItem, setHoldItem] = useState<ManualConfirmationQueueItem | null>(null);
   const commandKeys = useRef(new Map<string, string>());
+  const refreshRequest = useRef<AbortController | null>(null);
+  const refreshDone = useRef<Promise<void> | null>(null);
+  const refreshWaiters = useRef<Array<() => void>>([]);
+  const scopeRef = useRef(`${clinicId}:${locationId}`);
 
   const commandKey = (holdId: string, action: 'confirm' | 'decline' | 'requestNotes'): string => `${holdId}:${action}`;
 
-  const refresh = useCallback(async (quiet = false) => {
-    try {
-      const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/booking-queue`, { cache: 'no-store' });
+  const refresh = useCallback(async function refreshQueue(quiet = false, authoritative = false): Promise<void> {
+    if (quiet && !authoritative && document.visibilityState === 'hidden') return;
+    if (refreshDone.current) {
+      if (!authoritative) return;
+      return new Promise<void>((resolve) => refreshWaiters.current.push(resolve));
+    }
+    const scope = `${clinicId}:${locationId}`;
+    const controller = new AbortController();
+    refreshRequest.current = controller;
+    const work = (async () => { try {
+      const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/booking-queue`, { cache: 'no-store', signal: controller.signal });
+      if (controller.signal.aborted || scopeRef.current !== scope) return;
       if (response.status === 403) {
         window.location.assign('/forbidden');
         return;
       }
-      const payload = await response.json().catch(() => null) as ManualConfirmationQueue | null;
-      if (!response.ok || !payload) throw new Error('queue');
+      const payload: unknown = await response.json().catch(() => null);
+      if (!response.ok || !isQueuePayload(payload, clinicId, locationId)) throw new Error('queue');
       setQueue(payload);
       setOffsetMs(Date.parse(payload.serverNow) - Date.now());
       setOnline(true);
+      setLastSyncedAt(Date.now());
       if (!quiet) setNotice(null);
     } catch {
+      if (controller.signal.aborted || scopeRef.current !== scope) return;
       setOnline(false);
       if (!quiet) setNotice('Нет связи с VetHelp. Показаны последние полученные данные.');
+    } finally {
+      if (refreshRequest.current === controller) refreshRequest.current = null;
+    } })();
+    refreshDone.current = work;
+    try {
+      await work;
+    } finally {
+      if (refreshDone.current === work) refreshDone.current = null;
+      if (refreshWaiters.current.length > 0 && scopeRef.current === scope) {
+        const waiters = refreshWaiters.current.splice(0);
+        await refreshQueue(true, true);
+        waiters.forEach((resolve) => resolve());
+      }
     }
   }, [clinicId, locationId]);
+
+  useEffect(() => {
+    scopeRef.current = `${clinicId}:${locationId}`;
+    refreshRequest.current?.abort();
+    refreshRequest.current = null;
+    refreshDone.current = null;
+    refreshWaiters.current.splice(0).forEach((resolve) => resolve());
+    setQueue(initialQueue);
+    setOffsetMs(Date.parse(initialQueue.serverNow) - Date.now());
+    setOnline(true);
+    setLastSyncedAt(Date.now());
+    setRowState({});
+    commandKeys.current.clear();
+    return () => {
+      refreshRequest.current?.abort();
+      refreshRequest.current = null;
+      refreshDone.current = null;
+      refreshWaiters.current.splice(0).forEach((resolve) => resolve());
+    };
+  }, [clinicId, locationId, initialQueue]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -89,7 +154,14 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
 
   useEffect(() => {
     const poller = window.setInterval(() => void refresh(true), POLL_MS);
-    return () => window.clearInterval(poller);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') void refresh(true);
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.clearInterval(poller);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [refresh]);
 
   const confirm = useCallback(async (item: ManualConfirmationQueueItem) => {
@@ -111,28 +183,31 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
         commandKeys.current.delete(mapKey);
         setRowState((state) => ({ ...state, [holdId]: 'idle' }));
         setNotice('Запись подтверждена. Очередь обновлена.');
-        await refresh(true);
+        await refresh(true, true);
         return;
       }
       if (response.status === 409 && code === 'SLOT_LOCKED_RETRY') {
+        commandKeys.current.delete(mapKey);
         setRowState((state) => ({ ...state, [holdId]: 'idle' }));
         setNotice('Обновляем состояние заявки.');
-        await refresh(true);
+        await refresh(true, true);
         return;
       }
       if (response.status === 409 && code === 'QUEUE_FIFO_VIOLATION') {
         commandKeys.current.delete(mapKey);
         setRowState((state) => ({ ...state, [holdId]: 'idle' }));
         setNotice('Сначала обработайте более раннюю заявку. Очередь обновлена.');
-        await refresh(true);
+        await refresh(true, true);
         return;
       }
       if ([409, 422, 423].includes(response.status)) {
+        commandKeys.current.delete(mapKey);
         setRowState((state) => ({ ...state, [holdId]: 'fenced' }));
         setNotice('Заявка изменилась или срок действия истёк. Очередь обновлена.');
-        await refresh(true);
+        await refresh(true, true);
         return;
       }
+      if (response.status < 500) commandKeys.current.delete(mapKey);
       setRowState((state) => ({ ...state, [holdId]: 'idle' }));
       setNotice('Не удалось подтвердить запись.');
     } catch {
@@ -141,10 +216,9 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
     }
   }, [refresh, rowState]);
 
-  const decline = useCallback(async (item: ManualConfirmationQueueItem) => {
+  const decline = useCallback(async (item: ManualConfirmationQueueItem, declineReason: string) => {
     const holdId = item.holdId;
     if ((rowState[holdId] ?? 'idle') !== 'idle') return;
-    setDeclineItem(null);
 
     const mapKey = commandKey(holdId, 'decline');
     const key = commandKeys.current.get(mapKey) ?? crypto.randomUUID();
@@ -160,28 +234,29 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
           'If-Match': String(item.version),
           'X-Correlation-ID': correlationId(),
         },
-        body: JSON.stringify({ declineReason: 'Клиника отклонила заявку в очереди подтверждения' }),
+        body: JSON.stringify({ declineReason }),
       });
       const payload = await response.json().catch(() => null);
       const code = errorCode(payload);
       if (response.ok) {
         commandKeys.current.delete(mapKey);
         setRowState((state) => ({ ...state, [holdId]: 'idle' }));
+        setDeclineItem(null);
         setNotice('Заявка отклонена, слот освобождён. Очередь обновлена.');
-        await refresh(true);
+        await refresh(true, true);
         return;
       }
       if (response.status === 409 && code === 'QUEUE_FIFO_VIOLATION') {
         commandKeys.current.delete(mapKey);
         setRowState((state) => ({ ...state, [holdId]: 'idle' }));
         setNotice('Сначала обработайте более раннюю заявку. Очередь обновлена.');
-        await refresh(true);
+        await refresh(true, true);
         return;
       }
       if ([409, 422, 423].includes(response.status)) {
         setRowState((state) => ({ ...state, [holdId]: 'fenced' }));
         setNotice('Заявка изменилась или срок действия истёк. Очередь обновлена.');
-        await refresh(true);
+        await refresh(true, true);
         return;
       }
       setRowState((state) => ({ ...state, [holdId]: 'idle' }));
@@ -242,20 +317,20 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
         setRowState((state) => ({ ...state, [holdId]: 'idle' }));
         setNotesItem(null);
         setNotice('Запрос уточнений отправлен владельцу. Очередь обновлена.');
-        await refresh(true);
+        await refresh(true, true);
         return;
       }
       if (response.status === 409 && code === 'QUEUE_FIFO_VIOLATION') {
         commandKeys.current.delete(mapKey);
         setRowState((state) => ({ ...state, [holdId]: 'idle' }));
         setNotice('Сначала обработайте более раннюю заявку. Очередь обновлена.');
-        await refresh(true);
+        await refresh(true, true);
         return;
       }
       if ([409, 422, 423].includes(response.status)) {
         setRowState((state) => ({ ...state, [holdId]: 'fenced' }));
         setNotice('Заявка изменилась или срок действия истёк. Очередь обновлена.');
-        await refresh(true);
+        await refresh(true, true);
         return;
       }
       setRowState((state) => ({ ...state, [holdId]: 'idle' }));
@@ -280,7 +355,7 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
           </div>
           <div className="flex items-center gap-3">
             <span className={`rounded-full px-3 py-1 text-xs font-semibold ${online ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`} aria-live="polite">
-              {online ? 'Синхронизировано' : 'Нет соединения'}
+              {online ? 'Синхронизировано' : `Нет соединения · данные на ${tm(new Date(lastSyncedAt).toISOString())}`}
             </span>
             <button type="button" onClick={() => void refresh(false)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Обновить</button>
           </div>
@@ -301,14 +376,14 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
                   </tr>
                 </thead>
                 <tbody>
-                  {queue.items.map((item, index) => <QueueRow key={item.holdId} item={item} position={index + 1} serverNowMs={serverNowMs} state={rowState[item.holdId] ?? 'idle'} canAct={firstActionableIndex === index} onConfirm={confirm} onDecline={setDeclineItem} onAlternative={setAlternativeItem} onNotes={setNotesItem} onAudit={openAudit} onHold={canInspectHold ? setHoldItem : undefined} />)}
+                  {queue.items.map((item, index) => <QueueRow key={item.holdId} item={item} position={index + 1} serverNowMs={serverNowMs} state={rowState[item.holdId] ?? 'idle'} canAct={online && firstActionableIndex === index} onConfirm={confirm} onDecline={setDeclineItem} onAlternative={setAlternativeItem} onNotes={setNotesItem} onAudit={openAudit} onHold={canInspectHold ? setHoldItem : undefined} />)}
                 </tbody>
               </table>
             </div>
           )}
         </div>
       </section>
-      <AlternativeSlotDrawer locationId={locationId} item={alternativeItem} onClose={() => setAlternativeItem(null)} onProposed={async () => { setNotice('Альтернативное время отправлено владельцу.'); await refresh(true); }} />
+      <AlternativeSlotDrawer locationId={locationId} item={alternativeItem} onClose={() => setAlternativeItem(null)} onProposed={async () => { setNotice('Альтернативное время отправлено владельцу.'); await refresh(true, true); }} />
       <RequestNotesDrawer item={notesItem} submitting={notesItem ? rowState[notesItem.holdId] === 'requestingNotes' : false} onClose={() => setNotesItem(null)} onSubmit={requestNotes} />
       <DeclineDialog item={declineItem} submitting={declineItem ? rowState[declineItem.holdId] === 'declining' : false} onClose={() => setDeclineItem(null)} onConfirm={decline} />
       <AuditTrailDrawer item={auditItem} trail={auditTrail} loading={auditLoading} error={auditError} onClose={() => { setAuditItem(null); setAuditTrail(null); setAuditError(null); }} />
@@ -392,8 +467,15 @@ function RequestNotesDrawer({ item, submitting, onClose, onSubmit }: { item: Man
   );
 }
 
-function DeclineDialog({ item, submitting, onClose, onConfirm }: { item: ManualConfirmationQueueItem | null; submitting: boolean; onClose: () => void; onConfirm: (item: ManualConfirmationQueueItem) => void }) {
+function DeclineDialog({ item, submitting, onClose, onConfirm }: { item: ManualConfirmationQueueItem | null; submitting: boolean; onClose: () => void; onConfirm: (item: ManualConfirmationQueueItem, declineReason: string) => void }) {
+  const [declineReason, setDeclineReason] = useState('');
+
+  useEffect(() => {
+    setDeclineReason('');
+  }, [item?.holdId]);
+
   if (!item) return null;
+  const normalized = declineReason.trim();
 
   return (
     <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="decline-title">
@@ -405,11 +487,21 @@ function DeclineDialog({ item, submitting, onClose, onConfirm }: { item: ManualC
           <p className="mt-2 text-sm text-slate-600">{item.pet.name} · {item.service?.displayName ?? 'Услуга не указана'}</p>
         </header>
         <div className="px-6 py-5 text-sm text-slate-700">
-          Слот будет освобождён, а владелец увидит актуальный статус заявки.
+          <p>Слот будет освобождён, а владелец увидит актуальный статус заявки.</p>
+          <label htmlFor="decline-reason" className="mt-4 block font-semibold text-slate-900">Причина отклонения</label>
+          <textarea
+            id="decline-reason"
+            value={declineReason}
+            onChange={(event) => setDeclineReason(event.target.value.slice(0, 1000))}
+            rows={4}
+            aria-describedby="decline-reason-hint"
+            className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-red-600 focus:ring-2 focus:ring-red-600/20"
+          />
+          <p id="decline-reason-hint" className="mt-2 text-xs text-slate-500">Минимум 3 символа. Текст сохранится, если связь прервётся.</p>
         </div>
         <footer className="flex gap-3 border-t border-slate-200 px-6 py-4">
           <button type="button" onClick={onClose} disabled={submitting} className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Отмена</button>
-          <button type="button" onClick={() => onConfirm(item)} disabled={submitting} className="flex-1 rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
+          <button type="button" onClick={() => onConfirm(item, normalized)} disabled={submitting || normalized.length < 3} className="flex-1 rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
             {submitting ? 'Отклоняем...' : 'Отклонить заявку'}
           </button>
         </footer>
