@@ -191,8 +191,30 @@ integration veto is resolved. No open veto remains for this bounded slice.
 
 ## Next single action
 
-`V50-CLINIC-01C / Decline and Request-Notes HTTP Authority Matrix`: extend the
-same focused HTTP harness to the two existing queue commands only, proving
-exact clinic/location authority, idempotency, normalized no-leak denial, and
-zero denied state/version/outbox/audit effects. Do not add routes, migrations,
-roles, state transitions, or Clinic Portal UI.
+`V50-CLINIC-01C / Decline and Request-Notes HTTP Authority Matrix` is
+`COMPLETE` as a test/evidence closure with no production-code change.
+
+- The existing HTTP harness now proves positive, idempotent decline and
+  request-notes behavior through the real NestJS/PostgreSQL stack.
+- Decline preserves the existing contract: `RELEASED`, version `2`, released
+  slot capacity, `booking.hold.released.v1`, `booking.declined`, persisted
+  decline reason, and authoritative owner readback.
+- Request-notes preserves `MANUAL_CONFIRM_PENDING`, increments to version `2`,
+  retains held capacity, and persists the exact request in
+  `booking.notes.requested.v1` plus `booking.notes.requested` audit evidence.
+- Both commands deny role, missing/revoked membership, missing/incompatible
+  clinic and location scopes without changing state/version or creating
+  appointment, success outbox, or success audit effects. `CONFIRMED` terminal
+  state returns the existing `INVALID_STATE_TRANSITION` contract with no
+  effects.
+- Validation: HTTP authority suite PASS `23/23`; Clinic Queue regression PASS
+  `6/6`; backend build PASS; `git diff --check` PASS. Tier A root review found
+  no production defect and no open veto.
+
+## Next single action
+
+`V50-CLINIC-01D / Alternative-Slot HTTP Authority Matrix`: extend the focused
+HTTP harness for the single existing clinic alternative-slot command, proving
+exact clinic/location authority, idempotency/version fencing, denied-mutation
+side-effect isolation, and authoritative owner proposal readback. Do not add a
+route, migration, role, state transition, or Clinic Portal UI.

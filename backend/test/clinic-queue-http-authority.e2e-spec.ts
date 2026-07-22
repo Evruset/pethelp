@@ -30,6 +30,14 @@ const IDS = {
   hold: '71000000-0000-4000-8000-000000000001',
 };
 
+type Actor = {
+  sub: string;
+  roles: Role[];
+  clinicIds?: string[];
+  locationIds?: string[];
+  capabilities?: string[];
+};
+
 describe('Clinic Queue HTTP authority matrix', () => {
   let app: INestApplication;
   let database: DatabaseService;
@@ -47,13 +55,7 @@ describe('Clinic Queue HTTP authority matrix', () => {
   beforeEach(async () => resetFixtures(database));
   afterAll(async () => app?.close());
 
-  const tokenFor = (input: {
-    sub: string;
-    roles: Role[];
-    clinicIds?: string[];
-    locationIds?: string[];
-    capabilities?: string[];
-  }) => jwt.signAsync(input, {
+  const tokenFor = (input: Actor) => jwt.signAsync(input, {
     secret: config.jwtSecret,
     issuer: config.jwtIssuer,
     audience: config.jwtAudience,
@@ -71,12 +73,38 @@ describe('Clinic Queue HTTP authority matrix', () => {
     .set('If-Match', '1')
     .set('X-Correlation-ID', randomUUID());
 
+  const decline = async (input: Parameters<typeof tokenFor>[0], idempotencyKey = randomUUID()) => request(app.getHttpServer())
+    .post(`/v1/clinic/booking-holds/${IDS.hold}/decline`)
+    .set('Authorization', `Bearer ${await tokenFor(input)}`)
+    .set('Idempotency-Key', idempotencyKey)
+    .set('If-Match', '1')
+    .set('X-Correlation-ID', randomUUID())
+    .send({ declineReason: 'Owner requested another clinic' });
+
+  const requestNotes = async (input: Parameters<typeof tokenFor>[0], idempotencyKey = randomUUID()) => request(app.getHttpServer())
+    .post(`/v1/clinic/booking-holds/${IDS.hold}/request-notes`)
+    .set('Authorization', `Bearer ${await tokenFor(input)}`)
+    .set('Idempotency-Key', idempotencyKey)
+    .set('If-Match', '1')
+    .set('X-Correlation-ID', randomUUID())
+    .send({ noteRequest: 'Please confirm the pet vaccination date' });
+
   const allowed = () => ({
     sub: IDS.allowed,
     roles: [Role.CLINIC_RECEPTIONIST],
     clinicIds: [IDS.clinic],
     locationIds: [IDS.location],
   });
+
+  const deniedActors = (): Array<[string, Actor]> => [
+    ['role denied', { sub: IDS.veterinarian, roles: [Role.CLINIC_VETERINARIAN], clinicIds: [IDS.clinic], locationIds: [IDS.location] }],
+    ['missing membership', { sub: IDS.noMembership, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic], locationIds: [IDS.location], capabilities: ['booking.queue.read'] }],
+    ['revoked membership', { sub: IDS.revoked, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic], locationIds: [IDS.location] }],
+    ['missing clinic scope', { sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], locationIds: [IDS.location] }],
+    ['incompatible clinic scope', { sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.otherClinic], locationIds: [IDS.location] }],
+    ['missing location scope', { sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic] }],
+    ['incompatible location scope', { sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic], locationIds: [IDS.otherLocation] }],
+  ];
 
   it('allows the scoped receptionist to read only its queue', async () => {
     const response = await queue(allowed());
@@ -147,8 +175,81 @@ describe('Clinic Queue HTTP authority matrix', () => {
       aggregateVersion: 2,
     });
     expect(await mutationSnapshot(database)).toEqual({
-      state: 'CONFIRMED', version: 2, appointments: '1', events: '1', audits: '1',
+      state: 'CONFIRMED', version: 2, heldCount: 0, appointments: '1', events: '1', audits: '1',
     });
+  });
+
+  it.each(['decline', 'request-notes'] as const)('denies %s across the authority matrix without side effects', async (command) => {
+    for (const [name, actor] of deniedActors()) {
+      await resetFixtures(database);
+      const before = await mutationSnapshot(database);
+      const response = command === 'decline' ? await decline(actor) : await requestNotes(actor);
+      expect(response.status).toBe(403);
+      expectNoLeak(response.body);
+      expect(await mutationSnapshot(database)).toEqual(before);
+      expect(JSON.stringify(response.body)).not.toContain(name === 'role denied' ? 'Queue pet' : IDS.hold);
+    }
+  });
+
+  it('declines idempotently with authoritative release, reason, audit, outbox and owner readback', async () => {
+    const key = randomUUID();
+    const first = await decline(allowed(), key);
+    expect(first.status).toBe(200);
+    expect(first.body).toMatchObject({ holdId: IDS.hold, slotId: IDS.slot, state: 'RELEASED' });
+    expect((await decline(allowed(), key)).body).toEqual(first.body);
+    expect(await mutationSnapshot(database)).toEqual({
+      state: 'RELEASED', version: 2, heldCount: 0, appointments: '0', events: '1', audits: '1',
+    });
+    const evidence = await database.query<{ event_reason: string; audit_reason: string }>(`
+      SELECT event.payload_json->>'declineReason' AS event_reason, audit.payload_json->>'reason' AS audit_reason
+      FROM booking_schema.outbox_events event
+      JOIN audit_schema.audit_log audit ON audit.aggregate_id = event.aggregate_id
+      WHERE event.aggregate_id = $1::uuid
+        AND event.event_type = 'booking.hold.released.v1'
+        AND audit.action = 'booking.declined'
+    `, [IDS.hold]);
+    expect(evidence.rows[0]).toEqual({ event_reason: 'Owner requested another clinic', audit_reason: 'Owner requested another clinic' });
+
+    const ownerToken = await tokenFor({ sub: IDS.owner, roles: [Role.OWNER] });
+    const readback = await request(app.getHttpServer()).get(`/v1/booking-holds/${IDS.hold}`).set('Authorization', `Bearer ${ownerToken}`).expect(200);
+    expect(readback.body).toMatchObject({ state: 'RELEASED', nextActionCode: 'CHOOSE_ANOTHER_SLOT', aggregateVersion: 2 });
+  });
+
+  it('requests notes idempotently while preserving the pending hold and publishing the request text', async () => {
+    const key = randomUUID();
+    const first = await requestNotes(allowed(), key);
+    expect(first.status).toBe(200);
+    expect(first.body).toMatchObject({
+      holdId: IDS.hold,
+      state: 'MANUAL_CONFIRM_PENDING',
+      version: 2,
+      requestedNote: 'Please confirm the pet vaccination date',
+    });
+    expect((await requestNotes(allowed(), key)).body).toEqual(first.body);
+    expect(await mutationSnapshot(database)).toEqual({
+      state: 'MANUAL_CONFIRM_PENDING', version: 2, heldCount: 1, appointments: '0', events: '1', audits: '1',
+    });
+    const evidence = await database.query<{ event_note: string; audit_note: string }>(`
+      SELECT event.payload_json->>'requestedNote' AS event_note, audit.payload_json->>'noteRequest' AS audit_note
+      FROM booking_schema.outbox_events event
+      JOIN audit_schema.audit_log audit ON audit.aggregate_id = event.aggregate_id
+      WHERE event.aggregate_id = $1::uuid
+        AND event.event_type = 'booking.notes.requested.v1'
+        AND audit.action = 'booking.notes.requested'
+    `, [IDS.hold]);
+    expect(evidence.rows[0]).toEqual({
+      event_note: 'Please confirm the pet vaccination date',
+      audit_note: 'Please confirm the pet vaccination date',
+    });
+  });
+
+  it.each(['decline', 'request-notes'] as const)('rejects %s from terminal CONFIRMED without side effects', async (command) => {
+    await database.query(`UPDATE booking_schema.booking_holds SET state = 'CONFIRMED', confirmation_sla_expires_at = NULL WHERE id = $1::uuid`, [IDS.hold]);
+    const before = await mutationSnapshot(database);
+    const response = command === 'decline' ? await decline(allowed()) : await requestNotes(allowed());
+    expect(response.status).toBe(422);
+    expect(response.body).toMatchObject({ code: 'INVALID_STATE_TRANSITION' });
+    expect(await mutationSnapshot(database)).toEqual(before);
   });
 });
 
@@ -162,13 +263,14 @@ function expectNoLeak(body: Record<string, unknown>) {
 
 async function mutationSnapshot(database: DatabaseService) {
   const result = await database.query<{
-    state: string; version: number; appointments: string; events: string; audits: string;
+    state: string; version: number; heldCount: number; appointments: string; events: string; audits: string;
   }>(`
-    SELECT hold.state, hold.version,
+    SELECT hold.state, hold.version, slot.held_count AS "heldCount",
       (SELECT COUNT(*)::text FROM booking_schema.appointments WHERE hold_id = hold.id) AS appointments,
-      (SELECT COUNT(*)::text FROM booking_schema.outbox_events WHERE aggregate_id = hold.id AND event_type = 'booking.confirmed.v1') AS events,
-      (SELECT COUNT(*)::text FROM audit_schema.audit_log WHERE aggregate_id = hold.id AND action = 'booking.confirmed') AS audits
+      (SELECT COUNT(*)::text FROM booking_schema.outbox_events WHERE aggregate_id = hold.id AND event_type = ANY(ARRAY['booking.confirmed.v1','booking.hold.released.v1','booking.notes.requested.v1'])) AS events,
+      (SELECT COUNT(*)::text FROM audit_schema.audit_log WHERE aggregate_id = hold.id AND action = ANY(ARRAY['booking.confirmed','booking.declined','booking.notes.requested'])) AS audits
     FROM booking_schema.booking_holds hold
+    JOIN clinic_schema.appointment_slots slot ON slot.id = hold.slot_id
     WHERE hold.id = $1::uuid
   `, [IDS.hold]);
   return result.rows[0];
