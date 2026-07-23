@@ -657,7 +657,47 @@ retention/consent decision.
 
 ## Next single action
 
-`V50-CLINIC-03A1 / Clinic Patient Retention and Consent Decision`: record the
-product/legal lifecycle for appointment-derived clinic-patient visibility,
-owner archival/deletion, consent revocation and imported associations before
-backend implementation.
+`V50-CLINIC-03A1 / Clinic Patient Retention and Consent Decision` is `COMPLETE`
+as a documentation/decision-only slice.
+
+- The MVP storage decision is hybrid: a confirmed exact-location appointment is
+  provenance, while registry visibility is served from a versioned association
+  carrying lifecycle and purpose-specific consent. Pure appointment derivation
+  and manually maintained association options were rejected.
+- Lifecycle is `ACTIVE`, `ARCHIVED` or `REVOKED`. Pending/declined/expired holds
+  create nothing. Completion/no-show refresh relationship evidence;
+  cancellation remains visible only inside the configured window; owner
+  deletion or consent revocation removes operational visibility immediately.
+- Consent purpose is `PATIENT_ADMIN_REGISTRY`, exact clinic/location/pet scoped
+  and separate from appointment performance, clinical records, communications
+  and cross-location sharing. Missing/expired/revoked evidence denies
+  association activation and search server-side.
+- Pet archival archives the relation. Owner deletion/anonymization revokes it
+  and owner display remains null. New ownership/consent is required for
+  reactivation; historical medical/audit retention does not authorize registry
+  visibility.
+- Location associations are independent. A move creates/activates B only with
+  B-scoped consent and archives A when no other qualifying evidence remains.
+  Multi-location admins still request one exact location.
+- Imported-only, manual, medical-only, insurance, owner-share and platform
+  telemedicine sources remain excluded. Future import/manual support requires
+  its own provenance/write/revocation contract.
+- Operational visibility duration and search threshold/window are installation
+  policies with named owners. Missing visibility config closes the registry
+  with bounded `503`; missing search config closes search with bounded `503`.
+  Search limiting is employee+clinic+location keyed, returns bounded `429` and
+  `Retry-After`, logs no query/PII and has no production bypass.
+- Backend readiness verdict: `BLOCKED` by exactly one prerequisite,
+  `V50-CLINIC-03A2 / Clinic Patient Association Schema Contract`, owned by
+  CTO/Architecture. Product/legal numeric policies block activation but do not
+  block the schema contract.
+- Runtime tests/build: `ABSTAIN`; production/API/OpenAPI/migrations/roles/flags
+  are unchanged. Documentation consistency and `git diff --check` PASS. Tier B
+  decision validator PASS with no veto.
+
+## Next single action
+
+`V50-CLINIC-03A2 / Clinic Patient Association Schema Contract`: define only
+the versioned association, consent references, lifecycle/event ownership,
+idempotent projection, backfill, indexes and rollback before any migration or
+backend endpoint.

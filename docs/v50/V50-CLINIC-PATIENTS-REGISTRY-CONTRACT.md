@@ -1,6 +1,6 @@
 # V50 Clinic Patients Registry Contract
 
-Status: `CONTRACT_COMPLETE / IMPLEMENTATION_BLOCKED_BY_RETENTION_CONSENT_DECISION`.
+Status: `CONTRACT_COMPLETE / IMPLEMENTATION_BLOCKED_BY_ASSOCIATION_SCHEMA`.
 
 ## Bounded outcome
 
@@ -42,13 +42,20 @@ registry relationship.
 
 ## Authoritative inclusion relation
 
+`V50-CLINIC-03A1` selects a hybrid association model. Appointment confirmation
+is the supported provenance, but the future registry reads a versioned,
+location-scoped association with valid `PATIENT_ADMIN_REGISTRY` consent. An
+appointment row alone no longer authorizes registry visibility.
+
 An active registry row exists when all are true:
 
-1. `pet_schema.pets.id = booking_schema.appointments.pet_id`;
-2. `appointments.clinic_location_id = :locationId`;
-3. the location belongs to `:clinicId` and is active;
-4. `pets.archived_at IS NULL`;
-5. at least one appointment row exists at that exact location.
+1. the association is `ACTIVE` for exact clinic, location and pet;
+2. its provenance is a confirmed exact-location appointment;
+3. its consent reference is valid, unexpired and not revoked for purpose
+   `PATIENT_ADMIN_REGISTRY`;
+4. the location belongs to `:clinicId` and is active;
+5. `pets.archived_at IS NULL`;
+6. the installation operational-visibility policy includes the association.
 
 The appointment may be upcoming, completed, no-show or cancelled: once an
 appointment was created, it is durable evidence of an administrative
@@ -57,10 +64,8 @@ appointments produce one row per pet. The same pet may appear independently in
 two location registries only when each location has its own appointment
 evidence.
 
-This relation is proven by current foreign keys and appointment scope. There is
-no explicit clinic–pet association, consent/share record or clinic import
-association. Retention and consent consequences therefore remain a rollout
-blocker below.
+The appointment relation is proven by current foreign keys. The association and
+consent storage do not yet exist and require the bounded `03A2` schema contract.
 
 ### Inclusion matrix
 
@@ -75,8 +80,9 @@ blocker below.
 | unrelated pet belonging to an owner who has another qualifying pet | exclude |
 | medical record/document only | exclude |
 | `external_patient_id` or imported pet without appointment evidence | exclude |
-| archived pet | exclude from active registry; retention behavior remains open |
-| deleted owner, revoked consent or deleted association | blocked pending policy/source |
+| archived pet | association becomes archived; exclude |
+| deleted/anonymized owner | association becomes revoked; exclude; owner fallback forbidden |
+| missing/expired/revoked consent | exclude immediately server-side |
 
 ## Authority and capability
 
@@ -255,30 +261,19 @@ Administrative registry reads need no medical read audit because the allowlist
 contains no medical categories. Any future clinical patient read requires a
 separate capability, assignment/category policy and medical read audit.
 
-## Archive, retention and consent blocker
+## Archive, retention and consent decision
 
-Current evidence provides owner-controlled `pets.archived_at`, but no
-clinic–pet association lifecycle, consent/share/revocation record, legal
-retention period, owner-deletion policy or clinic patient soft-delete semantics.
-No legal duration can be inferred from code.
+The canonical decision is
+`V50-CLINIC-PATIENT-RETENTION-CONSENT-DECISION.md`. It selects a hybrid,
+versioned association with `ACTIVE`, `ARCHIVED` and `REVOKED` lifecycle,
+purpose-specific consent, immediate server-side revocation, exact-location
+transfer semantics and deny-by-default installation policies.
 
-Before production implementation/rollout, product/legal/data governance must
-decide:
-
-- whether cancellation of the last appointment ever removes the relationship;
-- how long completed/cancelled appointment-derived visibility persists;
-- whether owner archival, account deletion or consent revocation removes,
-  masks or only archives the row;
-- whether clinics require an explicit association/consent record independent
-  of appointments;
-- which source is authoritative for imported patients;
-- whether retention differs for administrative and medical records.
-- the supported patient-search request/window threshold and operational
-  ownership of its per-employee+scope limiter.
-
-Until that decision is recorded, the operational inclusion rule above is
-suitable only as a default-off technical baseline. Backend/Portal
-implementation is not the next safe slice.
+Missing visibility policy makes the registry return bounded `503`; missing
+search policy makes search return bounded `503`. No legal duration or rate
+threshold is invented. Imported/manual/medical-only sources remain excluded.
+The next prerequisite is the association schema contract, not the backend read
+endpoint.
 
 ## Detail boundary and sequence
 
@@ -286,9 +281,10 @@ Patient detail is outside `03A`. It must not reuse owner pet profile or
 veterinarian workspace DTOs. The safe sequence is:
 
 1. patient registry contract;
-2. retention/consent decision and any required association schema contract;
-3. backend registry read model;
-4. Portal registry integration;
-5. patient detail contract;
-6. medical record contract;
-7. owner/client contract.
+2. retention/consent decision;
+3. association schema contract and migration;
+4. backend registry read model;
+5. Portal registry integration;
+6. patient detail contract;
+7. medical record contract;
+8. owner/client contract.
