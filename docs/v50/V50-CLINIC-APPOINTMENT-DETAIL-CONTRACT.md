@@ -1,6 +1,6 @@
 # V50 Clinic Appointment Detail Contract
 
-Status: `DETAIL_BACKEND_IMPLEMENTED / PORTAL_MISSING`.
+Status: `DETAIL_END_TO_END_IMPLEMENTED`.
 
 ## Bounded outcome
 
@@ -276,3 +276,32 @@ Focused Node 22 evidence: detail HTTP suite `13/13`, registry regression
 `27/27`, backend build, OpenAPI export/assertion, migration checksum verification
 and `git diff --check` pass. No migration was added. Portal implementation and
 end-to-end detail parity remain missing.
+
+## Portal implementation evidence
+
+The existing registry now opens the single scoped Portal route
+`/clinics/:clinicId/locations/:locationId/appointments/:appointmentId`.
+Its single BFF route
+`/api/clinic/:clinicId/locations/:locationId/appointments/:appointmentId`
+reuses the registry rollout flag, authenticated Clinic session, effective
+`appointment.registry.read`, and exact clinic/location scope before proxying
+the canonical backend endpoint without caching or status coercion.
+
+`ClinicAppointmentDetail` renders the administrative allowlist only.
+`parseClinicAppointmentDetail` verifies exact clinic/location/appointment IDs,
+strict timestamps, nested projections and the required empty action array,
+drops unexpected fields, normalizes unexpected status to `UNKNOWN`, and keeps
+aggregate version only in typed state. Owner null is shown as
+`Владелец не указан`; UUID fallback, raw enum/version/IDs, clinical, financial,
+audit and future actions are not rendered.
+
+Initial loading, normalized no-leak, technical failure and refresh-degraded
+states are distinct. Manual refresh aborts the prior request, generation-fences
+route/scope changes, and preserves the last validated detail after malformed or
+technical failures. No polling was added.
+
+Node 22 Portal evidence: typecheck and production build PASS; focused Chromium
+enabled matrix PASS `23/23`, default-off page/BFF rollback PASS `1/1`, with
+desktop/mobile screenshots, keyboard, axe and 200% text coverage. Backend
+detail `13/13` and registry `27/27` remain green. OpenAPI, migrations, indexes,
+Queue and backend production code are unchanged.

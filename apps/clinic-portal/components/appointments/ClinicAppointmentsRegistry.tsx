@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import {
   ClinicAppointmentsResponseError,
   fetchClinicAppointments,
@@ -24,7 +25,7 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
-function AppointmentCard({ item }: { item: ClinicAppointment }) {
+function AppointmentCard({ item, clinicId, locationId }: { item: ClinicAppointment; clinicId: string; locationId: string }) {
   const status = STATUS[item.statusCode] ?? {
     label: 'Статус уточняется',
     className: 'border-violet-200 bg-violet-50 text-violet-800',
@@ -55,6 +56,12 @@ function AppointmentCard({ item }: { item: ClinicAppointment }) {
             <dd className="mt-1 text-sm text-slate-700">{item.service?.displayName ?? 'Не указана'}</dd>
           </div>
         </dl>
+        <Link
+          href={`/clinics/${encodeURIComponent(clinicId)}/locations/${encodeURIComponent(locationId)}/appointments/${encodeURIComponent(item.appointmentId)}`}
+          className="mt-5 inline-flex min-h-11 items-center rounded-xl border border-blue-300 px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-50"
+        >
+          Открыть запись
+        </Link>
       </article>
     </li>
   );
@@ -240,7 +247,7 @@ export function ClinicAppointmentsRegistry({ clinicId, locationId }: Props) {
           {items.length > 0 && (
             <>
               <ul className="grid gap-4" aria-label={bucket === 'upcoming' ? 'Предстоящие записи' : 'История записей'}>
-                {items.map((item) => <AppointmentCard key={item.appointmentId} item={item} />)}
+                {items.map((item) => <AppointmentCard key={item.appointmentId} item={item} clinicId={clinicId} locationId={locationId} />)}
               </ul>
               {(nextCursor || traversalComplete || phase === 'degraded') && (
                 <div className="mt-6 flex justify-center">

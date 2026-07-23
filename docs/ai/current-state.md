@@ -586,8 +586,38 @@ for the backend read model; Portal integration remains absent.
   assertion PASS; migration checksum verification PASS with no migration diff;
   `git diff --check` PASS. Tier B validator PASS with no veto.
 
+## Completed slice
+
+`V50-CLINIC-02F / Clinic Appointment Detail Portal Integration` is `COMPLETE`
+for the bounded read-only administrative detail.
+
+- The existing registry opens the single scoped route
+  `/clinics/:clinicId/locations/:locationId/appointments/:appointmentId`.
+  The matching scoped BFF proxies only the canonical backend detail endpoint.
+- Page and BFF reuse `VETHELP_CLINIC_APPOINTMENTS_REGISTRY`, authenticated
+  Clinic session, effective `appointment.registry.read`, and exact
+  clinic/location scope. Disabled page and BFF are both unavailable.
+- The typed parser validates exact clinic/location/appointment IDs, strict
+  RFC3339 timestamps including calendar validity, nested nullable projections,
+  and `availableActions: []`. Unexpected sensitive fields are dropped and
+  unexpected status becomes safe `UNKNOWN`.
+- The card shows authoritative status and administrative schedule/pet/service
+  facts. Version remains internal; owner null becomes `Владелец не указан`.
+  UUIDs, raw enums/version/actions, clinical, financial and audit data are not
+  rendered.
+- Manual refresh aborts the current request, preserves the last validated card
+  on malformed or technical failure, and generation-fences route/scope changes.
+  Loading, normalized no-leak, technical and degraded states remain distinct;
+  polling was not added.
+- Validation: Node 22 typecheck and production build PASS; focused Chromium
+  enabled matrix PASS `23/23`; default-off page+BFF rollback PASS `1/1`;
+  desktop/mobile screenshots, keyboard, axe and 200% text PASS. Backend detail
+  PASS `13/13`; registry PASS `27/27`; OpenAPI, migrations/indexes, backend
+  production code and Queue unchanged; `git diff --check` PASS. Tier B
+  validator PASS with no veto.
+
 ## Next single action
 
-`V50-CLINIC-02F / Clinic Appointment Detail Portal Integration`: add only the
-default-off nested Portal page/BFF for the implemented administrative detail;
-do not add appointment mutations or administrative history.
+`V50-CLINIC-03A / Clinic Patients Contract Discovery`: define only the bounded
+administrative patients registry authority, privacy and read-model contract;
+do not implement patient APIs/UI or clinical patient detail.
