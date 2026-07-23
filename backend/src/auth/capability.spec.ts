@@ -17,6 +17,7 @@ describe('hasCapability', () => {
   it('derives booking queue capability for clinic reception without trusting a JWT capability claim', () => {
     expect(effectiveCapabilities(employee(Role.CLINIC_RECEPTIONIST))).toEqual([
       Capability.BOOKING_QUEUE_READ,
+      Capability.APPOINTMENT_REGISTRY_READ,
       Capability.QUALITY_READ,
       Capability.SCHEDULE_READ,
       Capability.BOOKING_REPLAY_READ,

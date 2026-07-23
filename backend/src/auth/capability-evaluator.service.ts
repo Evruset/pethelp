@@ -28,7 +28,8 @@ export class CapabilityEvaluatorService {
 
     const membership = await client.query<{ employee_id: string }>(`
       SELECT employee_id FROM clinic_schema.employee_location_memberships
-      WHERE employee_id = $1::uuid AND clinic_location_id = $2::uuid AND active = true
+      WHERE employee_id = $1::uuid AND clinic_location_id = $2::uuid
+        AND active = true AND revoked_at IS NULL
       FOR SHARE
     `, [actor.sub, resource.locationId]);
     if (!membership.rows[0]) return this.deny('inactive-membership');

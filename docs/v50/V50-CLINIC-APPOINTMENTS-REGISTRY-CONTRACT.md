@@ -1,6 +1,6 @@
 # V50 Clinic Appointments Registry Contract
 
-Status: contract discovery complete; production implementation absent.
+Status: backend read model implemented; Portal integration absent.
 
 ## Bounded outcome
 
@@ -147,4 +147,18 @@ cross-location identifiers.
   absent.
 
 No production defect is changed by this discovery slice. Implementation begins
-only in the next bounded backend read-model slice.
+at `GET /v1/clinic/:clinicId/locations/:locationId/appointments` with a signed
+v1 cursor. The cursor preserves PostgreSQL timestamp precision, the DB-owned
+snapshot boundary, scope, bucket, limit, and stable ordering tuple without
+exposing signature details in errors.
+
+The snapshot fixes time-bucket membership and excludes appointments created
+after the first page. It is not a multi-request MVCC transaction: an appointment
+whose stored status changes during traversal follows its current authoritative
+status and may leave the selected bucket. Clients reconcile by starting a new
+traversal; no serializable cross-request transaction is claimed.
+
+Correctness is implemented without a migration. Focused `EXPLAIN` evidence shows
+sequential scans and an explicit sort because the current schema has no registry
+ordering index. The endpoint remains SQL-bounded by `limit + 1`; production-scale
+indexing is the next migration slice and no applied migration is edited here.

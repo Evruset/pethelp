@@ -36,6 +36,29 @@ describe('CapabilityEvaluatorService booking.queue.read ABAC matrix', () => {
   });
 });
 
+describe('CapabilityEvaluatorService appointment.registry.read ABAC matrix', () => {
+  const evaluator = new CapabilityEvaluatorService();
+  const resource = { aggregateType: 'appointment.registry' as const, clinicId: CLINIC, locationId: LOCATION };
+
+  it('allows scoped reception with active membership', async () => {
+    await expect(evaluator.assertAllowed(client() as PoolClient, {
+      actor: { sub: ACTOR, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [CLINIC], locationIds: [LOCATION] },
+      capability: Capability.APPOINTMENT_REGISTRY_READ,
+      resource,
+    })).resolves.toBeUndefined();
+  });
+
+  it.each([Role.CLINIC_VETERINARIAN, Role.OWNER])('denies role %s before membership query', async (role) => {
+    const db = client();
+    await expect(evaluator.assertAllowed(db as PoolClient, {
+      actor: { sub: ACTOR, roles: [role], clinicIds: [CLINIC], locationIds: [LOCATION] },
+      capability: Capability.APPOINTMENT_REGISTRY_READ,
+      resource,
+    })).rejects.toBeInstanceOf(DomainException);
+    expect(db.query).not.toHaveBeenCalled();
+  });
+});
+
 describe('CapabilityEvaluatorService clinical.visit.workspace.read ABAC matrix', () => {
   const evaluator = new CapabilityEvaluatorService();
   const resource = { aggregateType: 'clinical.visit.workspace' as const, clinicId: CLINIC, locationId: LOCATION };

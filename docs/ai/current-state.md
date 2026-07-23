@@ -435,9 +435,43 @@ unchanged.
   PASS. No runtime suite is applicable because this slice changes no executable
   code or public contract.
 
+## Completed slice
+
+`V50-CLINIC-02B / Clinic Appointments Registry Backend Read Model` is
+`COMPLETE` for correctness and authority; Portal integration remains absent.
+
+- `GET /v1/clinic/:clinicId/locations/:locationId/appointments` exposes only
+  the contracted `upcoming` or `history` administrative projection. It requires
+  server-derived `appointment.registry.read`, exact JWT clinic/location scopes,
+  active non-revoked membership, and an active location belonging to the URL
+  clinic. Receptionist/admin are granted; veterinarian and all incompatible
+  authority shapes are denied without projection leakage.
+- PostgreSQL owns `serverNow` and the first-page snapshot. The signed v1 cursor
+  binds clinic, location, bucket, limit, snapshot, exact PostgreSQL sort
+  timestamp, and appointment UUID. Keyset ordering is
+  `slot.starts_at + appointment.id`; new appointments after the snapshot are
+  excluded. Status changes between requests remain current-state/best-effort,
+  not a cross-request MVCC snapshot.
+- The projection contains appointment ID/version, mapped status code/label,
+  slot times, pet display data, and optional service name. Owner contacts,
+  clinical summary, payment/insurance/provider data, hold IDs, audit payloads,
+  and internal timestamps are absent. Reads create no business side effects;
+  technical failures remain non-200 without `items`.
+- Changed production areas: capability/resource vocabulary, centralized clinic
+  access method, bounded controller/service, module registration, OpenAPI
+  artifact, and focused registry harness. No Queue, Portal, mutation, role enum,
+  state machine, dependency, or migration changed.
+- Validation: registry HTTP/PostgreSQL PASS `27/27`; capability derivation and
+  evaluator PASS `26/26`; backend build PASS; OpenAPI 3.0 export/schema check
+  PASS; migration checksum verify PASS. Tier B validator PASS after capability,
+  OpenAPI, cursor-scope, snapshot/tie, privacy, side-effect, and strict-limit
+  findings were resolved; `git diff --check` PASS.
+- Performance evidence: the current schema produces sequential scans plus sort
+  for the registry query. Correctness is bounded by SQL `limit + 1`, but the
+  missing production-scale ordering index requires a separate migration slice.
+
 ## Next single action
 
-`V50-CLINIC-02B / Clinic Appointments Registry Backend Read Model`: implement
-only the contracted location-scoped cursor list, centralized capability/scope
-authority, and focused PostgreSQL/HTTP matrix; do not add the Portal screen or
-appointment mutations.
+`V50-CLINIC-02B1 / Clinic Appointments Registry Query Index Migration`: add and
+verify only the minimum registry access/order index through a new migration and
+focused query-plan regression; do not add Portal UI or appointment mutations.
