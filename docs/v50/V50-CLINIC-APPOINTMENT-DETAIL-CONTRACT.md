@@ -1,6 +1,6 @@
 # V50 Clinic Appointment Detail Contract
 
-Status: `CONTRACT_COMPLETE / IMPLEMENTATION_MISSING`.
+Status: `DETAIL_BACKEND_IMPLEMENTED / PORTAL_MISSING`.
 
 ## Bounded outcome
 
@@ -100,10 +100,9 @@ Contract rules:
 - Pet name and species are evidenced by the registry. Breed, birth date, age,
   warnings and contacts are omitted until their policy/source is separately
   proven.
-- `statusCode` is the same closed administrative mapping as the registry:
-  `SCHEDULED`, `COMPLETED`, `NO_SHOW`, `CANCELLED`. Stored raw states are never
-  returned as labels. Unknown stored states map to a safe unknown presentation,
-  not a raw enum.
+- `statusCode` uses the closed administrative mapping `SCHEDULED`, `COMPLETED`,
+  `NO_SHOW`, `CANCELLED`, plus safe detail-only `UNKNOWN`. Stored raw states are
+  never returned as labels; unknown states use `Статус уточняется`.
 - `aggregateVersion` and current status are database-authoritative. A stale
   registry version has no effect on the read.
 - `availableActions` is an empty array in this bounded contract. It is
@@ -253,5 +252,27 @@ Disabled rollout hides appointments navigation and makes the registry list,
 future detail pages, and their BFF routes unavailable as one release unit.
 There is no independent detail rollback while the shared flag is used. Enabling
 detail in a future slice must be additive to the enabled registry; disabling the
-shared flag rolls back both list and detail while leaving Queue unchanged. This
-discovery slice does not change the production flag.
+shared flag rolls back both list and detail while leaving Queue unchanged. The
+backend detail route is protected by this same flag and returns `404` while it
+is disabled; the Portal page and BFF remain absent.
+
+## Backend implementation evidence
+
+`ClinicAppointmentsRegistryController` exposes only the canonical
+`GET /v1/clinic/:clinicId/locations/:locationId/appointments/:appointmentId`
+route. `ClinicAppointmentsRegistryService.detail` performs one bounded,
+exact-scope projection with predicates on both appointment and slot location
+and the owning clinic. `ClinicAppointmentDetailDto` is the OpenAPI allowlist.
+
+The server reuses `appointment.registry.read`, exact JWT clinic/location claims,
+and active non-revoked membership. Malformed, absent and foreign identifiers
+use the same no-leak `CLINIC_SCOPE_MISMATCH`; technical failures remain `500`.
+Owner display is `null` because no verified administrative display source
+exists, and UUID fallback is forbidden. Status/version are authoritative,
+actions remain empty, reads are side-effect free, and clinical, financial,
+contact, audit and integration data are excluded.
+
+Focused Node 22 evidence: detail HTTP suite `13/13`, registry regression
+`27/27`, backend build, OpenAPI export/assertion, migration checksum verification
+and `git diff --check` pass. No migration was added. Portal implementation and
+end-to-end detail parity remain missing.

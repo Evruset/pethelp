@@ -1,5 +1,5 @@
-import { BadRequestException, Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiBadRequestResponse, ApiBearerAuth, ApiForbiddenResponse, ApiOkResponse, ApiOperation, ApiQuery, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { BadRequestException, Controller, Get, NotFoundException, Param, Query, UseGuards } from '@nestjs/common';
+import { ApiBadRequestResponse, ApiBearerAuth, ApiForbiddenResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiQuery, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload, Role } from '../auth/auth.types';
@@ -7,7 +7,9 @@ import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { DomainErrors } from '../common/domain-error';
 import { SWAGGER_BEARER_AUTH } from '../openapi/openapi';
+import { isClinicAppointmentsRegistryEnabled } from '../config';
 import { AppointmentRegistryBucket, ClinicAppointmentsRegistryService } from './clinic-appointments-registry.service';
+import { ClinicAppointmentDetailDto } from './dto/clinic-appointment-detail.dto';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const DEFAULT_LIMIT = 50;
@@ -79,6 +81,32 @@ export class ClinicAppointmentsRegistryController {
       bucket: bucketOrThrow(bucket),
       limit: limitOrThrow(limit),
       cursor,
+    });
+  }
+
+  @Get('clinic/:clinicId/locations/:locationId/appointments/:appointmentId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.CLINIC_RECEPTIONIST, Role.CLINIC_ADMIN)
+  @ApiBearerAuth(SWAGGER_BEARER_AUTH)
+  @ApiOperation({ summary: 'Location-scoped clinic appointment administrative detail' })
+  @ApiOkResponse({ type: ClinicAppointmentDetailDto })
+  @ApiUnauthorizedResponse({ description: 'Clinic employee JWT is required.' })
+  @ApiForbiddenResponse({ description: 'Appointment, capability, clinic, location and active membership are required.' })
+  @ApiNotFoundResponse({ description: 'Appointment registry rollout is disabled.' })
+  detail(
+    @Param('clinicId') clinicId: string,
+    @Param('locationId') locationId: string,
+    @Param('appointmentId') appointmentId: string,
+    @CurrentUser() employee: JwtPayload,
+  ) {
+    if (!isClinicAppointmentsRegistryEnabled()) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'Not found' });
+    }
+    return this.registry.detail({
+      clinicId: idOrThrow(clinicId),
+      locationId: idOrThrow(locationId),
+      appointmentId: idOrThrow(appointmentId),
+      employee,
     });
   }
 }

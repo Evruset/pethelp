@@ -561,9 +561,33 @@ unchanged.
   `git diff --check` PASS. Tier B validator PASS after exact existing mutation
   paths and shared-flag rollback semantics were clarified.
 
+## Completed slice
+
+`V50-CLINIC-02E / Clinic Appointment Detail Backend Read Model` is `COMPLETE`
+for the backend read model; Portal integration remains absent.
+
+- Canonical `GET /v1/clinic/:clinicId/locations/:locationId/appointments/:appointmentId`
+  is the only detail route. It is protected by the shared default-off
+  `VETHELP_CLINIC_APPOINTMENTS_REGISTRY` rollout flag.
+- Server authority reuses `appointment.registry.read`, exact clinic/location
+  JWT claims, active non-revoked membership and exact appointment/slot/location
+  SQL predicates. Malformed, missing and foreign identifiers have normalized
+  no-leak denial; database failures remain technical failures.
+- The allowlisted administrative DTO contains authoritative status/version,
+  schedule/timezone/safe source label, pet, nullable service/veterinarian/
+  resource, `owner: null` (no verified display source), and
+  `availableActions: []`. It excludes contacts, UUID owner fallback, clinical,
+  financial, integration, audit and history payloads.
+- One bounded query performs all projection joins; repeated reads are stable,
+  mutations are reflected on the next read, and reads create no outbox, audit,
+  idempotency, hold, slot or appointment side effects.
+- Validation: focused Node 22 detail HTTP suite PASS `13/13`; existing registry
+  regression PASS `27/27`; Node 22 backend build PASS; OpenAPI generation and
+  assertion PASS; migration checksum verification PASS with no migration diff;
+  `git diff --check` PASS. Tier B validator PASS with no veto.
+
 ## Next single action
 
-`V50-CLINIC-02E / Clinic Appointment Detail Backend Read Model`: implement only
-the contracted exact-scope, read-only administrative detail endpoint and its
-focused authority/privacy/query regression; do not add Portal detail UI or
-appointment mutations.
+`V50-CLINIC-02F / Clinic Appointment Detail Portal Integration`: add only the
+default-off nested Portal page/BFF for the implemented administrative detail;
+do not add appointment mutations or administrative history.

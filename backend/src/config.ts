@@ -46,3 +46,7 @@ export const config: AppConfig = Object.freeze({
   misVetManagerBaseUrl: optionalEnv('MIS_VET_MANAGER_BASE_URL'),
   misVetManagerApiKey: optionalEnv('MIS_VET_MANAGER_API_KEY'),
 });
+
+export function isClinicAppointmentsRegistryEnabled(): boolean {
+  return (process.env.VETHELP_CLINIC_APPOINTMENTS_REGISTRY ?? 'false').toLowerCase() === 'true';
+}

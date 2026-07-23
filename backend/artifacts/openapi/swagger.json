@@ -2209,6 +2209,67 @@
         ]
       }
     },
+    "/v1/clinic/{clinicId}/locations/{locationId}/appointments/{appointmentId}": {
+      "get": {
+        "operationId": "detail",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClinicAppointmentDetailDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Clinic employee JWT is required."
+          },
+          "403": {
+            "description": "Appointment, capability, clinic, location and active membership are required."
+          },
+          "404": {
+            "description": "Appointment registry rollout is disabled."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Location-scoped clinic appointment administrative detail",
+        "tags": [
+          "Clinic Portal"
+        ]
+      }
+    },
     "/v1/clinic/{clinicId}/locations/{locationId}/quality-dashboard": {
       "get": {
         "operationId": "dashboard",
@@ -5526,6 +5587,181 @@
       "ProposeAlternativeSlotDto": {
         "type": "object",
         "properties": {}
+      },
+      "ClinicAppointmentDetailAppointmentDto": {
+        "type": "object",
+        "properties": {
+          "appointmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "aggregateVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "statusCode": {
+            "type": "string",
+            "enum": [
+              "SCHEDULED",
+              "COMPLETED",
+              "NO_SHOW",
+              "CANCELLED",
+              "UNKNOWN"
+            ]
+          },
+          "statusLabel": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "appointmentId",
+          "aggregateVersion",
+          "statusCode",
+          "statusLabel",
+          "createdAt"
+        ]
+      },
+      "ClinicAppointmentDetailScheduleDto": {
+        "type": "object",
+        "properties": {
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "sourceLabel": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "startsAt",
+          "endsAt",
+          "timezone",
+          "sourceLabel"
+        ]
+      },
+      "ClinicAppointmentDetailDisplayNameDto": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "displayName"
+        ]
+      },
+      "ClinicAppointmentDetailPetDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "speciesLabel": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "speciesLabel"
+        ]
+      },
+      "ClinicAppointmentDetailDto": {
+        "type": "object",
+        "properties": {
+          "clinicId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "serverNow": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "appointment": {
+            "$ref": "#/components/schemas/ClinicAppointmentDetailAppointmentDto"
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/ClinicAppointmentDetailScheduleDto"
+          },
+          "owner": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClinicAppointmentDetailDisplayNameDto"
+              }
+            ]
+          },
+          "pet": {
+            "$ref": "#/components/schemas/ClinicAppointmentDetailPetDto"
+          },
+          "service": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClinicAppointmentDetailDisplayNameDto"
+              }
+            ]
+          },
+          "veterinarian": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClinicAppointmentDetailDisplayNameDto"
+              }
+            ]
+          },
+          "resource": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClinicAppointmentDetailDisplayNameDto"
+              }
+            ]
+          },
+          "availableActions": {
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "clinicId",
+          "locationId",
+          "serverNow",
+          "appointment",
+          "schedule",
+          "owner",
+          "pet",
+          "service",
+          "veterinarian",
+          "resource",
+          "availableActions"
+        ]
       },
       "CreateEmergencyTriageDto": {
         "type": "object",
