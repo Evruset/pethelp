@@ -122,6 +122,7 @@ export class ClinicAppointmentsRegistryService {
       JOIN pet_schema.pets p ON p.id = a.pet_id
       LEFT JOIN clinic_schema.clinic_services cs ON cs.id = s.service_id
       WHERE a.clinic_location_id = $1::uuid
+        AND s.clinic_location_id = $1::uuid
         AND a.created_at <= $2::timestamptz
         AND (${history
           ? `(a.status IN (${terminal}) OR (a.status NOT IN (${terminal}) AND s.ends_at < $2::timestamptz))`

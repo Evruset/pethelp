@@ -472,6 +472,35 @@ unchanged.
 
 ## Next single action
 
-`V50-CLINIC-02B1 / Clinic Appointments Registry Query Index Migration`: add and
-verify only the minimum registry access/order index through a new migration and
-focused query-plan regression; do not add Portal UI or appointment mutations.
+`V50-CLINIC-02B1 / Clinic Appointments Registry Query Index Migration` is
+`COMPLETE` as a schema/performance-only closure.
+
+- New migration `1719450000000_add_clinic_appointments_registry_indexes.js`
+  adds the minimum two-sided join path: ordered covering slots by
+  `clinic_location_id + starts_at + id`, and covering appointment lookup by
+  `slot_id + id`. No applied migration was edited.
+- The registry SQL now repeats the requested location predicate on the joined
+  slot. Valid data semantics, response projection, bucket membership, exact
+  timestamp cursor and public API are unchanged; the explicit predicate enables
+  the ordered access path and hardens tenant isolation at both join relations.
+- A deterministic 15,000-row fixture covers timestamp ties, terminal and
+  non-terminal rows, keyset page two, reverse history order, and unrelated
+  location noise. Baseline used sequential scans plus a top-N sort. Post-index
+  plans use both new indexes, no target-table sequential scan and no full sort;
+  only bounded incremental UUID sorting within equal slot timestamps remains.
+- Migration down/up preserves rows and definitions, and a post-index appointment
+  write succeeds. Because the canonical runner uses one transaction,
+  `CONCURRENTLY` is unavailable; the migration documents the normal
+  write-blocking index-build lock and maintenance-window requirement.
+- Validation: focused migration/index/query-plan suite PASS `6/6`; registry
+  HTTP/PostgreSQL regression PASS `27/27`; backend build PASS; canonical
+  migration down/up, data-preservation check and checksum verification PASS;
+  OpenAPI no-diff; `git diff --check` PASS. Tier B validator PASS after migration
+  export/history, multi-clinic isolation, bounded-plan, write-regression and
+  operator-runbook vetoes were resolved.
+
+## Next single action
+
+`V50-CLINIC-02C / Clinic Appointments Registry Portal Integration`: add the
+default-off Portal registry route and UI against the existing backend contract;
+do not add appointment mutations, realtime transport, or reuse the Queue screen.

@@ -1,6 +1,7 @@
 # V50 Clinic Appointments Registry Contract
 
-Status: backend read model implemented; Portal integration absent.
+Status: backend read model and production-scale query indexes implemented;
+Portal integration absent.
 
 ## Bounded outcome
 
@@ -158,7 +159,51 @@ whose stored status changes during traversal follows its current authoritative
 status and may leave the selected bucket. Clients reconcile by starting a new
 traversal; no serializable cross-request transaction is claimed.
 
-Correctness is implemented without a migration. Focused `EXPLAIN` evidence shows
-sequential scans and an explicit sort because the current schema has no registry
-ordering index. The endpoint remains SQL-bounded by `limit + 1`; production-scale
-indexing is the next migration slice and no applied migration is edited here.
+The registry access path is implemented by migration
+`1719450000000_add_clinic_appointments_registry_indexes.js`. It adds an ordered,
+covering `(clinic_location_id, starts_at, id)` slot index and a covering
+`(slot_id, id)` appointment lookup index. The query predicates both appointment
+and slot location; this preserves the valid-row contract, makes tenant isolation
+explicit on both joined relations, and enables the ordered slot access path.
+
+Production-like evidence uses 15,000 slots/appointments with timestamp ties,
+terminal and non-terminal rows, and unrelated-location noise. Before the
+migration PostgreSQL used sequential scans of both target relations and a
+top-N explicit sort (about 10 ms upcoming and 23 ms history on the local
+fixture). After the migration both buckets use the ordered slot index and
+appointment lookup index, stop after the bounded page, and have neither a target
+relation sequential scan nor a full explicit sort. PostgreSQL may use a bounded
+incremental sort only for appointment UUIDs sharing one `starts_at`.
+
+The repository migration runner applies all migrations in one transaction, so
+`CREATE INDEX CONCURRENTLY` is not compatible with the canonical command. The
+transactional index build takes PostgreSQL's normal write-blocking index-build
+lock and must be scheduled in a maintenance window sized for the two tables.
+Focused rollback/reapply evidence verifies both definitions, data preservation,
+keyset page two with exact PostgreSQL timestamp precision, ties, reverse history
+order, unrelated-location exclusion, and a successful post-index write.
+
+### Index migration operator runbook
+
+1. Rehearse `migrate:up` on a staging snapshot with production-like row counts
+   and record the wall time. Index duration cannot be inferred safely from the
+   small integration fixture; reserve at least twice the measured staging time
+   as the production maintenance window.
+2. Before deployment, record `pg_total_relation_size` for `appointment_slots`
+   and `appointments`, confirm free disk for the two new indexes plus transient
+   build files and WAL (use the combined source-table size as the conservative
+   minimum headroom), and confirm replica/WAL capacity.
+3. Deploy the backward-compatible query predicate first or in the same release,
+   quiesce appointment/slot writers, then run the canonical transactional
+   `npm run migrate:up`. Monitor `pg_stat_progress_create_index`,
+   `pg_locks`, disk, WAL and replica lag; do not start Portal rollout until both
+   index definitions and a representative `EXPLAIN (ANALYZE, BUFFERS)` pass.
+4. If the build exceeds the measured window, cancel the migration transaction;
+   PostgreSQL rolls back both index builds and the pre-migration read path
+   remains correct, though it retains the known latency/statement-timeout risk.
+   Do not retry until disk/lock pressure is resolved.
+5. Rollback uses the canonical `migrate:down`. Dropping the indexes takes a
+   brief exclusive lock on each index, preserves appointment/slot data and API
+   semantics, but restores sequential-scan/sort performance. Quiesce writers,
+   monitor locks, verify both indexes are absent and re-run a registry smoke
+   read. Reapply only through `migrate:up`; never edit the applied migration.
