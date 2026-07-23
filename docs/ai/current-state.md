@@ -695,9 +695,41 @@ as a documentation/decision-only slice.
   are unchanged. Documentation consistency and `git diff --check` PASS. Tier B
   decision validator PASS with no veto.
 
+## V50-CLINIC-03A2 completed slice
+
+`V50-CLINIC-03A2 / Clinic Patient Association Schema Contract` is `COMPLETE`
+as a documentation/schema-contract-only slice.
+
+- `ClinicPatientAssociation` is an exact clinic/location/pet administrative
+  relation, not Pet master, owner, medical, appointment or CRM storage.
+- The canonical contract defines `clinic_patient_associations`, a separate
+  bounded consent record, projection event receipts and immutable registry
+  revisions. Stable association identity and natural uniqueness are
+  `(clinic_id, clinic_location_id, pet_id)`.
+- Lifecycle is `ACTIVE`, `ARCHIVED`, `REVOKED`; version-fenced writers,
+  deterministic lock order and semantic event receipts make creation and
+  refresh idempotent. Revocation wins over stale refresh, and reactivation
+  requires a new consent plus new qualifying appointment.
+- Database checks cover immutable row-local facts only. Consent/policy expiry
+  uses PostgreSQL `serverNow` at runtime; no `now()`/volatile partial index or
+  check is permitted. Missing configuration remains bounded `503`.
+- Finite `visibility_expires_at` prevents indefinite operational visibility.
+  FK actions are non-cascading; storage and outbox exclude pet display data,
+  owner contacts, raw consent and medical/financial/integration facts.
+- Registry ordering remains `last_qualified_at DESC, pet_id DESC`. Immutable
+  association revisions and `snapshotSequence` preserve authoritative
+  cross-page ordering while live revoke/expiry still denies immediately.
+- Migration ordering, lock boundaries, transactional versus concurrent index
+  handling, forward-only post-write rollback and a deny-default zero-write
+  historical backfill are fixed.
+- Backend readiness is `READY_FOR_MIGRATION`. Product/legal/security policy
+  values remain activation gates, not migration blockers.
+- Runtime tests/build: `ABSTAIN`; no production code, migration, API, OpenAPI,
+  role or flag changed.
+
 ## Next single action
 
-`V50-CLINIC-03A2 / Clinic Patient Association Schema Contract`: define only
-the versioned association, consent references, lifecycle/event ownership,
-idempotent projection, backfill, indexes and rollback before any migration or
-backend endpoint.
+`V50-CLINIC-03A3 / Clinic Patient Association Schema Migration`: implement
+only the contracted PostgreSQL structures, constraints, indexes and
+clean/existing-database migration verification; do not implement the backend
+registry endpoint or Portal UI.

@@ -2,7 +2,7 @@
 
 Decision: `V50-CLINIC-03A1 / Clinic Patient Retention and Consent Decision`.
 
-Status: `DECISION_COMPLETE / ASSOCIATION_SCHEMA_CONTRACT_REQUIRED`.
+Status: `DECISION_COMPLETE / ASSOCIATION_MIGRATION_REQUIRED`.
 
 ## Context
 
@@ -219,7 +219,7 @@ No SQL, migration or production entity is created in `03A1`.
 | pilot visibility value and registry product purpose | Product Owner | installation release decision inside approved range | registry disabled/default-off | activation |
 | consent text, capture actor/source and withdrawal UX | Product Owner | versioned consent product specification reviewed by Legal | no association activation | consent implementation |
 | consent lawfulness and deletion/anonymization obligations | Data Protection/Legal | approved processing/deletion decision | revoke/hide operational association; preserve only separately lawful records | activation |
-| association/event/outbox consistency and backfill design | CTO/Architecture | `03A2` schema contract | no association table or backend endpoint | `03B` |
+| association/event/outbox consistency and backfill design | CTO/Architecture | `03A2` schema contract complete; `03A3` migration required | no association table or backend endpoint | `03B` |
 | search hard maximum and enumeration policy | Security | approved limiter policy | search `503` | search activation |
 | search threshold/window configuration, metrics and alerts | Platform/SRE | installation configuration and runbook | search `503`; registry pagination only | search activation |
 | location transfer/cancellation operating procedure | Clinic Operations | pilot runbook consistent with lifecycle table | exact-location deny; no manual sharing | operations rollout |
@@ -230,16 +230,15 @@ activation cannot pass its corresponding gate without the artifact.
 
 ## Backend readiness verdict
 
-`03B backend read model is BLOCKED by one prerequisite:
-V50-CLINIC-03A2 / Clinic Patient Association Schema Contract.`
+`03A2` closes the schema/event/backfill/rollback contract in
+`V50-CLINIC-PATIENT-ASSOCIATION-SCHEMA-CONTRACT.md`.
 
-Owner: `CTO/Architecture`.
+`03B backend read model remains BLOCKED by one prerequisite:
+V50-CLINIC-03A3 / Clinic Patient Association Schema Migration.`
 
-Required artifact: a bounded schema/event/backfill/rollback contract for the
-hybrid association above. Deny-by-default predicates over appointments are not
-sufficient because they cannot store consent provenance, immediate revocation,
-association version or lifecycle. Product/legal numeric policies do not block
-`03A2`; their missing configuration fails closed and blocks activation.
+Owner: `CTO/Architecture`. Product/legal numeric policies do not block the
+migration; missing configuration continues to fail closed and blocks
+production activation.
 
 ## Future privacy acceptance matrix
 

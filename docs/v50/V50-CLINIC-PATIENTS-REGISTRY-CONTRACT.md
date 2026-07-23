@@ -1,6 +1,6 @@
 # V50 Clinic Patients Registry Contract
 
-Status: `CONTRACT_COMPLETE / IMPLEMENTATION_BLOCKED_BY_ASSOCIATION_SCHEMA`.
+Status: `CONTRACT_COMPLETE / ASSOCIATION_SCHEMA_READY_FOR_MIGRATION`.
 
 ## Bounded outcome
 
@@ -64,8 +64,10 @@ appointments produce one row per pet. The same pet may appear independently in
 two location registries only when each location has its own appointment
 evidence.
 
-The appointment relation is proven by current foreign keys. The association and
-consent storage do not yet exist and require the bounded `03A2` schema contract.
+The appointment relation is proven by current foreign keys. The normative
+association, consent, idempotency and temporal revision storage is defined by
+`V50-CLINIC-PATIENT-ASSOCIATION-SCHEMA-CONTRACT.md`; its migration does not yet
+exist.
 
 ### Inclusion matrix
 
@@ -272,8 +274,8 @@ transfer semantics and deny-by-default installation policies.
 Missing visibility policy makes the registry return bounded `503`; missing
 search policy makes search return bounded `503`. No legal duration or rate
 threshold is invented. Imported/manual/medical-only sources remain excluded.
-The next prerequisite is the association schema contract, not the backend read
-endpoint.
+The schema contract is complete. The next prerequisite is its bounded
+association migration, not the backend read endpoint.
 
 ## Detail boundary and sequence
 
