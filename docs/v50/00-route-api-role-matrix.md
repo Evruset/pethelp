@@ -78,7 +78,7 @@ Production status:
 | `clinic-schedule` | admin services/staff/resources/availability; no doctor default | `/clinics/:clinicId/locations/:locationId/schedule`, `ClinicScheduleClient` | full schedule snapshot + 14 mutation families | **реализовано** для admin/reception; shell parity partial |
 | `clinic-visit` | assigned doctor clinical workbench | production page отсутствует | clinical visit API/schema отсутствуют | **отсутствует**; free-text complete endpoint is not replacement |
 | `clinic-appointments` | admin registry/detail/actions; doctor personal shift only | default-off scoped `/clinics/:clinicId/locations/:locationId/appointments`; Queue remains separate | `GET /v1/clinic/:clinicId/locations/:locationId/appointments` through scoped Portal BFF; upcoming/history and opaque load-more implemented; detail/check-in/reschedule APIs absent | **end-to-end bounded list implemented and tested; detail/actions missing** |
-| `clinic-patients` | admin registry; doctor treatment-scoped registry | отсутствует | clinic patient list API absent | **отсутствует** |
+| `clinic-patients` | future scoped administrative registry at `/clinics/:clinicId/locations/:locationId/patients`; patient detail remains separate | отсутствует | contract: future `GET /v1/clinic/:clinicId/locations/:locationId/patients`; implementation blocked by retention/consent decision | **contract complete / implementation blocked** |
 | `clinic-patient` | capability-filtered administrative/medical card | отсутствует | clinic patient detail API absent | **отсутствует** |
 | `clinic-telemed` | admin dispatcher or doctor assigned cases | location route blocks access; `/telemed/vet` is platform vet queue | vet queue exists; admin dispatcher absent | **частично/conflict in ownership model** |
 
@@ -117,7 +117,8 @@ Production-only routes without a one-to-one prototype hash:
 | Check-in/arrival | absent | `appointment.check_in` | expected appointment transition | absent | missing |
 | Reschedule appointment | only alternative-slot for pending hold; no confirmed appointment reschedule command | `appointment.reschedule` | expected appointment transition | partial booking audit only | missing/partial |
 | Register/edit patient admin data | absent | `patient.admin.create/update` | pet/admin aggregate | absent | missing |
-| Read allowed patient sections | absent | `patient.admin.read` with category filter | none | read audit required for medical data | missing |
+| Read patient administrative registry | contract only: future exact-location patients GET | future `patient.admin.read`; receptionist/admin mapping proposed, exact active membership; no clinical category | none | no medical read audit for administrative allowlist | contract complete / retention-consent blocker |
+| Read allowed clinical patient sections | absent | future assigned/category-scoped clinical capability | none | medical read audit required | missing / separate patient-detail-medical contract |
 | Telemed dispatcher queue | absent | `telemed.dispatch.read/manage` | case assignment | absent | missing |
 | Read quality | `GET .../quality-dashboard` | `quality.read` / admin+reception + DB membership | none | no read audit | implemented |
 | Complete/sign visit | current `POST /v1/clinic/booking-holds/:id/complete` | target **denied**; actual admin+clinic vet | `CONFIRMED` hold and appointment → `COMPLETED`, free-text summary | `booking.appointment.completed`, push outbox | **conflict P0** |

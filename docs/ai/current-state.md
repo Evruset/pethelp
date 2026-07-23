@@ -618,6 +618,46 @@ for the bounded read-only administrative detail.
 
 ## Next single action
 
-`V50-CLINIC-03A / Clinic Patients Contract Discovery`: define only the bounded
-administrative patients registry authority, privacy and read-model contract;
-do not implement patient APIs/UI or clinical patient detail.
+`V50-CLINIC-03A / Clinic Patients Contract Discovery` is `COMPLETE` as a
+documentation/evidence-only slice; implementation is blocked by an explicit
+retention/consent decision.
+
+- A clinic patient is not every owner pet. The only proven durable relation is
+  an existing `booking_schema.appointments` row whose pet and exact active
+  clinic location match. Holds, documents/import identifiers, medical records
+  and unrelated pets of the same owner do not qualify.
+- The registry is exact-location scoped and deduplicates one row per active pet.
+  A pet may appear at multiple locations only with independent appointment
+  evidence. Appointment history/status does not create duplicate rows.
+- The future route is
+  `GET /v1/clinic/:clinicId/locations/:locationId/patients`, protected by a new
+  future `patient.admin.read`, exact claims, active non-revoked membership and
+  centralized deny-by-default evaluation. It does not reuse appointment or
+  clinical capabilities.
+- The administrative allowlist contains pet identity/profile basics, nullable
+  owner display, relationship dates and nullable last/next appointment dates.
+  Safe owner display remains `null`; UUID/contact fallback is forbidden.
+  Clinical, medical-document/OCR, insurance, financial, contacts, audit,
+  integration payloads and unrelated owner pets are recursively excluded.
+- Search is bounded pet-name prefix only after authority filtering; cursor,
+  fixed snapshot, server ordering and database deduplication are contracted.
+  A per-employee plus exact-scope limiter must return bounded `429` with
+  `Retry-After`; its unsupported threshold is a rollout prerequisite.
+  Patient detail, medical record, owner/client data and mutations remain
+  separate future slices.
+- A separate future default-off patients flag is required, but no production
+  flag was added.
+- Current schema has no clinic–pet association lifecycle, consent/revocation
+  record, legal retention duration, owner-deletion policy or imported-patient
+  authority. These are an explicit production/rollout blocker; no duration or
+  deletion behavior was invented.
+- Runtime tests/build: `ABSTAIN` because production code, public API, OpenAPI,
+  migrations, roles and flags are unchanged. Documentation consistency and
+  `git diff --check` PASS. Tier B contract validator PASS with no veto.
+
+## Next single action
+
+`V50-CLINIC-03A1 / Clinic Patient Retention and Consent Decision`: record the
+product/legal lifecycle for appointment-derived clinic-patient visibility,
+owner archival/deletion, consent revocation and imported associations before
+backend implementation.
