@@ -501,6 +501,35 @@ unchanged.
 
 ## Next single action
 
-`V50-CLINIC-02C / Clinic Appointments Registry Portal Integration`: add the
-default-off Portal registry route and UI against the existing backend contract;
-do not add appointment mutations, realtime transport, or reuse the Queue screen.
+`V50-CLINIC-02C / Clinic Appointments Registry Portal Integration` is
+`COMPLETE` for the bounded read-only list.
+
+- Default-off route
+  `/clinics/:clinicId/locations/:locationId/appointments` uses the existing
+  Clinic Portal session/effective-capability pattern. It requires
+  `appointment.registry.read` and exact clinic/location scope before rendering;
+  disabled rollout returns not-found and Queue remains independent.
+- The scoped BFF and runtime parser preserve backend order and the exact opaque
+  cursor. Upcoming/history changes, scope changes, and manual refresh abort and
+  fence stale requests, clear cursor/items and start a new traversal. Load-more
+  coalesces requests and appends only unique validated IDs.
+- Initial loading, distinct upcoming/history empty, technical error, and
+  degraded next-page states are separate. Malformed, duplicate, wrong-scope,
+  cursor-error and denial payloads never become empty or replace the last valid
+  snapshot. No polling or client-side bucket filtering was added.
+- Responsive read-only cards show only date/time, safe administrative status,
+  pet/species and optional service. Unknown status is localized safely; raw
+  enums, UUIDs, cursors and unexpected sensitive fields are not rendered.
+- Validation: Node 22 typecheck PASS; Node 22 production build PASS; focused
+  Chromium enabled matrix PASS `24/24`; default-off page/BFF rollback PASS
+  `1/1`; desktop/mobile screenshots, axe, roving-tab keyboard and 200% text
+  PASS. Backend registry HTTP/PostgreSQL PASS `27/27`; OpenAPI and migrations
+  unchanged; `git diff --check` PASS. Tier B validator PASS after same-scope
+  refresh preservation, BFF rollback, authority, keyboard/live-region, focus,
+  and validated-empty degraded-state vetoes were resolved.
+
+## Next single action
+
+`V50-CLINIC-02D / Clinic Appointment Detail Contract Discovery`: define one
+read-only, location-scoped administrative appointment-detail contract before
+any detail UI or appointment mutation is implemented.

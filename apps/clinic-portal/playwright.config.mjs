@@ -37,6 +37,7 @@ export default defineConfig({
       NEXT_TELEMETRY_DISABLED: '1',
       PORTAL_V50_SHELL: 'true',
       PORTAL_V51_SHELL: 'true',
+      VETHELP_CLINIC_APPOINTMENTS_REGISTRY: process.env.VETHELP_CLINIC_APPOINTMENTS_REGISTRY ?? 'false',
     },
   },
 });

@@ -1,7 +1,7 @@
 # V50 Clinic Appointments Registry Contract
 
-Status: backend read model and production-scale query indexes implemented;
-Portal integration absent.
+Status: end-to-end read-only registry implemented behind a default-off Portal
+rollout flag.
 
 ## Bounded outcome
 
@@ -207,3 +207,31 @@ order, unrelated-location exclusion, and a successful post-index write.
    semantics, but restores sequential-scan/sort performance. Quiesce writers,
    monitor locks, verify both indexes are absent and re-run a registry smoke
    read. Reapply only through `migrate:up`; never edit the applied migration.
+
+## Portal implementation evidence
+
+- The scoped Portal route is
+  `/clinics/:clinicId/locations/:locationId/appointments`, guarded by the
+  default-off `VETHELP_CLINIC_APPOINTMENTS_REGISTRY` flag, authenticated session,
+  effective `appointment.registry.read`, and exact effective clinic/location
+  scope. Disabled rollout returns the existing not-found boundary.
+- A scoped same-origin BFF forwards only `bucket`, bounded `limit`, and the exact
+  opaque cursor with the existing session token. The client never decodes a
+  cursor, derives bucket membership, reorders rows, or adds polling.
+- Runtime validation checks response scope, server time, required safe
+  projection fields, timestamps, versions, and duplicate IDs. It projects only
+  contracted fields. Wrong-scope, duplicate, malformed, denial, and technical
+  responses fail closed and never become business-empty.
+- Bucket, clinic/location, and manual-refresh changes abort the active request,
+  increment the traversal generation, clear items/cursor, and start page one.
+  Load-more appends only a validated page in backend order. A malformed or
+  rejected next page preserves the last valid snapshot as degraded, disables
+  traversal, and offers a fresh refresh.
+- The read-only responsive card UI exposes date/time, localized administrative
+  status, pet/species, and optional service only. Unknown status uses a safe
+  label; raw enum, UUID, cursor, owner contacts, clinical, payment, audit, and
+  provider fields are not rendered. No appointment action was added.
+- Focused Chromium evidence covers enabled behavior `24/24` and default-off
+  rollback `1/1`, with desktop/mobile screenshots, keyboard navigation, axe,
+  and 200% text. The rollout also closes the BFF with a 404. Node 22 typecheck
+  and production build pass.
