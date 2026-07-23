@@ -530,6 +530,40 @@ unchanged.
 
 ## Next single action
 
-`V50-CLINIC-02D / Clinic Appointment Detail Contract Discovery`: define one
-read-only, location-scoped administrative appointment-detail contract before
-any detail UI or appointment mutation is implemented.
+`V50-CLINIC-02D / Clinic Appointment Detail Contract Discovery` is
+`COMPLETE` as a documentation/evidence-only closure.
+
+- `docs/v50/V50-CLINIC-APPOINTMENT-DETAIL-CONTRACT.md` defines one future
+  read-only route by registry `appointmentId`, reusing
+  `appointment.registry.read` with exact clinic/location capability authority,
+  active non-revoked membership and normalized no-leak denial.
+- The purpose-built DTO is administrative only: authoritative status/version,
+  schedule/timezone/source, pet, nullable safe owner/service/veterinarian/
+  resource display projections, and an empty server-authored action set.
+  Clinical, financial, raw audit, contacts, integration and internal payloads
+  are explicitly excluded.
+- Existing Queue mutations apply to pending holds before appointment creation;
+  clinical completion belongs to the veterinarian capability. Confirmed
+  appointment reschedule, clinic cancellation, check-in and no-show commands do
+  not exist. The contract therefore exposes no administrative action and does
+  not extend the state machine.
+- Administrative history is excluded until a bounded allowlisted projection is
+  separately contracted. The future query is one exact-scope PK/index lookup
+  with both appointment and slot location predicates and no N+1, clinical blobs
+  or unbounded audit.
+- Registry-to-detail refresh, strict RFC3339/impossible-date validation,
+  nullable-versus-malformed rules, empty/failure behavior, focused authority,
+  privacy, consistency, performance, responsive/accessibility and rollback
+  matrices are fixed. The detail is a nested `CLN-004 clinic-appointments`
+  state and reuses the existing default-off registry flag.
+- Production code, public API/OpenAPI, migrations, flags and runtime behavior
+  are unchanged. Runtime tests/build are `ABSTAIN` for this evidence-only slice;
+  `git diff --check` PASS. Tier B validator PASS after exact existing mutation
+  paths and shared-flag rollback semantics were clarified.
+
+## Next single action
+
+`V50-CLINIC-02E / Clinic Appointment Detail Backend Read Model`: implement only
+the contracted exact-scope, read-only administrative detail endpoint and its
+focused authority/privacy/query regression; do not add Portal detail UI or
+appointment mutations.
