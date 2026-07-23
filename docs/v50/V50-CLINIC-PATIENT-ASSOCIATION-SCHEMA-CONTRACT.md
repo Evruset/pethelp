@@ -1,6 +1,6 @@
 # V50 Clinic Patient Association Schema Contract
 
-Status: `CONTRACT_COMPLETE / READY_FOR_MIGRATION`.
+Status: `SCHEMA_IMPLEMENTED / WRITE_PATH_MISSING`.
 
 ## Bounded outcome
 
@@ -353,8 +353,11 @@ The aggregate, consent boundary, uniqueness, lifecycle, concurrency,
 idempotency, outbox, snapshot ordering, indexes, privacy, migration and
 rollback contracts are closed.
 
-`READY_FOR_MIGRATION`: the one next bounded slice is
-`V50-CLINIC-03A3 / Clinic Patient Association Schema Migration`.
+The schema is implemented by
+`1719460000000_add_clinic_patient_association_schema.js`.
+
+`SCHEMA_IMPLEMENTED / API_PRODUCER_PORTAL_MISSING`: the one next bounded slice
+is `V50-CLINIC-03A4 / Clinic Patient Association Lifecycle Write Path`.
 
 Product/legal/security configuration remains a production-activation gate, not
 a migration blocker. Missing configuration continues to fail closed.

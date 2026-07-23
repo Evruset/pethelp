@@ -1,6 +1,6 @@
 # V50 Clinic Patients Registry Contract
 
-Status: `CONTRACT_COMPLETE / ASSOCIATION_SCHEMA_READY_FOR_MIGRATION`.
+Status: `CONTRACT_COMPLETE / ASSOCIATION_WRITE_PATH_REQUIRED`.
 
 ## Bounded outcome
 
@@ -274,8 +274,8 @@ transfer semantics and deny-by-default installation policies.
 Missing visibility policy makes the registry return bounded `503`; missing
 search policy makes search return bounded `503`. No legal duration or rate
 threshold is invented. Imported/manual/medical-only sources remain excluded.
-The schema contract is complete. The next prerequisite is its bounded
-association migration, not the backend read endpoint.
+The schema contract and bounded migration are complete. The next prerequisite
+is the association lifecycle write path, not the backend read endpoint.
 
 ## Detail boundary and sequence
 

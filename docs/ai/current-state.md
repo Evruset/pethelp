@@ -727,9 +727,38 @@ as a documentation/schema-contract-only slice.
 - Runtime tests/build: `ABSTAIN`; no production code, migration, API, OpenAPI,
   role or flag changed.
 
+## V50-CLINIC-03A3 completed slice
+
+`V50-CLINIC-03A3 / Clinic Patient Association Schema Migration` is `COMPLETE`.
+
+- Migration `1719460000000_add_clinic_patient_association_schema.js` creates
+  four empty bounded structures: purpose-specific consent, current
+  association, semantic event receipt and immutable registry revision, plus
+  the owned monotonic revision sequence.
+- Exact `(clinic_id, clinic_location_id, pet_id)` uniqueness, lifecycle/source,
+  positive versions, consent purpose/date/revocation consistency and
+  non-cascading FK behavior are database-enforced. Association/revision consent
+  references use a composite exact-scope FK.
+- Appointment pet/location and location clinic equality remain explicit future
+  write-path invariants because applied master tables have no matching
+  composite candidate keys; no applied migration or master table was changed.
+- Registry, consent, idempotency and revision indexes match the canonical
+  query families. No volatile-time check/partial index, speculative covering
+  index, JSON payload or PII/medical/contact/financial storage was added.
+- Migration is transactional over initially empty tables, performs no
+  historical activation or consent synthesis, emits no outbox events, and
+  leaves API/producer/Portal/roles/flags absent.
+- Focused schema integration: 7/7 PASS, including concurrent natural-key
+  insertion, receipt/revision uniqueness, catalog/privacy inspection,
+  existing-row preservation and explicit down/reapply.
+- Migration checksum verification, backend Node 22 build, appointments registry
+  index compatibility and appointment detail regression PASS.
+- Readiness is `SCHEMA_IMPLEMENTED / API_PRODUCER_PORTAL_MISSING`. Production
+  activation remains blocked by product/legal/security configuration.
+
 ## Next single action
 
-`V50-CLINIC-03A3 / Clinic Patient Association Schema Migration`: implement
-only the contracted PostgreSQL structures, constraints, indexes and
-clean/existing-database migration verification; do not implement the backend
-registry endpoint or Portal UI.
+`V50-CLINIC-03A4 / Clinic Patient Association Lifecycle Write Path`: implement
+only transactional activation/archive/revoke/reactivation from authoritative
+appointment and consent events using the contracted scope lock, receipt,
+revision and existing outbox; do not implement Registry API or Portal UI.
