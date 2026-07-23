@@ -1,6 +1,6 @@
 # V50 Clinic Patient Association Schema Contract
 
-Status: `SCHEMA_IMPLEMENTED / WRITE_PATH_MISSING`.
+Status: `SCHEMA_AND_LIFECYCLE_IMPLEMENTED / PRODUCER_WIRING_MISSING`.
 
 ## Bounded outcome
 
@@ -356,8 +356,13 @@ rollback contracts are closed.
 The schema is implemented by
 `1719460000000_add_clinic_patient_association_schema.js`.
 
-`SCHEMA_IMPLEMENTED / API_PRODUCER_PORTAL_MISSING`: the one next bounded slice
-is `V50-CLINIC-03A4 / Clinic Patient Association Lifecycle Write Path`.
+The internal transactional lifecycle service is implemented in
+`clinic-patient-association-lifecycle.service.ts`; no appointment producer is
+wired yet.
+
+`SCHEMA_AND_LIFECYCLE_IMPLEMENTED / REGISTRY_API_PORTAL_MISSING`: the one next
+bounded slice is
+`V50-CLINIC-03A5 / Clinic Patient Association Appointment Producer Wiring`.
 
 Product/legal/security configuration remains a production-activation gate, not
 a migration blocker. Missing configuration continues to fail closed.

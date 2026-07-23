@@ -756,9 +756,40 @@ as a documentation/schema-contract-only slice.
 - Readiness is `SCHEMA_IMPLEMENTED / API_PRODUCER_PORTAL_MISSING`. Production
   activation remains blocked by product/legal/security configuration.
 
+## V50-CLINIC-03A4 completed slice
+
+`V50-CLINIC-03A4 / Clinic Patient Association Lifecycle Write Path` is
+`COMPLETE`.
+
+- Internal `ClinicPatientAssociationLifecycleService` implements appointment
+  activation/refresh, pet archive, consent/privacy revoke and new-evidence
+  reactivation without a controller or public route.
+- Every operation uses the same transaction-scoped advisory key derived from
+  canonical tenant/clinic/location/pet UUIDs. Appointment, pet, location and
+  clinic equality is proven by exact SQL predicates before any write.
+- `PATIENT_ADMIN_REGISTRY` consent is exact-scope, DB-time valid and locked.
+  Missing/invalid visibility policy fails closed; operational visibility is
+  finite and derived from authoritative appointment `created_at`.
+- Stable association identity, optimistic versions, semantic receipts,
+  immutable revisions and the existing shared outbox commit atomically.
+  Replays and expected unique races are controlled no-ops.
+- Privacy revoke accepts a stale lower expected version intentionally: after a
+  racing refresh it applies to the newer row, while refresh after revoke sees a
+  version/consent failure. Delayed old evidence cannot reactivate; a new consent
+  and newer appointment are mandatory.
+- Focused PostgreSQL lifecycle suite: 11/11 PASS, covering durable replay,
+  scope isolation,
+  qualifying evidence, policy/consent denial, replay, same/different-scope
+  concurrency, refresh, archive, revoke race, reactivation and forced rollback.
+- Schema suite remains 7/7 PASS; migration checksum and backend build PASS.
+- No producer wiring, Patients Registry API, Portal, OpenAPI, capability, role,
+  feature flag, migration or Queue behavior changed.
+- Status is `SCHEMA_AND_LIFECYCLE_IMPLEMENTED / REGISTRY_API_PORTAL_MISSING`.
+  Product/legal/security configuration still blocks production activation.
+
 ## Next single action
 
-`V50-CLINIC-03A4 / Clinic Patient Association Lifecycle Write Path`: implement
-only transactional activation/archive/revoke/reactivation from authoritative
-appointment and consent events using the contracted scope lock, receipt,
-revision and existing outbox; do not implement Registry API or Portal UI.
+`V50-CLINIC-03A5 / Clinic Patient Association Appointment Producer Wiring`:
+connect only the authoritative qualifying appointment transition to the
+internal lifecycle service with default-off/fail-closed policy; do not
+implement Patients Registry GET or Portal UI.
