@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger, Optional } from '@nestjs/common';
 import { createHash } from 'crypto';
 import type { PoolClient } from 'pg';
 import { JwtPayload, Role } from '../auth/auth.types';
@@ -7,6 +7,7 @@ import { DatabaseService } from '../database/database.service';
 import { TraceContext } from '../observability/trace-context.context';
 import { canTransition } from './booking-state-machine';
 import { ClinicEmployeeAccessService } from './clinic-employee-access.service';
+import { ClinicPatientAssociationLifecycleService } from './clinic-patient-association-lifecycle.service';
 import { ConfirmHoldResult, HoldRow, ReleaseHoldResult, RequestCancellationResult, RequestNotesResult, SlotRow } from './booking.types';
 
 interface LockedHoldAndSlot {
@@ -56,6 +57,7 @@ export class BookingSecurityService {
   constructor(
     private readonly database: DatabaseService,
     private readonly clinicAccess: ClinicEmployeeAccessService,
+    @Optional() private readonly patientAssociation?: ClinicPatientAssociationLifecycleService,
   ) {}
 
   async confirmManualHold(input: { holdId: string; employee: JwtPayload; idempotencyKey: string; correlationId: string; expectedVersion: number }): Promise<ConfirmHoldResult> {
@@ -118,18 +120,54 @@ export class BookingSecurityService {
             AND held_count > 0
             AND booked_count < capacity
         `, [slot.id]);
-        const appointment = await client.query<{ id: string }>(`
+        const appointment = await client.query<{ id: string; version: number }>(`
           INSERT INTO booking_schema.appointments (hold_id, owner_id, pet_id, clinic_location_id, slot_id)
           VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid)
-          RETURNING id
+          RETURNING id, version
         `, [hold.id, hold.owner_id, hold.pet_id, slot.clinic_location_id, slot.id]);
         const result: ConfirmHoldResult = { holdId: hold.id, appointmentId: appointment.rows[0].id, state: 'CONFIRMED', slotId: slot.id, correlationId: input.correlationId };
 
-        await client.query(`
+        const appointmentEvent = await client.query<{ id: string }>(`
           INSERT INTO booking_schema.appointment_events (appointment_id, hold_id, event_type, actor_type, actor_id, correlation_id, payload_json)
           VALUES ($1::uuid, $2::uuid, 'CONFIRMED', 'CLINIC_EMPLOYEE', $3::uuid, $4::uuid, $5::jsonb)
+          RETURNING id
         `, [result.appointmentId, hold.id, input.employee.sub, input.correlationId, JSON.stringify({ slotId: slot.id, clinicLocationId: slot.clinic_location_id })]);
         await this.writeOutbox(client, 'booking.confirmed.v1', input.correlationId, hold.id, updatedHold.rows[0].version, { ...result, employeeId: input.employee.sub, clinicLocationId: slot.clinic_location_id });
+        if (this.patientAssociation) {
+          const scope = await client.query<{ clinic_id: string; consent_id: string | null }>(`
+            SELECT location.clinic_id::text,
+                   consent.id::text AS consent_id
+            FROM clinic_schema.clinic_locations location
+            LEFT JOIN LATERAL (
+              SELECT candidate.id
+              FROM clinic_schema.clinic_patient_consents candidate
+              WHERE candidate.clinic_id = location.clinic_id
+                AND candidate.clinic_location_id = location.id
+                AND candidate.pet_id = $2::uuid
+                AND candidate.purpose = 'PATIENT_ADMIN_REGISTRY'
+                AND candidate.granted_at <= clock_timestamp()
+                AND (candidate.expires_at IS NULL OR candidate.expires_at > clock_timestamp())
+                AND candidate.revoked_at IS NULL
+              ORDER BY candidate.granted_at DESC, candidate.id DESC
+              LIMIT 1
+            ) consent ON true
+            WHERE location.id = $1::uuid
+          `, [slot.clinic_location_id, hold.pet_id]);
+          const producerScope = scope.rows[0];
+          if (producerScope?.consent_id) {
+            await this.patientAssociation.applyQualifyingAppointmentEvidenceInTransaction(client, {
+              sourceEventId: appointmentEvent.rows[0].id,
+              sourceAppointmentId: appointment.rows[0].id,
+              sourceAggregateVersion: appointment.rows[0].version,
+              tenantId: producerScope.clinic_id,
+              clinicId: producerScope.clinic_id,
+              locationId: slot.clinic_location_id,
+              petId: hold.pet_id,
+              consentId: producerScope.consent_id,
+              correlationId: input.correlationId,
+            });
+          }
+        }
         await this.writeAudit(client, 'CLINIC_EMPLOYEE', input.employee.sub, 'booking.confirmed', hold.id, input.correlationId, { appointmentId: result.appointmentId, clinicLocationId: slot.clinic_location_id });
         await this.completeIdempotency(client, scope, input.idempotencyKey, result, HttpStatus.OK);
         return result;

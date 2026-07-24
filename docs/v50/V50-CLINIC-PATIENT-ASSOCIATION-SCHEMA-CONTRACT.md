@@ -1,6 +1,6 @@
 # V50 Clinic Patient Association Schema Contract
 
-Status: `SCHEMA_AND_LIFECYCLE_IMPLEMENTED / PRODUCER_WIRING_MISSING`.
+Status: `SCHEMA_LIFECYCLE_PRODUCER_IMPLEMENTED / REGISTRY_READ_MODEL_MISSING`.
 
 ## Bounded outcome
 
@@ -357,12 +357,13 @@ The schema is implemented by
 `1719460000000_add_clinic_patient_association_schema.js`.
 
 The internal transactional lifecycle service is implemented in
-`clinic-patient-association-lifecycle.service.ts`; no appointment producer is
-wired yet.
+`clinic-patient-association-lifecycle.service.ts`. The authoritative manual
+clinic-confirmation path invokes it with the same PostgreSQL transaction and
+uses the committed appointment-event ID as durable evidence identity.
 
-`SCHEMA_AND_LIFECYCLE_IMPLEMENTED / REGISTRY_API_PORTAL_MISSING`: the one next
-bounded slice is
-`V50-CLINIC-03A5 / Clinic Patient Association Appointment Producer Wiring`.
+`SCHEMA_LIFECYCLE_PRODUCER_IMPLEMENTED / REGISTRY_API_PORTAL_MISSING`: the one
+next bounded slice is
+`V50-CLINIC-03B / Clinic Patients Backend Read Model`.
 
 Product/legal/security configuration remains a production-activation gate, not
 a migration blocker. Missing configuration continues to fail closed.

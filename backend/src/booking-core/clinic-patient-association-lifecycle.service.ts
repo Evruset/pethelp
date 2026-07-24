@@ -49,44 +49,51 @@ export class ClinicPatientAssociationLifecycleService {
 
   async applyQualifyingAppointmentEvidence(input: AppointmentEvidence): Promise<AssociationLifecycleOutcome> {
     try {
-      return await this.database.withTransaction(async (client) => {
-        await this.lockScope(client, input);
-        const replay = await this.replay(client, input.sourceEventId, input);
-        if (replay) return replay;
-        const policy = visibilityPolicy();
-        if (!policy) return rejected('POLICY_UNAVAILABLE');
-        const appointment = await this.qualifyingAppointment(client, input);
-        if (!appointment) return rejected('EVIDENCE_NOT_QUALIFYING');
-        if (appointment.version !== input.sourceAggregateVersion) return rejected('VERSION_CONFLICT');
-        const consent = await this.validConsent(client, input.consentId, input);
-        if (!consent) return rejected('CONSENT_INVALID');
-        if (!(await this.withinVisibilityWindow(client, appointment.created_at, policy.days))) {
-          return rejected('CONSENT_INVALID');
-        }
-        const association = await this.association(client, input);
-
-        if (!association) {
-          if (input.expectedAssociationVersion !== undefined && input.expectedAssociationVersion !== 0) return rejected('VERSION_CONFLICT');
-          return this.activate(client, input, appointment, consent, policy);
-        }
-        if (input.expectedAssociationVersion === undefined || association.version !== input.expectedAssociationVersion) {
-          return rejected('VERSION_CONFLICT');
-        }
-        if (association.status === 'ACTIVE') {
-          if (association.current_consent_id !== consent.id) return rejected('CONSENT_INVALID');
-          if (appointment.created_at <= association.last_qualified_at) return rejected('EVIDENCE_NOT_QUALIFYING');
-          return this.refresh(client, input, appointment, association, consent, policy);
-        }
-        const boundary = association.status === 'REVOKED' ? association.revoked_at : association.archived_at;
-        if (!boundary || consent.id === association.current_consent_id
-          || consent.granted_at <= boundary || appointment.created_at <= boundary) {
-          return rejected('TRANSITION_NOT_ALLOWED');
-        }
-        return this.reactivate(client, input, appointment, association, consent, policy);
-      });
+      return await this.database.withTransaction(
+        (client) => this.applyQualifyingAppointmentEvidenceInTransaction(client, input),
+      );
     } catch (error) {
       return (await this.replayAfterUniqueConflict(error, input.sourceEventId, input)) ?? Promise.reject(error);
     }
+  }
+
+  async applyQualifyingAppointmentEvidenceInTransaction(
+    client: PoolClient,
+    input: AppointmentEvidence,
+  ): Promise<AssociationLifecycleOutcome> {
+    await this.lockScope(client, input);
+    const replay = await this.replay(client, input.sourceEventId, input);
+    if (replay) return replay;
+    const policy = visibilityPolicy();
+    if (!policy) return rejected('POLICY_UNAVAILABLE');
+    const appointment = await this.qualifyingAppointment(client, input);
+    if (!appointment) return rejected('EVIDENCE_NOT_QUALIFYING');
+    if (appointment.version !== input.sourceAggregateVersion) return rejected('VERSION_CONFLICT');
+    const consent = await this.validConsent(client, input.consentId, input);
+    if (!consent) return rejected('CONSENT_INVALID');
+    if (!(await this.withinVisibilityWindow(client, appointment.created_at, policy.days))) {
+      return rejected('CONSENT_INVALID');
+    }
+    const association = await this.association(client, input);
+
+    if (!association) {
+      if (input.expectedAssociationVersion !== undefined && input.expectedAssociationVersion !== 0) return rejected('VERSION_CONFLICT');
+      return this.activate(client, input, appointment, consent, policy);
+    }
+    if (input.expectedAssociationVersion === undefined || association.version !== input.expectedAssociationVersion) {
+      return rejected('VERSION_CONFLICT');
+    }
+    if (association.status === 'ACTIVE') {
+      if (association.current_consent_id !== consent.id) return rejected('CONSENT_INVALID');
+      if (appointment.created_at <= association.last_qualified_at) return rejected('EVIDENCE_NOT_QUALIFYING');
+      return this.refresh(client, input, appointment, association, consent, policy);
+    }
+    const boundary = association.status === 'REVOKED' ? association.revoked_at : association.archived_at;
+    if (!boundary || consent.id === association.current_consent_id
+      || consent.granted_at <= boundary || appointment.created_at <= boundary) {
+      return rejected('TRANSITION_NOT_ALLOWED');
+    }
+    return this.reactivate(client, input, appointment, association, consent, policy);
   }
 
   async archiveAssociation(input: ArchiveEvidence): Promise<AssociationLifecycleOutcome> {

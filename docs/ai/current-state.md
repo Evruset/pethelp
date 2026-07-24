@@ -787,9 +787,40 @@ as a documentation/schema-contract-only slice.
 - Status is `SCHEMA_AND_LIFECYCLE_IMPLEMENTED / REGISTRY_API_PORTAL_MISSING`.
   Product/legal/security configuration still blocks production activation.
 
+## V50-CLINIC-03A5 completed slice
+
+`V50-CLINIC-03A5 / Clinic Patient Association Appointment Producer Wiring` is
+`COMPLETE`.
+
+- The authoritative Level-C manual clinic-confirmation transaction now passes
+  its newly created appointment and committed appointment-event identity to
+  `ClinicPatientAssociationLifecycleService` through the same `PoolClient`.
+- Producer scope is derived from locked hold/slot/location and current database
+  rows, never from a new public payload. The lifecycle service repeats exact
+  appointment/pet/location/clinic/tenant validation.
+- The durable semantic source ID is `appointment_events.id`; appointment ID and
+  version are authoritative. HTTP idempotency replay and concurrent confirm
+  cannot create a second appointment or lifecycle effect.
+- Producer selects only an exact-scope, DB-time-valid
+  `PATIENT_ADMIN_REGISTRY` consent. Missing/expired/revoked consent is expected
+  non-activation: appointment confirmation and booking outbox commit, while no
+  association/receipt/revision/association-outbox row is written.
+- Lifecycle success commits appointment, appointment event, booking outbox,
+  association, receipt, revision and association outbox atomically. A technical
+  lifecycle failure rolls the complete confirmation transaction back.
+- Focused producer wiring suite: 4/4 PASS. Lifecycle plus affected Queue
+  regression: 17/17 PASS. Migration checksum and backend Node 22 build PASS.
+- Completion, no-show, cancellation, reschedule, location move, pet archive,
+  owner deletion, consent revoke and consent-later reconciliation remain
+  intentionally unwired. No historical backfill is introduced.
+- No Patients Registry API, Portal, OpenAPI, capability, role, feature flag,
+  migration or Queue response/UX contract changed.
+- Status is `SCHEMA_LIFECYCLE_PRODUCER_IMPLEMENTED /
+  REGISTRY_API_PORTAL_MISSING`. Product/legal/security configuration still
+  blocks production activation.
+
 ## Next single action
 
-`V50-CLINIC-03A5 / Clinic Patient Association Appointment Producer Wiring`:
-connect only the authoritative qualifying appointment transition to the
-internal lifecycle service with default-off/fail-closed policy; do not
-implement Patients Registry GET or Portal UI.
+`V50-CLINIC-03B / Clinic Patients Backend Read Model`: implement only the
+default-off exact-location administrative registry GET over policy-valid
+association revisions; do not implement Portal UI or patient detail.

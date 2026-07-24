@@ -1,6 +1,6 @@
 # V50 Clinic Patients Registry Contract
 
-Status: `CONTRACT_COMPLETE / ASSOCIATION_PRODUCER_WIRING_REQUIRED`.
+Status: `CONTRACT_COMPLETE / BACKEND_READ_MODEL_REQUIRED`.
 
 ## Bounded outcome
 
@@ -274,9 +274,9 @@ transfer semantics and deny-by-default installation policies.
 Missing visibility policy makes the registry return bounded `503`; missing
 search policy makes search return bounded `503`. No legal duration or rate
 threshold is invented. Imported/manual/medical-only sources remain excluded.
-The schema, migration and internal lifecycle write path are complete. The next
-prerequisite is authoritative appointment producer wiring, not the backend
-read endpoint.
+The schema, migration, lifecycle write path and authoritative manual-confirm
+producer wiring are complete. The next prerequisite is the bounded backend
+read model.
 
 ## Detail boundary and sequence
 
