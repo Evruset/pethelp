@@ -872,6 +872,38 @@ as a documentation/schema-contract-only slice.
 
 ## Next single action
 
-`V50-CLINIC-04A / Clinic Patient Detail Contract Discovery`: define the
-administrative-versus-clinical detail boundary before any detail route or UI.
-Do not begin it in this session.
+`V50-CLINIC-04A / Clinic Patient Detail Contract Discovery` is `COMPLETE`.
+
+- Canonical contract:
+  `docs/v50/V50-CLINIC-PATIENT-DETAIL-CONTRACT.md`.
+- Readiness is `READY_FOR_ADMIN_DETAIL_BACKEND`.
+- Public resource identity remains the Registry `patientId` (existing pet UUID);
+  every lookup must also prove a current visible exact clinic/location
+  association. No association ID, new opaque ID or migration is justified.
+- Recommended backend route is
+  `GET /v1/clinic/:clinicId/locations/:locationId/patients/:patientId`.
+- Administrative detail reuses `patient.admin.read` for receptionist/admin and
+  multi-role employees with the effective capability; veterinarian-only,
+  platform and owner actors are denied.
+- The allowlist contains safe pet identity, nullable owner display, relationship
+  timestamps and bounded last/next/ten recent administrative appointment
+  summaries. Owner contacts/IDs, clinical, document, financial and internal
+  lifecycle fields are recursively excluded.
+- Current revoke/expiry/archive overrides stale Registry links. Registry
+  traversal snapshots do not authorize detail; detail is a no-store
+  current-state read.
+- Existing visit workspace remains visit-specific. Longitudinal clinical
+  history, assignment, break-glass, documents, per-view audit and legal
+  retention require a separate clinical policy decision and do not block the
+  separable administrative detail.
+- No production code, Portal, OpenAPI, migration, flag, role/capability or Queue
+  change is part of `04A`.
+- Status is `PATIENT ADMINISTRATIVE DETAIL CONTRACT READY; BACKEND / PORTAL NOT
+  IMPLEMENTED; CLINICAL PATIENT RECORD REMAINS SEPARATE; PRODUCTION ACTIVATION
+  STILL BLOCKED BY POLICY APPROVALS`.
+
+## Next single action
+
+`V50-CLINIC-04B / Clinic Patient Administrative Detail Backend`: implement
+only the contracted read-only administrative endpoint; do not implement Portal
+detail or clinical history.

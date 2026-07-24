@@ -260,6 +260,12 @@ Focused Chromium is 9/9 enabled PASS plus 1/1 default-off rollback PASS,
 including axe, keyboard, 200% text and desktop/mobile screenshot attachments.
 Portal Node 22 typecheck/build and backend Patients 8/8 regression pass.
 
+Patient-detail navigation remains absent. Its separate administrative contract
+is now defined by `V50-CLINIC-PATIENT-DETAIL-CONTRACT.md`: the existing
+Registry `patientId` is retained, while every deep link must revalidate the
+current visible exact-location association and may not inherit Registry
+snapshot authority.
+
 ## UX and rollout
 
 The V50 screen is `CLN-005 clinic-patients` at the scoped Portal route above,
