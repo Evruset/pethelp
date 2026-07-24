@@ -88,7 +88,7 @@ exist.
 
 ## Authority and capability
 
-The future capability is a new `patient.admin.read`. It is not
+The backend capability is `patient.admin.read`. It is not
 `appointment.registry.read` and grants no clinical category.
 
 Every request requires:
@@ -101,8 +101,8 @@ Every request requires:
 - location ownership by the requested clinic;
 - deny-by-default evaluation through the centralized capability evaluator.
 
-The planned administrative role mapping is receptionist and clinic admin only,
-subject to its implementation slice. Veterinarian access is not inferred from
+The implemented administrative role mapping is receptionist and clinic admin only.
+Veterinarian access is not inferred from
 clinical duties; a later administrative or assigned-clinical contract must
 grant the relevant capability explicitly. `CLINIC_ASSISTANT` does not exist in
 the current role/membership model and receives no implied access. Owners,
@@ -217,6 +217,27 @@ The existing appointment indexes prove relationship correctness, not
 production-scale grouped-search performance. The backend slice must capture
 `EXPLAIN (ANALYZE, BUFFERS)` on representative cardinality. Any required
 expression/grouping index is a separate measured migration; `03A` adds none.
+
+## Backend implementation status
+
+`V50-CLINIC-03B` implements the single canonical exact-location GET using the
+default-off `VETHELP_CLINIC_PATIENTS_REGISTRY` flag. The service authorizes
+through `patient.admin.read`, freezes traversal at a revision sequence, keeps
+PostgreSQL ordering, and rechecks current association/consent/policy state so a
+revocation immediately overrides an older snapshot. Search uses NFKC
+normalization and a configured employee+clinic+location rate bucket; missing
+policy fails closed. The repository has no shared limiter primitive, so the
+bounded process-local implementation is non-production only and search returns
+controlled `503` under `NODE_ENV=production`; this prevents multi-replica or
+restart bypass until an approved shared platform limiter exists. The runtime
+DTO contains only the administrative allowlist and keeps owner display `null`.
+
+Portal integration, patient detail, mutations, additional lifecycle producers
+and production activation remain outside this slice. The focused
+HTTP/PostgreSQL suite is 8/8 PASS, including the mirrored full-query
+`EXPLAIN (ANALYZE, BUFFERS)` over 120 additional associations.
+Producer/lifecycle/capability regressions are 44/44 PASS; Node 22 build,
+OpenAPI validation and migration verification pass.
 
 ## UX and rollout
 

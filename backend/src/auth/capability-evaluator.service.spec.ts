@@ -59,6 +59,31 @@ describe('CapabilityEvaluatorService appointment.registry.read ABAC matrix', () 
   });
 });
 
+describe('CapabilityEvaluatorService patient.admin.read ABAC matrix', () => {
+  const evaluator = new CapabilityEvaluatorService();
+  const resource = { aggregateType: 'patient.registry' as const, clinicId: CLINIC, locationId: LOCATION };
+
+  it('requires exact scopes and active membership', async () => {
+    const actor = { sub: ACTOR, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [CLINIC], locationIds: [LOCATION] };
+    await expect(evaluator.assertAllowed(client() as PoolClient, {
+      actor, capability: Capability.PATIENT_ADMIN_READ, resource,
+    })).resolves.toBeUndefined();
+    await expect(evaluator.assertAllowed(client(false) as PoolClient, {
+      actor, capability: Capability.PATIENT_ADMIN_READ, resource,
+    })).rejects.toBeInstanceOf(DomainException);
+    await expect(evaluator.assertAllowed(client() as PoolClient, {
+      actor: { ...actor, locationIds: [] }, capability: Capability.PATIENT_ADMIN_READ, resource,
+    })).rejects.toBeInstanceOf(DomainException);
+  });
+
+  it('does not infer administrative patient access for veterinarians', async () => {
+    await expect(evaluator.assertAllowed(client() as PoolClient, {
+      actor: { sub: ACTOR, roles: [Role.CLINIC_VETERINARIAN], clinicIds: [CLINIC], locationIds: [LOCATION] },
+      capability: Capability.PATIENT_ADMIN_READ, resource,
+    })).rejects.toBeInstanceOf(DomainException);
+  });
+});
+
 describe('CapabilityEvaluatorService clinical.visit.workspace.read ABAC matrix', () => {
   const evaluator = new CapabilityEvaluatorService();
   const resource = { aggregateType: 'clinical.visit.workspace' as const, clinicId: CLINIC, locationId: LOCATION };

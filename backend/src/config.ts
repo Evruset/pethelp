@@ -50,3 +50,7 @@ export const config: AppConfig = Object.freeze({
 export function isClinicAppointmentsRegistryEnabled(): boolean {
   return (process.env.VETHELP_CLINIC_APPOINTMENTS_REGISTRY ?? 'false').toLowerCase() === 'true';
 }
+
+export function isClinicPatientsRegistryEnabled(): boolean {
+  return (process.env.VETHELP_CLINIC_PATIENTS_REGISTRY ?? 'false').trim().toLowerCase() === 'true';
+}

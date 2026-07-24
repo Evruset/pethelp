@@ -45,6 +45,10 @@ export class ClinicEmployeeAccessService {
     await this.capabilities.assertAllowed(client, { actor: employee, capability: Capability.APPOINTMENT_REGISTRY_READ, resource: { aggregateType: 'appointment.registry', clinicId, locationId: clinicLocationId } });
   }
 
+  async assertPatientRegistryReadAccess(client: PoolClient, employee: JwtPayload, clinicId: string, clinicLocationId: string): Promise<void> {
+    await this.capabilities.assertAllowed(client, { actor: employee, capability: Capability.PATIENT_ADMIN_READ, resource: { aggregateType: 'patient.registry', clinicId, locationId: clinicLocationId } });
+  }
+
   async assertQualityReadAccess(client: PoolClient, employee: JwtPayload, clinicId: string, clinicLocationId: string): Promise<void> {
     if (!featureFlags.QUALITY_READ_CAPABILITY_V1) return this.assertLocationAccess(client, employee, clinicLocationId);
     await this.capabilities.assertAllowed(client, { actor: employee, capability: Capability.QUALITY_READ, resource: { aggregateType: 'quality.dashboard', clinicId, locationId: clinicLocationId } });

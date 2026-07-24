@@ -18,10 +18,17 @@ describe('hasCapability', () => {
     expect(effectiveCapabilities(employee(Role.CLINIC_RECEPTIONIST))).toEqual([
       Capability.BOOKING_QUEUE_READ,
       Capability.APPOINTMENT_REGISTRY_READ,
+      Capability.PATIENT_ADMIN_READ,
       Capability.QUALITY_READ,
       Capability.SCHEDULE_READ,
       Capability.BOOKING_REPLAY_READ,
       Capability.BOOKING_HOLD_READ,
     ]);
+  });
+
+  it('grants patient.admin.read only to receptionist and clinic admin', () => {
+    expect(hasCapability(employee(Role.CLINIC_RECEPTIONIST), Capability.PATIENT_ADMIN_READ)).toBe(true);
+    expect(hasCapability(employee(Role.CLINIC_ADMIN), Capability.PATIENT_ADMIN_READ)).toBe(true);
+    expect(hasCapability(employee(Role.CLINIC_VETERINARIAN), Capability.PATIENT_ADMIN_READ)).toBe(false);
   });
 });

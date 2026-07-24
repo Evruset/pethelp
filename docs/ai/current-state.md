@@ -821,6 +821,43 @@ as a documentation/schema-contract-only slice.
 
 ## Next single action
 
-`V50-CLINIC-03B / Clinic Patients Backend Read Model`: implement only the
-default-off exact-location administrative registry GET over policy-valid
-association revisions; do not implement Portal UI or patient detail.
+`V50-CLINIC-03B / Clinic Patients Backend Read Model` is `COMPLETE`.
+
+- Added the single canonical
+  `GET /v1/clinic/:clinicId/locations/:locationId/patients` route under the
+  default-off `VETHELP_CLINIC_PATIENTS_REGISTRY` backend flag.
+- Added `patient.admin.read` for receptionist and clinic admin only. The
+  centralized evaluator still requires exact clinic/location claims and active,
+  non-revoked location membership; veterinarian access is not inferred.
+- Inclusion is driven by versioned association revisions with current
+  association, purpose-specific consent, pet archival and configured visibility
+  policy checked at DB time. Appointments provide only administrative
+  first/last/next aggregates and never determine inclusion.
+- The response is restricted to the documented administrative allowlist;
+  owner display remains `null`, and owner identifiers/contacts, clinical,
+  financial, consent and lifecycle internals are absent.
+- Unicode NFKC pet-name prefix search is bounded to 2..80 code points and uses
+  an employee+clinic+location rate bucket before the patient query. Missing
+  search policy fails closed; `429` includes `Retry-After`. Because the
+  repository has no shared limiter primitive and this slice forbids a Redis or
+  schema addition, the bounded process-local limiter is explicitly disabled in
+  `NODE_ENV=production`; production search remains fail-closed until an
+  approved shared platform limiter is configured.
+- Signed keyset cursors bind scope, normalized search, limit, revision snapshot,
+  last-seen key and patient ID. PostgreSQL owns ordering and time boundaries;
+  current revocation overrides an older snapshot.
+- Focused Patients HTTP/PostgreSQL suite is 8/8 PASS, including a mirrored full
+  registry-query `EXPLAIN (ANALYZE, BUFFERS)` over 120 additional associations.
+  Producer/lifecycle/capability regressions are 44/44 PASS. Node 22.23.1 build,
+  OpenAPI export/schema assertion, migration checksum/order verification and
+  `git diff --check` PASS.
+- Status is `SCHEMA / LIFECYCLE / MANUAL-CONFIRM PRODUCER / BACKEND READ
+  IMPLEMENTED; PORTAL MISSING; OTHER LIFECYCLE PRODUCERS MISSING; PRODUCTION
+  ACTIVATION BLOCKED BY CONFIGURATION APPROVALS`.
+
+## Next single action
+
+`V50-CLINIC-03B1 / Clinic Patients Registry Query Index Migration`: capture the
+mandatory production-like plan and add only the measured grouped/prefix index
+needed by the registry query. The current schema has no normalized pet-name
+prefix index. Do not begin it in this session.

@@ -2270,6 +2270,107 @@
         ]
       }
     },
+    "/v1/clinic/{clinicId}/locations/{locationId}/patients": {
+      "get": {
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 80
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClinicPatientsRegistryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Query or cursor is invalid."
+          },
+          "401": {
+            "description": "Clinic employee JWT is required."
+          },
+          "403": {
+            "description": "Capability and exact active location membership are required."
+          },
+          "404": {
+            "description": "Patients registry rollout is disabled."
+          },
+          "429": {
+            "description": "Search rate limit exceeded.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Visibility or search policy is unavailable."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Location-scoped clinic patients administrative registry",
+        "tags": [
+          "Clinic Portal"
+        ],
+        "x-required-capabilities": [
+          "patient.admin.read"
+        ]
+      }
+    },
     "/v1/clinic/{clinicId}/locations/{locationId}/quality-dashboard": {
       "get": {
         "operationId": "dashboard",
@@ -5761,6 +5862,152 @@
           "veterinarian",
           "resource",
           "availableActions"
+        ]
+      },
+      "ClinicPatientPetDto": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "speciesLabel": {
+            "type": "string"
+          },
+          "breed": {
+            "type": "string",
+            "nullable": true
+          },
+          "sexCode": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "MALE",
+              "FEMALE",
+              "UNKNOWN"
+            ]
+          },
+          "birthDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          }
+        },
+        "required": [
+          "displayName",
+          "speciesLabel",
+          "breed",
+          "sexCode",
+          "birthDate"
+        ]
+      },
+      "ClinicPatientOwnerDto": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "displayName"
+        ]
+      },
+      "ClinicPatientRelationshipDto": {
+        "type": "object",
+        "properties": {
+          "firstSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "firstSeenAt",
+          "lastSeenAt"
+        ]
+      },
+      "ClinicPatientAppointmentsDto": {
+        "type": "object",
+        "properties": {
+          "lastVisitAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "nextAppointmentAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "lastVisitAt",
+          "nextAppointmentAt"
+        ]
+      },
+      "ClinicPatientRegistryItemDto": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "pet": {
+            "$ref": "#/components/schemas/ClinicPatientPetDto"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/ClinicPatientOwnerDto"
+          },
+          "relationship": {
+            "$ref": "#/components/schemas/ClinicPatientRelationshipDto"
+          },
+          "appointments": {
+            "$ref": "#/components/schemas/ClinicPatientAppointmentsDto"
+          }
+        },
+        "required": [
+          "patientId",
+          "pet",
+          "owner",
+          "relationship",
+          "appointments"
+        ]
+      },
+      "ClinicPatientsRegistryDto": {
+        "type": "object",
+        "properties": {
+          "clinicId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "serverNow": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClinicPatientRegistryItemDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "clinicId",
+          "locationId",
+          "serverNow",
+          "items",
+          "nextCursor"
         ]
       },
       "CreateEmergencyTriageDto": {
