@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const port = 3211;
-const mockBackendPort = 3212;
+const port = Number(process.env.CLINIC_PORTAL_E2E_PORT ?? 3211);
+const mockBackendPort = Number(process.env.CLINIC_PORTAL_MOCK_PORT ?? 3212);
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -27,7 +27,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npm run start -- -H 127.0.0.1 -p ${port}`,
+    command: `npx -y node@22 node_modules/next/dist/bin/next start -H 127.0.0.1 -p ${port}`,
     url: `http://127.0.0.1:${port}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
@@ -38,6 +38,7 @@ export default defineConfig({
       PORTAL_V50_SHELL: 'true',
       PORTAL_V51_SHELL: 'true',
       VETHELP_CLINIC_APPOINTMENTS_REGISTRY: process.env.VETHELP_CLINIC_APPOINTMENTS_REGISTRY ?? 'false',
+      VETHELP_CLINIC_PATIENTS_REGISTRY: process.env.VETHELP_CLINIC_PATIENTS_REGISTRY ?? 'false',
     },
   },
 });

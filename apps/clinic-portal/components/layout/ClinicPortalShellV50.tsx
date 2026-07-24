@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { isClinicPatientsRegistryEnabled } from '@/app/design-system/feature-flags';
 import { ClinicPortalShellV50Client } from './ClinicPortalShellV50Client';
 
 type ClinicPortalShellV50Props = {
@@ -13,7 +14,7 @@ type ClinicPortalShellV50Props = {
  */
 export function ClinicPortalShellV50({ clinicId, locationId, children }: ClinicPortalShellV50Props) {
   return (
-    <ClinicPortalShellV50Client clinicId={clinicId} locationId={locationId}>
+    <ClinicPortalShellV50Client clinicId={clinicId} locationId={locationId} patientsEnabled={isClinicPatientsRegistryEnabled()}>
       {children}
     </ClinicPortalShellV50Client>
   );

@@ -10,14 +10,14 @@ function shortIdentifier(value: string): string {
   return value.length > 12 ? `${value.slice(0, 8)}…` : value;
 }
 
-function ShellNavigation({ clinicId, locationId, compact = false }: { clinicId: string; locationId: string; compact?: boolean }) {
+function ShellNavigation({ clinicId, locationId, patientsEnabled, compact = false }: { clinicId: string; locationId: string; patientsEnabled: boolean; compact?: boolean }) {
   const pathname = usePathname();
   const { session, loading, error, hasCapability, hasClinicScope, refresh } = useEffectiveSession();
   const basePath = `/clinics/${clinicId}/locations/${locationId}`;
   const hasExactScope = hasClinicScope(clinicId, locationId);
   const items = loading || error || !session || !hasExactScope
     ? []
-    : resolveClinicShellNavigation(session.roles, hasCapability);
+    : resolveClinicShellNavigation(session.roles, hasCapability, patientsEnabled);
 
   if (loading) {
     return <p className="vh-v50-shell-state" aria-live="polite" aria-busy="true">Загрузка доступа…</p>;
@@ -63,7 +63,7 @@ function ShellNavigation({ clinicId, locationId, compact = false }: { clinicId: 
   });
 }
 
-function ShellFrame({ clinicId, locationId, children }: { clinicId: string; locationId: string; children: ReactNode }) {
+function ShellFrame({ clinicId, locationId, patientsEnabled, children }: { clinicId: string; locationId: string; patientsEnabled: boolean; children: ReactNode }) {
   const { session } = useEffectiveSession();
   const persona = clinicShellPersona(session?.roles ?? []);
   const roleLabel = persona === 'multi-role'
@@ -93,7 +93,7 @@ function ShellFrame({ clinicId, locationId, children }: { clinicId: string; loca
         </div>
         <p className="vh-v50-role-label">Рабочее место · {roleLabel}</p>
         <nav className="vh-clinic-nav" aria-label={`Разделы локации для роли ${roleLabel}`}>
-          <ShellNavigation clinicId={clinicId} locationId={locationId} />
+          <ShellNavigation clinicId={clinicId} locationId={locationId} patientsEnabled={patientsEnabled} />
         </nav>
         <p className="vh-v50-authority-note">Доступ и действия подтверждает сервер.</p>
       </aside>
@@ -114,16 +114,16 @@ function ShellFrame({ clinicId, locationId, children }: { clinicId: string; loca
       </div>
 
       <nav className="vh-clinic-bottom-nav" aria-label="Быстрая навигация портала клиники">
-        <ShellNavigation clinicId={clinicId} locationId={locationId} compact />
+        <ShellNavigation clinicId={clinicId} locationId={locationId} patientsEnabled={patientsEnabled} compact />
       </nav>
     </div>
   );
 }
 
-export function ClinicPortalShellV50Client({ clinicId, locationId, children }: { clinicId: string; locationId: string; children: ReactNode }) {
+export function ClinicPortalShellV50Client({ clinicId, locationId, patientsEnabled, children }: { clinicId: string; locationId: string; patientsEnabled: boolean; children: ReactNode }) {
   return (
     <EffectiveSessionProvider>
-      <ShellFrame clinicId={clinicId} locationId={locationId}>{children}</ShellFrame>
+      <ShellFrame clinicId={clinicId} locationId={locationId} patientsEnabled={patientsEnabled}>{children}</ShellFrame>
     </EffectiveSessionProvider>
   );
 }

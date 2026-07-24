@@ -10,6 +10,7 @@ export type ClinicShellNavigationItem = {
 const receptionNavigation: readonly ClinicShellNavigationItem[] = [
   { label: 'Очередь', shortLabel: 'Очередь', href: 'queue', ariaLabel: 'Открыть очередь записей', capability: 'booking.queue.read', icon: 'О' },
   { label: 'Расписание', shortLabel: 'Слоты', href: 'schedule', ariaLabel: 'Открыть расписание', capability: 'schedule.read', icon: 'Р' },
+  { label: 'Пациенты', shortLabel: 'Пациенты', href: 'patients', ariaLabel: 'Открыть реестр пациентов', capability: 'patient.admin.read', icon: 'П' },
   { label: 'Качество', shortLabel: 'Качество', href: 'quality', ariaLabel: 'Открыть панель качества', capability: 'quality.read', icon: 'К' },
 ] as const;
 
@@ -33,6 +34,7 @@ export function clinicShellPersona(roles: readonly string[]): 'reception' | 'vet
 export function resolveClinicShellNavigation(
   roles: readonly string[],
   hasCapability: (capability: string) => boolean,
+  patientsEnabled = false,
 ): ClinicShellNavigationItem[] {
   const persona = clinicShellPersona(roles);
   const candidates = persona === 'multi-role'
@@ -45,6 +47,7 @@ export function resolveClinicShellNavigation(
 
   const permitted = new Map<string, ClinicShellNavigationItem>();
   for (const item of candidates) {
+    if (item.href === 'patients' && !patientsEnabled) continue;
     if (hasCapability(item.capability) && !permitted.has(item.href)) {
       permitted.set(item.href, item);
     }

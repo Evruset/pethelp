@@ -6,10 +6,12 @@ export const PORTAL_V50_SHELL = "PORTAL_V50_SHELL" as const;
 /** @deprecated Compatibility alias for deployments that still expose the V51 name. */
 export const PORTAL_V51_SHELL = "PORTAL_V51_SHELL" as const;
 export const CLINIC_APPOINTMENTS_REGISTRY = "VETHELP_CLINIC_APPOINTMENTS_REGISTRY" as const;
+export const CLINIC_PATIENTS_REGISTRY = "VETHELP_CLINIC_PATIENTS_REGISTRY" as const;
 export const DESIGN_SYSTEM_FEATURE_FLAGS = {
   [PORTAL_V50_SHELL]: false,
   [PORTAL_V51_SHELL]: false,
   [CLINIC_APPOINTMENTS_REGISTRY]: false,
+  [CLINIC_PATIENTS_REGISTRY]: false,
 } as const;
 
 export function resolvePortalV50ShellFlag(canonicalValue?: string, legacyValue?: string): boolean {
@@ -28,4 +30,8 @@ export function isPortalV51ShellEnabled(): boolean {
 
 export function isClinicAppointmentsRegistryEnabled(): boolean {
   return process.env[CLINIC_APPOINTMENTS_REGISTRY] === "true";
+}
+
+export function isClinicPatientsRegistryEnabled(): boolean {
+  return process.env[CLINIC_PATIENTS_REGISTRY] === "true";
 }

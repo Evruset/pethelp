@@ -239,6 +239,27 @@ HTTP/PostgreSQL suite is 8/8 PASS, including the mirrored full-query
 Producer/lifecycle/capability regressions are 44/44 PASS; Node 22 build,
 OpenAPI validation and migration verification pass.
 
+## Portal implementation status
+
+`V50-CLINIC-03C` implements the single scoped Clinic Portal page and BFF at
+`/clinics/:clinicId/locations/:locationId/patients` and
+`/api/clinic/:clinicId/locations/:locationId/patients`. Both use the
+default-off Patients flag and require session-derived `patient.admin.read` plus
+exact effective clinic/location scope before the backend remains final
+authority.
+
+The UI renders only the administrative allowlist as responsive read-only cards.
+It validates impossible calendar dates, strict timestamps, nullable fields,
+scope and duplicate IDs; preserves server ordering and opaque cursors; and
+implements debounced prefix search, load-more and manual refresh with abort and
+generation fencing. Search `503`, rate-limit `429`, malformed refresh and page
+failure preserve the last valid snapshot. No owner UUID/contact fallback,
+clinical/financial field or patient-detail navigation exists.
+
+Focused Chromium is 9/9 enabled PASS plus 1/1 default-off rollback PASS,
+including axe, keyboard, 200% text and desktop/mobile screenshot attachments.
+Portal Node 22 typecheck/build and backend Patients 8/8 regression pass.
+
 ## UX and rollout
 
 The V50 screen is `CLN-005 clinic-patients` at the scoped Portal route above,

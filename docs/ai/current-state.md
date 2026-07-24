@@ -851,13 +851,27 @@ as a documentation/schema-contract-only slice.
   Producer/lifecycle/capability regressions are 44/44 PASS. Node 22.23.1 build,
   OpenAPI export/schema assertion, migration checksum/order verification and
   `git diff --check` PASS.
-- Status is `SCHEMA / LIFECYCLE / MANUAL-CONFIRM PRODUCER / BACKEND READ
-  IMPLEMENTED; PORTAL MISSING; OTHER LIFECYCLE PRODUCERS MISSING; PRODUCTION
-  ACTIVATION BLOCKED BY CONFIGURATION APPROVALS`.
+- `V50-CLINIC-03C / Clinic Patients Portal Integration` is `COMPLETE`.
+  The single scoped page and BFF use the same default-off Patients flag,
+  authenticated Clinic session, `patient.admin.read` and exact effective
+  clinic/location scope before forwarding to the backend.
+- The Portal runtime parser validates exact scope, UUIDs, nullable projection,
+  strict timestamps/calendar dates, enums and duplicate IDs. It renders only
+  the administrative allowlist and never creates patient-detail navigation.
+- Prefix search uses NFKC preparation, 350 ms debounce, abort and generation
+  fencing. Production-search `503` and `429` preserve the last valid snapshot;
+  cursor pagination and manual refresh preserve backend ordering and never
+  decode the opaque cursor.
+- Focused Chromium is 9/9 enabled PASS plus 1/1 default-off rollback PASS,
+  including axe, keyboard, 200% text and desktop/mobile screenshot attachments.
+  Node 22.23.1 Portal typecheck/build and backend Patients 8/8 regression PASS.
+  Backend production/OpenAPI/migrations/Queue/Appointments Portal are unchanged.
+- Status is `PATIENTS REGISTRY END_TO_END READ IMPLEMENTED; PATIENT DETAIL /
+  MUTATIONS / OTHER PRODUCERS MISSING; PRODUCTION ACTIVATION BLOCKED BY LIMITER
+  AND POLICY APPROVALS`.
 
 ## Next single action
 
-`V50-CLINIC-03B1 / Clinic Patients Registry Query Index Migration`: capture the
-mandatory production-like plan and add only the measured grouped/prefix index
-needed by the registry query. The current schema has no normalized pet-name
-prefix index. Do not begin it in this session.
+`V50-CLINIC-04A / Clinic Patient Detail Contract Discovery`: define the
+administrative-versus-clinical detail boundary before any detail route or UI.
+Do not begin it in this session.
