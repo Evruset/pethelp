@@ -1,6 +1,28 @@
 # V50 Clinic Patient Detail Contract
 
-Status: `READY_FOR_ADMIN_DETAIL_BACKEND`.
+Status: `PATIENT_ADMINISTRATIVE_DETAIL_BACKEND_IMPLEMENTED`.
+
+## Backend implementation evidence
+
+`V50-CLINIC-04B` implements exactly:
+
+```text
+GET /v1/clinic/:clinicId/locations/:locationId/patients/:patientId
+```
+
+The endpoint reuses default-off `VETHELP_CLINIC_PATIENTS_REGISTRY`,
+`patient.admin.read` and exact current clinic/location membership. Its single
+bounded PostgreSQL read verifies the active association, purpose-specific
+consent, visibility policy and unarchived pet before deriving last, next and at
+most ten recent exact-location appointment summaries.
+
+Focused Patient Detail PostgreSQL/HTTP is 8/8 PASS, including rollout,
+authority/no-leak, lifecycle revalidation, recursive privacy,
+malformed/technical failure, deterministic bounds, concurrency/read-only and
+production-like `EXPLAIN (ANALYZE, BUFFERS)`. Registry regression is 8/8.
+OpenAPI contains the one detail route and privacy-safe schemas under `Clinic
+Patients`. Portal, migrations, capability/role mappings, flags, association
+lifecycle, Queue and clinical surfaces are unchanged.
 
 ## Bounded outcome
 
@@ -289,6 +311,6 @@ clinical sources.
 12. Audit: no new admin read audit; clinical per-view audit unresolved.
 13. Migration: none for correctness; exact-query EXPLAIN remains required.
 14. Limiter: no new detail limiter without abuse evidence.
-15. Next slice: `V50-CLINIC-04B / Clinic Patient Administrative Detail Backend`.
+15. Next slice: `V50-CLINIC-04C / Clinic Patient Administrative Detail Portal Integration`.
 
-Readiness verdict: `READY_FOR_ADMIN_DETAIL_BACKEND`.
+Implementation verdict: `PATIENT_ADMINISTRATIVE_DETAIL_BACKEND_IMPLEMENTED`.

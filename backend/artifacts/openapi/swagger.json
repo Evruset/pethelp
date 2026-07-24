@@ -2371,6 +2371,80 @@
         ]
       }
     },
+    "/v1/clinic/{clinicId}/locations/{locationId}/patients/{patientId}": {
+      "get": {
+        "description": "Default-off rollout. Returns no clinical, owner-contact, document or financial fields.",
+        "operationId": "detail",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "patientId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClinicPatientDetailDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Clinic employee JWT is required."
+          },
+          "403": {
+            "description": "Administrative capability and exact active membership are required."
+          },
+          "404": {
+            "description": "Rollout disabled or patient is not currently visible in the exact scope."
+          },
+          "500": {
+            "description": "Controlled technical or malformed-source failure."
+          },
+          "503": {
+            "description": "Visibility policy configuration is unavailable."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Current administrative patient detail for an exact clinic location",
+        "tags": [
+          "Clinic Patients"
+        ],
+        "x-required-capabilities": [
+          "patient.admin.read"
+        ]
+      }
+    },
     "/v1/clinic/{clinicId}/locations/{locationId}/quality-dashboard": {
       "get": {
         "operationId": "dashboard",
@@ -6008,6 +6082,164 @@
           "serverNow",
           "items",
           "nextCursor"
+        ]
+      },
+      "ClinicPatientAppointmentSummaryServiceDto": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "displayName"
+        ]
+      },
+      "ClinicPatientAppointmentSummaryVeterinarianDto": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "displayName"
+        ]
+      },
+      "ClinicPatientAppointmentSummaryDto": {
+        "type": "object",
+        "properties": {
+          "appointmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "statusCode": {
+            "type": "string",
+            "enum": [
+              "SCHEDULED",
+              "COMPLETED",
+              "NO_SHOW",
+              "CANCELLED",
+              "UNKNOWN"
+            ]
+          },
+          "statusLabel": {
+            "type": "string"
+          },
+          "service": {
+            "$ref": "#/components/schemas/ClinicPatientAppointmentSummaryServiceDto"
+          },
+          "veterinarian": {
+            "$ref": "#/components/schemas/ClinicPatientAppointmentSummaryVeterinarianDto"
+          }
+        },
+        "required": [
+          "appointmentId",
+          "startsAt",
+          "endsAt",
+          "statusCode",
+          "statusLabel",
+          "service",
+          "veterinarian"
+        ]
+      },
+      "ClinicPatientDetailAppointmentsDto": {
+        "type": "object",
+        "properties": {
+          "last": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClinicPatientAppointmentSummaryDto"
+              }
+            ]
+          },
+          "next": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClinicPatientAppointmentSummaryDto"
+              }
+            ]
+          },
+          "recent": {
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClinicPatientAppointmentSummaryDto"
+            }
+          }
+        },
+        "required": [
+          "last",
+          "next",
+          "recent"
+        ]
+      },
+      "ClinicPatientDetailPatientDto": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "pet": {
+            "$ref": "#/components/schemas/ClinicPatientPetDto"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/ClinicPatientOwnerDto"
+          },
+          "relationship": {
+            "$ref": "#/components/schemas/ClinicPatientRelationshipDto"
+          },
+          "appointments": {
+            "$ref": "#/components/schemas/ClinicPatientDetailAppointmentsDto"
+          }
+        },
+        "required": [
+          "patientId",
+          "pet",
+          "owner",
+          "relationship",
+          "appointments"
+        ]
+      },
+      "ClinicPatientDetailDto": {
+        "type": "object",
+        "properties": {
+          "clinicId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "serverNow": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "patient": {
+            "$ref": "#/components/schemas/ClinicPatientDetailPatientDto"
+          }
+        },
+        "required": [
+          "clinicId",
+          "locationId",
+          "serverNow",
+          "patient"
         ]
       },
       "CreateEmergencyTriageDto": {

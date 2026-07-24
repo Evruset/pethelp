@@ -904,6 +904,34 @@ as a documentation/schema-contract-only slice.
 
 ## Next single action
 
-`V50-CLINIC-04B / Clinic Patient Administrative Detail Backend`: implement
-only the contracted read-only administrative endpoint; do not implement Portal
-detail or clinical history.
+`V50-CLINIC-04B / Clinic Patient Administrative Detail Backend` is `COMPLETE`.
+
+- Implemented canonical default-off
+  `GET /v1/clinic/:clinicId/locations/:locationId/patients/:patientId`.
+- The backend reuses `VETHELP_CLINIC_PATIENTS_REGISTRY` and
+  `patient.admin.read`; active exact clinic/location membership remains
+  authoritative. No capability, role or flag mapping changed.
+- Pet UUID resolves only through the current active exact-scope association,
+  valid `PATIENT_ADMIN_REGISTRY` consent, current visibility policy and
+  unarchived pet. Malformed, absent, foreign, revoked, expired, archived and
+  stale resources use bounded no-leak outcomes.
+- Response is `no-store, private` and contains only safe pet identity, nullable
+  owner display, relationship timestamps and last/next/at most ten recent
+  deterministic exact-location administrative appointment summaries.
+- Runtime mapping validates UUIDs, enums, nullable display fields, RFC3339
+  timestamps, calendar dates, duplicate/bounded appointments and required pet
+  fields. Malformed rows and database failures never become partial success.
+- Patient Detail PostgreSQL/HTTP is 8/8 PASS; Patients Registry is 8/8 PASS.
+  Node 22 backend build, OpenAPI export/route-schema assertion, migration
+  checksum and `git diff --check` PASS. Actual-query EXPLAIN is bounded with no
+  spill. Portal, migrations, Queue, appointment Portal and clinical surfaces
+  are unchanged.
+- Status is `PATIENT ADMINISTRATIVE DETAIL BACKEND IMPLEMENTED; PORTAL DETAIL
+  NOT IMPLEMENTED; CLINICAL PATIENT RECORD REMAINS SEPARATE; PRODUCTION
+  ACTIVATION BLOCKED BY POLICY APPROVALS`.
+
+## Next single action
+
+`V50-CLINIC-04C / Clinic Patient Administrative Detail Portal Integration`:
+integrate the existing Patients Registry Portal with the canonical
+administrative detail backend; do not implement clinical history.

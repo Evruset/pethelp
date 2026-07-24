@@ -141,8 +141,11 @@ nextCursor             nullable
 
 `patientId` is the existing pet UUID used only as an opaque resource key. It is
 never a display value. No surrogate association ID is justified by current
-schema evidence. Any future detail route must retain clinic/location path scope
-and cannot perform a global pet lookup.
+schema evidence. The implemented administrative detail backend retains the
+clinic/location path scope and never performs a global pet lookup. Registry
+navigation remains disabled until the scoped Portal BFF/page exists; neither a
+Registry snapshot nor a stale link authorizes detail because current
+association, consent and visibility policy are rechecked on every request.
 
 `firstSeenAt` and `lastSeenAt` are respectively `MIN` and `MAX` appointment
 `created_at` within the exact location. `lastVisitAt` is the latest qualifying
