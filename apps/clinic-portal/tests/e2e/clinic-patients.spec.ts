@@ -87,12 +87,12 @@ test.describe('enabled patients registry', () => {
 
   test('renders only safe administrative fields and nullable owner', async ({ page }) => {
     await open(page);
-    await expect(page.getByText('Барни')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Барни' })).toBeVisible();
     await expect(page.getByText('Владелец не указан')).toBeVisible();
     await expect(page.getByText('Сибирская')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Открыть реестр пациентов' }).first()).toBeVisible();
     await expect(page.getByText(/private|\\+7-private|diagnosis|ownerPhone|73333333/i)).toHaveCount(0);
-    await expect(page.getByRole('listitem').getByRole('link')).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Открыть карточку пациента Барни' })).toBeVisible();
   });
 
   test('denies missing capability and URL location tampering without rows', async ({ page, context }) => {
@@ -139,11 +139,11 @@ test.describe('enabled patients registry', () => {
     mode = 'search-unavailable';
     await page.getByLabel('Поиск по имени питомца').fill('Ба');
     await expect(page.getByText('Поиск временно недоступен. Полный список пациентов можно просматривать и обновлять.')).toBeVisible();
-    await expect(page.getByText('Барни')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Барни' })).toBeVisible();
     mode = 'rate';
     await page.getByLabel('Поиск по имени питомца').fill('Лу');
     await expect(page.getByText(/примерно через 7 сек/)).toBeVisible();
-    await expect(page.getByText('Барни')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Барни' })).toBeVisible();
   });
 
   test('uses opaque cursor, preserves ordering, prevents duplicate append request', async ({ page }) => {
@@ -161,7 +161,7 @@ test.describe('enabled patients registry', () => {
     await open(page);
     await page.getByRole('button', { name: 'Показать ещё' }).click();
     await expect(page.getByText('Следующую страницу проверить не удалось')).toBeVisible();
-    await expect(page.getByText('Барни')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Барни' })).toBeVisible();
     for (const bad of ['malformed', 'impossible-date', 'duplicate', 'wrong-scope'] as Mode[]) {
       mode = bad;
       await page.reload();
@@ -174,12 +174,12 @@ test.describe('enabled patients registry', () => {
     await open(page);
     mode = 'delayed';
     await page.getByRole('button', { name: 'Обновить список' }).click();
-    await expect(page.getByText('Барни')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Барни' })).toBeVisible();
     mode = 'normal';
     await page.getByLabel('Поиск по имени питомца').fill('Лу');
     releaseDelayed?.();
     await expect.poll(() => requestedQ).toBe('Лу');
-    await expect(page.getByText('Барни')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Барни' })).toBeVisible();
   });
 
   test('supports keyboard, axe, 200% text and responsive screenshots', async ({ page }, testInfo) => {
@@ -191,7 +191,7 @@ test.describe('enabled patients registry', () => {
     await page.keyboard.press('Enter');
     expect((await new AxeBuilder({ page }).include('main').analyze()).violations).toEqual([]);
     await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
-    await expect(page.getByText('Барни')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Барни' })).toBeVisible();
     await attach(page, testInfo, 'patients-desktop');
     await page.setViewportSize({ width: 375, height: 812 });
     await expect(page.getByRole('listitem')).toBeVisible();

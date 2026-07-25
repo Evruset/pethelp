@@ -1,6 +1,6 @@
 # V50 Clinic Patient Detail Contract
 
-Status: `PATIENT_ADMINISTRATIVE_DETAIL_BACKEND_IMPLEMENTED`.
+Status: `PATIENT_ADMINISTRATIVE_DETAIL_END_TO_END_IMPLEMENTED`.
 
 ## Backend implementation evidence
 
@@ -23,6 +23,23 @@ production-like `EXPLAIN (ANALYZE, BUFFERS)`. Registry regression is 8/8.
 OpenAPI contains the one detail route and privacy-safe schemas under `Clinic
 Patients`. Portal, migrations, capability/role mappings, flags, association
 lifecycle, Queue and clinical surfaces are unchanged.
+
+## Portal implementation evidence
+
+`V50-CLINIC-04C` adds one exact-scope Portal page and cookie-session BFF for
+the canonical administrative detail endpoint. The strict runtime parser
+rejects malformed, out-of-scope and privacy-unsafe payloads. The responsive
+read-only UI exposes only the contract allowlist, preserves the last valid
+snapshot on refresh failure, and revalidates current backend authority on
+every deep link and manual refresh. Registry rows and cards navigate to this
+same scoped page under the existing default-off Patients flag.
+
+Focused Patient Detail Chromium is 7/7 PASS, the Patients Registry navigation
+regression is 9/9 PASS, and default-off rollback is 1/1 PASS. Node 22.22.2
+Portal typecheck/build PASS. After Docker Desktop recovery, backend Patient
+Detail and Patients Registry PostgreSQL/HTTP regressions are both 8/8 PASS.
+Backend production code, OpenAPI, migrations, capabilities, flags, Queue,
+association lifecycle and clinical surfaces remain unchanged.
 
 ## Bounded outcome
 
@@ -311,6 +328,6 @@ clinical sources.
 12. Audit: no new admin read audit; clinical per-view audit unresolved.
 13. Migration: none for correctness; exact-query EXPLAIN remains required.
 14. Limiter: no new detail limiter without abuse evidence.
-15. Next slice: `V50-CLINIC-04C / Clinic Patient Administrative Detail Portal Integration`.
+15. Next slice: `V50-CLINIC-04D / Clinic Patient Administrative Mutations Contract Discovery`.
 
-Implementation verdict: `PATIENT_ADMINISTRATIVE_DETAIL_BACKEND_IMPLEMENTED`.
+Implementation verdict: `PATIENT_ADMINISTRATIVE_DETAIL_END_TO_END_IMPLEMENTED`.

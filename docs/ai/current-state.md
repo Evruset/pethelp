@@ -930,8 +930,50 @@ as a documentation/schema-contract-only slice.
   NOT IMPLEMENTED; CLINICAL PATIENT RECORD REMAINS SEPARATE; PRODUCTION
   ACTIVATION BLOCKED BY POLICY APPROVALS`.
 
+### `V50-CLINIC-04C / Clinic Patient Administrative Detail Portal Integration`
+
+`COMPLETE`.
+
+- One scoped Portal page, cookie-session BFF and strict runtime parser expose
+  only the administrative detail allowlist. Registry rows/cards navigate to
+  the exact clinic/location patient path under the existing default-off
+  Patients flag.
+- Deep links and refreshes remain backend-authoritative. Malformed or technical
+  refresh failure preserves the last valid snapshot; policy denial and current
+  association/consent revocation do not leak stale patient data.
+- Focused Patient Detail Chromium is 7/7 PASS; Patients Registry navigation is
+  9/9 PASS; default-off rollback is 1/1 PASS. Keyboard, axe, reduced motion,
+  200% text and desktop/mobile evidence pass.
+- Node 22.22.2 Portal typecheck and production build PASS.
+- Docker Desktop was safely restarted after its stale server socket prevented
+  the closure regressions. The canonical `vethelp-alpha` backend was restarted
+  once with workers disabled for the bounded test process; no volume or project
+  data was deleted. Patient Detail PostgreSQL/HTTP is 8/8 PASS and Patients
+  Registry PostgreSQL/HTTP is 8/8 PASS.
+- Tier B diff-first validation is PASS. Backend production code, OpenAPI,
+  migrations, capabilities, roles, flags, Queue, association lifecycle and
+  clinical surfaces have no implementation diff.
+
+Execution verdict: `PASS / COMPLETE`.
+
 ## Next single action
 
-`V50-CLINIC-04C / Clinic Patient Administrative Detail Portal Integration`:
-integrate the existing Patients Registry Portal with the canonical
-administrative detail backend; do not implement clinical history.
+`V50-CLINIC-04D / Clinic Patient Administrative Mutations Contract Discovery`.
+
+Goal: define one bounded administrative patient create/update route family
+without implementing it and without combining it with clinical, contact,
+document or financial data.
+
+Owned files: one new canonical mutations contract plus
+`docs/ai/current-state.md`, `docs/v50/00-route-api-role-matrix.md` and
+`docs/v50/V50-PARITY-REGISTER.md`; no production code.
+
+Acceptance: specify administrative identity and field allowlist, exact-scope
+authority and capabilities, validation, no-leak rules, idempotency/concurrency,
+audit/outbox expectations, rollout/rollback and focused test contracts.
+
+Non-goals: implementation, migration, clinical record, documents, owner-contact
+editing, imports or association lifecycle expansion.
+
+Required checks: documentation consistency, `git diff --check` and Tier B
+contract validation; runtime checks abstain because this is discovery-only.

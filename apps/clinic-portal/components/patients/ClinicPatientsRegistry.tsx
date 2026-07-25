@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ClinicPatientsResponseError,
@@ -21,7 +22,8 @@ const instant = (value: string | null) => value
   ? new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value))
   : 'Не было';
 
-function PatientCard({ item }: { item: ClinicPatient }) {
+function PatientCard({ item, clinicId, locationId }: { item: ClinicPatient; clinicId: string; locationId: string }) {
+  const href = `/clinics/${encodeURIComponent(clinicId)}/locations/${encodeURIComponent(locationId)}/patients/${encodeURIComponent(item.patientId)}`;
   return (
     <li className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <article aria-labelledby={`patient-${item.patientId}`}>
@@ -43,6 +45,9 @@ function PatientCard({ item }: { item: ClinicPatient }) {
           <div><dt className="text-xs font-semibold text-slate-500">Последний визит</dt><dd className="mt-1 text-sm text-slate-800">{instant(item.appointments.lastVisitAt)}</dd></div>
           <div><dt className="text-xs font-semibold text-slate-500">Следующая запись</dt><dd className="mt-1 text-sm text-slate-800">{instant(item.appointments.nextAppointmentAt)}</dd></div>
         </dl>
+        <Link href={href} className="mt-5 inline-flex min-h-11 items-center rounded-xl border border-blue-300 px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-50">
+          Открыть карточку пациента {item.pet.displayName}
+        </Link>
       </article>
     </li>
   );
@@ -201,7 +206,7 @@ export function ClinicPatientsRegistry({ clinicId, locationId }: Props) {
           <h2 className="text-xl font-semibold text-slate-950">{query ? 'По этому имени пациенты не найдены.' : 'В этой локации пока нет доступных пациентов.'}</h2>
         </section>}
         {items.length > 0 && <>
-          <ul aria-label="Реестр пациентов" className="mt-6 grid gap-4">{items.map((item) => <PatientCard key={item.patientId} item={item} />)}</ul>
+          <ul aria-label="Реестр пациентов" className="mt-6 grid gap-4">{items.map((item) => <PatientCard key={item.patientId} item={item} clinicId={clinicId} locationId={locationId} />)}</ul>
           {nextCursor && <div className="mt-6 flex justify-center"><button type="button" disabled={loadingMore} onClick={() => void loadMore()}
             className="min-h-11 rounded-xl bg-blue-700 px-6 py-3 font-semibold text-white disabled:opacity-60">
             {loadingMore ? 'Загружаем…' : notice === 'page-error' ? 'Повторить загрузку' : 'Показать ещё'}

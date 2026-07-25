@@ -1,6 +1,6 @@
 # V50 Clinic Patients Registry Contract
 
-Status: `CONTRACT_COMPLETE / BACKEND_READ_MODEL_REQUIRED`.
+Status: `PATIENT_REGISTRY_AND_ADMINISTRATIVE_DETAIL_END_TO_END_IMPLEMENTED`.
 
 ## Bounded outcome
 
@@ -143,8 +143,8 @@ nextCursor             nullable
 never a display value. No surrogate association ID is justified by current
 schema evidence. The implemented administrative detail backend retains the
 clinic/location path scope and never performs a global pet lookup. Registry
-navigation remains disabled until the scoped Portal BFF/page exists; neither a
-Registry snapshot nor a stale link authorizes detail because current
+navigation now targets the scoped Portal BFF/page under the same default-off
+Patients flag; neither a Registry snapshot nor a stale link authorizes detail because current
 association, consent and visibility policy are rechecked on every request.
 
 `firstSeenAt` and `lastSeenAt` are respectively `MIN` and `MAX` appointment
@@ -256,18 +256,19 @@ It validates impossible calendar dates, strict timestamps, nullable fields,
 scope and duplicate IDs; preserves server ordering and opaque cursors; and
 implements debounced prefix search, load-more and manual refresh with abort and
 generation fencing. Search `503`, rate-limit `429`, malformed refresh and page
-failure preserve the last valid snapshot. No owner UUID/contact fallback,
-clinical/financial field or patient-detail navigation exists.
+failure preserve the last valid snapshot. No owner UUID/contact fallback or
+clinical/financial field exists. Patient-detail navigation targets only the
+separate scoped administrative allowlist surface.
 
 Focused Chromium is 9/9 enabled PASS plus 1/1 default-off rollback PASS,
 including axe, keyboard, 200% text and desktop/mobile screenshot attachments.
 Portal Node 22 typecheck/build and backend Patients 8/8 regression pass.
 
-Patient-detail navigation remains absent. Its separate administrative contract
-is now defined by `V50-CLINIC-PATIENT-DETAIL-CONTRACT.md`: the existing
-Registry `patientId` is retained, while every deep link must revalidate the
-current visible exact-location association and may not inherit Registry
-snapshot authority.
+Patient-detail navigation is implemented under the same default-off flag. Its
+separate administrative contract is defined by
+`V50-CLINIC-PATIENT-DETAIL-CONTRACT.md`: the existing Registry `patientId` is
+retained, while every deep link revalidates the current visible exact-location
+association and never inherits Registry snapshot authority.
 
 ## UX and rollout
 

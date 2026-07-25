@@ -1,0 +1,118 @@
+export type PatientAppointment = {
+  appointmentId: string; startsAt: string; endsAt: string;
+  statusCode: 'SCHEDULED' | 'COMPLETED' | 'NO_SHOW' | 'CANCELLED' | 'UNKNOWN';
+  statusLabel: string;
+  service: { displayName: string | null };
+  veterinarian: { displayName: string | null };
+};
+export type PatientDetail = {
+  clinicId: string; locationId: string; serverNow: string;
+  patient: {
+    patientId: string;
+    pet: { displayName: string; speciesLabel: string; breed: string | null; sexCode: 'MALE' | 'FEMALE' | 'UNKNOWN' | null; birthDate: string | null };
+    owner: { displayName: string | null };
+    relationship: { firstSeenAt: string; lastSeenAt: string };
+    appointments: { last: PatientAppointment | null; next: PatientAppointment | null; recent: PatientAppointment[] };
+  };
+};
+export class PatientDetailResponseError extends Error {
+  constructor(public readonly kind: 'malformed' | 'http', public readonly status?: number) {
+    super(kind === 'malformed' ? 'INVALID_PATIENT_DETAIL_RESPONSE' : `PATIENT_DETAIL_HTTP_${status}`);
+  }
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,6}))?(Z|[+-]\d{2}:\d{2})$/;
+const SEX = new Set(['MALE', 'FEMALE', 'UNKNOWN']);
+const STATUS = new Set(['SCHEDULED', 'COMPLETED', 'NO_SHOW', 'CANCELLED', 'UNKNOWN']);
+const record = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+const text = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0;
+const nullableText = (value: unknown): value is string | null => value === null || typeof value === 'string';
+const keys = (value: Record<string, unknown>, expected: string[]) =>
+  Object.keys(value).sort().join('|') === [...expected].sort().join('|');
+
+function calendar(value: unknown): value is string {
+  if (!text(value)) return false;
+  const match = DATE.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]);
+  return month >= 1 && month <= 12 && day >= 1 && day <= new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+function instant(value: unknown): value is string {
+  if (!text(value)) return false;
+  const match = INSTANT.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]);
+  const hour = Number(match[4]), minute = Number(match[5]), second = Number(match[6]);
+  return month >= 1 && month <= 12 && day >= 1 && day <= new Date(Date.UTC(year, month, 0)).getUTCDate()
+    && hour <= 23 && minute <= 59 && second <= 59 && Number.isFinite(Date.parse(value));
+}
+function display(value: unknown): { displayName: string | null } {
+  if (!record(value) || !keys(value, ['displayName']) || !nullableText(value.displayName)) {
+    throw new PatientDetailResponseError('malformed');
+  }
+  return { displayName: value.displayName };
+}
+function appointment(value: unknown): PatientAppointment {
+  if (!record(value) || !keys(value, ['appointmentId', 'startsAt', 'endsAt', 'statusCode', 'statusLabel', 'service', 'veterinarian'])
+    || typeof value.appointmentId !== 'string' || !UUID.test(value.appointmentId)
+    || !instant(value.startsAt) || !instant(value.endsAt) || Date.parse(value.endsAt) < Date.parse(value.startsAt)
+    || typeof value.statusCode !== 'string' || !STATUS.has(value.statusCode) || !text(value.statusLabel)) {
+    throw new PatientDetailResponseError('malformed');
+  }
+  return {
+    appointmentId: value.appointmentId, startsAt: value.startsAt, endsAt: value.endsAt,
+    statusCode: value.statusCode as PatientAppointment['statusCode'], statusLabel: value.statusLabel,
+    service: display(value.service), veterinarian: display(value.veterinarian),
+  };
+}
+
+export function parsePatientDetail(payload: unknown, expected: { clinicId: string; locationId: string; patientId: string }): PatientDetail {
+  if (!record(payload) || !keys(payload, ['clinicId', 'locationId', 'serverNow', 'patient'])
+    || payload.clinicId !== expected.clinicId || payload.locationId !== expected.locationId || !instant(payload.serverNow)
+    || !record(payload.patient) || !keys(payload.patient, ['patientId', 'pet', 'owner', 'relationship', 'appointments'])
+    || payload.patient.patientId !== expected.patientId || !UUID.test(expected.patientId)) throw new PatientDetailResponseError('malformed');
+  const patient = payload.patient;
+  if (!record(patient.pet) || !keys(patient.pet, ['displayName', 'speciesLabel', 'breed', 'sexCode', 'birthDate'])
+    || !text(patient.pet.displayName) || !text(patient.pet.speciesLabel) || !nullableText(patient.pet.breed)
+    || !(patient.pet.sexCode === null || (typeof patient.pet.sexCode === 'string' && SEX.has(patient.pet.sexCode)))
+    || !(patient.pet.birthDate === null || calendar(patient.pet.birthDate))
+    || !record(patient.relationship) || !keys(patient.relationship, ['firstSeenAt', 'lastSeenAt'])
+    || !instant(patient.relationship.firstSeenAt) || !instant(patient.relationship.lastSeenAt)
+    || !record(patient.appointments) || !keys(patient.appointments, ['last', 'next', 'recent'])
+    || !Array.isArray(patient.appointments.recent) || patient.appointments.recent.length > 10) throw new PatientDetailResponseError('malformed');
+  const recent = patient.appointments.recent.map(appointment);
+  if (new Set(recent.map((item) => item.appointmentId)).size !== recent.length) throw new PatientDetailResponseError('malformed');
+  for (let index = 1; index < recent.length; index += 1) {
+    const previous = recent[index - 1], current = recent[index];
+    const previousTime = Date.parse(previous.startsAt), currentTime = Date.parse(current.startsAt);
+    if (previousTime < currentTime || (previousTime === currentTime && previous.appointmentId < current.appointmentId)) {
+      throw new PatientDetailResponseError('malformed');
+    }
+  }
+  return {
+    clinicId: payload.clinicId, locationId: payload.locationId, serverNow: payload.serverNow,
+    patient: {
+      patientId: patient.patientId as string,
+      pet: {
+        displayName: patient.pet.displayName, speciesLabel: patient.pet.speciesLabel, breed: patient.pet.breed,
+        sexCode: patient.pet.sexCode as PatientDetail['patient']['pet']['sexCode'], birthDate: patient.pet.birthDate,
+      },
+      owner: display(patient.owner),
+      relationship: { firstSeenAt: patient.relationship.firstSeenAt, lastSeenAt: patient.relationship.lastSeenAt },
+      appointments: {
+        last: patient.appointments.last === null ? null : appointment(patient.appointments.last),
+        next: patient.appointments.next === null ? null : appointment(patient.appointments.next),
+        recent,
+      },
+    },
+  };
+}
+export async function fetchPatientDetail(input: { clinicId: string; locationId: string; patientId: string; signal: AbortSignal }) {
+  const response = await fetch(`/api/clinic/${encodeURIComponent(input.clinicId)}/locations/${encodeURIComponent(input.locationId)}/patients/${encodeURIComponent(input.patientId)}`, {
+    cache: 'no-store', signal: input.signal, headers: { Accept: 'application/json' },
+  });
+  if (!response.ok) throw new PatientDetailResponseError('http', response.status);
+  return parsePatientDetail(await response.json().catch(() => null), input);
+}
