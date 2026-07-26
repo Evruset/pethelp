@@ -7,10 +7,11 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { DomainErrors } from '../common/domain-error';
-import { isClinicPatientsRegistryEnabled } from '../config';
+import { isClinicPatientAdminReferenceSearchEnabled, isClinicPatientsRegistryEnabled } from '../config';
 import { SWAGGER_BEARER_AUTH } from '../openapi/openapi';
 import { ClinicPatientsRegistryDto } from './dto/clinic-patients-registry.dto';
 import { ClinicPatientsRegistryService, PatientsRegistryRateLimitException } from './clinic-patients-registry.service';
+import { normalizeAdministrativeReference } from './clinic-patient-administrative-reference.normalizer';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -37,6 +38,45 @@ function search(value?: string): string | undefined {
   return normalized;
 }
 
+type RegistryQuery = Record<string, string | string[] | undefined>;
+function queryValue(value: string | string[] | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'string') {
+    throw new BadRequestException({ code: 'INVALID_PATIENTS_REGISTRY_QUERY', message: 'Invalid registry query' });
+  }
+  return value;
+}
+
+function parseQuery(raw: RegistryQuery): {
+  q?: string; limit: number; cursor?: string; administrativeReferenceKey?: string;
+} {
+  const allowed = new Set(['q', 'limit', 'cursor', 'administrativeReference']);
+  if (Object.keys(raw).some((key) => !allowed.has(key))) {
+    throw new BadRequestException({ code: 'INVALID_PATIENTS_REGISTRY_QUERY', message: 'Invalid registry query' });
+  }
+  const q = queryValue(raw.q);
+  const cursor = queryValue(raw.cursor);
+  const reference = queryValue(raw.administrativeReference);
+  if (reference !== undefined && (q !== undefined || cursor !== undefined)) {
+    throw new BadRequestException({ code: 'INVALID_SEARCH_COMBINATION', message: 'Invalid search combination' });
+  }
+  if (reference !== undefined) {
+    if (!isClinicPatientAdminReferenceSearchEnabled()) {
+      throw new NotFoundException({
+        code: 'ADMINISTRATIVE_REFERENCE_SEARCH_UNAVAILABLE', message: 'Administrative reference search unavailable',
+      });
+    }
+    const normalized = normalizeAdministrativeReference(reference);
+    if (!normalized) {
+      throw new BadRequestException({
+        code: 'INVALID_ADMINISTRATIVE_REFERENCE_QUERY', message: 'Invalid administrative reference query',
+      });
+    }
+    return { limit: limit(queryValue(raw.limit)), administrativeReferenceKey: normalized.comparisonKey };
+  }
+  return { q: search(q), limit: limit(queryValue(raw.limit)), cursor };
+}
+
 @Catch(PatientsRegistryRateLimitException)
 class PatientsRegistryRateLimitFilter implements ExceptionFilter {
   catch(error: PatientsRegistryRateLimitException, host: ArgumentsHost): void {
@@ -61,29 +101,38 @@ export class ClinicPatientsRegistryController {
   @ApiQuery({ name: 'q', required: false, schema: { type: 'string', minLength: 2, maxLength: 80 } })
   @ApiQuery({ name: 'limit', required: false, schema: { type: 'integer', minimum: 1, maximum: 100, default: 50 } })
   @ApiQuery({ name: 'cursor', required: false, schema: { type: 'string' } })
+  @ApiQuery({
+    name: 'administrativeReference', required: false,
+    description: 'Default-off exact normalized reference filter; exclusive with q and cursor.',
+    schema: { type: 'string', minLength: 1, maxLength: 40 },
+  })
   @ApiOkResponse({ type: ClinicPatientsRegistryDto })
-  @ApiBadRequestResponse({ description: 'Query or cursor is invalid.' })
+  @ApiBadRequestResponse({
+    description: 'Query/cursor is invalid, including INVALID_ADMINISTRATIVE_REFERENCE_QUERY and INVALID_SEARCH_COMBINATION.',
+  })
   @ApiUnauthorizedResponse({ description: 'Clinic employee JWT is required.' })
   @ApiForbiddenResponse({ description: 'Capability and exact active location membership are required.' })
-  @ApiNotFoundResponse({ description: 'Patients registry rollout is disabled.' })
+  @ApiNotFoundResponse({
+    description: 'Patients registry rollout or administrative-reference search rollout is disabled.',
+  })
   @ApiResponse({ status: 429, description: 'Search rate limit exceeded.', headers: { 'Retry-After': { schema: { type: 'integer' } } } })
-  @ApiResponse({ status: 503, description: 'Visibility or search policy is unavailable.' })
+  @ApiResponse({
+    status: 503,
+    description: 'Visibility/search policy is unavailable or exact-search cardinality violates SEARCH_INVARIANT_VIOLATION.',
+  })
   list(
     @Param('clinicId') clinicId: string,
     @Param('locationId') locationId: string,
-    @Query('q') q: string | undefined,
-    @Query('limit') rawLimit: string | undefined,
-    @Query('cursor') cursor: string | undefined,
+    @Query() rawQuery: RegistryQuery,
     @CurrentUser() employee: JwtPayload,
   ) {
     if (!isClinicPatientsRegistryEnabled()) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Not found' });
+    const query = parseQuery(rawQuery);
     return this.registry.list({
       clinicId: scopedId(clinicId),
       locationId: scopedId(locationId),
       employee,
-      q: search(q),
-      limit: limit(rawLimit),
-      cursor,
+      ...query,
     });
   }
 }

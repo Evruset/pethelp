@@ -1109,6 +1109,36 @@ Execution verdict: `PASS / COMPLETE`.
 
 Execution verdict: `PASS / COMPLETE`.
 
+### `V50-CLINIC-04K / Clinic Patient Administrative Reference Registry Search Backend`
+
+`COMPLETE / BACKEND_IMPLEMENTED`.
+
+- The existing exact-location Registry endpoint accepts an exclusive
+  `administrativeReference` query behind the independent default-off
+  `VETHELP_CLINIC_PATIENT_ADMIN_REFERENCE_SEARCH` flag. Ordinary Registry
+  behavior and ordering remain unchanged.
+- Strict whole-query validation reuses the pinned Unicode 17 administrative
+  reference normalizer. Malformed values and incompatible filters fail before
+  lookup; exact mode retains the canonical envelope with 0..1 items and no
+  cursor.
+- Existing `patient.admin.read`, active membership, exact clinic/location and
+  current association/consent/privacy qualification constrain the same bounded
+  SQL query before reference matching. Foreign and ineligible matches are
+  indistinguishable empty results.
+- Registry/OpenAPI items require nullable display `administrativeReference`;
+  the comparison key and local-profile internals are never projected. Corrupt
+  duplicate results fail closed with `SEARCH_INVARIANT_VIOLATION`.
+- The existing scoped unique B-tree is reused with representative-volume
+  indexed EXPLAIN proof; there is no migration, N+1, mutation audit/outbox,
+  idempotency or other read side effect.
+- Focused Registry PostgreSQL/HTTP PASS `14/14`; Detail, reference mutation,
+  alias mutation and capability/evaluator regressions PASS `72/72` after the
+  intentional nullable Registry projection update; backend build/OpenAPI
+  export PASS; strict Portal parser PASS `2/2`; Node 22.22.2 typecheck PASS.
+  Portal search UI remains excluded.
+
+Execution verdict: `PASS / COMPLETE`.
+
 ## Next single action
 
 ### `V50-CLINIC-04H / Clinic Patient Structured Administrative Reference Backend`
@@ -1183,9 +1213,9 @@ Execution verdict: `PASS / COMPLETE`.
 
 ## Next single action
 
-`V50-CLINIC-04K / Clinic Patient Administrative Reference Registry Search Backend`.
+`V50-CLINIC-04L / Clinic Patient Administrative Reference Registry Search Portal Integration`.
 
-Add only the Registry exact query parameter, authority-first filtering,
-required nullable reference projection, strict query DTO, default-off search
-flag, scoped indexed lookup, OpenAPI, bounded backend tests and Portal parser
-compatibility without UI. Do not begin `04K` in this slice.
+Add only an explicit **Внутренний номер** Registry search mode, submit-only
+exact query, strict client validation, neutral empty result, flag/no-leak
+behavior, technical retry and focused responsive/accessibility Portal tests.
+Do not add backend changes, prefix search or autocomplete.

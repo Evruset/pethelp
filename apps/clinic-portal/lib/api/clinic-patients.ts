@@ -1,5 +1,6 @@
 export type ClinicPatient = {
   patientId: string;
+  administrativeReference: string | null;
   pet: {
     displayName: string;
     speciesLabel: string;
@@ -37,6 +38,8 @@ const SEX = new Set(['MALE', 'FEMALE', 'UNKNOWN']);
 const record = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
 const nullableText = (value: unknown): value is string | null => value === null || typeof value === 'string';
+const keys = (value: Record<string, unknown>, expected: string[]) =>
+  Object.keys(value).sort().join('|') === [...expected].sort().join('|');
 
 function calendarDate(value: unknown): value is string {
   if (!text(value)) return false;
@@ -62,19 +65,26 @@ export function parseClinicPatientsSnapshot(
   payload: unknown,
   expected: { clinicId: string; locationId: string },
 ): ClinicPatientsSnapshot {
-  if (!record(payload) || payload.clinicId !== expected.clinicId || payload.locationId !== expected.locationId
+  if (!record(payload) || !keys(payload, ['clinicId', 'locationId', 'serverNow', 'items', 'nextCursor'])
+    || payload.clinicId !== expected.clinicId || payload.locationId !== expected.locationId
     || !instant(payload.serverNow) || !Array.isArray(payload.items)
     || !(payload.nextCursor === null || text(payload.nextCursor))) {
     throw new ClinicPatientsResponseError('malformed');
   }
   const ids = new Set<string>();
   const items = payload.items.map((value): ClinicPatient => {
-    if (!record(value) || !UUID.test(String(value.patientId)) || !record(value.pet)
+    if (!record(value)
+      || !keys(value, ['patientId', 'administrativeReference', 'pet', 'owner', 'relationship', 'appointments'])
+      || !UUID.test(String(value.patientId)) || !nullableText(value.administrativeReference) || !record(value.pet)
       || !record(value.owner) || !record(value.relationship) || !record(value.appointments)) {
       throw new ClinicPatientsResponseError('malformed');
     }
     const pet = value.pet, owner = value.owner, relationship = value.relationship, appointments = value.appointments;
-    if (!text(pet.displayName) || !text(pet.speciesLabel) || !nullableText(pet.breed)
+    if (!keys(pet, ['displayName', 'speciesLabel', 'breed', 'sexCode', 'birthDate'])
+      || !keys(owner, ['displayName'])
+      || !keys(relationship, ['firstSeenAt', 'lastSeenAt'])
+      || !keys(appointments, ['lastVisitAt', 'nextAppointmentAt'])
+      || !text(pet.displayName) || !text(pet.speciesLabel) || !nullableText(pet.breed)
       || !(pet.sexCode === null || (typeof pet.sexCode === 'string' && SEX.has(pet.sexCode)))
       || !(pet.birthDate === null || calendarDate(pet.birthDate))
       || !nullableText(owner.displayName)
@@ -87,12 +97,13 @@ export function parseClinicPatientsSnapshot(
     ids.add(patientId);
     return {
       patientId,
+      administrativeReference: value.administrativeReference,
       pet: {
         displayName: pet.displayName,
         speciesLabel: pet.speciesLabel,
         breed: pet.breed,
         sexCode: pet.sexCode as ClinicPatient['pet']['sexCode'],
-        birthDate: pet.birthDate,
+        birthDate: pet.birthDate as string | null,
       },
       owner: { displayName: owner.displayName },
       relationship: { firstSeenAt: relationship.firstSeenAt, lastSeenAt: relationship.lastSeenAt },
@@ -104,7 +115,7 @@ export function parseClinicPatientsSnapshot(
     locationId: payload.locationId,
     serverNow: payload.serverNow,
     items,
-    nextCursor: payload.nextCursor,
+    nextCursor: payload.nextCursor as string | null,
   };
 }
 

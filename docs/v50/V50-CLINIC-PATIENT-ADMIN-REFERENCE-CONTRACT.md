@@ -402,3 +402,17 @@ The existing scoped partial unique comparison-key index is the intended lookup
 index. Search has its own default-off flag, emits no mutation audit/outbox and
 never exposes raw query/key. Prefix/contains/global search and Portal UI remain
 excluded. The next slice is backend-only `V50-CLINIC-04K`.
+
+## 27. 04K Registry search backend
+
+The existing exact-location Registry route now supports the exclusive exact
+`administrativeReference` filter behind its own default-off search flag.
+Canonical Unicode 17 normalization, current Registry qualification and exact
+clinic/location scope feed one bounded indexed query. Unknown or inaccessible
+matches are indistinguishable empty envelopes; a corrupt duplicate fails
+closed. Registry projection exposes only the nullable display value.
+
+OpenAPI and the strict Portal Registry parser are updated without adding a
+search control. The next single slice is
+`V50-CLINIC-04L / Clinic Patient Administrative Reference Registry Search
+Portal Integration`.

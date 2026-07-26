@@ -330,6 +330,16 @@ Administrative registry reads need no medical read audit because the allowlist
 contains no medical categories. Any future clinical patient read requires a
 separate capability, assignment/category policy and medical read audit.
 
+### 04K exact administrative-reference backend
+
+The existing Registry endpoint now implements the 04J exact filter behind
+`VETHELP_CLINIC_PATIENT_ADMIN_REFERENCE_SEARCH` (default off). It reuses the
+Unicode 17 comparison key and scoped unique B-tree inside the authoritative
+visibility query. Results remain canonical 0..1 envelopes with
+`nextCursor: null`; ordinary Registry ordering and pagination are unchanged.
+Every item now includes required nullable display `administrativeReference`.
+No search UI, new route, migration or read side effect is introduced.
+
 ## Archive, retention and consent decision
 
 The canonical decision is

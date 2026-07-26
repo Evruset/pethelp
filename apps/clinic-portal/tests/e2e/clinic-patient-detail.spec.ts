@@ -533,7 +533,8 @@ function registry() {
   return {
     clinicId, locationId, serverNow: '2026-07-25T09:00:00.000Z',
     items: [{
-      patientId, pet: { displayName: 'Барни', speciesLabel: 'Собака', breed: 'Сибирская', sexCode: 'MALE', birthDate: '2020-02-29' },
+      patientId, administrativeReference: null,
+      pet: { displayName: 'Барни', speciesLabel: 'Собака', breed: 'Сибирская', sexCode: 'MALE', birthDate: '2020-02-29' },
       owner: { displayName: null }, relationship: { firstSeenAt: '2025-01-10T09:00:00.000Z', lastSeenAt: '2026-07-20T09:00:00.000Z' },
       appointments: { lastVisitAt: '2026-07-20T09:00:00.000Z', nextAppointmentAt: null },
     }], nextCursor: null,

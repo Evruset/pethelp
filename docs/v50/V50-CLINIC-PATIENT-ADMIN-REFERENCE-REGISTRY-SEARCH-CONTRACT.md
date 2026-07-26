@@ -292,9 +292,27 @@ J-31 no N+1 read
 J-32 no global lookup path
 ```
 
-## 26. Recommended next slice
+## 26. 04K implementation
 
 `V50-CLINIC-04K / Clinic Patient Administrative Reference Registry Search
-Backend`: add only the Registry exact query parameter, strict DTO, nullable
-projection, default-off search flag, authority-first indexed lookup, OpenAPI,
-bounded PostgreSQL/HTTP proofs and Portal parser compatibility without UI.
+Backend` is complete. The existing Registry route accepts the exclusive exact
+`administrativeReference` query under the dedicated default-off flag. The
+canonical Unicode 17 normalizer supplies the comparison key; current authority,
+scope and visibility are applied in the same bounded query before the
+clinic/location/key predicate.
+
+Registry items now require nullable display `administrativeReference`; exact
+search keeps the canonical envelope, returns at most one row and never returns
+a cursor. A corrupt duplicate result fails closed with
+`SEARCH_INVARIANT_VIOLATION`. The existing scoped unique B-tree is reused;
+representative-volume EXPLAIN proves the indexed lookup without a migration or
+N+1. Reads create no audit, outbox or idempotency effects and never expose the
+comparison key.
+
+OpenAPI and the strict Portal Registry parser/types/fixtures are compatible.
+No Registry search UI was added.
+
+## 27. Next bounded slice
+
+`V50-CLINIC-04L / Clinic Patient Administrative Reference Registry Search
+Portal Integration`.

@@ -238,7 +238,7 @@ describe('Clinic patient administrative reference HTTP/PostgreSQL contract', () 
       .set('Authorization', `Bearer ${await token(actor())}`);
     expect(registry.status).toBe(200);
     expect(registry.body.items).not.toHaveLength(0);
-    expect(JSON.stringify(registry.body.items[0])).not.toContain('administrativeReference');
+    expect(registry.body.items[0].administrativeReference).toBeNull();
     expect(JSON.stringify(registry.body.items[0])).not.toContain('localProfile');
     expect(await effects(db)).toEqual(before);
   });

@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { BadRequestException, HttpException, HttpStatus, Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import type { PoolClient } from 'pg';
 import { JwtPayload } from '../auth/auth.types';
 import { config } from '../config';
@@ -14,6 +14,7 @@ type Cursor = {
 
 type RegistryRow = {
   patient_id: string; display_name: string; species: string; breed: string | null;
+  administrative_reference: string | null;
   sex: 'MALE' | 'FEMALE' | 'UNKNOWN' | null; birth_date: string | Date | null;
   first_seen_at: Date; last_seen_at: Date; last_visit_at: Date | null;
   next_appointment_at: Date | null;
@@ -32,25 +33,37 @@ export class PatientsRegistryRateLimitException extends HttpException {
 
 @Injectable()
 export class ClinicPatientsRegistryService {
+  private readonly logger = new Logger(ClinicPatientsRegistryService.name);
   private readonly cursorSecret = createHmac('sha256', config.jwtSecret).update('clinic-patients-registry-cursor:v1').digest();
   private readonly searchBuckets = new Map<string, RateBucket>();
 
   constructor(private readonly database: DatabaseService, private readonly clinicAccess: ClinicEmployeeAccessService) {}
 
-  async list(input: { clinicId: string; locationId: string; employee: JwtPayload; q?: string; limit: number; cursor?: string }): Promise<ClinicPatientsRegistryDto> {
+  async list(input: {
+    clinicId: string; locationId: string; employee: JwtPayload; q?: string; limit: number;
+    cursor?: string; administrativeReferenceKey?: string;
+  }): Promise<ClinicPatientsRegistryDto> {
     return this.database.withTransaction(async (client) => {
       await client.query("SET LOCAL statement_timeout = '750ms'");
       await this.clinicAccess.assertPatientRegistryReadAccess(client, input.employee, input.clinicId, input.locationId);
       await this.assertLocation(client, input.clinicId, input.locationId);
       const cursor = input.cursor ? this.decode(input.cursor, input) : undefined;
       const policyVersion = this.visibilityPolicyVersion();
-      if (input.q) this.consumeSearch(input, this.searchPolicy());
+      if (input.q || input.administrativeReferenceKey) this.consumeSearch(input, this.searchPolicy());
 
       const now = await client.query<{ now: Date }>('SELECT clock_timestamp() AS now');
       const snapshotSequence = cursor?.snapshotSequence ?? await this.snapshot(client, input);
       const result = await this.query(client, input, policyVersion, now.rows[0].now, snapshotSequence, cursor);
-      const hasMore = result.rows.length > input.limit;
-      const rows = result.rows.slice(0, input.limit);
+      if (input.administrativeReferenceKey && result.rows.length > 1) {
+        this.logger.error(
+          `administrative_reference_search_invariant actor=${input.employee.sub} clinic=${input.clinicId} location=${input.locationId} result_count=${result.rows.length}`,
+        );
+        throw new ServiceUnavailableException({
+          code: 'SEARCH_INVARIANT_VIOLATION', message: 'Search invariant violation',
+        });
+      }
+      const hasMore = !input.administrativeReferenceKey && result.rows.length > input.limit;
+      const rows = result.rows.slice(0, input.administrativeReferenceKey ? 1 : input.limit);
       const tail = rows.at(-1);
       return {
         clinicId: input.clinicId,
@@ -119,7 +132,9 @@ export class ClinicPatientsRegistryService {
     return result.rows[0].sequence;
   }
 
-  private query(client: PoolClient, input: { clinicId: string; locationId: string; q?: string; limit: number }, policyVersion: string, now: Date, snapshot: string, cursor?: Cursor) {
+  private query(client: PoolClient, input: {
+    clinicId: string; locationId: string; q?: string; limit: number; administrativeReferenceKey?: string;
+  }, policyVersion: string, now: Date, snapshot: string, cursor?: Cursor) {
     const escapedPrefix = input.q?.replace(/[\\%_]/g, '\\$&');
     return client.query<RegistryRow>(`
       WITH snapshot_rows AS MATERIALIZED (
@@ -145,6 +160,13 @@ export class ClinicPatientsRegistryService {
           AND c.granted_at <= $4::timestamptz AND (c.expires_at IS NULL OR c.expires_at > $4::timestamptz)
           AND ($6::text IS NULL OR lower(p.name) LIKE $6::text || '%' ESCAPE '\\')
           AND ($7::timestamptz IS NULL OR (r.last_qualified_at,r.pet_id) < ($7::timestamptz,$8::uuid))
+          AND ($10::text IS NULL OR EXISTS (
+            SELECT 1 FROM clinic_schema.clinic_patient_local_profiles lp_filter
+            WHERE lp_filter.clinic_id=$1::uuid
+              AND lp_filter.clinic_location_id=$2::uuid
+              AND lp_filter.patient_id=r.pet_id
+              AND lp_filter.administrative_reference_key=$10::text
+          ))
         ORDER BY r.last_qualified_at DESC,r.pet_id DESC
         LIMIT $9
       ), appointment_aggregates AS (
@@ -159,14 +181,18 @@ export class ClinicPatientsRegistryService {
         GROUP BY v.pet_id
       )
       SELECT v.pet_id::text AS patient_id,p.name AS display_name,p.species,p.breed,p.sex,
+        lp.administrative_reference,
         p.birth_date,aa.first_seen_at,v.last_qualified_at AS last_seen_at,
         aa.last_visit_at,aa.next_appointment_at
       FROM visible v
       JOIN pet_schema.pets p ON p.id=v.pet_id
       JOIN appointment_aggregates aa ON aa.pet_id=v.pet_id
+      LEFT JOIN clinic_schema.clinic_patient_local_profiles lp
+        ON lp.clinic_id=$1::uuid AND lp.clinic_location_id=$2::uuid AND lp.patient_id=v.pet_id
       ORDER BY v.last_qualified_at DESC,v.pet_id DESC
     `, [input.clinicId, input.locationId, snapshot, now, policyVersion, escapedPrefix ?? null,
-      cursor?.lastSeenAt ?? null, cursor?.patientId ?? null, input.limit + 1]);
+      cursor?.lastSeenAt ?? null, cursor?.patientId ?? null,
+      input.administrativeReferenceKey ? 2 : input.limit + 1, input.administrativeReferenceKey ?? null]);
   }
 
   private async assertLocation(client: PoolClient, clinicId: string, locationId: string): Promise<void> {
@@ -217,6 +243,7 @@ export class ClinicPatientsRegistryService {
     const dates = [row.first_seen_at, row.last_seen_at, row.last_visit_at, row.next_appointment_at];
     if (!UUID.test(row.patient_id) || typeof row.display_name !== 'string' || row.display_name.trim() === ''
       || typeof row.species !== 'string' || row.species.trim() === ''
+      || (row.administrative_reference !== null && typeof row.administrative_reference !== 'string')
       || (row.breed !== null && typeof row.breed !== 'string')
       || (row.sex !== null && !['MALE', 'FEMALE', 'UNKNOWN'].includes(row.sex))
       || dates.some((date) => date !== null && (!(date instanceof Date) || !Number.isFinite(date.getTime())))) {
@@ -224,6 +251,7 @@ export class ClinicPatientsRegistryService {
     }
     return {
       patientId: row.patient_id,
+      administrativeReference: row.administrative_reference,
       pet: {
         displayName: row.display_name,
         speciesLabel: SPECIES[row.species] ?? row.species,

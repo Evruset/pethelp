@@ -168,3 +168,18 @@ When any prototype file changes, regenerate the manifest, rerun inventory verifi
   scoped unique comparison-key index, canonical envelope, 0..1 cardinality,
   no-cursor rule, safe telemetry and a dedicated default-off flag are fixed.
 - No backend, migration, OpenAPI, Portal, runtime flag, test or package changed.
+
+## V50-CLINIC-04K — Administrative reference Registry search backend
+
+- The existing Registry route implements exclusive exact normalized reference
+  search behind a dedicated default-off flag; ordinary Registry behavior is
+  unchanged when the flag is off.
+- Authority/current visibility and exact clinic/location scope constrain the
+  existing indexed comparison-key lookup. Unknown and inaccessible matches are
+  identical empty envelopes; corrupt duplicate results fail closed.
+- Registry/OpenAPI items require nullable display reference and never expose
+  the comparison key. The canonical envelope has 0..1 items and no cursor in
+  exact mode.
+- Focused PostgreSQL/HTTP, rollback, regression, EXPLAIN, strict Portal parser
+  and Node 22 typecheck gates cover the implementation without a migration or
+  rendered Portal search UI.

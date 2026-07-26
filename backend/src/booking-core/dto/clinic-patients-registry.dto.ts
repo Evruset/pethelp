@@ -24,6 +24,7 @@ export class ClinicPatientAppointmentsDto {
 
 export class ClinicPatientRegistryItemDto {
   @ApiProperty({ format: 'uuid' }) patientId!: string;
+  @ApiProperty({ nullable: true, type: String }) administrativeReference!: string | null;
   @ApiProperty({ type: ClinicPatientPetDto }) pet!: ClinicPatientPetDto;
   @ApiProperty({ type: ClinicPatientOwnerDto }) owner!: ClinicPatientOwnerDto;
   @ApiProperty({ type: ClinicPatientRelationshipDto }) relationship!: ClinicPatientRelationshipDto;

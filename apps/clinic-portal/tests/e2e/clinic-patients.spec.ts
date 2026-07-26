@@ -219,6 +219,7 @@ const pathLocation = (url: URL) => url.pathname.split('/locations/')[1].split('/
 function patient(patientId: string, displayName: string) {
   return {
     patientId,
+    administrativeReference: null,
     pet: { displayName, speciesLabel: 'Собака', breed: 'Сибирская', sexCode: 'MALE', birthDate: '2020-02-29' },
     owner: { displayName: null },
     relationship: { firstSeenAt: '2025-01-10T09:00:00.000Z', lastSeenAt: '2026-07-20T09:00:00.000Z' },

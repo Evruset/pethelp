@@ -219,6 +219,12 @@ internals and does not add a Registry mutation route.
 |---|---|---|---|---|
 | `GET /v1/clinic/:clinicId/locations/:locationId/patients?administrativeReference=...` | existing `patient.admin.read`; no write capability | authenticate, active membership, exact clinic/location and current Registry visibility before exact reference match | new default-off `VETHELP_CLINIC_PATIENT_ADMIN_REFERENCE_SEARCH` | canonical Registry envelope, required nullable display reference, cardinality 0..1, no cursor; documentation only in `04J` |
 
+### V50-CLINIC-04K reference Registry search backend
+
+| Route/filter | Read authority | Runtime behavior | Rollout | Status |
+|---|---|---|---|---|
+| `GET /v1/clinic/:clinicId/locations/:locationId/patients?administrativeReference=...` | existing `patient.admin.read`, active membership, exact clinic/location and current Registry visibility | Unicode 17 exact normalized scoped-index lookup; canonical 0..1 envelope; required nullable display reference; corrupt duplicates fail closed | independent default-off `VETHELP_CLINIC_PATIENT_ADMIN_REFERENCE_SEARCH`; ordinary Registry remains available | backend/OpenAPI/parser implemented; Portal search UI deferred to `04L` |
+
 The reference is unique only by normalized key inside one clinic location. It
 is not a medical-record number, global patient ID or authority token. Registry
 projection/search remains a separate future slice.

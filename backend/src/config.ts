@@ -58,3 +58,7 @@ export function isClinicPatientsRegistryEnabled(): boolean {
 export function isClinicPatientAdminMutationsEnabled(): boolean {
   return (process.env.VETHELP_CLINIC_PATIENT_ADMIN_MUTATIONS ?? 'false').trim().toLowerCase() === 'true';
 }
+
+export function isClinicPatientAdminReferenceSearchEnabled(): boolean {
+  return (process.env.VETHELP_CLINIC_PATIENT_ADMIN_REFERENCE_SEARCH ?? 'false').trim().toLowerCase() === 'true';
+}

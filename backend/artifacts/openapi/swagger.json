@@ -2291,6 +2291,17 @@
             }
           },
           {
+            "name": "administrativeReference",
+            "required": false,
+            "in": "query",
+            "description": "Default-off exact normalized reference filter; exclusive with q and cursor.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          },
+          {
             "name": "cursor",
             "required": false,
             "in": "query",
@@ -2332,7 +2343,7 @@
             }
           },
           "400": {
-            "description": "Query or cursor is invalid."
+            "description": "Query/cursor is invalid, including INVALID_ADMINISTRATIVE_REFERENCE_QUERY and INVALID_SEARCH_COMBINATION."
           },
           "401": {
             "description": "Clinic employee JWT is required."
@@ -2341,7 +2352,7 @@
             "description": "Capability and exact active location membership are required."
           },
           "404": {
-            "description": "Patients registry rollout is disabled."
+            "description": "Patients registry rollout or administrative-reference search rollout is disabled."
           },
           "429": {
             "description": "Search rate limit exceeded.",
@@ -2354,7 +2365,7 @@
             }
           },
           "503": {
-            "description": "Visibility or search policy is unavailable."
+            "description": "Visibility/search policy is unavailable or exact-search cardinality violates SEARCH_INVARIANT_VIOLATION."
           }
         },
         "security": [
@@ -6291,6 +6302,10 @@
             "type": "string",
             "format": "uuid"
           },
+          "administrativeReference": {
+            "type": "string",
+            "nullable": true
+          },
           "pet": {
             "$ref": "#/components/schemas/ClinicPatientPetDto"
           },
@@ -6306,6 +6321,7 @@
         },
         "required": [
           "patientId",
+          "administrativeReference",
           "pet",
           "owner",
           "relationship",
