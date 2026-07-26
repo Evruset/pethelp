@@ -13,6 +13,7 @@ export type PatientDetail = {
     owner: { displayName: string | null };
     relationship: { firstSeenAt: string; lastSeenAt: string };
     appointments: { last: PatientAppointment | null; next: PatientAppointment | null; recent: PatientAppointment[] };
+    localProfile: { alias: string | null; aggregateVersion: number; updatedAt: string | null };
   };
 };
 export class PatientDetailResponseError extends Error {
@@ -71,7 +72,7 @@ function appointment(value: unknown): PatientAppointment {
 export function parsePatientDetail(payload: unknown, expected: { clinicId: string; locationId: string; patientId: string }): PatientDetail {
   if (!record(payload) || !keys(payload, ['clinicId', 'locationId', 'serverNow', 'patient'])
     || payload.clinicId !== expected.clinicId || payload.locationId !== expected.locationId || !instant(payload.serverNow)
-    || !record(payload.patient) || !keys(payload.patient, ['patientId', 'pet', 'owner', 'relationship', 'appointments'])
+    || !record(payload.patient) || !keys(payload.patient, ['patientId', 'pet', 'owner', 'relationship', 'appointments', 'localProfile'])
     || payload.patient.patientId !== expected.patientId || !UUID.test(expected.patientId)) throw new PatientDetailResponseError('malformed');
   const patient = payload.patient;
   if (!record(patient.pet) || !keys(patient.pet, ['displayName', 'speciesLabel', 'breed', 'sexCode', 'birthDate'])
@@ -81,7 +82,14 @@ export function parsePatientDetail(payload: unknown, expected: { clinicId: strin
     || !record(patient.relationship) || !keys(patient.relationship, ['firstSeenAt', 'lastSeenAt'])
     || !instant(patient.relationship.firstSeenAt) || !instant(patient.relationship.lastSeenAt)
     || !record(patient.appointments) || !keys(patient.appointments, ['last', 'next', 'recent'])
-    || !Array.isArray(patient.appointments.recent) || patient.appointments.recent.length > 10) throw new PatientDetailResponseError('malformed');
+    || !Array.isArray(patient.appointments.recent) || patient.appointments.recent.length > 10
+    || !record(patient.localProfile) || !keys(patient.localProfile, ['alias', 'aggregateVersion', 'updatedAt'])
+    || !nullableText(patient.localProfile.alias)
+    || !Number.isInteger(patient.localProfile.aggregateVersion) || Number(patient.localProfile.aggregateVersion) < 0
+    || !(patient.localProfile.updatedAt === null || instant(patient.localProfile.updatedAt))
+    || (Number(patient.localProfile.aggregateVersion) === 0
+      ? patient.localProfile.alias !== null || patient.localProfile.updatedAt !== null
+      : patient.localProfile.updatedAt === null)) throw new PatientDetailResponseError('malformed');
   const recent = patient.appointments.recent.map(appointment);
   if (new Set(recent.map((item) => item.appointmentId)).size !== recent.length) throw new PatientDetailResponseError('malformed');
   for (let index = 1; index < recent.length; index += 1) {
@@ -97,7 +105,8 @@ export function parsePatientDetail(payload: unknown, expected: { clinicId: strin
       patientId: patient.patientId as string,
       pet: {
         displayName: patient.pet.displayName, speciesLabel: patient.pet.speciesLabel, breed: patient.pet.breed,
-        sexCode: patient.pet.sexCode as PatientDetail['patient']['pet']['sexCode'], birthDate: patient.pet.birthDate,
+        sexCode: patient.pet.sexCode as PatientDetail['patient']['pet']['sexCode'],
+        birthDate: patient.pet.birthDate as string | null,
       },
       owner: display(patient.owner),
       relationship: { firstSeenAt: patient.relationship.firstSeenAt, lastSeenAt: patient.relationship.lastSeenAt },
@@ -105,6 +114,11 @@ export function parsePatientDetail(payload: unknown, expected: { clinicId: strin
         last: patient.appointments.last === null ? null : appointment(patient.appointments.last),
         next: patient.appointments.next === null ? null : appointment(patient.appointments.next),
         recent,
+      },
+      localProfile: {
+        alias: patient.localProfile.alias,
+        aggregateVersion: Number(patient.localProfile.aggregateVersion),
+        updatedAt: patient.localProfile.updatedAt as string | null,
       },
     },
   };

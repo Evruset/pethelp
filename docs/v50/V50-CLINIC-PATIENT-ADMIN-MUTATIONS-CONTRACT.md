@@ -39,6 +39,13 @@ Migration verification, backend build and generated OpenAPI export PASS.
 Portal, owner master data, clinical/lifecycle domains, Queue and booking state
 machine are unchanged.
 
+`V50-CLINIC-04E1` repairs the authoritative read contract without changing the
+mutation. Patient Detail now always returns exact-scope `localProfile`.
+Absent storage returns `null/0/null`; set, replace and clear responses are
+confirmed by subsequent reads at the committed version. Read projection is
+available when the mutation flag is off. The strict Portal parser accepts only
+the required three-field projection and never synthesizes version zero.
+
 ## 1. Purpose
 
 `V50-CLINIC-04D` defines the administrative write boundary for a clinic's

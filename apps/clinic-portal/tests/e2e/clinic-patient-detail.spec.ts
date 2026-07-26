@@ -225,6 +225,7 @@ function detail() {
         next: summary(appointmentB, '2026-07-26T09:00:00.000Z'),
         recent: [summary(appointmentA, '2026-07-20T09:00:00.000Z')],
       },
+      localProfile: { alias: null, aggregateVersion: 0, updatedAt: null },
     },
   };
 }

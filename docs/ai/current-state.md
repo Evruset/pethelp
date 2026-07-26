@@ -1023,6 +1023,34 @@ Execution verdict: `PASS / COMPLETE`.
 
 Execution verdict: `PASS / COMPLETE`.
 
+### `V50-CLINIC-04E1 / Clinic Patient Local Alias Read Projection Repair`
+
+`COMPLETE`.
+
+- Patient Detail now always returns exact-scope `patient.localProfile` with
+  required `alias`, `aggregateVersion` and `updatedAt`.
+- No local-profile row is authoritative `alias=null`, version `0`,
+  `updatedAt=null`; a cleared row is null alias with positive version and
+  non-null timestamp. Portal never guesses the initial version.
+- The Detail query joins the existing local profile only by clinic, location
+  and patient after current membership, association, consent and privacy
+  authority. Reads do not create rows, audit, outbox or idempotency effects.
+- Read projection remains available when
+  `VETHELP_CLINIC_PATIENT_ADMIN_MUTATIONS=false`; write rollout does not control
+  read authority.
+- Create `0→1`, replace `N→N+1`, clear and stale-conflict refresh compatibility
+  are proven against the existing mutation endpoint. Mutation semantics,
+  storage, capability and flags are unchanged.
+- Generated OpenAPI requires a strict three-field projection with version
+  minimum zero and nullable alias/timestamp. Portal typed parser requires the
+  field, distinguishes absent/cleared states and rejects missing, negative,
+  fractional, malformed and extra data without fallback synthesis.
+- Patient Detail backend is 11/11 PASS; Registry is 8/8 PASS; Portal parser
+  contract is 3/3 PASS covering E1-P01..P11. Backend build/OpenAPI export and
+  Node 22.22.2 Portal typecheck PASS.
+
+Execution verdict: `PASS / COMPLETE`.
+
 ## Next single action
 
 `V50-CLINIC-04F / Clinic Patient Local Alias Portal Integration`.

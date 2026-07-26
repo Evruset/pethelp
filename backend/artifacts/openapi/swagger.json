@@ -6337,6 +6337,34 @@
           },
           "appointments": {
             "$ref": "#/components/schemas/ClinicPatientDetailAppointmentsDto"
+          },
+          "localProfile": {
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "alias",
+                  "aggregateVersion",
+                  "updatedAt"
+                ],
+                "properties": {
+                  "alias": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "aggregateVersion": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "updatedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "nullable": true
+                  }
+                }
+              }
+            ]
           }
         },
         "required": [
@@ -6344,7 +6372,8 @@
           "pet",
           "owner",
           "relationship",
-          "appointments"
+          "appointments",
+          "localProfile"
         ]
       },
       "ClinicPatientDetailDto": {

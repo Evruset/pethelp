@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import type { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
+import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { Role } from '../src/auth/auth.types';
 import { BookingErrorFilter } from '../src/common/booking-error.filter';
@@ -39,6 +40,7 @@ describe('Clinic patient administrative detail HTTP/PostgreSQL contract', () => 
   beforeAll(async () => {
     process.env.WORKERS_ENABLED = 'false';
     process.env.VETHELP_CLINIC_PATIENTS_REGISTRY = 'true';
+    process.env.VETHELP_CLINIC_PATIENT_ADMIN_MUTATIONS = 'false';
     process.env.VETHELP_CLINIC_PATIENT_VISIBILITY_POLICY_VERSION = 'detail-test-v1';
     process.env.VETHELP_CLINIC_PATIENT_VISIBILITY_DAYS = '365';
     app = await NestFactory.create(NestRoot, { logger: false });
@@ -100,6 +102,7 @@ describe('Clinic patient administrative detail HTTP/PostgreSQL contract', () => 
             next: expect.objectContaining({ statusCode: 'SCHEDULED' }),
             recent: [expect.objectContaining({ statusCode: 'COMPLETED' })],
           },
+          localProfile: { alias: null, aggregateVersion: 0, updatedAt: null },
         },
       });
       const serialized = JSON.stringify(response.body).toLowerCase();
@@ -129,6 +132,75 @@ describe('Clinic patient administrative detail HTTP/PostgreSQL contract', () => 
       expect(response.body).toMatchObject({ code: 'NOT_FOUND' });
       expect(response.body.patient).toBeUndefined();
     }
+  });
+
+  it('projects absent, existing and cleared exact-scope local profiles independently of the write flag', async () => {
+    const absent = await detail(actor());
+    expect(absent.body.patient.localProfile).toEqual({ alias: null, aggregateVersion: 0, updatedAt: null });
+    expect((await db.query('SELECT COUNT(*)::text count FROM clinic_schema.clinic_patient_local_profiles')).rows[0].count).toBe('0');
+
+    await db.query(`INSERT INTO clinic_schema.clinic_patient_local_profiles
+      (clinic_id,clinic_location_id,patient_id,alias,aggregate_version)
+      VALUES($1,$2,$3,'Барсик Петровых',3)`, [I.clinic, I.location, I.pet]);
+    process.env.VETHELP_CLINIC_PATIENT_ADMIN_MUTATIONS = 'false';
+    const existing = await detail(actor());
+    expect(existing.body.patient.localProfile).toEqual({
+      alias: 'Барсик Петровых', aggregateVersion: 3, updatedAt: expect.any(String),
+    });
+    await db.query(`UPDATE clinic_schema.clinic_patient_local_profiles
+      SET alias=NULL,aggregate_version=4,updated_at=clock_timestamp()
+      WHERE clinic_id=$1 AND clinic_location_id=$2 AND patient_id=$3`, [I.clinic, I.location, I.pet]);
+    expect((await detail(actor())).body.patient.localProfile).toEqual({
+      alias: null, aggregateVersion: 4, updatedAt: expect.any(String),
+    });
+  });
+
+  it('never substitutes another location profile and preserves foreign/no-leak authority', async () => {
+    const otherConsent = 'c9000000-0000-4000-8000-000000000002';
+    const otherAssociation = 'ca000000-0000-4000-8000-000000000002';
+    await db.query(`INSERT INTO clinic_schema.clinic_patient_consents
+      (id,clinic_id,clinic_location_id,pet_id,subject_owner_id,purpose,consent_version,source,actor_type,granted_at,expires_at)
+      VALUES($1,$2,$3,$4,$5,'PATIENT_ADMIN_REGISTRY','v1','OWNER','OWNER',
+        clock_timestamp()-interval '1 day',clock_timestamp()+interval '30 days')`,
+    [otherConsent, I.clinic, I.otherLocation, I.pet, I.owner]);
+    await db.query(`INSERT INTO clinic_schema.clinic_patient_associations
+      (id,clinic_id,clinic_location_id,pet_id,status,source_type,source_appointment_id,current_consent_id,
+       visibility_policy_version,visibility_expires_at,first_qualified_at,last_qualified_at)
+      VALUES($1,$2,$3,$4,'ACTIVE','APPOINTMENT',$5,$6,'detail-test-v1',
+        clock_timestamp()+interval '30 days',clock_timestamp()-interval '3 days',clock_timestamp()-interval '1 hour')`,
+    [otherAssociation, I.clinic, I.otherLocation, I.pet, appointmentId(1), otherConsent]);
+    await db.query(`INSERT INTO clinic_schema.clinic_patient_local_profiles
+      (clinic_id,clinic_location_id,patient_id,alias)
+      VALUES($1,$2,$3,'Чужая локация')`, [I.clinic, I.otherLocation, I.pet]);
+
+    expect((await detail(actor())).body.patient.localProfile).toEqual({
+      alias: null, aggregateVersion: 0, updatedAt: null,
+    });
+    const foreign = await detail(actor(), I.pet, I.foreignClinic, I.location);
+    expect(foreign.status).toBe(403);
+    expect(JSON.stringify(foreign.body)).not.toContain('Чужая локация');
+  });
+
+  it('keeps mutation create/replace/clear/stale-conflict compatible with authoritative detail reads', async () => {
+    process.env.VETHELP_CLINIC_PATIENT_ADMIN_MUTATIONS = 'true';
+    const mutate = async (alias: string | null, version: number) => request(app.getHttpServer())
+      .patch(`/v1/clinic/${I.clinic}/locations/${I.location}/patients/${I.pet}/local-profile`)
+      .set('Authorization', `Bearer ${await token(actor())}`)
+      .set('If-Match', `"${version}"`)
+      .set('Idempotency-Key', randomUUID())
+      .send({ alias });
+
+    expect((await detail(actor())).body.patient.localProfile.aggregateVersion).toBe(0);
+    expect((await mutate('Первый alias', 0)).body.aggregateVersion).toBe(1);
+    expect((await detail(actor())).body.patient.localProfile).toMatchObject({ alias: 'Первый alias', aggregateVersion: 1 });
+    expect((await mutate('Второй alias', 1)).body.aggregateVersion).toBe(2);
+    const stale = await mutate('Устаревший alias', 1);
+    expect(stale.status).toBe(409);
+    expect((await detail(actor())).body.patient.localProfile).toMatchObject({ alias: 'Второй alias', aggregateVersion: 2 });
+    expect((await mutate(null, 2)).body.aggregateVersion).toBe(3);
+    expect((await detail(actor())).body.patient.localProfile).toEqual({
+      alias: null, aggregateVersion: 3, updatedAt: expect.any(String),
+    });
   });
 
   it('re-evaluates revoke, archive, expiry, policy and reactivation on every stale URL request', async () => {
@@ -190,6 +262,7 @@ describe('Clinic patient administrative detail HTTP/PostgreSQL contract', () => 
       patient_id: I.pet, display_name: 'Барсик', species: 'CAT', breed: null, sex: null,
       birth_date: null, first_seen_at: new Date(), last_seen_at: new Date(),
       last_appointment: summary, next_appointment: null, recent_appointments: [],
+      local_alias: null, local_aggregate_version: 0, local_updated_at: null,
     };
     expect(() => service.toDto(
       { clinicId: I.clinic, locationId: I.location, patientId: I.pet }, new Date(), row,

@@ -2,6 +2,32 @@
 
 Status: `PATIENT_ADMINISTRATIVE_DETAIL_END_TO_END_IMPLEMENTED`.
 
+## 04E1 local alias read projection
+
+`V50-CLINIC-04E1` adds an always-present exact-scope `patient.localProfile`
+projection to the authoritative Detail response:
+
+```text
+localProfile
+  alias             string | null
+  aggregateVersion  integer >= 0
+  updatedAt          RFC3339 string | null
+```
+
+No stored row is represented as `alias=null`, `aggregateVersion=0`,
+`updatedAt=null`; this authoritative version permits the first mutation to use
+`If-Match: "0"` without a client guess. A cleared existing profile remains
+distinguishable by `alias=null`, a positive version and non-null `updatedAt`.
+The read joins `clinic_patient_local_profiles` only by exact clinic, location
+and patient key after existing association/consent/privacy authorization. It is
+side-effect free and independent of the mutation feature flag.
+
+Focused Patient Detail PostgreSQL/HTTP is 11/11 PASS, including absent,
+existing, cleared, other-location isolation, mutation/read create-replace-clear
+compatibility, stale refresh and unchanged no-leak behavior. Registry remains
+8/8 PASS. Generated OpenAPI and the Portal strict parser require the complete
+projection; parser contract E1-P01..P11 is 3/3 PASS.
+
 ## Backend implementation evidence
 
 `V50-CLINIC-04B` implements exactly:
@@ -140,6 +166,10 @@ patient
     last               nullable AppointmentSummary
     next               nullable AppointmentSummary
     recent[]           maximum 10 historical summaries, newest first
+  localProfile
+    alias              nullable clinic-local text
+    aggregateVersion   integer >= 0
+    updatedAt           nullable RFC3339 timestamp
 
 AppointmentSummary
   appointmentId
