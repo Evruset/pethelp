@@ -215,3 +215,17 @@ When any prototype file changes, regenerate the manifest, rerun inventory verifi
   consume correctness never depends on deletion.
 - The one next slice is `V50-CLINIC-04N-A`, the bounded PostgreSQL shared
   limiter foundation. Product endpoint integration remains out of scope.
+
+## V50-CLINIC-04N-A — Shared PostgreSQL rate limiter foundation
+
+- An additive table and shared Nest module provide atomic fixed-window
+  PostgreSQL counters across backend replicas, with database-time eligibility
+  and fail-closed typed errors.
+- Strict logical expiry remains at most 3,900 seconds and is independent of
+  cleanup. Indexed startup/periodic cleanup deletes at most 1,000 expired rows
+  per transaction toward the healthy-worker 24-hour physical target.
+- Aggregate telemetry excludes limiter identity and search data. Focused
+  PostgreSQL concurrency, cleanup, migration, configuration and lifecycle
+  proofs cover N-01..N-30 and R-01..R-14.
+- The foundation is not connected to the Registry endpoint. The one next slice
+  is `V50-CLINIC-04N-B`.

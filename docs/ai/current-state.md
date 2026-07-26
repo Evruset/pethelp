@@ -1295,12 +1295,41 @@ Execution verdict: `PASS / COMPLETE`.
 
 Execution verdict: `PASS / COMPLETE`.
 
+### `V50-CLINIC-04N-A / Shared Replica-Safe PostgreSQL Rate Limiter Foundation`
+
+`COMPLETE / TESTED`.
+
+- Added one reversible additive migration for bounded fixed-window state with
+  a unique scope/window identity and indexed expiry cleanup.
+- The shared platform service uses one database timestamp and a transactional,
+  set-based atomic upsert for all sorted policies. Blocked attempts commit;
+  allowed/denied and Retry-After derive from one returned database snapshot.
+- Logical expiry is at most 3,900 seconds and independent of deletion.
+  Startup/periodic application cleanup uses PostgreSQL time, `SKIP LOCKED` and
+  batches of at most 1,000, with at most ten transactions per catch-up run,
+  toward the healthy-worker 24-hour physical target.
+- Database failures fail closed through a typed internal error. Aggregate
+  telemetry and logs exclude actor/scope keys, reference/query and row data.
+- A dedicated bounded limiter pool isolates expected hot-row contention from
+  the ordinary application database pool and its 700 ms acquisition policy.
+- The Registry endpoint and its legacy process-local limiter remain unchanged.
+- Validation: PostgreSQL 16.14 foundation suite PASS `16/16`, including
+  100-call multi-instance concurrency, migration UP/DOWN/DOWN-UP,
+  representative 5,000-row unique/cleanup plan evidence, bounded cleanup and
+  lifecycle shutdown. Existing Registry/reference suites PASS `28/28`; Node
+  22.23.1 backend build and migration checksum verification PASS.
+- Independent security/concurrency and business-continuity reviewers PASS
+  after fixes for next-admissible multi-policy Retry-After, bounded catch-up
+  saturation/startup proofs and dedicated limiter-pool isolation. No veto
+  remains.
+
+Execution verdict: `PASS / COMPLETE`.
+
 ## Next single action
 
-`V50-CLINIC-04N-A / Shared Replica-Safe PostgreSQL Rate Limiter Foundation`.
+`V50-CLINIC-04N-B / Administrative Reference Search Operational Hardening Integration`.
 
-Implement one reversible migration, PostgreSQL atomic counters using database
-time, strict logical expiry within 65 minutes, indexed bounded startup/periodic
-cleanup with a healthy-worker physical deletion target of 24 hours, and
-focused multi-instance/concurrency tests. Do not integrate the foundation into
-the Registry product endpoint.
+Replace the process-local exact-reference limiter with this shared foundation,
+then add the approved safe 429/Retry-After, redaction, bounded telemetry,
+performance fixtures, rollout artifacts and M-01..M-32 proofs. Do not broaden
+search semantics.

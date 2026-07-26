@@ -16,9 +16,10 @@ import { OutboxModule } from './outbox/outbox.module';
 import { PublicCatalogModule } from './public-catalog/public-catalog.module';
 import { WorkersModule } from './workers/workers.module';
 import { PermissionDeniedAuditFilter } from './common/permission-denied-audit.filter';
+import { RateLimitModule } from './platform/rate-limit/rate-limit.module';
 
 @NestModule({
-  imports: [ObservabilityModule, DatabaseModule, AuthModule, BookingCoreModule, EmergencyRoutingModule, OutboxModule, WorkersModule, MisIntegrationModule, PaymentsModule, TelemedModule, InsuranceModule, PublicCatalogModule, OwnerHomeModule],
+  imports: [ObservabilityModule, DatabaseModule, RateLimitModule, AuthModule, BookingCoreModule, EmergencyRoutingModule, OutboxModule, WorkersModule, MisIntegrationModule, PaymentsModule, TelemedModule, InsuranceModule, PublicCatalogModule, OwnerHomeModule],
   controllers: [HealthController],
   providers: [PermissionDeniedAuditFilter],
 })
