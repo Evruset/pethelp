@@ -1,6 +1,6 @@
 # V50 Clinic Patient Administrative Mutations Contract
 
-Status: `LOCAL_ALIAS_END_TO_END_IMPLEMENTED / ADMIN_REFERENCE_CONTRACT_DEFINED`.
+Status: `LOCAL_ALIAS_END_TO_END_IMPLEMENTED / ADMIN_REFERENCE_BACKEND_IMPLEMENTED`.
 
 ## 04E implementation evidence
 
@@ -387,3 +387,17 @@ PATCH /v1/clinic/:clinicId/locations/:locationId/patients/:patientId/local-profi
 `04G` is documentation-only. It does not add the field, route, schema,
 migration, OpenAPI, Portal control, Registry projection/search, capability or
 flag runtime.
+
+## 04H administrative reference backend
+
+`04H` adds the nullable display/comparison-key pair to the existing local
+profile row and enforces normalized uniqueness with a partial unique index on
+`clinic_id + clinic_location_id + administrative_reference_key`. The isolated
+normalizer is generated from pinned Unicode 17.0.0 CaseFolding data; no locale,
+collation, `lower()`, `citext` or new dependency participates.
+
+The bounded `/local-profile/reference` command reuses the alias capability,
+flag, visibility authority, shared aggregate version and transactional
+idempotency/audit/outbox pattern. Alias behavior is unchanged. Patient Detail
+now returns required nullable `administrativeReference`; Registry remains
+unchanged and Portal receives parser compatibility only.

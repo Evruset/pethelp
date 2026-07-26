@@ -102,7 +102,7 @@ describe('Clinic patient administrative detail HTTP/PostgreSQL contract', () => 
             next: expect.objectContaining({ statusCode: 'SCHEDULED' }),
             recent: [expect.objectContaining({ statusCode: 'COMPLETED' })],
           },
-          localProfile: { alias: null, aggregateVersion: 0, updatedAt: null },
+          localProfile: { alias: null, administrativeReference: null, aggregateVersion: 0, updatedAt: null },
         },
       });
       const serialized = JSON.stringify(response.body).toLowerCase();
@@ -136,7 +136,9 @@ describe('Clinic patient administrative detail HTTP/PostgreSQL contract', () => 
 
   it('projects absent, existing and cleared exact-scope local profiles independently of the write flag', async () => {
     const absent = await detail(actor());
-    expect(absent.body.patient.localProfile).toEqual({ alias: null, aggregateVersion: 0, updatedAt: null });
+    expect(absent.body.patient.localProfile).toEqual({
+      alias: null, administrativeReference: null, aggregateVersion: 0, updatedAt: null,
+    });
     expect((await db.query('SELECT COUNT(*)::text count FROM clinic_schema.clinic_patient_local_profiles')).rows[0].count).toBe('0');
 
     await db.query(`INSERT INTO clinic_schema.clinic_patient_local_profiles
@@ -145,13 +147,14 @@ describe('Clinic patient administrative detail HTTP/PostgreSQL contract', () => 
     process.env.VETHELP_CLINIC_PATIENT_ADMIN_MUTATIONS = 'false';
     const existing = await detail(actor());
     expect(existing.body.patient.localProfile).toEqual({
-      alias: 'Барсик Петровых', aggregateVersion: 3, updatedAt: expect.any(String),
+      alias: 'Барсик Петровых', administrativeReference: null,
+      aggregateVersion: 3, updatedAt: expect.any(String),
     });
     await db.query(`UPDATE clinic_schema.clinic_patient_local_profiles
       SET alias=NULL,aggregate_version=4,updated_at=clock_timestamp()
       WHERE clinic_id=$1 AND clinic_location_id=$2 AND patient_id=$3`, [I.clinic, I.location, I.pet]);
     expect((await detail(actor())).body.patient.localProfile).toEqual({
-      alias: null, aggregateVersion: 4, updatedAt: expect.any(String),
+      alias: null, administrativeReference: null, aggregateVersion: 4, updatedAt: expect.any(String),
     });
   });
 
@@ -174,7 +177,7 @@ describe('Clinic patient administrative detail HTTP/PostgreSQL contract', () => 
       VALUES($1,$2,$3,'Чужая локация')`, [I.clinic, I.otherLocation, I.pet]);
 
     expect((await detail(actor())).body.patient.localProfile).toEqual({
-      alias: null, aggregateVersion: 0, updatedAt: null,
+      alias: null, administrativeReference: null, aggregateVersion: 0, updatedAt: null,
     });
     const foreign = await detail(actor(), I.pet, I.foreignClinic, I.location);
     expect(foreign.status).toBe(403);
@@ -199,7 +202,7 @@ describe('Clinic patient administrative detail HTTP/PostgreSQL contract', () => 
     expect((await detail(actor())).body.patient.localProfile).toMatchObject({ alias: 'Второй alias', aggregateVersion: 2 });
     expect((await mutate(null, 2)).body.aggregateVersion).toBe(3);
     expect((await detail(actor())).body.patient.localProfile).toEqual({
-      alias: null, aggregateVersion: 3, updatedAt: expect.any(String),
+      alias: null, administrativeReference: null, aggregateVersion: 3, updatedAt: expect.any(String),
     });
   });
 
@@ -262,7 +265,8 @@ describe('Clinic patient administrative detail HTTP/PostgreSQL contract', () => 
       patient_id: I.pet, display_name: 'Барсик', species: 'CAT', breed: null, sex: null,
       birth_date: null, first_seen_at: new Date(), last_seen_at: new Date(),
       last_appointment: summary, next_appointment: null, recent_appointments: [],
-      local_alias: null, local_aggregate_version: 0, local_updated_at: null,
+      local_alias: null, local_administrative_reference: null,
+      local_aggregate_version: 0, local_updated_at: null,
     };
     expect(() => service.toDto(
       { clinicId: I.clinic, locationId: I.location, patientId: I.pet }, new Date(), row,

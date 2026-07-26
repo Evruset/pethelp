@@ -155,7 +155,9 @@ export function ClinicPatientDetailView({ clinicId, locationId, patientId, inval
       const next: PatientDetail = {
         ...detail,
         patient: { ...detail.patient, localProfile: {
-          alias: result.alias, aggregateVersion: result.aggregateVersion, updatedAt: result.updatedAt,
+          alias: result.alias,
+          administrativeReference: detail.patient.localProfile.administrativeReference,
+          aggregateVersion: result.aggregateVersion, updatedAt: result.updatedAt,
         } },
       };
       valid.current = next;

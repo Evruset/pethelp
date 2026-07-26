@@ -1111,10 +1111,36 @@ Execution verdict: `PASS / COMPLETE`.
 
 ## Next single action
 
-`V50-CLINIC-04H / Clinic Patient Structured Administrative Reference Backend`.
+### `V50-CLINIC-04H / Clinic Patient Structured Administrative Reference Backend`
 
-Implement only storage/migration, authoritative Patient Detail projection,
-bounded reference mutation, strict DTO, approved capability/flag reuse, shared
-`If-Match`, idempotency, uniqueness, safe audit/outbox, focused backend tests
-and OpenAPI. Do not include Portal UI or Registry search, and do not begin
-`04H` in this slice.
+`COMPLETE / BACKEND_IMPLEMENTED`.
+
+- Added nullable reference display/key columns and exact clinic/location partial
+  uniqueness to the existing local-profile row; migration is additive,
+  reversible and requires no backfill/version change.
+- Normalization is dependency-free and pinned to official Unicode 17.0.0 full
+  default Case Folding: NFC, trim/space collapse, structured 1..40 code points,
+  display-case preservation and locale-independent comparison key.
+- Implemented strict `PATCH .../local-profile/reference` with set/replace/clear,
+  existing capability/flag/current visibility authority, strong `If-Match`,
+  scoped UUID idempotency and normalized collision error.
+- Alias/reference share one aggregate version. Mutation, safe audit/outbox and
+  idempotency result are transactional; raw display/key never enters audit or
+  outbox.
+- Patient Detail/OpenAPI require nullable `administrativeReference`; reads stay
+  side-effect free and flag-independent. Portal parser/types/fixtures accept
+  the field without display/editor changes. Registry remains unchanged.
+- Focused reference matrix H-01..H-33, alias/Detail/Registry/capability
+  regressions, migration verification, backend build/OpenAPI, parser contract,
+  Node 22 typecheck and Tier B validation are the release gates.
+
+Execution verdict: `PASS / COMPLETE`.
+
+## Next single action
+
+`V50-CLINIC-04I / Clinic Patient Structured Administrative Reference Portal Integration`.
+
+Add only Patient Detail reference display and set/replace/clear editor with
+authoritative shared version, If-Match/idempotency, collision/stale/no-leak UX,
+responsive and accessibility proofs. Registry search remains excluded. Do not
+begin `04I` in this slice.

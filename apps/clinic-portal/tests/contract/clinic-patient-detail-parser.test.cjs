@@ -12,37 +12,40 @@ const expected = { clinicId, locationId, patientId };
 
 test('E1-P01..P03 accepts authoritative absent, existing and cleared projections', () => {
   assert.deepEqual(
-    parsePatientDetail(detail({ alias: null, aggregateVersion: 0, updatedAt: null }), expected).patient.localProfile,
-    { alias: null, aggregateVersion: 0, updatedAt: null },
+    parsePatientDetail(detail({ alias: null, administrativeReference: null, aggregateVersion: 0, updatedAt: null }), expected).patient.localProfile,
+    { alias: null, administrativeReference: null, aggregateVersion: 0, updatedAt: null },
   );
   assert.deepEqual(
     parsePatientDetail(detail({
-      alias: 'Барсик Петровых', aggregateVersion: 3, updatedAt: '2026-07-26T09:00:00.000Z',
+      alias: 'Барсик Петровых', administrativeReference: 'PET-004281',
+      aggregateVersion: 3, updatedAt: '2026-07-26T09:00:00.000Z',
     }), expected).patient.localProfile,
-    { alias: 'Барсик Петровых', aggregateVersion: 3, updatedAt: '2026-07-26T09:00:00.000Z' },
+    { alias: 'Барсик Петровых', administrativeReference: 'PET-004281',
+      aggregateVersion: 3, updatedAt: '2026-07-26T09:00:00.000Z' },
   );
   assert.deepEqual(
     parsePatientDetail(detail({
-      alias: null, aggregateVersion: 4, updatedAt: '2026-07-26T10:00:00.000Z',
+      alias: null, administrativeReference: null, aggregateVersion: 4, updatedAt: '2026-07-26T10:00:00.000Z',
     }), expected).patient.localProfile,
-    { alias: null, aggregateVersion: 4, updatedAt: '2026-07-26T10:00:00.000Z' },
+    { alias: null, administrativeReference: null, aggregateVersion: 4, updatedAt: '2026-07-26T10:00:00.000Z' },
   );
 });
 
 test('E1-P04..P10 rejects missing fields, invalid versions/timestamps, unknown fields and guessed defaults', () => {
-  const missingProfile = detail({ alias: null, aggregateVersion: 0, updatedAt: null });
+  const missingProfile = detail({ alias: null, administrativeReference: null, aggregateVersion: 0, updatedAt: null });
   delete missingProfile.patient.localProfile;
-  const missingVersion = detail({ alias: null, aggregateVersion: 0, updatedAt: null });
+  const missingVersion = detail({ alias: null, administrativeReference: null, aggregateVersion: 0, updatedAt: null });
   delete missingVersion.patient.localProfile.aggregateVersion;
   const cases = [
     missingProfile,
     missingVersion,
-    detail({ alias: null, aggregateVersion: -1, updatedAt: null }),
-    detail({ alias: null, aggregateVersion: 1.5, updatedAt: '2026-07-26T09:00:00.000Z' }),
-    detail({ alias: 'Alias', aggregateVersion: 1, updatedAt: '2026-02-30T09:00:00.000Z' }),
-    detail({ alias: null, aggregateVersion: 0, updatedAt: null, internalId: 'forbidden' }),
-    detail({ alias: 'Alias', aggregateVersion: 0, updatedAt: null }),
-    detail({ alias: null, aggregateVersion: 2, updatedAt: null }),
+    detail({ alias: null, administrativeReference: null, aggregateVersion: -1, updatedAt: null }),
+    detail({ alias: null, administrativeReference: null, aggregateVersion: 1.5, updatedAt: '2026-07-26T09:00:00.000Z' }),
+    detail({ alias: 'Alias', administrativeReference: null, aggregateVersion: 1, updatedAt: '2026-02-30T09:00:00.000Z' }),
+    detail({ alias: null, administrativeReference: null, aggregateVersion: 0, updatedAt: null, internalId: 'forbidden' }),
+    detail({ alias: 'Alias', administrativeReference: null, aggregateVersion: 0, updatedAt: null }),
+    detail({ alias: null, administrativeReference: 'PET-1', aggregateVersion: 0, updatedAt: null }),
+    detail({ alias: null, administrativeReference: null, aggregateVersion: 2, updatedAt: null }),
   ];
   for (const payload of cases) {
     assert.throws(() => parsePatientDetail(payload, expected), PatientDetailResponseError);
@@ -51,7 +54,7 @@ test('E1-P04..P10 rejects missing fields, invalid versions/timestamps, unknown f
 
 test('E1-P11 malformed local profile retains the existing safe malformed-response contract', () => {
   assert.throws(
-    () => parsePatientDetail(detail({ alias: null, aggregateVersion: -1, updatedAt: null }), expected),
+    () => parsePatientDetail(detail({ alias: null, administrativeReference: null, aggregateVersion: -1, updatedAt: null }), expected),
     (error) => error instanceof PatientDetailResponseError
       && error.kind === 'malformed'
       && error.message === 'INVALID_PATIENT_DETAIL_RESPONSE',

@@ -133,3 +133,15 @@ When any prototype file changes, regenerate the manifest, rerun inventory verifi
 - Documentation only: no backend, migration, OpenAPI, Portal, Registry,
   capability/flag runtime or tests changed. The reference is neither a
   medical-record number nor a global/owner-visible identifier.
+
+## V50-CLINIC-04H — Structured administrative reference backend
+
+- Additive reversible storage, pinned Unicode 17.0.0 normalization,
+  exact-location uniqueness and bounded set/replace/clear are implemented on
+  the existing shared local-profile aggregate.
+- Patient Detail/OpenAPI expose the required nullable reference; the strict
+  Portal parser is compatible without a rendered UI change.
+- Authority, default-off flag, strong version, idempotency, collision
+  normalization and no-raw-value audit/outbox reuse the proven alias boundary.
+- Registry DTO/search, Portal reference workflow, Owner, Queue, booking,
+  clinical and integration scopes remain unchanged.

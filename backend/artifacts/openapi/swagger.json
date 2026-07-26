@@ -2576,6 +2576,137 @@
         ]
       }
     },
+    "/v1/clinic/{clinicId}/locations/{locationId}/patients/{patientId}/local-profile/reference": {
+      "patch": {
+        "operationId": "update",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "patientId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "\"0\""
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "administrativeReference"
+                ],
+                "properties": {
+                  "administrativeReference": {
+                    "type": "string",
+                    "nullable": true,
+                    "minLength": 1,
+                    "maxLength": 40
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClinicPatientAdministrativeReferenceDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed headers or strict DTO."
+          },
+          "401": {
+            "description": "Clinic employee JWT is required."
+          },
+          "403": {
+            "description": "Mutation capability is required."
+          },
+          "404": {
+            "description": "Rollout disabled or patient unavailable in the exact scope."
+          },
+          "409": {
+            "description": "Stale version, collision, association change or key reuse."
+          },
+          "422": {
+            "description": "Invalid administrative reference."
+          },
+          "428": {
+            "description": "A strong If-Match is required."
+          },
+          "503": {
+            "description": "Visibility policy is unavailable."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Set or clear an exact-scope clinic patient administrative reference",
+        "tags": [
+          "Clinic Patients"
+        ],
+        "x-required-capabilities": [
+          "patient.admin.local-profile.update"
+        ]
+      }
+    },
     "/v1/clinic/{clinicId}/locations/{locationId}/quality-dashboard": {
       "get": {
         "operationId": "dashboard",
@@ -6345,11 +6476,16 @@
                 "additionalProperties": false,
                 "required": [
                   "alias",
+                  "administrativeReference",
                   "aggregateVersion",
                   "updatedAt"
                 ],
                 "properties": {
                   "alias": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "administrativeReference": {
                     "type": "string",
                     "nullable": true
                   },
@@ -6435,6 +6571,48 @@
           "clinicId",
           "locationId",
           "alias",
+          "aggregateVersion",
+          "updatedAt"
+        ]
+      },
+      "ClinicPatientAdministrativeReferenceDto": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "clinicId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "alias": {
+            "type": "string",
+            "nullable": true
+          },
+          "administrativeReference": {
+            "type": "string",
+            "nullable": true
+          },
+          "aggregateVersion": {
+            "type": "number",
+            "minimum": 1
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "patientId",
+          "clinicId",
+          "locationId",
+          "alias",
+          "administrativeReference",
           "aggregateVersion",
           "updatedAt"
         ]

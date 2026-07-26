@@ -210,3 +210,7 @@ internals and does not add a Registry mutation route.
 The reference is unique only by normalized key inside one clinic location. It
 is not a medical-record number, global patient ID or authority token. Registry
 projection/search remains a separate future slice.
+
+`V50-CLINIC-04H` implements this backend row: migration, exact-location unique
+key, required Detail projection, strict bounded command and OpenAPI are present.
+Portal rendering and Registry DTO/search remain absent.

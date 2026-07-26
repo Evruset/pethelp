@@ -14,7 +14,8 @@ type DetailRow = {
   patient_id: unknown; display_name: unknown; species: unknown; breed: unknown; sex: unknown;
   birth_date: unknown; first_seen_at: unknown; last_seen_at: unknown;
   last_appointment: unknown; next_appointment: unknown; recent_appointments: unknown;
-  local_alias: unknown; local_aggregate_version: unknown; local_updated_at: unknown;
+  local_alias: unknown; local_administrative_reference: unknown;
+  local_aggregate_version: unknown; local_updated_at: unknown;
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -59,6 +60,7 @@ export const CLINIC_PATIENT_DETAIL_SQL = `
   SELECT p.id::text AS patient_id,p.name AS display_name,p.species,p.breed,p.sex,p.birth_date,
     v.first_qualified_at AS first_seen_at,v.last_qualified_at AS last_seen_at,
     local_profile.alias AS local_alias,
+    local_profile.administrative_reference AS local_administrative_reference,
     COALESCE(local_profile.aggregate_version,0)::integer AS local_aggregate_version,
     local_profile.updated_at AS local_updated_at,
     (SELECT to_jsonb(x) FROM (
@@ -148,9 +150,10 @@ export class ClinicPatientDetailService {
       || !(row.first_seen_at instanceof Date) || !Number.isFinite(row.first_seen_at.getTime())
       || !(row.last_seen_at instanceof Date) || !Number.isFinite(row.last_seen_at.getTime())
       || !(row.local_alias === null || typeof row.local_alias === 'string')
+      || !(row.local_administrative_reference === null || typeof row.local_administrative_reference === 'string')
       || !Number.isInteger(row.local_aggregate_version) || Number(row.local_aggregate_version) < 0
       || (Number(row.local_aggregate_version) === 0
-        ? row.local_alias !== null || row.local_updated_at !== null
+        ? row.local_alias !== null || row.local_administrative_reference !== null || row.local_updated_at !== null
         : !(row.local_updated_at instanceof Date) || !Number.isFinite(row.local_updated_at.getTime()))) {
       throw new Error('Invalid patient detail row');
     }
@@ -183,6 +186,7 @@ export class ClinicPatientDetailService {
         },
         localProfile: {
           alias: row.local_alias as string | null,
+          administrativeReference: row.local_administrative_reference as string | null,
           aggregateVersion: Number(row.local_aggregate_version),
           updatedAt: row.local_updated_at === null ? null : (row.local_updated_at as Date).toISOString(),
         },

@@ -2,7 +2,7 @@
 
 Decision: `V50-CLINIC-04G / Clinic Patient Structured Administrative Reference Contract Refinement`.
 
-Status: `CONTRACT_COMPLETE / BACKEND_NOT_IMPLEMENTED`.
+Status: `BACKEND_IMPLEMENTED / PORTAL_NOT_IMPLEMENTED`.
 
 ## 1. Purpose
 
@@ -362,8 +362,13 @@ These are future backend proofs; `04G` adds no runtime tests.
 
 ## 24. Recommended next slice
 
-`V50-CLINIC-04H / Clinic Patient Structured Administrative Reference Backend`
-implements only storage/migration, authoritative Detail projection, the bounded
-reference command, strict DTO, capability/flag reuse, shared `If-Match`,
-idempotency, uniqueness, safe audit/outbox, focused backend tests and OpenAPI.
-Portal UI and Registry search remain excluded. Do not begin `04H` in `04G`.
+`V50-CLINIC-04H` implements the approved backend contract with an additive
+reversible migration, Unicode 17.0.0 full default case-fold mapping, exact
+location partial unique index, Detail projection, bounded reference command,
+shared aggregate version, idempotency and safe audit/outbox. The strict Portal
+parser accepts the required nullable projection without rendering it.
+
+The next slice is `V50-CLINIC-04I / Clinic Patient Structured Administrative
+Reference Portal Integration`. It adds only Patient Detail display/editor and
+its focused accessibility/error/concurrency proofs. Registry search remains
+excluded. Do not begin `04I` in `04H`.

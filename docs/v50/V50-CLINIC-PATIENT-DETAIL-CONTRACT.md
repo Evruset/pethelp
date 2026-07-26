@@ -374,3 +374,16 @@ screen or alter Registry behavior.
 Technical mutation failures never replace the last valid Detail snapshot.
 Conflict refresh remains authoritative, while 403 removes mutation affordance
 and no-leak 404 clears the Detail snapshot.
+
+## 04H administrative reference projection
+
+Patient Detail `localProfile` now requires:
+
+```text
+alias, administrativeReference, aggregateVersion, updatedAt
+```
+
+The new reference is nullable and exact clinic/location scoped. Missing storage
+returns both values null with version zero; alias-only and reference-only rows
+retain one shared positive aggregate version/timestamp. The read remains
+side-effect free and independent of the mutation flag. Registry is unchanged.

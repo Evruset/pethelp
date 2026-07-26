@@ -13,7 +13,10 @@ export type PatientDetail = {
     owner: { displayName: string | null };
     relationship: { firstSeenAt: string; lastSeenAt: string };
     appointments: { last: PatientAppointment | null; next: PatientAppointment | null; recent: PatientAppointment[] };
-    localProfile: { alias: string | null; aggregateVersion: number; updatedAt: string | null };
+    localProfile: {
+      alias: string | null; administrativeReference: string | null;
+      aggregateVersion: number; updatedAt: string | null;
+    };
   };
 };
 export class PatientDetailResponseError extends Error {
@@ -92,12 +95,15 @@ export function parsePatientDetail(payload: unknown, expected: { clinicId: strin
     || !instant(patient.relationship.firstSeenAt) || !instant(patient.relationship.lastSeenAt)
     || !record(patient.appointments) || !keys(patient.appointments, ['last', 'next', 'recent'])
     || !Array.isArray(patient.appointments.recent) || patient.appointments.recent.length > 10
-    || !record(patient.localProfile) || !keys(patient.localProfile, ['alias', 'aggregateVersion', 'updatedAt'])
+    || !record(patient.localProfile)
+    || !keys(patient.localProfile, ['alias', 'administrativeReference', 'aggregateVersion', 'updatedAt'])
     || !nullableText(patient.localProfile.alias)
+    || !nullableText(patient.localProfile.administrativeReference)
     || !Number.isInteger(patient.localProfile.aggregateVersion) || Number(patient.localProfile.aggregateVersion) < 0
     || !(patient.localProfile.updatedAt === null || instant(patient.localProfile.updatedAt))
     || (Number(patient.localProfile.aggregateVersion) === 0
-      ? patient.localProfile.alias !== null || patient.localProfile.updatedAt !== null
+      ? patient.localProfile.alias !== null || patient.localProfile.administrativeReference !== null
+        || patient.localProfile.updatedAt !== null
       : patient.localProfile.updatedAt === null)) throw new PatientDetailResponseError('malformed');
   const recent = patient.appointments.recent.map(appointment);
   if (new Set(recent.map((item) => item.appointmentId)).size !== recent.length) throw new PatientDetailResponseError('malformed');
@@ -126,6 +132,7 @@ export function parsePatientDetail(payload: unknown, expected: { clinicId: strin
       },
       localProfile: {
         alias: patient.localProfile.alias,
+        administrativeReference: patient.localProfile.administrativeReference,
         aggregateVersion: Number(patient.localProfile.aggregateVersion),
         updatedAt: patient.localProfile.updatedAt as string | null,
       },

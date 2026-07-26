@@ -39,15 +39,19 @@ export class ClinicPatientDetailPatientDto {
     allOf: [{
       type: 'object',
       additionalProperties: false,
-      required: ['alias', 'aggregateVersion', 'updatedAt'],
+      required: ['alias', 'administrativeReference', 'aggregateVersion', 'updatedAt'],
       properties: {
         alias: { type: 'string', nullable: true },
+        administrativeReference: { type: 'string', nullable: true },
         aggregateVersion: { type: 'integer', minimum: 0 },
         updatedAt: { type: 'string', format: 'date-time', nullable: true },
       },
     }],
   })
-  localProfile!: { alias: string | null; aggregateVersion: number; updatedAt: string | null };
+  localProfile!: {
+    alias: string | null; administrativeReference: string | null;
+    aggregateVersion: number; updatedAt: string | null;
+  };
 }
 
 export class ClinicPatientDetailDto {
