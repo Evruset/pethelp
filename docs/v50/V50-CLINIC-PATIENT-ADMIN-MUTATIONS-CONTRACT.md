@@ -401,3 +401,16 @@ flag, visibility authority, shared aggregate version and transactional
 idempotency/audit/outbox pattern. Alias behavior is unchanged. Patient Detail
 now returns required nullable `administrativeReference`; Registry remains
 unchanged and Portal receives parser compatibility only.
+
+## 04I reference Portal workflow
+
+The existing Patient Detail page owns the bounded reference editor. It sends
+only `{ administrativeReference: string | null }` through the cookie-session
+BFF with strong `If-Match` and a UUID key scoped to command, clinic, location,
+patient, normalized payload and SET/CLEAR operation.
+
+Alias and reference controls share a pending lock and authoritative
+`aggregateVersion`. There is no optimistic update. Collision stays field-local;
+stale conflict refreshes without automatic PATCH; 403 removes both mutation
+controls; 404 clears the snapshot; policy/network/malformed success retain the
+last valid read and the same safe retry intent.

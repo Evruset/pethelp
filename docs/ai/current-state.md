@@ -1136,11 +1136,32 @@ Execution verdict: `PASS / COMPLETE`.
 
 Execution verdict: `PASS / COMPLETE`.
 
+### `V50-CLINIC-04I / Clinic Patient Structured Administrative Reference Portal Integration`
+
+`COMPLETE / PORTAL_IMPLEMENTED`.
+
+- Existing Patient Detail renders the location-scoped **Внутренний номер**
+  separately from official name and clinic-local alias, with explicit
+  non-medical/non-global helper text and a read-only absent state.
+- The existing capability/flag-gated workflow supports set, replace and
+  explicit clear through a bounded cookie-session BFF. Client normalization is
+  display-only; the backend remains authoritative for comparison/uniqueness.
+- Alias and reference share one aggregate version and one pending UI lock.
+  Strong `If-Match`, scoped UUID idempotency, strict success parsing and
+  no-optimistic-update preserve concurrency and retry invariants.
+- Collision is field-local and no-leak. Stale refreshes Detail without
+  resubmit; 403 removes both controls; 404 clears the snapshot; policy,
+  transport, 5xx and malformed success retain the last valid snapshot.
+- Focused Portal coverage maps I-01..I-34 including keyboard/focus, axe and
+  1440/1024/390 responsive proofs. Backend and Registry production surfaces are
+  unchanged.
+
+Execution verdict: `PASS / COMPLETE`.
+
 ## Next single action
 
-`V50-CLINIC-04I / Clinic Patient Structured Administrative Reference Portal Integration`.
+`V50-CLINIC-04J / Clinic Patient Administrative Reference Registry Search Contract Discovery`.
 
-Add only Patient Detail reference display and set/replace/clear editor with
-authoritative shared version, If-Match/idempotency, collision/stale/no-leak UX,
-responsive and accessibility proofs. Registry search remains excluded. Do not
-begin `04I` in this slice.
+Documentation-only discovery of exact search semantics, authority-first
+location scope, no-leak projection/index/pagination/privacy/performance
+boundaries. Do not begin `04J` in this slice.

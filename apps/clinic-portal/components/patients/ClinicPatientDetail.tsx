@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  fetchPatientDetail, mutatePatientLocalProfile, normalizePatientAlias,
+  fetchPatientDetail, mutatePatientAdministrativeReference, mutatePatientLocalProfile,
+  normalizeAdministrativeReference, normalizePatientAlias,
   PatientDetailResponseError, PatientLocalProfileMutationError,
   type PatientAppointment, type PatientDetail,
 } from '@/lib/api/clinic-patient-detail';
@@ -58,13 +59,21 @@ export function ClinicPatientDetailView({ clinicId, locationId, patientId, inval
   const stateHeading = useRef<HTMLHeadingElement>(null);
   const aliasInput = useRef<HTMLTextAreaElement>(null);
   const aliasEditButton = useRef<HTMLButtonElement>(null);
+  const referenceInput = useRef<HTMLInputElement>(null);
+  const referenceEditButton = useRef<HTMLButtonElement>(null);
   const [aliasEditorOpen, setAliasEditorOpen] = useState(false);
   const [aliasInputValue, setAliasInputValue] = useState('');
   const [aliasPending, setAliasPending] = useState(false);
   const [aliasError, setAliasError] = useState<string | null>(null);
   const [aliasMessage, setAliasMessage] = useState<string | null>(null);
+  const [referenceEditorOpen, setReferenceEditorOpen] = useState(false);
+  const [referenceInputValue, setReferenceInputValue] = useState('');
+  const [referencePending, setReferencePending] = useState(false);
+  const [referenceError, setReferenceError] = useState<string | null>(null);
+  const [referenceMessage, setReferenceMessage] = useState<string | null>(null);
   const [writeAvailable, setWriteAvailable] = useState(canEditLocalAlias);
-  const intent = useRef<{ scope: string; payload: string; key: string } | null>(null);
+  const aliasIntent = useRef<{ scope: string; payload: string; key: string } | null>(null);
+  const referenceIntent = useRef<{ scope: string; payload: string; key: string } | null>(null);
 
   const load = useCallback(async (manual = false) => {
     if (invalid) return;
@@ -106,29 +115,34 @@ export function ClinicPatientDetailView({ clinicId, locationId, patientId, inval
   }, [phase]);
   useEffect(() => setWriteAvailable(canEditLocalAlias), [canEditLocalAlias]);
   useEffect(() => {
-    intent.current = null;
+    aliasIntent.current = null;
+    referenceIntent.current = null;
     setAliasEditorOpen(false);
+    setReferenceEditorOpen(false);
   }, [clinicId, locationId, patientId]);
   useEffect(() => {
     if (aliasEditorOpen) aliasInput.current?.focus();
   }, [aliasEditorOpen]);
+  useEffect(() => {
+    if (referenceEditorOpen) referenceInput.current?.focus();
+  }, [referenceEditorOpen]);
 
   const closeAliasEditor = useCallback(() => {
     if (aliasPending) return;
     setAliasEditorOpen(false);
     setAliasError(null);
-    intent.current = null;
+    aliasIntent.current = null;
     requestAnimationFrame(() => aliasEditButton.current?.focus());
   }, [aliasPending]);
   const openAliasEditor = () => {
     setAliasInputValue(detail?.patient.localProfile.alias ?? '');
     setAliasError(null);
     setAliasMessage(null);
-    intent.current = null;
+    aliasIntent.current = null;
     setAliasEditorOpen(true);
   };
   const saveAlias = async (clear = false) => {
-    if (!detail || aliasPending) return;
+    if (!detail || aliasPending || referencePending) return;
     let alias: string | null = null;
     if (!clear) {
       const normalized = normalizePatientAlias(aliasInputValue);
@@ -140,8 +154,8 @@ export function ClinicPatientDetailView({ clinicId, locationId, patientId, inval
     }
     const scope = `${clinicId}:${locationId}:${patientId}`;
     const payload = clear ? 'CLEAR' : `SET:${alias}`;
-    if (!intent.current || intent.current.scope !== scope || intent.current.payload !== payload) {
-      intent.current = { scope, payload, key: crypto.randomUUID() };
+    if (!aliasIntent.current || aliasIntent.current.scope !== scope || aliasIntent.current.payload !== payload) {
+      aliasIntent.current = { scope, payload, key: crypto.randomUUID() };
     }
     setAliasPending(true);
     setAliasError(null);
@@ -150,7 +164,7 @@ export function ClinicPatientDetailView({ clinicId, locationId, patientId, inval
       const result = await mutatePatientLocalProfile({
         clinicId, locationId, patientId, alias,
         aggregateVersion: detail.patient.localProfile.aggregateVersion,
-        idempotencyKey: intent.current.key,
+        idempotencyKey: aliasIntent.current.key,
       });
       const next: PatientDetail = {
         ...detail,
@@ -163,24 +177,28 @@ export function ClinicPatientDetailView({ clinicId, locationId, patientId, inval
       valid.current = next;
       setDetail(next);
       setAliasEditorOpen(false);
-      intent.current = null;
+      aliasIntent.current = null;
       setAliasMessage(clear ? 'Имя в клинике удалено.' : 'Имя в клинике сохранено.');
       requestAnimationFrame(() => aliasEditButton.current?.focus());
     } catch (error) {
       const failure = error instanceof PatientLocalProfileMutationError ? error : new PatientLocalProfileMutationError('network');
       if (failure.status === 409 && ['PATIENT_VERSION_STALE', 'PATIENT_ASSOCIATION_CHANGED'].includes(failure.code ?? '')) {
-        intent.current = null;
+        aliasIntent.current = null;
         setAliasEditorOpen(false);
         setAliasMessage('Данные пациента изменились. Карточка обновлена — проверьте имя и повторите действие.');
         await load(true);
       } else if (failure.status === 403) {
-        intent.current = null;
+        aliasIntent.current = null;
+        referenceIntent.current = null;
         setAliasEditorOpen(false);
+        setReferenceEditorOpen(false);
         setWriteAvailable(false);
         setAliasMessage('Изменение сейчас недоступно. Карточка остаётся доступна для просмотра.');
       } else if (failure.status === 404) {
-        intent.current = null;
+        aliasIntent.current = null;
+        referenceIntent.current = null;
         setAliasEditorOpen(false);
+        setReferenceEditorOpen(false);
         valid.current = null;
         setDetail(null);
         setPhase('not-found');
@@ -193,6 +211,94 @@ export function ClinicPatientDetailView({ clinicId, locationId, patientId, inval
       }
     } finally {
       setAliasPending(false);
+    }
+  };
+
+  const closeReferenceEditor = useCallback(() => {
+    if (referencePending) return;
+    setReferenceEditorOpen(false);
+    setReferenceError(null);
+    referenceIntent.current = null;
+    requestAnimationFrame(() => referenceEditButton.current?.focus());
+  }, [referencePending]);
+  const openReferenceEditor = () => {
+    setReferenceInputValue(detail?.patient.localProfile.administrativeReference ?? '');
+    setReferenceError(null);
+    setReferenceMessage(null);
+    referenceIntent.current = null;
+    setReferenceEditorOpen(true);
+  };
+  const saveReference = async (clear = false) => {
+    if (!detail || aliasPending || referencePending) return;
+    let administrativeReference: string | null = null;
+    if (!clear) {
+      const normalized = normalizeAdministrativeReference(referenceInputValue);
+      if (normalized.error) {
+        setReferenceError(normalized.error);
+        return;
+      }
+      administrativeReference = normalized.value as string;
+    }
+    const scope = `${clinicId}:${locationId}:${patientId}`;
+    const payload = clear ? 'CLEAR' : `SET:${administrativeReference}`;
+    if (!referenceIntent.current || referenceIntent.current.scope !== scope || referenceIntent.current.payload !== payload) {
+      referenceIntent.current = { scope, payload, key: crypto.randomUUID() };
+    }
+    setReferencePending(true);
+    setReferenceError(null);
+    setReferenceMessage(null);
+    try {
+      const result = await mutatePatientAdministrativeReference({
+        clinicId, locationId, patientId, administrativeReference,
+        aggregateVersion: detail.patient.localProfile.aggregateVersion,
+        idempotencyKey: referenceIntent.current.key,
+        currentAlias: detail.patient.localProfile.alias,
+      });
+      const next: PatientDetail = {
+        ...detail,
+        patient: { ...detail.patient, localProfile: {
+          alias: detail.patient.localProfile.alias, administrativeReference: result.administrativeReference,
+          aggregateVersion: result.aggregateVersion, updatedAt: result.updatedAt,
+        } },
+      };
+      valid.current = next;
+      setDetail(next);
+      setReferenceEditorOpen(false);
+      referenceIntent.current = null;
+      setReferenceMessage(clear ? 'Внутренний номер очищен.' : 'Внутренний номер сохранён.');
+      requestAnimationFrame(() => referenceEditButton.current?.focus());
+    } catch (error) {
+      const failure = error instanceof PatientLocalProfileMutationError ? error : new PatientLocalProfileMutationError('network');
+      if (failure.status === 409 && failure.code === 'ADMINISTRATIVE_REFERENCE_ALREADY_IN_USE') {
+        setReferenceError('Такой внутренний номер уже используется в этой локации.');
+      } else if (failure.status === 409 && ['PATIENT_VERSION_STALE', 'PATIENT_ASSOCIATION_CHANGED'].includes(failure.code ?? '')) {
+        referenceIntent.current = null;
+        setReferenceEditorOpen(false);
+        setReferenceMessage('Данные пациента изменились. Карточка обновлена — проверьте внутренний номер и повторите действие.');
+        await load(true);
+      } else if (failure.status === 403) {
+        referenceIntent.current = null;
+        setReferenceEditorOpen(false);
+        setAliasEditorOpen(false);
+        setWriteAvailable(false);
+        setReferenceMessage('Изменение сейчас недоступно. Карточка остаётся доступна для просмотра.');
+      } else if (failure.status === 404) {
+        referenceIntent.current = null;
+        aliasIntent.current = null;
+        setReferenceEditorOpen(false);
+        setAliasEditorOpen(false);
+        valid.current = null;
+        setDetail(null);
+        setPhase('not-found');
+      } else if (failure.status === 422) {
+        setReferenceError('Не удалось сохранить внутренний номер. Проверьте значение и повторите попытку.');
+      } else if (failure.status === 503 && failure.code === 'POLICY_TEMPORARILY_UNAVAILABLE') {
+        setReferenceError('Не удалось проверить доступ к изменению. Попробуйте ещё раз.');
+      } else {
+        setReferenceError('Не удалось сохранить внутренний номер. Последние подтверждённые данные не изменены — попробуйте ещё раз.');
+      }
+    } finally {
+      setReferencePending(false);
     }
   };
 
@@ -246,11 +352,25 @@ export function ClinicPatientDetailView({ clinicId, locationId, patientId, inval
             {patient.localProfile.updatedAt && <p className="mt-2 text-xs text-slate-500">Обновлено: {instant(patient.localProfile.updatedAt)}</p>}
           </div>
           {writeAvailable && phase === 'ready' && <button ref={aliasEditButton} type="button" onClick={openAliasEditor}
-            className="min-h-11 shrink-0 rounded-xl border border-blue-300 px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-50">
+            disabled={referencePending} className="min-h-11 shrink-0 rounded-xl border border-blue-300 px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-50 disabled:opacity-50">
             Изменить имя в клинике
           </button>}
           </div>
           {aliasMessage && <p role="status" className="mt-4 rounded-lg bg-slate-100 p-3 text-sm font-medium text-slate-800">{aliasMessage}</p>}
+        </section>
+        <section aria-labelledby="administrative-reference-title" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7 lg:col-span-2">
+          <div className="flex flex-wrap items-start justify-between gap-4"><div className="min-w-0">
+            <h2 id="administrative-reference-title" className="text-xl font-semibold text-slate-950">Внутренний номер</h2>
+            <p className="mt-2 break-words text-base font-semibold text-slate-900">{patient.localProfile.administrativeReference ?? 'Не задан'}</p>
+            <p className="mt-2 max-w-3xl text-sm text-slate-600">Используется сотрудниками этой локации для административного поиска и сопоставления.</p>
+            <p className="mt-1 max-w-3xl text-sm text-slate-600">Это не номер медицинской карты, не глобальный идентификатор пациента и не изменение данных владельца.</p>
+          </div>
+          {writeAvailable && phase === 'ready' && <button ref={referenceEditButton} type="button" onClick={openReferenceEditor}
+            disabled={aliasPending} className="min-h-11 shrink-0 rounded-xl border border-blue-300 px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-50 disabled:opacity-50">
+            Изменить внутренний номер
+          </button>}
+          </div>
+          {referenceMessage && <p role="status" className="mt-4 rounded-lg bg-slate-100 p-3 text-sm font-medium text-slate-800">{referenceMessage}</p>}
         </section>
         <section aria-labelledby="appointments-title" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2 sm:p-7">
           <h2 id="appointments-title" className="text-xl font-semibold text-slate-950">Записи</h2>
@@ -276,21 +396,53 @@ export function ClinicPatientDetailView({ clinicId, locationId, patientId, inval
         <label htmlFor="patient-local-alias" className="mt-5 block text-sm font-semibold text-slate-900">Имя в клинике</label>
         <textarea ref={aliasInput} id="patient-local-alias" value={aliasInputValue} disabled={aliasPending} rows={1}
           aria-invalid={Boolean(aliasError)} aria-describedby={`alias-help${aliasError ? ' alias-error' : ''}`}
-          onChange={(event) => { setAliasInputValue(event.target.value); setAliasError(null); intent.current = null; }}
+          onChange={(event) => { setAliasInputValue(event.target.value); setAliasError(null); aliasIntent.current = null; }}
           className="mt-2 min-h-11 w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-slate-950 disabled:bg-slate-100" />
         {aliasError && <p id="alias-error" role="alert" aria-live="assertive" className="mt-2 text-sm font-semibold text-red-700">{aliasError}</p>}
         <p className="mt-3 min-h-5 text-sm text-slate-600" role="status" aria-live="polite">{aliasPending ? 'Сохраняем имя…' : ''}</p>
         <div className="mt-5 flex flex-wrap-reverse justify-between gap-3">
-          <button type="button" disabled={aliasPending || detail?.patient.localProfile.alias === null} onClick={() => void saveAlias(true)}
+          <button type="button" disabled={aliasPending || referencePending || detail?.patient.localProfile.alias === null} onClick={() => void saveAlias(true)}
             aria-label="Очистить имя в клинике" className="min-h-11 rounded-xl border border-red-300 px-4 py-2 text-sm font-semibold text-red-800 disabled:opacity-50">
             Очистить имя
           </button>
           <div className="flex flex-wrap gap-3">
             <button type="button" disabled={aliasPending} onClick={closeAliasEditor}
               className="min-h-11 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-50">Отмена</button>
-            <button type="button" disabled={aliasPending} onClick={() => void saveAlias()}
+            <button type="button" disabled={aliasPending || referencePending} onClick={() => void saveAlias()}
               className="min-h-11 rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
               {aliasPending ? 'Сохраняем…' : 'Сохранить'}
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>}
+    {referenceEditorOpen && <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/45 p-4" onMouseDown={(event) => {
+      if (event.target === event.currentTarget) closeReferenceEditor();
+    }}>
+      <section role="dialog" aria-modal="true" aria-labelledby="reference-dialog-title"
+        onKeyDown={(event) => { if (event.key === 'Escape' && !referencePending) closeReferenceEditor(); }}
+        className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl sm:p-7">
+        <h2 id="reference-dialog-title" className="text-xl font-semibold text-slate-950">Изменить внутренний номер</h2>
+        <p id="reference-help" className="mt-2 text-sm text-slate-600">До 40 символов: буквы, цифры, пробел, -, _, / и точка. Это не номер медицинской карты и не глобальный идентификатор пациента.</p>
+        <label htmlFor="patient-administrative-reference" className="mt-5 block text-sm font-semibold text-slate-900">Внутренний номер</label>
+        <input ref={referenceInput} id="patient-administrative-reference" value={referenceInputValue} disabled={referencePending}
+          aria-invalid={Boolean(referenceError)} aria-describedby={`reference-help${referenceError ? ' reference-error' : ''}`}
+          onChange={(event) => { setReferenceInputValue(event.target.value); setReferenceError(null); referenceIntent.current = null; }}
+          className="mt-2 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2 text-slate-950 disabled:bg-slate-100" />
+        {referenceError && <p id="reference-error" role="alert" aria-live="assertive" className="mt-2 text-sm font-semibold text-red-700">{referenceError}</p>}
+        <p className="mt-3 min-h-5 text-sm text-slate-600" role="status" aria-live="polite">{referencePending ? 'Сохраняем внутренний номер…' : ''}</p>
+        <div className="mt-5 flex flex-wrap-reverse justify-between gap-3">
+          <button type="button" disabled={referencePending || aliasPending || detail?.patient.localProfile.administrativeReference === null}
+            onClick={() => void saveReference(true)} aria-label="Очистить внутренний номер"
+            className="min-h-11 rounded-xl border border-red-300 px-4 py-2 text-sm font-semibold text-red-800 disabled:opacity-50">
+            Очистить внутренний номер
+          </button>
+          <div className="flex flex-wrap gap-3">
+            <button type="button" disabled={referencePending} onClick={closeReferenceEditor}
+              className="min-h-11 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-50">Отмена</button>
+            <button type="button" disabled={referencePending || aliasPending} onClick={() => void saveReference()}
+              className="min-h-11 rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+              {referencePending ? 'Сохраняем…' : 'Сохранить'}
             </button>
           </div>
         </div>

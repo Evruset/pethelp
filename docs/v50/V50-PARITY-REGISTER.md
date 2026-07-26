@@ -145,3 +145,14 @@ When any prototype file changes, regenerate the manifest, rerun inventory verifi
   normalization and no-raw-value audit/outbox reuse the proven alias boundary.
 - Registry DTO/search, Portal reference workflow, Owner, Queue, booking,
   clinical and integration scopes remain unchanged.
+
+## V50-CLINIC-04I — Structured administrative reference Portal
+
+- Existing Patient Detail displays the location-scoped internal number
+  separately from official name and clinic-local alias.
+- Capability/flag-gated set, replace and explicit clear use the shared
+  local-profile version, one pending lock and scoped retry-safe idempotency.
+- Collision, stale refresh, authority/no-leak, technical snapshot retention,
+  malformed-success rejection, keyboard, accessibility and responsive states
+  have focused Portal coverage.
+- Registry DTO/search and all backend/runtime contracts remain unchanged.

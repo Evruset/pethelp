@@ -207,6 +207,12 @@ internals and does not add a Registry mutation route.
 | --- | --- | --- | --- | --- |
 | Existing Patient Detail local profile | Detail adds required nullable `administrativeReference`; `PATCH /v1/clinic/:clinicId/locations/:locationId/patients/:patientId/local-profile/reference` | `patient.admin.read`, exact current clinic/location association/consent/policy | default-off admin-mutations flag + `patient.admin.local-profile.update` + exact scope + shared `If-Match` + UUID idempotency | contract only; no runtime route, field, Portal or Registry change in `04G` |
 
+### V50-CLINIC-04I administrative reference Portal
+
+| Surface | Read | Mutation | Failure boundary | Exclusions |
+|---|---|---|---|---|
+| Existing Patient Detail | reference is separate from official name and alias; read remains flag-independent | existing capability/flag, exact scope, shared version/lock, UUID idempotency | collision field error; stale refresh; 403 read-only; 404 no-leak; technical snapshot retention | no Registry column/search, owner identifier, medical-record number or backend change |
+
 The reference is unique only by normalized key inside one clinic location. It
 is not a medical-record number, global patient ID or authority token. Registry
 projection/search remains a separate future slice.

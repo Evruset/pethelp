@@ -22,9 +22,10 @@ let mode: Mode = 'normal';
 let authority: 'allowed' | 'denied' = 'allowed';
 let release: (() => void) | null = null;
 let backendAuthorization: string | undefined;
-type MutationMode = 'success' | 'stale' | 'denied' | 'not-found' | 'policy' | 'validation' | 'malformed' | 'transport' | 'delayed';
+type MutationMode = 'success' | 'stale' | 'denied' | 'not-found' | 'policy' | 'validation' | 'collision' | 'malformed' | 'transport' | 'delayed';
 let mutationMode: MutationMode = 'success';
 let writeAuthority = true;
+let storedAlias: string | null = null;
 let patchCalls: Array<{ ifMatch?: string; idempotencyKey?: string; body: unknown; path: string }> = [];
 let releaseMutation: (() => void) | null = null;
 
@@ -38,7 +39,7 @@ test.beforeAll(async () => {
       clinicScopes: [{ clinicId, locationId }, { clinicId, locationId: otherLocationId }],
     });
     if (url.pathname.endsWith('/patients')) return json(response, 200, registry());
-    if (request.method === 'PATCH' && url.pathname.endsWith('/local-profile')) {
+    if (request.method === 'PATCH' && (url.pathname.endsWith('/local-profile') || url.pathname.endsWith('/local-profile/reference'))) {
       const chunks: Buffer[] = [];
       for await (const chunk of request) chunks.push(Buffer.from(chunk));
       const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
@@ -51,12 +52,27 @@ test.beforeAll(async () => {
       if (mutationMode === 'denied') return json(response, 403, { code: 'ACTION_NOT_PERMITTED' });
       if (mutationMode === 'not-found') return json(response, 404, { code: 'PATIENT_RESOURCE_UNAVAILABLE' });
       if (mutationMode === 'policy') return json(response, 503, { code: 'POLICY_TEMPORARILY_UNAVAILABLE' });
-      if (mutationMode === 'validation') return json(response, 422, { code: 'INVALID_PATIENT_ALIAS', message: 'PRIVATE_RAW' });
+      if (mutationMode === 'validation') return json(response, 422, {
+        code: url.pathname.endsWith('/reference') ? 'INVALID_ADMINISTRATIVE_REFERENCE' : 'INVALID_PATIENT_ALIAS',
+        message: 'PRIVATE_RAW',
+      });
+      if (mutationMode === 'collision') return json(response, 409, {
+        code: 'ADMINISTRATIVE_REFERENCE_ALREADY_IN_USE', patientId: otherPatientId, owner: 'PRIVATE_OWNER',
+      });
       if (mutationMode === 'malformed') return json(response, 200, { aggregateVersion: 'PRIVATE_BAD' });
       if (mutationMode === 'transport') return request.socket.destroy();
-      const nextAlias = body.alias as string | null;
+      const version = Number(String(request.headers['if-match']).replaceAll('"', '')) + 1;
+      if (url.pathname.endsWith('/reference')) {
+        return json(response, 200, {
+          clinicId, locationId, patientId, alias: storedAlias,
+          administrativeReference: body.administrativeReference as string | null,
+          aggregateVersion: version, updatedAt: '2026-07-25T10:00:00.000Z',
+        });
+      }
+      storedAlias = body.alias as string | null;
       return json(response, 200, {
-        clinicId, locationId, patientId, alias: nextAlias, aggregateVersion: 1, updatedAt: '2026-07-25T10:00:00.000Z',
+        clinicId, locationId, patientId, alias: storedAlias,
+        aggregateVersion: version, updatedAt: '2026-07-25T10:00:00.000Z',
       });
     }
     if (url.pathname.includes('/patients/')) {
@@ -90,7 +106,7 @@ test.afterAll(async () => {
 });
 test.beforeEach(async ({ context }) => {
   mode = 'normal'; authority = 'allowed'; writeAuthority = true; mutationMode = 'success';
-  release = null; releaseMutation = null; patchCalls = []; backendAuthorization = undefined;
+  release = null; releaseMutation = null; patchCalls = []; backendAuthorization = undefined; storedAlias = null;
   await addSession(context, [locationId, otherLocationId]);
 });
 
@@ -283,7 +299,7 @@ test.describe('local alias workflow', () => {
     mutationMode = 'delayed';
     await page.getByRole('button', { name: 'Сохранить' }).dblclick();
     await expect(page.getByRole('button', { name: 'Сохраняем…' })).toBeDisabled();
-    expect(patchCalls).toHaveLength(1);
+    await expect.poll(() => patchCalls.length).toBe(1);
     mutationMode = 'transport';
     releaseMutation?.();
     await expect(page.getByText(/Последние подтверждённые данные не изменены/)).toBeVisible();
@@ -354,6 +370,137 @@ test.describe('local alias workflow', () => {
     await expect(page.getByText('Карточка недоступна или больше не существует.')).toBeFocused();
     await expect(page.getByText('Барни')).toHaveCount(0);
   });
+
+  test('I-01..I-05 displays a separate scoped reference and bounds write availability', async ({ page }) => {
+    await open(page);
+    await expect(page.getByRole('heading', { name: 'Барни' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Имя в клинике' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Внутренний номер' })).toBeVisible();
+    await expect(page.getByText('Не задан', { exact: true })).toBeVisible();
+    await expect(page.getByText(/не номер медицинской карты/i)).toBeVisible();
+    await expect(page.getByText(patientId)).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Изменить внутренний номер' })).toHaveCount(mutationsEnabled ? 1 : 0);
+    if (mutationsEnabled) {
+      writeAuthority = false;
+      await page.reload();
+      await ready(page);
+      await expect(page.getByRole('button', { name: 'Изменить внутренний номер' })).toHaveCount(0);
+      await expect(page.getByRole('heading', { name: 'Внутренний номер' })).toBeVisible();
+    }
+  });
+
+  test('I-06..I-11/I-15..I-17 sets, replaces and explicitly clears with shared versions and scoped headers', async ({ page }) => {
+    test.skip(!mutationsEnabled, 'mutation-enabled check');
+    await open(page);
+    await editReference(page, '  Pe\u0301T   004  ');
+    expect(patchCalls[0]).toMatchObject({
+      ifMatch: '"0"', body: { administrativeReference: 'PéT 004' },
+      path: `/v1/clinic/${clinicId}/locations/${locationId}/patients/${patientId}/local-profile/reference`,
+    });
+    expect(patchCalls[0].idempotencyKey).toMatch(/^[0-9a-f-]{36}$/i);
+    await expect(page.getByText('PéT 004', { exact: true })).toBeVisible();
+    await editAlias(page, 'Барни клиники');
+    await editReference(page, 'PET-004281');
+    const referenceCalls = patchCalls.filter((call) => call.path.endsWith('/reference'));
+    expect(referenceCalls[1].ifMatch).toBe('"2"');
+    await expect(page.getByText('Барни клиники', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Изменить внутренний номер' }).click();
+    await page.getByRole('button', { name: 'Очистить внутренний номер' }).click();
+    await expect(page.getByText('Внутренний номер очищен.')).toBeVisible();
+    expect(patchCalls.filter((call) => call.path.endsWith('/reference'))[2])
+      .toMatchObject({ ifMatch: '"3"', body: { administrativeReference: null } });
+    await expect(page.getByText('Барни клиники', { exact: true })).toBeVisible();
+  });
+
+  test('I-18..I-20 rejects invalid values and counts Unicode code points client-side', async ({ page }) => {
+    test.skip(!mutationsEnabled, 'mutation-enabled check');
+    await open(page);
+    for (const [value, message] of [
+      ['', 'Внутренний номер не может быть пустым.'],
+      [`control${String.fromCharCode(1)}`, 'Переносы строк и управляющие символы не поддерживаются.'],
+      ['PET🐕', 'Используйте только буквы, цифры'],
+      ['x'.repeat(41), 'Введите внутренний номер длиной до 40 символов.'],
+    ]) {
+      if (!(await page.getByRole('dialog').count())) await page.getByRole('button', { name: 'Изменить внутренний номер' }).click();
+      await page.getByRole('textbox', { name: 'Внутренний номер' }).fill(value);
+      await page.getByRole('button', { name: 'Сохранить' }).click();
+      await expect(page.getByText(new RegExp(message))).toBeVisible();
+    }
+    expect(patchCalls).toHaveLength(0);
+  });
+
+  test('I-12..I-14/I-21..I-22/I-28..I-30 keeps retry intent and maps collision without leakage', async ({ page }) => {
+    test.skip(!mutationsEnabled, 'mutation-enabled check');
+    await open(page);
+    await page.getByRole('button', { name: 'Изменить внутренний номер' }).click();
+    await page.getByRole('textbox', { name: 'Внутренний номер' }).fill('PET-1');
+    mutationMode = 'delayed';
+    await page.getByRole('button', { name: 'Сохранить' }).dblclick();
+    await expect.poll(() => patchCalls.length).toBe(1);
+    const key = patchCalls[0].idempotencyKey;
+    mutationMode = 'transport';
+    releaseMutation?.();
+    await expect(page.getByText(/Последние подтверждённые данные не изменены/)).toBeVisible();
+    await page.getByRole('button', { name: 'Сохранить' }).click();
+    await expect.poll(() => patchCalls.length).toBe(2);
+    expect(patchCalls[1].idempotencyKey).toBe(key);
+    mutationMode = 'collision';
+    await page.getByRole('textbox', { name: 'Внутренний номер' }).fill('PET-2');
+    await page.getByRole('button', { name: 'Сохранить' }).click();
+    await expect(page.getByText('Такой внутренний номер уже используется в этой локации.')).toBeVisible();
+    expect(patchCalls[2].idempotencyKey).not.toBe(key);
+    await expect(page.getByText(/PRIVATE_OWNER|73333333/)).toHaveCount(0);
+    mutationMode = 'malformed';
+    await page.getByRole('textbox', { name: 'Внутренний номер' }).fill('PET-3');
+    await page.getByRole('button', { name: 'Сохранить' }).click();
+    await expect(page.getByText(/Последние подтверждённые данные не изменены/)).toBeVisible();
+    await expect(page.getByText('PET-3', { exact: true })).toHaveCount(0);
+  });
+
+  test('I-23..I-27 refreshes stale without resubmit and handles authority without leakage', async ({ page }) => {
+    test.skip(!mutationsEnabled, 'mutation-enabled check');
+    await open(page);
+    mutationMode = 'stale';
+    await editReference(page, 'PET-STALE', false);
+    await expect(page.getByText(/Карточка обновлена — проверьте внутренний номер/)).toBeVisible();
+    expect(patchCalls).toHaveLength(1);
+    mutationMode = 'denied';
+    await editReference(page, 'PET-DENIED', false);
+    await expect(page.getByRole('button', { name: 'Изменить внутренний номер' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Изменить имя в клинике' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Барни' })).toBeVisible();
+    await page.reload();
+    await ready(page);
+    mutationMode = 'not-found';
+    await editReference(page, 'PET-GONE', false);
+    await expect(page.getByText('Карточка недоступна или больше не существует.')).toBeFocused();
+    await expect(page.getByText('PET-GONE')).toHaveCount(0);
+  });
+
+  test('I-31..I-34 provides shared pending lock, focus return, keyboard and responsive layout', async ({ page }) => {
+    test.skip(!mutationsEnabled, 'mutation-enabled check');
+    await open(page);
+    const edit = page.getByRole('button', { name: 'Изменить внутренний номер' });
+    await edit.click();
+    await expect(page.getByRole('textbox', { name: 'Внутренний номер' })).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(edit).toBeFocused();
+    await edit.click();
+    expect((await new AxeBuilder({ page }).include('main').analyze()).violations).toEqual([]);
+    await page.getByRole('textbox', { name: 'Внутренний номер' }).fill('PET-PENDING');
+    mutationMode = 'delayed';
+    await page.getByRole('button', { name: 'Сохранить' }).click();
+    await expect(page.getByRole('button', { name: 'Сохраняем…' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Изменить имя в клинике' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Изменить внутренний номер' })).toBeVisible();
+    for (const viewport of [{ width: 1440, height: 900 }, { width: 1024, height: 768 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    }
+    mutationMode = 'success';
+    releaseMutation?.();
+    await expect(page.getByText('Внутренний номер сохранён.')).toBeVisible();
+  });
 });
 
 async function addSession(context: BrowserContext, locations: string[]) {
@@ -370,6 +517,12 @@ async function editAlias(page: Page, value: string, expectSuccess = true) {
   await page.getByRole('textbox', { name: 'Имя в клинике' }).fill(value);
   await page.getByRole('button', { name: 'Сохранить' }).click();
   if (expectSuccess) await expect(page.getByText(/Имя в клинике сохранено/)).toBeVisible();
+}
+async function editReference(page: Page, value: string, expectSuccess = true) {
+  await page.getByRole('button', { name: 'Изменить внутренний номер' }).click();
+  await page.getByRole('textbox', { name: 'Внутренний номер' }).fill(value);
+  await page.getByRole('button', { name: 'Сохранить' }).click();
+  if (expectSuccess) await expect(page.getByText(/Внутренний номер сохранён/)).toBeVisible();
 }
 async function open(page: Page) { await page.goto(route(patientId)); await ready(page); }
 async function ready(page: Page) {
@@ -403,7 +556,11 @@ function detail() {
         next: summary(appointmentB, '2026-07-26T09:00:00.000Z'),
         recent: [summary(appointmentA, '2026-07-20T09:00:00.000Z')],
       },
-      localProfile: { alias: null, administrativeReference: null, aggregateVersion: 0, updatedAt: null },
+      localProfile: {
+        alias: storedAlias, administrativeReference: null,
+        aggregateVersion: storedAlias === null ? 0 : 1,
+        updatedAt: storedAlias === null ? null : '2026-07-25T10:00:00.000Z',
+      },
     },
   };
 }

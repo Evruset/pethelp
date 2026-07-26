@@ -387,3 +387,16 @@ The new reference is nullable and exact clinic/location scoped. Missing storage
 returns both values null with version zero; alias-only and reference-only rows
 retain one shared positive aggregate version/timestamp. The read remains
 side-effect free and independent of the mutation flag. Registry is unchanged.
+
+## 04I administrative reference presentation
+
+The existing Detail page presents the official pet name, clinic-local alias and
+location-scoped administrative reference as three distinct concepts. The
+reference helper explicitly says it is neither a medical-record number nor a
+global patient identifier and does not alter owner data.
+
+Read presentation is flag-independent. The accessible bounded editor appears
+only with exact-scope update authority and the existing mutation flag. Alias and
+reference share the aggregate version and one pending mutation lock. Stale,
+authority, no-leak and technical states follow the existing Detail snapshot
+rules; Registry remains unchanged.

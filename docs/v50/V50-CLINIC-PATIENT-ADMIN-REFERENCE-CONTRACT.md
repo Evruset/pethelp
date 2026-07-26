@@ -368,7 +368,23 @@ location partial unique index, Detail projection, bounded reference command,
 shared aggregate version, idempotency and safe audit/outbox. The strict Portal
 parser accepts the required nullable projection without rendering it.
 
-The next slice is `V50-CLINIC-04I / Clinic Patient Structured Administrative
-Reference Portal Integration`. It adds only Patient Detail display/editor and
-its focused accessibility/error/concurrency proofs. Registry search remains
-excluded. Do not begin `04I` in `04H`.
+## 25. 04I Portal integration
+
+Patient Detail renders **Внутренний номер** separately from the official name
+and **Имя в клинике**, with **Не задан** for `null`. The bounded editor is
+available only with the existing mutation flag, effective local-profile update
+capability, exact scope and a loaded authoritative aggregate version.
+
+The client performs display normalization only (NFC, trim, ASCII-space
+collapse, allowed characters and Unicode code-point length). It never computes
+the comparison key. Alias/reference editors share one pending lock and the same
+authoritative version. Technical retry reuses the scoped intent key; payload,
+operation, scope, stale refresh and success start a new intent.
+
+Collision remains field-local and reveals no patient data. Stale conflict
+refreshes Detail without resubmit; 403 removes both write controls; 404 clears
+the snapshot; policy/network/malformed success preserve the last valid
+snapshot. Registry projection/search remains unchanged.
+
+The next slice is documentation-only `V50-CLINIC-04J / Clinic Patient
+Administrative Reference Registry Search Contract Discovery`.

@@ -28,6 +28,11 @@ export type PatientLocalProfileMutation = {
   clinicId: string; locationId: string; patientId: string;
   alias: string | null; aggregateVersion: number; updatedAt: string;
 };
+export type PatientAdministrativeReferenceMutation = {
+  clinicId: string; locationId: string; patientId: string;
+  alias: string | null; administrativeReference: string | null;
+  aggregateVersion: number; updatedAt: string;
+};
 export class PatientLocalProfileMutationError extends Error {
   constructor(public readonly kind: 'malformed' | 'http' | 'network', public readonly status?: number, public readonly code?: string) {
     super(kind === 'http' ? `PATIENT_LOCAL_PROFILE_HTTP_${status}` : `PATIENT_LOCAL_PROFILE_${kind.toUpperCase()}`);
@@ -156,6 +161,19 @@ export function normalizePatientAlias(value: string): { value?: string; error?: 
   return { value: normalized };
 }
 
+export function normalizeAdministrativeReference(value: string): { value?: string; error?: string } {
+  if (/[\r\n\t\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(value)) {
+    return { error: 'Переносы строк и управляющие символы не поддерживаются.' };
+  }
+  const normalized = value.normalize('NFC').trim().replace(/ {2,}/g, ' ');
+  if (!normalized) return { error: 'Внутренний номер не может быть пустым.' };
+  if (Array.from(normalized).length > 40) return { error: 'Введите внутренний номер длиной до 40 символов.' };
+  if (!/^[\p{L}\p{Nd}._/ -]+$/u.test(normalized)) {
+    return { error: 'Используйте только буквы, цифры, пробел, -, _, / и точку.' };
+  }
+  return { value: normalized };
+}
+
 function parseMutation(payload: unknown, expected: { clinicId: string; locationId: string; patientId: string }): PatientLocalProfileMutation {
   if (!record(payload) || !keys(payload, ['clinicId', 'locationId', 'patientId', 'alias', 'aggregateVersion', 'updatedAt'])
     || payload.clinicId !== expected.clinicId || payload.locationId !== expected.locationId || payload.patientId !== expected.patientId
@@ -190,4 +208,47 @@ export async function mutatePatientLocalProfile(input: {
     throw new PatientLocalProfileMutationError('http', response.status, code);
   }
   return parseMutation(payload, input);
+}
+
+function parseReferenceMutation(
+  payload: unknown,
+  expected: { clinicId: string; locationId: string; patientId: string; currentAlias: string | null },
+): PatientAdministrativeReferenceMutation {
+  if (!record(payload)
+    || !keys(payload, ['clinicId', 'locationId', 'patientId', 'alias', 'administrativeReference', 'aggregateVersion', 'updatedAt'])
+    || payload.clinicId !== expected.clinicId || payload.locationId !== expected.locationId
+    || payload.patientId !== expected.patientId || !nullableText(payload.alias) || payload.alias !== expected.currentAlias
+    || !nullableText(payload.administrativeReference)
+    || !Number.isInteger(payload.aggregateVersion) || Number(payload.aggregateVersion) < 1
+    || !instant(payload.updatedAt)) throw new PatientLocalProfileMutationError('malformed');
+  return {
+    clinicId: payload.clinicId, locationId: payload.locationId, patientId: payload.patientId,
+    alias: payload.alias, administrativeReference: payload.administrativeReference,
+    aggregateVersion: Number(payload.aggregateVersion), updatedAt: payload.updatedAt,
+  };
+}
+
+export async function mutatePatientAdministrativeReference(input: {
+  clinicId: string; locationId: string; patientId: string; administrativeReference: string | null;
+  aggregateVersion: number; idempotencyKey: string; currentAlias: string | null;
+}): Promise<PatientAdministrativeReferenceMutation> {
+  let response: Response;
+  try {
+    response = await fetch(`/api/clinic/${encodeURIComponent(input.clinicId)}/locations/${encodeURIComponent(input.locationId)}/patients/${encodeURIComponent(input.patientId)}/local-profile/reference`, {
+      method: 'PATCH', cache: 'no-store',
+      headers: {
+        Accept: 'application/json', 'Content-Type': 'application/json',
+        'If-Match': `"${input.aggregateVersion}"`, 'Idempotency-Key': input.idempotencyKey,
+      },
+      body: JSON.stringify({ administrativeReference: input.administrativeReference }),
+    });
+  } catch {
+    throw new PatientLocalProfileMutationError('network');
+  }
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    const code = record(payload) && typeof payload.code === 'string' ? payload.code : undefined;
+    throw new PatientLocalProfileMutationError('http', response.status, code);
+  }
+  return parseReferenceMutation(payload, input);
 }
