@@ -208,5 +208,10 @@ When any prototype file changes, regenerate the manifest, rerun inventory verifi
   references, comparison keys, URLs and fingerprints are not retained.
 - Controlled thresholds, 10k/100k fixture tiers, semantic JSON EXPLAIN guard,
   rollout stages, rollback, alerts, diagnostics and incident runbook are fixed.
-- Runtime remains unchanged; the proven mandatory gaps select only bounded
-  backend hardening `V50-CLINIC-04N`.
+- Runtime remains unchanged. `V50-CLINIC-04M-R1` separates strict
+  database-time logical expiry (maximum 65 minutes) from a healthy-worker
+  physical deletion target (maximum 24 hours). Indexed bounded startup and
+  periodic cleanup uses the existing application maintenance mechanism;
+  consume correctness never depends on deletion.
+- The one next slice is `V50-CLINIC-04N-A`, the bounded PostgreSQL shared
+  limiter foundation. Product endpoint integration remains out of scope.

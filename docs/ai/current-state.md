@@ -1272,12 +1272,35 @@ Execution verdict: `PASS / COMPLETE`.
 
 Execution verdict: `PASS / COMPLETE`.
 
+### `V50-CLINIC-04M-R1 / Shared Rate Limiter Retention Contract Repair`
+
+`COMPLETE / DOCUMENTATION_ONLY`.
+
+- The earlier 04N-A attempt correctly stopped because application workers
+  cannot prove hard physical deletion within 65 minutes while every backend
+  replica is down and no database-resident scheduler exists.
+- The corrected contract separates strict database-time logical expiry from
+  physical deletion. Effective limiter state expires within 3,900 seconds and
+  cannot affect consume or Retry-After afterward, independently of cleanup.
+- Expired rows target physical deletion within 86,400 seconds while the
+  existing application maintenance loop is healthy. Cleanup runs at startup
+  and every 900 seconds by default in indexed, idempotent batches of at most
+  1,000 rows. A total backend outage may temporarily exceed the physical
+  target; expired counters never reactivate after recovery.
+- Typed configuration, safe backlog/cleanup alerts and R-01..R-14 future
+  proofs are fixed. Limiter identity dimensions and all
+  reference/patient/query data are forbidden from alert payloads.
+- Runtime, backend, Portal, migrations, packages, flags and tests are
+  unchanged.
+
+Execution verdict: `PASS / COMPLETE`.
+
 ## Next single action
 
-`V50-CLINIC-04N / Clinic Patient Administrative Reference Search Operational Hardening Backend`.
+`V50-CLINIC-04N-A / Shared Replica-Safe PostgreSQL Rate Limiter Foundation`.
 
-Implement only the approved replica-safe separate limiter, safe aggregate
-telemetry/tracing and query redaction, semantic EXPLAIN guards and fixture
-tiers, rollout diagnostics, bounded alert/runbook artifacts and M-01..M-32
-proofs. Do not add search functionality, Portal redesign, migration, index or
-support endpoint.
+Implement one reversible migration, PostgreSQL atomic counters using database
+time, strict logical expiry within 65 minutes, indexed bounded startup/periodic
+cleanup with a healthy-worker physical deletion target of 24 hours, and
+focused multi-instance/concurrency tests. Do not integrate the foundation into
+the Registry product endpoint.

@@ -174,13 +174,45 @@ HMAC-SHA-256 key, rotation and maximum seven-day retention contract.
 | --- | --- |
 | Application JSON logs | Existing platform production-log retention; search adds no longer copy |
 | Safe search security event | 14 days, sufficient for bounded abuse review |
-| Short/sustained limiter counters | TTL through the active window plus at most five minutes; maximum 65 minutes |
+| Effective short/sustained limiter state | Logical expiry through `expires_at`, based on database time; maximum 3,900 seconds (65 minutes) |
+| Physically expired limiter rows | Target deletion within 86,400 seconds (24 hours) while the backend maintenance loop is healthy |
 | Query fingerprint | Absent |
 | Aggregate metrics | Existing observability-platform retention |
 | Incident evidence | Only an approved security case with its own access/retention |
 
 No search history is stored in a profile. Raw queries must not be copied into
 support tickets or incident evidence.
+
+Logical expiry and physical deletion are independent. After `expires_at`, a
+row is excluded from `consume`, cannot block or increment an active window,
+cannot contribute to `Retry-After` and cannot affect a newly created window.
+The consume transaction uses PostgreSQL time and does not require a physical
+delete on its critical path.
+
+Physical deletion is an operational target, not a security invariant during a
+complete platform outage. The existing application maintenance mechanism runs
+cleanup at startup and periodically while a backend maintenance owner is
+healthy. It deletes by indexed `expires_at` in idempotent batches of at most
+1,000 rows; the default interval is 900 seconds. Concurrent workers may
+cooperate safely, and cleanup never takes a full-table lock.
+
+If every backend replica is stopped, cleanup pauses and the 24-hour target may
+temporarily be exceeded. No requests are served during that outage. On
+recovery, database-time predicates still exclude expired rows and startup
+cleanup reduces the backlog, so an expired counter never becomes active again.
+
+Future typed configuration separates:
+
+```text
+logicalStateRetentionSeconds = 3900 maximum
+physicalCleanupTargetSeconds = 86400
+cleanupIntervalSeconds = 900
+cleanupBatchSize = 1000
+```
+
+Logical retention must cover the largest window and remain at most 3,900
+seconds. Physical target must be between logical retention and 86,400 seconds.
+Cleanup interval and batch size must be positive.
 
 ## 13. Log redaction
 
@@ -412,6 +444,7 @@ endpoint, automatic blocking or global identity semantics.
 | Fingerprint | absent in MVP | SHA or reused-secret HMAC | No approved key lifecycle | Aggregate abuse signals only |
 | Fingerprint retention | none | seven-day store now | Fingerprint absent | No storage/support access |
 | Log retention | existing platform; safe event 14 days | search history | Minimum abuse-review window | TTL/config evidence |
+| Limiter retention | logical expiry <=65 minutes; healthy-worker physical deletion target <=24 hours | hard physical deletion <=65 minutes during total outage | Consume correctness needs logical expiry, not an unavailable database scheduler | Database-time expiry predicates plus indexed bounded startup/periodic cleanup |
 | Tracing | fixed safe span/attributes | query baggage | Correlation without leakage | Attribute allowlist |
 | Performance budget | controlled p95 150 ms; observed p99 300 ms | production SLA | No production baseline | Release evidence only |
 | CI fixture size | 10k PR, 100k+ nightly | 100k every PR, 120 rows only | Cost/evidence balance | Two fixture tiers |
@@ -452,7 +485,7 @@ M-23 rollback preserves ordinary Registry
 M-24 rollback preserves Detail and mutations
 M-25 in-flight rollback behavior
 M-26 support diagnostics contain safe fields only
-M-27 rate-limit counter TTL
+M-27 logical rate-limit state expires within 65 minutes independently of physical cleanup
 M-28 abuse pattern alert-first behavior
 M-29 no automatic membership revoke
 M-30 path-based CI trigger
@@ -460,15 +493,33 @@ M-31 no domain audit/outbox
 M-32 operational runbook validation
 ```
 
+The shared-limiter foundation also carries the repaired retention proofs:
+
+```text
+R-01 expired row does not affect consume after logical TTL
+R-02 logical expiry uses database time
+R-03 expired row does not affect Retry-After
+R-04 new window is created without preliminary physical DELETE
+R-05 periodic cleanup removes expired rows
+R-06 startup cleanup removes backlog
+R-07 cleanup uses bounded batches
+R-08 cleanup uses the expires_at index
+R-09 concurrent cleanup is safe
+R-10 backend outage does not change logical-expiry semantics
+R-11 physical deletion target is <=24 hours with a healthy worker
+R-12 stale backlog after recovery produces an alert
+R-13 logs and alerts exclude limiter identity dimensions
+R-14 consume correctness is independent of cleanup availability
+```
+
 04M adds no runtime tests.
 
 ## 29. Recommended next slice
 
-`V50-CLINIC-04N / Clinic Patient Administrative Reference Search Operational
-Hardening Backend`.
+`V50-CLINIC-04N-A / Shared Replica-Safe PostgreSQL Rate Limiter Foundation`.
 
-Implement only the approved replica-safe separate short/sustained limiter,
-safe aggregate telemetry/tracing and access-log redaction, semantic
-production-shaped EXPLAIN guard with 10k/100k fixtures, rollout diagnostics,
-bounded alert/runbook artifacts and M-01..M-32 proofs. Do not add new search
-behavior, Portal redesign, migration, index or support endpoint.
+Implement one reversible migration, PostgreSQL atomic short/sustained counters
+using database time, strict logical expiry within 65 minutes, indexed bounded
+startup/periodic application cleanup with a healthy-worker 24-hour physical
+deletion target, and focused multi-instance/concurrency tests. Do not connect
+the foundation to the Registry product endpoint yet.
