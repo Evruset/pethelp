@@ -1,6 +1,6 @@
 # V50 Clinic Patient Administrative Mutations Contract
 
-Status: `LOCAL_ALIAS_BACKEND_IMPLEMENTED / PORTAL_MISSING`.
+Status: `LOCAL_ALIAS_END_TO_END_IMPLEMENTED / ADMIN_REFERENCE_CONTRACT_DEFINED`.
 
 ## 04E implementation evidence
 
@@ -119,7 +119,7 @@ The future projection allowlist is:
 
 ```text
 localAlias              nullable string, trim + Unicode normalization, 1..80
-administrativeReference nullable structured string, 1..64, no free text
+administrativeReference nullable structured string, 1..40, no free text
 administrativeLabels    set of centrally allowlisted enum codes, maximum 8
 aggregateVersion        positive integer, server-owned
 ```
@@ -368,3 +368,22 @@ Integrate only the implemented alias command into the existing administrative
 Patient Detail page through one cookie-session BFF. Keep server-authoritative
 version/idempotency handling and do not add owner corrections,
 reference/labels, lifecycle commands or clinical fields.
+
+## 04G administrative reference refinement
+
+The authoritative structured-reference decisions are defined in
+`V50-CLINIC-PATIENT-ADMIN-REFERENCE-CONTRACT.md`. MVP uses one nullable
+`administrativeReference` in the exact clinic/location local-profile aggregate,
+implicit `CLINIC_MANUAL` provenance, location-local normalized uniqueness,
+existing `patient.admin.local-profile.update`, the shared aggregate version and
+default-off mutation-family flag.
+
+The future command is deliberately separate from the deployed alias-only DTO:
+
+```http
+PATCH /v1/clinic/:clinicId/locations/:locationId/patients/:patientId/local-profile/reference
+```
+
+`04G` is documentation-only. It does not add the field, route, schema,
+migration, OpenAPI, Portal control, Registry projection/search, capability or
+flag runtime.

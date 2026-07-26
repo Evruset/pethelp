@@ -200,3 +200,13 @@ Every v50 screen now maps to production code or an explicit absence. Existing qu
 Foreign, revoked, archived or otherwise unavailable resources use normalized
 no-leak states. The Portal does not expose capability, membership or policy
 internals and does not add a Registry mutation route.
+
+### V50-CLINIC-04G administrative reference contract
+
+| Future surface | Chosen API | Read | Write gate | Status |
+| --- | --- | --- | --- | --- |
+| Existing Patient Detail local profile | Detail adds required nullable `administrativeReference`; `PATCH /v1/clinic/:clinicId/locations/:locationId/patients/:patientId/local-profile/reference` | `patient.admin.read`, exact current clinic/location association/consent/policy | default-off admin-mutations flag + `patient.admin.local-profile.update` + exact scope + shared `If-Match` + UUID idempotency | contract only; no runtime route, field, Portal or Registry change in `04G` |
+
+The reference is unique only by normalized key inside one clinic location. It
+is not a medical-record number, global patient ID or authority token. Registry
+projection/search remains a separate future slice.

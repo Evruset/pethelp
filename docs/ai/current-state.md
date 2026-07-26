@@ -1080,11 +1080,41 @@ Execution verdict: `PASS / COMPLETE`.
 
 Execution verdict: `PASS / COMPLETE`.
 
+### `V50-CLINIC-04G / Clinic Patient Structured Administrative Reference Contract Refinement`
+
+`COMPLETE / DOCUMENTATION_ONLY`.
+
+- Defined one nullable `Clinic Patient Administrative Reference` owned by the
+  exact clinic/location local administrative profile, never owner/clinical or
+  global identity.
+- MVP source is implicit `CLINIC_MANUAL`; format is NFC, trimmed, collapsed
+  spaces, 1..40 structured Unicode code points. Display case is retained while
+  a pinned Unicode Default Case Folding comparison key owns uniqueness.
+- The normalized key is unique only within exact clinic/location; cross-location
+  and cross-clinic reuse is allowed. Collision is bounded
+  `ADMINISTRATIVE_REFERENCE_ALREADY_IN_USE` without patient disclosure.
+- Patient Detail will carry required nullable `administrativeReference`;
+  Registry remains unchanged. Alias and reference share one local-profile
+  aggregate version.
+- The future bounded route is
+  `PATCH .../patients/:patientId/local-profile/reference`, reusing
+  `patient.admin.local-profile.update`,
+  `VETHELP_CLINIC_PATIENT_ADMIN_MUTATIONS`, strong `If-Match`, UUID
+  idempotency and existing exact-scope privacy authority.
+- Audit/outbox never store raw reference values. Archive/revoke hides the
+  reference immediately; clear releases uniqueness while audit remains.
+  Search is future exact normalized match only after authority and visibility.
+- The G-01..G-30 future backend matrix is fixed. No runtime code, migrations,
+  OpenAPI, Portal, Registry, capability/flag runtime or product tests changed.
+
+Execution verdict: `PASS / COMPLETE`.
+
 ## Next single action
 
-`V50-CLINIC-04G / Clinic Patient Structured Administrative Reference Contract Refinement`.
+`V50-CLINIC-04H / Clinic Patient Structured Administrative Reference Backend`.
 
-Documentation-only clarification of reference format/source, exact scope,
-uniqueness, edit/search/retention/audit/concurrency semantics, distinction from
-medical-record number, and prohibition as a global patient identifier. Do not
-begin implementation in this slice.
+Implement only storage/migration, authoritative Patient Detail projection,
+bounded reference mutation, strict DTO, approved capability/flag reuse, shared
+`If-Match`, idempotency, uniqueness, safe audit/outbox, focused backend tests
+and OpenAPI. Do not include Portal UI or Registry search, and do not begin
+`04H` in this slice.
