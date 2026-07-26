@@ -956,24 +956,42 @@ as a documentation/schema-contract-only slice.
 
 Execution verdict: `PASS / COMPLETE`.
 
+### `V50-CLINIC-04D / Clinic Patient Administrative Mutations Contract Discovery`
+
+`COMPLETE / CONTRACT_ONLY`.
+
+- `V50-CLINIC-PATIENT-ADMIN-MUTATIONS-CONTRACT.md` divides patient data into
+  owner-owned master data, clinic-location-local administrative projection,
+  Clinical domain data and separate association/privacy lifecycle commands.
+- Direct clinic mutation is limited to normalized local alias, structured
+  administrative reference and bounded enum labels. The first backend slice is
+  alias-only. Free-form notes and clinical/contact/document/financial fields
+  are forbidden.
+- Pet name/species/breed/sex/birth-date changes are correction requests with
+  owner confirmation, never direct master-profile updates. Avatar and owner
+  identity/contact changes remain outside this administrative contract.
+- Archive/reactivate/merge/transfer, consent and privacy actions require
+  separate capability and state-machine contracts.
+- `patient.admin.read` never grants writes. Future direct writes require new
+  exact-scope `patient.admin.local-profile.update`; correction requests require
+  a separate future capability. Runtime mappings are unchanged.
+- Direct commands require `If-Match`, UUID `Idempotency-Key`, current
+  association/consent/policy revalidation, normalized no-leak errors and
+  transactional safe audit/outbox.
+- Recommended rollout combines the existing Patients Registry flag with a new
+  independent default-off `VETHELP_CLINIC_PATIENT_ADMIN_MUTATIONS`; no runtime
+  flag is added here and read-only Registry/Detail remain available on rollback.
+- This is documentation-only: product suites ABSTAIN; no backend, OpenAPI,
+  migration, capability/role runtime, feature-flag runtime or Portal change.
+
+Execution verdict: `PASS / COMPLETE`.
+
 ## Next single action
 
-`V50-CLINIC-04D / Clinic Patient Administrative Mutations Contract Discovery`.
+`V50-CLINIC-04E / Clinic Patient Local Administrative Profile Mutation Backend`.
 
-Goal: define one bounded administrative patient create/update route family
-without implementing it and without combining it with clinical, contact,
-document or financial data.
-
-Owned files: one new canonical mutations contract plus
-`docs/ai/current-state.md`, `docs/v50/00-route-api-role-matrix.md` and
-`docs/v50/V50-PARITY-REGISTER.md`; no production code.
-
-Acceptance: specify administrative identity and field allowlist, exact-scope
-authority and capabilities, validation, no-leak rules, idempotency/concurrency,
-audit/outbox expectations, rollout/rollback and focused test contracts.
-
-Non-goals: implementation, migration, clinical record, documents, owner-contact
-editing, imports or association lifecycle expansion.
-
-Required checks: documentation consistency, `git diff --check` and Tier B
-contract validation; runtime checks abstain because this is discovery-only.
+Implement only `UpdateClinicPatientLocalAlias`: one clinic-location-local
+field, exact scope, new capability, `If-Match`, UUID `Idempotency-Key`,
+transactional audit/outbox, independent default-off mutation flag and focused
+PostgreSQL/HTTP tests. Do not add Portal UI, owner correction workflow,
+administrative reference/labels, lifecycle commands or clinical fields.
