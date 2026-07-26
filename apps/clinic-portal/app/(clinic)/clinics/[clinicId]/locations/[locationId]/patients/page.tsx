@@ -1,5 +1,8 @@
 import { notFound } from 'next/navigation';
-import { isClinicPatientsRegistryEnabled } from '@/app/design-system/feature-flags';
+import {
+  isClinicPatientAdminReferenceSearchEnabled,
+  isClinicPatientsRegistryEnabled,
+} from '@/app/design-system/feature-flags';
 import { ClinicPatientsRegistry } from '@/components/patients/ClinicPatientsRegistry';
 import { canAccessClinicLocation, getClinicSession } from '@/lib/auth/clinic-session';
 import { getEffectiveSession, hasCapability, hasClinicScope } from '@/lib/auth/effective-session';
@@ -35,7 +38,11 @@ export default async function ClinicPatientsPage({ params }: PageProps) {
     if (!hasCapability(effective, 'patient.admin.read') || !hasClinicScope(effective, clinicId, locationId)) {
       return <State denied />;
     }
-    return <ClinicPatientsRegistry clinicId={clinicId} locationId={locationId} />;
+    return <ClinicPatientsRegistry
+      clinicId={clinicId}
+      locationId={locationId}
+      referenceSearchEnabled={isClinicPatientAdminReferenceSearchEnabled()}
+    />;
   } catch {
     return <State />;
   }

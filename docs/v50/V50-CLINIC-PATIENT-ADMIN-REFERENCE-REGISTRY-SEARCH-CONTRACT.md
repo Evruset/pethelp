@@ -316,3 +316,23 @@ No Registry search UI was added.
 
 `V50-CLINIC-04L / Clinic Patient Administrative Reference Registry Search
 Portal Integration`.
+
+## 28. 04L Portal integration
+
+`V50-CLINIC-04L` is complete. The existing Registry provides an explicit
+**Внутренний номер** mode only while the independent search flag is enabled.
+It uses the existing typed BFF/client and sends a normalized exact
+`administrativeReference` only on submit, never with `q` or `cursor`.
+
+Client validation performs NFC, trim, ASCII-space collapse and structured
+1..40 Unicode code-point checks while preserving display case. Empty matches
+remain neutral and location-scoped. Authority failures remove result data;
+technical failures retain the last valid snapshot and support explicit retry.
+Clear, flag rollback, scope changes and request generations discard stale
+reference results. Keyboard/focus, axe and 1440/1024/390 responsive proofs
+pass without autocomplete, backend or mutation changes.
+
+## 29. Next bounded slice
+
+`V50-CLINIC-04M / Clinic Patient Administrative Reference Registry Search
+Operational Hardening` — documentation-first bounded hardening discovery only.

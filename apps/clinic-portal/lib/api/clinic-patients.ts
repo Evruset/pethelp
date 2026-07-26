@@ -26,6 +26,7 @@ export class ClinicPatientsResponseError extends Error {
     public readonly kind: 'malformed' | 'http',
     public readonly status?: number,
     public readonly retryAfter?: number,
+    public readonly code?: string,
   ) {
     super(kind === 'malformed' ? 'INVALID_PATIENTS_RESPONSE' : `PATIENTS_HTTP_${status}`);
   }
@@ -123,16 +124,22 @@ export function normalizePatientSearch(value: string): string {
   return value.normalize('NFKC').trim();
 }
 
+export function normalizeAdministrativeReferenceSearch(value: string): string {
+  return value.normalize('NFC').trim().replace(/ {2,}/g, ' ');
+}
+
 export async function fetchClinicPatients(input: {
   clinicId: string;
   locationId: string;
   q?: string;
+  administrativeReference?: string;
   limit: number;
   cursor?: string;
   signal: AbortSignal;
 }): Promise<ClinicPatientsSnapshot> {
   const query = new URLSearchParams({ limit: String(input.limit) });
   if (input.q) query.set('q', input.q);
+  if (input.administrativeReference) query.set('administrativeReference', input.administrativeReference);
   if (input.cursor) query.set('cursor', input.cursor);
   const response = await fetch(
     `/api/clinic/${encodeURIComponent(input.clinicId)}/locations/${encodeURIComponent(input.locationId)}/patients?${query}`,
@@ -140,7 +147,13 @@ export async function fetchClinicPatients(input: {
   );
   if (!response.ok) {
     const retry = Number(response.headers.get('Retry-After'));
-    throw new ClinicPatientsResponseError('http', response.status, Number.isFinite(retry) && retry > 0 ? retry : undefined);
+    const body = await response.json().catch(() => null) as { code?: unknown } | null;
+    throw new ClinicPatientsResponseError(
+      'http',
+      response.status,
+      Number.isFinite(retry) && retry > 0 ? retry : undefined,
+      typeof body?.code === 'string' ? body.code : undefined,
+    );
   }
   return parseClinicPatientsSnapshot(await response.json().catch(() => null), input);
 }

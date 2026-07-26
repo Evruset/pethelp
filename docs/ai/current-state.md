@@ -1211,11 +1211,39 @@ Execution verdict: `PASS / COMPLETE`.
 
 Execution verdict: `PASS / COMPLETE`.
 
+### `V50-CLINIC-04L / Clinic Patient Administrative Reference Registry Search Portal Integration`
+
+`COMPLETE / PORTAL_IMPLEMENTED`.
+
+- Existing Patients Registry exposes a distinct **Внутренний номер** mode only
+  under `VETHELP_CLINIC_PATIENT_ADMIN_REFERENCE_SEARCH`; ordinary name-prefix
+  search remains the default and works when the flag is off.
+- Input is NFC-normalized, trimmed, ASCII-space collapsed, validated as 1..40
+  structured Unicode code points and explicitly submitted. The typed BFF sends
+  exact `administrativeReference` with current scope and canonical limit, never
+  `q` or cursor.
+- One result uses the canonical card with nullable display reference. Empty
+  results are neutral. Authority failures clear result data; policy, invariant,
+  network and malformed failures preserve the last valid snapshot and allow
+  explicit retry.
+- Abort/generation fencing covers double submit, clear and scope changes.
+  Rollback removes the mode without affecting ordinary Registry, Patient
+  Detail or local-profile mutations.
+- Focused Chromium coverage maps L-01..L-34: enabled Registry cases PASS,
+  affected validation/authority proofs PASS, and independent flag-off rollback
+  PASS. Patient Detail/alias/reference regression PASS `20/20`; Registry parser
+  PASS `2/2`; Node 22.22.2 typecheck and enabled/disabled builds PASS. Axe and
+  1440/1024/390 responsive proofs pass.
+- Portal-only: backend, migrations, OpenAPI, backend DTO/service and unrelated
+  product areas are unchanged.
+
+Execution verdict: `PASS / COMPLETE`.
+
 ## Next single action
 
-`V50-CLINIC-04L / Clinic Patient Administrative Reference Registry Search Portal Integration`.
+`V50-CLINIC-04M / Clinic Patient Administrative Reference Registry Search Operational Hardening`.
 
-Add only an explicit **Внутренний номер** Registry search mode, submit-only
-exact query, strict client validation, neutral empty result, flag/no-leak
-behavior, technical retry and focused responsive/accessibility Portal tests.
-Do not add backend changes, prefix search or autocomplete.
+Perform documentation-first bounded hardening discovery for rate limiting,
+abuse protection, safe metrics, EXPLAIN regression guards,
+representative-volume fixtures, rollout, alerts, query-fingerprint retention,
+performance budget and support diagnostics. Do not implement `04M` here.

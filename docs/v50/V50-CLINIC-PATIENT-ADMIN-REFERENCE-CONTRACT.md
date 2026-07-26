@@ -403,6 +403,20 @@ index. Search has its own default-off flag, emits no mutation audit/outbox and
 never exposes raw query/key. Prefix/contains/global search and Portal UI remain
 excluded. The next slice is backend-only `V50-CLINIC-04K`.
 
+## 28. 04L Registry search Portal
+
+The existing Patients Registry implements a distinct flag-gated
+**Внутренний номер** mode. Frontend normalization is display-only (NFC, trim,
+ASCII-space collapse, preserved case); the backend comparison key remains
+authoritative. Search occurs only on explicit submit and sends no ordinary
+query or cursor.
+
+Validation is field-local. Empty results disclose no foreign, archived,
+consent or authority state. Clear, exact-scope changes, rollout rollback and
+generation fencing prevent stale results. Technical failures retain the last
+valid snapshot and permit explicit same-query retry. The next single slice is
+documentation-first `V50-CLINIC-04M`.
+
 ## 27. 04K Registry search backend
 
 The existing exact-location Registry route now supports the exclusive exact

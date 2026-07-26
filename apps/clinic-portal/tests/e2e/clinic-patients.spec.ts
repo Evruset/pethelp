@@ -11,15 +11,20 @@ const patientA = '73333333-3333-4333-8333-333333333331';
 const patientB = '73333333-3333-4333-8333-333333333332';
 const jwtSecret = process.env.VETHELP_CLINIC_JWT_SECRET ?? 'clinic-e2e-secret-at-least-32-bytes';
 const rolloutEnabled = process.env.VETHELP_CLINIC_PATIENTS_REGISTRY === 'true';
+const referenceSearchEnabled = process.env.VETHELP_CLINIC_PATIENT_ADMIN_REFERENCE_SEARCH === 'true';
 const mockPort = Number(process.env.CLINIC_PORTAL_MOCK_PORT ?? 3212);
 
 type Mode = 'normal' | 'empty' | 'error' | 'malformed' | 'impossible-date' | 'duplicate'
-  | 'wrong-scope' | 'page-malformed' | 'rate' | 'search-unavailable' | 'delayed';
+  | 'wrong-scope' | 'page-malformed' | 'rate' | 'search-unavailable' | 'delayed'
+  | 'reference-invalid' | 'reference-combination' | 'reference-invariant'
+  | 'unauthenticated' | 'denied' | 'scope-unavailable';
 let server: Server;
 let mode: Mode = 'normal';
 let authority: 'allowed' | 'denied' = 'allowed';
 let requestedQ: string | null = null;
 let requestedCursor: string | null = null;
+let requestedReference: string | null = null;
+let patientRequests = 0;
 let releaseDelayed: (() => void) | null = null;
 
 test.beforeAll(async () => {
@@ -32,27 +37,34 @@ test.beforeAll(async () => {
       clinicScopes: [{ clinicId, locationId }, { clinicId, locationId: otherLocationId }],
     });
     if (url.pathname.endsWith('/patients')) {
+      patientRequests += 1;
       requestedQ = url.searchParams.get('q');
       requestedCursor = url.searchParams.get('cursor');
+      requestedReference = url.searchParams.get('administrativeReference');
       if (mode === 'delayed') await new Promise<void>((resolve) => { releaseDelayed = resolve; });
       if (mode === 'error') return json(response, 500, { code: 'PRIVATE_SQL_DETAIL' });
+      if (mode === 'reference-invalid' && requestedReference) return json(response, 400, { code: 'INVALID_ADMINISTRATIVE_REFERENCE_QUERY' });
+      if (mode === 'reference-combination' && requestedReference) return json(response, 400, { code: 'INVALID_SEARCH_COMBINATION' });
+      if (mode === 'reference-invariant' && requestedReference) return json(response, 503, { code: 'SEARCH_INVARIANT_VIOLATION' });
+      if (mode === 'unauthenticated' && requestedReference) return json(response, 401, { code: 'AUTHENTICATION_REQUIRED' });
+      if (mode === 'denied' && requestedReference) return json(response, 403, { code: 'ACTION_NOT_PERMITTED' });
+      if (mode === 'scope-unavailable' && requestedReference) return json(response, 404, { code: 'REGISTRY_SCOPE_UNAVAILABLE' });
       if (mode === 'rate' && requestedQ) return json(response, 429, { code: 'PRIVATE_RATE' }, { 'Retry-After': '7' });
-      if (mode === 'search-unavailable' && requestedQ) return json(response, 503, { code: 'PRIVATE_POLICY' });
+      if (mode === 'search-unavailable' && (requestedQ || requestedReference)) return json(response, 503, { code: 'PRIVATE_POLICY' });
       if (mode === 'malformed') return json(response, 200, { clinicId, locationId, items: 'raw-secret', nextCursor: null });
       if (mode === 'wrong-scope') return json(response, 200, snapshot(otherLocationId, []));
-      if (mode === 'empty' || requestedQ === 'Нет') return json(response, 200, snapshot(pathLocation(url), []));
+      if (mode === 'empty' || requestedQ === 'Нет' || requestedReference === 'NONE-1') return json(response, 200, snapshot(pathLocation(url), []));
       if (requestedCursor) {
         if (mode === 'page-malformed') return json(response, 200, { ...snapshot(pathLocation(url), []), items: [{ raw: 'secret' }] });
         return json(response, 200, snapshot(pathLocation(url), [patient(patientB, 'Луна')]));
       }
       const first = patient(patientA, requestedQ ? 'Барни' : 'Барни');
+      if (requestedReference) first.administrativeReference = requestedReference;
       if (mode === 'impossible-date') first.pet.birthDate = '2026-02-30';
       const items = mode === 'duplicate' ? [first, first] : [first];
       return json(response, 200, {
         ...snapshot(pathLocation(url), items),
         nextCursor: mode === 'normal' || mode === 'page-malformed' ? 'opaque+/=patients.cursor' : null,
-        ownerPhone: '+7-private',
-        diagnosis: 'private diagnosis',
       });
     }
     return json(response, 404, { code: 'NOT_FOUND' });
@@ -70,6 +82,8 @@ test.beforeEach(async ({ context }) => {
   authority = 'allowed';
   requestedQ = null;
   requestedCursor = null;
+  requestedReference = null;
+  patientRequests = 0;
   releaseDelayed = null;
   await addSession(context, [locationId, otherLocationId]);
 });
@@ -80,6 +94,14 @@ test('default-off route is absent', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Пациенты', exact: true })).toHaveCount(0);
   const bff = await page.request.get(`/api/clinic/${clinicId}/locations/${locationId}/patients`);
   expect(bff.status()).toBe(404);
+});
+
+test('L-01/L-02 independent reference flag keeps ordinary Registry as default', async ({ page }) => {
+  test.skip(!rolloutEnabled || referenceSearchEnabled, 'reference rollback-only check');
+  await open(page);
+  await expect(page.getByRole('radio', { name: 'Внутренний номер' })).toHaveCount(0);
+  await expect(page.getByLabel('Поиск по имени питомца')).toBeVisible();
+  expect(requestedReference).toBeNull();
 });
 
 test.describe('enabled patients registry', () => {
@@ -198,6 +220,159 @@ test.describe('enabled patients registry', () => {
     await attach(page, testInfo, 'patients-mobile');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   });
+
+  test('L-01..L-10/L-32 submit-only exact mode normalizes request and excludes cursor/q', async ({ page }) => {
+    test.skip(!referenceSearchEnabled, 'reference-enabled check');
+    await open(page);
+    const baseline = patientRequests;
+    await page.getByRole('radio', { name: 'Внутренний номер' }).click();
+    const field = page.getByLabel('Внутренний номер', { exact: true });
+    await expect(field).toBeFocused();
+    await field.fill('  Pe\u0301T   004  ');
+    expect(patientRequests).toBe(baseline);
+    await page.getByRole('button', { name: 'Найти' }).click();
+    await expect.poll(() => requestedReference).toBe('PéT 004');
+    expect(requestedQ).toBeNull();
+    expect(requestedCursor).toBeNull();
+    await expect(page.getByText('PéT 004', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Барни' })).toBeVisible();
+    await expect(page.getByText('Сибирская')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Показать ещё' })).toHaveCount(0);
+  });
+
+  test('L-11..L-13 rejects blank, controls, invalid characters and over-40 without requests', async ({ page }) => {
+    test.skip(!referenceSearchEnabled, 'reference-enabled check');
+    await open(page);
+    await page.getByRole('radio', { name: 'Внутренний номер' }).click();
+    const field = page.getByLabel('Внутренний номер', { exact: true });
+    const baseline = patientRequests;
+    for (const [value, message] of [
+      ['', 'Введите внутренний номер.'],
+      ['PET*1', 'Используйте только буквы, цифры, пробел, -, _, / и точку.'],
+      ['PET\u007f1', 'Переносы строк и управляющие символы не поддерживаются.'],
+      ['Я'.repeat(41), 'Внутренний номер может содержать до 40 символов.'],
+    ]) {
+      await field.fill(value);
+      await page.getByRole('button', { name: 'Найти' }).click();
+      await expect(page.getByText(message)).toBeVisible();
+    }
+    expect(patientRequests).toBe(baseline);
+  });
+
+  test('L-14..L-19 exact item, neutral empty and clear restore ordinary pagination', async ({ page }) => {
+    test.skip(!referenceSearchEnabled, 'reference-enabled check');
+    await open(page);
+    await page.getByRole('radio', { name: 'Внутренний номер' }).click();
+    await page.getByLabel('Внутренний номер', { exact: true }).fill('NONE-1');
+    await page.getByRole('button', { name: 'Найти' }).click();
+    await expect(page.getByRole('heading', { name: 'Пациент с таким внутренним номером не найден в этой локации.' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Пациент с таким внутренним номером не найден в этой локации.' })
+      .locator('..')).toHaveAttribute('aria-live', 'polite');
+    await expect(page.getByText('Проверьте номер или выберите другую локацию.')).toBeVisible();
+    await expect(page.getByText(/другой клинике|нет доступа|архивирован|согласие/i)).toHaveCount(0);
+    await page.getByRole('button', { name: 'Очистить' }).click();
+    await expect(page.getByLabel('Поиск по имени питомца')).toBeVisible();
+    await expect(page.getByLabel('Поиск по имени питомца')).toBeFocused();
+    await expect(page.getByRole('heading', { name: 'Барни' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Показать ещё' })).toBeVisible();
+    expect(requestedReference).toBeNull();
+  });
+
+  test('L-20/L-21 pending fences duplicate submit and stale response after clear', async ({ page }) => {
+    test.skip(!referenceSearchEnabled, 'reference-enabled check');
+    await open(page);
+    await page.getByRole('radio', { name: 'Внутренний номер' }).click();
+    await page.getByLabel('Внутренний номер', { exact: true }).fill('PET-1');
+    mode = 'delayed';
+    const baseline = patientRequests;
+    await page.getByRole('button', { name: 'Найти' }).dblclick();
+    await expect(page.getByRole('button', { name: 'Ищем…' })).toBeDisabled();
+    await expect(page.getByRole('status')).toHaveText('Выполняется поиск по внутреннему номеру.');
+    expect(patientRequests).toBe(baseline + 1);
+    await page.getByRole('button', { name: 'Очистить' }).click();
+    mode = 'normal';
+    releaseDelayed?.();
+    await expect(page.getByLabel('Поиск по имени питомца')).toBeVisible();
+    await expect(page.getByText('PET-1', { exact: true })).toHaveCount(0);
+  });
+
+  test('L-22 current location change clears reference state and does not replay query', async ({ page }) => {
+    test.skip(!referenceSearchEnabled, 'reference-enabled check');
+    await open(page);
+    await page.getByRole('radio', { name: 'Внутренний номер' }).click();
+    await page.getByLabel('Внутренний номер', { exact: true }).fill('PET-1');
+    await page.getByRole('button', { name: 'Найти' }).click();
+    await expect.poll(() => requestedReference).toBe('PET-1');
+    requestedReference = null;
+    await page.goto(route(otherLocationId));
+    await expect(page.getByLabel('Поиск по имени питомца')).toBeVisible();
+    expect(requestedReference).toBeNull();
+  });
+
+  test('L-23..L-30 maps safe failures, preserves snapshot and retries exact query', async ({ page }) => {
+    test.skip(!referenceSearchEnabled, 'reference-enabled check');
+    await open(page);
+    await page.getByRole('radio', { name: 'Внутренний номер' }).click();
+    const field = page.getByLabel('Внутренний номер', { exact: true });
+    await field.fill('PET-1');
+    mode = 'reference-invalid';
+    await page.getByRole('button', { name: 'Найти' }).click();
+    await expect(page.getByText('Используйте только буквы, цифры, пробел, -, _, / и точку.')).toBeVisible();
+    mode = 'reference-combination';
+    await page.getByRole('button', { name: 'Найти' }).click();
+    await expect(page.getByText(/текущими параметрами/)).toBeVisible();
+    mode = 'reference-invariant';
+    await page.getByRole('button', { name: 'Найти' }).click();
+    await expect(page.getByText('Поиск временно недоступен. Попробуйте позже.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Повторить поиск' })).toBeVisible();
+    mode = 'search-unavailable';
+    await page.getByRole('button', { name: 'Найти' }).click();
+    await expect(page.getByText('Не удалось проверить доступ к пациентам. Попробуйте ещё раз.')).toBeVisible();
+    mode = 'error';
+    await page.getByRole('button', { name: 'Найти' }).click();
+    await expect(page.getByText(/последний подтверждённый список/)).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Барни' })).toBeVisible();
+    mode = 'malformed';
+    await page.getByRole('button', { name: 'Найти' }).click();
+    await expect(page.getByText(/последний подтверждённый список/)).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Барни' })).toBeVisible();
+    mode = 'normal';
+    await page.getByRole('button', { name: 'Повторить поиск' }).click();
+    await expect.poll(() => requestedReference).toBe('PET-1');
+  });
+
+  test('L-25 authority errors remove query result without existence leakage', async ({ page }) => {
+    test.skip(!referenceSearchEnabled, 'reference-enabled check');
+    for (const failure of ['unauthenticated', 'denied', 'scope-unavailable'] as Mode[]) {
+      mode = 'normal';
+      await open(page);
+      await page.getByRole('radio', { name: 'Внутренний номер' }).click();
+      await page.getByLabel('Внутренний номер', { exact: true }).fill('PET-SECRET');
+      mode = failure;
+      await page.getByRole('button', { name: 'Найти' }).click();
+      await expect(page.getByText(/PET-SECRET|Барни/)).toHaveCount(0);
+      await expect(page.getByRole('heading', { name: 'Не удалось загрузить пациентов' })).toBeVisible();
+    }
+  });
+
+  test('L-33/L-34 keyboard, axe and 1440/1024/390 layouts remain accessible', async ({ page }) => {
+    test.skip(!referenceSearchEnabled, 'reference-enabled check');
+    await open(page);
+    await page.getByRole('radio', { name: 'Внутренний номер' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByLabel('Внутренний номер', { exact: true })).toBeFocused();
+    await page.keyboard.type('PET-1');
+    await page.keyboard.press('Enter');
+    await expect.poll(() => requestedReference).toBe('PET-1');
+    await page.getByRole('button', { name: 'Очистить' }).click();
+    await expect(page.getByLabel('Поиск по имени питомца')).toBeFocused();
+    expect((await new AxeBuilder({ page }).include('main').analyze()).violations).toEqual([]);
+    for (const viewport of [{ width: 1440, height: 900 }, { width: 1024, height: 768 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await expect(page.getByRole('heading', { name: 'Барни' })).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    }
+  });
 });
 
 async function addSession(context: BrowserContext, locations: string[]) {
@@ -219,7 +394,7 @@ const pathLocation = (url: URL) => url.pathname.split('/locations/')[1].split('/
 function patient(patientId: string, displayName: string) {
   return {
     patientId,
-    administrativeReference: null,
+    administrativeReference: null as string | null,
     pet: { displayName, speciesLabel: 'Собака', breed: 'Сибирская', sexCode: 'MALE', birthDate: '2020-02-29' },
     owner: { displayName: null },
     relationship: { firstSeenAt: '2025-01-10T09:00:00.000Z', lastSeenAt: '2026-07-20T09:00:00.000Z' },

@@ -340,6 +340,19 @@ visibility query. Results remain canonical 0..1 envelopes with
 Every item now includes required nullable display `administrativeReference`.
 No search UI, new route, migration or read side effect is introduced.
 
+### 04L exact administrative-reference Portal
+
+The existing Registry now exposes a flag-gated **Внутренний номер** mode
+alongside the unchanged ordinary name-prefix mode. Search is submit-only and
+exact-location scoped; the client sends only normalized
+`administrativeReference` plus the canonical limit. Clear, scope change and
+flag rollback return to a fresh ordinary Registry without stale replay.
+
+One result uses the canonical Registry card and nullable display reference.
+Zero results use a neutral no-leak location message. Validation, authority,
+policy, invariant, transport and malformed-response states remain distinct,
+with explicit retry and last-valid snapshot preservation.
+
 ## Archive, retention and consent decision
 
 The canonical decision is

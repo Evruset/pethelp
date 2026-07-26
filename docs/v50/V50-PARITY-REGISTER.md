@@ -183,3 +183,16 @@ When any prototype file changes, regenerate the manifest, rerun inventory verifi
 - Focused PostgreSQL/HTTP, rollback, regression, EXPLAIN, strict Portal parser
   and Node 22 typecheck gates cover the implementation without a migration or
   rendered Portal search UI.
+
+## V50-CLINIC-04L — Administrative reference Registry search Portal
+
+- Existing Patients Registry has an explicit, independently flag-gated
+  **Внутренний номер** mode; ordinary name search remains the default.
+- Exact search is submit-only, current-location scoped and sends no ordinary
+  query or cursor. NFC/trim/space normalization preserves display case.
+- Canonical one-item and neutral empty states, authority no-leak, last-valid
+  technical snapshot, explicit retry, clear, scope change and stale-request
+  fencing have focused deterministic coverage.
+- Keyboard/focus, axe and 1440/1024/390 responsive proofs pass. No backend,
+  migration, autocomplete, prefix/global search or Patient Detail change is
+  introduced.
