@@ -169,6 +169,21 @@ properties, invalid UUIDs, non-finite/impossible timestamps, wrong scope,
 malformed nullable objects or raw entity payloads fail closed. No partial row or
 fake empty registry replaces the last validated snapshot.
 
+### 04J exact administrative-reference filter
+
+The future Registry item adds required nullable `administrativeReference`;
+comparison key and local-profile internals remain forbidden. The existing route
+accepts an exclusive exact `administrativeReference` query only under
+`VETHELP_CLINIC_PATIENT_ADMIN_REFERENCE_SEARCH`.
+
+The filter is applied after existing authentication, membership, exact scope,
+`patient.admin.read`, association, consent and privacy qualification. It uses
+the mutation normalizer and exact scoped comparison-key index. Result
+cardinality is zero or one in the unchanged envelope with `nextCursor: null`.
+Reference plus `q`, cursor or any semantic filter is invalid; limit remains
+allowed. Flag-off never affects ordinary Registry/Detail/mutation and never
+silently returns the unfiltered Registry.
+
 ## Search, ordering and pagination
 
 Supported future query:

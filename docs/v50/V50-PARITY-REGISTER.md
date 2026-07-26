@@ -156,3 +156,15 @@ When any prototype file changes, regenerate the manifest, rerun inventory verifi
   malformed-success rejection, keyboard, accessibility and responsive states
   have focused Portal coverage.
 - Registry DTO/search and all backend/runtime contracts remain unchanged.
+
+## V50-CLINIC-04J — Administrative reference Registry search contract
+
+- Documentation fixes an exclusive exact-normalized filter on the existing
+  exact-location Registry route; no separate or global lookup authority exists.
+- Current Registry visibility is established before reference matching.
+  Unknown, foreign, revoked, archived and privacy-ineligible values are
+  indistinguishable empty results.
+- Future Registry items add only nullable display reference. The existing
+  scoped unique comparison-key index, canonical envelope, 0..1 cardinality,
+  no-cursor rule, safe telemetry and a dedicated default-off flag are fixed.
+- No backend, migration, OpenAPI, Portal, runtime flag, test or package changed.

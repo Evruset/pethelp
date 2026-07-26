@@ -213,6 +213,12 @@ internals and does not add a Registry mutation route.
 |---|---|---|---|---|
 | Existing Patient Detail | reference is separate from official name and alias; read remains flag-independent | existing capability/flag, exact scope, shared version/lock, UUID idempotency | collision field error; stale refresh; 403 read-only; 404 no-leak; technical snapshot retention | no Registry column/search, owner identifier, medical-record number or backend change |
 
+### V50-CLINIC-04J reference Registry search contract
+
+| Route/filter | Read authority | Scope/ordering | Rollout | Contract result |
+|---|---|---|---|---|
+| `GET /v1/clinic/:clinicId/locations/:locationId/patients?administrativeReference=...` | existing `patient.admin.read`; no write capability | authenticate, active membership, exact clinic/location and current Registry visibility before exact reference match | new default-off `VETHELP_CLINIC_PATIENT_ADMIN_REFERENCE_SEARCH` | canonical Registry envelope, required nullable display reference, cardinality 0..1, no cursor; documentation only in `04J` |
+
 The reference is unique only by normalized key inside one clinic location. It
 is not a medical-record number, global patient ID or authority token. Registry
 projection/search remains a separate future slice.

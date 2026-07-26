@@ -386,5 +386,19 @@ refreshes Detail without resubmit; 403 removes both write controls; 404 clears
 the snapshot; policy/network/malformed success preserve the last valid
 snapshot. Registry projection/search remains unchanged.
 
-The next slice is documentation-only `V50-CLINIC-04J / Clinic Patient
-Administrative Reference Registry Search Contract Discovery`.
+The documentation-only `V50-CLINIC-04J / Clinic Patient Administrative
+Reference Registry Search Contract Discovery` is complete.
+
+## 26. 04J Registry search decision
+
+The completed search contract is
+`V50-CLINIC-PATIENT-ADMIN-REFERENCE-REGISTRY-SEARCH-CONTRACT.md`. It selects an
+exclusive exact-normalized `administrativeReference` filter on the existing
+exact-location Registry route. Authority/current visibility precede matching;
+unknown, foreign and inaccessible values all return the same empty Registry
+envelope. Registry items will gain only the nullable display reference.
+
+The existing scoped partial unique comparison-key index is the intended lookup
+index. Search has its own default-off flag, emits no mutation audit/outbox and
+never exposes raw query/key. Prefix/contains/global search and Portal UI remain
+excluded. The next slice is backend-only `V50-CLINIC-04K`.

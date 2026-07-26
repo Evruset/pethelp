@@ -1158,10 +1158,34 @@ Execution verdict: `PASS / COMPLETE`.
 
 Execution verdict: `PASS / COMPLETE`.
 
+### `V50-CLINIC-04J / Clinic Patient Administrative Reference Registry Search Contract Discovery`
+
+`COMPLETE / DOCUMENTATION_ONLY`.
+
+- Selected one exclusive exact-normalized `administrativeReference` query on
+  the existing clinic/location Registry route; no lookup endpoint, prefix,
+  contains, fuzzy, global or cross-location search.
+- Existing authentication, active membership, exact scope,
+  `patient.admin.read` and current association/consent/privacy qualification
+  precede matching. Unknown, foreign and inaccessible references are identical
+  `200` empty envelopes.
+- Future Registry items add required nullable display reference only. Exact
+  search retains the canonical envelope, returns 0..1 item, never creates a
+  cursor and rejects cursor/other semantic filter combinations.
+- Search reuses the Unicode 17 mutation normalizer and existing scoped partial
+  unique B-tree. Representative-volume EXPLAIN, no scan/N+1/raw-query logging,
+  safe invariant failure and a dedicated default-off read/search flag are
+  mandatory implementation gates.
+- J-01..J-32 define the future PostgreSQL/HTTP/parser/rollback matrix. No
+  runtime, migration, OpenAPI, Portal, tests, packages or flags changed.
+
+Execution verdict: `PASS / COMPLETE`.
+
 ## Next single action
 
-`V50-CLINIC-04J / Clinic Patient Administrative Reference Registry Search Contract Discovery`.
+`V50-CLINIC-04K / Clinic Patient Administrative Reference Registry Search Backend`.
 
-Documentation-only discovery of exact search semantics, authority-first
-location scope, no-leak projection/index/pagination/privacy/performance
-boundaries. Do not begin `04J` in this slice.
+Add only the Registry exact query parameter, authority-first filtering,
+required nullable reference projection, strict query DTO, default-off search
+flag, scoped indexed lookup, OpenAPI, bounded backend tests and Portal parser
+compatibility without UI. Do not begin `04K` in this slice.
