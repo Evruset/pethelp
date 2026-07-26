@@ -19,6 +19,7 @@ describe('hasCapability', () => {
       Capability.BOOKING_QUEUE_READ,
       Capability.APPOINTMENT_REGISTRY_READ,
       Capability.PATIENT_ADMIN_READ,
+      Capability.PATIENT_ADMIN_LOCAL_PROFILE_UPDATE,
       Capability.QUALITY_READ,
       Capability.SCHEDULE_READ,
       Capability.BOOKING_REPLAY_READ,
@@ -30,5 +31,11 @@ describe('hasCapability', () => {
     expect(hasCapability(employee(Role.CLINIC_RECEPTIONIST), Capability.PATIENT_ADMIN_READ)).toBe(true);
     expect(hasCapability(employee(Role.CLINIC_ADMIN), Capability.PATIENT_ADMIN_READ)).toBe(true);
     expect(hasCapability(employee(Role.CLINIC_VETERINARIAN), Capability.PATIENT_ADMIN_READ)).toBe(false);
+  });
+
+  it('grants local profile mutation separately from read and never to veterinarians', () => {
+    expect(hasCapability(employee(Role.CLINIC_RECEPTIONIST), Capability.PATIENT_ADMIN_LOCAL_PROFILE_UPDATE)).toBe(true);
+    expect(hasCapability(employee(Role.CLINIC_ADMIN), Capability.PATIENT_ADMIN_LOCAL_PROFILE_UPDATE)).toBe(true);
+    expect(hasCapability(employee(Role.CLINIC_VETERINARIAN), Capability.PATIENT_ADMIN_LOCAL_PROFILE_UPDATE)).toBe(false);
   });
 });

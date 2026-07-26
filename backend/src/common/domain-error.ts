@@ -44,6 +44,7 @@ export const DomainErrors = {
   holdOwnerMismatch: () => new DomainException(HttpStatus.FORBIDDEN, 'HOLD_OWNER_MISMATCH', 'Owner mismatch'),
   petOwnershipMismatch: () => new DomainException(HttpStatus.UNPROCESSABLE_ENTITY, 'PET_OWNERSHIP_MISMATCH', 'Pet ownership mismatch'),
   clinicScopeMismatch: () => new DomainException(HttpStatus.FORBIDDEN, 'CLINIC_SCOPE_MISMATCH', 'Clinic scope mismatch'),
+  patientVersionStale: () => new DomainException(HttpStatus.CONFLICT, 'PATIENT_VERSION_STALE', 'Patient version is stale'),
   idempotencyInProgress: () => new DomainException(425, 'IDEMPOTENCY_IN_PROGRESS', 'Command is in progress'),
   workerUnauthorized: () => new DomainException(HttpStatus.FORBIDDEN, 'WORKER_UNAUTHORIZED', 'Worker key is invalid'),
   bookingUnavailable: () => new DomainException(HttpStatus.SERVICE_UNAVAILABLE, 'BOOKING_TEMPORARILY_UNAVAILABLE', 'Booking unavailable'),

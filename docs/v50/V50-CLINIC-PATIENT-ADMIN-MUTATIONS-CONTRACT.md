@@ -1,6 +1,43 @@
 # V50 Clinic Patient Administrative Mutations Contract
 
-Status: `CONTRACT_COMPLETE / IMPLEMENTATION_MISSING`.
+Status: `LOCAL_ALIAS_BACKEND_IMPLEMENTED / PORTAL_MISSING`.
+
+## 04E implementation evidence
+
+`V50-CLINIC-04E` implements only:
+
+```http
+PATCH /v1/clinic/:clinicId/locations/:locationId/patients/:patientId/local-profile
+```
+
+The strict DTO accepts `{ "alias": string | null }` and rejects unknown
+properties. A non-null alias is NFC-normalized, trimmed, 1..80 Unicode code
+points and contains no newline or control characters. The response contains
+only `patientId`, `clinicId`, `locationId`, `alias`, `aggregateVersion` and
+`updatedAt`.
+
+The additive `clinic_schema.clinic_patient_local_profiles` table is keyed by
+exact clinic/location/patient association scope. Initial absent-profile version
+is `0`; successful set, replace, same-value set and clear increment a monotonic
+version. The command requires the new
+`patient.admin.local-profile.update`, current exact-scope membership and
+association/consent/privacy visibility, `If-Match`, UUID `Idempotency-Key` and
+default-off `VETHELP_CLINIC_PATIENT_ADMIN_MUTATIONS`.
+
+Alias mutation, version increment, scoped idempotency result, safe audit and
+durable outbox are committed in one PostgreSQL transaction. Replays return the
+original result; a changed normalized payload returns
+`IDEMPOTENCY_KEY_REUSED`. Foreign/revoked/archived/invisible resources are
+normalized without existence leakage. Audit/outbox record only the alias field
+marker and SET/CLEAR operation, never the alias value.
+
+Focused alias HTTP/PostgreSQL is 12/12 PASS covering E-01..E-28 plus
+same-value versioning, concurrent stale-writer exclusion, forced transactional
+rollback and exact-scope uniqueness. Capability
+regressions are 35/35 PASS; Patient Detail and Registry remain 8/8 PASS each.
+Migration verification, backend build and generated OpenAPI export PASS.
+Portal, owner master data, clinical/lifecycle domains, Queue and booking state
+machine are unchanged.
 
 ## 1. Purpose
 
@@ -148,16 +185,15 @@ The first implementation command is deliberately narrower:
 ```text
 UpdateClinicPatientLocalAlias
 headers: If-Match, Idempotency-Key, optional X-Correlation-ID
-request: { localAlias: string | null }
+request: { alias: string | null }
 response: {
-  clinicId, locationId, patientId,
-  localProfile: { localAlias },
-  aggregateVersion, serverNow
+  clinicId, locationId, patientId, alias,
+  aggregateVersion, updatedAt
 }
 ```
 
 Preconditions are authenticated session, exact active membership/scope, enabled
-read and mutation flags, `patient.admin.local-profile.update`, current visible
+mutation flag, `patient.admin.local-profile.update`, current visible
 association/consent/policy, unarchived pet, matching version, valid key and
 allowlisted DTO. Postconditions are one clinic-local change, version increment,
 audit and durable outbox in one PostgreSQL transaction. No owner master,
@@ -242,9 +278,10 @@ Errors expose no database, policy, membership or foreign-resource detail.
 
 ## 17. Feature-flag strategy
 
-Implementation requires both existing `VETHELP_CLINIC_PATIENTS_REGISTRY` and a
-new default-off `VETHELP_CLINIC_PATIENT_ADMIN_MUTATIONS`. The latter is not
-added in `04D`. It rolls back writes independently: Registry and read-only
+Implementation uses a new default-off
+`VETHELP_CLINIC_PATIENT_ADMIN_MUTATIONS`; the existing Registry flag is not
+write authorization. The mutation flag rolls back writes independently:
+Registry and read-only
 Detail remain available, stored local metadata remains intact, and rollback
 requires no database downgrade.
 
@@ -284,10 +321,9 @@ These gates do not expand the first alias-only backend slice.
 
 ## 20. Recommended next bounded slice
 
-`V50-CLINIC-04E / Clinic Patient Local Administrative Profile Mutation Backend`.
+`V50-CLINIC-04F / Clinic Patient Local Alias Portal Integration`.
 
-Implement only `UpdateClinicPatientLocalAlias`: one clinic-local field, exact
-scope, new capability, `If-Match`, UUID `Idempotency-Key`, transactional
-audit/outbox, default-off mutation flag and focused PostgreSQL/HTTP matrix.
-Do not add Portal UI, owner corrections, reference/labels, lifecycle commands
-or clinical fields in the same slice.
+Integrate only the implemented alias command into the existing administrative
+Patient Detail page through one cookie-session BFF. Keep server-authoritative
+version/idempotency handling and do not add owner corrections,
+reference/labels, lifecycle commands or clinical fields.

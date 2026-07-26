@@ -2445,6 +2445,137 @@
         ]
       }
     },
+    "/v1/clinic/{clinicId}/locations/{locationId}/patients/{patientId}/local-profile": {
+      "patch": {
+        "operationId": "update",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "patientId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "\"0\""
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "alias"
+                ],
+                "properties": {
+                  "alias": {
+                    "type": "string",
+                    "nullable": true,
+                    "minLength": 1,
+                    "maxLength": 80
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClinicPatientLocalAliasDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed IDs, headers or strict alias DTO."
+          },
+          "401": {
+            "description": "Clinic employee JWT is required."
+          },
+          "403": {
+            "description": "Mutation capability and exact active membership are required."
+          },
+          "404": {
+            "description": "Rollout disabled or patient unavailable in the current exact scope."
+          },
+          "409": {
+            "description": "Stale version or idempotency-key payload mismatch."
+          },
+          "422": {
+            "description": "Disallowed patient field class."
+          },
+          "428": {
+            "description": "If-Match is required."
+          },
+          "503": {
+            "description": "Visibility policy is unavailable."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Set or clear an exact-scope clinic-local patient alias",
+        "tags": [
+          "Clinic Patients"
+        ],
+        "x-required-capabilities": [
+          "patient.admin.local-profile.update"
+        ]
+      }
+    },
     "/v1/clinic/{clinicId}/locations/{locationId}/quality-dashboard": {
       "get": {
         "operationId": "dashboard",
@@ -6240,6 +6371,43 @@
           "locationId",
           "serverNow",
           "patient"
+        ]
+      },
+      "ClinicPatientLocalAliasDto": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "clinicId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "alias": {
+            "type": "string",
+            "nullable": true
+          },
+          "aggregateVersion": {
+            "type": "number",
+            "minimum": 1
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "patientId",
+          "clinicId",
+          "locationId",
+          "alias",
+          "aggregateVersion",
+          "updatedAt"
         ]
       },
       "CreateEmergencyTriageDto": {

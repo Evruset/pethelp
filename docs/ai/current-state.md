@@ -986,12 +986,48 @@ Execution verdict: `PASS / COMPLETE`.
 
 Execution verdict: `PASS / COMPLETE`.
 
+### `V50-CLINIC-04E / Clinic Patient Local Administrative Profile Mutation Backend`
+
+`COMPLETE / BACKEND_IMPLEMENTED`.
+
+- Implemented exact-scope `PATCH
+  /v1/clinic/:clinicId/locations/:locationId/patients/:patientId/local-profile`
+  for alias set, replace and clear only.
+- Strict request accepts only `alias: string | null`; non-null values are
+  NFC-normalized, trimmed, 1..80 Unicode code points and reject newline/control
+  characters. Response is limited to exact scope, alias, version and timestamp.
+- Added the minimal `clinic_patient_local_profiles` table with exact
+  clinic/location/patient uniqueness, nullable alias, association FK,
+  monotonic aggregate version and reversible down migration. No JSON metadata,
+  reference, labels, notes or owner/clinical columns were added.
+- Added `patient.admin.local-profile.update` for receptionist/admin role
+  mappings through the existing capability evaluator. `patient.admin.read`
+  alone remains insufficient; veterinarian-only, foreign/inactive and
+  invisible scopes are denied.
+- Every command rechecks current membership, exact scope, association,
+  consent/privacy policy and feature flag. `If-Match` and UUID
+  `Idempotency-Key` are mandatory; replay is stable and payload mismatch is
+  `IDEMPOTENCY_KEY_REUSED`.
+- Alias/version, idempotency result, safe audit and outbox are one PostgreSQL
+  transaction. Audit/outbox contain only field marker and SET/CLEAR, never the
+  alias value.
+- Added independent default-off
+  `VETHELP_CLINIC_PATIENT_ADMIN_MUTATIONS`; Registry/Detail reads remain
+  available when it is off. Portal production is unchanged.
+- Focused alias HTTP/PostgreSQL is 12/12 PASS covering E-01..E-28 plus
+  same-value versioning, concurrent stale-writer exclusion, forced
+  transactional rollback and exact-scope uniqueness. Capability
+  tests are 35/35 PASS; Patient Detail and Registry regressions are 8/8 PASS
+  each. Migration verification, backend build and generated OpenAPI export
+  PASS.
+
+Execution verdict: `PASS / COMPLETE`.
+
 ## Next single action
 
-`V50-CLINIC-04E / Clinic Patient Local Administrative Profile Mutation Backend`.
+`V50-CLINIC-04F / Clinic Patient Local Alias Portal Integration`.
 
-Implement only `UpdateClinicPatientLocalAlias`: one clinic-location-local
-field, exact scope, new capability, `If-Match`, UUID `Idempotency-Key`,
-transactional audit/outbox, independent default-off mutation flag and focused
-PostgreSQL/HTTP tests. Do not add Portal UI, owner correction workflow,
-administrative reference/labels, lifecycle commands or clinical fields.
+Add only the guarded alias set/replace/clear interaction to the existing
+administrative Patient Detail page through a cookie-session BFF, preserving
+server-authoritative version/idempotency behavior. Do not add owner correction,
+reference/labels, lifecycle commands or clinical fields.
