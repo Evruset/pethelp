@@ -1051,11 +1051,40 @@ Execution verdict: `PASS / COMPLETE`.
 
 Execution verdict: `PASS / COMPLETE`.
 
+### `V50-CLINIC-04F / Clinic Patient Local Alias Portal Integration`
+
+`COMPLETE / PORTAL_IMPLEMENTED`.
+
+- The existing Patient Detail page keeps the official pet name as its heading
+  and renders a separate `Имя в клинике` block with `Не задано` for null and
+  an explicit internal-only explanation.
+- Read presentation remains available with mutations disabled. Editing requires
+  `VETHELP_CLINIC_PATIENT_ADMIN_MUTATIONS`, effective
+  `patient.admin.local-profile.update`, exact clinic/location scope and an
+  authoritative Detail aggregate version.
+- The compact accessible dialog supports set, replace and explicit clear.
+  Client validation applies NFC, trim, 1..80 Unicode code points and rejects
+  blank, newline and control/format input; null is sent only by clear.
+- The bounded cookie-session BFF forwards a strong quoted `If-Match` and UUID
+  `Idempotency-Key`. Technical retry reuses the key only for the same normalized
+  scoped intent; payload/operation/scope changes and success start a new intent.
+- Strict success parsing prevents malformed payloads from replacing the last
+  valid snapshot. Stale/association conflict refreshes Detail without automatic
+  resubmit; 403 removes write control; no-leak 404 clears the snapshot; policy,
+  network and 5xx failures preserve confirmed read data.
+- Focused grouped Playwright evidence maps F-01..F-30, with existing Patient
+  Detail/Registry, mutation rollback, parser contract, Node 22 typecheck/build,
+  diff audits and Tier B validation recorded in the slice handoff.
+- Backend, migrations, OpenAPI, roles, state machines, Registry mutation,
+  Owner Mobile, Queue, booking, clinical surfaces and new screens are unchanged.
+
+Execution verdict: `PASS / COMPLETE`.
+
 ## Next single action
 
-`V50-CLINIC-04F / Clinic Patient Local Alias Portal Integration`.
+`V50-CLINIC-04G / Clinic Patient Structured Administrative Reference Contract Refinement`.
 
-Add only the guarded alias set/replace/clear interaction to the existing
-administrative Patient Detail page through a cookie-session BFF, preserving
-server-authoritative version/idempotency behavior. Do not add owner correction,
-reference/labels, lifecycle commands or clinical fields.
+Documentation-only clarification of reference format/source, exact scope,
+uniqueness, edit/search/retention/audit/concurrency semantics, distinction from
+medical-record number, and prohibition as a global patient identifier. Do not
+begin implementation in this slice.

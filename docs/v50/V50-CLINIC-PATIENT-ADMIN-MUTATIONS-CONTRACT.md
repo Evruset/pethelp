@@ -330,6 +330,40 @@ These gates do not expand the first alias-only backend slice.
 
 `V50-CLINIC-04F / Clinic Patient Local Alias Portal Integration`.
 
+## 04F Portal integration
+
+The existing Patient Detail page presents `patient.localProfile.alias` in a
+separate **Имя в клинике** block. The official pet name remains the page
+heading. The helper explicitly states that the alias is clinic-internal and
+does not modify the owner/master name.
+
+Writing is available only when `VETHELP_CLINIC_PATIENT_ADMIN_MUTATIONS=true`,
+the effective session includes `patient.admin.local-profile.update`, exact
+clinic/location scope is present, and an authoritative Detail snapshot supplies
+`aggregateVersion`. The browser calls the bounded Portal BFF; it never supplies
+backend credentials. The BFF forwards a quoted strong `If-Match` value and UUID
+`Idempotency-Key` to the reserved local-profile command.
+
+The editor normalizes NFC and trims, then accepts 1–80 Unicode code points and
+rejects blank values, line breaks and control/format characters. Only the
+explicit clear action sends `alias: null`. A technical retry of the same
+normalized operation reuses its key; changed payload, SET/CLEAR transition,
+success, close, patient or scope change starts a new intent.
+
+Success applies only a strictly validated response. Stale/association conflicts
+discard the intent and refresh Detail without automatic PATCH retry. A 403
+removes the write control while preserving authorized read data; a no-leak 404
+clears the snapshot. Policy, network, 5xx and malformed-success failures preserve
+the last valid snapshot and permit safe retry. The compact dialog has an
+accessible name, labelled/described input, live error/pending text, focus
+entry/return, Escape handling and wrapping controls for narrow viewports.
+
+Focused Playwright coverage maps F-01–F-30 into grouped deterministic cases:
+presentation/gates; set/replace/clear and headers; validation; double-submit and
+retry intent; stale/authority/no-leak; technical/malformed failures; and
+accessibility/responsive behavior. Backend, migrations, roles, state machines,
+Registry mutation and owner surfaces remain excluded.
+
 Integrate only the implemented alias command into the existing administrative
 Patient Detail page through one cookie-session BFF. Keep server-authoritative
 version/idempotency handling and do not add owner corrections,

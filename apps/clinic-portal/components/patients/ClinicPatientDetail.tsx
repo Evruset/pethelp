@@ -2,9 +2,13 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchPatientDetail, PatientDetailResponseError, type PatientAppointment, type PatientDetail } from '@/lib/api/clinic-patient-detail';
+import {
+  fetchPatientDetail, mutatePatientLocalProfile, normalizePatientAlias,
+  PatientDetailResponseError, PatientLocalProfileMutationError,
+  type PatientAppointment, type PatientDetail,
+} from '@/lib/api/clinic-patient-detail';
 
-type Props = { clinicId: string; locationId: string; patientId: string; invalid?: boolean };
+type Props = { clinicId: string; locationId: string; patientId: string; invalid?: boolean; canEditLocalAlias?: boolean };
 type Phase = 'loading' | 'ready' | 'not-found' | 'denied' | 'policy' | 'error' | 'malformed' | 'degraded';
 const sex = (value: PatientDetail['patient']['pet']['sexCode']) =>
   value === 'MALE' ? 'Самец' : value === 'FEMALE' ? 'Самка' : value === 'UNKNOWN' ? 'Пол не уточнён' : 'Пол не указан';
@@ -44,7 +48,7 @@ function AppointmentBlock({ title, item, clinicId, locationId }: {
   </div>;
 }
 
-export function ClinicPatientDetailView({ clinicId, locationId, patientId, invalid = false }: Props) {
+export function ClinicPatientDetailView({ clinicId, locationId, patientId, invalid = false, canEditLocalAlias = false }: Props) {
   const [detail, setDetail] = useState<PatientDetail | null>(null);
   const [phase, setPhase] = useState<Phase>(invalid ? 'not-found' : 'loading');
   const [refreshing, setRefreshing] = useState(false);
@@ -52,6 +56,15 @@ export function ClinicPatientDetailView({ clinicId, locationId, patientId, inval
   const request = useRef<AbortController | null>(null);
   const valid = useRef<PatientDetail | null>(null);
   const stateHeading = useRef<HTMLHeadingElement>(null);
+  const aliasInput = useRef<HTMLTextAreaElement>(null);
+  const aliasEditButton = useRef<HTMLButtonElement>(null);
+  const [aliasEditorOpen, setAliasEditorOpen] = useState(false);
+  const [aliasInputValue, setAliasInputValue] = useState('');
+  const [aliasPending, setAliasPending] = useState(false);
+  const [aliasError, setAliasError] = useState<string | null>(null);
+  const [aliasMessage, setAliasMessage] = useState<string | null>(null);
+  const [writeAvailable, setWriteAvailable] = useState(canEditLocalAlias);
+  const intent = useRef<{ scope: string; payload: string; key: string } | null>(null);
 
   const load = useCallback(async (manual = false) => {
     if (invalid) return;
@@ -91,6 +104,95 @@ export function ClinicPatientDetailView({ clinicId, locationId, patientId, inval
   useEffect(() => {
     if (phase === 'not-found' || phase === 'denied') stateHeading.current?.focus();
   }, [phase]);
+  useEffect(() => setWriteAvailable(canEditLocalAlias), [canEditLocalAlias]);
+  useEffect(() => {
+    intent.current = null;
+    setAliasEditorOpen(false);
+  }, [clinicId, locationId, patientId]);
+  useEffect(() => {
+    if (aliasEditorOpen) aliasInput.current?.focus();
+  }, [aliasEditorOpen]);
+
+  const closeAliasEditor = useCallback(() => {
+    if (aliasPending) return;
+    setAliasEditorOpen(false);
+    setAliasError(null);
+    intent.current = null;
+    requestAnimationFrame(() => aliasEditButton.current?.focus());
+  }, [aliasPending]);
+  const openAliasEditor = () => {
+    setAliasInputValue(detail?.patient.localProfile.alias ?? '');
+    setAliasError(null);
+    setAliasMessage(null);
+    intent.current = null;
+    setAliasEditorOpen(true);
+  };
+  const saveAlias = async (clear = false) => {
+    if (!detail || aliasPending) return;
+    let alias: string | null = null;
+    if (!clear) {
+      const normalized = normalizePatientAlias(aliasInputValue);
+      if (normalized.error) {
+        setAliasError(normalized.error);
+        return;
+      }
+      alias = normalized.value as string;
+    }
+    const scope = `${clinicId}:${locationId}:${patientId}`;
+    const payload = clear ? 'CLEAR' : `SET:${alias}`;
+    if (!intent.current || intent.current.scope !== scope || intent.current.payload !== payload) {
+      intent.current = { scope, payload, key: crypto.randomUUID() };
+    }
+    setAliasPending(true);
+    setAliasError(null);
+    setAliasMessage(null);
+    try {
+      const result = await mutatePatientLocalProfile({
+        clinicId, locationId, patientId, alias,
+        aggregateVersion: detail.patient.localProfile.aggregateVersion,
+        idempotencyKey: intent.current.key,
+      });
+      const next: PatientDetail = {
+        ...detail,
+        patient: { ...detail.patient, localProfile: {
+          alias: result.alias, aggregateVersion: result.aggregateVersion, updatedAt: result.updatedAt,
+        } },
+      };
+      valid.current = next;
+      setDetail(next);
+      setAliasEditorOpen(false);
+      intent.current = null;
+      setAliasMessage(clear ? 'Имя в клинике удалено.' : 'Имя в клинике сохранено.');
+      requestAnimationFrame(() => aliasEditButton.current?.focus());
+    } catch (error) {
+      const failure = error instanceof PatientLocalProfileMutationError ? error : new PatientLocalProfileMutationError('network');
+      if (failure.status === 409 && ['PATIENT_VERSION_STALE', 'PATIENT_ASSOCIATION_CHANGED'].includes(failure.code ?? '')) {
+        intent.current = null;
+        setAliasEditorOpen(false);
+        setAliasMessage('Данные пациента изменились. Карточка обновлена — проверьте имя и повторите действие.');
+        await load(true);
+      } else if (failure.status === 403) {
+        intent.current = null;
+        setAliasEditorOpen(false);
+        setWriteAvailable(false);
+        setAliasMessage('Изменение сейчас недоступно. Карточка остаётся доступна для просмотра.');
+      } else if (failure.status === 404) {
+        intent.current = null;
+        setAliasEditorOpen(false);
+        valid.current = null;
+        setDetail(null);
+        setPhase('not-found');
+      } else if (failure.status === 422) {
+        setAliasError('Не удалось сохранить имя. Проверьте значение и повторите попытку.');
+      } else if (failure.status === 503 && failure.code === 'POLICY_TEMPORARILY_UNAVAILABLE') {
+        setAliasError('Не удалось проверить доступ к изменению. Попробуйте ещё раз.');
+      } else {
+        setAliasError('Не удалось сохранить имя. Последние подтверждённые данные не изменены — попробуйте ещё раз.');
+      }
+    } finally {
+      setAliasPending(false);
+    }
+  };
 
   const back = `/clinics/${encodeURIComponent(clinicId)}/locations/${encodeURIComponent(locationId)}/patients`;
   const patient = detail?.patient;
@@ -134,6 +236,20 @@ export function ClinicPatientDetailView({ clinicId, locationId, patientId, inval
             <Fact label="Статус" value="Доступен для административной работы" /><Fact label="Локация" value="Текущая выбранная локация" />
           </dl>
         </section>
+        <section aria-labelledby="local-alias-title" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7 lg:col-span-2">
+          <div className="flex flex-wrap items-start justify-between gap-4"><div className="min-w-0">
+            <h2 id="local-alias-title" className="text-xl font-semibold text-slate-950">Имя в клинике</h2>
+            <p className="mt-2 break-words text-base font-semibold text-slate-900">{patient.localProfile.alias ?? 'Не задано'}</p>
+            <p className="mt-2 max-w-3xl text-sm text-slate-600">Внутреннее имя для сотрудников этой клиники. Оно не изменяет официальное имя питомца и не показывается владельцу.</p>
+            {patient.localProfile.updatedAt && <p className="mt-2 text-xs text-slate-500">Обновлено: {instant(patient.localProfile.updatedAt)}</p>}
+          </div>
+          {writeAvailable && phase === 'ready' && <button ref={aliasEditButton} type="button" onClick={openAliasEditor}
+            className="min-h-11 shrink-0 rounded-xl border border-blue-300 px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-50">
+            Изменить имя в клинике
+          </button>}
+          </div>
+          {aliasMessage && <p role="status" className="mt-4 rounded-lg bg-slate-100 p-3 text-sm font-medium text-slate-800">{aliasMessage}</p>}
+        </section>
         <section aria-labelledby="appointments-title" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2 sm:p-7">
           <h2 id="appointments-title" className="text-xl font-semibold text-slate-950">Записи</h2>
           <div className="mt-5 grid gap-5 lg:grid-cols-2">
@@ -147,5 +263,36 @@ export function ClinicPatientDetailView({ clinicId, locationId, patientId, inval
         </section>
       </div>}
     </div>
+    {aliasEditorOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4" onMouseDown={(event) => {
+      if (event.target === event.currentTarget) closeAliasEditor();
+    }}>
+      <section role="dialog" aria-modal="true" aria-labelledby="alias-dialog-title"
+        onKeyDown={(event) => { if (event.key === 'Escape' && !aliasPending) closeAliasEditor(); }}
+        className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl sm:p-7">
+        <h2 id="alias-dialog-title" className="text-xl font-semibold text-slate-950">Изменить имя в клинике</h2>
+        <p id="alias-help" className="mt-2 text-sm text-slate-600">От 1 до 80 символов. Изменение действует только внутри текущей клиники, не меняет данные владельца и официальное имя питомца.</p>
+        <label htmlFor="patient-local-alias" className="mt-5 block text-sm font-semibold text-slate-900">Имя в клинике</label>
+        <textarea ref={aliasInput} id="patient-local-alias" value={aliasInputValue} disabled={aliasPending} rows={1}
+          aria-invalid={Boolean(aliasError)} aria-describedby={`alias-help${aliasError ? ' alias-error' : ''}`}
+          onChange={(event) => { setAliasInputValue(event.target.value); setAliasError(null); intent.current = null; }}
+          className="mt-2 min-h-11 w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-slate-950 disabled:bg-slate-100" />
+        {aliasError && <p id="alias-error" role="alert" aria-live="assertive" className="mt-2 text-sm font-semibold text-red-700">{aliasError}</p>}
+        <p className="mt-3 min-h-5 text-sm text-slate-600" role="status" aria-live="polite">{aliasPending ? 'Сохраняем имя…' : ''}</p>
+        <div className="mt-5 flex flex-wrap-reverse justify-between gap-3">
+          <button type="button" disabled={aliasPending || detail?.patient.localProfile.alias === null} onClick={() => void saveAlias(true)}
+            aria-label="Очистить имя в клинике" className="min-h-11 rounded-xl border border-red-300 px-4 py-2 text-sm font-semibold text-red-800 disabled:opacity-50">
+            Очистить имя
+          </button>
+          <div className="flex flex-wrap gap-3">
+            <button type="button" disabled={aliasPending} onClick={closeAliasEditor}
+              className="min-h-11 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-50">Отмена</button>
+            <button type="button" disabled={aliasPending} onClick={() => void saveAlias()}
+              className="min-h-11 rounded-xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+              {aliasPending ? 'Сохраняем…' : 'Сохранить'}
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>}
   </div></main>;
 }

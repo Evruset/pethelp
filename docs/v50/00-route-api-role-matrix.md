@@ -191,3 +191,12 @@ Enforcement mismatch details:
 ## 9. Traceability conclusion
 
 Every v50 screen now maps to production code or an explicit absence. Existing queue, schedule, owner booking, alternatives, insurance, emergency and telemed slices should be reused; no evidence supports replacing them with prototype JavaScript. The first implementation boundary must be capability/state architecture, because current routes cannot safely expose new admin/doctor read models until the P0 role conflicts above are resolved.
+### V50-CLINIC-04F Portal alias integration
+
+| Portal surface | Backend route | Read | Write gate | Concurrency / retry |
+|---|---|---|---|---|
+| Existing clinic Patient Detail — `Имя в клинике` | `PATCH /v1/clinic/:clinicId/locations/:locationId/patients/:patientId/local-profile` via bounded BFF | `patient.admin.read`, exact clinic/location; mutation flag does not hide alias | mutation flag + `patient.admin.local-profile.update` + exact scope + authoritative Detail version | strong quoted `If-Match`; UUID idempotency key reused only for technical retry of the same normalized intent |
+
+Foreign, revoked, archived or otherwise unavailable resources use normalized
+no-leak states. The Portal does not expose capability, membership or policy
+internals and does not add a Registry mutation route.

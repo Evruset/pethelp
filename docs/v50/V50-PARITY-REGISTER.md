@@ -112,3 +112,12 @@ Shell structure, navigation selection, role/capability visibility, responsive mo
 ## Next update rule
 
 When any prototype file changes, regenerate the manifest, rerun inventory verification, diff screen/route/state identities, and update affected evidence before implementation continues. `V50-OWNER-03` package `v50-owner-03-dc762b4` passed the final independent gate with zero vetoes; `OWN-002`, `OWN-004`, `OWN-018` and `OWN-019` are `VISUALLY_VERIFIED` and the counter is `7/30`. Doctor integration is ready, but production rollout remains blocked by `PUBLIC_DOCTOR_PROFILE_CONSENT_CONTRACT_MISSING`.
+## V50-CLINIC-04F — Clinic-local alias Portal workflow
+
+- Existing Patient Detail now distinguishes official name from clinic-local
+  alias and exposes a compact accessible editor only under the mutation flag
+  and effective write capability.
+- Exact-scope concurrency, idempotency, validation, conflict refresh, no-leak
+  denial and last-valid-snapshot behavior are covered by focused Portal tests.
+- No Owner Mobile, Registry mutation, backend, migration, role, state-machine,
+  Queue, booking or clinical scope was added.

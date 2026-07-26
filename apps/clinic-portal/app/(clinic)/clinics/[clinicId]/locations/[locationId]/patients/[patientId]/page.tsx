@@ -26,7 +26,10 @@ export default async function ClinicPatientDetailPage({ params }: Props) {
   try {
     const effective = await getEffectiveSession(session);
     if (!hasCapability(effective, 'patient.admin.read') || !hasClinicScope(effective, clinicId, locationId)) return <Denied clinicId={clinicId} locationId={locationId} />;
-    return <ClinicPatientDetailView clinicId={clinicId} locationId={locationId} patientId={patientId} />;
+    const canEditLocalAlias = process.env.VETHELP_CLINIC_PATIENT_ADMIN_MUTATIONS === 'true'
+      && hasCapability(effective, 'patient.admin.local-profile.update')
+      && hasClinicScope(effective, clinicId, locationId);
+    return <ClinicPatientDetailView clinicId={clinicId} locationId={locationId} patientId={patientId} canEditLocalAlias={canEditLocalAlias} />;
   } catch {
     return <Denied clinicId={clinicId} locationId={locationId} unavailable />;
   }

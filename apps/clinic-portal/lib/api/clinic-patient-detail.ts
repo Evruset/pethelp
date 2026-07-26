@@ -21,6 +21,15 @@ export class PatientDetailResponseError extends Error {
     super(kind === 'malformed' ? 'INVALID_PATIENT_DETAIL_RESPONSE' : `PATIENT_DETAIL_HTTP_${status}`);
   }
 }
+export type PatientLocalProfileMutation = {
+  clinicId: string; locationId: string; patientId: string;
+  alias: string | null; aggregateVersion: number; updatedAt: string;
+};
+export class PatientLocalProfileMutationError extends Error {
+  constructor(public readonly kind: 'malformed' | 'http' | 'network', public readonly status?: number, public readonly code?: string) {
+    super(kind === 'http' ? `PATIENT_LOCAL_PROFILE_HTTP_${status}` : `PATIENT_LOCAL_PROFILE_${kind.toUpperCase()}`);
+  }
+}
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -129,4 +138,49 @@ export async function fetchPatientDetail(input: { clinicId: string; locationId: 
   });
   if (!response.ok) throw new PatientDetailResponseError('http', response.status);
   return parsePatientDetail(await response.json().catch(() => null), input);
+}
+
+export function normalizePatientAlias(value: string): { value?: string; error?: string } {
+  const normalized = value.normalize('NFC').trim();
+  if (!normalized) return { error: 'Имя не может быть пустым.' };
+  if (/[\r\n]/u.test(normalized)) return { error: 'Переносы строк не поддерживаются.' };
+  if (/[\p{Cc}\p{Cf}]/u.test(normalized)) return { error: 'Некоторые символы не поддерживаются.' };
+  if (Array.from(normalized).length > 80) return { error: 'Введите имя длиной до 80 символов.' };
+  return { value: normalized };
+}
+
+function parseMutation(payload: unknown, expected: { clinicId: string; locationId: string; patientId: string }): PatientLocalProfileMutation {
+  if (!record(payload) || !keys(payload, ['clinicId', 'locationId', 'patientId', 'alias', 'aggregateVersion', 'updatedAt'])
+    || payload.clinicId !== expected.clinicId || payload.locationId !== expected.locationId || payload.patientId !== expected.patientId
+    || !nullableText(payload.alias) || !Number.isInteger(payload.aggregateVersion) || Number(payload.aggregateVersion) < 1
+    || !instant(payload.updatedAt)) throw new PatientLocalProfileMutationError('malformed');
+  return {
+    clinicId: payload.clinicId, locationId: payload.locationId, patientId: payload.patientId,
+    alias: payload.alias, aggregateVersion: Number(payload.aggregateVersion), updatedAt: payload.updatedAt,
+  };
+}
+
+export async function mutatePatientLocalProfile(input: {
+  clinicId: string; locationId: string; patientId: string; alias: string | null;
+  aggregateVersion: number; idempotencyKey: string;
+}): Promise<PatientLocalProfileMutation> {
+  let response: Response;
+  try {
+    response = await fetch(`/api/clinic/${encodeURIComponent(input.clinicId)}/locations/${encodeURIComponent(input.locationId)}/patients/${encodeURIComponent(input.patientId)}/local-profile`, {
+      method: 'PATCH', cache: 'no-store',
+      headers: {
+        Accept: 'application/json', 'Content-Type': 'application/json',
+        'If-Match': `"${input.aggregateVersion}"`, 'Idempotency-Key': input.idempotencyKey,
+      },
+      body: JSON.stringify({ alias: input.alias }),
+    });
+  } catch {
+    throw new PatientLocalProfileMutationError('network');
+  }
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    const code = record(payload) && typeof payload.code === 'string' ? payload.code : undefined;
+    throw new PatientLocalProfileMutationError('http', response.status, code);
+  }
+  return parseMutation(payload, input);
 }

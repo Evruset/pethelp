@@ -361,3 +361,16 @@ clinical sources.
 15. Next slice: `V50-CLINIC-04D / Clinic Patient Administrative Mutations Contract Discovery`.
 
 Implementation verdict: `PATIENT_ADMINISTRATIVE_DETAIL_END_TO_END_IMPLEMENTED`.
+
+## 04F local alias presentation and editing
+
+Patient Detail keeps the official `pet.displayName` as its primary heading and
+renders `localProfile.alias` separately as **Имя в клинике**, using **Не задано**
+for `null`. Read presentation is independent of the mutation rollout flag.
+Editing is a bounded, capability-gated dialog on the same page and consumes the
+authoritative `localProfile.aggregateVersion`; it does not add a second Patient
+screen or alter Registry behavior.
+
+Technical mutation failures never replace the last valid Detail snapshot.
+Conflict refresh remains authoritative, while 403 removes mutation affordance
+and no-leak 404 clears the Detail snapshot.
