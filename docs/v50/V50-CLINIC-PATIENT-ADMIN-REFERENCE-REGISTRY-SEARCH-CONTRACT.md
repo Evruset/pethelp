@@ -336,3 +336,17 @@ pass without autocomplete, backend or mutation changes.
 
 `V50-CLINIC-04M / Clinic Patient Administrative Reference Registry Search
 Operational Hardening` — documentation-first bounded hardening discovery only.
+
+## 30. 04M operational decision
+
+The production hardening contract is
+`V50-CLINIC-PATIENT-ADMIN-REFERENCE-SEARCH-OPERATIONS-CONTRACT.md`.
+It requires a replica-safe exact-search-only limiter keyed by safe
+actor/clinic/location/search type, configurable 20/minute and 200/hour initial
+windows, low-cardinality outcome telemetry, query-string redaction, semantic
+JSON EXPLAIN guards and evidence-gated rollout.
+
+Raw query/key/fingerprint storage is prohibited; MVP uses aggregate counters
+because no approved fingerprint key lifecycle exists. Current process-local
+single-window limiting and small performance proof are insufficient for
+production. The next bounded implementation is `V50-CLINIC-04N`.

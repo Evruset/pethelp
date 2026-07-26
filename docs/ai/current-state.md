@@ -1239,11 +1239,45 @@ Execution verdict: `PASS / COMPLETE`.
 
 Execution verdict: `PASS / COMPLETE`.
 
+### `V50-CLINIC-04M / Clinic Patient Administrative Reference Registry Search Operational Hardening`
+
+`COMPLETE / DOCUMENTATION_ONLY`.
+
+- Added
+  `docs/v50/V50-CLINIC-PATIENT-ADMIN-REFERENCE-SEARCH-OPERATIONS-CONTRACT.md`
+  with the complete privacy/threat/rate-limit/abuse/telemetry/performance/
+  rollout/incident/support contract and no unresolved decisions.
+- Current production gaps are proven: the existing limiter is process-local,
+  single-window and shared with ordinary search; there is no approved
+  search-safe telemetry/redaction contract or durable representative-volume
+  semantic EXPLAIN cadence.
+- Chosen production limiter is exact-search-only and replica-safe, keyed by
+  safe actor + clinic + location + search type after authority and before the
+  reference query. Initial configurable evidence values are 20/minute and
+  200/hour; aggregate location protection is alert-first.
+- Fixed 11-value no-leak outcome taxonomy, low-cardinality metrics/tracing and
+  access-log query redaction. Raw/normalized reference, comparison key and
+  patient data are forbidden. No fingerprint is stored in MVP because no
+  approved separate HMAC key lifecycle exists.
+- Controlled pre-production thresholds are p95 <=150 ms and observed p99
+  <=300 ms, not production SLA. Relevant PRs use 10k rows; nightly uses 100k+
+  with semantic `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)`, scoped index,
+  no-local-profile-Seq-Scan and no-N+1 assertions.
+- Five rollout stages, flag-only rollback, bounded alerts, invariant response,
+  safe support diagnostics, ownership/runbook and M-01..M-32 future proofs are
+  complete. A separate broad security slice is unnecessary; 04N receives
+  bounded security validation.
+- Documentation-only: runtime, backend, Portal, OpenAPI, migrations, flags,
+  tests, packages and observability implementation are unchanged.
+
+Execution verdict: `PASS / COMPLETE`.
+
 ## Next single action
 
-`V50-CLINIC-04M / Clinic Patient Administrative Reference Registry Search Operational Hardening`.
+`V50-CLINIC-04N / Clinic Patient Administrative Reference Search Operational Hardening Backend`.
 
-Perform documentation-first bounded hardening discovery for rate limiting,
-abuse protection, safe metrics, EXPLAIN regression guards,
-representative-volume fixtures, rollout, alerts, query-fingerprint retention,
-performance budget and support diagnostics. Do not implement `04M` here.
+Implement only the approved replica-safe separate limiter, safe aggregate
+telemetry/tracing and query redaction, semantic EXPLAIN guards and fixture
+tiers, rollout diagnostics, bounded alert/runbook artifacts and M-01..M-32
+proofs. Do not add search functionality, Portal redesign, migration, index or
+support endpoint.

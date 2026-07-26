@@ -353,6 +353,18 @@ Zero results use a neutral no-leak location message. Validation, authority,
 policy, invariant, transport and malformed-response states remain distinct,
 with explicit retry and last-valid snapshot preservation.
 
+### 04M operational hardening contract
+
+Exact-reference search production rollout additionally requires the 04M
+operations contract: separate replica-safe short/sustained actor-location
+limits, safe aggregate outcome metrics/traces, access-log query redaction,
+10k relevant-PR and 100k+ nightly fixtures, semantic JSON EXPLAIN guards,
+bounded alerts/runbook and staged flag evidence.
+
+No query fingerprint is retained in MVP. Ordinary Registry browsing remains
+outside the exact-search limiter and rollback remains the independent search
+flag only.
+
 ## Archive, retention and consent decision
 
 The canonical decision is

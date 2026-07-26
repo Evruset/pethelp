@@ -231,6 +231,12 @@ internals and does not add a Registry mutation route.
 |---|---|---|---|---|
 | Existing Patients Registry — **Внутренний номер** mode | unchanged `patient.admin.read` and exact current clinic/location Registry access | explicit submit sends normalized `administrativeReference` without `q`/cursor; neutral 0/1 result, clear/scope fencing, safe retry | mode absent when the independent search flag is off; ordinary Registry remains default | Portal/BFF/types/tests implemented; no backend or mutation change |
 
+### V50-CLINIC-04M reference-search operations
+
+| Surface | Production gate | Safe observability | Performance/rollout | Status |
+|---|---|---|---|---|
+| Existing exact reference Registry query | replica-safe exact-search limiter: actor + clinic + location + search type; configurable 20/min and 200/hour; ordinary Registry isolated | fixed no-leak outcomes, no raw query/key/fingerprint, redacted access URL, bounded trace/metric fields | 10k PR/100k+ nightly semantic JSON EXPLAIN, staged boolean-flag promotion and flag-only rollback | documentation-only contract complete; implementation deferred to `04N` |
+
 The reference is unique only by normalized key inside one clinic location. It
 is not a medical-record number, global patient ID or authority token. Registry
 projection/search remains a separate future slice.

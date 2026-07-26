@@ -196,3 +196,17 @@ When any prototype file changes, regenerate the manifest, rerun inventory verifi
 - Keyboard/focus, axe and 1440/1024/390 responsive proofs pass. No backend,
   migration, autocomplete, prefix/global search or Patient Detail change is
   introduced.
+
+## V50-CLINIC-04M — Reference search operational hardening contract
+
+- Threats are bounded to authenticated exact-location enumeration, sustained
+  query load, sensitive telemetry, plan regression, rollout and support.
+- Production requires separate replica-safe 20/minute and 200/hour configurable
+  actor/location exact-search windows; aggregate location protection is
+  alert-first pending traffic evidence.
+- Metrics/traces use fixed low-cardinality outcomes. Raw/display/normalized
+  references, comparison keys, URLs and fingerprints are not retained.
+- Controlled thresholds, 10k/100k fixture tiers, semantic JSON EXPLAIN guard,
+  rollout stages, rollback, alerts, diagnostics and incident runbook are fixed.
+- Runtime remains unchanged; the proven mandatory gaps select only bounded
+  backend hardening `V50-CLINIC-04N`.
