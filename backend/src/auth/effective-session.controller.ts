@@ -18,10 +18,14 @@ export class EffectiveSessionController {
   @ApiOkResponse({ description: 'UX hint only; authorization is always evaluated server-side.' })
   async read(@CurrentUser() actor: JwtPayload) {
     const rows = await this.database.query<{ clinic_id: string; location_id: string }>(`
-      SELECT location.clinic_id::text, membership.clinic_location_id::text AS location_id
+      SELECT DISTINCT location.clinic_id::text, membership.clinic_location_id::text AS location_id
       FROM clinic_schema.employee_location_memberships membership
       JOIN clinic_schema.clinic_locations location ON location.id = membership.clinic_location_id
-      WHERE membership.employee_id = $1::uuid AND membership.active = true AND location.status = 'ACTIVE'
+      WHERE membership.employee_id = $1::uuid
+        AND membership.active = true
+        AND membership.revoked_at IS NULL
+        AND location.status = 'ACTIVE'
+      ORDER BY location.clinic_id::text, membership.clinic_location_id::text
     `, [actor.sub]);
     const clinicScopes = rows.rows.map((row) => ({ clinicId: row.clinic_id, locationId: row.location_id }));
     return { subjectId: actor.sub, roles: actor.roles, effectiveCapabilities: effectiveCapabilities(actor), clinicScopes };
