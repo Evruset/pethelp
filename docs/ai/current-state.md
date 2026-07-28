@@ -1325,11 +1325,96 @@ Execution verdict: `PASS / COMPLETE`.
 
 Execution verdict: `PASS / COMPLETE`.
 
+### `V50-LOCAL-RICH-DEMO-SEC-01 / Rich Demo Verification, Authority Matrix and Session Security Repair`
+
+`PASS / COMPLETE`.
+
+- Removed bearer JWT creation and token-bearing query URLs from local demo
+  artifacts. Login now uses a same-origin POST issue/exchange protocol with a
+  45-second cryptographically random one-time code, hash-at-rest storage and
+  atomic consume.
+- The server owns the bounded return route and validates exact backend
+  effective subject, roles and clinic/location scopes before setting a
+  30-minute HttpOnly, SameSite=Strict cookie.
+- The membership verifier now proves exact fixture-set equality including
+  inactive/revoked rows. The session verifier uses effective authority and
+  actual queue/visits BFF JSON contracts rather than HTML markers.
+- The canonical launcher enforces private permissions, lifecycle cleanup,
+  authority/membership verification and bearer-artifact scanning.
+- Security rules and verification invariants are fixed in
+  `docs/v50/V50-LOCAL-RICH-DEMO-SESSION-SECURITY-CONTRACT.md`.
+
+- Canonical Docker-backed validation passed after one graceful Docker Desktop
+  recovery with all PostgreSQL volumes preserved. Exact memberships passed
+  12/12 and all 12 effective-session profiles passed real queue/visits BFF
+  verification.
+- Live security validation passed four invalid origins, four unsafe return
+  paths, three negative authorities, one-success/nine-denial concurrent
+  consume, replay denial and real 45-second expiry with zero 5xx.
+- Generated artifacts contain no persistent bearer/JWT/code/session URL
+  material. Managed directory and file modes are `0700` and `0600`.
+
+Execution verdict: `PASS / COMPLETE`.
+
+### `LOCAL-DOCKER-RUNTIME-01 / Docker Desktop Runtime Stability Diagnosis`
+
+`PASS / DOCKER_RUNTIME_STABLE`.
+
+- The initial Docker Desktop API proxy accepted socket connections but did not
+  complete `/_ping`; host memory, disk and inode pressure were not present,
+  and Docker VM logs contained no OOM, ENOSPC, panic or VM-exit evidence.
+- One graceful Docker Desktop restart restored Docker 27.3.1. Existing
+  containers, four local volumes and both PostgreSQL data volumes were
+  preserved.
+- The canonical `vethelp-alpha` rich-demo launcher completed. Backend,
+  PostgreSQL and both required mocks stayed healthy; all containers reported
+  restart count zero and `OOMKilled=false`.
+- Six consecutive runtime checks over ten minutes, spaced 120 seconds apart,
+  passed for Docker `/_ping`, `docker info`, backend health and PostgreSQL
+  health. Backend RSS stabilized near 363 MiB and PostgreSQL near 61 MiB.
+- Primary classification: transient `DOCKER_API_PROXY_FAILURE`, confidence
+  medium. No repository or Docker data repair was justified.
+
+Execution verdict: `PASS / DOCKER_RUNTIME_STABLE`.
+
+Follow-up regression evidence: during `V50-LOCAL-RICH-DEMO-SEC-01V-R2`,
+the Docker API again stopped completing `/_ping` while the only permitted
+canonical stack recovery was starting. The five-case false-positive verifier
+suite passed and new focused expiry/concurrency/origin/return-path coverage was
+prepared, but live execution could not continue. Do not claim security closure
+or restart Docker again inside R2.
+
+### `V50-LOCAL-RUNTIME-02-R1 / Resume HoldExpirationService Startup Crash Repair After Manual Docker Recovery`
+
+`PASS / COMPLETE`.
+
+- Reproduced the startup crash in the canonical `vethelp-alpha` stack:
+  an expired inconsistent hold caused `BookingService.expireHolds()` to raise
+  `BOOKING_TEMPORARILY_UNAVAILABLE`, and the fire-and-forget interval left that
+  rejection unhandled, terminating Node with exit 1.
+- `HoldExpirationService` now catches and logs errors only at the scheduled
+  boundary so later intervals retry. Direct `runOnce()` callers still receive
+  the authoritative domain failure and the booking transaction continues to
+  roll back without changing the state machine or invariants.
+- The worker has one shared interval, suppresses overlapping cycles, stops
+  accepting work during teardown and waits for the active cycle before
+  completing module shutdown.
+- Focused lifecycle tests pass `4/4`, including synchronous adapter failure.
+  The real PostgreSQL booking-hold
+  regression passes with the canonical backend worker disabled during the
+  fixture-sensitive Jest run; backend build and `git diff --check` pass.
+- With workers enabled, the canonical backend passed ten consecutive
+  30-second checks over five minutes: health 200, running, exit 0, restart
+  count zero and no HoldExpirationService crash. Compose SIGTERM produced no
+  lifecycle exception or unhandled rejection; the npm development wrapper
+  records the externally stopped container as exit 1.
+
+Execution verdict: `PASS / COMPLETE`.
+
 ## Next single action
 
-`V50-CLINIC-04N-B / Administrative Reference Search Operational Hardening Integration`.
+`V50-LOCAL-RICH-DEMO-OPS-02 / Canonical Launcher and Source-Scoped Fixture Reconciliation`.
 
-Replace the process-local exact-reference limiter with this shared foundation,
-then add the approved safe 429/Retry-After, redaction, bounded telemetry,
-performance fixtures, rollout artifacts and M-01..M-32 proofs. Do not broaden
-search semantics.
+Reconcile the canonical launcher with source-scoped fixture ownership and
+remove remaining operational ambiguity without changing the now-validated
+session security boundary.
