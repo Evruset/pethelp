@@ -1430,8 +1430,44 @@ Execution verdict: `PASS / COMPLETE`.
 
 ## Next single action
 
-`V50-LOCAL-RICH-DEMO-OPS-02 / Canonical Launcher and Source-Scoped Fixture Reconciliation`.
+### `V50-LOCAL-RICH-DEMO-OPS-02A / Canonical Runtime Ownership and Source-Scoped Fixture Contract`
 
-Reconcile the canonical launcher with source-scoped fixture ownership and
-remove remaining operational ambiguity without changing the now-validated
-session security boundary.
+`OPS-02A PASS / CONTRACT_COMPLETE`.
+
+- Nine tracked operational launcher/facade entrypoints and nine
+  database-writing fixture sources were inventoried. Auxiliary session/token
+  generators are explicitly non-owning diagnostics.
+- `start-vethelp.sh` is the selected sole lifecycle owner. `dev/local/up.sh`,
+  `down.sh` and Make become compatibility delegates; rich demo becomes a
+  subordinate seed/validation profile and must not own Compose or a second
+  Portal.
+- Canonical endpoints are backend 3000, Clinic Portal 3001, Owner Web 3002,
+  prototype 8090, mocks 4101–4103 and LiveKit 7880. State converges on
+  `.runtime/vethelp-local`; the current rich-demo Portal 3002 conflicts with
+  Owner Web and requires migration.
+- Highest fixture risks are the isolated B01 global `TRUNCATE` and the local
+  identities script's unbounded Level-A update of every Pilot slot.
+  `local-stack-e2e.mjs` also creates a dynamic per-run slot source and
+  API-dependent booking graph without cleanup or a durable manifest.
+  `owner-mobile-web-e2e.mjs` creates a second unmarked booking/appointment/
+  insurance graph through APIs and likewise has no cleanup contract.
+  `LOCAL_RICH_DEMO_V1` has source only on slots and event payloads, but its
+  remaining ownership is provable through reserved `90…`–`99…` UUID ranges
+  plus a checked manifest.
+- No schema migration is required for current entities. OPS-02B must add
+  namespace/natural-key guards and source reports; any future entity without a
+  durable source or exclusive namespace requires a separate prerequisite.
+- Runtime ownership and fixture evidence are fixed in
+  `docs/v50/V50-LOCAL-RUNTIME-OWNERSHIP-CONTRACT.md` and
+  `docs/v50/V50-LOCAL-FIXTURE-SOURCE-REGISTER.md`.
+- `V50-LOCAL-RUNTIME-02` and `V50-LOCAL-RICH-DEMO-SEC-01` remain
+  `PASS / COMPLETE`; no runtime or security verification was repeated.
+
+Execution verdict: `OPS-02A PASS / CONTRACT_COMPLETE`.
+
+## Next single action
+
+`V50-LOCAL-RICH-DEMO-OPS-02B / Canonical Lifecycle Owner and Explicit Seed Profiles`.
+
+Implement the selected lifecycle owner, compatibility delegation, explicit
+seed graph and source ownership guards without beginning another product slice.
