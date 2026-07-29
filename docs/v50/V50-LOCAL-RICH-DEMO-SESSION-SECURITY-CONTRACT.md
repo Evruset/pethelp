@@ -36,6 +36,12 @@ artifact. Consumed records are removed immediately; expired records become
 unusable from server-clock expiry. Docker readiness calls are bounded so an
 unresponsive Desktop API cannot hang the launcher indefinitely.
 
+Lifecycle cleanup also removes generated session JSON/HTML and transient
+session-check body/header artifacts on startup, shutdown and controlled
+failure. Its focused internal seam accepts only the exact managed runtime
+directory or a bounded temporary-test namespace, rejects broad targets and
+does not start or stop Docker, Portal, seed or sessions.
+
 ## Verification contract
 
 The membership verifier compares complete sets of employee, role, clinic,
@@ -63,5 +69,17 @@ as hard failures.
 - Security runtime: four invalid origins denied; four unsafe return paths
   canonicalized; ten concurrent exchanges produced one success, nine denials
   and zero 5xx; replay and real 45-second expiry were denied.
+- Focused veterinarian closure returned six strictly validated visits. Four
+  remaining authority probes (cross-clinic queue, cross-location queue,
+  veterinarian against queue and reception against visits) returned controlled
+  403 denials with no DTO, resource, existence, redirect or 5xx leakage.
+- Startup, shutdown and controlled-failure cleanup passed with idempotency,
+  preserved sentinel/seed/log/PID/unrelated files and no broad deletion or
+  symlink escape.
 - Persistent artifact scan: zero bearer/JWT/code/session URL matches;
-  managed directory mode `0700`, managed file modes `0600`.
+  managed directory mode `0700`, managed file modes `0600`, and zero
+  group/world-readable managed files.
+- Docker 27.3.1 on HyperKit preserved the healthy backend and PostgreSQL with
+  zero restarts. The earlier Portal loss was classified as
+  `AGENT_EXECUTION_PROCESS_TREE_CLEANUP`; an independently owned Portal
+  remained HTTP 200 and alive through final cleanup.

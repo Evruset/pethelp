@@ -1353,6 +1353,23 @@ Execution verdict: `PASS / COMPLETE`.
   consume, replay denial and real 45-second expiry with zero 5xx.
 - Generated artifacts contain no persistent bearer/JWT/code/session URL
   material. Managed directory and file modes are `0700` and `0600`.
+- Focused cleanup validation covers startup, shutdown, controlled failure and
+  idempotency without stopping Docker or Portal. It preserves seed, logs,
+  PIDs, unrelated managed files and an outside sentinel, rejects unsafe cleanup
+  targets and has zero symlink escape or broad deletion.
+- The final managed-runtime scan found zero bearer, access/refresh token,
+  JWT, token-bearing session URL, login-code query or cookie matches after one
+  bounded cleanup repair of three historical diagnostic logs. All four managed
+  directories are `0700`; all 13 persistent files are `0600`, with zero
+  group/world-readable files.
+- Focused `vet-therapist` validation returned six strict visits and denied
+  sequential replay. Cross-clinic queue, cross-location queue, veterinarian
+  against queue and reception against visits each returned controlled 403 with
+  zero DTO/resource/existence/redirect/5xx leakage.
+- Docker 27.3.1 on HyperKit, PostgreSQL and backend remained healthy with zero
+  backend restarts. The earlier Portal termination was
+  `AGENT_EXECUTION_PROCESS_TREE_CLEANUP`, not a Docker, Next.js, BFF or
+  launcher-security defect; the independently owned Portal remained HTTP 200.
 
 Execution verdict: `PASS / COMPLETE`.
 
