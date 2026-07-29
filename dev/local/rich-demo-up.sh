@@ -11,17 +11,31 @@ BACKEND_URL="${VETHELP_API_BASE_URL:-http://127.0.0.1:3000}"
 OPEN_BROWSER="${OPEN:-1}"
 RESET="${RESET_DEMO:-0}"
 ACTION=up
+INTERNAL_CLEANUP_MODE=
+INTERNAL_CLEANUP_DIR=
 
-for arg in "$@"; do
-  case "$arg" in
+while [[ $# -gt 0 ]]; do
+  case "$1" in
     --reset) RESET=1 ;;
     --no-open) OPEN_BROWSER=0 ;;
     --stop) ACTION=stop ;;
-    *) echo "Unknown argument: $arg" >&2; exit 2 ;;
+    --internal-cleanup-mode)
+      [[ $# -ge 2 ]] || { echo 'Missing internal cleanup mode.' >&2; exit 2; }
+      INTERNAL_CLEANUP_MODE="$2"
+      shift
+      ;;
+    --internal-cleanup-dir)
+      [[ $# -ge 2 ]] || { echo 'Missing internal cleanup directory.' >&2; exit 2; }
+      INTERNAL_CLEANUP_DIR="$2"
+      shift
+      ;;
+    *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
+  shift
 done
 
-STATE="$ROOT_DIR/.dev-local/rich-demo"
+REAL_STATE="$ROOT_DIR/.dev-local/rich-demo"
+STATE="${INTERNAL_CLEANUP_DIR:-$REAL_STATE}"
 CODE_DIR="$STATE/bootstrap-codes"
 LOGS="$STATE/logs"
 PIDS="$STATE/pids"
@@ -35,14 +49,60 @@ PORTAL_LOG="$LOGS/clinic-portal.log"
 APP_DIR="$ROOT_DIR/apps/clinic-portal"
 NEXT_LOCK="$APP_DIR/.next/dev/lock"
 PORTAL_STARTED=0
-mkdir -p -m 700 "$STATE" "$LOGS" "$PIDS" "$CODE_DIR"
-find "$STATE" -type f -exec chmod 600 {} +
-find "$CODE_DIR" -type f -delete
 
 info(){ printf '\033[1;34m[vethelp-demo]\033[0m %s\n' "$*"; }
 warn(){ printf '\033[1;33m[vethelp-demo]\033[0m %s\n' "$*"; }
 die(){ printf '\033[1;31m[vethelp-demo]\033[0m %s\n' "$*" >&2; exit 1; }
 need(){ command -v "$1" >/dev/null 2>&1 || die "$1 is required"; }
+
+validate_cleanup_target() {
+  [[ -n "$INTERNAL_CLEANUP_DIR" && "$INTERNAL_CLEANUP_DIR" == /* ]] ||
+    die 'Internal cleanup requires an absolute managed directory.'
+  [[ "$INTERNAL_CLEANUP_MODE" =~ ^(startup|shutdown|failure)$ ]] ||
+    die 'Invalid internal cleanup mode.'
+  [[ "$INTERNAL_CLEANUP_DIR" != "/" &&
+     "$INTERNAL_CLEANUP_DIR" != "$HOME" &&
+     "$INTERNAL_CLEANUP_DIR" != "$ROOT_DIR" ]] ||
+    die 'Unsafe internal cleanup target.'
+  [[ ! -L "$INTERNAL_CLEANUP_DIR" ]] || die 'Managed cleanup target must not be a symlink.'
+
+  local resolved parent
+  resolved="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$INTERNAL_CLEANUP_DIR")"
+  if [[ "$resolved" != "$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$REAL_STATE")" ]]; then
+    parent="$(basename "$(dirname "$resolved")")"
+    [[ "$(basename "$resolved")" == managed && "$parent" == vethelp-rich-demo-cleanup.* ]] ||
+      die 'Focused cleanup target is outside the bounded test namespace.'
+  fi
+}
+
+normalize_managed_state() {
+  mkdir -p "$STATE" "$LOGS" "$PIDS" "$CODE_DIR"
+  chmod 700 "$STATE" "$LOGS" "$PIDS" "$CODE_DIR"
+  find -P "$STATE" -type f -exec chmod 600 {} +
+}
+
+cleanup_sensitive_artifacts() {
+  find -P "$CODE_DIR" -type f -delete 2>/dev/null || true
+  rm -f \
+    "$SESSIONS_JSON" \
+    "$SESSIONS_HTML" \
+    "$STATE/session-check-body.txt" \
+    "$STATE/session-check-headers.txt"
+}
+
+if [[ -n "$INTERNAL_CLEANUP_MODE" || -n "$INTERNAL_CLEANUP_DIR" ]]; then
+  validate_cleanup_target
+  normalize_managed_state
+  cleanup_sensitive_artifacts
+  if [[ "$INTERNAL_CLEANUP_MODE" == failure ]]; then
+    warn 'Focused controlled failure requested.'
+    exit 70
+  fi
+  exit 0
+fi
+
+normalize_managed_state
+cleanup_sensitive_artifacts
 
 docker_ready() {
   python3 - <<'PY'
@@ -62,6 +122,7 @@ PY
 
 on_error() {
   local code=$?
+  cleanup_sensitive_artifacts
   warn "Launcher stopped with exit code $code."
   if [[ "$PORTAL_STARTED" == 1 && -f "$PORTAL_LOG" ]]; then
     printf '\n--- Current Clinic Portal log (last 160 lines) ---\n' >&2
@@ -70,7 +131,14 @@ on_error() {
   fi
   exit "$code"
 }
+on_exit() {
+  local code=$?
+  if [[ "$code" != 0 ]]; then
+    cleanup_sensitive_artifacts
+  fi
+}
 trap on_error ERR
+trap on_exit EXIT
 
 cat >"$OVERRIDE" <<'YAML'
 services:
@@ -260,7 +328,7 @@ wait_portal() {
 
 if [[ "$ACTION" == stop ]]; then
   stop_portal
-  find "$CODE_DIR" -type f -delete 2>/dev/null || true
+  cleanup_sensitive_artifacts
   if docker_ready; then
     "${COMPOSE[@]}" down || true
   fi

@@ -4,10 +4,7 @@ import { mkdir, open, readFile, readdir, rename, rm, stat } from 'node:fs/promis
 import path from 'node:path';
 import { CLINIC_SESSION_COOKIE, createClinicSessionToken, type ClinicSession } from '@/lib/auth/clinic-session';
 import { getEffectiveSession } from '@/lib/auth/effective-session';
-
-function devSessionEnabled(): boolean {
-  return process.env.NODE_ENV !== 'production' && process.env.VETHELP_ALLOW_DEV_SESSION === 'true';
-}
+import { isDevLocalSessionEnabled } from '@/lib/auth/local-session-policy';
 
 export function startPath(session: ClinicSession): string {
   const base = `/clinics/${session.clinicIds[0]}/locations/${session.locationIds[0]}`;
@@ -106,7 +103,7 @@ function setClinicSessionCookie(response: NextResponse, token: string): NextResp
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
-  if (!devSessionEnabled()) {
+  if (!isDevLocalSessionEnabled()) {
     return NextResponse.json({ code: 'NOT_FOUND' }, { status: 404 });
   }
 
@@ -146,7 +143,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 }
 
 export async function GET(): Promise<NextResponse> {
-  if (!devSessionEnabled()) return NextResponse.json({ code: 'NOT_FOUND' }, { status: 404 });
+  if (!isDevLocalSessionEnabled()) return NextResponse.json({ code: 'NOT_FOUND' }, { status: 404 });
   const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>VetHelp local session</title></head><body><p id="status">Проверка локальной сессии…</p><script>
   (async()=>{try{
     const profile=new URLSearchParams(location.hash.slice(1)).get('profile'); history.replaceState(null,'',location.pathname);
@@ -170,7 +167,7 @@ export async function GET(): Promise<NextResponse> {
 }
 
 export async function DELETE(): Promise<NextResponse> {
-  if (!devSessionEnabled()) {
+  if (!isDevLocalSessionEnabled()) {
     return NextResponse.json({ code: 'NOT_FOUND' }, { status: 404 });
   }
   const response = new NextResponse(null, { status: 204 });
