@@ -7,6 +7,7 @@ import { createHmac, webcrypto } from 'node:crypto';
 import nock from 'nock';
 import request from 'supertest';
 import { BookingErrorFilter } from '../src/common/booking-error.filter';
+import type { Role as RoleType } from '../src/auth/auth.types';
 import type { DatabaseService as DatabaseServiceType } from '../src/database/database.service';
 
 process.env.JWT_SECRET ??= 'platform-smoke-jwt-secret-at-least-32-bytes';
@@ -117,7 +118,12 @@ describe('VetHelp platform smoke: owner → Level C clinic → payment → telem
       { secret: config.jwtSecret, issuer: config.jwtIssuer, audience: config.jwtAudience, algorithm: 'HS256' },
     );
     receptionistToken = await jwt.signAsync(
-      { sub: IDS.receptionist, roles: ['CLINIC_RECEPTIONIST'], locationIds: [IDS.location] },
+      {
+        sub: IDS.receptionist,
+        roles: ['CLINIC_RECEPTIONIST'],
+        clinicIds: [IDS.clinic],
+        locationIds: [IDS.location],
+      },
       { secret: config.jwtSecret, issuer: config.jwtIssuer, audience: config.jwtAudience, algorithm: 'HS256' },
     );
   });
@@ -433,7 +439,7 @@ describe('Clinic quality dashboard quality.read HTTP matrix', () => {
     .query({ from: '2026-01-01T00:00:00.000Z', to: '2026-02-01T00:00:00.000Z' })
     .set('Authorization', `Bearer ${token}`);
 
-  const tokenFor = (input: { sub: string; roles: Role[]; clinicIds?: string[]; locationIds?: string[] }) => jwt.signAsync(
+  const tokenFor = (input: { sub: string; roles: RoleType[]; clinicIds?: string[]; locationIds?: string[] }) => jwt.signAsync(
     input,
     { secret: config.jwtSecret, issuer: config.jwtIssuer, audience: config.jwtAudience, algorithm: 'HS256' },
   );
@@ -605,7 +611,7 @@ describe('Clinic schedule slots schedule.read HTTP matrix', () => {
     .query({ from: '2026-01-01T00:00:00.000Z', to: '2026-02-01T00:00:00.000Z' })
     .set('Authorization', `Bearer ${token}`);
 
-  const tokenFor = (input: { sub: string; roles: Role[]; clinicIds?: string[]; locationIds?: string[] }) => jwt.signAsync(
+  const tokenFor = (input: { sub: string; roles: RoleType[]; clinicIds?: string[]; locationIds?: string[] }) => jwt.signAsync(
     input,
     { secret: config.jwtSecret, issuer: config.jwtIssuer, audience: config.jwtAudience, algorithm: 'HS256' },
   );
@@ -719,7 +725,7 @@ describe('Booking hold events booking.replay.read HTTP matrix', () => {
     .get(`/v1/booking-holds/${REPLAY.hold}/events`)
     .set('Authorization', `Bearer ${token}`);
 
-  const tokenFor = (input: { sub: string; roles: Role[]; clinicIds?: string[]; locationIds?: string[] }) => jwt.signAsync(
+  const tokenFor = (input: { sub: string; roles: RoleType[]; clinicIds?: string[]; locationIds?: string[] }) => jwt.signAsync(
     input,
     { secret: config.jwtSecret, issuer: config.jwtIssuer, audience: config.jwtAudience, algorithm: 'HS256' },
   );
@@ -828,7 +834,7 @@ describe('Booking hold booking.hold.read HTTP matrix', () => {
     .get(`/v1/booking-holds/${REPLAY.hold}`)
     .set('Authorization', `Bearer ${token}`);
 
-  const tokenFor = (input: { sub: string; roles: Role[]; clinicIds?: string[]; locationIds?: string[] }) => jwt.signAsync(
+  const tokenFor = (input: { sub: string; roles: RoleType[]; clinicIds?: string[]; locationIds?: string[] }) => jwt.signAsync(
     input,
     { secret: config.jwtSecret, issuer: config.jwtIssuer, audience: config.jwtAudience, algorithm: 'HS256' },
   );
@@ -922,7 +928,7 @@ describe('Telemed veterinarian queue telemed.vet.queue.read HTTP matrix', () => 
     .get('/v1/telemed/vet/queue')
     .set('Authorization', `Bearer ${token}`);
 
-  const tokenFor = (input: { sub: string; roles: Role[]; clinicIds?: string[]; locationIds?: string[] }) => jwt.signAsync(
+  const tokenFor = (input: { sub: string; roles: RoleType[]; clinicIds?: string[]; locationIds?: string[] }) => jwt.signAsync(
     input,
     { secret: config.jwtSecret, issuer: config.jwtIssuer, audience: config.jwtAudience, algorithm: 'HS256' },
   );
@@ -1006,7 +1012,7 @@ describe('Telemed veterinarian audit trail assignment/data-category HTTP matrix'
 
   afterAll(async () => app?.close());
 
-  const tokenFor = (input: { sub: string; roles: Role[]; clinicIds?: string[]; locationIds?: string[] }) => jwt.signAsync(
+  const tokenFor = (input: { sub: string; roles: RoleType[]; clinicIds?: string[]; locationIds?: string[] }) => jwt.signAsync(
     input, { secret: config.jwtSecret, issuer: config.jwtIssuer, audience: config.jwtAudience, algorithm: 'HS256' },
   );
   const audit = (id: string, token: string) => request(app.getHttpServer())
@@ -1060,7 +1066,7 @@ describe('Operational SLO snapshot ops.slo.snapshot.read HTTP matrix', () => {
     .get('/v1/ops/slo-snapshot')
     .set('Authorization', `Bearer ${token}`);
 
-  const tokenFor = (input: { sub: string; roles: Role[]; clinicIds?: string[]; locationIds?: string[] }) => jwt.signAsync(
+  const tokenFor = (input: { sub: string; roles: RoleType[]; clinicIds?: string[]; locationIds?: string[] }) => jwt.signAsync(
     input,
     { secret: config.jwtSecret, issuer: config.jwtIssuer, audience: config.jwtAudience, algorithm: 'HS256' },
   );

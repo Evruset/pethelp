@@ -19,7 +19,12 @@ describe('Emergency routing independent review boundary', () => {
 
   it('keeps clinic submissions out of public routing until platform review approves them', async () => {
     const fixture = await createFixture(database);
-    const clinicAdmin = { sub: fixture.clinicAdminId, roles: [Role.CLINIC_ADMIN], locationIds: [fixture.locationId] };
+    const clinicAdmin = {
+      sub: fixture.clinicAdminId,
+      roles: [Role.CLINIC_ADMIN],
+      clinicIds: [fixture.clinicId],
+      locationIds: [fixture.locationId],
+    };
 
     await profiles.upsert(fixture.locationId, {
       emergencyStatus: 'ACCEPTING_NOW',
@@ -59,7 +64,12 @@ describe('Emergency routing independent review boundary', () => {
   });
 });
 
-async function createFixture(database: DatabaseService): Promise<{ clinicAdminId: string; platformAdminId: string; locationId: string }> {
+async function createFixture(database: DatabaseService): Promise<{
+  clinicAdminId: string;
+  platformAdminId: string;
+  clinicId: string;
+  locationId: string;
+}> {
   const clinicAdminId = randomUUID();
   const platformAdminId = randomUUID();
   await database.query('TRUNCATE clinic_schema.clinics CASCADE');
@@ -68,5 +78,10 @@ async function createFixture(database: DatabaseService): Promise<{ clinicAdminId
   const clinic = await database.query<{ id: string }>(`INSERT INTO clinic_schema.clinics (legal_name, public_name) VALUES ('Emergency Alpha LLC', 'Emergency Alpha') RETURNING id::text`);
   const location = await database.query<{ id: string }>(`INSERT INTO clinic_schema.clinic_locations (clinic_id, address, latitude, longitude) VALUES ($1::uuid, 'Emergency Alpha Address', 55.751244, 37.618423) RETURNING id::text`, [clinic.rows[0].id]);
   await database.query(`INSERT INTO clinic_schema.employee_location_memberships (employee_id, clinic_location_id, role) VALUES ($1::uuid, $2::uuid, 'CLINIC_ADMIN')`, [clinicAdminId, location.rows[0].id]);
-  return { clinicAdminId, platformAdminId, locationId: location.rows[0].id };
+  return {
+    clinicAdminId,
+    platformAdminId,
+    clinicId: clinic.rows[0].id,
+    locationId: location.rows[0].id,
+  };
 }
