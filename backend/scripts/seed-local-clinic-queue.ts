@@ -60,6 +60,14 @@ async function main(): Promise<void> {
 
     const runId = `${Date.now()}-${process.pid}`;
     const created: FixtureItem[] = [];
+    const retained = await client.query<{ hold_id: string; slot_id: string; appointment_id: string }>(`
+      SELECT hold.id AS hold_id, slot.id AS slot_id, appointment.id AS appointment_id
+      FROM clinic_schema.appointment_slots slot
+      JOIN booking_schema.booking_holds hold ON hold.slot_id = slot.id
+      JOIN booking_schema.appointments appointment ON appointment.hold_id = hold.id
+      WHERE slot.source = $1
+      ORDER BY slot.id, hold.id, appointment.id
+    `, [fixtureSource]);
 
     await client.query(`
       DELETE FROM booking_schema.booking_holds hold
@@ -175,6 +183,15 @@ async function main(): Promise<void> {
       locationId: target.location_id,
       source: fixtureSource,
       items: created,
+      retainedDependants: retained.rows.map((row) => ({
+        slotId: row.slot_id,
+        holdId: row.hold_id,
+        appointmentId: row.appointment_id,
+      })),
+      ownedIds: [
+        ...created.flatMap((item) => [item.slotId, item.holdId]),
+        ...retained.rows.flatMap((row) => [row.slot_id, row.hold_id, row.appointment_id]),
+      ],
       notes: [
         'Items are ordered by manualConfirmPendingAt for backend FIFO validation.',
         'The first row is the most urgent but keeps 10 minutes for manual testing; later rows keep 20 and 30 minutes.',

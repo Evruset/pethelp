@@ -1,6 +1,11 @@
 const { Client } = require('pg');
+const {
+  SOURCE,
+  uuid,
+  assertOwned,
+  resetSql,
+} = require('../../dev/local/rich-demo-namespace.cjs');
 
-const SOURCE = 'LOCAL_RICH_DEMO_V1';
 const RESET = process.env.DEMO_RESET === '1';
 const DB = process.env.DATABASE_URL || 'postgres://vethelp:vethelp@postgres:5432/vethelp';
 const now = new Date();
@@ -12,16 +17,15 @@ const ids = {
   branch: '91000000-0000-4000-8000-000000000002',
   foreign: '91000000-0000-4000-8000-000000000003',
 };
-const uid = (prefix, n) => `${(prefix + '00000000').slice(0, 8)}-0000-4000-8000-${String(n).padStart(12, '0')}`;
-const employeeId = n => uid('93', n);
-const ownerId = n => uid('94', n);
-const petId = n => uid('95', n);
-const serviceId = n => uid('92', n);
-const doctorId = n => uid('925', n);
-const slotId = n => uid('96', n);
-const holdId = n => uid('97', n);
-const appointmentId = n => uid('98', n);
-const eventId = n => uid('99', n);
+const employeeId = n => uuid('93', n);
+const ownerId = n => uuid('94', n);
+const petId = n => uuid('95', n);
+const serviceId = n => uuid('92', n);
+const doctorId = n => uuid('925', n);
+const slotId = n => uuid('96', n);
+const holdId = n => uuid('97', n);
+const appointmentId = n => uuid('98', n);
+const eventId = n => uuid('99', n);
 
 function at(dayOffset, hour, minute = 0) {
   const d = new Date();
@@ -57,10 +61,49 @@ async function main() {
     return result.rows[0]?.ok === true;
   }
 
+  async function assertReservedSet(schema, table, prefix, allowedIds) {
+    if (!(await exists(schema, table))) return;
+    const result = await client.query(
+      `SELECT id::text
+       FROM ${qi(schema)}.${qi(table)}
+       WHERE id::text LIKE $1
+         AND NOT (id = ANY($2::uuid[]))
+       ORDER BY id`,
+      [`${prefix}%`, allowedIds],
+    );
+    if (result.rows.length) {
+      throw new Error(`${SOURCE} reservation collision in ${schema}.${table}: ${result.rows.map(row => row.id).join(',')}`);
+    }
+  }
+
   async function upsert(schema, table, row) {
     const available = await cols(schema, table);
     const entries = Object.entries(row).filter(([key]) => available.has(key));
     if (!entries.some(([key]) => key === 'id')) throw new Error(`${schema}.${table} has no id`);
+    const ownershipKeys = {
+      'clinic_schema.clinics': ['public_name'],
+      'clinic_schema.clinic_locations': ['clinic_id', 'address'],
+      'clinic_schema.clinic_services': ['clinic_location_id', 'code'],
+      'catalog_schema.doctors': ['clinic_location_id', 'full_name'],
+      'pet_schema.pets': ['owner_id', 'name'],
+      'clinic_schema.appointment_slots': ['source', 'external_slot_id'],
+      'booking_schema.booking_holds': ['slot_id', 'owner_id', 'pet_id'],
+      'booking_schema.appointments': ['hold_id', 'slot_id'],
+      'booking_schema.appointment_events': ['actor_id', 'event_type'],
+    }[`${schema}.${table}`] || [];
+    if (ownershipKeys.length) {
+      const existing = await client.query(
+        `SELECT ${ownershipKeys.map(qi).join(',')}
+         FROM ${qi(schema)}.${qi(table)}
+         WHERE id=$1::uuid
+         FOR UPDATE`,
+        [row.id],
+      );
+      if (existing.rows[0] && ownershipKeys.some((key) =>
+        String(existing.rows[0][key] ?? '') !== String(row[key] ?? ''))) {
+        throw new Error(`${SOURCE} ownership collision for ${schema}.${table} ${row.id}`);
+      }
+    }
     const names = entries.map(([key]) => qi(key));
     const params = entries.map((_, i) => `$${i + 1}`);
     const values = entries.map(([, value]) => value);
@@ -78,11 +121,42 @@ async function main() {
     await client.query('BEGIN');
     await client.query("SET LOCAL TIME ZONE 'Europe/Moscow'");
 
+    await assertReservedSet('clinic_schema', 'clinics', '90000000-', Object.values(ids).filter(id => id.startsWith('90')));
+    await assertReservedSet('clinic_schema', 'clinic_locations', '91000000-', [ids.main, ids.branch, ids.foreign]);
+    await assertReservedSet('clinic_schema', 'clinic_services', '92000000-', Array.from({ length: 10 }, (_, i) => serviceId(i + 1)));
+    await assertReservedSet('catalog_schema', 'doctors', '92500000-', Array.from({ length: 8 }, (_, i) => doctorId(i + 1)));
+    await assertReservedSet('identity_schema', 'users', '93000000-', Array.from({ length: 12 }, (_, i) => employeeId(i + 1)));
+    await assertReservedSet('identity_schema', 'users', '94000000-', Array.from({ length: 10 }, (_, i) => ownerId(i + 1)));
+    await assertReservedSet('pet_schema', 'pets', '95000000-', Array.from({ length: 15 }, (_, i) => petId(i + 1)));
+    await assertReservedSet('clinic_schema', 'appointment_slots', '96000000-', Array.from({ length: 160 }, (_, i) => slotId(i + 1)));
+    await assertReservedSet('booking_schema', 'booking_holds', '97000000-', Array.from({ length: 20 }, (_, i) => holdId(i + 1)));
+    await assertReservedSet('booking_schema', 'appointments', '98000000-', Array.from({ length: 20 }, (_, i) => appointmentId(i + 1)));
+    await assertReservedSet('booking_schema', 'appointment_events', '99000000-', Array.from({ length: 20 }, (_, i) => eventId(i + 1)));
+    const priorRichMarker = await exists('booking_schema', 'appointment_events')
+      ? (await client.query(`
+          SELECT EXISTS(
+            SELECT 1
+            FROM booking_schema.appointment_events
+            WHERE actor_id = 'LOCAL_RICH_DEMO'
+              AND payload_json::jsonb ->> 'fixtureSource' = $1
+          ) AS owned
+        `, [SOURCE])).rows[0]?.owned === true
+      : false;
+    const existingReservedEmployees = await client.query(`
+      SELECT id::text
+      FROM identity_schema.users
+      WHERE id = ANY($1::uuid[])
+      ORDER BY id
+    `, [Array.from({ length: 12 }, (_, i) => employeeId(i + 1))]);
+    if (existingReservedEmployees.rows.length && !priorRichMarker) {
+      throw new Error(`${SOURCE} employee reservation is preclaimed without a durable source marker.`);
+    }
+
     if (RESET) {
-      await client.query("DELETE FROM booking_schema.appointment_events WHERE id::text LIKE '99000000-%' OR appointment_id::text LIKE '98000000-%' OR hold_id::text LIKE '97000000-%'");
-      await client.query("DELETE FROM booking_schema.appointments WHERE id::text LIKE '98000000-%'");
-      await client.query("DELETE FROM booking_schema.booking_holds WHERE id::text LIKE '97000000-%'");
-      await client.query('DELETE FROM clinic_schema.appointment_slots WHERE source=$1', [SOURCE]);
+      await client.query(resetSql.events);
+      await client.query(resetSql.appointments);
+      await client.query(resetSql.holds);
+      await client.query(resetSql.slots, [SOURCE]);
     }
 
     await upsert('clinic_schema', 'clinics', {
@@ -174,13 +248,28 @@ async function main() {
     }));
 
     for (const profile of employees) {
+      assertOwned('employee', profile.employeeId);
       await client.query('INSERT INTO identity_schema.users(id) VALUES($1::uuid) ON CONFLICT(id) DO NOTHING', [profile.employeeId]);
 
       // The rich demo definition is authoritative for these deterministic demo
       // employees. Removing old rows first prevents stale memberships from a
       // previous package version from changing the expected access outcome.
+      if (priorRichMarker) {
+        const actual = await client.query(`
+          SELECT role, clinic_location_id::text AS location_id, active, revoked_at IS NOT NULL AS revoked
+          FROM clinic_schema.employee_location_memberships
+          WHERE employee_id = $1::uuid
+          ORDER BY role, clinic_location_id
+        `, [profile.employeeId]);
+        const expected = profile.memberships
+          .map(([role, locationId, active]) => ({ role, location_id: locationId, active, revoked: !active }))
+          .sort((a, b) => `${a.role}:${a.location_id}`.localeCompare(`${b.role}:${b.location_id}`));
+        if (JSON.stringify(actual.rows) !== JSON.stringify(expected)) {
+          throw new Error(`${SOURCE} membership ownership collision for ${profile.employeeId}`);
+        }
+      }
       await client.query(
-        'DELETE FROM clinic_schema.employee_location_memberships WHERE employee_id = $1::uuid',
+        resetSql.memberships,
         [profile.employeeId],
       );
 
@@ -271,7 +360,7 @@ async function main() {
 
     await client.query('COMMIT');
     process.stdout.write(JSON.stringify({
-      generatedAt:new Date().toISOString(),source:SOURCE,
+      generatedAt:new Date().toISOString(),source:SOURCE,schemaVersion:1,dependencies:['LOCAL_BASE_SEED'],
       clinic:{id:ids.clinic,name:'VetHelp Demo Center',locations:[{id:ids.main,label:'Основная клиника'},{id:ids.branch,label:'Филиал'}]},
       foreignClinic:{id:ids.foreignClinic,locationId:ids.foreign},employees,services,doctors,owners,pets,scenarios,
       counts:{accessProfiles:employees.length,realRoleTypes:3,services:services.length,doctors:doctors.length,owners:owners.length,pets:pets.length,slots:slots.length,appointmentAndHoldScenarios:scenarios.length},

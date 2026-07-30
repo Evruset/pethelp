@@ -6,6 +6,7 @@ const data = JSON.parse(fs.readFileSync(input, 'utf8'));
 const endpoint = `${data.portal}/api/dev/local-session`;
 const allowed = data.sessions.find((item) => item.key === 'reception-main');
 const deniedKeys = ['revoked', 'inactive', 'no-membership'];
+const quick = process.argv.includes('--quick');
 
 async function post(body, origin = data.portal) {
   return fetch(endpoint, {
@@ -47,6 +48,11 @@ async function main() {
     if (response.status !== 401 || hasCookie(response)) throw new Error(`negative authority accepted: ${key}`);
   }
 
+  if (quick) {
+    console.log('[security-check] mode=quick origins=4 returnPaths=4 negativeAuthority=3 concurrency=skipped expiry=skipped');
+    return;
+  }
+
   const concurrentCode = await issue();
   const concurrent = await Promise.all(Array.from({ length: 10 }, () => post({ action: 'exchange', code: concurrentCode })));
   const successes = concurrent.filter((response) => response.status === 200 && hasCookie(response)).length;
@@ -59,6 +65,6 @@ async function main() {
   const expired = await post({ action: 'exchange', code: expiredCode });
   if (expired.status !== 401 || hasCookie(expired)) throw new Error('expired code accepted');
 
-  console.log('[security-check] origins=4 returnPaths=4 negativeAuthority=3 concurrentRequests=10 successes=1 denials=9 expired=denied');
+  console.log('[security-check] mode=full origins=4 returnPaths=4 negativeAuthority=3 concurrentRequests=10 successes=1 denials=9 expired=denied');
 }
 main().catch((error) => { console.error(`[security-check] FAILED: ${error.message}`); process.exit(1); });

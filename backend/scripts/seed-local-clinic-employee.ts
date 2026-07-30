@@ -29,6 +29,22 @@ async function main(): Promise<void> {
       throw new Error('VetHelp Pilot clinic location was not found. Run the seed profile first.');
     }
 
+    const collision = await client.query<{ owner_identity: boolean; foreign_membership: boolean }>(`
+      SELECT
+        EXISTS(
+          SELECT 1 FROM identity_schema.owner_identities WHERE user_id = $1::uuid
+        ) AS owner_identity,
+        EXISTS(
+          SELECT 1
+          FROM clinic_schema.employee_location_memberships
+          WHERE employee_id = $1::uuid
+            AND clinic_location_id <> $2::uuid
+        ) AS foreign_membership
+    `, [employeeId, row.location_id]);
+    if (collision.rows[0]?.owner_identity || collision.rows[0]?.foreign_membership) {
+      throw new Error('LOCAL_CLINIC_EMPLOYEE_V1 ownership collision: fixed employee ID is foreign.');
+    }
+
     await client.query(
       `
         INSERT INTO clinic_schema.employee_location_memberships
@@ -46,10 +62,12 @@ async function main(): Promise<void> {
     await client.query('COMMIT');
     console.log(
       JSON.stringify({
+        source: 'LOCAL_CLINIC_EMPLOYEE_V1',
         employeeId,
         clinicId: row.clinic_id,
         locationId: row.location_id,
         role: 'CLINIC_RECEPTIONIST',
+        ownedIds: [employeeId],
       }),
     );
   } catch (error) {
