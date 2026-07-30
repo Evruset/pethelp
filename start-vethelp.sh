@@ -8,6 +8,9 @@ COMPOSE_FILE="$ROOT_DIR/docker-compose.local.yml"
 PORTAL_DIR="$ROOT_DIR/apps/clinic-portal"
 OWNER_DIR="$ROOT_DIR/apps/owner_mobile"
 BACKEND_URL="${VETHELP_BACKEND_URL:-http://127.0.0.1:3000}"
+MOCK_MIS_URL="${VETHELP_MOCK_MIS_URL:-http://127.0.0.1:4101}"
+MOCK_ACQUIRING_URL="${VETHELP_MOCK_ACQUIRING_URL:-http://127.0.0.1:4102}"
+MOCK_CLOUD_URL="${VETHELP_MOCK_CLOUD_URL:-http://127.0.0.1:4103}"
 PORTAL_PORT=3001
 PORTAL_URL="http://127.0.0.1:$PORTAL_PORT"
 OWNER_URL="http://127.0.0.1:3002"
@@ -439,16 +442,199 @@ cmd_logs() {
 }
 
 cmd_smoke() {
-  for endpoint in \
-    "$BACKEND_URL/v1/health" \
-    http://127.0.0.1:4101/health \
-    http://127.0.0.1:4102/health \
-    http://127.0.0.1:4103/health; do
-    if [[ "$DRY_RUN" == 1 ]]; then printf '[dry-run] GET %s\n' "$endpoint"
-    else curl --max-time 5 --fail --silent --show-error "$endpoint" >/dev/null || die "Smoke failed: $endpoint"
-    fi
-  done
-  ok 'Read-only local smoke passed.'
+  local node managed=0 listeners
+  node="$(node22)" || die 'Node 22 is required.'
+  if managed_portal_alive; then managed=1; fi
+  listeners="$(listener_pids | paste -sd, -)"
+  SMOKE_PROJECT="$PROJECT" \
+  SMOKE_COMPOSE_FILE="$COMPOSE_FILE" \
+  SMOKE_STATE_ROOT="$STATE_ROOT" \
+  SMOKE_BACKEND_URL="$BACKEND_URL" \
+  SMOKE_MIS_URL="$MOCK_MIS_URL" \
+  SMOKE_ACQUIRING_URL="$MOCK_ACQUIRING_URL" \
+  SMOKE_CLOUD_URL="$MOCK_CLOUD_URL" \
+  SMOKE_PORTAL_MANAGED="$managed" \
+  SMOKE_PORTAL_LISTENERS="$listeners" \
+  "$node" - <<'NODE'
+const fs = require('node:fs');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
+
+const project = process.env.SMOKE_PROJECT;
+const composeFile = process.env.SMOKE_COMPOSE_FILE;
+const stateRoot = process.env.SMOKE_STATE_ROOT;
+const violations = [];
+const services = {};
+const endpoints = {};
+const restartCounts = {};
+const runtimeState = {
+  root: '.runtime/vethelp-local',
+  exists: fs.existsSync(stateRoot),
+  directoryModeViolations: 0,
+  fileModeViolations: 0,
+  symlinkViolations: 0,
+  sensitiveMatches: 0,
+  bootstrapCodeFiles: 0,
+};
+
+function run(command, args, timeout = 10000) {
+  const result = spawnSync(command, args, {
+    encoding: 'utf8',
+    timeout,
+    env: process.env,
+  });
+  if (result.error?.code === 'ETIMEDOUT') {
+    violations.push(`${command}:timeout`);
+    return '';
+  }
+  if (result.status !== 0) {
+    violations.push(`${command}:exit-${result.status ?? 'error'}`);
+    return '';
+  }
+  return result.stdout.trim();
+}
+
+function parseComposeRows(text) {
+  if (!text) return [];
+  try {
+    const value = JSON.parse(text);
+    return Array.isArray(value) ? value : [value];
+  } catch {
+    try {
+      return text.split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
+    } catch {
+      violations.push('compose:malformed-json');
+      return [];
+    }
+  }
+}
+
+function walk(root) {
+  if (!fs.existsSync(root)) return;
+  for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+    const target = path.join(root, entry.name);
+    const stat = fs.lstatSync(target);
+    if (stat.isSymbolicLink()) {
+      runtimeState.symlinkViolations += 1;
+      continue;
+    }
+    const mode = stat.mode & 0o777;
+    if (stat.isDirectory()) {
+      if (mode !== 0o700) runtimeState.directoryModeViolations += 1;
+      walk(target);
+      continue;
+    }
+    if (!stat.isFile()) continue;
+    if (mode !== 0o600) runtimeState.fileModeViolations += 1;
+    if (target.startsWith(path.join(stateRoot, 'rich-demo', 'bootstrap-codes'))) {
+      runtimeState.bootstrapCodeFiles += 1;
+    }
+    const content = fs.readFileSync(target, 'utf8');
+    const sensitive = [
+      /\bBearer\s+[A-Za-z0-9._~-]+/i,
+      /\b(?:access|refresh)[_-]?token\b/i,
+      /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/,
+      /sessionUrl[^"\n]*[?&](?:token|code)=/i,
+      /\b(?:cookie|bootstrapCode)\b\s*[:=]\s*["'][^"']+/i,
+    ];
+    runtimeState.sensitiveMatches += sensitive.filter((pattern) => pattern.test(content)).length;
+  }
+}
+
+async function endpoint(name, url) {
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const text = await response.text();
+    let json;
+    try { json = JSON.parse(text); } catch { violations.push(`${name}:malformed-json`); }
+    const marker = json?.status ?? json?.service ?? json?.data?.status;
+    endpoints[name] = { url, status: response.status, json: Boolean(json), marker: marker ?? null };
+    if (response.status !== 200) violations.push(`${name}:http-${response.status}`);
+    if (!json || marker == null) violations.push(`${name}:missing-service-marker`);
+  } catch (error) {
+    endpoints[name] = { url, status: null, json: false, marker: null };
+    violations.push(`${name}:${error?.name === 'TimeoutError' ? 'timeout' : 'unreachable'}`);
+  }
+}
+
+async function main() {
+  if (project !== 'vethelp-alpha') violations.push(`project:unexpected-${project}`);
+  const dockerVersion = run('docker', ['info', '--format', '{{.ServerVersion}}']);
+  const rows = parseComposeRows(run('docker', [
+    'compose', '-p', 'vethelp-alpha', '-f', composeFile, 'ps', '--format', 'json',
+  ]));
+  const required = ['postgres', 'backend', 'mock-mis', 'mock-acquiring', 'mock-cloud', 'livekit'];
+  for (const name of required) {
+    const row = rows.find((candidate) => candidate.Service === name);
+    if (!row) {
+      violations.push(`${name}:missing`);
+      services[name] = { running: false, healthy: false };
+      continue;
+    }
+    const running = String(row.State).toLowerCase() === 'running';
+    const health = String(row.Health ?? '').toLowerCase();
+    const healthy = name === 'livekit' ? running : health === 'healthy';
+    services[name] = { running, healthy };
+    if (!running) violations.push(`${name}:not-running`);
+    if (!healthy) violations.push(`${name}:not-healthy`);
+    const restart = Number(run('docker', ['inspect', row.ID, '--format', '{{.RestartCount}}']));
+    restartCounts[name] = Number.isFinite(restart) ? restart : null;
+    if (!Number.isFinite(restart)) violations.push(`${name}:restart-count-unavailable`);
+    if (restart > 0) violations.push(`${name}:restart-count-${restart}`);
+    if (name === 'livekit') {
+      const publishers = Array.isArray(row.Publishers) ? row.Publishers : [];
+      const canonicalPort = publishers.some((publisher) =>
+        Number(publisher.TargetPort) === 7880 && Number(publisher.PublishedPort) === 7880);
+      services[name].canonicalPort = canonicalPort;
+      if (!canonicalPort) violations.push('livekit:wrong-port');
+    }
+  }
+
+  await Promise.all([
+    endpoint('backend', `${process.env.SMOKE_BACKEND_URL}/v1/health`),
+    endpoint('mockMis', `${process.env.SMOKE_MIS_URL}/health`),
+    endpoint('mockAcquiring', `${process.env.SMOKE_ACQUIRING_URL}/health`),
+    endpoint('mockCloud', `${process.env.SMOKE_CLOUD_URL}/health`),
+  ]);
+
+  if (!runtimeState.exists) {
+    violations.push('runtime-state:missing');
+  } else {
+    const rootStat = fs.lstatSync(stateRoot);
+    if (rootStat.isSymbolicLink()) runtimeState.symlinkViolations += 1;
+    if (!rootStat.isDirectory() || (rootStat.mode & 0o777) !== 0o700) {
+      runtimeState.directoryModeViolations += 1;
+    }
+    if (rootStat.isDirectory() && !rootStat.isSymbolicLink()) walk(stateRoot);
+  }
+  for (const key of ['directoryModeViolations', 'fileModeViolations', 'symlinkViolations', 'sensitiveMatches', 'bootstrapCodeFiles']) {
+    if (runtimeState[key] > 0) violations.push(`runtime-state:${key}-${runtimeState[key]}`);
+  }
+
+  const managed = process.env.SMOKE_PORTAL_MANAGED === '1';
+  const listeners = (process.env.SMOKE_PORTAL_LISTENERS || '').split(',').filter(Boolean);
+  runtimeState.portal = { managed, listenerCount: listeners.length };
+  if (listeners.length > 1) violations.push(`portal:multiple-listeners-${listeners.length}`);
+  if (listeners.length === 1 && !managed) violations.push('portal:unmanaged-canonical-listener');
+
+  const report = {
+    command: 'smoke',
+    mode: 'read-only',
+    project: 'vethelp-alpha',
+    status: violations.length ? 'FAIL' : 'PASS',
+    docker: { serverVersion: dockerVersion || null },
+    services,
+    endpoints,
+    restartCounts,
+    runtimeState,
+    violations,
+  };
+  process.stdout.write(`${JSON.stringify(report)}\n`);
+  process.exitCode = violations.length ? 1 : 0;
+}
+
+main();
+NODE
 }
 
 cmd_verify_rich_demo() {
@@ -523,9 +709,13 @@ EOF
 command="${1:-help}"
 shift || true
 case "$command" in
-  infra) command=up ;;
+  infra)
+    warn 'DEPRECATED alias: infra; use up.'
+    command=up
+    ;;
   all)
     [[ $# == 0 ]] || die 'Legacy all alias accepts no arguments.'
+    warn 'DEPRECATED alias: all; use up followed by seed all.'
     cmd_up
     cmd_seed all
     exit 0
@@ -540,7 +730,11 @@ case "$command" in
   owner) [[ $# == 0 ]] || die 'owner accepts no arguments.'; cmd_owner ;;
   smoke) [[ $# == 0 ]] || die 'smoke accepts no arguments.'; cmd_smoke ;;
   stop) [[ $# == 0 ]] || die 'stop accepts no arguments.'; cmd_stop ;;
-  seed) cmd_seed "${1:-all}"; [[ $# -le 1 ]] || die 'seed accepts one profile.' ;;
+  seed)
+    if [[ $# == 0 ]]; then warn 'DEPRECATED alias: bare seed; use seed all.'; fi
+    cmd_seed "${1:-all}"
+    [[ $# -le 1 ]] || die 'seed accepts one profile.'
+    ;;
   verify)
     [[ "${1:-}" == rich-demo && $# == 1 ]] || die 'verify supports only rich-demo.'
     cmd_verify_rich_demo
