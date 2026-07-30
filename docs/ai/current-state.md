@@ -1495,3 +1495,36 @@ Execution verdict: `PASS / COMPLETE`.
 ## Next single action
 
 `V50-CLINIC-04N-C / Registry Reference Search Operational Evidence Closure`.
+
+## V50-CLINIC-04N-C — Registry reference operational evidence closure
+
+`PASS / COMPLETE`.
+
+- Exact-reference access-log redaction, bounded telemetry taxonomy, alert
+  definitions, runbook actions and PR/nightly semantic-plan workflow are
+  implemented and covered by focused tests.
+- The 100k baseline spilled in the `snapshot_rows` external-merge `Sort`:
+  50,000 revision rows used 4,408 kB on disk with 551 temporary blocks read
+  and 552 written. The later CTE scan then removed 49,999 rows.
+- The query now resolves the scoped administrative-reference candidate through
+  `clinic_patient_local_profiles_reference_location_key` before the snapshot
+  sort. Visibility, consent, snapshot and appointment inclusion semantics are
+  unchanged; no migration or PostgreSQL memory override was required.
+- PostgreSQL 16.14 final evidence at canonical `work_mem=4MB`: 10k p95
+  20.578 ms / p99 22.571 ms; 100k p95 14.971 ms / p99 15.898 ms. Both tiers
+  return cardinality 1, use the scoped index, perform zero local-profile
+  sequential scans and report zero temp reads, temp writes or spill nodes
+  across three JSON EXPLAIN measurements.
+- Transaction-scoped fixtures roll back on success or failure. Measured 10k
+  build/cleanup is 6,980.776/6.731 ms; 100k is
+  70,764.024/40.045 ms; reserved cleanup is `0|0|0|0`.
+- Focused operational unit tests, Registry HTTP/PostgreSQL matrix, Node 22
+  build, workflow syntax and diff hygiene pass. Production rollout remains
+  `NOT_STARTED`.
+
+Execution verdict: `PASS / COMPLETE`.
+
+## Next single action
+
+Close parent `V50-CLINIC-04N`; do not start another product or architecture
+slice in this session.

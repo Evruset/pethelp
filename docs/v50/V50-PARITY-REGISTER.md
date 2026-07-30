@@ -248,3 +248,24 @@ When any prototype file changes, regenerate the manifest, rerun inventory verifi
 - Status is `PASS / COMPLETE`. 04N remains open for operational evidence. The
   one next slice is
   `V50-CLINIC-04N-C / Registry Reference Search Operational Evidence Closure`.
+
+## V50-CLINIC-04N-C — Registry reference operational evidence closure
+
+- Status is `PASS / COMPLETE`. Redacted access logging, bounded
+  low-cardinality telemetry, alert definitions and the 10k PR / 100k nightly
+  semantic-plan cadence are implemented.
+- The failing 100k plan was an external-merge `Sort` over 50,000 snapshot
+  revisions (4,408 kB disk, 551 temp blocks read, 552 written) before the exact
+  reference predicate discarded 49,999 rows.
+- Scoped candidate selection now occurs before snapshot sorting via
+  `clinic_patient_local_profiles_reference_location_key`. No index migration,
+  memory tuning, authority change or visibility relaxation was introduced.
+- Canonical PostgreSQL 16.14 evidence with `work_mem=4MB` passes at both tiers:
+  10k p95/p99 20.578/22.571 ms and 100k p95/p99 14.971/15.898 ms; cardinality is
+  one, local-profile sequential scans and temp spill are zero in three
+  repeated JSON EXPLAIN measurements.
+- Rollback-based fixture teardown is failure-safe and bounded. Reserved
+  cleanup is `0|0|0|0`; measured 100k build/cleanup is
+  70,764.024/40.045 ms.
+- Parent `V50-CLINIC-04N` may be closed. Production rollout remains
+  `NOT_STARTED`.

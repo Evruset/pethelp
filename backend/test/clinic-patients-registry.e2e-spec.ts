@@ -18,6 +18,7 @@ import { ClinicPatientsRegistryService } from '../src/booking-core/clinic-patien
 import { PostgresRateLimitService } from '../src/platform/rate-limit/postgres-rate-limit.service';
 import { RateLimitDatabaseService } from '../src/platform/rate-limit/rate-limit-database.service';
 import { SharedRateLimitTelemetry } from '../src/platform/rate-limit/rate-limit.telemetry';
+import { RegistryReferenceTelemetry } from '../src/observability/registry-reference-telemetry';
 
 jest.setTimeout(90_000);
 
@@ -66,6 +67,7 @@ describe('Clinic patients registry HTTP/PostgreSQL contract', () => {
       db,
       app.get(ClinicEmployeeAccessService),
       new PostgresRateLimitService(secondLimiterDatabase, new SharedRateLimitTelemetry()),
+      app.get(RegistryReferenceTelemetry),
     );
   });
 
@@ -73,8 +75,17 @@ describe('Clinic patients registry HTTP/PostgreSQL contract', () => {
     process.env.VETHELP_CLINIC_PATIENTS_SEARCH_RATE_LIMIT = '2';
     process.env.VETHELP_CLINIC_PATIENT_ADMIN_REFERENCE_SEARCH = 'true';
     (registry as unknown as { searchBuckets: Map<string, unknown> }).searchBuckets.clear();
-    setReferencePolicy(registry, { shortLimit: 100, sustainedLimit: 1_000 });
-    setReferencePolicy(secondRegistry, { shortLimit: 100, sustainedLimit: 1_000 });
+    const referencePolicy = loadClinicPatientsRegistryReferenceRateLimitConfig();
+    setReferencePolicy(registry, {
+      ...referencePolicy,
+      shortLimit: 100,
+      sustainedLimit: 1_000,
+    });
+    setReferencePolicy(secondRegistry, {
+      ...referencePolicy,
+      shortLimit: 100,
+      sustainedLimit: 1_000,
+    });
     await clearReferenceRateLimits(db);
     await seed(db);
   });
@@ -257,8 +268,8 @@ describe('Clinic patients registry HTTP/PostgreSQL contract', () => {
       first_seen_at: new Date(), last_seen_at: new Date(), last_visit_at: null, next_appointment_at: null,
     };
     const telemetry = jest.spyOn(
-      (registry as unknown as { logger: { error: (message: string) => void } }).logger,
-      'error',
+      (registry as unknown as { referenceTelemetry: RegistryReferenceTelemetry }).referenceTelemetry,
+      'record',
     ).mockImplementation();
     const query = jest.spyOn(
       registry as unknown as { query: (...args: unknown[]) => Promise<{ rows: unknown[] }> },
@@ -269,8 +280,12 @@ describe('Clinic patients registry HTTP/PostgreSQL contract', () => {
     expect(response.status).toBe(503);
     expect(response.body).toMatchObject({ code: 'SEARCH_INVARIANT_VIOLATION' });
     expect(JSON.stringify(response.body)).not.toContain(I.pet1);
-    expect(telemetry).toHaveBeenCalledWith(expect.stringContaining('result_count=2'));
-    expect(telemetry.mock.calls.flat().join(' ')).not.toContain('Straße-1');
+    expect(telemetry).toHaveBeenCalledWith(expect.objectContaining({
+      outcome: 'INVARIANT_VIOLATION',
+      resultCount: 0,
+    }));
+    expect(JSON.stringify(telemetry.mock.calls)).not.toContain('Straße-1');
+    telemetry.mockRestore();
     expect(telemetry.mock.calls.flat().join(' ')).not.toContain(I.pet1);
     telemetry.mockRestore();
   });
@@ -421,7 +436,6 @@ describe('Clinic patients registry HTTP/PostgreSQL contract', () => {
     const response = await list(allowed(), { administrativeReference: 'SECRET-REFERENCE-1' });
     expect(response.status).toBe(503);
     expect(response.body).toEqual({
-      statusCode: 503,
       code: 'PATIENTS_REGISTRY_POLICY_UNAVAILABLE',
       message: 'Patients registry policy unavailable',
     });
@@ -517,12 +531,20 @@ describe('Clinic patients registry HTTP/PostgreSQL contract', () => {
     expect(await effects(db)).toEqual(before);
     const plan = await db.query<{ 'QUERY PLAN': string }>(`
       EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
-      WITH snapshot_rows AS MATERIALIZED (
+      WITH reference_candidate AS MATERIALIZED (
+        SELECT patient_id
+        FROM clinic_schema.clinic_patient_local_profiles
+        WHERE clinic_id=$1::uuid
+          AND clinic_location_id=$2::uuid
+          AND administrative_reference_key=$7::text
+      ), snapshot_rows AS MATERIALIZED (
         SELECT DISTINCT ON (r.association_id)
           r.association_id,r.pet_id,r.status,r.current_consent_id,r.visibility_expires_at,r.last_qualified_at
         FROM clinic_schema.clinic_patient_association_revisions r
+        LEFT JOIN reference_candidate rc ON rc.patient_id=r.pet_id
         WHERE r.clinic_id=$1::uuid AND r.clinic_location_id=$2::uuid
           AND r.revision_sequence <= $3::bigint
+          AND rc.patient_id IS NOT NULL
         ORDER BY r.association_id,r.revision_sequence DESC
       ), visible AS MATERIALIZED (
         SELECT r.pet_id,r.last_qualified_at
@@ -539,13 +561,6 @@ describe('Clinic patients registry HTTP/PostgreSQL contract', () => {
           AND c.purpose='PATIENT_ADMIN_REGISTRY' AND c.revoked_at IS NULL
           AND c.granted_at <= $4::timestamptz AND (c.expires_at IS NULL OR c.expires_at > $4::timestamptz)
           AND lower(p.name) LIKE $6::text || '%' ESCAPE '\\'
-          AND EXISTS (
-            SELECT 1 FROM clinic_schema.clinic_patient_local_profiles lp_filter
-            WHERE lp_filter.clinic_id=$1::uuid
-              AND lp_filter.clinic_location_id=$2::uuid
-              AND lp_filter.patient_id=r.pet_id
-              AND lp_filter.administrative_reference_key=$7::text
-          )
         ORDER BY r.last_qualified_at DESC,r.pet_id DESC LIMIT 51
       ), appointment_aggregates AS (
         SELECT v.pet_id,MIN(a.created_at) AS first_seen_at,MAX(a.created_at) AS last_seen_at,

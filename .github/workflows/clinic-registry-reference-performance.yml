@@ -1,0 +1,109 @@
+name: Clinic Registry Reference Performance
+
+on:
+  pull_request:
+    paths:
+      - 'backend/src/booking-core/clinic-patients-registry.controller.ts'
+      - 'backend/src/booking-core/clinic-patients-registry.service.ts'
+      - 'backend/src/booking-core/clinic-patients-registry-rate-limit.config.ts'
+      - 'backend/src/booking-core/clinic-patient-administrative-reference.normalizer.ts'
+      - 'backend/src/observability/registry-reference-*.ts'
+      - 'backend/migrations/node-pg/*clinic_patient*reference*.js'
+      - 'backend/test/clinic-patients-registry-reference-performance.integration-spec.ts'
+      - '.github/workflows/clinic-registry-reference-performance.yml'
+  schedule:
+    - cron: '23 2 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: clinic-registry-reference-performance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  relevant-pr-10k:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: vethelp
+          POSTGRES_USER: vethelp
+          POSTGRES_PASSWORD: vethelp
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vethelp -d vethelp"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://vethelp:vethelp@localhost:5432/vethelp
+      JWT_SECRET: registry-reference-ci-jwt-secret-at-least-32-bytes
+      JWT_ISSUER: vethelp-ci-auth
+      JWT_AUDIENCE: vethelp-ci-api
+      REFERENCE_PERF_ROWS: '10000'
+      REFERENCE_PERF_EVIDENCE_PATH: /tmp/registry-reference-10k.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+      - run: npm run migrate:up
+      - run: npm test -- test/clinic-patients-registry-reference-performance.integration-spec.ts --runInBand
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: registry-reference-10k-semantic-evidence
+          path: /tmp/registry-reference-10k.json
+          if-no-files-found: error
+          retention-days: 14
+
+  nightly-100k:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: vethelp
+          POSTGRES_USER: vethelp
+          POSTGRES_PASSWORD: vethelp
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vethelp -d vethelp"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://vethelp:vethelp@localhost:5432/vethelp
+      JWT_SECRET: registry-reference-ci-jwt-secret-at-least-32-bytes
+      JWT_ISSUER: vethelp-ci-auth
+      JWT_AUDIENCE: vethelp-ci-api
+      REFERENCE_PERF_ROWS: '100000'
+      REFERENCE_PERF_EVIDENCE_PATH: /tmp/registry-reference-100k.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+      - run: npm run migrate:up
+      - run: npm test -- test/clinic-patients-registry-reference-performance.integration-spec.ts --runInBand
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: registry-reference-100k-semantic-evidence
+          path: /tmp/registry-reference-100k.json
+          if-no-files-found: error
+          retention-days: 14
