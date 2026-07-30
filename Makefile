@@ -1,15 +1,14 @@
-LOCAL_PROJECT ?= vethelp-alpha
 NODE20_BIN ?= $(HOME)/.nvm/versions/node/v20.20.2/bin
-COMPOSE ?= docker compose -p $(LOCAL_PROJECT) -f docker-compose.local.yml
 OWNER_DEVICE ?= chrome
+CANONICAL_LOCAL ?= ./start-vethelp.sh
 
 .PHONY: local-dev local-dev-down owner-web-e2e owner-integration-test local-stack-e2e local-up local-down local-status local-logs local-seed local-smoke local-test clinic-portal-session
 
 local-dev:
-	dev/local/up.sh
+	$(CANONICAL_LOCAL) up
 
 local-dev-down:
-	dev/local/down.sh
+	$(CANONICAL_LOCAL) stop
 
 owner-web-e2e:
 	PATH="$(NODE20_BIN):$$PATH" node dev/local/owner-mobile-web-e2e.mjs
@@ -18,26 +17,22 @@ owner-integration-test:
 	PATH="$(NODE20_BIN):$$PATH" node dev/local/run-owner-integration-test.mjs
 
 local-up:
-	$(COMPOSE) up -d --build
+	$(CANONICAL_LOCAL) up
 
 local-down:
-	$(COMPOSE) down
+	$(CANONICAL_LOCAL) stop
 
 local-status:
-	$(COMPOSE) ps
+	$(CANONICAL_LOCAL) status
 
 local-logs:
-	$(COMPOSE) logs -f
+	$(CANONICAL_LOCAL) logs
 
 local-seed:
-	$(COMPOSE) --profile setup run --rm seed
-	$(COMPOSE) exec -T backend npx ts-node /workspace/backend/scripts/seed-local-identities.ts
-	$(COMPOSE) exec -T backend npx ts-node /workspace/backend/scripts/seed-local-owner-marketplace.ts
-	$(COMPOSE) exec -T backend npx ts-node /workspace/backend/scripts/seed-local-clinic-employee.ts
-	$(COMPOSE) exec -T backend npx ts-node /workspace/backend/scripts/seed-local-clinic-queue.ts
+	$(CANONICAL_LOCAL) seed all
 
 local-smoke:
-	backend/scripts/smoke-local-journey.sh
+	$(CANONICAL_LOCAL) smoke
 
 local-stack-e2e:
 	cd apps/clinic-portal && PATH="$(NODE20_BIN):$$PATH" npm run e2e:local-stack
@@ -46,9 +41,6 @@ clinic-portal-session:
 	PATH="$(NODE20_BIN):$$PATH" node dev/local/clinic-portal-session.mjs
 
 local-test:
-	$(COMPOSE) exec -T backend sh -lc "npm run check"
-	$(COMPOSE) restart backend
-	until curl -fsS http://127.0.0.1:3000/v1/health >/dev/null; do sleep 1; done
 	$(MAKE) local-seed
 	$(MAKE) local-smoke
 	cd apps/clinic-portal && PATH="$(NODE20_BIN):$$PATH" npm run typecheck
