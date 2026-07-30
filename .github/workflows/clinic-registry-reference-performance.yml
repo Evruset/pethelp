@@ -46,6 +46,8 @@ jobs:
       JWT_SECRET: registry-reference-ci-jwt-secret-at-least-32-bytes
       JWT_ISSUER: vethelp-ci-auth
       JWT_AUDIENCE: vethelp-ci-api
+      WORKER_SERVICE_TOKEN: registry-reference-ci-worker-service-token
+      WORKERS_ENABLED: 'false'
       REFERENCE_PERF_ROWS: '10000'
       REFERENCE_PERF_EVIDENCE_PATH: /tmp/registry-reference-10k.json
     steps:
@@ -90,6 +92,8 @@ jobs:
       JWT_SECRET: registry-reference-ci-jwt-secret-at-least-32-bytes
       JWT_ISSUER: vethelp-ci-auth
       JWT_AUDIENCE: vethelp-ci-api
+      WORKER_SERVICE_TOKEN: registry-reference-ci-worker-service-token
+      WORKERS_ENABLED: 'false'
       REFERENCE_PERF_ROWS: '100000'
       REFERENCE_PERF_EVIDENCE_PATH: /tmp/registry-reference-100k.json
     steps:
