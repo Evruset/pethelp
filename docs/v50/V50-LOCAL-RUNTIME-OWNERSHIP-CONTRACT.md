@@ -1,6 +1,6 @@
 # V50 local runtime ownership contract
 
-Status: `OPS-02A PASS / CONTRACT_COMPLETE`.
+Status: `OPS-02B PASS / COMPLETE`.
 
 ## Decision
 
@@ -18,6 +18,10 @@ Any diagnostic that creates SQL/API state is a separate mutating action and
 must have bounded fixture ownership and cleanup before it may target the
 canonical persistent database.
 
+`existing-runtime-validation` therefore defaults to read-only. An explicit
+seed or verify action additionally requires `--allow-mutation`; `up`, Portal
+start and `stop` remain forbidden in that mode.
+
 ## Tracked entrypoint inventory
 
 Nine tracked operational entrypoints or command facades exist. Package scripts
@@ -26,10 +30,10 @@ are subordinate commands, not independent lifecycle owners.
 | Entrypoint | Current purpose and ownership | Compose actions | Ports/state/PID | Stop/cleanup | Classification |
 |---|---|---|---|---|---|
 | `start-vethelp.sh` | Full infra, seed, Clinic Portal and Owner launch for an interactive user | `up`, `ps`, `logs`, setup `run`, backend `exec`, `stop`; project defaults to `vethelp-alpha`, one Compose file | backend 3000, Portal 3001; `.runtime/vethelp-local`; `clinic-portal.pid` | recursive PID-child TERM, then exact project `compose stop`; volumes preserved | `CANONICAL_CANDIDATE` |
-| `dev/local/up.sh` | Older full local stack, Portal and Owner launcher | independent `up`; invokes Make seed profile | backend 3000, Portal 3001, Owner 3002; `.dev-local/{logs,pids}` | pre-start exact PID TERM; paired `down.sh` uses `compose down` | `LEGACY` |
-| `dev/local/down.sh` | Stop companion for `up.sh` | independent `down` | `.dev-local/pids/*.pid` | kills every PID file in directory, then removes Compose containers | `UNSAFE` |
-| `dev/local/rich-demo-up.sh` | Rich role/security data plus its own Portal and verification | independent `up`, backend `stop`, seed `run`, backend `up`, `exec`, and `down` on stop | backend 3000, Portal default 3002; `.dev-local/rich-demo`, Portal/port/PID and Next lock | PID, process group, Next-lock and `.next` file-owner discovery; TERM then KILL; stop performs `down` | `SUBORDINATE_PROFILE` (currently unsafe as owner) |
-| `Makefile` local targets | Compatibility command facade | independent `up`, `down`, `ps`, `logs`, setup `run`, `exec`, backend `restart` | inherits canonical Docker ports; delegates `.dev-local` lifecycle | `local-down` performs `down` | `COMPATIBILITY_WRAPPER` |
+| `dev/local/up.sh` | Legacy name retained as a thin delegate | none; execs canonical `up` | none | none | `COMPATIBILITY_WRAPPER` |
+| `dev/local/down.sh` | Legacy name retained as a thin delegate | none; execs canonical `stop` | none | none | `COMPATIBILITY_WRAPPER` |
+| `dev/local/rich-demo-up.sh` | Rich-demo compatibility delegate | none; execs canonical seed/verify/stop command | canonical 3001 and state root only | none of its own | `SUBORDINATE_PROFILE` |
+| `Makefile` local targets | Compatibility command facade | none directly; delegates to canonical launcher | canonical endpoints/state | canonical `stop` | `COMPATIBILITY_WRAPPER` |
 | `backend/scripts/smoke-local-journey.sh` | Mutating end-to-end diagnostic against an existing stack | none | backend 3000, MIS 4101, acquiring 4102; temporary directory only | trap removes its own temporary files | `DIAGNOSTIC_ONLY` |
 | `dev/local/rich-demo-cleanup.test.sh` | Bounded cleanup seam verification | none | temporary `vethelp-rich-demo-cleanup.*` namespace | deletes only its own temporary fixture | `DIAGNOSTIC_ONLY` |
 | `dev/local/local-stack-e2e.mjs` | Full Owner/Portal E2E harness with direct SQL/API fixture creation | independently runs `up -d --build` when backend is absent and uses `exec`/`logs` | backend 3000, temporary Portal 3411 and Owner 3412; test-results tree, no managed PID | closes owned child/server in-process but leaves DB fixtures and Compose running | `DIAGNOSTIC_ONLY` (currently unsafe as existing-runtime validation) |
@@ -46,24 +50,17 @@ Subordinate command surfaces:
 
 ## Lifecycle findings
 
-Three entrypoint families currently issue independent Compose lifecycle
-commands: `start-vethelp.sh`, `dev/local/{up,down}.sh`/Make, and
-`rich-demo-up.sh`. Two diagnostic harnesses additionally issue Compose `up`
-against the same project. All default to `vethelp-alpha`, but independent
-ownership allows one command to recreate resources used by another.
+Only `start-vethelp.sh` issues lifecycle commands in the interactive command
+surface. The up/down/rich-demo wrappers and Make delegate to it. Two diagnostic
+harnesses still contain historical Compose code, but they are not reachable
+from the canonical command/profile graph and remain deprecation targets for
+OPS-02C.
 
-Portal ownership is also duplicated:
-
-- canonical candidate: fixed 3001 and `.runtime/vethelp-local/clinic-portal.pid`;
-- legacy up: configurable 3001 and `.dev-local/pids/clinic-portal.pid`;
-- rich demo: dynamic from 3002, `.dev-local/rich-demo/pids/clinic-portal.pid`
-  plus Next-lock, process-group and `.next` file-owner fallbacks.
-
-The rich-demo discovery path can terminate an unrelated Next process and has a
-normal SIGKILL fallback. `down.sh` trusts every PID file in a shared directory.
-The E2E harnesses own unregistered servers on 3313/3411/3412 and may build or
-recreate Compose during validation. These mechanisms are incompatible with
-bounded agent execution.
+Portal ownership is canonical at fixed port 3001 with
+`.runtime/vethelp-local/pids/clinic-portal.{pid,identity}`. Legacy PID and Next
+lock files are ignored and never used to terminate a process. Diagnostic E2E
+servers on 3313/3411/3412 remain process-local and outside canonical runtime
+ownership.
 
 Target stop semantics are:
 
@@ -164,45 +161,41 @@ deletes require an isolated-test database assertion.
 PostgreSQL remains the source of truth. Console text and fixture metadata are
 not authorization evidence, and no fixture source changes production behavior.
 
-## OPS-02B implementation plan
+## OPS-02B implementation closure
 
-Slice: `V50-LOCAL-RICH-DEMO-OPS-02B / Canonical Lifecycle Owner and Explicit
-Seed Profiles`.
+`start-vethelp.sh` now implements the canonical command model, explicit
+`interactive-user`, `existing-runtime-validation` and `bounded-test` modes,
+one `.runtime/vethelp-local` state tree, exact managed-PID identity checks and
+volume-preserving `compose stop`. `up` owns only Compose readiness; seed and
+verification remain explicit. `infra`, `all` and bare `seed` are documented
+compatibility aliases routed through the same dispatcher.
 
-Planned files:
+`dev/local/rich-demo-up.sh` is a thin delegate and no longer owns Compose,
+backend restart, Portal selection or a second state root. Make local lifecycle
+targets delegate to the canonical launcher. The active seed graph is:
+`base`; `owner = base + identities + owner marketplace`;
+`clinic = base + identities + clinic employee + queue`;
+`rich-demo = base + LOCAL_RICH_DEMO_V1`; and
+`all = base + owner + clinic`, with rich demo intentionally opt-in.
 
-- `start-vethelp.sh`: canonical subcommands, profile graph, exact managed
-  process identity, state/PID migration, read-only status and volume-safe stop;
-- `Makefile`, `dev/local/up.sh`, `dev/local/down.sh`: compatibility delegation;
-- `dev/local/rich-demo-up.sh`: subordinate seed/validate mode, no Compose or
-  Portal ownership;
-- `dev/local/local-stack-e2e.mjs`, `dev/local/owner-mobile-web-e2e.mjs`:
-  existing-runtime mode, canonical lifecycle delegation and bounded diagnostic
-  server ports;
-- `backend/scripts/seed.ts`, local identity/employee/queue/marketplace/rich
-  scripts: source reports and ownership guards;
-- a shared local fixture manifest module and focused contract tests;
-- local operations documentation and `docs/ai/current-state.md`.
+Next.js 16 uses one dev lock per `distDir`, so a bounded canonical Portal on
+3001 could not coexist with an already running user Portal on 3002. The
+minimal technical prerequisite is an environment-selectable `distDir`;
+canonical bounded launch uses `.next-vethelp-canonical`, while ordinary Portal
+development retains `.next`. This avoids killing, replacing or adopting the
+unrelated 3002 process.
 
-No schema migration is required for the first repair: slots already have
-`source`; rich-demo parent rows have reserved UUID namespaces; events have a
-payload marker; shared specialties are explicit reference data. OPS-02B must
-fail closed if a reserved UUID or natural key is already held by an
-unrecognized row. If that guard cannot cover a newly added entity, a separate
-migration prerequisite is required before extending reset.
+Runtime evidence: base rerun PASS; owner and clinic reports expose exact
+dependency/source order; rich demo rerun retained 111 deterministic owned IDs
+observations and exact membership cardinality 12; read-only smoke PASS; quick
+security verification PASS for 12 sessions, four origins, four return paths
+and three negative authorities. Portal 3001 was removed after the bounded
+check. The pre-existing 3002 launcher parent remained owned by the user.
+Backend and PostgreSQL remained healthy with zero restart count. Because the
+Compose stack predated this controlled cycle, canonical `stop` was
+intentionally not executed.
 
-Focused validation:
-
-- shell syntax and CLI parsing;
-- command delegation with a fake Compose/process harness;
-- exact project/port/state/PID/stop assertions;
-- seed report schema and dependency order;
-- A→A idempotency and all pairwise cross-source preservation;
-- reset-after-foreign-source preservation;
-- reserved-ID collision rejection;
-- no `down`, port-range kill, substring kill or normal SIGKILL;
-- rollback: retain compatibility aliases and restore old commands as wrappers,
-  never roll back database contents or volumes.
-
-Commit structure: lifecycle/compatibility, fixture ownership/reporting, tests,
-then documentation. Runtime mutation and migrations remain outside OPS-02A.
+Remaining transition debt is limited to legacy entrypoints and diagnostics
+already classified in this contract. It belongs to
+`V50-LOCAL-RICH-DEMO-OPS-02C / Legacy Entrypoint Deprecation and Canonical
+Smoke Closure`.

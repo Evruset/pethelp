@@ -1,6 +1,6 @@
 # V50 local fixture source register
 
-Status: `OPS-02A PASS / CONTRACT_COMPLETE`.
+Status: `OPS-02B PASS / COMPLETE`.
 
 ## Scope
 
@@ -158,24 +158,51 @@ but relies on reserved prefixes; B01 reset never preserves a co-resident
 source. Mock MIS, acquiring and cloud data are not mutated by these SQL seeds.
 Emergency capability rows belong only to base; rich demo does not create them.
 
-## OPS-02B requirements
+## OPS-02B contract checklist
 
-1. Assign schema-versioned source reports to all eight non-B01 runtime and
-   diagnostic mutation sources.
-2. Guard base natural keys and all fixed IDs against silent foreign capture.
-3. Remove or source-bound the identities script's all-Pilot-slot update.
-4. Make queue generation/reset manifest-complete, including retained
-   appointment dependants.
-5. Enforce rich-demo reserved UUID ranges before any upsert or membership
-   delete; treat specialties as explicit shared reference data.
-6. Assert `B01_TEST_FIXTURE` runs only against an isolated CI database.
-7. Replace `LOCAL_STACK_E2E_<runId>` with a permanent source ID and report all
-   direct/API-created dependants; add bounded cleanup or isolated-database
-   enforcement.
-8. Give owner-web E2E a permanent diagnostic source/context, owned-ID report
-   and bounded cleanup; forbid unscoped API mutation on the canonical database.
-9. Add A→A, A→B, B→A and reset-after-B preservation tests for all runtime
-   pairs, including clinics, locations, services, employees, memberships,
-   owners, pets, slots, holds, appointments and events.
-10. Keep mock fixtures and emergency capability ownership explicit even where
-   a source does not mutate them.
+1. `COMPLETE`: every source reachable from the canonical profiles emits a
+   schema-versioned report with parsed counts and owned IDs.
+2. `COMPLETE`: base rejects foreign Pilot clinic and emergency-profile natural
+   keys; identity and clinic-employee fixed IDs reject cross-owner/scope
+   capture.
+3. `COMPLETE`: identities no longer updates Pilot clinic rows or all Pilot
+   slots. Owner marketplace owns only its `LOCAL_DEV_OWNER_MARKETPLACE` slots.
+4. `COMPLETE`: queue reports current slot/hold IDs and retained
+   slot/hold/appointment dependants; reset remains joined to its slot source.
+5. `COMPLETE`: rich demo preflights every reserved table/prefix before reset,
+   verifies stable ownership fields before ID upsert and bounds membership
+   deletion to an asserted employee ID. Existing employees additionally
+   require a durable prior source event marker and exact profile membership
+   match before destructive reconciliation.
+6. `NOT_REACHABLE`: B01 is not in any canonical local profile and retains its
+   isolated-test classification.
+7. `NOT_REACHABLE`: local-stack E2E is not dispatched by the canonical
+   lifecycle/profile graph.
+8. `NOT_REACHABLE`: owner-web E2E is not dispatched by the canonical
+   lifecycle/profile graph.
+9. `COMPLETE_FOR_ACTIVE_GRAPH`: focused synthetic tests prove reserved/source
+   preservation; live base/all and rich A→A runs prove idempotent manifests,
+   deterministic rich IDs and exact memberships. Destructive diagnostic-pair
+   testing against the persistent user database remains forbidden.
+10. `COMPLETE`: mock fixtures are read-only to seed profiles; base alone owns
+    the guarded `local-dev-v1` emergency profile/capabilities.
+
+## OPS-02B implemented boundary
+
+The canonical dispatcher now emits schema-versioned profile and source
+manifests under `.runtime/vethelp-local/seeds`. The active runtime sources are
+`LOCAL_BASE_SEED`, `LOCAL_IDENTITIES_V1`, `LOCAL_DEV_OWNER_MARKETPLACE`,
+`LOCAL_CLINIC_EMPLOYEE_V1`, `LOCAL_DEV_QUEUE_FIXTURE` and
+`LOCAL_RICH_DEMO_V1`; their exact profile order is recorded in each report.
+
+`LOCAL_RICH_DEMO_V1` has a shared permanent namespace helper. Its deterministic
+reserved UUID prefixes are disjoint, reset SQL is bounded to the source or
+reserved namespace, and employee membership deletion first rejects any ID
+outside the reserved employee namespace. Synthetic focused tests prove that
+foreign employee, membership and slot sentinels are outside every reset
+predicate. Two live rich-demo runs produced the same 111 owned IDs and an
+exact 12-membership matrix without duplicates.
+
+The isolated B01 fixture and two mutating E2E diagnostics are not canonical
+seed sources and cannot be invoked by this control plane. Their legacy command
+deprecation is bounded to OPS-02C. No migration or global delete was added.

@@ -1430,44 +1430,45 @@ Execution verdict: `PASS / COMPLETE`.
 
 ## Next single action
 
-### `V50-LOCAL-RICH-DEMO-OPS-02A / Canonical Runtime Ownership and Source-Scoped Fixture Contract`
+### `V50-LOCAL-RICH-DEMO-OPS-02B / Canonical Lifecycle Owner and Explicit Seed Profiles`
 
-`OPS-02A PASS / CONTRACT_COMPLETE`.
+`PASS / COMPLETE`.
 
-- Nine tracked operational launcher/facade entrypoints and nine
-  database-writing fixture sources were inventoried. Auxiliary session/token
-  generators are explicitly non-owning diagnostics.
-- `start-vethelp.sh` is the selected sole lifecycle owner. `dev/local/up.sh`,
-  `down.sh` and Make become compatibility delegates; rich demo becomes a
-  subordinate seed/validation profile and must not own Compose or a second
-  Portal.
-- Canonical endpoints are backend 3000, Clinic Portal 3001, Owner Web 3002,
-  prototype 8090, mocks 4101–4103 and LiveKit 7880. State converges on
-  `.runtime/vethelp-local`; the current rich-demo Portal 3002 conflicts with
-  Owner Web and requires migration.
-- Highest fixture risks are the isolated B01 global `TRUNCATE` and the local
-  identities script's unbounded Level-A update of every Pilot slot.
-  `local-stack-e2e.mjs` also creates a dynamic per-run slot source and
-  API-dependent booking graph without cleanup or a durable manifest.
-  `owner-mobile-web-e2e.mjs` creates a second unmarked booking/appointment/
-  insurance graph through APIs and likewise has no cleanup contract.
-  `LOCAL_RICH_DEMO_V1` has source only on slots and event payloads, but its
-  remaining ownership is provable through reserved `90…`–`99…` UUID ranges
-  plus a checked manifest.
-- No schema migration is required for current entities. OPS-02B must add
-  namespace/natural-key guards and source reports; any future entity without a
-  durable source or exclusive namespace requires a separate prerequisite.
-- Runtime ownership and fixture evidence are fixed in
-  `docs/v50/V50-LOCAL-RUNTIME-OWNERSHIP-CONTRACT.md` and
-  `docs/v50/V50-LOCAL-FIXTURE-SOURCE-REGISTER.md`.
-- `V50-LOCAL-RUNTIME-02` and `V50-LOCAL-RICH-DEMO-SEC-01` remain
-  `PASS / COMPLETE`; no runtime or security verification was repeated.
+- `start-vethelp.sh` is the sole canonical owner for the
+  `vethelp-alpha` Compose lifecycle, readiness, Clinic Portal 3001, state,
+  status, logs, stop and seed dispatch. State is rooted at
+  `.runtime/vethelp-local`; stop uses exact managed identity plus
+  `compose stop`, preserves volumes and has no normal SIGKILL path.
+- Existing-runtime validation is read-only by default. Explicit seed/verify
+  mutation requires `--allow-mutation`; it can never start or stop runtime
+  services.
+- `dev/local/rich-demo-up.sh` and Make local targets delegate to the canonical
+  launcher; legacy `dev/local/up.sh` and `down.sh` are also thin delegates.
+  Rich generation and verification are explicit and never hidden in ordinary
+  `up`.
+- Seed profiles are explicit and machine-readable:
+  `base`; `owner → base`; `clinic → base`; `rich-demo → base`; and
+  `all = base + owner + clinic`. Rich demo remains opt-in.
+- `LOCAL_RICH_DEMO_V1` uses permanent disjoint UUID namespaces and bounded
+  source/namespace reset predicates. It preflights reserved tables and verifies
+  stable ownership fields before upsert; existing employee reconciliation
+  requires a durable source event marker and exact prior memberships.
+  Base/identity/clinic sources reject natural-key capture, and
+  identity seed no longer rewrites all Pilot slots. No migration or global
+  delete was added.
+- Focused shell and Node contracts PASS. Runtime base rerun, owner, clinic and
+  two rich-demo runs PASS; rich IDs remained deterministic, memberships were
+  exactly 12, smoke PASS, and quick rich verification passed all 12 sessions
+  plus origin, return-path and negative-authority checks.
+- A bounded Portal 3001 used an isolated Next `distDir` and was removed after
+  verification. The user-owned Portal launcher on 3002 was not stopped or
+  adopted. Backend and PostgreSQL remained healthy with zero restarts.
+- The pre-existing Compose runtime could not be distinguished as cycle-owned,
+  so `stop` was intentionally not executed. Legacy entrypoint and diagnostic
+  deprecation remains explicit debt.
 
-Execution verdict: `OPS-02A PASS / CONTRACT_COMPLETE`.
+Execution verdict: `PASS / COMPLETE`.
 
 ## Next single action
 
-`V50-LOCAL-RICH-DEMO-OPS-02B / Canonical Lifecycle Owner and Explicit Seed Profiles`.
-
-Implement the selected lifecycle owner, compatibility delegation, explicit
-seed graph and source ownership guards without beginning another product slice.
+`V50-LOCAL-RICH-DEMO-OPS-02C / Legacy Entrypoint Deprecation and Canonical Smoke Closure`.
