@@ -3,6 +3,7 @@ set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CANONICAL="$ROOT_DIR/start-vethelp.sh"
+printf '%s\n' 'DEPRECATED: dev/local/rich-demo-up.sh; use ./start-vethelp.sh seed|verify rich-demo' >&2
 
 case "${1:-}" in
   --stop)
