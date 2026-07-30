@@ -9,6 +9,7 @@ import { RolesGuard } from '../auth/roles.guard';
 import { DomainErrors } from '../common/domain-error';
 import { isClinicPatientsRegistryEnabled } from '../config';
 import { SWAGGER_BEARER_AUTH } from '../openapi/openapi';
+import { RegistryReferenceTelemetry } from '../observability/registry-reference-telemetry';
 import { ClinicPatientsRegistryDto } from './dto/clinic-patients-registry.dto';
 import { ClinicPatientsRegistryService, PatientsRegistryRateLimitException } from './clinic-patients-registry.service';
 
@@ -77,7 +78,10 @@ class PatientsRegistryRateLimitFilter implements ExceptionFilter {
 @ApiTags('Clinic Portal')
 @Controller('v1')
 export class ClinicPatientsRegistryController {
-  constructor(private readonly registry: ClinicPatientsRegistryService) {}
+  constructor(
+    private readonly registry: ClinicPatientsRegistryService,
+    private readonly referenceTelemetry: RegistryReferenceTelemetry,
+  ) {}
 
   @Get('clinic/:clinicId/locations/:locationId/patients')
   @UseFilters(PatientsRegistryRateLimitFilter)
@@ -114,8 +118,39 @@ export class ClinicPatientsRegistryController {
     @Query() rawQuery: RegistryQuery,
     @CurrentUser() employee: JwtPayload,
   ) {
-    if (!isClinicPatientsRegistryEnabled()) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Not found' });
-    const query = parseQuery(rawQuery);
+    const referenceRequested = rawQuery.administrativeReference !== undefined;
+    const startedAt = process.hrtime.bigint();
+    if (!isClinicPatientsRegistryEnabled()) {
+      if (referenceRequested) {
+        this.referenceTelemetry.record({
+          outcome: 'FLAG_DISABLED',
+          roles: employee.roles,
+          featureState: 'DISABLED',
+          durationMs: Number(process.hrtime.bigint() - startedAt) / 1_000_000,
+        });
+      }
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'Not found' });
+    }
+    let query: ReturnType<typeof parseQuery>;
+    try {
+      query = parseQuery(rawQuery);
+    } catch (error) {
+      if (referenceRequested) {
+        const response = error instanceof BadRequestException ? error.getResponse() : null;
+        const code = typeof response === 'object' && response !== null
+          ? (response as { code?: unknown }).code
+          : undefined;
+        this.referenceTelemetry.record({
+          outcome: code === 'INVALID_SEARCH_COMBINATION'
+            ? 'INVALID_COMBINATION'
+            : 'VALIDATION_REJECTED',
+          roles: employee.roles,
+          featureState: 'ENABLED',
+          durationMs: Number(process.hrtime.bigint() - startedAt) / 1_000_000,
+        });
+      }
+      throw error;
+    }
     return this.registry.list({
       clinicId: scopedId(clinicId),
       locationId: scopedId(locationId),

@@ -6,6 +6,8 @@ import { ContextLoggerService } from './context-logger.service';
 import { ObservabilityMetricsService } from './observability.metrics';
 import { OpsSloController } from './ops-slo.controller';
 import { TraceContext } from './trace-context.context';
+import { RegistryReferenceAccessLogMiddleware } from './registry-reference-access-log.middleware';
+import { RegistryReferenceTelemetry } from './registry-reference-telemetry';
 
 @Global()
 @Module({
@@ -17,6 +19,8 @@ import { TraceContext } from './trace-context.context';
     ApiMetricsMiddleware,
     ContextLoggerService,
     ObservabilityMetricsService,
+    RegistryReferenceAccessLogMiddleware,
+    RegistryReferenceTelemetry,
   ],
   exports: [
     TraceContext,
@@ -24,6 +28,8 @@ import { TraceContext } from './trace-context.context';
     ApiMetricsMiddleware,
     ContextLoggerService,
     ObservabilityMetricsService,
+    RegistryReferenceAccessLogMiddleware,
+    RegistryReferenceTelemetry,
   ],
 })
 export class ObservabilityModule {}

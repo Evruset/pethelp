@@ -17,6 +17,7 @@ import { PublicCatalogModule } from './public-catalog/public-catalog.module';
 import { WorkersModule } from './workers/workers.module';
 import { PermissionDeniedAuditFilter } from './common/permission-denied-audit.filter';
 import { RateLimitModule } from './platform/rate-limit/rate-limit.module';
+import { RegistryReferenceAccessLogMiddleware } from './observability/registry-reference-access-log.middleware';
 
 @NestModule({
   imports: [ObservabilityModule, DatabaseModule, RateLimitModule, AuthModule, BookingCoreModule, EmergencyRoutingModule, OutboxModule, WorkersModule, MisIntegrationModule, PaymentsModule, TelemedModule, InsuranceModule, PublicCatalogModule, OwnerHomeModule],
@@ -25,6 +26,6 @@ import { RateLimitModule } from './platform/rate-limit/rate-limit.module';
 })
 export class NestRoot implements NestModuleContract {
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(TraceMiddleware, ApiMetricsMiddleware).forRoutes('*');
+    consumer.apply(TraceMiddleware, RegistryReferenceAccessLogMiddleware, ApiMetricsMiddleware).forRoutes('*');
   }
 }
