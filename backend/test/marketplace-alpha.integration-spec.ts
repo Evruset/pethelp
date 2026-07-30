@@ -19,7 +19,12 @@ describe('Marketplace Alpha alternative slots', () => {
 
   it('keeps the original slot held until owner accepts and keeps the accepted slot held until payment', async () => {
     const fixture = await createFixture(database);
-    const employee = { sub: fixture.employeeId, roles: [Role.CLINIC_RECEPTIONIST], locationIds: [fixture.locationId] };
+    const employee = {
+      sub: fixture.employeeId,
+      roles: [Role.CLINIC_RECEPTIONIST],
+      clinicIds: [fixture.clinicId],
+      locationIds: [fixture.locationId],
+    };
 
     await trace.run({ correlationId: randomUUID(), userId: fixture.employeeId }, () =>
       service.proposeAlternativeSlot(fixture.holdId, fixture.alternativeSlotId, employee, {
@@ -78,7 +83,12 @@ describe('Marketplace Alpha alternative slots', () => {
 
   it('rejects an alternative proposal when the clinic acts on a stale hold version', async () => {
     const fixture = await createFixture(database);
-    const employee = { sub: fixture.employeeId, roles: [Role.CLINIC_RECEPTIONIST], locationIds: [fixture.locationId] };
+    const employee = {
+      sub: fixture.employeeId,
+      roles: [Role.CLINIC_RECEPTIONIST],
+      clinicIds: [fixture.clinicId],
+      locationIds: [fixture.locationId],
+    };
 
     await expect(trace.run({ correlationId: randomUUID(), userId: fixture.employeeId }, () =>
       service.proposeAlternativeSlot(fixture.holdId, fixture.alternativeSlotId, employee, {
@@ -95,6 +105,7 @@ describe('Marketplace Alpha alternative slots', () => {
 async function createFixture(database: DatabaseService): Promise<{
   ownerId: string;
   employeeId: string;
+  clinicId: string;
   locationId: string;
   sourceSlotId: string;
   alternativeSlotId: string;
@@ -130,5 +141,13 @@ async function createFixture(database: DatabaseService): Promise<{
     RETURNING id
   `, [source.rows[0].id, ownerId, petId]);
 
-  return { ownerId, employeeId, locationId: location.rows[0].id, sourceSlotId: source.rows[0].id, alternativeSlotId: alternative.rows[0].id, holdId: hold.rows[0].id };
+  return {
+    ownerId,
+    employeeId,
+    clinicId: clinic.rows[0].id,
+    locationId: location.rows[0].id,
+    sourceSlotId: source.rows[0].id,
+    alternativeSlotId: alternative.rows[0].id,
+    holdId: hold.rows[0].id,
+  };
 }
