@@ -1,6 +1,6 @@
 # V50 local runtime ownership contract
 
-Status: `OPS-02B PASS / COMPLETE`.
+Status: `OPS-02C PASS / COMPLETE`; parent `OPS-02 PASS / COMPLETE`.
 
 ## Decision
 
@@ -29,15 +29,15 @@ are subordinate commands, not independent lifecycle owners.
 
 | Entrypoint | Current purpose and ownership | Compose actions | Ports/state/PID | Stop/cleanup | Classification |
 |---|---|---|---|---|---|
-| `start-vethelp.sh` | Full infra, seed, Clinic Portal and Owner launch for an interactive user | `up`, `ps`, `logs`, setup `run`, backend `exec`, `stop`; project defaults to `vethelp-alpha`, one Compose file | backend 3000, Portal 3001; `.runtime/vethelp-local`; `clinic-portal.pid` | recursive PID-child TERM, then exact project `compose stop`; volumes preserved | `CANONICAL_CANDIDATE` |
+| `start-vethelp.sh` | Canonical infra, seed, web launch, status and smoke | `up`, `ps`, `logs`, setup `run`, backend `exec`, `stop`; exact project `vethelp-alpha` | backend 3000, Portal 3001; `.runtime/vethelp-local`; exact PID identity | managed PID TERM, then exact `compose stop`; volumes preserved | `CANONICAL` |
 | `dev/local/up.sh` | Legacy name retained as a thin delegate | none; execs canonical `up` | none | none | `COMPATIBILITY_WRAPPER` |
 | `dev/local/down.sh` | Legacy name retained as a thin delegate | none; execs canonical `stop` | none | none | `COMPATIBILITY_WRAPPER` |
-| `dev/local/rich-demo-up.sh` | Rich-demo compatibility delegate | none; execs canonical seed/verify/stop command | canonical 3001 and state root only | none of its own | `SUBORDINATE_PROFILE` |
+| `dev/local/rich-demo-up.sh` | Warning plus rich-demo compatibility delegate | none; execs canonical seed/verify/stop command | canonical 3001 and state root only | none of its own | `COMPATIBILITY_WRAPPER` |
 | `Makefile` local targets | Compatibility command facade | none directly; delegates to canonical launcher | canonical endpoints/state | canonical `stop` | `COMPATIBILITY_WRAPPER` |
-| `backend/scripts/smoke-local-journey.sh` | Mutating end-to-end diagnostic against an existing stack | none | backend 3000, MIS 4101, acquiring 4102; temporary directory only | trap removes its own temporary files | `DIAGNOSTIC_ONLY` |
-| `dev/local/rich-demo-cleanup.test.sh` | Bounded cleanup seam verification | none | temporary `vethelp-rich-demo-cleanup.*` namespace | deletes only its own temporary fixture | `DIAGNOSTIC_ONLY` |
-| `dev/local/local-stack-e2e.mjs` | Full Owner/Portal E2E harness with direct SQL/API fixture creation | independently runs `up -d --build` when backend is absent and uses `exec`/`logs` | backend 3000, temporary Portal 3411 and Owner 3412; test-results tree, no managed PID | closes owned child/server in-process but leaves DB fixtures and Compose running | `DIAGNOSTIC_ONLY` (currently unsafe as existing-runtime validation) |
-| `dev/local/owner-mobile-web-e2e.mjs` | Owner web build/browser harness that creates booking/appointment/insurance state through APIs | unconditionally runs `up -d --build`, uses `exec`, and invokes Make seed | backend 3000, temporary Owner server 3313; test-results tree | closes owned HTTP server; leaves Compose and unmarked DB rows | `DIAGNOSTIC_ONLY` (currently duplicates lifecycle and leaks fixture state) |
+| `backend/scripts/smoke-local-journey.sh` | Former mutating journey | none; controlled exit 64 | none | none | `DEPRECATED_BLOCKED` |
+| `dev/local/rich-demo-cleanup.test.sh` | Obsolete cleanup seam | none; controlled exit 64 | none | none | `DEPRECATED_BLOCKED` |
+| `dev/local/local-stack-e2e.mjs` | Former independent Compose/fixture E2E | none; controlled exit 64 | none | none | `DEPRECATED_BLOCKED` |
+| `dev/local/owner-mobile-web-e2e.mjs` | Former independent Compose/fixture E2E | none; controlled exit 64 | none | none | `DEPRECATED_BLOCKED` |
 
 Subordinate command surfaces:
 
@@ -50,11 +50,11 @@ Subordinate command surfaces:
 
 ## Lifecycle findings
 
-Only `start-vethelp.sh` issues lifecycle commands in the interactive command
-surface. The up/down/rich-demo wrappers and Make delegate to it. Two diagnostic
-harnesses still contain historical Compose code, but they are not reachable
-from the canonical command/profile graph and remain deprecation targets for
-OPS-02C.
+Only `start-vethelp.sh` contains lifecycle implementation. The up/down/rich
+wrappers and Make delegate to it. Unsafe journey, cleanup and E2E entrypoints
+are controlled-blocked before any Docker, process, database or artifact action.
+The fixed removal policy is recorded in
+`V50-LOCAL-ENTRYPOINT-DEPRECATION-REGISTER.md`.
 
 Portal ownership is canonical at fixed port 3001 with
 `.runtime/vethelp-local/pids/clinic-portal.{pid,identity}`. Legacy PID and Next
@@ -121,18 +121,17 @@ Compatibility policy:
 - `all`, `infra` and the old single-word `seed` remain temporary aliases with
   deprecation messages;
 - Make local targets delegate to `start-vethelp.sh`;
-- `dev/local/up.sh` and `down.sh` become compatibility wrappers;
-- `rich-demo-up.sh` becomes a subordinate seed/validation profile and never
+- `dev/local/up.sh` and `down.sh` are warning compatibility wrappers;
+- `rich-demo-up.sh` is a warning seed/validation delegate and never
   owns Compose or a second Portal;
-- `local-stack-e2e.mjs` and `owner-mobile-web-e2e.mjs` delegate lifecycle to
-  the canonical owner. Their `existing-runtime` mode is inspection-only;
-  booking/SQL scenarios require an explicit `mutating-diagnostic` mode with a
-  permanent source ID, owned-ID report and bounded cleanup. Until that exists,
-  they must refuse the canonical persistent database. Diagnostic servers
-  remain process-local;
-- `.dev-local` and `.dev-local/rich-demo` are read only for one transition,
-  then generated outputs move to `.runtime/vethelp-local/profiles/rich-demo`;
-  legacy PID files are never used to kill a process.
+- `local-stack-e2e.mjs` and `owner-mobile-web-e2e.mjs` are controlled-blocked;
+  their old booking/SQL scenarios cannot execute. Any future product
+  E2E requires a new bounded source/cleanup contract and cannot reuse the
+  deprecated lifecycle;
+- `.dev-local` and `.dev-local/rich-demo` remain user-owned legacy state and
+  are never migrated or deleted automatically; active artifacts live under
+  `.runtime/vethelp-local/rich-demo`, and legacy PID files never authorize a
+  process signal.
 
 ## Seed profile graph
 
@@ -195,7 +194,32 @@ Backend and PostgreSQL remained healthy with zero restart count. Because the
 Compose stack predated this controlled cycle, canonical `stop` was
 intentionally not executed.
 
-Remaining transition debt is limited to legacy entrypoints and diagnostics
-already classified in this contract. It belongs to
-`V50-LOCAL-RICH-DEMO-OPS-02C / Legacy Entrypoint Deprecation and Canonical
-Smoke Closure`.
+Remaining debt is removal-only after the documented compatibility window; it
+is not a competing lifecycle and requires the separately authorized
+`V50-LOCAL-RUNTIME-DEPRECATION-REMOVE-01` slice.
+
+## OPS-02C operating-loop closure
+
+Canonical `smoke` is strictly read-only and emits one JSON report. It verifies
+the exact project, Docker responsiveness, PostgreSQL/backend/mocks/LiveKit
+state and restart counts, four HTTP health JSON markers, LiveKit 7880
+publication, canonical Portal ownership, state modes, symlinks, bootstrap-code
+absence and persistent secret patterns. It never seeds, restarts, generates a
+session, stops a process or changes mock state.
+
+Focused synthetic stop evidence proves one exact managed PID receives TERM,
+an unrelated process survives, only
+`docker compose -p vethelp-alpha -f docker-compose.local.yml stop` is recorded,
+the second invocation is idempotent, persistent seed/state remains, and
+forbidden down/volume/broad-kill operations are zero. No real runtime was
+stopped.
+
+Read-only runtime evidence on Docker 27.3.1/HyperKit passed: all six required
+services were running and healthy where healthchecks apply, every restart
+count was zero, all four HTTP markers returned 200/JSON, LiveKit used 7880,
+Portal 3001 had no listener, and permission, symlink, bootstrap-code and
+secret-match violations were zero.
+
+`V50-LOCAL-RICH-DEMO-OPS-02C`, parent `OPS-02`, and the Wave 0 local operating
+loop are `PASS / COMPLETE`. Compatibility removal is a later,
+separately-authorized commit after one documented release window.

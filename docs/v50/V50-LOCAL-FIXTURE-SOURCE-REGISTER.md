@@ -1,6 +1,6 @@
 # V50 local fixture source register
 
-Status: `OPS-02B PASS / COMPLETE`.
+Status: `OPS-02C PASS / COMPLETE`; fixture ownership remains unchanged from OPS-02B.
 
 ## Scope
 
@@ -205,4 +205,6 @@ exact 12-membership matrix without duplicates.
 
 The isolated B01 fixture and two mutating E2E diagnostics are not canonical
 seed sources and cannot be invoked by this control plane. Their legacy command
-deprecation is bounded to OPS-02C. No migration or global delete was added.
+paths now return controlled exit 64 before mutation. They cannot reach Docker,
+PostgreSQL, mocks or source manifests. No migration, seed change or global
+delete was added in OPS-02C.

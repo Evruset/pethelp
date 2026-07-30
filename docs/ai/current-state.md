@@ -1430,45 +1430,32 @@ Execution verdict: `PASS / COMPLETE`.
 
 ## Next single action
 
-### `V50-LOCAL-RICH-DEMO-OPS-02B / Canonical Lifecycle Owner and Explicit Seed Profiles`
+### `V50-LOCAL-RICH-DEMO-OPS-02C / Legacy Entrypoint Deprecation and Canonical Smoke Closure`
 
 `PASS / COMPLETE`.
 
-- `start-vethelp.sh` is the sole canonical owner for the
-  `vethelp-alpha` Compose lifecycle, readiness, Clinic Portal 3001, state,
-  status, logs, stop and seed dispatch. State is rooted at
-  `.runtime/vethelp-local`; stop uses exact managed identity plus
-  `compose stop`, preserves volumes and has no normal SIGKILL path.
-- Existing-runtime validation is read-only by default. Explicit seed/verify
-  mutation requires `--allow-mutation`; it can never start or stop runtime
-  services.
-- `dev/local/rich-demo-up.sh` and Make local targets delegate to the canonical
-  launcher; legacy `dev/local/up.sh` and `down.sh` are also thin delegates.
-  Rich generation and verification are explicit and never hidden in ordinary
-  `up`.
-- Seed profiles are explicit and machine-readable:
-  `base`; `owner → base`; `clinic → base`; `rich-demo → base`; and
-  `all = base + owner + clinic`. Rich demo remains opt-in.
-- `LOCAL_RICH_DEMO_V1` uses permanent disjoint UUID namespaces and bounded
-  source/namespace reset predicates. It preflights reserved tables and verifies
-  stable ownership fields before upsert; existing employee reconciliation
-  requires a durable source event marker and exact prior memberships.
-  Base/identity/clinic sources reject natural-key capture, and
-  identity seed no longer rewrites all Pilot slots. No migration or global
-  delete was added.
-- Focused shell and Node contracts PASS. Runtime base rerun, owner, clinic and
-  two rich-demo runs PASS; rich IDs remained deterministic, memberships were
-  exactly 12, smoke PASS, and quick rich verification passed all 12 sessions
-  plus origin, return-path and negative-authority checks.
-- A bounded Portal 3001 used an isolated Next `distDir` and was removed after
-  verification. The user-owned Portal launcher on 3002 was not stopped or
-  adopted. Backend and PostgreSQL remained healthy with zero restarts.
-- The pre-existing Compose runtime could not be distinguished as cycle-owned,
-  so `stop` was intentionally not executed. Legacy entrypoint and diagnostic
-  deprecation remains explicit debt.
+- All nine tracked operational entrypoints are classified. `start-vethelp.sh`
+  is the sole lifecycle implementation; Make and three shell entrypoints are
+  compatibility delegates with a documented warning/removal window.
+- Four unsafe mutating diagnostics now return controlled exit 64 with a
+  canonical replacement before any Docker, database, process or artifact
+  action.
+- Canonical read-only `smoke` emits one machine JSON report covering the exact
+  project, six service states/restart counts, four JSON health markers,
+  LiveKit 7880, Portal ownership, runtime modes, symlinks, bootstrap codes and
+  persistent secret patterns.
+- Focused launcher/deprecation tests PASS, synthetic stop PASS, and smoke
+  matrix PASS `9/9`, including unhealthy, timeout, malformed JSON, wrong
+  project, restart, second Portal, state-root mode and secret regression cases.
+- Real read-only status/smoke PASS on Docker 27.3.1/HyperKit. PostgreSQL,
+  backend, three mocks and LiveKit are running; healthchecks pass where
+  applicable; restart counts are zero; permission, symlink, bootstrap-code and
+  secret violations are zero. No real stop or second Portal was executed.
+- `V50-LOCAL-RICH-DEMO-OPS-02` and the Wave 0 local operating loop are
+  `PASS / COMPLETE`. Seed/source/security contracts remain unchanged.
 
 Execution verdict: `PASS / COMPLETE`.
 
 ## Next single action
 
-`V50-LOCAL-RICH-DEMO-OPS-02C / Legacy Entrypoint Deprecation and Canonical Smoke Closure`.
+`V50-CLINIC-04N-B / Registry Shared Rate Limiter Integration`.
