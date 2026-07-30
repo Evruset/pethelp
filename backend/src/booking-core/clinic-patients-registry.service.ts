@@ -1,10 +1,16 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { BadRequestException, HttpException, HttpStatus, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import type { PoolClient } from 'pg';
 import { JwtPayload } from '../auth/auth.types';
-import { config } from '../config';
+import { config, isClinicPatientAdminReferenceSearchEnabled } from '../config';
 import { DatabaseService } from '../database/database.service';
+import { PostgresRateLimitService } from '../platform/rate-limit/postgres-rate-limit.service';
 import { ClinicEmployeeAccessService } from './clinic-employee-access.service';
+import { normalizeAdministrativeReference } from './clinic-patient-administrative-reference.normalizer';
+import {
+  ClinicPatientsRegistryReferenceRateLimitConfig,
+  loadClinicPatientsRegistryReferenceRateLimitConfig,
+} from './clinic-patients-registry-rate-limit.config';
 import { ClinicPatientsRegistryDto } from './dto/clinic-patients-registry.dto';
 
 type Cursor = {
@@ -36,25 +42,50 @@ export class ClinicPatientsRegistryService {
   private readonly logger = new Logger(ClinicPatientsRegistryService.name);
   private readonly cursorSecret = createHmac('sha256', config.jwtSecret).update('clinic-patients-registry-cursor:v1').digest();
   private readonly searchBuckets = new Map<string, RateBucket>();
+  private readonly referenceRateLimitConfig =
+    loadClinicPatientsRegistryReferenceRateLimitConfig();
 
-  constructor(private readonly database: DatabaseService, private readonly clinicAccess: ClinicEmployeeAccessService) {}
+  constructor(
+    private readonly database: DatabaseService,
+    private readonly clinicAccess: ClinicEmployeeAccessService,
+    private readonly sharedRateLimiter: PostgresRateLimitService,
+  ) {}
 
   async list(input: {
     clinicId: string; locationId: string; employee: JwtPayload; q?: string; limit: number;
-    cursor?: string; administrativeReferenceKey?: string;
+    cursor?: string; administrativeReference?: string;
   }): Promise<ClinicPatientsRegistryDto> {
     return this.database.withTransaction(async (client) => {
       await client.query("SET LOCAL statement_timeout = '750ms'");
       await this.clinicAccess.assertPatientRegistryReadAccess(client, input.employee, input.clinicId, input.locationId);
       await this.assertLocation(client, input.clinicId, input.locationId);
-      const cursor = input.cursor ? this.decode(input.cursor, input) : undefined;
       const policyVersion = this.visibilityPolicyVersion();
-      if (input.q || input.administrativeReferenceKey) this.consumeSearch(input, this.searchPolicy());
+      let administrativeReferenceKey: string | undefined;
+      if (input.administrativeReference !== undefined) {
+        if (!isClinicPatientAdminReferenceSearchEnabled()) {
+          throw new NotFoundException({
+            code: 'ADMINISTRATIVE_REFERENCE_SEARCH_UNAVAILABLE',
+            message: 'Administrative reference search unavailable',
+          });
+        }
+        const normalized = normalizeAdministrativeReference(input.administrativeReference);
+        if (!normalized) {
+          throw new BadRequestException({
+            code: 'INVALID_ADMINISTRATIVE_REFERENCE_QUERY',
+            message: 'Invalid administrative reference query',
+          });
+        }
+        administrativeReferenceKey = normalized.comparisonKey;
+        await this.consumeAdministrativeReferenceRateLimit(input);
+      }
+      const queryInput = { ...input, administrativeReferenceKey };
+      const cursor = input.cursor ? this.decode(input.cursor, queryInput) : undefined;
+      if (input.q) this.consumeSearch(input, this.searchPolicy());
 
       const now = await client.query<{ now: Date }>('SELECT clock_timestamp() AS now');
-      const snapshotSequence = cursor?.snapshotSequence ?? await this.snapshot(client, input);
-      const result = await this.query(client, input, policyVersion, now.rows[0].now, snapshotSequence, cursor);
-      if (input.administrativeReferenceKey && result.rows.length > 1) {
+      const snapshotSequence = cursor?.snapshotSequence ?? await this.snapshot(client, queryInput);
+      const result = await this.query(client, queryInput, policyVersion, now.rows[0].now, snapshotSequence, cursor);
+      if (administrativeReferenceKey && result.rows.length > 1) {
         this.logger.error(
           `administrative_reference_search_invariant actor=${input.employee.sub} clinic=${input.clinicId} location=${input.locationId} result_count=${result.rows.length}`,
         );
@@ -62,8 +93,8 @@ export class ClinicPatientsRegistryService {
           code: 'SEARCH_INVARIANT_VIOLATION', message: 'Search invariant violation',
         });
       }
-      const hasMore = !input.administrativeReferenceKey && result.rows.length > input.limit;
-      const rows = result.rows.slice(0, input.administrativeReferenceKey ? 1 : input.limit);
+      const hasMore = !administrativeReferenceKey && result.rows.length > input.limit;
+      const rows = result.rows.slice(0, administrativeReferenceKey ? 1 : input.limit);
       const tail = rows.at(-1);
       return {
         clinicId: input.clinicId,
@@ -76,6 +107,39 @@ export class ClinicPatientsRegistryService {
         }) : null,
       };
     });
+  }
+
+  private async consumeAdministrativeReferenceRateLimit(input: {
+    clinicId: string;
+    locationId: string;
+    employee: JwtPayload;
+  }): Promise<void> {
+    const policy: ClinicPatientsRegistryReferenceRateLimitConfig =
+      this.referenceRateLimitConfig;
+    try {
+      const result = await this.sharedRateLimiter.consume({
+        namespace: policy.namespace,
+        actorId: input.employee.sub,
+        clinicId: input.clinicId,
+        locationId: input.locationId,
+        policies: [
+          { windowSeconds: policy.shortWindowSeconds, limit: policy.shortLimit },
+          { windowSeconds: policy.sustainedWindowSeconds, limit: policy.sustainedLimit },
+        ],
+        logicalStateRetentionSeconds: policy.logicalStateRetentionSeconds,
+      });
+      if (!result.allowed) {
+        throw new PatientsRegistryRateLimitException(
+          Math.max(1, result.retryAfterSeconds ?? 1),
+        );
+      }
+    } catch (error) {
+      if (error instanceof PatientsRegistryRateLimitException) throw error;
+      throw new ServiceUnavailableException({
+        code: 'PATIENTS_REGISTRY_POLICY_UNAVAILABLE',
+        message: 'Patients registry policy unavailable',
+      });
+    }
   }
 
   private visibilityPolicyVersion(): string {

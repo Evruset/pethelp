@@ -8,7 +8,16 @@ import { BookingErrorFilter } from '../src/common/booking-error.filter';
 import { config } from '../src/config';
 import { DatabaseService } from '../src/database/database.service';
 import { NestRoot } from '../src/nest-root-full';
+import { ClinicEmployeeAccessService } from '../src/booking-core/clinic-employee-access.service';
+import {
+  ADMINISTRATIVE_REFERENCE_RATE_LIMIT_NAMESPACE,
+  ClinicPatientsRegistryReferenceRateLimitConfig,
+  loadClinicPatientsRegistryReferenceRateLimitConfig,
+} from '../src/booking-core/clinic-patients-registry-rate-limit.config';
 import { ClinicPatientsRegistryService } from '../src/booking-core/clinic-patients-registry.service';
+import { PostgresRateLimitService } from '../src/platform/rate-limit/postgres-rate-limit.service';
+import { RateLimitDatabaseService } from '../src/platform/rate-limit/rate-limit-database.service';
+import { SharedRateLimitTelemetry } from '../src/platform/rate-limit/rate-limit.telemetry';
 
 jest.setTimeout(90_000);
 
@@ -33,6 +42,9 @@ describe('Clinic patients registry HTTP/PostgreSQL contract', () => {
   let db: DatabaseService;
   let jwt: JwtService;
   let registry: ClinicPatientsRegistryService;
+  let sharedLimiter: PostgresRateLimitService;
+  let secondLimiterDatabase: RateLimitDatabaseService;
+  let secondRegistry: ClinicPatientsRegistryService;
 
   beforeAll(async () => {
     process.env.WORKERS_ENABLED = 'false';
@@ -48,15 +60,27 @@ describe('Clinic patients registry HTTP/PostgreSQL contract', () => {
     db = app.get(DatabaseService);
     jwt = app.get(JwtService);
     registry = app.get(ClinicPatientsRegistryService);
+    sharedLimiter = app.get(PostgresRateLimitService);
+    secondLimiterDatabase = new RateLimitDatabaseService();
+    secondRegistry = new ClinicPatientsRegistryService(
+      db,
+      app.get(ClinicEmployeeAccessService),
+      new PostgresRateLimitService(secondLimiterDatabase, new SharedRateLimitTelemetry()),
+    );
   });
 
   beforeEach(async () => {
     process.env.VETHELP_CLINIC_PATIENTS_SEARCH_RATE_LIMIT = '2';
     process.env.VETHELP_CLINIC_PATIENT_ADMIN_REFERENCE_SEARCH = 'true';
     (registry as unknown as { searchBuckets: Map<string, unknown> }).searchBuckets.clear();
+    setReferencePolicy(registry, { shortLimit: 100, sustainedLimit: 1_000 });
+    setReferencePolicy(secondRegistry, { shortLimit: 100, sustainedLimit: 1_000 });
+    await clearReferenceRateLimits(db);
     await seed(db);
   });
   afterAll(async () => {
+    await clearReferenceRateLimits(db);
+    await secondLimiterDatabase?.onModuleDestroy();
     await app?.close();
     delete process.env.VETHELP_CLINIC_PATIENTS_REGISTRY;
     delete process.env.VETHELP_CLINIC_PATIENTS_SEARCH_RATE_LIMIT;
@@ -90,6 +114,23 @@ describe('Clinic patients registry HTTP/PostgreSQL contract', () => {
     expect((await list(allowed())).status).toBe(404);
     process.env.VETHELP_CLINIC_PATIENTS_REGISTRY = 'true';
     expect((await list(allowed())).status).toBe(200);
+  });
+
+  it('N-B-01..N-B-07 loads bounded typed defaults and rejects invalid shared policies', () => {
+    expect(loadClinicPatientsRegistryReferenceRateLimitConfig({})).toMatchObject({
+      shortWindowSeconds: 60,
+      shortLimit: 20,
+      sustainedWindowSeconds: 3_600,
+      sustainedLimit: 200,
+    });
+    for (const env of [
+      { VETHELP_CLINIC_PATIENT_REFERENCE_RATE_LIMIT_SHORT_LIMIT: '0' },
+      { VETHELP_CLINIC_PATIENT_REFERENCE_RATE_LIMIT_SHORT_WINDOW_SECONDS: '60', VETHELP_CLINIC_PATIENT_REFERENCE_RATE_LIMIT_SUSTAINED_WINDOW_SECONDS: '60' },
+      { VETHELP_CLINIC_PATIENT_REFERENCE_RATE_LIMIT_SHORT_LIMIT: '21', VETHELP_CLINIC_PATIENT_REFERENCE_RATE_LIMIT_SUSTAINED_LIMIT: '20' },
+      { VETHELP_CLINIC_PATIENT_REFERENCE_RATE_LIMIT_SUSTAINED_WINDOW_SECONDS: '999999999' },
+    ]) {
+      expect(() => loadClinicPatientsRegistryReferenceRateLimitConfig(env)).toThrow();
+    }
   });
 
   it('returns only the administrative allowlist from active association and consent state', async () => {
@@ -136,14 +177,20 @@ describe('Clinic patients registry HTTP/PostgreSQL contract', () => {
     }
   });
 
-  it('K-10/K-14..K-16 rejects malformed and incompatible queries before database access', async () => {
+  it('K-10/K-14..K-16 rejects malformed exact queries after authority but before limiter/reference lookup', async () => {
     for (const administrativeReference of ['', 'PET*', 'line\nbreak', 'x'.repeat(41)]) {
-      const transaction = jest.spyOn(db, 'withTransaction');
+      const limiter = jest.spyOn(sharedLimiter, 'consume');
+      const query = jest.spyOn(
+        registry as unknown as { query: (...args: unknown[]) => Promise<unknown> },
+        'query',
+      );
       const response = await list(allowed(), { administrativeReference });
       expect(response.status).toBe(400);
       expect(response.body.code).toBe('INVALID_ADMINISTRATIVE_REFERENCE_QUERY');
-      expect(transaction).not.toHaveBeenCalled();
-      transaction.mockRestore();
+      expect(limiter).not.toHaveBeenCalled();
+      expect(query).not.toHaveBeenCalled();
+      limiter.mockRestore();
+      query.mockRestore();
     }
     expect((await list(allowed(), { administrativeReference: 'PET-1', q: 'ба' })).body.code)
       .toBe('INVALID_SEARCH_COMBINATION');
@@ -170,12 +217,24 @@ describe('Clinic patients registry HTTP/PostgreSQL contract', () => {
         sub: I.vet, roles: [Role.CLINIC_VETERINARIAN],
         clinicIds: [I.clinic], locationIds: [I.location],
       },
-      limit: 50, administrativeReferenceKey: 'strasse-1',
+      limit: 50, administrativeReference: 'Straße-1',
+    })).rejects.toMatchObject({ status: 403 });
+    expect((await list(allowed(), {
+      location: I.otherLocation,
+      administrativeReference: 'Straße-1',
+    })).status).toBe(403);
+    await expect(registry.list({
+      clinicId: 'a2000000-0000-4000-8000-000000000099',
+      locationId: 'a3000000-0000-4000-8000-000000000099',
+      employee: allowed(),
+      limit: 50,
+      administrativeReference: 'Straße-1',
     })).rejects.toMatchObject({ status: 403 });
     await db.query(`UPDATE clinic_schema.employee_location_memberships
       SET active=false,revoked_at=clock_timestamp()
       WHERE employee_id=$1 AND clinic_location_id=$2`, [I.employee, I.location]);
     expect((await list(allowed(), { administrativeReference: 'Straße-1' })).status).toBe(403);
+    expect(await referenceRateLimitRowCount(db)).toBe(0);
     await seed(db);
     await db.query(`UPDATE clinic_schema.clinic_patient_associations
       SET status='REVOKED',revoked_at=clock_timestamp(),revoke_reason='WITHDRAWN' WHERE pet_id=$1`, [I.pet1]);
@@ -217,13 +276,167 @@ describe('Clinic patients registry HTTP/PostgreSQL contract', () => {
   });
 
   it('K-21..K-23 search flag rolls back independently', async () => {
+    const limiter = jest.spyOn(sharedLimiter, 'consume');
+    const query = jest.spyOn(
+      registry as unknown as { query: (...args: unknown[]) => Promise<unknown> },
+      'query',
+    );
     process.env.VETHELP_CLINIC_PATIENT_ADMIN_REFERENCE_SEARCH = 'false';
     const blocked = await list(allowed(), { administrativeReference: 'Straße-1' });
     expect(blocked.status).toBe(404);
     expect(blocked.body.code).toBe('ADMINISTRATIVE_REFERENCE_SEARCH_UNAVAILABLE');
+    expect(limiter).not.toHaveBeenCalled();
+    expect(query).not.toHaveBeenCalled();
     const ordinary = await list(allowed());
     expect(ordinary.status).toBe(200);
     expect(ordinary.body.items).toHaveLength(2);
+    limiter.mockRestore();
+    query.mockRestore();
+  });
+
+  it('N-B-08..N-B-10/N-B-20/N-B-22 uses shared PostgreSQL once before exact lookup and never invokes legacy limiting', async () => {
+    setReferencePolicy(registry, { shortLimit: 2, sustainedLimit: 100 });
+    const shared = jest.spyOn(sharedLimiter, 'consume');
+    const legacy = jest.spyOn(
+      registry as unknown as { consumeSearch: (...args: unknown[]) => void },
+      'consumeSearch',
+    );
+    const query = jest.spyOn(
+      registry as unknown as { query: (...args: unknown[]) => Promise<unknown> },
+      'query',
+    );
+    expect((await list(allowed(), { administrativeReference: 'Straße-1' })).status).toBe(200);
+    expect((await list(allowed(), { administrativeReference: 'UNKNOWN-1' })).status).toBe(200);
+    const denied = await list(allowed(), { administrativeReference: 'Straße-1' });
+    expect(denied.status).toBe(429);
+    expect(denied.body).toEqual({
+      statusCode: 429,
+      code: 'PATIENTS_REGISTRY_SEARCH_RATE_LIMITED',
+      message: 'Search rate limit exceeded',
+    });
+    expect(Number(denied.headers['retry-after'])).toBeGreaterThanOrEqual(1);
+    expect(shared).toHaveBeenCalledTimes(3);
+    expect(legacy).not.toHaveBeenCalled();
+    expect(query).toHaveBeenCalledTimes(2);
+    expect(await referenceRateLimitState(db, I.employee, I.location)).toEqual([
+      { window_seconds: 60, hit_count: 3 },
+      { window_seconds: 3600, hit_count: 3 },
+    ]);
+    shared.mockRestore();
+    legacy.mockRestore();
+    query.mockRestore();
+  });
+
+  it('N-B-11 returns the sustained next-admissible database boundary', async () => {
+    setReferencePolicy(registry, { shortLimit: 100, sustainedLimit: 2 });
+    expect((await list(allowed(), { administrativeReference: 'Straße-1' })).status).toBe(200);
+    expect((await list(allowed(), { administrativeReference: 'UNKNOWN-1' })).status).toBe(200);
+    const denied = await list(allowed(), { administrativeReference: 'Straße-1' });
+    expect(denied.status).toBe(429);
+    expect(Number(denied.headers['retry-after'])).toBeGreaterThan(60);
+  });
+
+  it('N-B-12 admits a new database window without physical pre-delete', async () => {
+    setReferencePolicy(registry, {
+      shortWindowSeconds: 1,
+      shortLimit: 1,
+      sustainedWindowSeconds: 2,
+      sustainedLimit: 10,
+    });
+    expect((await list(allowed(), { administrativeReference: 'Straße-1' })).status).toBe(200);
+    expect((await list(allowed(), { administrativeReference: 'Straße-1' })).status).toBe(429);
+    await new Promise((resolve) => setTimeout(resolve, 1_100));
+    expect((await list(allowed(), { administrativeReference: 'Straße-1' })).status).toBe(200);
+    const count = await db.query<{ count: string }>(`
+      SELECT COUNT(*)::text AS count
+      FROM public.shared_rate_limit_windows
+      WHERE namespace=$1 AND actor_id=$2::uuid AND clinic_id=$3::uuid AND location_id=$4::uuid
+    `, [ADMINISTRATIVE_REFERENCE_RATE_LIMIT_NAMESPACE, I.employee, I.clinic, I.location]);
+    expect(Number(count.rows[0].count)).toBeGreaterThanOrEqual(3);
+  });
+
+  it('N-B-13..N-B-17 isolates actor scope and leaves ordinary Registry outside shared enforcement', async () => {
+    setReferencePolicy(registry, { shortLimit: 1, sustainedLimit: 10 });
+    expect((await list(allowed(), { administrativeReference: 'Straße-1' })).status).toBe(200);
+    expect((await list(allowed(), { administrativeReference: 'Straße-1' })).status).toBe(429);
+    expect((await list(allowed(Role.CLINIC_ADMIN), { administrativeReference: 'Straße-1' })).status).toBe(200);
+    await addScopedReference(db, I.clinic, I.otherLocation, false, 17);
+    await db.query(`
+      INSERT INTO clinic_schema.employee_location_memberships(
+        employee_id,clinic_location_id,role
+      ) VALUES($1,$2,'CLINIC_RECEPTIONIST')
+    `, [I.employee, I.otherLocation]);
+    const crossLocationActor: Actor = {
+      ...allowed(),
+      locationIds: [I.location, I.otherLocation],
+    };
+    expect((await list(crossLocationActor, {
+      location: I.otherLocation,
+      administrativeReference: 'SCOPE-ONLY',
+    })).status).toBe(200);
+    expect((await list(allowed(), { q: 'ба' })).status).toBe(200);
+    const state = await db.query<{ actor_id: string; location_id: string }>(`
+      SELECT DISTINCT actor_id::text,location_id::text
+      FROM public.shared_rate_limit_windows
+      WHERE namespace=$1 AND clinic_id=$2::uuid
+      ORDER BY actor_id,location_id
+    `, [ADMINISTRATIVE_REFERENCE_RATE_LIMIT_NAMESPACE, I.clinic]);
+    expect(state.rows).toEqual([
+      { actor_id: I.employee, location_id: I.location },
+      { actor_id: I.employee, location_id: I.otherLocation },
+      { actor_id: I.admin, location_id: I.location },
+    ]);
+  });
+
+  it('N-B-18/N-B-19 shares one threshold across two Registry service instances with zero over-admission', async () => {
+    setReferencePolicy(registry, { shortLimit: 5, sustainedLimit: 100 });
+    setReferencePolicy(secondRegistry, { shortLimit: 5, sustainedLimit: 100 });
+    const calls = Array.from({ length: 20 }, (_, index) =>
+      (index % 2 === 0 ? registry : secondRegistry).list({
+        clinicId: I.clinic,
+        locationId: I.location,
+        employee: allowed(),
+        limit: 50,
+        administrativeReference: 'Straße-1',
+      }));
+    const results = await Promise.allSettled(calls);
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(5);
+    expect(results.filter((result) =>
+      result.status === 'rejected'
+      && (result.reason as { status?: number }).status === 429)).toHaveLength(15);
+    expect(await referenceRateLimitState(db, I.employee, I.location)).toEqual([
+      { window_seconds: 60, hit_count: 20 },
+      { window_seconds: 3600, hit_count: 20 },
+    ]);
+  });
+
+  it('N-B-21/N-B-23/N-B-24 fails closed without lookup, fallback, domain effects or raw-reference persistence', async () => {
+    const before = await effects(db);
+    const shared = jest.spyOn(sharedLimiter, 'consume')
+      .mockRejectedValueOnce(new Error('private database detail'));
+    const query = jest.spyOn(
+      registry as unknown as { query: (...args: unknown[]) => Promise<unknown> },
+      'query',
+    );
+    const response = await list(allowed(), { administrativeReference: 'SECRET-REFERENCE-1' });
+    expect(response.status).toBe(503);
+    expect(response.body).toEqual({
+      statusCode: 503,
+      code: 'PATIENTS_REGISTRY_POLICY_UNAVAILABLE',
+      message: 'Patients registry policy unavailable',
+    });
+    expect(query).not.toHaveBeenCalled();
+    expect((registry as unknown as { searchBuckets: Map<string, unknown> }).searchBuckets.size).toBe(0);
+    expect(JSON.stringify(response.body)).not.toContain('SECRET-REFERENCE-1');
+    expect(await effects(db)).toEqual(before);
+    const persistent = await db.query<{ count: string }>(`
+      SELECT COUNT(*)::text AS count
+      FROM public.shared_rate_limit_windows
+      WHERE row_to_json(shared_rate_limit_windows)::text LIKE '%SECRET-REFERENCE-1%'
+    `);
+    expect(persistent.rows[0].count).toBe('0');
+    shared.mockRestore();
+    query.mockRestore();
   });
 
   it('supports Unicode NFKC prefix search and bounded search rate limiting', async () => {
@@ -463,6 +676,54 @@ async function effects(db: DatabaseService) {
       (SELECT COUNT(*) FROM booking_schema.outbox_events)::text outbox
   `);
   return result.rows[0];
+}
+
+function setReferencePolicy(
+  service: ClinicPatientsRegistryService,
+  override: Partial<ClinicPatientsRegistryReferenceRateLimitConfig>,
+) {
+  const target = service as unknown as {
+    referenceRateLimitConfig: ClinicPatientsRegistryReferenceRateLimitConfig;
+  };
+  target.referenceRateLimitConfig = Object.freeze({
+    ...target.referenceRateLimitConfig,
+    ...override,
+  });
+}
+
+async function clearReferenceRateLimits(db: DatabaseService) {
+  await db.query(`
+    DELETE FROM public.shared_rate_limit_windows
+    WHERE namespace=$1
+      AND actor_id=ANY($2::uuid[])
+  `, [ADMINISTRATIVE_REFERENCE_RATE_LIMIT_NAMESPACE, [I.employee, I.admin, I.vet]]);
+}
+
+async function referenceRateLimitState(
+  db: DatabaseService,
+  actorId: string,
+  locationId: string,
+) {
+  const result = await db.query<{ window_seconds: number; hit_count: number }>(`
+    SELECT window_seconds,hit_count
+    FROM public.shared_rate_limit_windows
+    WHERE namespace=$1
+      AND actor_id=$2::uuid
+      AND clinic_id=$3::uuid
+      AND location_id=$4::uuid
+    ORDER BY window_seconds
+  `, [ADMINISTRATIVE_REFERENCE_RATE_LIMIT_NAMESPACE, actorId, I.clinic, locationId]);
+  return result.rows;
+}
+
+async function referenceRateLimitRowCount(db: DatabaseService) {
+  const result = await db.query<{ count: string }>(`
+    SELECT COUNT(*)::text AS count
+    FROM public.shared_rate_limit_windows
+    WHERE namespace=$1
+      AND actor_id=ANY($2::uuid[])
+  `, [ADMINISTRATIVE_REFERENCE_RATE_LIMIT_NAMESPACE, [I.employee, I.admin, I.vet]]);
+  return Number(result.rows[0].count);
 }
 
 async function addProductionLikeNoise(db: DatabaseService) {

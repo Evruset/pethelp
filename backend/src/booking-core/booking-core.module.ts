@@ -1,5 +1,6 @@
 import { Module as NestModule } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { RateLimitModule } from '../platform/rate-limit/rate-limit.module';
 import { AlternativeSlotExpirationWorker } from './alternative-slot-expiration.worker';
 import { AlternativeSlotService } from './alternative-slot.service';
 import { BookingController, OwnerBookingCancellationController } from './booking.controller.secure';
@@ -38,7 +39,7 @@ import { VeterinarianVisitReadController } from './veterinarian-visit-read.contr
 import { VeterinarianVisitReadService } from './veterinarian-visit-read.service';
 
 @NestModule({
-  imports: [AuthModule],
+  imports: [AuthModule, RateLimitModule],
   controllers: [BookingController, OwnerBookingCancellationController, ClinicPortalController, ClinicAppointmentsRegistryController, ClinicPatientsRegistryController, ClinicPatientDetailController, ClinicPatientLocalAliasController, ClinicPatientAdministrativeReferenceController, ClinicQualityController, ClinicQueueController, ClinicScheduleController, OwnerAlternativeSnapshotController, BookingEventReplayController, VeterinarianVisitReadController],
   providers: [BookingRepository, BookingService, BookingHoldCreationService, BookingHoldReadService, BookingSecurityService, ClinicEmployeeAccessService, ClinicAppointmentsRegistryService, ClinicPatientsRegistryService, ClinicPatientDetailService, ClinicPatientLocalAliasService, ClinicPatientAdministrativeReferenceService, ClinicPatientAssociationLifecycleService, ClinicPortalService, ClinicQualityService, ClinicQueueService, ClinicScheduleService, ClinicSlaMonitorWorker, AlternativeSlotService, AlternativeSlotExpirationWorker, OwnerAlternativeSnapshotService, OwnerAlternativeAcceptanceService, BookingEventReplayService, VeterinarianVisitReadService],
   exports: [BookingService, ClinicPortalService, AlternativeSlotService, ClinicQueueService, ClinicQualityService, ClinicScheduleService, OwnerAlternativeSnapshotService, BookingEventReplayService, ClinicPatientAssociationLifecycleService],

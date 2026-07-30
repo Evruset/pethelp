@@ -7,11 +7,10 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { DomainErrors } from '../common/domain-error';
-import { isClinicPatientAdminReferenceSearchEnabled, isClinicPatientsRegistryEnabled } from '../config';
+import { isClinicPatientsRegistryEnabled } from '../config';
 import { SWAGGER_BEARER_AUTH } from '../openapi/openapi';
 import { ClinicPatientsRegistryDto } from './dto/clinic-patients-registry.dto';
 import { ClinicPatientsRegistryService, PatientsRegistryRateLimitException } from './clinic-patients-registry.service';
-import { normalizeAdministrativeReference } from './clinic-patient-administrative-reference.normalizer';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -48,7 +47,7 @@ function queryValue(value: string | string[] | undefined): string | undefined {
 }
 
 function parseQuery(raw: RegistryQuery): {
-  q?: string; limit: number; cursor?: string; administrativeReferenceKey?: string;
+  q?: string; limit: number; cursor?: string; administrativeReference?: string;
 } {
   const allowed = new Set(['q', 'limit', 'cursor', 'administrativeReference']);
   if (Object.keys(raw).some((key) => !allowed.has(key))) {
@@ -61,18 +60,7 @@ function parseQuery(raw: RegistryQuery): {
     throw new BadRequestException({ code: 'INVALID_SEARCH_COMBINATION', message: 'Invalid search combination' });
   }
   if (reference !== undefined) {
-    if (!isClinicPatientAdminReferenceSearchEnabled()) {
-      throw new NotFoundException({
-        code: 'ADMINISTRATIVE_REFERENCE_SEARCH_UNAVAILABLE', message: 'Administrative reference search unavailable',
-      });
-    }
-    const normalized = normalizeAdministrativeReference(reference);
-    if (!normalized) {
-      throw new BadRequestException({
-        code: 'INVALID_ADMINISTRATIVE_REFERENCE_QUERY', message: 'Invalid administrative reference query',
-      });
-    }
-    return { limit: limit(queryValue(raw.limit)), administrativeReferenceKey: normalized.comparisonKey };
+    return { limit: limit(queryValue(raw.limit)), administrativeReference: reference };
   }
   return { q: search(q), limit: limit(queryValue(raw.limit)), cursor };
 }
