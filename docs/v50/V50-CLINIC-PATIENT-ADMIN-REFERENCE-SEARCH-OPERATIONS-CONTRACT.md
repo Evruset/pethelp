@@ -514,12 +514,43 @@ R-14 consume correctness is independent of cleanup availability
 
 04M adds no runtime tests.
 
-## 29. Recommended next slice
+## 29. Implementation evidence
 
-`V50-CLINIC-04N-A / Shared Replica-Safe PostgreSQL Rate Limiter Foundation`.
+`V50-CLINIC-04N-B / Registry Shared Rate Limiter Integration` is
+`PASS / COMPLETE`.
 
-Implement one reversible migration, PostgreSQL atomic short/sustained counters
-using database time, strict logical expiry within 65 minutes, indexed bounded
-startup/periodic application cleanup with a healthy-worker 24-hour physical
-deletion target, and focused multi-instance/concurrency tests. Do not connect
-the foundation to the Registry product endpoint yet.
+- The exact `administrativeReference` mode now evaluates authentication,
+  capability, active membership, exact clinic/location scope, feature
+  availability and request validity before consuming the shared limiter.
+  Visibility/reference SQL runs only after an allowed consume.
+- The safe limiter identity is actor, clinic, location and the fixed
+  `administrative-reference-exact` namespace. Raw/display/normalized
+  references, comparison keys and patient data never enter limiter input,
+  state or public errors.
+- Typed defaults are 20 attempts per 60 seconds and 200 attempts per 3,600
+  seconds. Invalid, inverted or retention-incompatible policies fail startup.
+- Denials retain the existing safe
+  `PATIENTS_REGISTRY_SEARCH_RATE_LIMITED` 429 response and database-derived
+  integer `Retry-After`. Shared-limiter failures fail closed as
+  `PATIENTS_REGISTRY_POLICY_UNAVAILABLE` 503 without reference lookup or
+  process-local fallback.
+- Exact search invokes the shared PostgreSQL limiter once and the legacy
+  per-process limiter zero times. The legacy map remains only for ordinary
+  `q` search, whose behavior is unchanged.
+- Real PostgreSQL tests prove short/sustained thresholds, durable denied
+  attempts, expired-window admission, actor/location isolation, two service
+  instances, concurrent zero over-admission, failure isolation, privacy and
+  zero domain side effects. Registry, Patient Detail and shared-foundation
+  regressions pass.
+
+04N is not complete. Access-log redaction deployment, safe telemetry/alerts,
+representative 10k/100k semantic EXPLAIN cadence, rollout evidence and
+operational runbook validation remain.
+
+## 30. Recommended next slice
+
+`V50-CLINIC-04N-C / Registry Reference Search Operational Evidence Closure`.
+
+Close only the remaining redaction, telemetry/alert, representative-plan,
+rollout and runbook evidence fixed by this contract. Do not change Registry
+authority, limiter semantics, migrations or product behavior.

@@ -1458,4 +1458,40 @@ Execution verdict: `PASS / COMPLETE`.
 
 ## Next single action
 
-`V50-CLINIC-04N-B / Registry Shared Rate Limiter Integration`.
+### `V50-CLINIC-04N-B / Registry Shared Rate Limiter Integration`
+
+`PASS / COMPLETE`.
+
+- The exact administrative-reference Registry path now performs capability,
+  active membership, exact clinic/location scope, feature and request
+  validation before one shared PostgreSQL limiter consume. Visibility and
+  reference lookup occur only after an allowed consume.
+- The limiter identity contains only safe actor, clinic, location and the
+  fixed exact-search namespace. It never receives raw/display/normalized
+  reference, comparison key or patient data.
+- Typed defaults are short 20/60 seconds and sustained 200/3,600 seconds,
+  with positive, ordered and retention-bounded startup validation.
+- Denial preserves the safe
+  `PATIENTS_REGISTRY_SEARCH_RATE_LIMITED` 429 contract and database-derived
+  `Retry-After`. Infrastructure failure fails closed as
+  `PATIENTS_REGISTRY_POLICY_UNAVAILABLE` 503 without lookup or local fallback.
+- Exact search invokes shared enforcement once and the process-local limiter
+  zero times. Ordinary `q` Registry search remains its only legacy consumer.
+- Focused real PostgreSQL evidence covers authority-first zero rows,
+  short/sustained thresholds, durable blocked attempts, database-time expiry,
+  actor/location isolation, two service instances, concurrent zero
+  over-admission, fail-closed behavior, privacy and zero domain side effects.
+  Registry, Patient Detail and shared-foundation regressions, Node 22 build,
+  migration checksums and diff hygiene pass.
+- Docker 27.3.1 on HyperKit, backend and PostgreSQL remained running and
+  healthy with restart counts zero. No stack, volume or Portal lifecycle
+  operation was performed.
+- 04N remains open: access-log redaction deployment, safe telemetry/alerts,
+  representative 10k/100k semantic EXPLAIN cadence, rollout evidence and
+  runbook operational validation are not part of 04N-B.
+
+Execution verdict: `PASS / COMPLETE`.
+
+## Next single action
+
+`V50-CLINIC-04N-C / Registry Reference Search Operational Evidence Closure`.

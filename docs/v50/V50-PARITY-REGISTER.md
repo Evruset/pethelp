@@ -229,3 +229,22 @@ When any prototype file changes, regenerate the manifest, rerun inventory verifi
   proofs cover N-01..N-30 and R-01..R-14.
 - The foundation is not connected to the Registry endpoint. The one next slice
   is `V50-CLINIC-04N-B`.
+
+## V50-CLINIC-04N-B — Registry shared rate limiter integration
+
+- Exact administrative-reference search now consumes the shared PostgreSQL
+  limiter after authority, exact scope, feature and request validation and
+  before visibility/reference lookup.
+- Typed short/sustained defaults are 20/60 seconds and 200/3,600 seconds.
+  Safe 429 responses use database-derived `Retry-After`; infrastructure
+  failures fail closed with the existing safe policy-unavailable response.
+- Shared enforcement is invoked once across replicas. The process-local
+  counter is no longer part of exact-reference decisions and remains only for
+  ordinary `q` search.
+- Focused PostgreSQL tests prove authority ordering, thresholds, durable
+  denial, actor/location isolation, two-instance concurrency with zero
+  over-admission, privacy, no domain side effects and ordinary Registry /
+  Patient Detail isolation.
+- Status is `PASS / COMPLETE`. 04N remains open for operational evidence. The
+  one next slice is
+  `V50-CLINIC-04N-C / Registry Reference Search Operational Evidence Closure`.
