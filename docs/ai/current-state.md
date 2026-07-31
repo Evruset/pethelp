@@ -1,6 +1,6 @@
 # V50 program current state
 
-Updated: 2026-07-22
+Updated: 2026-07-31
 
 ## Program status
 
@@ -1605,6 +1605,46 @@ Execution verdict: `PASS / BACKEND_FOUNDATION_IMPLEMENTED / TESTED`.
 
 ## Next single action
 
-`V50-CLINIC-05C / Clinic Workspace Home Portal BFF and Page`.
+### `V50-CLINIC-05C / Clinic Workspace Home Portal BFF and Page`
 
-Schedule and Quality authority debts remain separate and are not closed by 05C.
+`PASS / PORTAL_FOUNDATION_IMPLEMENTED / TESTED`.
+
+- Added the exact-true, server-side, default-off `CLINIC_V50_WORKSPACE_HOME`
+  flag with `PORTAL_V50_SHELL` dependency. Disabled behavior preserves the
+  previously absent scoped root route, removes Home navigation and sends no
+  Workspace Home browser request.
+- The enabled root page stays inside the existing shell. Its same-origin BFF
+  uses only the server-retrieved HttpOnly session token, rejects browser
+  bearer substitution/redirects/query forwarding, bounds timeout/body size,
+  strict-parses the fixed 05B tuple and exposes only normalized no-store
+  responses.
+- The client strict-parses again, uses generation and AbortController fencing,
+  has no polling or persistence, refreshes manually or after a >30-second
+  hidden-tab interval, retains only technical stale snapshots and
+  synchronously purges protected facts on authority, subject, scope or route
+  loss.
+- Queue/Appointments render bounded authoritative facts and closed links.
+  `NOT_AUTHORIZED` is hidden; Schedule/Veterinarian/Quality remain no-facts
+  `NOT_CONFIGURED` or unavailable presentations without synthetic authority.
+- Responsive/accessible evidence covers reception, veterinarian, multi-role,
+  empty, degraded, stale and forbidden states at 375/412/768/1440, plus
+  keyboard, full-page axe, 200% text, reduced motion, forced colors and the
+  authoritative prototype reference. The visual-fidelity counter is
+  unchanged; full product parity remains partial.
+- Node 22 typecheck/build, parser/BFF/flag contracts, focused/default-off/full
+  Chromium, real Portal-BFF/backend/PostgreSQL smoke and independent
+  security/parser/product reviews pass. Backend, OpenAPI, migrations,
+  dependencies, Flutter and prototype are unchanged.
+- `CLN-001` is `BACKEND_FOUNDATION_IMPLEMENTED / TESTED`,
+  `PORTAL_FOUNDATION_IMPLEMENTED / TESTED`,
+  `BOUNDED_VISUAL_EVIDENCE_PASS`, `FULL_PRODUCT_PARITY_PARTIAL` and
+  `ROLLOUT_NOT_STARTED`.
+
+Execution verdict: `PASS / PORTAL_FOUNDATION_IMPLEMENTED / TESTED`.
+
+## Next single action
+
+`V50-CLINIC-05D / Clinic Workspace Home End-to-End Certification and Stacked Integration`.
+
+Schedule and Quality authority debts remain open. Production rollout and main
+integration remain `NOT_STARTED`.
