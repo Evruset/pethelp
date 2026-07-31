@@ -44,6 +44,44 @@
   color-scheme: light;
 }
 
+/* V50 Clinic Workspace Home: bounded task-oriented composition. */
+.vh-workspace { max-width: 1180px; margin: 0 auto; color: var(--vh-text, #18231f); }
+.vh-workspace-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 20px; }
+.vh-workspace-header h2 { margin: 4px 0 6px; font-size: clamp(1.7rem, 3vw, 2.4rem); line-height: 1.15; }
+.vh-workspace-header p { margin: 0; color: #52625c; }
+.vh-workspace-eyebrow { font-size: .82rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.vh-workspace-button, .vh-workspace-action { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; border: 1px solid #176b55; padding: 10px 16px; background: #fff; color: #125744; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
+.vh-workspace-button:hover, .vh-workspace-action:hover { background: #eef8f4; }
+.vh-workspace-button:focus-visible, .vh-workspace-action:focus-visible, .vh-workspace-banner button:focus-visible { outline: 3px solid #1a73e8; outline-offset: 3px; }
+.vh-workspace-banner { margin: 0 0 20px; padding: 14px 16px; border: 2px solid #9b6816; border-radius: 14px; background: #fff8df; color: #533706; }
+.vh-workspace-banner button { min-height: 44px; margin-left: 12px; border: 0; background: transparent; color: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; }
+.vh-workspace-empty, .vh-workspace-feedback { padding: 22px; border-radius: 16px; background: #f4f8f6; border: 1px solid #d5e2dc; }
+.vh-workspace-feedback { max-width: 720px; margin: 24px auto; }
+.vh-workspace-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: stretch; }
+.vh-workspace-card { min-width: 0; padding: 20px; border-radius: 18px; border: 1px solid #d5e2dc; background: #fff; box-shadow: 0 8px 24px rgb(22 61 49 / 7%); }
+.vh-workspace-card h3 { margin: 0 0 16px; font-size: 1.2rem; }
+.vh-workspace-card--task { border-top: 5px solid #23836a; }
+.vh-workspace-card--info { background: #f7f9f8; color: #485750; }
+.vh-workspace-card--error { border-color: #b85850; background: #fff4f2; }
+.vh-workspace-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0 0 16px; }
+.vh-workspace-facts div { padding: 14px; border-radius: 12px; background: #f1f7f4; }
+.vh-workspace-facts dt { color: #52625c; font-size: .9rem; }
+.vh-workspace-facts dd { margin: 5px 0 0; font-size: 1.7rem; font-weight: 800; }
+.vh-workspace-action { margin-top: 12px; background: #176b55; color: #fff; }
+@media (max-width: 700px) {
+  .vh-workspace-header { flex-direction: column; }
+  .vh-workspace-header .vh-workspace-button { width: 100%; }
+  .vh-workspace-grid { grid-template-columns: minmax(0, 1fr); }
+  .vh-workspace-card { padding: 16px; }
+  .vh-workspace-banner button { display: block; margin: 8px 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vh-workspace *, .vh-workspace-feedback * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}
+@media (forced-colors: active) {
+  .vh-workspace-card, .vh-workspace-banner, .vh-workspace-button, .vh-workspace-action { border: 2px solid CanvasText; }
+}
+
 .vh-ds-button {
   min-width: var(--vh-min-target);
   min-height: var(--vh-min-target);
@@ -342,27 +380,41 @@ html {
 
 @media (max-width: 899px) {
   .vh-clinic-shell {
-    display: block;
-    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    min-height: 0;
+    padding-bottom: 0;
   }
 
   .vh-clinic-sidebar {
     display: none;
   }
 
+  .vh-clinic-main {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+
   .vh-clinic-content {
-    height: calc(100dvh - 72px - 72px - env(safe-area-inset-bottom));
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
   }
 
   .vh-clinic-bottom-nav {
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    left: 0;
+    position: static;
     z-index: 20;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-auto-columns: minmax(82px, 1fr);
+    grid-auto-flow: column;
+    grid-template-columns: none;
     gap: 8px;
+    flex: 0 0 auto;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
     padding: 8px max(12px, env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-right));
     border-top: 1px solid var(--vh-border);
     background: var(--vh-surface-elevated);
@@ -431,7 +483,7 @@ html {
 .vh-v50-clinic-shell .vh-clinic-bottom-nav-item[aria-current="page"] {
   border-color: color-mix(in srgb, var(--vh-primary) 28%, var(--vh-border));
   background: var(--vh-primary-soft);
-  color: var(--vh-primary);
+  color: var(--vh-text);
 }
 
 .vh-v50-nav-icon {
@@ -554,11 +606,12 @@ html {
   }
 
   .vh-v50-clinic-shell .vh-clinic-content {
-    height: calc(100dvh - 80px - 76px - env(safe-area-inset-bottom));
+    height: auto;
   }
 
   .vh-v50-clinic-shell .vh-clinic-bottom-nav {
-    grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
+    grid-auto-columns: minmax(82px, 1fr);
+    grid-template-columns: none;
     gap: 4px;
     min-height: 76px;
   }

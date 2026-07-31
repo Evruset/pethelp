@@ -321,7 +321,7 @@ test('updates free slot capacity, handles stale conflict and blocks booked slot 
     const dialog = page.getByRole('dialog', { name: 'Изменить capacity' });
     await dialog.getByLabel('Новая capacity').fill('4');
     await dialog.getByRole('button', { name: 'Сохранить' }).click();
-    await expect(page.getByRole('status')).toContainText('Capacity обновлена. Расписание обновлено.');
+    await expect(page.getByRole('status').filter({ hasText: 'Capacity обновлена. Расписание обновлено.' })).toBeVisible();
     await expect(page.getByRole('row').filter({ hasText: '0 записей · 0 holds · cap 4' })).toBeVisible();
   });
 

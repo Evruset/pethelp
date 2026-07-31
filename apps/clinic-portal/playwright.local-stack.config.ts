@@ -32,6 +32,8 @@ export default defineConfig({
       VETHELP_API_BASE_URL: backendBaseUrl,
       VETHELP_CLINIC_JWT_SECRET: clinicJwtSecret,
       NEXT_TELEMETRY_DISABLED: '1',
+      PORTAL_V50_SHELL: 'true',
+      CLINIC_V50_WORKSPACE_HOME: process.env.CLINIC_V50_WORKSPACE_HOME ?? 'false',
     },
   },
 });
