@@ -1526,5 +1526,41 @@ Execution verdict: `PASS / COMPLETE`.
 
 ## Next single action
 
-Close parent `V50-CLINIC-04N`; do not start another product or architecture
-slice in this session.
+### `V50-CLINIC-05A / Clinic Workspace Home Authority Contract`
+
+`CONTRACT_READY`.
+
+- The canonical composition model is one read-only backend projection at
+  `GET /v1/clinic/:clinicId/locations/:locationId/workspace-home`, consumed by
+  one same-origin Portal BFF and one scoped Portal page. Portal composition and
+  independent widgets are rejected because they duplicate authority checks and
+  create fan-out, count-leak and inconsistent-snapshot risk.
+- One common backend gate requires authenticated identity, matching JWT
+  clinic/location claims, active non-revoked exact-location membership and
+  database-backed capability evaluation. Roles only contribute capabilities;
+  unavailable sections contain no facts, counts or action links.
+- The response is a fixed discriminated union of Queue, Schedule,
+  Appointments, Veterinarian and Quality sections. It excludes patient/owner,
+  hold/appointment/doctor identifiers, clinical fields, documents, financial
+  data, audit rows and arbitrary errors/URLs.
+- PostgreSQL time owns snapshot/freshness semantics. The contract uses a
+  30-second max age, `private, no-store`, no ETag, explicit stale marking and
+  immediate protected-data removal on the next authoritative read after
+  membership revocation.
+- Partial degradation is allowed only after the common authority gate and
+  capability decisions. Authentication, scope, membership or policy failures
+  fail the whole response without protected data.
+- The 05B performance gate permits at most one authority query plus five
+  bounded summary statements, requires cardinality one per section and an 8 KiB
+  response, and at 10k requires endpoint p95 < 150 ms, p99 < 300 ms, zero
+  disk/temp spill and zero sequential scans on large operational fact tables.
+- `CLINIC_V50_WORKSPACE_HOME` is specified default-off and depends on
+  `PORTAL_V50_SHELL`; no runtime flag was added. `CLN-001` is
+  `CONTRACT_READY`, not implemented, tested or visually verified.
+- Production rollout and main integration remain `NOT_STARTED`.
+
+Execution verdict: `PASS / CONTRACT_READY`.
+
+## Next single action
+
+`V50-CLINIC-05B / Clinic Workspace Home Backend Projection`.
