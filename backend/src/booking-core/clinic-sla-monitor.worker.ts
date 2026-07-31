@@ -135,8 +135,6 @@ export class ClinicSlaMonitorWorker {
         this.traceContext.getCausationId() ?? null,
         this.traceContext.getTraceparent() ?? null,
         hold.id,
-        null,
-        hold.id,
         breached.rows[0].version,
         hold.slot_id,
         `clinic.sla.breached.v1:${hold.id}:${breached.rows[0].version}`,
