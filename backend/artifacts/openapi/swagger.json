@@ -4080,6 +4080,63 @@
         ]
       }
     },
+    "/v1/clinic/{clinicId}/locations/{locationId}/workspace-home": {
+      "get": {
+        "description": "Live database snapshot. Cache-Control: private, no-store. No ETag or 304 response is supported.",
+        "operationId": "read",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClinicWorkspaceHomeDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed clinicId or locationId."
+          },
+          "401": {
+            "description": "Authentication required."
+          },
+          "403": {
+            "description": "Normalized exact clinic/location membership denial."
+          },
+          "500": {
+            "description": "Normalized technical failure."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Read the exact-location capability-filtered Clinic Workspace Home foundation",
+        "tags": [
+          "Clinic Workspace Home"
+        ]
+      }
+    },
     "/v1/booking-holds/{holdId}/alternative": {
       "get": {
         "operationId": "getAlternative",
@@ -6631,6 +6688,386 @@
           "administrativeReference",
           "aggregateVersion",
           "updatedAt"
+        ]
+      },
+      "QueueWorkspaceFactsDto": {
+        "type": "object",
+        "properties": {
+          "waitingCount": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 999
+          },
+          "requiresActionCount": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 999
+          },
+          "oldestWaitAgeBucket": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "LT_5_MIN",
+              "5_TO_10_MIN",
+              "10_TO_30_MIN",
+              "GT_30_MIN"
+            ]
+          },
+          "slaRisk": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "DUE_SOON",
+              "OVERDUE",
+              "UNKNOWN"
+            ]
+          }
+        },
+        "required": [
+          "waitingCount",
+          "requiresActionCount",
+          "oldestWaitAgeBucket",
+          "slaRisk"
+        ]
+      },
+      "WorkspaceActionDto": {
+        "type": "object",
+        "properties": {
+          "route": {
+            "type": "string",
+            "enum": [
+              "queue",
+              "appointments"
+            ]
+          },
+          "labelKey": {
+            "type": "string",
+            "enum": [
+              "WORKSPACE_OPEN_QUEUE",
+              "WORKSPACE_OPEN_APPOINTMENTS"
+            ]
+          }
+        },
+        "required": [
+          "route",
+          "labelKey"
+        ]
+      },
+      "QueueAvailableSectionDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "QUEUE"
+            ]
+          },
+          "availability": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE"
+            ]
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "facts": {
+            "$ref": "#/components/schemas/QueueWorkspaceFactsDto"
+          },
+          "action": {
+            "$ref": "#/components/schemas/WorkspaceActionDto"
+          }
+        },
+        "required": [
+          "kind",
+          "availability",
+          "generatedAt",
+          "facts",
+          "action"
+        ]
+      },
+      "AppointmentsWorkspaceFactsDto": {
+        "type": "object",
+        "properties": {
+          "todayCount": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 999
+          },
+          "requiresActionCount": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 999
+          },
+          "nextScheduledAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "todayCount",
+          "requiresActionCount",
+          "nextScheduledAt"
+        ]
+      },
+      "AppointmentsAvailableSectionDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "APPOINTMENTS"
+            ]
+          },
+          "availability": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE"
+            ]
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "facts": {
+            "$ref": "#/components/schemas/AppointmentsWorkspaceFactsDto"
+          },
+          "action": {
+            "$ref": "#/components/schemas/WorkspaceActionDto"
+          }
+        },
+        "required": [
+          "kind",
+          "availability",
+          "generatedAt",
+          "facts",
+          "action"
+        ]
+      },
+      "QueueUnavailableSectionDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "QUEUE"
+            ]
+          },
+          "availability": {
+            "type": "string",
+            "enum": [
+              "NOT_AUTHORIZED",
+              "TEMPORARILY_UNAVAILABLE"
+            ]
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Common database snapshot time; never a domain-source timestamp."
+          }
+        },
+        "required": [
+          "kind",
+          "availability",
+          "generatedAt"
+        ]
+      },
+      "ScheduleUnavailableSectionDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "SCHEDULE"
+            ]
+          },
+          "availability": {
+            "type": "string",
+            "enum": [
+              "NOT_AUTHORIZED",
+              "NOT_CONFIGURED"
+            ]
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Common database snapshot time; never a domain-source timestamp."
+          }
+        },
+        "required": [
+          "kind",
+          "availability",
+          "generatedAt"
+        ]
+      },
+      "AppointmentsUnavailableSectionDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "APPOINTMENTS"
+            ]
+          },
+          "availability": {
+            "type": "string",
+            "enum": [
+              "NOT_AUTHORIZED",
+              "TEMPORARILY_UNAVAILABLE"
+            ]
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Common database snapshot time; never a domain-source timestamp."
+          }
+        },
+        "required": [
+          "kind",
+          "availability",
+          "generatedAt"
+        ]
+      },
+      "VeterinarianUnavailableSectionDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "VETERINARIAN"
+            ]
+          },
+          "availability": {
+            "type": "string",
+            "enum": [
+              "NOT_AUTHORIZED",
+              "NOT_CONFIGURED"
+            ]
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Common database snapshot time; never a domain-source timestamp."
+          }
+        },
+        "required": [
+          "kind",
+          "availability",
+          "generatedAt"
+        ]
+      },
+      "QualityUnavailableSectionDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "QUALITY"
+            ]
+          },
+          "availability": {
+            "type": "string",
+            "enum": [
+              "NOT_AUTHORIZED",
+              "NOT_CONFIGURED"
+            ]
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Common database snapshot time; never a domain-source timestamp."
+          }
+        },
+        "required": [
+          "kind",
+          "availability",
+          "generatedAt"
+        ]
+      },
+      "WorkspaceFreshnessDto": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "FRESH"
+            ]
+          },
+          "maxAgeSeconds": {
+            "type": "number",
+            "enum": [
+              30
+            ]
+          }
+        },
+        "required": [
+          "state",
+          "maxAgeSeconds"
+        ]
+      },
+      "ClinicWorkspaceHomeDto": {
+        "type": "object",
+        "properties": {
+          "clinicId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "serverNow": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/WorkspaceFreshnessDto"
+          },
+          "sections": {
+            "type": "array",
+            "minItems": 5,
+            "maxItems": 5,
+            "description": "Canonical order: QUEUE, SCHEDULE, APPOINTMENTS, VETERINARIAN, QUALITY.",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/QueueAvailableSectionDto"
+                },
+                {
+                  "$ref": "#/components/schemas/QueueUnavailableSectionDto"
+                },
+                {
+                  "$ref": "#/components/schemas/ScheduleUnavailableSectionDto"
+                },
+                {
+                  "$ref": "#/components/schemas/AppointmentsAvailableSectionDto"
+                },
+                {
+                  "$ref": "#/components/schemas/AppointmentsUnavailableSectionDto"
+                },
+                {
+                  "$ref": "#/components/schemas/VeterinarianUnavailableSectionDto"
+                },
+                {
+                  "$ref": "#/components/schemas/QualityUnavailableSectionDto"
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "clinicId",
+          "locationId",
+          "serverNow",
+          "generatedAt",
+          "freshness",
+          "sections"
         ]
       },
       "CreateEmergencyTriageDto": {

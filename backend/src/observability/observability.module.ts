@@ -8,6 +8,7 @@ import { OpsSloController } from './ops-slo.controller';
 import { TraceContext } from './trace-context.context';
 import { RegistryReferenceAccessLogMiddleware } from './registry-reference-access-log.middleware';
 import { RegistryReferenceTelemetry } from './registry-reference-telemetry';
+import { ClinicWorkspaceHomeTelemetry } from './clinic-workspace-home-telemetry';
 
 @Global()
 @Module({
@@ -21,6 +22,7 @@ import { RegistryReferenceTelemetry } from './registry-reference-telemetry';
     ObservabilityMetricsService,
     RegistryReferenceAccessLogMiddleware,
     RegistryReferenceTelemetry,
+    ClinicWorkspaceHomeTelemetry,
   ],
   exports: [
     TraceContext,
@@ -30,6 +32,7 @@ import { RegistryReferenceTelemetry } from './registry-reference-telemetry';
     ObservabilityMetricsService,
     RegistryReferenceAccessLogMiddleware,
     RegistryReferenceTelemetry,
+    ClinicWorkspaceHomeTelemetry,
   ],
 })
 export class ObservabilityModule {}

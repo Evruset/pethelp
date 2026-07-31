@@ -41,12 +41,16 @@ export class ContextLoggerService implements LoggerService {
     this.write(level, message, context, fields);
   }
 
+  eventWithoutActor(level: LogLevel, context: string, message: string, fields: Record<string, unknown> = {}): void {
+    this.write(level, message, context, fields, true);
+  }
+
   private contextFrom(optionalParams: unknown[]): string | undefined {
     const candidate = optionalParams.at(-1);
     return typeof candidate === 'string' ? candidate : undefined;
   }
 
-  private write(level: LogLevel, message: unknown, context?: string, fields: Record<string, unknown> = {}): void {
+  private write(level: LogLevel, message: unknown, context?: string, fields: Record<string, unknown> = {}, suppressActor = false): void {
     const trace = this.traceContext.get();
     const payload: JsonLogPayload = {
       timestamp: new Date().toISOString(),
@@ -54,7 +58,7 @@ export class ContextLoggerService implements LoggerService {
       context: context ?? 'VetHelp',
       message: this.toMessage(message),
       correlationId: trace?.correlationId,
-      userId: trace?.userId,
+      userId: suppressActor ? undefined : trace?.userId,
       ...fields,
     };
     const line = JSON.stringify(payload);

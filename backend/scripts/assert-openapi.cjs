@@ -49,6 +49,28 @@ async function main() {
   required(telemedWaiting.responses?.['200'], 'Telemed waiting snapshot must document 200');
   required(telemedWaiting.responses?.['404'], 'Telemed waiting snapshot must document 404');
 
+  const workspaceHome = document.paths?.['/v1/clinic/{clinicId}/locations/{locationId}/workspace-home']?.get;
+  required(workspaceHome, 'GET Clinic Workspace Home is missing');
+  required(workspaceHome.security?.some((item) => item.bearerAuth), 'Workspace Home must require bearerAuth');
+  required(['clinicId', 'locationId'].every((name) => workspaceHome.parameters?.some((parameter) => parameter.in === 'path' && parameter.name === name && parameter.required)), 'Workspace Home must require both path parameters');
+  required(['200', '400', '401', '403', '500'].every((status) => workspaceHome.responses?.[status]), 'Workspace Home response matrix is incomplete');
+  required(/private, no-store/i.test(workspaceHome.description ?? '') && /No ETag/i.test(workspaceHome.description ?? ''), 'Workspace Home cache policy is not documented');
+  const schemas = document.components?.schemas ?? {};
+  const home = schemas.ClinicWorkspaceHomeDto;
+  required(home?.properties?.sections?.minItems === 5 && home.properties.sections.maxItems === 5, 'Workspace Home must expose a fixed five-section tuple');
+  required(home.properties.sections.description === 'Canonical order: QUEUE, SCHEDULE, APPOINTMENTS, VETERINARIAN, QUALITY.', 'Workspace Home canonical tuple order is missing');
+  required(schemas.WorkspaceFreshnessDto?.properties?.state?.enum?.join() === 'FRESH', 'Workspace Home freshness enum must be closed to FRESH');
+  required(schemas.QueueAvailableSectionDto?.properties?.kind?.enum?.join() === 'QUEUE', 'Only Queue may use the Queue available schema');
+  required(schemas.AppointmentsAvailableSectionDto?.properties?.kind?.enum?.join() === 'APPOINTMENTS', 'Only Appointments may use the Appointments available schema');
+  for (const [name, kind] of [['ScheduleUnavailableSectionDto', 'SCHEDULE'], ['VeterinarianUnavailableSectionDto', 'VETERINARIAN'], ['QualityUnavailableSectionDto', 'QUALITY']]) {
+    const schema = schemas[name];
+    required(schema?.properties?.kind?.enum?.join() === kind, `${kind} unavailable schema is missing`);
+    required(schema.properties.availability.enum.every((value) => ['NOT_AUTHORIZED', 'NOT_CONFIGURED'].includes(value)), `${kind} must be unavailable-only`);
+    required(!schema.properties.facts && !schema.properties.action && schema.additionalProperties !== true, `${kind} must not expose facts or action`);
+  }
+  const serializedHomeSchemas = JSON.stringify(Object.fromEntries(Object.entries(schemas).filter(([name]) => /Workspace|QueueAvailable|AppointmentsAvailable/.test(name))));
+  required(!/(ownerId|patientId|petId|holdId|appointmentId|doctorId|employeeId|actorId|documentId|audit|payment|clinical|https?:\\\/\\\/)/i.test(serializedHomeSchemas), 'Workspace Home schema leaks identifiers or arbitrary URLs');
+
   required(document.components?.securitySchemes?.bearerAuth, 'Bearer security scheme is missing');
   console.log('OpenAPI contract assertion passed');
 }

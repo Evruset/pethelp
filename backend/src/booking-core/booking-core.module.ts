@@ -31,6 +31,8 @@ import { ClinicQueueController } from './clinic-queue.controller';
 import { ClinicQueueService } from './clinic-queue.service';
 import { ClinicScheduleController } from './clinic-schedule.controller';
 import { ClinicScheduleService } from './clinic-schedule.service';
+import { ClinicWorkspaceHomeController } from './clinic-workspace-home.controller';
+import { ClinicWorkspaceHomeService } from './clinic-workspace-home.service';
 import { ClinicSlaMonitorWorker } from './clinic-sla-monitor.worker';
 import { OwnerAlternativeAcceptanceService } from './owner-alternative-acceptance.service';
 import { OwnerAlternativeSnapshotController } from './owner-alternative-snapshot.controller';
@@ -40,8 +42,8 @@ import { VeterinarianVisitReadService } from './veterinarian-visit-read.service'
 
 @NestModule({
   imports: [AuthModule, RateLimitModule],
-  controllers: [BookingController, OwnerBookingCancellationController, ClinicPortalController, ClinicAppointmentsRegistryController, ClinicPatientsRegistryController, ClinicPatientDetailController, ClinicPatientLocalAliasController, ClinicPatientAdministrativeReferenceController, ClinicQualityController, ClinicQueueController, ClinicScheduleController, OwnerAlternativeSnapshotController, BookingEventReplayController, VeterinarianVisitReadController],
-  providers: [BookingRepository, BookingService, BookingHoldCreationService, BookingHoldReadService, BookingSecurityService, ClinicEmployeeAccessService, ClinicAppointmentsRegistryService, ClinicPatientsRegistryService, ClinicPatientDetailService, ClinicPatientLocalAliasService, ClinicPatientAdministrativeReferenceService, ClinicPatientAssociationLifecycleService, ClinicPortalService, ClinicQualityService, ClinicQueueService, ClinicScheduleService, ClinicSlaMonitorWorker, AlternativeSlotService, AlternativeSlotExpirationWorker, OwnerAlternativeSnapshotService, OwnerAlternativeAcceptanceService, BookingEventReplayService, VeterinarianVisitReadService],
+  controllers: [BookingController, OwnerBookingCancellationController, ClinicPortalController, ClinicAppointmentsRegistryController, ClinicPatientsRegistryController, ClinicPatientDetailController, ClinicPatientLocalAliasController, ClinicPatientAdministrativeReferenceController, ClinicQualityController, ClinicQueueController, ClinicScheduleController, ClinicWorkspaceHomeController, OwnerAlternativeSnapshotController, BookingEventReplayController, VeterinarianVisitReadController],
+  providers: [BookingRepository, BookingService, BookingHoldCreationService, BookingHoldReadService, BookingSecurityService, ClinicEmployeeAccessService, ClinicAppointmentsRegistryService, ClinicPatientsRegistryService, ClinicPatientDetailService, ClinicPatientLocalAliasService, ClinicPatientAdministrativeReferenceService, ClinicPatientAssociationLifecycleService, ClinicPortalService, ClinicQualityService, ClinicQueueService, ClinicScheduleService, ClinicWorkspaceHomeService, ClinicSlaMonitorWorker, AlternativeSlotService, AlternativeSlotExpirationWorker, OwnerAlternativeSnapshotService, OwnerAlternativeAcceptanceService, BookingEventReplayService, VeterinarianVisitReadService],
   exports: [BookingService, ClinicPortalService, AlternativeSlotService, ClinicQueueService, ClinicQualityService, ClinicScheduleService, OwnerAlternativeSnapshotService, BookingEventReplayService, ClinicPatientAssociationLifecycleService],
 })
 export class BookingCoreModule {}
