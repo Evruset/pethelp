@@ -4,10 +4,15 @@
 
 `CONTRACT_READY`.
 
-This document is the normative input for
-`V50-CLINIC-05B / Clinic Workspace Home Backend Projection`. It defines a
+This document, including the 05A-R1 safe-minimum repair, is the normative input
+for `V50-CLINIC-05B / Clinic Workspace Home Backend Foundation Projection`. It defines a
 read-only contract; no runtime, API, Portal, migration or feature-flag code is
 part of 05A.
+
+`V50-CLINIC-05A-R1: PASS / SAFE_MINIMUM_CONTRACT`. The repair preserves the
+five-section shape while restricting 05B operational facts to Queue and
+Appointments. Schedule, Veterinarian and Quality fail closed as
+`NOT_CONFIGURED` when their capability is present.
 
 ## 2. Scope
 
@@ -66,10 +71,10 @@ Responsive interpretation:
 | --- | --- | --- | --- | --- |
 | Portal shell | `ClinicPortalShellV50`; exact scoped layout | `EffectiveSessionProvider` is a UX hint; server remains authority | session fetched without browser bearer forwarding to arbitrary services | Reuse shell, context, skip link and capability-aware navigation. Never authorize from role/persona alone. |
 | Queue | `ClinicQueueService`; `GET /v1/clinic/:clinicId/locations/:locationId/booking-queue` | `booking.queue.read`; JWT clinic/location claims plus active membership | database `serverNow`; limit 50, max 100; FIFO by state-change/id | New bounded aggregate query may reuse state/SLA predicates. Do not load items, holds, pets, audit or owners. Existing list projection is privacy-rich and unsuitable for composition. |
-| Schedule | `ClinicScheduleService`; `GET .../schedule/slots` | `schedule.read`; exact location membership | slot snapshot/freshness fields; existing read can be broad by requested window | Use a today-only aggregate. Do not fetch full services/staff/resources/periods/slots; avoid mutation capabilities and identifiers. |
+| Schedule | `ClinicScheduleService`; `GET .../schedule/slots` | `schedule.read`; exact location membership | slot snapshot/freshness fields; existing read can be broad by requested window and working hours may be synthesized | No 05B summary query: operating classification/configuration authority is not proven. Return `NOT_CONFIGURED` when authorized; debt is recorded below. |
 | Appointments | `ClinicAppointmentsRegistryService`; `GET .../appointments` | `appointment.registry.read`; exact clinic/location membership | database `serverNow`, snapshot cursor; default 50, max 100; 500 ms statement timeout | Use bounded today/action aggregates, not registry rows or cursor traversal. No appointment, pet, owner or doctor identifiers. |
 | Patients | `ClinicPatientsRegistryService`; `GET .../patients` | `patient.admin.read`; exact clinic/location membership and visibility policy | signed cursor, bounded limit, snapshot semantics | Not a 05A section. Patient totals create existence/count leakage and are prohibited. |
-| Quality | `ClinicQualityService`; `GET .../quality-dashboard` | `quality.read`; exact active location | range-scoped aggregate; 350 ms statement timeout | A dedicated bounded alert-state query may reuse safe predicates. Do not reuse owner-return or commercial numerator/denominator data. |
+| Quality | `ClinicQualityService`; `GET .../quality-dashboard` | `quality.read`; exact active location | range-scoped raw metrics; 350 ms statement timeout; no Workspace alert thresholds/freshness authority | No 05B summary query: do not map raw or commercial/owner-return metrics. Return `NOT_CONFIGURED` when authorized; debt is recorded below. |
 | Veterinarian workspace | `VeterinarianVisitReadService`; `GET .../vet/visits` | `clinical.visit.workspace.read`; exact location membership | current list is unpaginated and location-wide | Do not compose the list or return pet/hold fields. The prototype’s personal-shift facts are not proven; 05B returns this section as `NOT_CONFIGURED` until assignment authority is contracted. |
 | Effective authority | `CapabilityEvaluatorService`, `ClinicEmployeeAccessService`, `/v1/auth/session` | capability + JWT early reject + active, non-revoked database membership | membership is read on every authoritative request | Reuse evaluator/resource descriptors. Effective session only controls shell hints and fail-closed page selection. |
 
@@ -118,12 +123,7 @@ type WorkspaceAvailability =
   | 'NOT_AUTHORIZED'
   | 'NOT_CONFIGURED'
   | 'TEMPORARILY_UNAVAILABLE';
-type WorkspaceRoute =
-  | 'queue'
-  | 'schedule'
-  | 'appointments'
-  | 'vet/visits'
-  | 'quality';
+type WorkspaceRoute = 'queue' | 'appointments';
 
 type SectionBase<K extends string> = {
   kind: K;
@@ -166,17 +166,7 @@ type QueueWorkspaceSection =
     })
   | UnavailableSection<'QUEUE'>;
 
-type ScheduleWorkspaceSection =
-  | (SectionBase<'SCHEDULE'> & {
-      availability: 'AVAILABLE';
-      facts: {
-        openSlotsToday: number;
-        operatingState: 'OPEN' | 'BLOCKED' | 'CLOSED' | 'UNKNOWN';
-        configurationWarning: boolean;
-      };
-      action: { route: 'schedule'; labelKey: 'WORKSPACE_OPEN_SCHEDULE' };
-    })
-  | UnavailableSection<'SCHEDULE'>;
+type ScheduleWorkspaceSection = UnavailableSection<'SCHEDULE'>;
 
 type AppointmentsWorkspaceSection =
   | (SectionBase<'APPOINTMENTS'> & {
@@ -193,31 +183,9 @@ type AppointmentsWorkspaceSection =
     })
   | UnavailableSection<'APPOINTMENTS'>;
 
-type VeterinarianWorkspaceSection =
-  | (SectionBase<'VETERINARIAN'> & {
-      availability: 'AVAILABLE';
-      facts: {
-        assignedVisitsCount: number;
-        inProgressVisitsCount: number;
-        nextVisitAt: IsoDateTime | null;
-      };
-      action: {
-        route: 'vet/visits';
-        labelKey: 'WORKSPACE_OPEN_ASSIGNED_VISITS';
-      };
-    })
-  | UnavailableSection<'VETERINARIAN'>;
+type VeterinarianWorkspaceSection = UnavailableSection<'VETERINARIAN'>;
 
-type QualityWorkspaceSection =
-  | (SectionBase<'QUALITY'> & {
-      availability: 'AVAILABLE';
-      facts: {
-        alertState: 'NONE' | 'ATTENTION' | 'CRITICAL' | 'UNKNOWN';
-        dataFreshness: 'FRESH' | 'STALE' | 'UNKNOWN';
-      };
-      action: { route: 'quality'; labelKey: 'WORKSPACE_OPEN_QUALITY' };
-    })
-  | UnavailableSection<'QUALITY'>;
+type QualityWorkspaceSection = UnavailableSection<'QUALITY'>;
 
 type ClinicWorkspaceSection =
   | QueueWorkspaceSection
@@ -257,8 +225,13 @@ Rules:
   clinic/location path; backend never returns arbitrary URLs;
 - action copy is selected by Portal from the closed `labelKey` union; backend
   returns no free-form label;
-- the available Veterinarian variant is reserved for a later assignment
-  contract; 05B emits `NOT_CONFIGURED` with no facts/action for that kind.
+- in 05B, only Queue and Appointments have `AVAILABLE` variants;
+- Schedule, Veterinarian and Quality are unavailable-only types. With their
+  capability they are `NOT_CONFIGURED`; without it they are
+  `NOT_AUTHORIZED`. They never contain facts/action/source timestamps and do
+  not execute operational SQL;
+- `TEMPORARILY_UNAVAILABLE` is a runtime outcome only for an authorized Queue
+  or Appointments summary after the common authority gate.
 
 ## 9. Role and capability matrix
 
@@ -269,16 +242,16 @@ resource-scope evaluation.
 | Section | Required capability | Receptionist / Admin | Veterinarian | Count and action rule |
 | --- | --- | --- | --- | --- |
 | Queue | `booking.queue.read` | `AVAILABLE` | `NOT_AUTHORIZED` unless independently granted | Count and `queue` action only when allowed. |
-| Schedule | `schedule.read` | `AVAILABLE` | `NOT_AUTHORIZED` under the current capability map | Count and `schedule` action only when allowed. |
+| Schedule | `schedule.read` | `NOT_CONFIGURED` in 05B | `NOT_AUTHORIZED` under the current capability map | No facts/action/operational SQL. Missing capability remains `NOT_AUTHORIZED`. |
 | Appointments | `appointment.registry.read` | `AVAILABLE` | `NOT_AUTHORIZED` unless independently granted | Count and `appointments` action only when allowed. |
 | Veterinarian | `clinical.visit.workspace.read` | `NOT_AUTHORIZED` | `NOT_CONFIGURED` in 05B despite the capability | No count or Home action until actor-bound assignment semantics exist. The existing shell may retain its separately authorized `vet/visits` navigation. |
-| Quality | `quality.read` | `AVAILABLE` | `NOT_AUTHORIZED` unless independently granted | Bounded alert state and `quality` action only. |
+| Quality | `quality.read` | `NOT_CONFIGURED` in 05B | `NOT_AUTHORIZED` unless independently granted | No facts/action/operational SQL until classification authority debt closes. |
 
 Authority outcomes:
 
 | Actor/scope condition | Result |
 | --- | --- |
-| `CLINIC_RECEPTIONIST` or `CLINIC_ADMIN` with matching claims and active membership | Available sections follow effective capabilities as above. |
+| `CLINIC_RECEPTIONIST` or `CLINIC_ADMIN` with matching claims and active membership | Queue/Appointments follow effective capabilities; Schedule/Quality are `NOT_CONFIGURED` when their capability exists. |
 | `CLINIC_VETERINARIAN` with matching claims and active membership | Veterinarian section only under the current map. |
 | Multi-role employee | Capability union; no duplicated section and no role-priority override. |
 | Revoked or inactive membership | Full normalized 403; no DTO. |
@@ -306,23 +279,60 @@ Authority outcomes:
 - **Queue:** manual-confirmation operational states only; database-time SLA
   classification; authoritative ordering stays in Queue and is not reproduced
   on Home.
-- **Schedule:** current database day in `clinic_schema.clinics.timezone`,
-  reached through the exact location’s `clinic_id`; bounded open-slot count
-  and configuration state, no staff/resource IDs.
+- **Schedule:** `NOT_CONFIGURED` in 05B when `schedule.read` exists. No
+  `openSlotsToday`, `operatingState`, `configurationWarning`, action or source
+  timestamp is returned, and no Schedule operational SQL runs.
 - **Appointments:** current location day; bounded count, action count and next
   time; no registry item or appointment identifier.
 - **Veterinarian:** `NOT_CONFIGURED` in 05B. Assignment, personal workload,
   next visit and `in-progress` facts remain absent until an actor-bound
   assignment/state source is authoritative. The location-wide existing list
   must not be repurposed as “my shift”.
-- **Quality:** a bounded operational alert classification, not the full quality
-  dashboard and not commercial/owner-return ratios.
+- **Quality:** `NOT_CONFIGURED` in 05B when `quality.read` exists. No alert,
+  freshness, stale-incident, action or source timestamp is returned, and no
+  Quality operational SQL runs.
 
 An allowed but operationally unconfigured section is `NOT_CONFIGURED`.
-Capability denial is always `NOT_AUTHORIZED`. Technical failure after the
-common authority gate is `TEMPORARILY_UNAVAILABLE`.
+Capability denial is always `NOT_AUTHORIZED`. In 05B technical failure after
+the common authority gate may become `TEMPORARILY_UNAVAILABLE` only for an
+authorized Queue or Appointments summary.
 
-## 12. Freshness and consistency
+## 12. Operational classification authority debts
+
+### Schedule Workspace Summary Authority Debt
+
+Future `AVAILABLE` Schedule facts require all of:
+
+- a persisted, non-synthetic source of working hours;
+- explicit precedence between working hours, blackout periods and slot state;
+- distinct semantics for clinic closed, schedule absent and fully booked;
+- an authoritative `configurationWarning` definition;
+- database-time and clinic-timezone boundary rules;
+- exact tests, operational ownership and an explicit rollout decision.
+
+Until that debt closes, the Workspace Home Schedule section is
+`NOT_CONFIGURED` when `schedule.read` is present. Slot count is not a proxy for
+clinic operating state, and synthetic fallback hours are not configuration
+authority.
+
+### Quality Workspace Summary Authority Debt
+
+Future `AVAILABLE` Quality facts require all of:
+
+- an approved operational metric allowlist;
+- approved `ATTENTION` and `CRITICAL` thresholds;
+- denominator and insufficient-data semantics;
+- an authoritative freshness source and explicit `UNKNOWN` semantics;
+- exclusion of commercial and owner-return metrics;
+- alert calibration, false-positive acceptance, exact tests and named
+  operational ownership.
+
+Until that debt closes, the Workspace Home Quality section is
+`NOT_CONFIGURED` when `quality.read` is present. The existing raw metrics and
+`staleAvailabilityIncidents` do not authorize a synthesized classification.
+No numerical threshold is assigned by 05A-R1.
+
+## 13. Freshness and consistency
 
 - PostgreSQL `transaction_timestamp()` is the source of `serverNow` and the
   common snapshot boundary.
@@ -346,7 +356,7 @@ common authority gate is `TEMPORARILY_UNAVAILABLE`.
 - A browser-retained stale snapshot must be discarded on any 401/403 or session
   subject/scope change.
 
-## 13. Partial degradation
+## 14. Partial degradation
 
 Full-response failure is mandatory for authentication failure, malformed route
 identifiers, missing or incompatible clinic/location claims, inactive/revoked
@@ -354,14 +364,16 @@ membership, clinic/location mismatch, or policy/capability infrastructure
 failure when safe filtering cannot be completed.
 
 Only after the common authority gate and all section capability decisions
-succeed may an allowed section become `TEMPORARILY_UNAVAILABLE`. A section
-timeout, database error isolated by the implementation, or unavailable
-upstream summary is eligible. Authorization failures are never partial
-degradation. If transaction abort semantics prevent isolation, the entire
-request returns a normalized retryable technical error rather than fabricated
-empty sections.
+succeed may an authorized Queue or Appointments summary become
+`TEMPORARILY_UNAVAILABLE`. A safely isolated timeout or statement-level
+database error is eligible. Schedule, Veterinarian and Quality have no 05B
+operational query, so their normal `NOT_CONFIGURED` state is never partial
+degradation and is not a technical error. Authorization failures are never
+partial degradation. If transaction abort semantics prevent isolation, the
+entire request returns a normalized retryable technical error rather than
+fabricated empty sections.
 
-## 14. Privacy allowlist
+## 15. Privacy allowlist
 
 Allowed fields are exactly the DTO fields above. Prohibited:
 
@@ -372,7 +384,7 @@ Allowed fields are exactly the DTO fields above. Prohibited:
 - unrestricted or capability-inaccessible counts;
 - arbitrary URLs, backend error strings or query diagnostics.
 
-## 15. Threat model
+## 16. Threat model
 
 | Threat | Impact | Mitigation | 05B test/evidence gate |
 | --- | --- | --- | --- |
@@ -391,34 +403,38 @@ Allowed fields are exactly the DTO fields above. Prohibited:
 | SSR/session confusion | Previous actor data shown | no shared cache; bind response to effective subject and exact scope | account/scope-switch browser test |
 | Local demo session treated as authority | Production bypass | demo identity never accepted by backend; server JWT/membership required | production-mode negative test |
 
-## 16. Performance contract
+## 17. Performance contract
 
 The Home is stricter than a registry list because it is a landing-page
 projection and must not multiply five list latencies.
 
-- at most 1 authority/location query plus 5 section summary statements;
+- at most 1 authority/location query plus 2 operational summary statements:
+  Queue and Appointments;
 - no unbounded list fetch, cursor traversal, N+1 or per-row authorization;
 - every operational predicate starts with exact `clinic_id` and
   `clinic_location_id` (or reaches clinic only through the exact location);
-- each section returns cardinality one; response always has five section rows;
-- section statement timeout target 100 ms; whole backend projection budget
+- Queue and Appointments each return cardinality one; response always has five
+  section rows, while Schedule/Veterinarian/Quality execute no operational SQL;
+- summary statement timeout target 100 ms; whole backend projection budget
   400 ms and serialized response budget 8 KiB;
-- 10k operational fixture: p95 < 150 ms, p99 < 300 ms for the whole endpoint,
-  zero disk/temp spill, zero sequential scans on large operational fact tables,
-  bounded statement/result cardinality;
+- 10k Queue/Appointments fixture: p95 < 150 ms, p99 < 300 ms for the whole
+  endpoint, response <= 8 KiB, zero disk/temp spill, zero sequential scans on
+  large Queue/Appointment operational tables, cardinality one for each summary,
+  `crossScopeLeakCount = 0` and zero fixture residue;
 - cold and warm measurements must both be reported; thresholds apply to the
   deterministic warm measurement, with cold evidence retained for diagnosis.
 
 05B must capture PostgreSQL version/settings, query parameters, fixture
 cardinality, returned cardinality and three
-`EXPLAIN (ANALYZE, BUFFERS, WAL, SETTINGS, VERBOSE, FORMAT JSON)` plans per
-summary query. Evidence must name scans/indexes/joins, estimated versus actual
-rows, loops, rows removed, planning/execution time, shared/temp blocks, sort
-method/space, hash batches/peak memory and prove cleanup is zero. A 10k fixture
-must include skewed sections and unauthorized capabilities to prove skipped
-queries.
+`EXPLAIN (ANALYZE, BUFFERS, WAL, SETTINGS, VERBOSE, FORMAT JSON)` plans for the
+Queue and Appointments summaries only. Evidence must name scans/indexes/joins,
+estimated versus actual rows, loops, rows removed, planning/execution time,
+shared/temp blocks, sort method/space, hash batches/peak memory and prove
+cleanup is zero. The fixture covers Queue, Appointments, a second clinic and
+location, irrelevant cross-scope rows, and active/revoked membership. It does
+not fabricate Schedule, Quality, telemed or owner-return plans/data.
 
-## 17. Telemetry
+## 18. Telemetry
 
 Emit one bounded endpoint observation and one per attempted section:
 
@@ -433,7 +449,13 @@ Emit one bounded endpoint observation and one per attempted section:
 Access logs use the route template and status only; path parameter values are
 redacted.
 
-## 18. Portal and BFF contract
+Available/not-authorized/not-configured counters reflect the fixed tuple.
+Normal `NOT_CONFIGURED` for Schedule, Veterinarian or Quality is neither
+`PARTIAL` nor a technical error. `PARTIAL` means only that an authorized Queue
+or Appointments summary failed technically after the common authority gate and
+was safely represented as `TEMPORARILY_UNAVAILABLE`.
+
+## 19. Portal and BFF contract
 
 - canonical page route is `/clinics/:clinicId/locations/:locationId`;
 - server-side selection requires `PORTAL_V50_SHELL=true` and future
@@ -453,7 +475,7 @@ text/icon plus color. Layout is grid on desktop/tablet and ordered cards on
 mobile, supports 200% text, reduced motion and 44 px controls, and never
 compresses desktop tables on mobile.
 
-## 19. Feature flag
+## 20. Feature flag
 
 Proposed runtime flag for later slices:
 
@@ -472,7 +494,7 @@ CLINIC_V50_WORKSPACE_HOME = true
 dark before Portal exposure, but production use remains blocked until the
 default-off flag, BFF and Portal page exist.
 
-## 20. Rollout and rollback
+## 21. Rollout and rollback
 
 1. Deploy backend endpoint dark with telemetry and strict allowlist.
 2. Run read-only shadow comparison for an internal clinic cohort; shadow
@@ -489,7 +511,7 @@ capability or count leakage, BFF bearer forwarding, missing cache headers,
 unbounded query, failed alerting, or absent Portal accessibility/browser
 evidence.
 
-## 21. Test matrix
+## 22. Test matrix
 
 05B must cover:
 
@@ -499,12 +521,15 @@ evidence.
 - cross-clinic, cross-location, inactive, revoked, claims-only,
   membership-only, missing clinic/location scope and malformed identifiers;
 - fixed `NOT_AUTHORIZED` shape with no facts/action and zero section query;
-- `NOT_CONFIGURED` and isolated `TEMPORARILY_UNAVAILABLE`;
+- capability-present Schedule/Veterinarian/Quality are `NOT_CONFIGURED` with
+  no facts/action/query; capability absence is `NOT_AUTHORIZED`;
+- isolated `TEMPORARILY_UNAVAILABLE` applies only to Queue/Appointments;
 - evaluator/policy failure produces full failure;
 - database time, 30-second stale boundary and revoke-after-snapshot behavior;
 - no protected DTO after 401/403, subject change or location change;
 - privacy/OpenAPI negative field assertions;
-- bounded query count/cardinality, no fan-out/N+1 and required 10k plans;
+- one authority query plus at most two summaries, no fan-out/N+1, and required
+  10k Queue/Appointments plans only;
 - `Cache-Control: private, no-store`, no ETag;
 - bounded telemetry/redaction.
 
@@ -512,41 +537,49 @@ Portal slice tests must additionally cover BFF header stripping, typed parsing,
 server-side flags, D/T/M, loading/empty/error/stale/degraded/forbidden,
 keyboard/skip-link, reduced motion and 200% text.
 
-## 22. Implementation slices
+## 23. Implementation slices
 
 Exactly one next slice is selected:
 
 ```text
-V50-CLINIC-05B / Clinic Workspace Home Backend Projection
+V50-CLINIC-05B / Clinic Workspace Home Backend Foundation Projection
 ```
 
 05B includes only backend DTO, read-only endpoint, exact authority, bounded
-summary queries, telemetry, PostgreSQL integration tests, performance evidence
-and OpenAPI. Portal BFF/page/UI are not part of 05B.
+Queue and Appointments summaries, three fail-closed `NOT_CONFIGURED` sections,
+telemetry, PostgreSQL integration tests, performance evidence and OpenAPI.
+Portal BFF/page/UI are not part of 05B.
 
-## 23. Unresolved blockers
+## 24. Unresolved blockers
 
-No blocker prevents starting 05B. Two explicit limitations must remain visible:
+No blocker prevents starting the safe-minimum 05B foundation. The following
+debts prohibit broader section facts:
 
+- Schedule and Quality classification authority debts above keep both sections
+  `NOT_CONFIGURED` without facts/action/SQL;
 - the existing veterinarian read is location-wide and does not prove personal
   assignment; 05B must return `VETERINARIAN/NOT_CONFIGURED` without
-  “my/assigned” counts, actions or doctor identifiers;
+  “my/assigned” counts, actions, identifiers or SQL;
 - partial section recovery inside one PostgreSQL transaction requires an
   implementation choice (savepoint/isolation or full technical failure) and
   must never convert an authorization failure into partial success.
 
-## 24. Acceptance criteria
+## 25. Acceptance criteria
 
 05A is accepted when:
 
 - Option A is the sole canonical model;
 - exact clinic/location and active membership are mandatory;
 - section facts/actions are capability-filtered before query execution;
-- the DTO is typed, fixed, bounded and privacy allowlisted;
+- the DTO is typed, fixed, bounded and privacy allowlisted; only Queue and
+  Appointments expose 05B available variants;
 - freshness, revoke and partial-degradation semantics are deterministic;
-- performance and EXPLAIN gates are measurable;
+- query budget is one common authority statement plus no more than two
+  operational summaries, with no Schedule/Veterinarian/Quality SQL;
+- performance and EXPLAIN gates are measurable only for Queue/Appointments;
 - flag is proposed default-off with safe rollout/rollback;
 - `CLN-001` is only `CONTRACT_READY`;
 - runtime diff is empty;
 - one independent architecture/security review has no veto;
-- the only next slice is V50-CLINIC-05B.
+- the only next slice is `V50-CLINIC-05B / Clinic Workspace Home Backend
+  Foundation Projection`.

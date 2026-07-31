@@ -1539,7 +1539,7 @@ Execution verdict: `PASS / COMPLETE`.
   clinic/location claims, active non-revoked exact-location membership and
   database-backed capability evaluation. Roles only contribute capabilities;
   unavailable sections contain no facts, counts or action links.
-- The response is a fixed discriminated union of Queue, Schedule,
+- The response is a fixed discriminated tuple of Queue, Schedule,
   Appointments, Veterinarian and Quality sections. It excludes patient/owner,
   hold/appointment/doctor identifiers, clinical fields, documents, financial
   data, audit rows and arbitrary errors/URLs.
@@ -1547,20 +1547,34 @@ Execution verdict: `PASS / COMPLETE`.
   30-second max age, `private, no-store`, no ETag, explicit stale marking and
   immediate protected-data removal on the next authoritative read after
   membership revocation.
-- Partial degradation is allowed only after the common authority gate and
-  capability decisions. Authentication, scope, membership or policy failures
-  fail the whole response without protected data.
-- The 05B performance gate permits at most one authority query plus five
-  bounded summary statements, requires cardinality one per section and an 8 KiB
-  response, and at 10k requires endpoint p95 < 150 ms, p99 < 300 ms, zero
-  disk/temp spill and zero sequential scans on large operational fact tables.
+- The first 05B attempt stopped before edits after an independent semantic veto:
+  Schedule runtime synthesizes fallback working hours without an authoritative
+  operational-state/configuration-warning mapping, while Quality exposes raw
+  metrics without approved alert thresholds or a Workspace freshness source.
+- 05A-R1 resolves the veto as `PASS / SAFE_MINIMUM_CONTRACT`: only Queue and
+  Appointments can be `AVAILABLE` in 05B. Capability-present Schedule,
+  Veterinarian and Quality are `NOT_CONFIGURED` without facts, action, source
+  timestamp or operational SQL; capability absence remains `NOT_AUTHORIZED`.
+- Partial degradation is allowed only after the common authority gate for an
+  authorized Queue or Appointments summary. Normal `NOT_CONFIGURED` is not a
+  technical error. Authentication, scope, membership or policy failures fail
+  the whole response without protected data.
+- The repaired 05B performance gate permits one authority query plus at most
+  two bounded summaries, requires Queue/Appointments cardinality one and an
+  8 KiB response, and at 10k requires endpoint p95 < 150 ms, p99 < 300 ms,
+  zero disk/temp spill and zero sequential scans on large Queue/Appointment
+  tables. No Schedule/Quality fixture or plan is fabricated.
 - `CLINIC_V50_WORKSPACE_HOME` is specified default-off and depends on
   `PORTAL_V50_SHELL`; no runtime flag was added. `CLN-001` is
   `CONTRACT_READY`, not implemented, tested or visually verified.
 - Production rollout and main integration remain `NOT_STARTED`.
 
-Execution verdict: `PASS / CONTRACT_READY`.
+Runtime remains unchanged. Backend, Portal, migrations, feature flags and
+visual-fidelity counter were not modified. Production rollout and main
+integration remain `NOT_STARTED`.
+
+Execution verdict: `PASS / SAFE_MINIMUM_CONTRACT`.
 
 ## Next single action
 
-`V50-CLINIC-05B / Clinic Workspace Home Backend Projection`.
+`V50-CLINIC-05B / Clinic Workspace Home Backend Foundation Projection`.
