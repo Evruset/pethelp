@@ -554,3 +554,39 @@ operational runbook validation remain.
 Close only the remaining redaction, telemetry/alert, representative-plan,
 rollout and runbook evidence fixed by this contract. Do not change Registry
 authority, limiter semantics, migrations or product behavior.
+
+## 31. V50-CLINIC-04N-C performance and operational evidence
+
+`V50-CLINIC-04N-C` is `PASS / COMPLETE`.
+
+The deterministic 100k baseline identified one causal spill node: the
+`snapshot_rows` external-merge `Sort` processed 50,000 association revisions,
+used 4,408 kB of disk, read 551 temporary blocks and wrote 552. The downstream
+CTE scan removed 49,999 rows because exact administrative-reference selection
+occurred after the broad snapshot sort. This is classified as
+`EXTERNAL_SORT` plus `LATE_SCOPE_FILTER`.
+
+The production query now materializes the exact clinic/location reference
+candidate through `clinic_patient_local_profiles_reference_location_key` and
+applies that candidate before snapshot ordering. Current association,
+revision-snapshot, consent, visibility and bounded appointment-summary
+semantics remain authoritative. No migration, `work_mem` override or planner
+switch was added.
+
+Canonical PostgreSQL 16.14 evidence at `work_mem=4MB`, `shared_buffers=128MB`,
+`random_page_cost=4`, `effective_cache_size=4GB`:
+
+- 10k: p95 20.578 ms, p99 22.571 ms, cardinality 1, scoped index present,
+  local-profile sequential scans 0, temp read/write blocks 0/0, spill nodes 0;
+- 100k: p95 14.971 ms, p99 15.898 ms, cardinality 1, scoped index present,
+  local-profile sequential scans 0, temp read/write blocks 0/0, spill nodes 0;
+- each tier contains three production-query JSON EXPLAIN measurements plus
+  10 warm-up and 60 measured executions, with no N+1 query path.
+
+Fixtures use one transaction and rollback on success or failure. Measured
+build/cleanup durations are 6,980.776/6.731 ms at 10k and
+70,764.024/40.045 ms at 100k. Reserved cleanup is `0|0|0|0`.
+
+Focused redaction/telemetry/alert tests, Registry functional and authorization
+regressions, Node 22 build, workflow syntax and diff hygiene pass. Production
+rollout is `NOT_STARTED`; this evidence does not authorize rollout.

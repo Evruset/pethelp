@@ -1,10 +1,11 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { BadRequestException, HttpException, HttpStatus, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import type { PoolClient } from 'pg';
 import { JwtPayload } from '../auth/auth.types';
 import { config, isClinicPatientAdminReferenceSearchEnabled } from '../config';
 import { DatabaseService } from '../database/database.service';
 import { PostgresRateLimitService } from '../platform/rate-limit/postgres-rate-limit.service';
+import { RegistryReferenceOutcome, RegistryReferenceTelemetry } from '../observability/registry-reference-telemetry';
 import { ClinicEmployeeAccessService } from './clinic-employee-access.service';
 import { normalizeAdministrativeReference } from './clinic-patient-administrative-reference.normalizer';
 import {
@@ -39,7 +40,6 @@ export class PatientsRegistryRateLimitException extends HttpException {
 
 @Injectable()
 export class ClinicPatientsRegistryService {
-  private readonly logger = new Logger(ClinicPatientsRegistryService.name);
   private readonly cursorSecret = createHmac('sha256', config.jwtSecret).update('clinic-patients-registry-cursor:v1').digest();
   private readonly searchBuckets = new Map<string, RateBucket>();
   private readonly referenceRateLimitConfig =
@@ -49,13 +49,16 @@ export class ClinicPatientsRegistryService {
     private readonly database: DatabaseService,
     private readonly clinicAccess: ClinicEmployeeAccessService,
     private readonly sharedRateLimiter: PostgresRateLimitService,
+    private readonly referenceTelemetry: RegistryReferenceTelemetry,
   ) {}
 
   async list(input: {
     clinicId: string; locationId: string; employee: JwtPayload; q?: string; limit: number;
     cursor?: string; administrativeReference?: string;
   }): Promise<ClinicPatientsRegistryDto> {
-    return this.database.withTransaction(async (client) => {
+    const referenceStartedAt = process.hrtime.bigint();
+    try {
+      const response = await this.database.withTransaction(async (client) => {
       await client.query("SET LOCAL statement_timeout = '750ms'");
       await this.clinicAccess.assertPatientRegistryReadAccess(client, input.employee, input.clinicId, input.locationId);
       await this.assertLocation(client, input.clinicId, input.locationId);
@@ -86,9 +89,6 @@ export class ClinicPatientsRegistryService {
       const snapshotSequence = cursor?.snapshotSequence ?? await this.snapshot(client, queryInput);
       const result = await this.query(client, queryInput, policyVersion, now.rows[0].now, snapshotSequence, cursor);
       if (administrativeReferenceKey && result.rows.length > 1) {
-        this.logger.error(
-          `administrative_reference_search_invariant actor=${input.employee.sub} clinic=${input.clinicId} location=${input.locationId} result_count=${result.rows.length}`,
-        );
         throw new ServiceUnavailableException({
           code: 'SEARCH_INVARIANT_VIOLATION', message: 'Search invariant violation',
         });
@@ -106,7 +106,59 @@ export class ClinicPatientsRegistryService {
           limit: input.limit, snapshotSequence, lastSeenAt: tail.last_seen_at.toISOString(), patientId: tail.patient_id,
         }) : null,
       };
+      });
+      if (input.administrativeReference !== undefined) {
+        this.recordReferenceTelemetry(
+          response.items.length === 1 ? 'FOUND' : 'EMPTY',
+          input,
+          referenceStartedAt,
+          response.items.length,
+        );
+      }
+      return response;
+    } catch (error) {
+      if (input.administrativeReference !== undefined) {
+        this.recordReferenceTelemetry(
+          this.referenceOutcome(error),
+          input,
+          referenceStartedAt,
+        );
+      }
+      throw error;
+    }
+  }
+
+  private recordReferenceTelemetry(
+    outcome: RegistryReferenceOutcome,
+    input: { employee: JwtPayload; administrativeReference?: string },
+    startedAt: bigint,
+    resultCount = 0,
+  ): void {
+    this.referenceTelemetry.record({
+      outcome,
+      roles: input.employee.roles,
+      featureState: isClinicPatientAdminReferenceSearchEnabled() ? 'ENABLED' : 'DISABLED',
+      resultCount,
+      queryLength: Array.from(input.administrativeReference ?? '').length,
+      durationMs: Number(process.hrtime.bigint() - startedAt) / 1_000_000,
     });
+  }
+
+  private referenceOutcome(error: unknown): RegistryReferenceOutcome {
+    if (error instanceof PatientsRegistryRateLimitException) return 'RATE_LIMITED';
+    if (!(error instanceof HttpException)) return 'TECHNICAL_ERROR';
+    const response = error.getResponse();
+    const code = typeof response === 'object' && response !== null
+      ? (response as { code?: unknown }).code
+      : undefined;
+    if (code === 'INVALID_ADMINISTRATIVE_REFERENCE_QUERY') return 'VALIDATION_REJECTED';
+    if (code === 'INVALID_SEARCH_COMBINATION') return 'INVALID_COMBINATION';
+    if (code === 'ADMINISTRATIVE_REFERENCE_SEARCH_UNAVAILABLE') return 'FLAG_DISABLED';
+    if (code === 'PATIENTS_REGISTRY_POLICY_UNAVAILABLE') return 'POLICY_UNAVAILABLE';
+    if (code === 'SEARCH_INVARIANT_VIOLATION') return 'INVARIANT_VIOLATION';
+    if (code === 'CLINIC_SCOPE_MISMATCH') return 'SCOPE_UNAVAILABLE';
+    if (error.getStatus() === 401 || error.getStatus() === 403) return 'AUTH_DENIED';
+    return 'TECHNICAL_ERROR';
   }
 
   private async consumeAdministrativeReferenceRateLimit(input: {
@@ -201,12 +253,20 @@ export class ClinicPatientsRegistryService {
   }, policyVersion: string, now: Date, snapshot: string, cursor?: Cursor) {
     const escapedPrefix = input.q?.replace(/[\\%_]/g, '\\$&');
     return client.query<RegistryRow>(`
-      WITH snapshot_rows AS MATERIALIZED (
+      WITH reference_candidate AS MATERIALIZED (
+        SELECT patient_id
+        FROM clinic_schema.clinic_patient_local_profiles
+        WHERE clinic_id=$1::uuid
+          AND clinic_location_id=$2::uuid
+          AND administrative_reference_key=$10::text
+      ), snapshot_rows AS MATERIALIZED (
         SELECT DISTINCT ON (r.association_id)
           r.association_id,r.pet_id,r.status,r.current_consent_id,r.visibility_expires_at,r.last_qualified_at
         FROM clinic_schema.clinic_patient_association_revisions r
+        LEFT JOIN reference_candidate rc ON rc.patient_id=r.pet_id
         WHERE r.clinic_id=$1::uuid AND r.clinic_location_id=$2::uuid
           AND r.revision_sequence <= $3::bigint
+          AND ($10::text IS NULL OR rc.patient_id IS NOT NULL)
         ORDER BY r.association_id,r.revision_sequence DESC
       ), visible AS MATERIALIZED (
         SELECT r.pet_id,r.last_qualified_at
@@ -224,13 +284,6 @@ export class ClinicPatientsRegistryService {
           AND c.granted_at <= $4::timestamptz AND (c.expires_at IS NULL OR c.expires_at > $4::timestamptz)
           AND ($6::text IS NULL OR lower(p.name) LIKE $6::text || '%' ESCAPE '\\')
           AND ($7::timestamptz IS NULL OR (r.last_qualified_at,r.pet_id) < ($7::timestamptz,$8::uuid))
-          AND ($10::text IS NULL OR EXISTS (
-            SELECT 1 FROM clinic_schema.clinic_patient_local_profiles lp_filter
-            WHERE lp_filter.clinic_id=$1::uuid
-              AND lp_filter.clinic_location_id=$2::uuid
-              AND lp_filter.patient_id=r.pet_id
-              AND lp_filter.administrative_reference_key=$10::text
-          ))
         ORDER BY r.last_qualified_at DESC,r.pet_id DESC
         LIMIT $9
       ), appointment_aggregates AS (
