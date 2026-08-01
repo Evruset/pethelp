@@ -1662,3 +1662,26 @@ Final slice verdict: `V50-CLINIC-MVP1-01: PASS / BOOKING_JOURNAL_CONTRACT_READY`
 `V50-CLINIC-MVP1-02 / Booking Journal Interactive UX Prototype`.
 
 The current `#clinic-workspace` source is not an accepted authoritative Booking Journal prototype. Runtime implementation, production rollout and main integration remain `NOT_STARTED`.
+
+## `V50-CLINIC-MVP1-02 / Booking Journal Interactive UX Prototype`
+
+`PROTOTYPE_READY / INTERNAL_PRODUCT_REVIEW_PASS / INTERNAL_ACCESSIBILITY_REVIEW_PASS / PRODUCT_OWNER_REVIEW_PENDING / RUNTIME_NOT_STARTED` (2026-08-01).
+
+- Added an isolated dependency-free prototype at `prototype-v50/clinic-booking-journal/` without changing the canonical 30-screen V50 prototype or manifest.
+- The journal is the primary screen: toolbar, compact SLA bar, filters, time×staff day grid and detail drawer; limited single-employee week availability; tablet overlays; mobile agenda and full-screen detail.
+- Twenty-five deterministic URL states cover four role presentations, request SLA, confirmed/alternative/owner-decision flows, reject/manual/client/search/filter states, empty/no-staff/error/stale/forbidden/conflict and mobile/week presentations.
+- Confirm, conflict-to-alternative, reject, manual booking, client lookup/quick create, search and filtering are repeatable simulated interactions. They make no backend, state-machine, authority or command-success claim.
+- Synthetic fixtures contain no real PII or clinical/payment/insurance/telemedicine/Quality data. Future journal projection remains the sole authority for snapshot ordering, capability-filtered fields/actions and server time.
+- Node 22 inventory verifies 25 states, 4 roles, 6 viewports, local assets, landmarks and reproducible prototype SHA-256 `b1b216b96070b7c6b092e518420f605a22b2acff7a407a7ec4db43012f17f629`.
+- Chromium validated all states and reloads, seven interactions including forbidden fail-closed/action taxonomy, keyboard/Escape/focus behavior, responsive/mobile replacement, axe, real 200% text scaling with compact-sidebar containment, structured calendar-to-agenda reflow and retained filter controls, reduced motion, forced colors and no page-wide overflow with zero console/page/request errors. External evidence contains 37 screenshots and four distinct contact sheets at `/Users/evrusetskiy/docs/ai/evidence/V50-CLINIC-MVP1-02/`, checksum `7e10cc8c218176716f3ca4a619d455551d2e0efa990d5ee6a1b12cdf4e55187d`.
+- Independent Product/UX, Architecture/Security and QA reviews pass. Runtime suites are `ABSTAIN / PROTOTYPE_ONLY`; no Portal/backend/BFF/migration/dependency/lockfile/global-prototype change exists.
+
+Execution verdict: `PASS / INTERACTIVE_PROTOTYPE_READY`. Product-owner acceptance is not inferred.
+
+## Next gate
+
+Product-owner review of `V50-CLINIC-MVP1-02`. Until explicit acceptance:
+
+`V50-CLINIC-MVP1-03 / Clinic Booking Journal Backend Read Projection` is `NOT_STARTED / BLOCKED_BY_PRODUCT_OWNER_UX_ACCEPTANCE`.
+
+Production rollout and main integration remain `NOT_STARTED`. PR #66, #67, #68 and #69 remain unmerged; the PR #68 Linux optional `lightningcss` blocker remains a separate CI slice.

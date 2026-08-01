@@ -96,6 +96,8 @@ Production status:
 
 The future journal projection is the sole source of cross-domain ordering and snapshot time. Portal composition from Queue, Registry, and Schedule is prohibited as authoritative evidence. No endpoint, route, capability, role or state-machine change is implemented in MVP1-01.
 
+MVP1-02 adds a standalone prototype only at `prototype-v50/clinic-booking-journal/index.html`. It proves target shell/day/week/mobile/state/action presentations for reception, admin, veterinarian-limited and multi-role demos. It does not activate any target route, call an API, grant a capability, or claim command success. All target route/API/authority rows above remain `CONTRACT_READY / RUNTIME_NOT_STARTED`; prototype parity is `UX_PROTOTYPE_READY / PRODUCT_OWNER_REVIEW_PENDING`.
+
 Production-only routes without a one-to-one prototype hash:
 
 | Production route | Meaning | Prototype destination |
