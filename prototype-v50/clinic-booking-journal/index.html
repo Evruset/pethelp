@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>VetHelp — Журнал записи</title>
+  <link rel="icon" href="assets/icons.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="booking-journal.css">
+  <script src="booking-journal.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#journal-main">К журналу записи</a>
+  <div id="app" class="app-shell" data-prototype="V50-CLINIC-MVP1-02">
+    <aside class="sidebar" aria-label="Основная навигация">
+      <a class="brand" href="?state=reception-ready&amp;role=reception&amp;date=2026-08-01" aria-label="VetHelp, журнал записи">
+        <span class="brand-mark" aria-hidden="true">V</span><span>VetHelp</span>
+      </a>
+      <div class="clinic-switcher"><span class="eyebrow">Клиника</span><strong>VetHelp Садовая</strong><small>Санкт-Петербург · Садовая, 18</small></div>
+      <nav aria-label="Разделы клиники">
+        <a href="#journal-main" aria-current="page"><span aria-hidden="true">▦</span>Журнал записи</a>
+        <a href="#requests"><span aria-hidden="true">◷</span>Заявки <span class="nav-count">3</span></a>
+        <a href="#clients"><span aria-hidden="true">♙</span>Клиенты</a>
+        <a href="#staff" data-admin-only><span aria-hidden="true">♧</span>Сотрудники</a>
+        <a href="#settings" data-admin-only><span aria-hidden="true">⚙</span>Настройки</a>
+      </nav>
+      <div class="prototype-note"><strong>Интерактивный прототип</strong><span>Данные и действия демонстрационные</span></div>
+      <div class="user-card"><span class="avatar">ЕК</span><span><strong>Елена Кузнецова</strong><small id="role-label">Администратор</small></span></div>
+    </aside>
+
+    <header class="mobile-header">
+      <span class="brand-mark" aria-hidden="true">V</span><strong>Журнал записи</strong>
+      <button class="icon-button" data-action="open-filters" aria-label="Открыть фильтры">☷</button>
+    </header>
+
+    <main id="journal-main" tabindex="-1">
+      <header class="toolbar">
+        <div><p class="eyebrow">Пятница</p><h1>Журнал записи</h1></div>
+        <div class="toolbar-controls" aria-label="Управление журналом">
+          <div class="date-control">
+            <button class="icon-button" data-action="previous-day" aria-label="Предыдущий день">←</button>
+            <button class="date-button" data-action="date-picker"><span aria-hidden="true">▣</span><span id="visible-date">1 августа 2026</span></button>
+            <button class="icon-button" data-action="next-day" aria-label="Следующий день">→</button>
+          </div>
+          <button class="secondary-button" data-action="today">Сегодня</button>
+          <div class="segmented" aria-label="Вид журнала"><button data-view="day" aria-pressed="true">День</button><button data-view="week" aria-pressed="false">Неделя</button></div>
+          <button class="icon-button" data-action="open-search" aria-label="Поиск">⌕</button>
+          <button class="icon-button" data-action="refresh" aria-label="Обновить журнал">↻</button>
+          <button class="primary-button" data-action="manual-booking">+ Новая запись</button>
+        </div>
+      </header>
+
+      <section id="system-banner" class="system-banner" hidden></section>
+      <section class="sla-bar" aria-labelledby="sla-title">
+        <div class="sla-title"><span class="status-icon" aria-hidden="true">◷</span><div><h2 id="sla-title">Заявки ждут ответа</h2><p>Новые заявки находятся прямо в расписании</p></div></div>
+        <dl><div><dt>Новые заявки</dt><dd id="pending-count">3</dd></div><div><dt>Немедленный ответ</dt><dd id="overdue-count">1</dd></div><div><dt>Ближайший SLA</dt><dd id="sla-countdown">00:38</dd></div></dl>
+        <div class="sla-actions"><button class="primary-button" data-action="open-first">Открыть первую заявку</button><button class="text-button" data-action="show-requests">Все заявки</button></div>
+      </section>
+
+      <section class="mobile-date" aria-label="Дата журнала"><button class="icon-button" data-action="previous-day" aria-label="Предыдущий день">←</button><strong>Пт, 1 августа</strong><button class="icon-button" data-action="next-day" aria-label="Следующий день">→</button></section>
+      <button class="mobile-urgent" data-action="open-first"><span><strong>Новая заявка просрочена</strong><small>Барсик · приём терапевта</small></span><span>Открыть →</span></button>
+
+      <div class="workspace">
+        <aside id="filters" class="filters" aria-labelledby="filters-title">
+          <div class="panel-heading"><h2 id="filters-title">Фильтры</h2><button class="icon-button panel-close" data-action="close-filters" aria-label="Закрыть фильтры">×</button></div>
+          <fieldset><legend>Сотрудники</legend><label><input type="checkbox" name="staff" value="all" checked> Все сотрудники</label><label><input type="checkbox" name="staff" value="anna"> Анна Иванова</label><label><input type="checkbox" name="staff" value="ilya"> Илья Петров</label><label><input type="checkbox" name="staff" value="maria"> Мария Смирнова</label></fieldset>
+          <fieldset><legend>Услуги</legend><label><input type="checkbox" name="service" value="therapy"> Терапия</label><label><input type="checkbox" name="service" value="vaccine"> Вакцинация</label><label><input type="checkbox" name="service" value="diagnostics"> Диагностика</label></fieldset>
+          <fieldset><legend>Статусы</legend><label><input type="checkbox" name="status" value="pending"> Требуют ответа</label><label><input type="checkbox" name="status" value="confirmed"> Подтверждены</label><label><input type="checkbox" name="status" value="alternative"> Другое время</label></fieldset>
+          <label class="action-only"><input type="checkbox" name="action" value="required"> Только требуют действия</label>
+          <button class="secondary-button filter-apply" data-action="apply-filters">Применить</button><button class="text-button" data-action="reset-filters">Сбросить всё</button>
+        </aside>
+
+        <section class="calendar-section" aria-label="Расписание на день">
+          <div class="calendar-meta"><span id="result-summary">12 событий · 3 сотрудника</span><button class="secondary-button mobile-filter-button" data-action="open-filters">Фильтры <span id="filter-count"></span></button></div>
+          <div id="calendar-scroll" class="calendar-scroll" tabindex="0" aria-label="Журнал: время по вертикали, сотрудники по горизонтали">
+            <div id="day-grid" class="day-grid"></div>
+            <div id="week-grid" class="week-grid" hidden></div>
+          </div>
+          <section id="agenda" class="agenda" aria-labelledby="agenda-title"><h2 id="agenda-title">Записи на день</h2><div id="agenda-list"></div></section>
+          <section id="empty-state" class="empty-state" hidden><span aria-hidden="true">▦</span><h2>На выбранную дату записей нет</h2><p>Свободные интервалы доступны для новой записи.</p><button class="primary-button" data-action="manual-booking">+ Новая запись</button></section>
+        </section>
+
+        <aside id="drawer" class="drawer" aria-labelledby="drawer-title" hidden>
+          <div class="drawer-header"><div><span id="drawer-status" class="status-pill"></span><h2 id="drawer-title">Карточка записи</h2><p id="drawer-source"></p></div><button class="icon-button" data-action="close-drawer" aria-label="Закрыть карточку">×</button></div>
+          <div id="drawer-content"></div>
+        </aside>
+      </div>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Мобильная навигация"><a href="#journal-main" aria-current="page">▦<span>Журнал</span></a><a href="#requests">◷<span>Заявки</span></a><a href="#clients">♙<span>Клиенты</span></a><button data-action="manual-booking">＋<span>Запись</span></button></nav>
+  </div>
+
+  <div id="modal-backdrop" class="backdrop" hidden></div>
+  <section id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" hidden><div class="modal-header"><h2 id="modal-title">Действие</h2><button class="icon-button" data-action="close-modal" aria-label="Закрыть">×</button></div><div id="modal-content"></div></section>
+  <section id="search-panel" class="search-panel" role="dialog" aria-modal="true" aria-labelledby="search-title" hidden><div class="modal-header"><h2 id="search-title">Поиск</h2><button class="icon-button" data-action="close-search" aria-label="Закрыть поиск">×</button></div><label class="search-field"><span class="sr-only">Имя клиента, питомца, сотрудника или запись</span><input id="search-input" type="search" placeholder="Клиент, питомец, запись или сотрудник" autocomplete="off"></label><div id="search-results"></div></section>
+  <div id="live-region" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>

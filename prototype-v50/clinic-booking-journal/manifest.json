@@ -1,0 +1,28 @@
+{
+  "prototypeId": "V50-CLINIC-MVP1-02",
+  "title": "Clinic Booking Journal",
+  "version": 1,
+  "entrypoint": "index.html",
+  "sourceContract": "docs/v50/V50-CLINIC-MVP1-01-BOOKING-JOURNAL-CONTRACT.md",
+  "states": [
+    "reception-ready", "admin-ready", "veterinarian-limited", "multi-role-ready",
+    "pending-request", "request-due-soon", "request-overdue", "confirmed-appointment",
+    "alternative-selection", "owner-decision-pending", "reject-confirmation", "manual-booking",
+    "client-lookup", "quick-client-create", "operational-empty", "no-staff", "technical-error",
+    "stale-retained", "forbidden", "slot-conflict", "search-results", "search-empty",
+    "filters-active", "week-view", "mobile-agenda"
+  ],
+  "roles": ["reception", "admin", "veterinarian", "multi-role"],
+  "viewports": ["1440x900", "1920x1080", "1024x768", "768x1024", "375x812", "412x915"],
+  "externalDependencies": [],
+  "requiredFiles": [
+    "assets/icons.svg",
+    "booking-journal.css",
+    "booking-journal.js",
+    "index.html",
+    "README.md"
+  ],
+  "generatedAt": "2026-08-01T00:00:00.000Z",
+  "checksumAlgorithm": "sha256(path\\0content\\0, sorted requiredFiles; manifest.json and generatedAt excluded)",
+  "sha256": "b1b216b96070b7c6b092e518420f605a22b2acff7a407a7ec4db43012f17f629"
+}
