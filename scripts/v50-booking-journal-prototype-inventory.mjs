@@ -12,6 +12,8 @@ export const REQUIRED_STATES = [
   'client-lookup', 'quick-client-create', 'operational-empty', 'no-staff', 'technical-error',
   'stale-retained', 'forbidden', 'slot-conflict', 'search-results', 'search-empty',
   'filters-active', 'week-view', 'mobile-agenda',
+  'week-view-selected', 'week-alternative-selection', 'manual-booking-invalid',
+  'mobile-pending-detail', 'mobile-manual-booking',
 ];
 export const REQUIRED_ROLES = ['reception', 'admin', 'veterinarian', 'multi-role'];
 export const REQUIRED_VIEWPORTS = [

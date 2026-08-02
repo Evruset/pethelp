@@ -44,8 +44,8 @@
           </div>
           <button class="secondary-button" data-action="today">Сегодня</button>
           <div class="segmented" aria-label="Вид журнала"><button data-view="day" aria-pressed="true">День</button><button data-view="week" aria-pressed="false">Неделя</button></div>
-          <button class="icon-button" data-action="open-search" aria-label="Поиск">⌕</button>
-          <button class="icon-button" data-action="refresh" aria-label="Обновить журнал">↻</button>
+          <button class="icon-button tooltip" data-tooltip="Поиск" title="Поиск" data-action="open-search" aria-label="Поиск">⌕</button>
+          <button class="icon-button tooltip" data-tooltip="Обновить" title="Обновить журнал" data-action="refresh" aria-label="Обновить журнал">↻</button>
           <button class="primary-button" data-action="manual-booking">+ Новая запись</button>
         </div>
       </header>
@@ -53,8 +53,8 @@
       <section id="system-banner" class="system-banner" hidden></section>
       <section class="sla-bar" aria-labelledby="sla-title">
         <div class="sla-title"><span class="status-icon" aria-hidden="true">◷</span><div><h2 id="sla-title">Заявки ждут ответа</h2><p>Новые заявки находятся прямо в расписании</p></div></div>
-        <dl><div><dt>Новые заявки</dt><dd id="pending-count">3</dd></div><div><dt>Немедленный ответ</dt><dd id="overdue-count">1</dd></div><div><dt>Ближайший SLA</dt><dd id="sla-countdown">00:38</dd></div></dl>
-        <div class="sla-actions"><button class="primary-button" data-action="open-first">Открыть первую заявку</button><button class="text-button" data-action="show-requests">Все заявки</button></div>
+        <dl><div><dt>Новые</dt><dd id="pending-count">3</dd></div><div><dt>Просрочено</dt><dd id="overdue-count">1</dd></div><div><dt>Ближайший дедлайн</dt><dd id="sla-countdown">00:38</dd></div></dl>
+        <div class="sla-actions"><button class="primary-button" data-action="open-first">Открыть просроченную</button><button class="text-button" data-action="show-requests">Все заявки</button></div>
       </section>
 
       <section class="mobile-date" aria-label="Дата журнала"><button class="icon-button" data-action="previous-day" aria-label="Предыдущий день">←</button><strong>Пт, 1 августа</strong><button class="icon-button" data-action="next-day" aria-label="Следующий день">→</button></section>
@@ -62,16 +62,16 @@
 
       <div class="workspace">
         <aside id="filters" class="filters" aria-labelledby="filters-title">
-          <div class="panel-heading"><h2 id="filters-title">Фильтры</h2><button class="icon-button panel-close" data-action="close-filters" aria-label="Закрыть фильтры">×</button></div>
+          <div class="panel-heading"><h2 id="filters-title">Фильтры <small id="filter-count"></small></h2><button class="text-button filter-collapse" data-action="collapse-filters" aria-pressed="false">Свернуть</button><button class="icon-button panel-close" data-action="close-filters" aria-label="Закрыть фильтры">×</button></div>
           <fieldset><legend>Сотрудники</legend><label><input type="checkbox" name="staff" value="all" checked> Все сотрудники</label><label><input type="checkbox" name="staff" value="anna"> Анна Иванова</label><label><input type="checkbox" name="staff" value="ilya"> Илья Петров</label><label><input type="checkbox" name="staff" value="maria"> Мария Смирнова</label></fieldset>
           <fieldset><legend>Услуги</legend><label><input type="checkbox" name="service" value="therapy"> Терапия</label><label><input type="checkbox" name="service" value="vaccine"> Вакцинация</label><label><input type="checkbox" name="service" value="diagnostics"> Диагностика</label></fieldset>
           <fieldset><legend>Статусы</legend><label><input type="checkbox" name="status" value="pending"> Требуют ответа</label><label><input type="checkbox" name="status" value="confirmed"> Подтверждены</label><label><input type="checkbox" name="status" value="alternative"> Другое время</label></fieldset>
           <label class="action-only"><input type="checkbox" name="action" value="required"> Только требуют действия</label>
-          <button class="secondary-button filter-apply" data-action="apply-filters">Применить</button><button class="text-button" data-action="reset-filters">Сбросить всё</button>
+          <div class="filter-actions"><button class="secondary-button filter-apply" data-action="apply-filters" disabled>Применить</button><button class="text-button" data-action="reset-filters" hidden>Сбросить всё</button></div>
         </aside>
 
         <section class="calendar-section" aria-label="Расписание на день">
-          <div class="calendar-meta"><span id="result-summary">12 событий · 3 сотрудника</span><button class="secondary-button mobile-filter-button" data-action="open-filters">Фильтры <span id="filter-count"></span></button></div>
+          <div class="calendar-meta"><span id="result-summary">14 событий · 3 сотрудника · 08:00–20:00</span><button class="secondary-button mobile-filter-button" data-action="open-filters">Фильтры</button></div>
           <div id="calendar-scroll" class="calendar-scroll" tabindex="0" aria-label="Журнал: время по вертикали, сотрудники по горизонтали">
             <div id="day-grid" class="day-grid"></div>
             <div id="week-grid" class="week-grid" hidden></div>
