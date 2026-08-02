@@ -1,84 +1,52 @@
 # V50-CLINIC-MVP1-02 — Booking Journal UX Prototype
 
-Status: `PROTOTYPE_READY / INTERNAL_PRODUCT_REVIEW_PASS / INTERNAL_ACCESSIBILITY_REVIEW_PASS / PRODUCT_OWNER_REVIEW_PENDING / RUNTIME_NOT_STARTED`
+Status: `INITIAL_OWNER_REVIEW_CHANGES_REQUESTED / R1_INTERNAL_REPAIR_REVIEW_PASS / PRODUCT_OWNER_REVIEW_PENDING / RUNTIME_NOT_STARTED`
 
-Date: 2026-08-01
+Date: 2026-08-02
 
 ## Purpose and boundary
 
-This standalone prototype proves the Clinic MVP product model: time × staff × pending requests × confirmed appointments × operational context × permitted administrator actions. It is not a Portal, backend, BFF, authorization, command, polling or state-machine implementation. Every person, pet, phone, ID and transition is synthetic and demonstrational.
+This dependency-free standalone prototype proves the Clinic MVP booking-journal product model. It is not a Portal, backend, BFF, authorization, command, polling or state-machine implementation. All people, pets, contacts, IDs and transitions are synthetic demonstrations.
 
-Prototype path: `prototype-v50/clinic-booking-journal/`
-
-Entrypoint: `prototype-v50/clinic-booking-journal/index.html`
+Prototype: `prototype-v50/clinic-booking-journal/`
 
 Contract: `docs/v50/V50-CLINIC-MVP1-01-BOOKING-JOURNAL-CONTRACT.md`
 
-## Deterministic URLs
+The initial prototype received product-owner status `CHANGES_REQUESTED`. `V50-CLINIC-MVP1-02-R1` repairs data readability, vertical space usage, drawer clipping, manual-form validation, calendar-based alternative selection, viewport-driven mobile semantics and the Week-view product model. Internal repair review passes; product-owner acceptance is not inferred.
 
-Query contract: `index.html?state=<state>&role=<role>&date=2026-08-01`. Unknown states/roles and invalid dates render a controlled prototype error. No `localStorage`, cookies or external requests are used; URL transitions restore after reload.
+## Repaired interaction model
 
-The 25 states are: `reception-ready`, `admin-ready`, `veterinarian-limited`, `multi-role-ready`, `pending-request`, `request-due-soon`, `request-overdue`, `confirmed-appointment`, `alternative-selection`, `owner-decision-pending`, `reject-confirmation`, `manual-booking`, `client-lookup`, `quick-client-create`, `operational-empty`, `no-staff`, `technical-error`, `stale-retained`, `forbidden`, `slot-conflict`, `search-results`, `search-empty`, `filters-active`, `week-view`, `mobile-agenda`.
+Desktop Day view occupies the useful viewport and internally scrolls through 08:00–20:00 in 30-minute steps. Appointment geometry represents 30/45/60/90-minute durations. Morning and afternoon fixtures expose confirmed, pending, overdue, alternative, break and unavailable treatments with text/icon/border distinctions. Free-slot affordances are employee- and time-scoped.
 
-Roles: `reception`, `admin`, `veterinarian`, `multi-role`. Reception exposes administrative booking flows. Admin additionally sees target Staff/Settings navigation. Veterinarian is explicitly labelled as a limited target mode whose runtime authority requires a separate contract. Multi-role presents the non-duplicated union.
+The 420–460px detail drawer uses an independently scrolling body and visible sticky footer. Pending requests always expose Confirm, Alternative and Reject. Status and elapsed/future SLA are separate values; the SLA bar distinguishes new count, overdue count and nearest future deadline.
 
-## Structure and interaction model
+Manual booking uses a two-column 680–760px composition, client lookup/result, pet/service/staff/date, bounded available slots, service-derived price, comment and a pre-submit summary. Submit is disabled until a visible time slot is selected. Alternative selection uses visible schedule availability with original/new staff, time, service, price and reason comparison.
 
-Desktop composition is toolbar → compact pending-SLA bar → filters → vertical-time/horizontal-staff day grid → selected-entry drawer. Demo hours are 08:00–20:00 in 30-minute steps; card height represents 30/45/60/90-minute duration. The limited Week view selects one employee and exposes bounded real visible free intervals. Drag-and-drop is absent.
+Week view is a single-employee seven-day time×day journal with 08:00–20:00 axis, proportional appointment durations, calm free intervals, explicit break/closed treatments and no repeated `Свободно` text. Its default drawer is closed. The dedicated alternative state pins request context while available week slots remain keyboard-selectable.
 
-Mobile is a separate presentation of the same data: compact header → date → urgent request → agenda grouped by time → full-screen detail → bottom navigation. It never compresses the desktop grid. Tablet uses compact navigation, internally scrollable calendar, filter overlay and detail overlay.
+Responsive composition is determined only by CSS viewport media queries, never by a state name. At 375×812 and 412×915 the desktop sidebar, filters column and time×staff grid are replaced by compact header, date strip, urgent card, grouped agenda, bottom navigation and full-screen detail/forms. On wide desktop, `mobile-agenda` remains a data scenario rather than a simulated phone.
 
-Implemented deterministic prototype interactions:
+## Deterministic states and privacy
 
-- open the authoritative-priority request from the SLA bar;
-- confirm within two interactions, including submitting lock and `aria-live` result;
-- retain an open request on slot conflict and promote the alternative CTA;
-- choose an alternative only from visible bounded availability, review time/staff/service/price/reason, then simulate owner-decision pending;
-- reject through destructive confirmation and human-readable reason;
-- create a manual booking from toolbar/free slot with client, pet, service, staff, date, time, price, comment and inline validation;
-- synthetic client lookup and quick client create without medical data;
-- owner/pet/appointment/staff search without UUIDs;
-- staff/service/status/action filters with visible selection and reset;
-- Escape closes drawer/dialog/filter/search surfaces and returns focus.
+The URL contract is `index.html?state=<state>&role=<role>&date=2026-08-01`; reload restores all 30 states. Five R1 states supplement the original set: `week-view-selected`, `week-alternative-selection`, `manual-booking-invalid`, `mobile-pending-detail` and `mobile-manual-booking`.
 
-## Fixtures and privacy
+No `localStorage`, cookies, external dependencies or network calls are used. Fixtures contain no production identifiers, credentials, clinical records, diagnosis, payment, insurance, telemedicine or Quality data. Simulated actions do not claim backend success.
 
-The embedded `demo-*` dataset contains three staff, twelve schedule entries, three pending requests (one overdue and one due soon), one alternative, break/unavailable intervals, a 90-minute procedure, five synthetic owners, six pets, five service patterns, prices and varied durations. The displayed phone is masked. No production IDs, tokens, email, real contacts, clinical record, diagnosis, payment, insurance, telemedicine or Quality data is present. Simulated actions are labelled as prototype behavior and never claim backend success.
+## Validation and evidence
 
-## Viewports and accessibility
-
-Validated viewports: 1440×900, 1920×1080, 1024×768, 768×1024, 375×812 and 412×915. The prototype uses semantic `header`, `nav`, `main`, `aside`, one `h1`, skip link, visible focus, 44×44 controls, status text plus icon/color, dialog semantics, focus return, keyboard entry navigation, live announcements, error alerts, reduced-motion and forced-colors styles. At 200% text it remains operable; page-wide horizontal overflow is absent and tablet calendar overflow stays inside its container.
-
-Chromium assertions covered all 25 states and exact-state reload, confirm, conflict/alternative, reject/Escape, manual create, search, filters, desktop/tablet/mobile presentation and all six viewports. Result: zero console errors, page errors, failed requests, serious/critical axe violations and page-wide overflow failures.
-
-## Manifest and evidence
-
-Prototype manifest: `prototype-v50/clinic-booking-journal/manifest.json`
-
-Prototype SHA-256: `b1b216b96070b7c6b092e518420f605a22b2acff7a407a7ec4db43012f17f629`
-
-Checksum algorithm: sorted required files as `path\0content\0`; manifest and `generatedAt` excluded.
-
-Evidence path: `/Users/evrusetskiy/docs/ai/evidence/V50-CLINIC-MVP1-02/`
-
-Screenshots: 37
-
-Contact sheets: desktop core, tablet core, mobile core, state matrix
-
-Evidence SHA-256: `7e10cc8c218176716f3ca4a619d455551d2e0efa990d5ee6a1b12cdf4e55187d`
-
-Browser: Chromium 149.0.7827.55.
-
-## Review status and gaps
-
-- Automated prototype inventory: `PASS`.
-- Browser interaction/responsive/keyboard/accessibility evidence: `PASS`.
-- Independent Product/UX review: `PASS`.
-- Independent Architecture/Security review: `PASS`.
-- Independent QA review: `PASS`.
-- Product-owner review: `PENDING`.
+- Node 22 inventory tests: `6/6 PASS`.
+- Strict inventory: 30 states, 4 roles, 6 declared viewports, zero missing paths/external dependencies/duplicate IDs; manifest verified.
+- Prototype SHA-256: `3fce953a319b8d7c0a90432ca0f07a6a4dd3ddd5446a3d40c442911595f91728`.
+- Chromium 149.0.7827.55: 30/30 states and reloads; useful-height, internal-scroll, 20:00, drawer-footer, pending-actions, disabled-submit, seven-day Week, no free-cell text noise, default Week drawer, viewport replacement and page-overflow assertions pass.
+- Browser errors: console/page/request `0/0/0`; axe serious/critical `0`; overflow failures `0`.
+- Evidence: `/Users/evrusetskiy/docs/ai/evidence/V50-CLINIC-MVP1-02-R1/`.
+- Screenshots/contact sheets: `38/6`.
+- Evidence checksum: `3a6da81c127858a477e184063e3bf3756dcc40b31ad53c667a83bd72ac339380`.
+- Independent Product/UX review: `INTERNAL_REPAIR_REVIEW_PASS`.
 - Runtime suites: `ABSTAIN / PROTOTYPE_ONLY`.
 
-Known gaps are intentional: no runtime projection, authority evaluation, command, staff/settings contract, manual-create backend, clinic cancellation/reschedule, live countdown/polling or production flag. The current prototype may be amended on this branch if the product owner rejects any UX point.
+## Gate
 
-`V50-CLINIC-MVP1-03 / Clinic Booking Journal Backend Read Projection` is `NOT_STARTED / BLOCKED_BY_PRODUCT_OWNER_UX_ACCEPTANCE`. It may start only after explicit product-owner acceptance of this prototype.
+`V50-CLINIC-MVP1-02`: `INITIAL_OWNER_REVIEW_CHANGES_REQUESTED / R1_INTERNAL_REPAIR_PASS / PRODUCT_OWNER_REVIEW_PENDING / PR_OPEN`.
+
+The only next bounded slice is `V50-CLINIC-MVP1-03 / Clinic Booking Journal Backend Read Projection`, and it remains `NOT_STARTED / BLOCKED_BY_PRODUCT_OWNER_UX_ACCEPTANCE` until explicit owner acceptance. Production rollout and main integration remain `NOT_STARTED`.

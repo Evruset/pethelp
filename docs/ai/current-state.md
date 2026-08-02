@@ -1657,26 +1657,26 @@ Execution verdict: `PASS / PORTAL_FOUNDATION_IMPLEMENTED / TESTED`.
 
 Final slice verdict: `V50-CLINIC-MVP1-01: PASS / BOOKING_JOURNAL_CONTRACT_READY`.
 
-## Next single action
+## Completed lineage
 
-`V50-CLINIC-MVP1-02 / Booking Journal Interactive UX Prototype`.
+`V50-CLINIC-MVP1-02 / Booking Journal Interactive UX Prototype` was implemented and then entered the bounded R1 owner-review repair below. The current `#clinic-workspace` runtime remains unchanged.
 
-The current `#clinic-workspace` source is not an accepted authoritative Booking Journal prototype. Runtime implementation, production rollout and main integration remain `NOT_STARTED`.
+## `V50-CLINIC-MVP1-02-R1 / Booking Journal Product Owner Visual and Week View Repair`
 
-## `V50-CLINIC-MVP1-02 / Booking Journal Interactive UX Prototype`
+`PASS / UX_REPAIR_READY / PRODUCT_OWNER_REVIEW_PENDING / RUNTIME_NOT_STARTED` (2026-08-02).
 
-`PROTOTYPE_READY / INTERNAL_PRODUCT_REVIEW_PASS / INTERNAL_ACCESSIBILITY_REVIEW_PASS / PRODUCT_OWNER_REVIEW_PENDING / RUNTIME_NOT_STARTED` (2026-08-01).
-
-- Added an isolated dependency-free prototype at `prototype-v50/clinic-booking-journal/` without changing the canonical 30-screen V50 prototype or manifest.
-- The journal is the primary screen: toolbar, compact SLA bar, filters, time×staff day grid and detail drawer; limited single-employee week availability; tablet overlays; mobile agenda and full-screen detail.
-- Twenty-five deterministic URL states cover four role presentations, request SLA, confirmed/alternative/owner-decision flows, reject/manual/client/search/filter states, empty/no-staff/error/stale/forbidden/conflict and mobile/week presentations.
+- Product-owner review of the initial MVP1-02 prototype was `CHANGES_REQUESTED`; the R1 repair preserves its product model while correcting readability, vertical space, drawer clipping, forms, alternative selection, mobile semantics and Week view.
+- Day view fills the useful viewport and internally scrolls through 08:00–20:00. Larger type, duration-correct cards, afternoon fixtures, distinct state treatments, explicit SLA metrics and visible drawer action footer remove the rejected empty/clipped presentation.
+- Week view is now a single-employee seven-day time×day journal with 30-minute axis, proportional appointments, break/closed treatments, calm free intervals and a calendar-based alternative mode. Default Week state has no unrelated drawer.
+- Manual booking uses a large two-column/full-screen composition, bounded available slots, derived price and disabled submit until time selection. Alternative review keeps original/new time, employee and price visible.
+- Mobile is selected only by viewport CSS; 375/412 replace desktop navigation/grid with urgent card, grouped agenda, bottom navigation and full-screen detail/forms. Thirty deterministic URL states include five dedicated R1 scenarios.
 - Confirm, conflict-to-alternative, reject, manual booking, client lookup/quick create, search and filtering are repeatable simulated interactions. They make no backend, state-machine, authority or command-success claim.
 - Synthetic fixtures contain no real PII or clinical/payment/insurance/telemedicine/Quality data. Future journal projection remains the sole authority for snapshot ordering, capability-filtered fields/actions and server time.
-- Node 22 inventory verifies 25 states, 4 roles, 6 viewports, local assets, landmarks and reproducible prototype SHA-256 `b1b216b96070b7c6b092e518420f605a22b2acff7a407a7ec4db43012f17f629`.
-- Chromium validated all states and reloads, seven interactions including forbidden fail-closed/action taxonomy, keyboard/Escape/focus behavior, responsive/mobile replacement, axe, real 200% text scaling with compact-sidebar containment, structured calendar-to-agenda reflow and retained filter controls, reduced motion, forced colors and no page-wide overflow with zero console/page/request errors. External evidence contains 37 screenshots and four distinct contact sheets at `/Users/evrusetskiy/docs/ai/evidence/V50-CLINIC-MVP1-02/`, checksum `7e10cc8c218176716f3ca4a619d455551d2e0efa990d5ee6a1b12cdf4e55187d`.
-- Independent Product/UX, Architecture/Security and QA reviews pass. Runtime suites are `ABSTAIN / PROTOTYPE_ONLY`; no Portal/backend/BFF/migration/dependency/lockfile/global-prototype change exists.
+- Node 22 inventory tests pass `6/6`; strict inventory verifies 30 states, 4 roles, 6 viewports, no external dependency/duplicate ID and prototype SHA-256 `3fce953a319b8d7c0a90432ca0f07a6a4dd3ddd5446a3d40c442911595f91728`.
+- Chromium 149 validates 30/30 states and reloads, all R1 geometry/visibility/validation assertions, axe and seven viewport sizes with console/page/request/serious-critical/overflow counts all zero. R1 evidence contains 38 screenshots and six contact sheets at `/Users/evrusetskiy/docs/ai/evidence/V50-CLINIC-MVP1-02-R1/`, checksum `3a6da81c127858a477e184063e3bf3756dcc40b31ad53c667a83bd72ac339380`.
+- Independent Product/UX repair review passes. Runtime suites remain `ABSTAIN / PROTOTYPE_ONLY`; Portal/backend/BFF/migration/dependency/lockfile/global prototype are unchanged.
 
-Execution verdict: `PASS / INTERACTIVE_PROTOTYPE_READY`. Product-owner acceptance is not inferred.
+Execution verdict: `PASS / UX_REPAIR_READY / PRODUCT_OWNER_REVIEW_PENDING`. Product-owner acceptance is not inferred.
 
 ## Next gate
 
