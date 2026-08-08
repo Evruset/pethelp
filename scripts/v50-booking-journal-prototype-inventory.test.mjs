@@ -51,10 +51,10 @@ test('valid fixture passes and checksum is reproducible across generatedAt chang
     await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
     const second = await inventoryPrototype(root, { verifyManifest: true });
     assert.equal(first.sha256, second.sha256);
-    assert.equal(second.states.length, 30);
+    assert.equal(second.states.length, 104);
     assert.equal(second.roles.length, 4);
-    assert.equal(second.viewports.length, 6);
-    assert.equal(second.deterministicUrls.length, 30);
+    assert.equal(second.viewports.length, 10);
+    assert.equal(second.deterministicUrls.length, 104);
   });
 });
 
@@ -89,7 +89,7 @@ test('rejects incomplete state inventory and missing landmarks', async () => {
     await assert.rejects(inventoryPrototype(root), (error) => {
       assert.match(error.message, /state inventory mismatch/);
       assert.match(error.message, /required landmark missing: main/);
-      assert.match(error.message, /required state labels missing.*mobile-manual-booking/);
+      assert.match(error.message, /required state labels missing.*calendar-overdue/);
       return true;
     });
   });

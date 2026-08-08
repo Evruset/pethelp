@@ -73,12 +73,18 @@ All rows below are anchored to the verified V50 source and common manifest SHA-2
 
 Initial MVP1-02 owner review was `CHANGES_REQUESTED`. The bounded MVP1-02-R1 repair now has `INTERNAL_REPAIR_REVIEW_PASS / PRODUCT_OWNER_REVIEW_PENDING`: readability, useful viewport height, drawer actions, manual validation, calendar-derived alternatives, viewport-driven mobile agenda and the seven-day time×day Week journal are evidenced. Runtime remains not started.
 
+R2 owner review remained `CHANGES_REQUESTED_R2`. The bounded R2 repair cache-busts prototype assets, proves the dedicated Week alternative URL, expands the week to an operational 11-event load view, keeps alternative context above the full-width calendar, removes compact Day-card clipping and normalizes form/toolbar/close-control geometry. Status is `R2_INTERNAL_REPAIR_PASS / PRODUCT_OWNER_REVIEW_PENDING`; runtime remains unchanged.
+
+R2 owner review subsequently remained `CHANGES_REQUESTED` because mobile did not meet the product-quality bar. R3 resets the phone presentation as a standalone CRM: Today agenda, four task destinations, request-first detail/sticky actions, mobile-only alternative recommendations, three-step booking, separate quick-client flow and bounded Clients/More screens. The 53-state manifest, 8-viewport matrix, 42 screenshots, 3 MOV recordings and 7 contact sheets pass locally; independent Product/CRM, Mobile UX and Accessibility reviews have no remaining vetoes. Status is `R3_INTERNAL_REVIEW_PASS / PRODUCT_OWNER_REVIEW_PENDING / LOCAL_UNCOMMITTED`; PR #70 remains on the published R1 head.
+
+R3 owner review remained `CHANGES_REQUESTED` because breakpoint presentations did not read as one CRM, mobile calendar search/filter was incomplete, and the tablet filter rail compressed. R4 makes the desktop navy/blue language canonical through shared tokens, typography, outline SVG icons, statuses and actions. Wide desktop alone retains a 232px filter rail; compact desktop/tablet use a 72px navy rail plus overlay filters/detail; mobile retains the agenda with full-screen shared search/filter tasks. The 70-state, 10-viewport, 40-screenshot and six-contact-sheet gate passes with independent Design-System, CRM UX and Responsive approval. Status is `R4_INTERNAL_REVIEW_PASS / PRODUCT_OWNER_REVIEW_PENDING / LOCAL_UNCOMMITTED`.
+
 These rows register contract decisions only. `CONTRACT_READY` does not claim runtime, test, visual, rollout, or UAT completion.
 
 | V50 ID | Target | Canonical route / authority | Decision | Status |
 |---|---|---|---|---|
 | CLN-MVP1-001 | Journal shell | canonical scoped root; exact membership/location and capability-filtered navigation | Prototype proves journal-first shell; Workspace Home retained | UX_PROTOTYPE_READY / RUNTIME_NOT_STARTED |
-| CLN-MVP1-002 | Day calendar | future journal projection date/day boundary authority | R1 proves internally scrollable 08:00–20:00 time×staff grid, duration geometry and afternoon density | UX_REPAIR_READY / PRODUCT_OWNER_REVIEW_PENDING / RUNTIME_NOT_STARTED |
+| CLN-MVP1-002 | Day calendar | future journal projection date/day boundary authority | R2 proves full-height internally scrollable 08:00–20:00 grid with zero clipped appointment cards | R2_UX_REPAIR_READY / PRODUCT_OWNER_REVIEW_PENDING / RUNTIME_NOT_STARTED |
 | CLN-MVP1-003 | Pending SLA bar | server timestamps/clock; one shared Portal timer | Prototype normal/due/overdue/zero-pending non-color model | UX_PROTOTYPE_READY / RUNTIME_NOT_STARTED |
 | CLN-MVP1-004 | Entry detail drawer | capability-filtered bounded journal entry | R1 proves 420–460px/overlay/full-screen detail, independent body scroll and always-visible pending actions | UX_REPAIR_READY / PRODUCT_OWNER_REVIEW_PENDING / RUNTIME_NOT_STARTED |
 | CLN-MVP1-005 | Confirm request | existing clinic hold confirm authority | Two-interaction simulated flow; runtime invariants remain contract-only | UX_PROTOTYPE_READY / RUNTIME_NOT_STARTED |
@@ -90,8 +96,8 @@ These rows register contract decisions only. `CONTRACT_READY` does not claim run
 | CLN-MVP1-011 | Clients registry | current Patients / `patient.admin.read` | Search/navigation product model represented without UUIDs | UX_PROTOTYPE_READY / RUNTIME_NOT_STARTED |
 | CLN-MVP1-012 | Client detail | current safe Patients detail and separate alias capability | Safe synthetic client/pet presentation represented | UX_PROTOTYPE_READY / RUNTIME_NOT_STARTED |
 | CLN-MVP1-013 | Staff | target `/staff`; dedicated capability/API missing | Admin-only target navigation and staff columns represented; authority still missing | UX_PROTOTYPE_READY / RUNTIME_NOT_STARTED |
-| CLN-MVP1-014 | Working hours | existing Schedule operations under current guards | R1 seven-day 08:00–20:00 Week journal distinguishes duration, break, closed and calm free intervals | UX_REPAIR_READY / PRODUCT_OWNER_REVIEW_PENDING / RUNTIME_NOT_STARTED |
-| CLN-MVP1-015 | Mobile agenda | same authoritative journal projection/order | R1 viewport-driven 375/412 agenda, urgent card and full-screen flows; desktop grid/sidebar absent | UX_REPAIR_READY / PRODUCT_OWNER_REVIEW_PENDING / RUNTIME_NOT_STARTED |
+| CLN-MVP1-014 | Working hours | existing Schedule operations under current guards | R2 seven-day 08:00–20:00 Week calendar exposes 11 duration blocks, load summary, break/closed time and three bounded alternative slots | R2_UX_REPAIR_READY / PRODUCT_OWNER_REVIEW_PENDING / RUNTIME_NOT_STARTED |
+| CLN-MVP1-015 | Responsive CRM | same authoritative journal projection/order | R5-A adds one Day/Week/List shell and centralized role-capability presentation: reception/admin/veterinarian/multi-role expose distinct navigation and actions without claiming security enforcement | R5_A_ROLE_SHELL_READY / PRODUCT_OWNER_REVIEW_PENDING / LOCAL_UNCOMMITTED / RUNTIME_NOT_STARTED |
 
 ## Complete source state inventory (41)
 
@@ -293,3 +299,11 @@ When any prototype file changes, regenerate the manifest, rerun inventory verifi
   70,764.024/40.045 ms.
 - Parent `V50-CLINIC-04N` may be closed. Production rollout remains
   `NOT_STARTED`.
+
+## V50-CLINIC-MVP1-02-R5-B parity note
+
+Prototype parity now includes action-first SLA/queue presentation, clean mobile decision detail, distinct primary/secondary/destructive hierarchy, submitting/readback/conflict/stale states and veterinarian read-only context. Evidence `V50-CLINIC-MVP1-02-R5-B-RESPONSIVE` is 216/216 PASS. SLA ordering and readback remain deterministic prototype presentation; runtime/backend are unchanged.
+
+## V50-CLINIC-MVP1-02-R5-C parity note
+
+Prototype parity now includes one contextual booking draft across global, free-slot, client and request entry; desktop/tablet and three-step mobile presentation; validation/submitting/readback/conflict/terminal states; capability-filtered entry; canonical calendar/free-slot semantics; and keyboard/focus/reduced-motion behavior. Evidence `V50-CLINIC-MVP1-02-R5-C-RESPONSIVE` is 299/299 PASS across 10 viewports and 4 roles. Creation and readback remain deterministic prototype presentation; backend/runtime authority is unchanged. The one next slice is `V50-CLINIC-MVP1-02-R5-D / Views, filters and communication`.

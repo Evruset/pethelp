@@ -14,10 +14,36 @@ export const REQUIRED_STATES = [
   'filters-active', 'week-view', 'mobile-agenda',
   'week-view-selected', 'week-alternative-selection', 'manual-booking-invalid',
   'mobile-pending-detail', 'mobile-manual-booking',
+  'mobile-today', 'mobile-today-overdue', 'mobile-today-empty', 'mobile-request-list',
+  'mobile-request-detail', 'mobile-request-confirmed', 'mobile-request-rejected',
+  'mobile-alternative-date', 'mobile-alternative-slots', 'mobile-alternative-review',
+  'mobile-owner-decision-pending', 'mobile-booking-step-client',
+  'mobile-booking-step-schedule', 'mobile-booking-step-review', 'mobile-booking-invalid',
+  'mobile-client-search', 'mobile-quick-client', 'mobile-client-detail', 'mobile-stale',
+  'mobile-error', 'mobile-forbidden', 'mobile-loading', 'mobile-more',
+  'desktop-calendar-search-results', 'desktop-filters-active', 'desktop-filters-collapsed',
+  'compact-calendar', 'compact-filters-open', 'compact-detail-open',
+  'tablet-calendar', 'tablet-calendar-search', 'tablet-filters-open',
+  'tablet-filters-active', 'tablet-detail', 'mobile-calendar-search',
+  'mobile-calendar-search-results', 'mobile-calendar-search-empty', 'mobile-filters-open',
+  'mobile-filters-active', 'mobile-filters-empty-result',
+  'request-detail-pending', 'request-detail-overdue', 'request-detail-submitting',
+  'request-detail-success', 'request-detail-conflict', 'request-detail-alternative',
+  'request-detail-stale', 'request-detail-technical-error', 'request-detail-forbidden',
+  'mobile-request-detail-pending', 'mobile-request-detail-overdue',
+  'mobile-request-detail-submitting', 'mobile-request-detail-success',
+  'mobile-request-detail-conflict',
+  'manual-booking-global', 'manual-booking-free-slot', 'manual-booking-client-context',
+  'manual-booking-request-context', 'manual-booking-validation', 'manual-booking-submitting',
+  'manual-booking-success', 'manual-booking-conflict', 'manual-booking-terminal-error', 'manual-booking-readonly-denied',
+  'mobile-booking-conflict', 'mobile-booking-success', 'keyboard-booking-open',
+  'keyboard-booking-return-focus', 'reduced-motion-booking', 'calendar-card-wide',
+  'calendar-card-compact', 'calendar-card-mobile', 'calendar-free-slot', 'calendar-overdue',
 ];
 export const REQUIRED_ROLES = ['reception', 'admin', 'veterinarian', 'multi-role'];
 export const REQUIRED_VIEWPORTS = [
-  '1440x900', '1920x1080', '1024x768', '768x1024', '375x812', '412x915',
+  '320x568', '375x812', '390x844', '430x932', '768x1024', '820x1180', '960x720',
+  '1024x768', '1280x800', '1440x900',
 ];
 export const CHECKSUM_ALGORITHM = 'sha256(path\\0content\\0, sorted requiredFiles; manifest.json and generatedAt excluded)';
 
