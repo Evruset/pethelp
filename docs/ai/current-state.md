@@ -1661,9 +1661,9 @@ Final slice verdict: `V50-CLINIC-MVP1-01: PASS / BOOKING_JOURNAL_CONTRACT_READY`
 
 `V50-CLINIC-MVP1-02 / Booking Journal Interactive UX Prototype` was implemented and then entered the bounded R1 owner-review repair below. The current `#clinic-workspace` runtime remains unchanged.
 
-## `V50-CLINIC-MVP1-02-R1 / Booking Journal Product Owner Visual and Week View Repair`
+## `V50-CLINIC-MVP1-02-R3 / Booking Journal Mobile CRM UX Reset`
 
-`PASS / UX_REPAIR_READY / PRODUCT_OWNER_REVIEW_PENDING / RUNTIME_NOT_STARTED` (2026-08-02).
+`PASS / MOBILE_CRM_R3_READY / PRODUCT_OWNER_REVIEW_PENDING / LOCAL_UNCOMMITTED / RUNTIME_NOT_STARTED` (2026-08-02).
 
 - Product-owner review of the initial MVP1-02 prototype was `CHANGES_REQUESTED`; the R1 repair preserves its product model while correcting readability, vertical space, drawer clipping, forms, alternative selection, mobile semantics and Week view.
 - Day view fills the useful viewport and internally scrolls through 08:00–20:00. Larger type, duration-correct cards, afternoon fixtures, distinct state treatments, explicit SLA metrics and visible drawer action footer remove the rejected empty/clipped presentation.
@@ -1672,16 +1672,89 @@ Final slice verdict: `V50-CLINIC-MVP1-01: PASS / BOOKING_JOURNAL_CONTRACT_READY`
 - Mobile is selected only by viewport CSS; 375/412 replace desktop navigation/grid with urgent card, grouped agenda, bottom navigation and full-screen detail/forms. Thirty deterministic URL states include five dedicated R1 scenarios.
 - Confirm, conflict-to-alternative, reject, manual booking, client lookup/quick create, search and filtering are repeatable simulated interactions. They make no backend, state-machine, authority or command-success claim.
 - Synthetic fixtures contain no real PII or clinical/payment/insurance/telemedicine/Quality data. Future journal projection remains the sole authority for snapshot ordering, capability-filtered fields/actions and server time.
-- Node 22 inventory tests pass `6/6`; strict inventory verifies 30 states, 4 roles, 6 viewports, no external dependency/duplicate ID and prototype SHA-256 `3fce953a319b8d7c0a90432ca0f07a6a4dd3ddd5446a3d40c442911595f91728`.
-- Chromium 149 validates 30/30 states and reloads, all R1 geometry/visibility/validation assertions, axe and seven viewport sizes with console/page/request/serious-critical/overflow counts all zero. R1 evidence contains 38 screenshots and six contact sheets at `/Users/evrusetskiy/docs/ai/evidence/V50-CLINIC-MVP1-02-R1/`, checksum `3a6da81c127858a477e184063e3bf3756dcc40b31ad53c667a83bd72ac339380`.
+- Archived R1 evidence retained its then-current Node 22 inventory `6/6`, prototype SHA-256 `3fce953a319b8d7c0a90432ca0f07a6a4dd3ddd5446a3d40c442911595f91728`, 38 screenshots and six contact sheets at `/Users/evrusetskiy/docs/ai/evidence/V50-CLINIC-MVP1-02-R1/`, checksum `3a6da81c127858a477e184063e3bf3756dcc40b31ad53c667a83bd72ac339380`.
 - Independent Product/UX repair review passes. Runtime suites remain `ABSTAIN / PROTOTYPE_ONLY`; Portal/backend/BFF/migration/dependency/lockfile/global prototype are unchanged.
+- Owner verdict after R1 was `CHANGES_REQUESTED_R2`. R2 cache-busts prototype assets and directly proves `week-alternative-selection` instead of allowing a stale state inventory to render `Неизвестное состояние`.
+- Week is an operational seven-day 08:00–20:00 calendar with 11 duration blocks and load summary. Alternative mode keeps compact original/selected context above the full-width grid, exposes only three bounded candidate intervals and opens an explicit review dialog; the default Week drawer remains closed.
+- Compact Day cards use duration-safe content and report zero clipping; the document remains viewport-height with internal workday scrolling. Manual select affordances, form columns, close-button focus, date controls and labelled Search/Refresh actions are normalized.
+- R2 Chromium: 30/30 states and reloads; seven viewports; console/page/request, axe serious/critical and overflow all zero. Nine focused screenshots are stored at `/Users/evrusetskiy/docs/ai/evidence/V50-CLINIC-MVP1-02-R2/`, checksum `36df4beb669da83a37d7d89cb1d441a05309cf39becfb2da6135e0628d940f17`. Prototype SHA-256 is `420b8a41097d8c2a056eef3cba8af028793b922335ab90d5eacc3cab1cd14880`.
+- R2 owner review remained `CHANGES_REQUESTED`: the phone experience did not meet the product-quality bar. R3 is a separate mobile CRM composition below 600px, not a resized desktop DOM.
+- Mobile IA is `Сегодня / Заявки / Клиенты / Ещё`; contextual create is outside navigation. Today uses a seven-day strip, one summary, one urgent card and a chronological agenda. Page-level detail uses Back-only navigation and sticky confirm/alternative/overflow actions above safe-area.
+- Alternative is date → recommended slots → review with no Week grid. Booking is a three-step full-screen flow with retained draft and a separate quick-client subflow. Clients and More are bounded task screens; legacy mobile states normalize to the new composition.
+- The manifest now contains 53 reloadable states and 8 viewports. Chromium reports console/page/request `0/0/0`, axe serious/critical `0`, page overflow `0` and touch targets below 44px `0`; keyboard-reduced viewport, orientation, browser back, 200% text, reduced motion and forced colors pass.
+- R3 evidence at `/Users/evrusetskiy/docs/ai/evidence/V50-CLINIC-MVP1-02-R3/` contains 42 screenshots, 3 MOV recordings and 7 contact sheets. Screenshot checksum is `8445e8f00d0a0c218674b0126729342080d60696d3b3f6ed1f6395c09224485f`; recording checksum is `125e199a0d5a9e18a73a108d00796df7e1539dd84481ff4acfda8f37b356a957`. Prototype SHA-256 is `e4472d98538a2994450ec8f00cb33888c15ab66b8a76b3becaa721ce015dd50e`.
+- Independent Product/CRM, Mobile UX and Accessibility reviews pass with no remaining vetoes. Accessibility repair adds forward/back heading focus, one main landmark per task/system screen, announced and associated invalid-slot feedback, and checksum-consistent 200% browser-zoom evidence.
+- R3 is intentionally local and uncommitted. PR #70 remains open at published R1 head `eab04f95fe981785800ec3f97c621f97961dbef5`; no commit, push or PR edit occurred.
 
-Execution verdict: `PASS / UX_REPAIR_READY / PRODUCT_OWNER_REVIEW_PENDING`. Product-owner acceptance is not inferred.
+Execution verdict: `PASS / MOBILE_CRM_R3_READY / PRODUCT_OWNER_REVIEW_PENDING`. Product-owner acceptance is not inferred.
+
+## `V50-CLINIC-MVP1-02-R4 / Responsive CRM Design System Unification`
+
+`PASS / RESPONSIVE_CRM_R4_READY / PRODUCT_OWNER_REVIEW_PENDING / LOCAL_UNCOMMITTED / RUNTIME_NOT_STARTED` (2026-08-02).
+
+- R3 owner review is `CHANGES_REQUESTED`: desktop/tablet/mobile appeared as different products, mobile calendar search/filter was incomplete, and the tablet filter rail compressed into unreadable content.
+- R4 makes the existing desktop CRM the canonical visual language. Shared `--vh-*` tokens cover navy shell, blue primary, neutral surfaces/borders, status semantics, focus, radii, control heights and spacing; one local outline SVG set replaces breakpoint-specific glyphs. Green is success/status only.
+- Breakpoints are wide desktop `>=1280`, compact desktop/tablet landscape `960–1279`, tablet portrait `600–959`, and mobile `<600`. Only wide desktop retains the 232px filter rail. Compact/tablet use a 72px navy navigation rail with overlay filters/detail; mobile keeps the R3 agenda/task architecture with the same shell, typography, icons, status and command hierarchy.
+- `Поиск по расписанию` is visible on every breakpoint and searches bounded synthetic pet, owner, service, employee, time, status and masked-phone fields. Debounce, clear, results, empty state, result-to-detail and query-preserving return are deterministic. Filters use the same Employees, Services, Statuses and action-only entities with staged apply, count and removable active chips.
+- The manifest contains 70 reloadable states and ten viewports. Chromium passes 70/70 states and reloads; console/page/request `0/0/0`, axe serious/critical `0`, overflow `0`, touch targets below 44px `0`. Mobile Back and tablet Escape return focus to the invoking Search/Filters control.
+- R4 evidence at `/Users/evrusetskiy/docs/ai/evidence/V50-CLINIC-MVP1-02-R4/` contains 40 screenshots and six required consistency contact sheets. Screenshot checksum is `25988dff944ed71bc9ab6e0fe475dcc31bf1a075d8059ca1272df75e8566d501`; prototype SHA-256 is `f0276f25fcc9bb47bfbac12c21de5e7b72e086d78b1d867a378990c1221f961e`.
+- Independent Design-System, CRM UX and Responsive reviews pass with no remaining vetoes. Runtime/backend/BFF, roles, state machines, migrations, dependencies and lockfiles remain unchanged.
+- R4 remains local and uncommitted. PR #70 remains open at published R1 head `eab04f95fe981785800ec3f97c621f97961dbef5`; no commit, push or PR edit occurred.
+
+Execution verdict: `PASS / RESPONSIVE_CRM_R4_READY / PRODUCT_OWNER_REVIEW_PENDING`. Product-owner acceptance is not inferred.
+
+## `V50-CLINIC-MVP1-02-R4-VISUAL / Responsive Screenshot Regression Harness`
+
+`PASS / RESPONSIVE_SCREENSHOT_HARNESS_READY / EVIDENCE_SAVED_IN_REPOSITORY / LOCAL_UNCOMMITTED` (2026-08-03).
+
+- The bounded Node/Playwright harness starts a loopback-only static server, reads the prototype manifest, fixes locale/time/browser motion and captures all ten allowed viewports without a new dependency.
+- The bounded matrix contains 158 viewport/state/role cases and four canonical breakpoint interaction flows. Search/detail/Back restoration, empty search, staged filters and removable chips are exercised automatically.
+- Browser console/page/request errors, page-wide overflow, responsive composition, visible main/heading, accessible control naming, mobile input font, mobile/tablet 44px targets, screenshot dimensions, missing/orphan files and checksum mismatches are all zero.
+- Repository evidence is stored at `docs/v50/evidence/V50-CLINIC-MVP1-02-R4-RESPONSIVE/`: 220 screenshots, machine-readable manifest/results/checksums and a standalone comparison gallery. Automated capture and offline verification pass within the 120 MiB / 6 MiB-per-PNG guards.
+- R4 remains local and uncommitted. PR #70 remains open at published R1 head `eab04f95fe981785800ec3f97c621f97961dbef5`; no commit, push or PR edit occurred. Product-owner review remains pending.
+
+## `V50-CLINIC-MVP1-02-R5-A / Role and Shell Foundation`
+
+`PASS / R5_A_ROLE_SHELL_READY / PRODUCT_OWNER_REVIEW_PENDING / LOCAL_UNCOMMITTED / RUNTIME_NOT_STARTED` (2026-08-03).
+
+- A single prototype-only role presentation map owns semantic capabilities and active workspace. Reception exposes Journal/Requests/Clients and request decisions; Admin additionally exposes Staff/Settings and Management context; Veterinarian exposes My Day/My Visits and read-only assigned visits without administrative CTAs; Multi-role exposes `Режим: Ресепшен` instead of silently mixing controls.
+- Desktop/tablet Day, Week and List states share one navy CRM shell, page/location header, date navigation, explicit view switch, commands and optional detail surface. CSS breakpoints change composition while preserving landmark meaning.
+- Hidden role controls are removed from the DOM and accessibility order. The capture harness asserts veterinarian decision/admin controls are absent, admin navigation is present, multi-role context is explicit and reception does not inherit admin navigation.
+- Evidence `docs/v50/evidence/V50-CLINIC-MVP1-02-R5-A-RESPONSIVE/` passes 158 matrix cases plus four canonical interaction flows: 162/162 results, 220 screenshots, 42 full-page screenshots, browser/composition/overflow failures `0`. Prototype SHA-256 is `fc73b765c216a813a211efc45b1fc81e1da84f2257b7ae5eb79b87939e847f28`.
+- This is presentation behavior, not security enforcement. Backend, Portal runtime, APIs, roles, migrations, dependencies and production feature flags are unchanged. No commit, push or PR edit occurred.
+
+The only next bounded slice is `V50-CLINIC-MVP1-02-R5-B / Action priority and request detail`; it is `NOT_STARTED`. R5-C, R5-D, R5-E and `V50-CLINIC-MVP1-03` remain `NOT_STARTED`.
 
 ## Next gate
 
-Product-owner review of `V50-CLINIC-MVP1-02`. Until explicit acceptance:
+`V50-CLINIC-MVP1-02-R5-B / Action priority and request detail` is the only next bounded slice and remains `NOT_STARTED`. Product-owner review of the complete UX correction remains pending.
 
-`V50-CLINIC-MVP1-03 / Clinic Booking Journal Backend Read Projection` is `NOT_STARTED / BLOCKED_BY_PRODUCT_OWNER_UX_ACCEPTANCE`.
+R5-C, R5-D, R5-E and `V50-CLINIC-MVP1-03 / Clinic Booking Journal Backend Read Projection` remain `NOT_STARTED`. Production rollout and main integration remain `NOT_STARTED`. PR #66, #67, #68 and #69 remain unmerged; the PR #68 Linux optional `lightningcss` blocker remains a separate CI slice.
 
-Production rollout and main integration remain `NOT_STARTED`. PR #66, #67, #68 and #69 remain unmerged; the PR #68 Linux optional `lightningcss` blocker remains a separate CI slice.
+## `V50-CLINIC-MVP1-02-R5-B / Action Priority and Request Detail`
+
+`PASS / R5_B_ACTION_DETAIL_READY / PRODUCT_OWNER_REVIEW_PENDING / LOCAL_UNCOMMITTED / RUNTIME_NOT_STARTED` (2026-08-03).
+
+- Action-first SLA has explicit critical, pending and clear states. Each actionable queue item exposes priority, status, next action, SLA/deadline and responsible role without technical enums.
+- Detail leads with decision context. Confirm locks submission and ends in authoritative readback presentation; alternative waits for owner; conflict/stale/technical-error retain request context. Timeline remains secondary.
+- Mobile detail has no global search/filter/create/view controls and one safe-area-aware sticky action area. Veterinarian is read-only; Admin and multi-role retain explicit workspace markers.
+- Inventory covers 84 states, 4 roles and 10 viewports. Unit/inventory tests pass 21/21. Evidence `docs/v50/evidence/V50-CLINIC-MVP1-02-R5-B-RESPONSIVE/` passes 212 matrix cases plus FLOW-01..FLOW-04: 216/216 results, 259 screenshots, 42 full-page screenshots, failures `0`.
+- Prototype SHA-256 is `9f912c12fcda2e5aef9ef522b92c169616ff2aa2cfabd615e1972e9f8511cd00`; source-diff SHA-256 is `825b9f1817639bc4a1e9a327ef488dbb7c334e72d418b4d024f5015544168359`; evidence manifest SHA-256 is `38fcf2b1d1df1d761b9eed15f257f6a43073f72037cced7a324c10c00bc388c8`.
+- Backend, Portal runtime, API, migrations, production roles/capabilities and feature flags are unchanged. No commit, push or PR edit occurred.
+
+The only next bounded slice is `V50-CLINIC-MVP1-02-R5-C / Booking productivity`; it is `NOT_STARTED`. R5-D, R5-E and `V50-CLINIC-MVP1-03` remain `NOT_STARTED`.
+
+## `V50-CLINIC-MVP1-02-R5-C / Booking Productivity`
+
+`PASS / BOOKING_PRODUCTIVITY_READY / PRODUCT_OWNER_REVIEW_PENDING / LOCAL_UNCOMMITTED / RUNTIME_NOT_STARTED` (2026-08-08).
+
+- One presentation-only draft model now supports global, free-slot, client and owner-request entry. Known safe context is prefilled, explicit controls can change it, back navigation preserves it, conflict/terminal failure retain it, and a new context starts from an isolated draft.
+- Desktop/tablet use the shared dialog composition; mobile uses labelled `Шаг 1 из 3` through `Шаг 3 из 3` client, schedule and review tasks. Deterministic states cover idle, prefilled, partial/validation, submitting, authoritative-readback presentation, retryable conflict, terminal error and role-denied presentation.
+- Calendar records and free slots expose contextual accessible names. Free-slot entry retains location/date/time/veterinarian; client and request details expose create actions only when the presentation capability includes `booking.create`. Veterinarian remains read-only and cannot open or submit creation.
+- Keyboard productivity supports `/`, `N`, `Esc`, `Enter` and `Ctrl/⌘+Enter`, with typing guards, focus trapping/restoration and reduced-motion behavior. `FLOW-05` through `FLOW-10` prove contextual creation, draft preservation, conflict retention, keyboard-only completion and shortcuts.
+- Inventory covers 104 deterministic states, 4 roles and 10 viewports. Unit/inventory tests pass 24/24. Evidence `docs/v50/evidence/V50-CLINIC-MVP1-02-R5-C-RESPONSIVE/` passes 293 matrix cases plus six flows: 299/299 results, 341 screenshots, 42 full-page screenshots, failures `0`.
+- Prototype SHA-256 is `9fdf10b5f692d5d4e1af8ece2df4f354f57a181a2c269d1ddee9f8fa765c9c62`; source-diff SHA-256 is `4921f6c038a0470cf837a49d0af01055e84b2f1b23aa091f777fe6301559f918`; evidence manifest SHA-256 is `35ed58e1f3f8f321901b9d790a35b72d32a38296fbc3dcdd0ff5ec9899516424`.
+- This is prototype presentation only: no backend command/read projection, appointment authority, runtime route, role/state-machine/migration/dependency/feature-flag or production rollout changed. PR #70 remains open at its published R1 head; no commit, push or PR edit occurred.
+- Efficiency verdict: `INEFFICIENT`. Focused gates were run first, but multiple full capture attempts exposed composition, observer and harness-selector defects before the final clean PASS; the evidence itself was not manually replaced or weakened.
+
+The only next bounded slice is `V50-CLINIC-MVP1-02-R5-D / Views, filters and communication`; it is `NOT_STARTED`.

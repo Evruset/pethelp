@@ -6,8 +6,17 @@
   <meta name="color-scheme" content="light">
   <title>VetHelp — Журнал записи</title>
   <link rel="icon" href="assets/icons.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="booking-journal.css">
-  <script src="booking-journal.js" defer></script>
+  <link rel="stylesheet" href="booking-journal.css?v=r2">
+  <link rel="stylesheet" href="mobile-crm.css?v=r3">
+  <link rel="stylesheet" href="responsive-crm.css?v=r4">
+  <link rel="stylesheet" href="r5c-productivity.css?v=r5c">
+  <script src="role-capabilities.js?v=r5a" defer></script>
+  <script src="booking-journal.js?v=r2" defer></script>
+  <script src="mobile-crm.js?v=r3" defer></script>
+  <script src="responsive-crm.js?v=r4" defer></script>
+  <script src="r5c-productivity.js?v=r5c" defer></script>
+  <script src="r5c-hardening.js?v=r5c" defer></script>
+  <style>#r5c-surface{position:fixed;inset:0;z-index:189;pointer-events:none}#r5c-surface>*{pointer-events:auto}</style>
 </head>
 <body>
   <a class="skip-link" href="#journal-main">К журналу записи</a>
@@ -39,13 +48,13 @@
         <div class="toolbar-controls" aria-label="Управление журналом">
           <div class="date-control">
             <button class="icon-button" data-action="previous-day" aria-label="Предыдущий день">←</button>
-            <button class="date-button" data-action="date-picker"><span aria-hidden="true">▣</span><span id="visible-date">1 августа 2026</span></button>
+            <button class="date-button" data-action="date-picker"><span id="visible-date">1 августа 2026</span></button>
             <button class="icon-button" data-action="next-day" aria-label="Следующий день">→</button>
           </div>
           <button class="secondary-button" data-action="today">Сегодня</button>
           <div class="segmented" aria-label="Вид журнала"><button data-view="day" aria-pressed="true">День</button><button data-view="week" aria-pressed="false">Неделя</button></div>
-          <button class="icon-button tooltip" data-tooltip="Поиск" title="Поиск" data-action="open-search" aria-label="Поиск">⌕</button>
-          <button class="icon-button tooltip" data-tooltip="Обновить" title="Обновить журнал" data-action="refresh" aria-label="Обновить журнал">↻</button>
+          <button class="secondary-button toolbar-action" title="Поиск" data-action="open-search" aria-label="Поиск"><span aria-hidden="true">⌕</span> Поиск</button>
+          <button class="secondary-button toolbar-action" title="Обновить журнал" data-action="refresh" aria-label="Обновить журнал"><span aria-hidden="true">↻</span> Обновить</button>
           <button class="primary-button" data-action="manual-booking">+ Новая запись</button>
         </div>
       </header>
@@ -81,17 +90,23 @@
         </section>
 
         <aside id="drawer" class="drawer" aria-labelledby="drawer-title" hidden>
-          <div class="drawer-header"><div><span id="drawer-status" class="status-pill"></span><h2 id="drawer-title">Карточка записи</h2><p id="drawer-source"></p></div><button class="icon-button" data-action="close-drawer" aria-label="Закрыть карточку">×</button></div>
+          <div class="drawer-header"><div><span id="drawer-status" class="status-pill"></span><h2 id="drawer-title" tabindex="-1">Карточка записи</h2><p id="drawer-source"></p></div><button class="icon-button close-button" data-action="close-drawer" aria-label="Закрыть карточку">×</button></div>
           <div id="drawer-content"></div>
         </aside>
       </div>
     </main>
 
-    <nav class="bottom-nav" aria-label="Мобильная навигация"><a href="#journal-main" aria-current="page">▦<span>Журнал</span></a><a href="#requests">◷<span>Заявки</span></a><a href="#clients">♙<span>Клиенты</span></a><button data-action="manual-booking">＋<span>Запись</span></button></nav>
+    <section id="mobile-crm" class="mobile-crm" aria-label="Мобильное рабочее место" hidden></section>
+    <nav class="bottom-nav mobile-crm-nav" aria-label="Мобильная навигация" hidden>
+      <button data-mobile-nav="mobile-today"><span aria-hidden="true">⌂</span><strong>Сегодня</strong></button>
+      <button data-mobile-nav="mobile-request-list"><span aria-hidden="true">◷</span><strong>Заявки</strong></button>
+      <button data-mobile-nav="mobile-client-search"><span aria-hidden="true">♙</span><strong>Клиенты</strong></button>
+      <button data-mobile-nav="mobile-more"><span aria-hidden="true">•••</span><strong>Ещё</strong></button>
+    </nav>
   </div>
 
   <div id="modal-backdrop" class="backdrop" hidden></div>
-  <section id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" hidden><div class="modal-header"><h2 id="modal-title">Действие</h2><button class="icon-button" data-action="close-modal" aria-label="Закрыть">×</button></div><div id="modal-content"></div></section>
+  <section id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" hidden><div class="modal-header"><h2 id="modal-title">Действие</h2><button class="icon-button close-button" data-action="close-modal" aria-label="Закрыть">×</button></div><div id="modal-content"></div></section>
   <section id="search-panel" class="search-panel" role="dialog" aria-modal="true" aria-labelledby="search-title" hidden><div class="modal-header"><h2 id="search-title">Поиск</h2><button class="icon-button" data-action="close-search" aria-label="Закрыть поиск">×</button></div><label class="search-field"><span class="sr-only">Имя клиента, питомца, сотрудника или запись</span><input id="search-input" type="search" placeholder="Клиент, питомец, запись или сотрудник" autocomplete="off"></label><div id="search-results"></div></section>
   <div id="live-region" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 </body>
