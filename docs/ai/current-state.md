@@ -1642,9 +1642,23 @@ Execution verdict: `PASS / BACKEND_FOUNDATION_IMPLEMENTED / TESTED`.
 
 Execution verdict: `PASS / PORTAL_FOUNDATION_IMPLEMENTED / TESTED`.
 
+## Product reset — `V50-CLINIC-MVP1-01 / Booking Journal Product, UX and Architecture Contract`
+
+`PASS / CONTRACT_READY / RUNTIME_NOT_STARTED` (2026-08-01).
+
+- Program lineage: `V50-CLINIC-05A` is `CONTRACT_READY / PR_OPEN`; `V50-CLINIC-05B` is `BACKEND_FOUNDATION_IMPLEMENTED / TESTED / PR_OPEN`; `V50-CLINIC-05C` is `PORTAL_FOUNDATION_IMPLEMENTED / TESTED / PR_OPEN / CI_BLOCKED`.
+- Product-owner review rejects Workspace Home as the clinic MVP's primary daily workflow. Its implementation and evidence remain valid as `RETAINED_FOUNDATION / NOT_PRIMARY_MVP_HOME`; no runtime route was moved.
+- `V50-CLINIC-05D` is `SUPERSEDED_BY_PRODUCT_RESET` and must not be resumed.
+- The canonical MVP home is contracted as a capability-filtered Booking Journal at the scoped root, behind future exact-true default-off `CLINIC_MVP1_BOOKING_JOURNAL`. Flag-off preserves exact 05C behavior; `/journal` is a redirect alias only while enabled.
+- Architecture decision is Variant A: one future backend journal projection with a common active-membership/exact-location gate, bounded fields, closed status mapping, stable server ordering and capability-filtered sections/actions. Existing Queue, Registry and Schedule remain domain authorities but cannot be composed client-side as one authoritative snapshot.
+- Primary MVP navigation is `Журнал записи`, `Заявки`, `Клиенты`, `Сотрудники`, with optional `Настройки`. Staff/settings, manual appointment creation, and clinic cancellation/rescheduling remain explicit contract gaps and are not promised by existing role guards or owner commands.
+- The supplied master specification is registered unchanged; contract, reuse/gap matrix and screen map are recorded. This slice changes documentation only: no endpoint, Portal page, role, state machine, migration, dependency, feature flag or production rollout.
+- PR #68's Linux optional `lightningcss` failure remains a separate CI slice and is not a product blocker.
+
+Final slice verdict: `V50-CLINIC-MVP1-01: PASS / BOOKING_JOURNAL_CONTRACT_READY`.
+
 ## Next single action
 
-`V50-CLINIC-05D / Clinic Workspace Home End-to-End Certification and Stacked Integration`.
+`V50-CLINIC-MVP1-02 / Booking Journal Interactive UX Prototype`.
 
-Schedule and Quality authority debts remain open. Production rollout and main
-integration remain `NOT_STARTED`.
+The current `#clinic-workspace` source is not an accepted authoritative Booking Journal prototype. Runtime implementation, production rollout and main integration remain `NOT_STARTED`.

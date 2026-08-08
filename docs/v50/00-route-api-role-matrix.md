@@ -74,13 +74,27 @@ Production status:
 
 | Prototype route | Role semantics v50 | Current production route/component | API | Статус и разрыв |
 | --- | --- | --- | --- | --- |
-| `clinic-workspace` | capability-filtered exact-location operational home; unproven classifications fail closed | default-off `/clinics/:clinicId/locations/:locationId` page in the existing V50 shell; same-origin strict BFF; disabled flag preserves prior 404 | **BACKEND + PORTAL FOUNDATION IMPLEMENTED / TESTED**: canonical backend exact-scope authority; Portal strict parser and presentation/session fencing; Queue/Appointments bounded facts/actions; Schedule/Veterinarian/Quality no-facts states | `CLINIC_V50_WORKSPACE_HOME` depends on `PORTAL_V50_SHELL`; no browser bearer, persistence or polling; technical stale retention and synchronous authority-loss purge; full product parity/rollout remain partial/not started |
+| `clinic-workspace` | capability-filtered exact-location operational summary | current default-off `/clinics/:clinicId/locations/:locationId`; possible future `/overview` is contract-only | **BACKEND + PORTAL FOUNDATION IMPLEMENTED / TESTED**; `RETAINED_FOUNDATION / NOT_PRIMARY_MVP_HOME` after product reset | Existing flag and evidence retained; no runtime route move in MVP1-01 |
 | `clinic-schedule` | admin services/staff/resources/availability; no doctor default | `/clinics/:clinicId/locations/:locationId/schedule`, `ClinicScheduleClient` | full schedule snapshot + 14 mutation families | **реализовано** для admin/reception; shell parity partial |
 | `clinic-visit` | assigned doctor clinical workbench | production page отсутствует | clinical visit API/schema отсутствуют | **отсутствует**; free-text complete endpoint is not replacement |
-| `clinic-appointments` | admin registry/detail/actions; doctor personal shift only | default-off scoped `/clinics/:clinicId/locations/:locationId/appointments`; Queue remains separate | `GET /v1/clinic/:clinicId/locations/:locationId/appointments` through scoped Portal BFF; upcoming/history and opaque load-more implemented; detail/check-in/reschedule APIs absent | **end-to-end bounded list implemented and tested; detail/actions missing** |
+| `clinic-appointments` | admin registry/detail; doctor personal shift only | default-off scoped list and nested `/:appointmentId`; Queue remains separate | bounded list and administrative detail GETs are implemented; check-in/reschedule command APIs are absent | **list and administrative detail implemented/tested; mutations and clinical history missing** |
 | `clinic-patients` | scoped Portal registry at `/clinics/:clinicId/locations/:locationId/patients`; administrative detail remains separate from clinical record | `ClinicPatientsRegistry` plus scoped BFF and links to exact-scope detail | canonical backend exact-location registry and detail GETs over current association authority | **registry and administrative detail implemented end to end; mutations absent** |
 | `clinic-patient` | exact-location administrative detail; clinical record remains separate | scoped page, cookie-session BFF and strict allowlist parser | implemented `GET /v1/clinic/:clinicId/locations/:locationId/patients/:patientId`, where patientId is Registry pet UUID plus current visible association | **administrative detail implemented end to end / clinical record absent** |
 | `clinic-telemed` | admin dispatcher or doctor assigned cases | location route blocks access; `/telemed/vet` is platform vet queue | vet queue exists; admin dispatcher absent | **частично/conflict in ownership model** |
+
+### Booking Journal target contract (`V50-CLINIC-MVP1-01`)
+
+| Target route | Role / capability contract | Target API | Status / rollback |
+|---|---|---|---|
+| `/clinics/:clinicId/locations/:locationId` | active exact clinic/location membership; sections/actions filtered by effective capabilities | future `GET /v1/clinic/:clinicId/locations/:locationId/journal` | `CONTRACT_READY`; `CLINIC_MVP1_BOOKING_JOURNAL=false` preserves 05C root |
+| `/clinics/:clinicId/locations/:locationId/journal` | identical to canonical root | no independent API; server redirect | `CONTRACT_READY`; alias absent while flag off |
+| `/clinics/:clinicId/locations/:locationId/requests` | `booking.queue.read` | existing Queue authority via future route adapter | TARGET; current `/queue` remains runtime/rollback route until redirect disposition is implemented |
+| `/clinics/:clinicId/locations/:locationId/appointments` | `appointment.registry.read` | existing registry/detail GETs | REUSE; separate snapshot cannot itself compose journal |
+| `/clinics/:clinicId/locations/:locationId/clients` and `/:clientId` | `patient.admin.read`; alias update remains separate | existing Patients registry/detail authority via future adapters | TARGET; current `/patients` routes remain runtime/rollback paths; privacy boundary unchanged |
+| `/clinics/:clinicId/locations/:locationId/staff` | dedicated capability missing | bounded staff API missing | CONTRACT GAP; omit navigation and fail closed |
+| `/clinics/:clinicId/locations/:locationId/settings` | dedicated capability missing | bounded settings API missing | OPTIONAL CONTRACT GAP; omit until authorized |
+
+The future journal projection is the sole source of cross-domain ordering and snapshot time. Portal composition from Queue, Registry, and Schedule is prohibited as authoritative evidence. No endpoint, route, capability, role or state-machine change is implemented in MVP1-01.
 
 Production-only routes without a one-to-one prototype hash:
 
