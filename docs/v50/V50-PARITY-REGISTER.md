@@ -71,25 +71,27 @@ All rows below are anchored to the verified V50 source and common manifest SHA-2
 
 ## Clinic MVP1 booking-journal reset
 
+Initial MVP1-02 owner review was `CHANGES_REQUESTED`. The bounded MVP1-02-R1 repair now has `INTERNAL_REPAIR_REVIEW_PASS / PRODUCT_OWNER_REVIEW_PENDING`: readability, useful viewport height, drawer actions, manual validation, calendar-derived alternatives, viewport-driven mobile agenda and the seven-day time×day Week journal are evidenced. Runtime remains not started.
+
 These rows register contract decisions only. `CONTRACT_READY` does not claim runtime, test, visual, rollout, or UAT completion.
 
 | V50 ID | Target | Canonical route / authority | Decision | Status |
 |---|---|---|---|---|
-| CLN-MVP1-001 | Journal shell | canonical scoped root; exact membership/location and capability-filtered navigation | Replace primary home behind default-off flag; Workspace Home retained | CONTRACT_READY |
-| CLN-MVP1-002 | Day calendar | future journal projection date/day boundary authority | Desktop day grid plus bounded date toolbar | CONTRACT_READY |
-| CLN-MVP1-003 | Pending SLA bar | server timestamps/clock; one shared Portal timer | Text/icon/color five-state SLA; local clock never reorders | CONTRACT_READY |
-| CLN-MVP1-004 | Entry detail drawer | capability-filtered bounded journal entry | Desktop/tablet drawer, mobile detail flow; no protected overfetch | CONTRACT_READY |
-| CLN-MVP1-005 | Confirm request | existing clinic hold confirm authority | Reuse with version/idempotency and read-after-write | CONTRACT_READY |
-| CLN-MVP1-006 | Reject request | existing decline/release requires semantic repair | Do not collapse `REJECTED`, `RELEASED`, `CANCELLED` | CONTRACT_READY |
-| CLN-MVP1-007 | Alternative slot | existing clinic alternative command; owner decides separately | Reuse with `If-Match`, idempotency and reconciliation | CONTRACT_READY |
-| CLN-MVP1-008 | Manual booking | no proven manual appointment command | MISSING; manual schedule slot is not appointment creation | CONTRACT_READY |
-| CLN-MVP1-009 | Requests registry | current scoped Queue / `booking.queue.read` | Reuse as `Заявки` deep workflow | CONTRACT_READY |
-| CLN-MVP1-010 | Appointments registry | current Registry/detail / `appointment.registry.read` | Reuse reads and scoped links | CONTRACT_READY |
-| CLN-MVP1-011 | Clients registry | current Patients / `patient.admin.read` | Reuse with product navigation label `Клиенты` | CONTRACT_READY |
-| CLN-MVP1-012 | Client detail | current safe Patients detail and separate alias capability | Reuse without owner-master/clinical scope expansion | CONTRACT_READY |
-| CLN-MVP1-013 | Staff | target `/staff`; dedicated capability/API missing | Omit navigation until bounded authority exists | CONTRACT_READY |
-| CLN-MVP1-014 | Working hours | existing Schedule operations under current guards | Reuse as deep settings workflow only after explicit capability contract | CONTRACT_READY |
-| CLN-MVP1-015 | Mobile agenda | same authoritative journal projection/order | 375/412 single-column agenda, full-width actions, no overflow | CONTRACT_READY |
+| CLN-MVP1-001 | Journal shell | canonical scoped root; exact membership/location and capability-filtered navigation | Prototype proves journal-first shell; Workspace Home retained | UX_PROTOTYPE_READY / RUNTIME_NOT_STARTED |
+| CLN-MVP1-002 | Day calendar | future journal projection date/day boundary authority | R1 proves internally scrollable 08:00–20:00 time×staff grid, duration geometry and afternoon density | UX_REPAIR_READY / PRODUCT_OWNER_REVIEW_PENDING / RUNTIME_NOT_STARTED |
+| CLN-MVP1-003 | Pending SLA bar | server timestamps/clock; one shared Portal timer | Prototype normal/due/overdue/zero-pending non-color model | UX_PROTOTYPE_READY / RUNTIME_NOT_STARTED |
+| CLN-MVP1-004 | Entry detail drawer | capability-filtered bounded journal entry | R1 proves 420–460px/overlay/full-screen detail, independent body scroll and always-visible pending actions | UX_REPAIR_READY / PRODUCT_OWNER_REVIEW_PENDING / RUNTIME_NOT_STARTED |
+| CLN-MVP1-005 | Confirm request | existing clinic hold confirm authority | Two-interaction simulated flow; runtime invariants remain contract-only | UX_PROTOTYPE_READY / RUNTIME_NOT_STARTED |
+| CLN-MVP1-006 | Reject request | existing decline/release requires semantic repair | Simulated reason/confirmation; no runtime mapping claim | UX_PROTOTYPE_READY / RUNTIME_NOT_STARTED |
+| CLN-MVP1-007 | Alternative slot | existing clinic alternative command; owner decides separately | R1 selects from visible journal availability and preserves explicit old/new review | UX_REPAIR_READY / PRODUCT_OWNER_REVIEW_PENDING / RUNTIME_NOT_STARTED |
+| CLN-MVP1-008 | Manual booking | no proven manual appointment command | R1 large form, client result, bounded slot, service price and disabled-invalid submit prove UX only; backend remains MISSING | UX_REPAIR_READY / PRODUCT_OWNER_REVIEW_PENDING / RUNTIME_NOT_STARTED |
+| CLN-MVP1-009 | Requests registry | current scoped Queue / `booking.queue.read` | Target navigation/request states represented | UX_PROTOTYPE_READY / RUNTIME_NOT_STARTED |
+| CLN-MVP1-010 | Appointments registry | current Registry/detail / `appointment.registry.read` | Confirmed/history context represented | UX_PROTOTYPE_READY / RUNTIME_NOT_STARTED |
+| CLN-MVP1-011 | Clients registry | current Patients / `patient.admin.read` | Search/navigation product model represented without UUIDs | UX_PROTOTYPE_READY / RUNTIME_NOT_STARTED |
+| CLN-MVP1-012 | Client detail | current safe Patients detail and separate alias capability | Safe synthetic client/pet presentation represented | UX_PROTOTYPE_READY / RUNTIME_NOT_STARTED |
+| CLN-MVP1-013 | Staff | target `/staff`; dedicated capability/API missing | Admin-only target navigation and staff columns represented; authority still missing | UX_PROTOTYPE_READY / RUNTIME_NOT_STARTED |
+| CLN-MVP1-014 | Working hours | existing Schedule operations under current guards | R1 seven-day 08:00–20:00 Week journal distinguishes duration, break, closed and calm free intervals | UX_REPAIR_READY / PRODUCT_OWNER_REVIEW_PENDING / RUNTIME_NOT_STARTED |
+| CLN-MVP1-015 | Mobile agenda | same authoritative journal projection/order | R1 viewport-driven 375/412 agenda, urgent card and full-screen flows; desktop grid/sidebar absent | UX_REPAIR_READY / PRODUCT_OWNER_REVIEW_PENDING / RUNTIME_NOT_STARTED |
 
 ## Complete source state inventory (41)
 
