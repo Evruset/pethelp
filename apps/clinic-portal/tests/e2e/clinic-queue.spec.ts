@@ -128,7 +128,7 @@ test('blocks clinic location URL tampering before backend queue fetch', async ({
   await uiStep(page, testInfo, 'Открыть очередь чужой локации', () => page.goto(`/clinics/${clinicId}/locations/${forbiddenLocationId}/queue`));
 
   await uiStep(page, testInfo, 'Проверить ABAC-блокировку до backend fetch', async () => {
-    await expect(page.getByText('403 Access Denied')).toBeVisible();
+    await expect(page.getByText('403 Access Denied').first()).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Нет доступа к этой локации', exact: true }).first()).toBeVisible();
     expect(queueReads).toBe(0);
   });

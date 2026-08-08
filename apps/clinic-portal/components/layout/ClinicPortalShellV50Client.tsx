@@ -10,14 +10,14 @@ function shortIdentifier(value: string): string {
   return value.length > 12 ? `${value.slice(0, 8)}…` : value;
 }
 
-function ShellNavigation({ clinicId, locationId, patientsEnabled, compact = false }: { clinicId: string; locationId: string; patientsEnabled: boolean; compact?: boolean }) {
+function ShellNavigation({ clinicId, locationId, patientsEnabled, workspaceHomeEnabled, compact = false }: { clinicId: string; locationId: string; patientsEnabled: boolean; workspaceHomeEnabled: boolean; compact?: boolean }) {
   const pathname = usePathname();
   const { session, loading, error, hasCapability, hasClinicScope, refresh } = useEffectiveSession();
   const basePath = `/clinics/${clinicId}/locations/${locationId}`;
   const hasExactScope = hasClinicScope(clinicId, locationId);
   const items = loading || error || !session || !hasExactScope
     ? []
-    : resolveClinicShellNavigation(session.roles, hasCapability, patientsEnabled);
+    : resolveClinicShellNavigation(session.roles, hasCapability, patientsEnabled, workspaceHomeEnabled);
 
   if (loading) {
     return <p className="vh-v50-shell-state" aria-live="polite" aria-busy="true">Загрузка доступа…</p>;
@@ -45,8 +45,8 @@ function ShellNavigation({ clinicId, locationId, patientsEnabled, compact = fals
   }
 
   return items.map((item) => {
-    const href = `${basePath}/${item.href}`;
-    const selected = pathname === href || pathname.startsWith(`${href}/`);
+    const href = item.href ? `${basePath}/${item.href}` : basePath;
+    const selected = item.href ? pathname === href || pathname.startsWith(`${href}/`) : pathname === basePath;
     return (
       <Link
         key={item.href}
@@ -55,6 +55,7 @@ function ShellNavigation({ clinicId, locationId, patientsEnabled, compact = fals
         aria-current={selected ? 'page' : undefined}
         aria-label={item.ariaLabel}
         data-selected={selected ? 'true' : 'false'}
+        onFocus={compact ? (event) => event.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest' }) : undefined}
       >
         <span className="vh-v50-nav-icon" aria-hidden="true">{item.icon}</span>
         <span className="vh-v50-nav-label">{compact ? item.shortLabel : item.label}</span>
@@ -63,7 +64,7 @@ function ShellNavigation({ clinicId, locationId, patientsEnabled, compact = fals
   });
 }
 
-function ShellFrame({ clinicId, locationId, patientsEnabled, children }: { clinicId: string; locationId: string; patientsEnabled: boolean; children: ReactNode }) {
+function ShellFrame({ clinicId, locationId, patientsEnabled, workspaceHomeEnabled, children }: { clinicId: string; locationId: string; patientsEnabled: boolean; workspaceHomeEnabled: boolean; children: ReactNode }) {
   const { session } = useEffectiveSession();
   const persona = clinicShellPersona(session?.roles ?? []);
   const roleLabel = persona === 'multi-role'
@@ -93,7 +94,7 @@ function ShellFrame({ clinicId, locationId, patientsEnabled, children }: { clini
         </div>
         <p className="vh-v50-role-label">Рабочее место · {roleLabel}</p>
         <nav className="vh-clinic-nav" aria-label={`Разделы локации для роли ${roleLabel}`}>
-          <ShellNavigation clinicId={clinicId} locationId={locationId} patientsEnabled={patientsEnabled} />
+          <ShellNavigation clinicId={clinicId} locationId={locationId} patientsEnabled={patientsEnabled} workspaceHomeEnabled={workspaceHomeEnabled} />
         </nav>
         <p className="vh-v50-authority-note">Доступ и действия подтверждает сервер.</p>
       </aside>
@@ -114,16 +115,16 @@ function ShellFrame({ clinicId, locationId, patientsEnabled, children }: { clini
       </div>
 
       <nav className="vh-clinic-bottom-nav" aria-label="Быстрая навигация портала клиники">
-        <ShellNavigation clinicId={clinicId} locationId={locationId} patientsEnabled={patientsEnabled} compact />
+        <ShellNavigation clinicId={clinicId} locationId={locationId} patientsEnabled={patientsEnabled} workspaceHomeEnabled={workspaceHomeEnabled} compact />
       </nav>
     </div>
   );
 }
 
-export function ClinicPortalShellV50Client({ clinicId, locationId, patientsEnabled, children }: { clinicId: string; locationId: string; patientsEnabled: boolean; children: ReactNode }) {
+export function ClinicPortalShellV50Client({ clinicId, locationId, patientsEnabled, workspaceHomeEnabled, children }: { clinicId: string; locationId: string; patientsEnabled: boolean; workspaceHomeEnabled: boolean; children: ReactNode }) {
   return (
     <EffectiveSessionProvider>
-      <ShellFrame clinicId={clinicId} locationId={locationId} patientsEnabled={patientsEnabled}>{children}</ShellFrame>
+      <ShellFrame clinicId={clinicId} locationId={locationId} patientsEnabled={patientsEnabled} workspaceHomeEnabled={workspaceHomeEnabled}>{children}</ShellFrame>
     </EffectiveSessionProvider>
   );
 }

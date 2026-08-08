@@ -7,6 +7,9 @@ export type ClinicShellNavigationItem = {
   icon: string;
 };
 
+const workspaceCapabilities = ['booking.queue.read', 'appointment.registry.read', 'schedule.read', 'clinical.visit.workspace.read', 'quality.read'] as const;
+const homeNavigation: ClinicShellNavigationItem = { label: 'Главная', shortLabel: 'Главная', href: '', ariaLabel: 'Открыть рабочее пространство', capability: 'workspace.presentation', icon: 'Г' };
+
 const receptionNavigation: readonly ClinicShellNavigationItem[] = [
   { label: 'Очередь', shortLabel: 'Очередь', href: 'queue', ariaLabel: 'Открыть очередь записей', capability: 'booking.queue.read', icon: 'О' },
   { label: 'Расписание', shortLabel: 'Слоты', href: 'schedule', ariaLabel: 'Открыть расписание', capability: 'schedule.read', icon: 'Р' },
@@ -35,6 +38,7 @@ export function resolveClinicShellNavigation(
   roles: readonly string[],
   hasCapability: (capability: string) => boolean,
   patientsEnabled = false,
+  workspaceHomeEnabled = false,
 ): ClinicShellNavigationItem[] {
   const persona = clinicShellPersona(roles);
   const candidates = persona === 'multi-role'
@@ -46,6 +50,7 @@ export function resolveClinicShellNavigation(
         : [];
 
   const permitted = new Map<string, ClinicShellNavigationItem>();
+  if (workspaceHomeEnabled && workspaceCapabilities.some(hasCapability)) permitted.set('', homeNavigation);
   for (const item of candidates) {
     if (item.href === 'patients' && !patientsEnabled) continue;
     if (hasCapability(item.capability) && !permitted.has(item.href)) {
