@@ -14,6 +14,39 @@ import { featureFlags } from '../config/feature-flags.config';
 @Injectable()
 export class ClinicEmployeeAccessService {
   constructor(private readonly capabilities: CapabilityEvaluatorService = new CapabilityEvaluatorService()) {}
+
+  /**
+   * Common Workspace Home authority gate. JWT scopes are early rejects; one
+   * database statement remains authoritative for membership and exact tenant
+   * scope. Section capability checks run only after this gate succeeds.
+   */
+  async assertExactClinicLocationMembership(
+    client: PoolClient,
+    employee: JwtPayload,
+    clinicId: string,
+    locationId: string,
+  ): Promise<{ serverNow: Date; timezone: string }> {
+    if (!employee.clinicIds?.includes(clinicId) || !employee.locationIds?.includes(locationId)) {
+      throw DomainErrors.clinicScopeMismatch();
+    }
+    const authority = await client.query<{ server_now: Date; timezone: string }>(`
+      SELECT transaction_timestamp() AS server_now, clinic.timezone
+      FROM clinic_schema.employee_location_memberships membership
+      JOIN clinic_schema.clinic_locations location
+        ON location.id = membership.clinic_location_id
+       AND location.id = $2::uuid
+       AND location.clinic_id = $3::uuid
+       AND location.status = 'ACTIVE'
+      JOIN clinic_schema.clinics clinic
+        ON clinic.id = location.clinic_id
+       AND clinic.status = 'ACTIVE'
+      WHERE membership.employee_id = $1::uuid
+        AND membership.active = true
+        AND membership.revoked_at IS NULL
+    `, [employee.sub, locationId, clinicId]);
+    if (!authority.rows[0]) throw DomainErrors.clinicScopeMismatch();
+    return { serverNow: authority.rows[0].server_now, timezone: authority.rows[0].timezone };
+  }
   async assertLocationAccess(client: PoolClient, employee: JwtPayload, clinicLocationId: string): Promise<void> {
     if (!employee.roles.includes(Role.CLINIC_RECEPTIONIST) && !employee.roles.includes(Role.CLINIC_ADMIN)) {
       throw DomainErrors.clinicScopeMismatch();

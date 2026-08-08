@@ -1577,4 +1577,34 @@ Execution verdict: `PASS / SAFE_MINIMUM_CONTRACT`.
 
 ## Next single action
 
-`V50-CLINIC-05B / Clinic Workspace Home Backend Foundation Projection`.
+### `V50-CLINIC-05B / Clinic Workspace Home Backend Foundation Projection`
+
+`PASS / BACKEND_FOUNDATION_IMPLEMENTED / TESTED`.
+
+- Added the canonical authenticated Workspace Home endpoint with one exact
+  active-membership clinic/location authority query inside a read-only,
+  repeatable-read transaction.
+- Queue and Appointments each use one bounded aggregate and an isolated
+  savepoint. Schedule, Veterinarian and Quality use no operational SQL and
+  remain no-facts `NOT_CONFIGURED` or `NOT_AUTHORIZED`.
+- PostgreSQL-derived time, fixed tuple order, saturated counts, narrow partial
+  degradation, no-store/no-ETag delivery and privacy-safe bounded telemetry are
+  implemented and covered by HTTP/PostgreSQL tests.
+- Deterministic 10k exact-scope evidence: 30 warm HTTP reads, p50 67.482 ms,
+  p95 72.589 ms, p99 82.934 ms, 1,048 bytes, one measured authority query
+  plus two measured operational statements, cardinality one,
+  zero large-table sequential scans, zero spill/temp blocks, zero cross-scope
+  leakage and fixture cleanup `0|0|0|0`.
+- OpenAPI and the PR performance workflow enforce the contract. No migration,
+  dependency, Portal, prototype or feature-flag change was made.
+- `CLN-001` is `BACKEND_FOUNDATION_IMPLEMENTED / TESTED`,
+  `PORTAL_NOT_STARTED`, `VISUAL_NOT_VERIFIED`. Production rollout and main
+  integration remain `NOT_STARTED`.
+
+Execution verdict: `PASS / BACKEND_FOUNDATION_IMPLEMENTED / TESTED`.
+
+## Next single action
+
+`V50-CLINIC-05C / Clinic Workspace Home Portal BFF and Page`.
+
+Schedule and Quality authority debts remain separate and are not closed by 05C.
