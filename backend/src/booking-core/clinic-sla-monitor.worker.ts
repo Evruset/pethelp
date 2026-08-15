@@ -5,6 +5,7 @@ import { DatabaseService } from '../database/database.service';
 import { ContextLoggerService } from '../observability/context-logger.service';
 import { ObservabilityMetricsService } from '../observability/observability.metrics';
 import { TraceContext } from '../observability/trace-context.context';
+import { mvpScope } from '../config/mvp-scope.config';
 
 interface ExpiredManualHold {
   id: string;
@@ -37,7 +38,7 @@ export class ClinicSlaMonitorWorker {
 
   @Cron('*/30 * * * * *')
   async monitorManualConfirmationSla(): Promise<void> {
-    if ((process.env.WORKERS_ENABLED ?? 'true').toLowerCase() !== 'true' || this.running) return;
+    if (mvpScope.pilot || (process.env.WORKERS_ENABLED ?? 'true').toLowerCase() !== 'true' || this.running) return;
     this.running = true;
 
     try {

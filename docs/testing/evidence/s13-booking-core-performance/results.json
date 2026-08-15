@@ -1,0 +1,446 @@
+{
+  "classification": "ENGINEERING BASELINE / NOT PRODUCTION SLA",
+  "generatedAt": "2026-08-13T10:41:10.766Z",
+  "branch": "agent/v51-stage-01-architecture",
+  "head": "62efdc0300537a1621d92c681f0a7efbac5b67bf",
+  "dirtySnapshotSha256": "f2dcf692857e7ad257a8dc9ab88ce31f5e094ef5cfc79d9dc67e6752b43d6ad2",
+  "sourceHashes": {
+    "backend/test/booking-core-performance.integration-spec.ts": "03275dbdb42704de9b75f839d5dce81f6e0b67ca3530b017e7a3c0a8d66fface",
+    "backend/src/booking-core/booking-hold-creation.service.ts": "2718cd6691f89f448debffdbc7dcbc1f7fbc7feb43d657446090f2c10664c134",
+    "backend/src/booking-core/booking-security.service.ts": "8c1a0b4ce4ae1dc78e43901a70a2e3e4092b8eb9e6dd90aafa1beea3f8a67073",
+    "backend/src/booking-core/booking.service.ts": "ada9b5e6720e86cf5045da64e7b89e1e876fd72669fa30bcd52f5752e8674952",
+    "backend/src/workers/hold-expiration.service.ts": "19ab51615aff167061b077df77e4ea828355c31d7a8aae2ef6879185de15a2e7"
+  },
+  "environment": {
+    "node": "v22.23.1",
+    "postgres": {
+      "version": "PostgreSQL 16.14 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit",
+      "work_mem": "4MB",
+      "shared_buffers": "128MB",
+      "max_connections": "100"
+    },
+    "poolMax": 20,
+    "maxPoolInUse": 20,
+    "cpuCount": 1,
+    "memoryBytes": 8221847552,
+    "topology": "disposable PostgreSQL database; isolated one-off Node 22 container; no development workers"
+  },
+  "thresholds": {
+    "invariantViolations": 0,
+    "duplicateMutations": 0,
+    "unexpected5xx": 0,
+    "deadlocks": 0,
+    "poolLeaks": 0,
+    "hotContentionCompletionMs": 2000,
+    "multiCapacityP95Ms": 2000,
+    "distributedP95Ms": 1500,
+    "expiryBacklog50CycleMs": 2000,
+    "poolWaitingAfterProfile": 0
+  },
+  "interpretation": {
+    "maximumValidatedHotRowConcurrency": 100,
+    "maximumValidatedDistributedConcurrency": 40,
+    "observedSaturationKnee": "Pool capacity is reached near concurrency 20; c40 oversubscribes it and produced the highest distributed p95 in this run",
+    "limitingResource": "application PostgreSQL pool max=20 on a one-CPU container",
+    "engineeringSafetyMargin": "use concurrency 10 as the conservative local repeatable operating point; this is not a production recommendation"
+  },
+  "databasePlans": {
+    "slotLookup": {
+      "nodes": [
+        "LockRows",
+        "Index Scan"
+      ],
+      "indexes": [
+        "appointment_slots_pkey"
+      ],
+      "executionTimeMs": 0.047
+    },
+    "idempotencyLookup": {
+      "nodes": [
+        "LockRows",
+        "Index Scan"
+      ],
+      "indexes": [
+        "idempotency_records_scope_idempotency_key_key"
+      ],
+      "executionTimeMs": 0.051
+    },
+    "expiryClaim": {
+      "nodes": [
+        "Limit",
+        "LockRows",
+        "Index Scan"
+      ],
+      "indexes": [
+        "booking_holds_manual_confirmation_sla_idx"
+      ],
+      "executionTimeMs": 0.158
+    }
+  },
+  "profiles": [
+    {
+      "name": "final-unit-50-1",
+      "requests": 50,
+      "concurrency": 50,
+      "successes": 1,
+      "controlledConflicts": 49,
+      "unexpectedFailures": 0,
+      "durationMs": 583.08,
+      "throughputRps": 85.75,
+      "p50Ms": 502.07,
+      "p90Ms": 565.66,
+      "p95Ms": 574.78,
+      "p99Ms": 580.64,
+      "maxMs": 580.64,
+      "invariants": {
+        "capacity": 1,
+        "held": 1,
+        "booked": 0,
+        "activeHolds": 1,
+        "overbooked": 0,
+        "counterDrift": 0,
+        "holds": 1,
+        "createdEvents": 1,
+        "createdAudits": 1,
+        "poolInUseAfter": 0,
+        "poolWaitingAfter": 0
+      }
+    },
+    {
+      "name": "final-unit-50-2",
+      "requests": 50,
+      "concurrency": 50,
+      "successes": 1,
+      "controlledConflicts": 49,
+      "unexpectedFailures": 0,
+      "durationMs": 317.06,
+      "throughputRps": 157.7,
+      "p50Ms": 227.93,
+      "p90Ms": 301.21,
+      "p95Ms": 312.35,
+      "p99Ms": 316.5,
+      "maxMs": 316.5,
+      "invariants": {
+        "capacity": 1,
+        "held": 1,
+        "booked": 0,
+        "activeHolds": 1,
+        "overbooked": 0,
+        "counterDrift": 0,
+        "holds": 1,
+        "createdEvents": 1,
+        "createdAudits": 1,
+        "poolInUseAfter": 0,
+        "poolWaitingAfter": 0
+      }
+    },
+    {
+      "name": "final-unit-50-3",
+      "requests": 50,
+      "concurrency": 50,
+      "successes": 1,
+      "controlledConflicts": 49,
+      "unexpectedFailures": 0,
+      "durationMs": 237.71,
+      "throughputRps": 210.34,
+      "p50Ms": 163.66,
+      "p90Ms": 229.3,
+      "p95Ms": 234.62,
+      "p99Ms": 237.13,
+      "maxMs": 237.13,
+      "invariants": {
+        "capacity": 1,
+        "held": 1,
+        "booked": 0,
+        "activeHolds": 1,
+        "overbooked": 0,
+        "counterDrift": 0,
+        "holds": 1,
+        "createdEvents": 1,
+        "createdAudits": 1,
+        "poolInUseAfter": 0,
+        "poolWaitingAfter": 0
+      }
+    },
+    {
+      "name": "final-unit-100-4",
+      "requests": 100,
+      "concurrency": 100,
+      "successes": 1,
+      "controlledConflicts": 99,
+      "unexpectedFailures": 0,
+      "durationMs": 813.92,
+      "throughputRps": 122.86,
+      "p50Ms": 432.41,
+      "p90Ms": 763.17,
+      "p95Ms": 783.2,
+      "p99Ms": 806.59,
+      "maxMs": 811.71,
+      "invariants": {
+        "capacity": 1,
+        "held": 1,
+        "booked": 0,
+        "activeHolds": 1,
+        "overbooked": 0,
+        "counterDrift": 0,
+        "holds": 1,
+        "createdEvents": 1,
+        "createdAudits": 1,
+        "poolInUseAfter": 0,
+        "poolWaitingAfter": 0
+      }
+    },
+    {
+      "name": "multi-capacity-5-of-30",
+      "requests": 30,
+      "concurrency": 30,
+      "successes": 5,
+      "controlledConflicts": 25,
+      "unexpectedFailures": 0,
+      "durationMs": 1067.36,
+      "throughputRps": 28.11,
+      "p50Ms": 1032.21,
+      "p90Ms": 1059.43,
+      "p95Ms": 1064.81,
+      "p99Ms": 1067.06,
+      "maxMs": 1067.06,
+      "invariants": {
+        "capacity": 5,
+        "held": 5,
+        "booked": 0,
+        "activeHolds": 5,
+        "overbooked": 0,
+        "counterDrift": 0,
+        "holds": 5,
+        "createdEvents": 5,
+        "createdAudits": 5,
+        "poolInUseAfter": 0,
+        "poolWaitingAfter": 0
+      }
+    },
+    {
+      "name": "distributed-c1",
+      "requests": 40,
+      "concurrency": 1,
+      "successes": 40,
+      "controlledConflicts": 0,
+      "unexpectedFailures": 0,
+      "durationMs": 315.01,
+      "throughputRps": 126.98,
+      "p50Ms": 7.54,
+      "p90Ms": 10.82,
+      "p95Ms": 12.69,
+      "p99Ms": 15.13,
+      "maxMs": 15.13,
+      "invariants": {
+        "overbooked": 0,
+        "counterDrift": 0,
+        "activeHolds": 40,
+        "poolInUseAfter": 0,
+        "poolWaitingAfter": 0
+      }
+    },
+    {
+      "name": "distributed-c5",
+      "requests": 40,
+      "concurrency": 5,
+      "successes": 40,
+      "controlledConflicts": 0,
+      "unexpectedFailures": 0,
+      "durationMs": 319.32,
+      "throughputRps": 125.26,
+      "p50Ms": 35.34,
+      "p90Ms": 44.51,
+      "p95Ms": 46.85,
+      "p99Ms": 112.26,
+      "maxMs": 112.26,
+      "invariants": {
+        "overbooked": 0,
+        "counterDrift": 0,
+        "activeHolds": 40,
+        "poolInUseAfter": 0,
+        "poolWaitingAfter": 0
+      }
+    },
+    {
+      "name": "distributed-c10",
+      "requests": 40,
+      "concurrency": 10,
+      "successes": 40,
+      "controlledConflicts": 0,
+      "unexpectedFailures": 0,
+      "durationMs": 332.33,
+      "throughputRps": 120.36,
+      "p50Ms": 69.79,
+      "p90Ms": 88.68,
+      "p95Ms": 161.77,
+      "p99Ms": 275.85,
+      "maxMs": 275.85,
+      "invariants": {
+        "overbooked": 0,
+        "counterDrift": 0,
+        "activeHolds": 40,
+        "poolInUseAfter": 0,
+        "poolWaitingAfter": 0
+      }
+    },
+    {
+      "name": "distributed-c20",
+      "requests": 40,
+      "concurrency": 20,
+      "successes": 40,
+      "controlledConflicts": 0,
+      "unexpectedFailures": 0,
+      "durationMs": 391.17,
+      "throughputRps": 102.26,
+      "p50Ms": 145.9,
+      "p90Ms": 379.53,
+      "p95Ms": 382.19,
+      "p99Ms": 390.98,
+      "maxMs": 390.98,
+      "invariants": {
+        "overbooked": 0,
+        "counterDrift": 0,
+        "activeHolds": 40,
+        "poolInUseAfter": 0,
+        "poolWaitingAfter": 0
+      }
+    },
+    {
+      "name": "distributed-c40",
+      "requests": 80,
+      "concurrency": 40,
+      "successes": 80,
+      "controlledConflicts": 0,
+      "unexpectedFailures": 0,
+      "durationMs": 770.32,
+      "throughputRps": 103.85,
+      "p50Ms": 371.59,
+      "p90Ms": 500.83,
+      "p95Ms": 507.3,
+      "p99Ms": 518.26,
+      "maxMs": 518.26,
+      "invariants": {
+        "overbooked": 0,
+        "counterDrift": 0,
+        "activeHolds": 80,
+        "poolInUseAfter": 0,
+        "poolWaitingAfter": 0
+      }
+    },
+    {
+      "name": "idempotency-storm-100",
+      "requests": 100,
+      "concurrency": 100,
+      "successes": 100,
+      "controlledConflicts": 0,
+      "unexpectedFailures": 0,
+      "durationMs": 213.2,
+      "throughputRps": 469.04,
+      "p50Ms": 130.8,
+      "p90Ms": 204.46,
+      "p95Ms": 208.41,
+      "p99Ms": 211.48,
+      "maxMs": 212.19,
+      "invariants": {
+        "capacity": 1,
+        "held": 1,
+        "booked": 0,
+        "activeHolds": 1,
+        "overbooked": 0,
+        "counterDrift": 0,
+        "holds": 1,
+        "createdEvents": 1,
+        "createdAudits": 1,
+        "stableReplays": 100,
+        "postBurstReplay": true,
+        "changedFingerprintCode": "IDEMPOTENCY_CONFLICT",
+        "poolInUseAfter": 0,
+        "poolWaitingAfter": 0
+      }
+    },
+    {
+      "name": "stale-version-50",
+      "requests": 50,
+      "concurrency": 50,
+      "successes": 0,
+      "controlledConflicts": 50,
+      "unexpectedFailures": 0,
+      "durationMs": 149.24,
+      "throughputRps": 335.02,
+      "p50Ms": 107.19,
+      "p90Ms": 143.81,
+      "p95Ms": 147.09,
+      "p99Ms": 148.88,
+      "maxMs": 148.88,
+      "invariants": {
+        "capacity": 50,
+        "held": 0,
+        "booked": 0,
+        "activeHolds": 0,
+        "overbooked": 0,
+        "counterDrift": 0,
+        "holds": 0,
+        "createdEvents": 0,
+        "createdAudits": 0,
+        "poolInUseAfter": 0,
+        "poolWaitingAfter": 0
+      }
+    },
+    {
+      "name": "mixed-command-race-36",
+      "requests": 36,
+      "concurrency": 36,
+      "successes": 7,
+      "controlledConflicts": 29,
+      "unexpectedFailures": 0,
+      "durationMs": 236.95,
+      "throughputRps": 151.93,
+      "p50Ms": 111.37,
+      "p90Ms": 225.71,
+      "p95Ms": 232.77,
+      "p99Ms": 232.79,
+      "maxMs": 232.79,
+      "invariants": {
+        "overbooked": 0,
+        "counterDrift": 0,
+        "activeHolds": 0,
+        "terminalDuplicates": 0,
+        "pendingAfterBurst": 5,
+        "currentOutcomeFacts": 12,
+        "poolInUseAfter": 0,
+        "poolWaitingAfter": 0
+      }
+    },
+    {
+      "name": "expiry-backlog-50-cycle",
+      "requests": 1,
+      "concurrency": 1,
+      "successes": 1,
+      "controlledConflicts": 0,
+      "unexpectedFailures": 0,
+      "durationMs": 258.98,
+      "throughputRps": 3.86,
+      "p50Ms": 258.98,
+      "p90Ms": 258.98,
+      "p95Ms": 258.98,
+      "p99Ms": 258.98,
+      "maxMs": 258.98,
+      "invariants": {
+        "overbooked": 0,
+        "counterDrift": 0,
+        "activeHolds": 0,
+        "cycles": 1,
+        "processed": 50,
+        "batchDurationMs": 258.98,
+        "itemsPerSecond": 193.06,
+        "overdueBefore": 50,
+        "overdueAfter": 0,
+        "healthProcessedTotal": 50,
+        "healthFailuresTotal": 0,
+        "poolInUseAfter": 0,
+        "poolWaitingAfter": 0
+      }
+    }
+  ]
+}

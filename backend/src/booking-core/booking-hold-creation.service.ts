@@ -3,12 +3,12 @@ import type { PoolClient } from 'pg';
 import { createHash } from 'node:crypto';
 import { DomainErrors, DomainException } from '../common/domain-error';
 import { config } from '../config';
-import { featureFlags } from '../config/feature-flags.config';
+import { mvpScope } from '../config/mvp-scope.config';
 import { DatabaseService } from '../database/database.service';
 import { TraceContext } from '../observability/trace-context.context';
 import { canTransition } from './booking-state-machine';
 import { BookingRepository } from './booking.repository';
-import { CreateHoldResult, HoldRow, HoldState, RequestCancellationResult } from './booking.types';
+import { CreateHoldResult, HoldRow, HoldState, RequestCancellationResult, projectMvpBookingStatus } from './booking.types';
 
 interface IdempotencyRow {
   status: 'PROCESSING' | 'COMPLETED';
@@ -62,9 +62,20 @@ export class BookingHoldCreationService {
     idempotencyKey: string;
     correlationId: string;
     expectedSlotVersion?: number;
+    clinicId?: string;
+    locationId?: string;
     serviceId?: string;
-    doctorId: string | null;
+    doctorId?: string | null;
   }): Promise<CreateHoldResult> {
+    if (mvpScope.pilot && (!Number.isInteger(input.expectedSlotVersion) || input.expectedSlotVersion! < 1)) {
+      throw new DomainException(HttpStatus.BAD_REQUEST, 'INVALID_REQUEST', 'expectedSlotVersion must be a positive integer');
+    }
+    if (input.expectedSlotVersion !== undefined && (!Number.isInteger(input.expectedSlotVersion) || input.expectedSlotVersion < 1)) {
+      throw new DomainException(HttpStatus.BAD_REQUEST, 'INVALID_REQUEST', 'expectedSlotVersion must be a positive integer');
+    }
+    if (mvpScope.pilot && (!input.clinicId || !input.locationId || !input.serviceId)) {
+      throw new DomainException(HttpStatus.BAD_REQUEST, 'INVALID_REQUEST', 'clinicId, locationId and serviceId are required');
+    }
     try {
       return await this.database.withTransaction(async (client) => {
         await this.setInteractiveTransactionLimits(client);
@@ -90,22 +101,16 @@ export class BookingHoldCreationService {
 
         const now = await this.repository.now(client);
 
-        await this.assertNoActiveHoldForSlot(client, input.ownerId, input.slotId, now);
-
-        if (input.expectedSlotVersion !== undefined && slot.version !== input.expectedSlotVersion) throw DomainErrors.slotVersionStale();
+        if (input.locationId !== undefined && slot.clinic_location_id !== input.locationId) throw DomainErrors.slotNotFound();
         if (input.serviceId !== undefined && slot.service_id !== input.serviceId) throw DomainErrors.serviceNotAvailable();
-        if ((slot.doctor_id ?? null) !== input.doctorId) throw DomainErrors.doctorNotAvailable();
-        if (!slot.last_freshness_sync || slot.last_freshness_sync.getTime() < now.getTime() - 15 * 60 * 1000) {
+        if (!mvpScope.pilot && (slot.doctor_id ?? null) !== (input.doctorId ?? null)) throw DomainErrors.doctorNotAvailable();
+        if (!mvpScope.pilot && (!slot.last_freshness_sync || slot.last_freshness_sync.getTime() < now.getTime() - 15 * 60 * 1000)) {
           throw DomainErrors.slotVersionStale();
         }
-        if (!slot.integration_mode || !['LEVEL_A', 'LEVEL_B', 'LEVEL_C'].includes(slot.integration_mode)) {
+        if (!mvpScope.pilot && (!slot.integration_mode || !['LEVEL_A', 'LEVEL_B', 'LEVEL_C'].includes(slot.integration_mode))) {
           throw DomainErrors.slotUnavailable();
         }
         if (slot.state !== 'OPEN' || slot.starts_at <= now) throw DomainErrors.slotUnavailable();
-        if (slot.status === 'BOOKED' || slot.capacity - slot.booked_count - slot.held_count <= 0) {
-          throw DomainErrors.slotAlreadyTaken();
-        }
-
         const clinic = await client.query<ClinicMisRow>(`
           SELECT c.id AS clinic_id, c.mis_type, c.status AS clinic_status, l.status AS location_status
           FROM clinic_schema.clinic_locations l
@@ -113,6 +118,10 @@ export class BookingHoldCreationService {
           WHERE l.id = $1::uuid
         `, [slot.clinic_location_id]);
         if (!clinic.rows[0]) throw DomainErrors.slotNotFound();
+        if (input.clinicId !== undefined && clinic.rows[0].clinic_id !== input.clinicId) throw DomainErrors.slotNotFound();
+        if (input.expectedSlotVersion !== undefined && slot.version !== input.expectedSlotVersion) {
+          throw mvpScope.pilot ? DomainErrors.bookingStateConflict() : DomainErrors.slotVersionStale();
+        }
         if (clinic.rows[0].clinic_status !== 'ACTIVE' || clinic.rows[0].location_status !== 'ACTIVE') {
           throw DomainErrors.slotUnavailable();
         }
@@ -128,6 +137,9 @@ export class BookingHoldCreationService {
         if (service.rows[0].supported_species && !service.rows[0].supported_species.includes(pet.rows[0].species)) {
           throw DomainErrors.serviceNotAvailable();
         }
+        if (slot.capacity - slot.booked_count - slot.held_count <= 0) {
+          throw DomainErrors.slotAlreadyTaken();
+        }
 
         if (input.doctorId) {
           const doctor = await client.query<{ id: string }>(`
@@ -141,8 +153,10 @@ export class BookingHoldCreationService {
           if (!doctor.rows[0]) throw DomainErrors.doctorNotAvailable();
         }
 
+        await this.assertNoActiveHoldForSlot(client, input.ownerId, input.slotId, now);
+
         const integrationMode = slot.integration_mode ?? (clinic.rows[0].mis_type ? 'LEVEL_A' : 'LEVEL_C');
-        const requiresMisReservation = featureFlags.FEATURE_MIS_INTEGRATION && integrationMode !== 'LEVEL_C';
+        const requiresMisReservation = mvpScope.capabilities.mis && integrationMode !== 'LEVEL_C';
         if (requiresMisReservation && !pet.rows[0].external_patient_id) {
           throw new DomainException(
             HttpStatus.UNPROCESSABLE_ENTITY,
@@ -151,14 +165,11 @@ export class BookingHoldCreationService {
           );
         }
 
-        const initialState: HoldState = requiresMisReservation
-          ? 'MIS_RESERVATION_PENDING'
-          : 'CONFIRMED';
+        const initialState = resolveOwnerCreateInitialState(mvpScope.pilot, requiresMisReservation);
 
         /*
-         * Manual SLA fields are kept for legacy/manual states. Owner catalog
-         * Level-C booking is finalized atomically below and does not enter the
-         * clinic confirmation queue.
+         * PILOT_V1 reuses the existing manual-confirmation lifecycle. Legacy
+         * non-MIS behavior remains atomic auto-confirmation.
          */
         const hold = await client.query<HoldRow>(`
           INSERT INTO booking_schema.booking_holds (
@@ -181,7 +192,7 @@ export class BookingHoldCreationService {
             state_changed_at, version, created_at
         `, [input.slotId, input.ownerId, input.petId, initialState, config.holdTtlMinutes]);
 
-        await client.query(`
+        const acquired = await client.query<{ version: number }>(`
           UPDATE clinic_schema.appointment_slots
           SET held_count = held_count + CASE WHEN $2 = 'CONFIRMED' THEN 0 ELSE 1 END,
               booked_count = booked_count + CASE WHEN $2 = 'CONFIRMED' THEN 1 ELSE 0 END,
@@ -192,13 +203,21 @@ export class BookingHoldCreationService {
               version = version + 1,
               updated_at = clock_timestamp()
           WHERE id = $1::uuid
+            AND capacity - booked_count - held_count > 0
+          RETURNING version
         `, [input.slotId, initialState]);
+        if (acquired.rowCount !== 1) throw DomainErrors.slotAlreadyTaken();
 
         const result: CreateHoldResult = {
           holdId: hold.rows[0].id,
-          state: initialState,
+          ...(mvpScope.pilot
+            ? { status: projectMvpBookingStatus(initialState)! }
+            : { state: initialState, displayStatus: projectMvpBookingStatus(initialState) }),
           slotId: input.slotId,
-          expiresAt: hold.rows[0].expires_at.toISOString(),
+          expiresAt: (mvpScope.pilot && hold.rows[0].confirmation_sla_expires_at
+            ? hold.rows[0].confirmation_sla_expires_at
+            : hold.rows[0].expires_at).toISOString(),
+          lastUpdatedAt: hold.rows[0].state_changed_at.toISOString(),
           correlationId: input.correlationId,
           serverNow: now.toISOString(),
           aggregateVersion: hold.rows[0].version,
@@ -432,7 +451,7 @@ export class BookingHoldCreationService {
 
     if (!existing.rows[0]) throw DomainErrors.bookingUnavailable();
     if (existing.rows[0].request_fingerprint !== null && existing.rows[0].request_fingerprint !== requestFingerprint) {
-      throw DomainErrors.idempotencyPayloadConflict();
+      throw mvpScope.pilot ? DomainErrors.idempotencyConflict() : DomainErrors.idempotencyPayloadConflict();
     }
     if (existing.rows[0].status !== 'COMPLETED' || !existing.rows[0].response_body) {
       throw DomainErrors.idempotencyInProgress();
@@ -449,14 +468,16 @@ export class BookingHoldCreationService {
   }
 
   private requestFingerprint(input: {
-    slotId: string; petId: string; serviceId?: string; doctorId: string | null; expectedSlotVersion?: number;
+    slotId: string; petId: string; clinicId?: string; locationId?: string; serviceId?: string; doctorId?: string | null; expectedSlotVersion?: number;
   }): string {
     const canonical = JSON.stringify({
       doctorId: input.doctorId,
+      clinicId: input.clinicId,
       expectedSlotVersion: input.expectedSlotVersion,
       petId: input.petId,
       serviceId: input.serviceId,
       slotId: input.slotId,
+      locationId: input.locationId,
     });
     return createHash('sha256').update(canonical).digest('hex');
   }
@@ -516,4 +537,9 @@ export class BookingHoldCreationService {
     this.logger.error('Unexpected booking hold creation error', error instanceof Error ? error.stack : undefined);
     return DomainErrors.bookingUnavailable();
   }
+}
+
+export function resolveOwnerCreateInitialState(pilot: boolean, requiresMisReservation: boolean): HoldState {
+  if (pilot) return 'MANUAL_CONFIRM_PENDING';
+  return requiresMisReservation ? 'MIS_RESERVATION_PENDING' : 'CONFIRMED';
 }

@@ -19,6 +19,15 @@ export const HOLD_STATES = [
 
 export type HoldState = (typeof HOLD_STATES)[number];
 export type MvpHoldState = Extract<HoldState, 'MANUAL_CONFIRM_PENDING' | 'ALTERNATIVE_PENDING' | 'CONFIRMED' | 'EXPIRED' | 'RELEASED' | 'SLA_BREACHED'>;
+export type MvpBookingStatus = 'PENDING_CONFIRMATION' | 'CONFIRMED' | 'REJECTED' | 'CANCELLED' | 'EXPIRED';
+
+export function projectMvpBookingStatus(state: HoldState, clinicDeclined = false): MvpBookingStatus | undefined {
+  if (state === 'MANUAL_CONFIRM_PENDING' || state === 'ALTERNATIVE_PENDING') return 'PENDING_CONFIRMATION';
+  if (state === 'CONFIRMED' || state === 'COMPLETED') return 'CONFIRMED';
+  if (state === 'RELEASED') return clinicDeclined ? 'REJECTED' : 'CANCELLED';
+  if (state === 'EXPIRED' || state === 'SLA_BREACHED') return 'EXPIRED';
+  return undefined;
+}
 
 export interface SlotRow {
   id: string;
@@ -55,9 +64,12 @@ export interface HoldRow {
 export interface CreateHoldResult {
   holdId: string;
   appointmentId?: string;
-  state: HoldState;
+  state?: HoldState;
+  status?: MvpBookingStatus;
+  displayStatus?: MvpBookingStatus;
   slotId: string;
   expiresAt: string;
+  lastUpdatedAt: string;
   correlationId: string;
   serverNow?: string;
   aggregateVersion?: number;

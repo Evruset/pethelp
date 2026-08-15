@@ -1,6 +1,6 @@
-import { Body, Controller, Delete, Get, Headers, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Query, Res, StreamableFile, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Headers, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Query, Res, StreamableFile, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiCreatedResponse, ApiHeader, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { CurrentUser } from './current-user.decorator';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -9,9 +9,10 @@ import { Roles } from './roles.decorator';
 import { RolesGuard } from './roles.guard';
 import { CreateOwnerPetDto, UpdateOwnerPetDto } from './dto/owner-pet.dto';
 import { OwnerPetService, PET_DOCUMENT_MAX_BYTES, type UploadedPetFile } from './owner-pet.service';
+import { SWAGGER_BEARER_AUTH } from '../openapi/openapi';
 
 @ApiTags('Owner pets')
-@ApiBearerAuth('bearer')
+@ApiBearerAuth(SWAGGER_BEARER_AUTH)
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.OWNER)
 @Controller('v1/owner/pets')

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import type { JwtPayload } from '../auth/auth.types';
 import type { OwnerAppointmentSummary } from '../auth/owner-appointments.service';
 import { OwnerAppointmentsService } from '../auth/owner-appointments.service';
@@ -90,7 +90,7 @@ export class OwnerHomeService {
   constructor(
     private readonly petsService: OwnerPetService,
     private readonly appointmentsService: OwnerAppointmentsService,
-    private readonly telemedService: TelemedOwnerSessionService,
+    @Optional() private readonly telemedService?: TelemedOwnerSessionService,
   ) {}
 
   async read(owner: JwtPayload, requestedPetId?: string): Promise<OwnerHomeResponse> {
@@ -135,7 +135,7 @@ export class OwnerHomeService {
 
     const [allAppointments, allTelemed] = await Promise.all([
       this.appointmentsService.list(owner),
-      this.telemedService.list(owner.sub),
+      this.telemedService?.list(owner.sub) ?? Promise.resolve([]),
     ]);
     const appointments = allAppointments.filter((item) => item.pet.id === selected.id);
     const telemed = allTelemed.filter((item) => item.pet.id === selected.id);

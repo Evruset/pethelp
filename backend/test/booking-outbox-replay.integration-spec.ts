@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { resetBookingPersistence } from './helpers/booking-test-reset';
 import { DatabaseService } from '../src/database/database.service';
 import { OutboxRelayService } from '../src/outbox/outbox-relay.service';
 import { OutboxService } from '../src/outbox/outbox.service';
@@ -15,7 +16,7 @@ describe('Booking outbox replay reliability', () => {
   });
 
   beforeEach(async () => {
-    await database.query('TRUNCATE booking_schema.outbox_events');
+    await resetBookingPersistence(database);
   });
 
   afterAll(async () => {

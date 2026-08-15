@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { resetBookingPersistence } from './helpers/booking-test-reset';
 import { writeFile } from 'node:fs/promises';
 import { NestFactory } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
@@ -112,7 +113,7 @@ async function seed(database: DatabaseService, count: number): Promise<void> {
 
 async function cleanupFixtures(database: DatabaseService): Promise<void> {
   await database.query('TRUNCATE clinic_schema.clinics, pet_schema.pets, identity_schema.users CASCADE');
-  await database.query('TRUNCATE booking_schema.outbox_events, booking_schema.idempotency_records, audit_schema.audit_log');
+  await resetBookingPersistence(database);
 }
 
 async function explainThree(database: DatabaseService, sql: string, parameters: unknown[]): Promise<any[]> {

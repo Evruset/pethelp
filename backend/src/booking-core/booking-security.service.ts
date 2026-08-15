@@ -5,6 +5,7 @@ import { JwtPayload, Role } from '../auth/auth.types';
 import { DomainErrors, DomainException } from '../common/domain-error';
 import { DatabaseService } from '../database/database.service';
 import { TraceContext } from '../observability/trace-context.context';
+import { mvpScope } from '../config/mvp-scope.config';
 import { canTransition } from './booking-state-machine';
 import { ClinicEmployeeAccessService } from './clinic-employee-access.service';
 import { ClinicPatientAssociationLifecycleService } from './clinic-patient-association-lifecycle.service';
@@ -339,16 +340,16 @@ export class BookingSecurityService {
           throw DomainErrors.bookingVersionStale();
         }
 
+        const pilotConfirmedCancellation = mvpScope.pilot && hold.state === 'CONFIRMED';
         const externallyCancelled = ['CONFIRMED', 'MIS_HELD', 'MIS_RESERVATION_PENDING', 'MIS_RECONCILIATION_PENDING'].includes(hold.state);
         const locallyReleasable = ['MANUAL_CONFIRM_PENDING', 'ALTERNATIVE_PENDING'].includes(hold.state);
         if (!externallyCancelled && !locallyReleasable) {
           throw DomainErrors.invalidTransition();
         }
 
-        // A confirmed or externally-held booking is not a local hold release. It
-        // remains capacity-accounted until the clinic/external workflow confirms
-        // cancellation.
-        if (externallyCancelled) {
+        // Legacy confirmed or externally-held bookings remain capacity-accounted
+        // until the clinic/external workflow confirms cancellation.
+        if (externallyCancelled && !pilotConfirmedCancellation) {
           const updated = await client.query<{ version: number }>(`
             UPDATE booking_schema.booking_holds
             SET state = 'CANCELLATION_REQUESTED', state_changed_at = clock_timestamp(),
@@ -359,6 +360,57 @@ export class BookingSecurityService {
           const result: RequestCancellationResult = { holdId: hold.id, state: 'CANCELLATION_REQUESTED', slotId: hold.slot_id, correlationId: input.correlationId };
           await this.writeOutbox(client, 'booking.cancellation.requested.v1', input.correlationId, hold.id, updated.rows[0].version, { ...result, reasonCode: input.reasonCode ?? null });
           await this.writeAudit(client, 'OWNER', input.actor.sub, 'booking.cancellation_requested', hold.id, input.correlationId, { slotId: hold.slot_id, reasonCode: input.reasonCode ?? null });
+          await this.completeIdempotency(client, scope, input.idempotencyKey, result, HttpStatus.OK);
+          return result;
+        }
+
+        if (pilotConfirmedCancellation) {
+          if (!canTransition('CONFIRMED', 'CANCELLATION_REQUESTED') || !canTransition('CANCELLATION_REQUESTED', 'RELEASED')) {
+            throw DomainErrors.invalidTransition();
+          }
+          const appointment = await client.query<{ id: string; version: number }>(`
+            UPDATE booking_schema.appointments
+            SET status = 'CANCELLED', version = version + 1, updated_at = clock_timestamp()
+            WHERE hold_id = $1::uuid AND status NOT IN ('CANCELLED', 'CLINIC_CANCELLED')
+            RETURNING id, version
+          `, [hold.id]);
+          if (!appointment.rows[0]) throw DomainErrors.invalidTransition();
+
+          const released = await client.query<{ id: string }>(`
+            UPDATE clinic_schema.appointment_slots
+            SET booked_count = booked_count - 1,
+                status = CASE
+                  WHEN booked_count - 1 >= capacity THEN 'BOOKED'
+                  WHEN held_count > 0 THEN 'LOCKED_BY_HOLD'
+                  ELSE 'AVAILABLE'
+                END,
+                version = version + 1,
+                updated_at = clock_timestamp()
+            WHERE id = $1::uuid AND booked_count > 0
+            RETURNING id
+          `, [hold.slot_id]);
+          if (!released.rows[0]) throw DomainErrors.bookingUnavailable();
+
+          const updated = await client.query<{ version: number }>(`
+            UPDATE booking_schema.booking_holds
+            SET state = 'RELEASED', confirmation_sla_expires_at = NULL,
+                state_changed_at = clock_timestamp(), version = version + 1,
+                updated_at = clock_timestamp()
+            WHERE id = $1::uuid
+            RETURNING version
+          `, [hold.id]);
+          const result: ReleaseHoldResult = { holdId: hold.id, state: 'RELEASED', slotId: hold.slot_id, correlationId: input.correlationId };
+          await client.query(`
+            INSERT INTO booking_schema.appointment_events
+              (appointment_id, hold_id, event_type, actor_type, actor_id, correlation_id, payload_json)
+            VALUES ($1::uuid, $2::uuid, 'CANCELLED', 'OWNER', $3::uuid, $4::uuid, $5::jsonb)
+          `, [appointment.rows[0].id, hold.id, input.actor.sub, input.correlationId, JSON.stringify({ reasonCode: input.reasonCode ?? null })]);
+          await this.writeOutbox(client, 'booking.hold.released.v1', input.correlationId, hold.id, updated.rows[0].version, {
+            ...result, appointmentId: appointment.rows[0].id, reason: 'OWNER_CANCELLED', actorId: input.actor.sub,
+          });
+          await this.writeAudit(client, 'OWNER', input.actor.sub, 'booking.hold.released', hold.id, input.correlationId, {
+            appointmentId: appointment.rows[0].id, slotId: hold.slot_id, reason: 'OWNER_CANCELLED', reasonCode: input.reasonCode ?? null,
+          });
           await this.completeIdempotency(client, scope, input.idempotencyKey, result, HttpStatus.OK);
           return result;
         }

@@ -1,6 +1,7 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom, timeout } from 'rxjs';
+import { safeTelemetryContext, safeTelemetryCorrelationId, safeTelemetryMessage, sanitizeTelemetryFields } from './telemetry-sanitizer';
 
 export type VetHelpAlertType =
   | 'MIS_INTEGRATION_TIMEOUT'
@@ -41,21 +42,6 @@ export class AlertForwarderService {
     'CLINIC_SLA_BREACHED',
   ]);
 
-  /** Explicit allowlist prevents accidental PII or raw provider payload export. */
-  private static readonly SAFE_EXTRA_FIELDS = [
-    'holdId',
-    'slotId',
-    'appointmentId',
-    'paymentIntentId',
-    'telemedCaseId',
-    'provider',
-    'providerEventId',
-    'errorCode',
-    'state',
-    'attempt',
-    'retryAfterMs',
-  ];
-
   constructor(private readonly http: HttpService) {}
 
   isCriticalAlertPayload(payload: JsonLogPayload): payload is CriticalAlertPayload {
@@ -67,9 +53,11 @@ export class AlertForwarderService {
 
   /** For ContextLoggerService integration. */
   async forward(payload: JsonLogPayload): Promise<void> {
-    if (!this.enabled() || !this.isCriticalAlertPayload(payload)) return;
+    if (!this.enabled()) return;
+    const sanitized = this.sanitize(payload);
+    if (!sanitized || !this.isCriticalAlertPayload(sanitized)) return;
 
-    const text = this.format(payload);
+    const text = this.format(sanitized);
     if (this.channel() === 'telegram') {
       await this.sendTelegram(text);
       return;
@@ -109,9 +97,9 @@ export class AlertForwarderService {
   }
 
   private format(payload: CriticalAlertPayload): string {
-    const safeFields = AlertForwarderService.SAFE_EXTRA_FIELDS
-      .filter((key) => payload[key] !== undefined && payload[key] !== null)
-      .map((key) => `${key}: ${String(payload[key]).slice(0, 300)}`);
+    const safeFields = Object.entries(sanitizeTelemetryFields(payload))
+      .filter(([key]) => key !== 'alert_type')
+      .map(([key, value]) => `${key}: ${String(value)}`);
 
     return [
       'VetHelp Alpha critical alert',
@@ -123,6 +111,30 @@ export class AlertForwarderService {
       `message: ${(payload.message ?? 'No message').slice(0, 1000)}`,
       ...safeFields,
     ].join('\n').slice(0, 3800);
+  }
+
+  private sanitize(payload: JsonLogPayload): JsonLogPayload | undefined {
+    try {
+      const descriptors = Object.getOwnPropertyDescriptors(payload);
+      const value = (key: string): unknown => {
+        const descriptor = descriptors[key];
+        return descriptor && 'value' in descriptor ? descriptor.value : undefined;
+      };
+      const fields = sanitizeTelemetryFields(payload);
+      const timestamp = value('timestamp');
+      const level = value('level');
+      return {
+        timestamp: typeof timestamp === 'string' && !Number.isNaN(Date.parse(timestamp))
+          ? new Date(timestamp).toISOString() : new Date().toISOString(),
+        level: level === 'fatal' || level === 'error' ? level : 'error',
+        context: safeTelemetryContext(value('context')),
+        message: safeTelemetryMessage(value('message')),
+        correlationId: safeTelemetryCorrelationId(value('correlationId')),
+        ...fields,
+      };
+    } catch {
+      return undefined;
+    }
   }
 
   private async sendTelegram(text: string): Promise<void> {

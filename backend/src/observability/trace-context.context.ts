@@ -58,12 +58,12 @@ export class TraceContext {
   }
 
   correlationIdFromHeader(value: string | string[] | undefined): string {
-    const candidate = Array.isArray(value) ? value[0] : value;
+    const candidate = Array.isArray(value) ? undefined : value;
     return candidate && UUID_V4_OR_V5.test(candidate) ? candidate : randomUUID();
   }
 
   causationIdFromHeader(value: string | string[] | undefined): string | undefined {
-    const candidate = Array.isArray(value) ? value[0] : value;
+    const candidate = Array.isArray(value) ? undefined : value;
     return candidate && UUID_V4_OR_V5.test(candidate) ? candidate : undefined;
   }
 

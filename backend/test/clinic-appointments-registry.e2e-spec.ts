@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { resetBookingPersistence } from './helpers/booking-test-reset';
 import type { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
@@ -232,7 +233,7 @@ function decodeCursor(cursor: string): Record<string, unknown> {
 
 async function resetFixtures(database: DatabaseService) {
   await database.query('TRUNCATE clinic_schema.clinics, pet_schema.pets, identity_schema.users CASCADE');
-  await database.query('TRUNCATE booking_schema.outbox_events, booking_schema.idempotency_records, audit_schema.audit_log');
+  await resetBookingPersistence(database);
   await database.query('INSERT INTO identity_schema.users (id) SELECT unnest($1::uuid[])', [[IDS.owner, IDS.allowed, IDS.admin, IDS.revoked, IDS.noMembership, IDS.vet]]);
   await database.query(`INSERT INTO clinic_schema.clinics (id, legal_name, public_name) VALUES ($1, 'Registry LLC', 'Registry'), ($2, 'Other LLC', 'Other')`, [IDS.clinic, IDS.otherClinic]);
   await database.query(`INSERT INTO clinic_schema.clinic_locations (id, clinic_id, address) VALUES ($1, $2, 'Registry'), ($3, $2, 'Other location'), ($4, $5, 'Other clinic')`, [IDS.location, IDS.clinic, IDS.otherLocation, IDS.otherClinicLocation, IDS.otherClinic]);

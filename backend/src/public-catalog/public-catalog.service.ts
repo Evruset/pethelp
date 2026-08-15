@@ -37,6 +37,33 @@ type PublicServiceRow = {
   currency: string;
 };
 
+type OwnerClinicServiceRow = {
+  clinic_id: string;
+  clinic_name: string;
+  location_id: string;
+  address: string;
+  phone: string | null;
+  service_id: string | null;
+  service_name: string | null;
+  price_amount: string | null;
+  currency: string | null;
+  server_now: Date;
+};
+
+type OwnerAvailabilityRow = {
+  clinic_name: string;
+  service_name: string;
+  timezone: string;
+  server_now: Date;
+  horizon_ends_at: Date;
+  slot_id: string | null;
+  starts_at: Date | null;
+  ends_at: Date | null;
+  local_date: string | null;
+  local_time: string | null;
+  version: number | null;
+};
+
 type PublicAvailabilityRow = {
   id: string;
   starts_at: Date;
@@ -544,6 +571,80 @@ export class PublicCatalogService {
         priceAmount: row.price_amount,
         currency: row.currency,
       })),
+    };
+  }
+
+  async readOwnerClinicServices(clinicId: string, locationId: string) {
+    const result = await this.database.query<OwnerClinicServiceRow>(`
+      WITH server_time AS (SELECT clock_timestamp() AS value)
+      SELECT clinic.id AS clinic_id, clinic.public_name AS clinic_name,
+        location.id AS location_id, location.address, location.phone,
+        service.id AS service_id, service.display_name AS service_name,
+        service.price_amount::text AS price_amount, service.currency,
+        server_time.value AS server_now
+      FROM clinic_schema.clinics clinic
+      JOIN clinic_schema.clinic_locations location
+        ON location.clinic_id = clinic.id AND location.status = 'ACTIVE'
+      CROSS JOIN server_time
+      LEFT JOIN clinic_schema.clinic_services service
+        ON service.clinic_location_id = location.id AND service.active = true
+      WHERE clinic.id = $1::uuid AND location.id = $2::uuid
+        AND clinic.status = 'ACTIVE'
+      ORDER BY service.display_name ASC, service.id ASC
+    `, [clinicId, locationId]);
+    const first = result.rows[0];
+    if (!first) return undefined;
+    return {
+      observedAt: first.server_now.toISOString(), clinicId: first.clinic_id,
+      locationId: first.location_id, name: first.clinic_name,
+      address: first.address, phone: first.phone,
+      services: result.rows.flatMap((row) => row.service_id && row.service_name && row.price_amount && row.currency
+        ? [{ serviceId: row.service_id, name: row.service_name, price: { kind: 'INFORMATIONAL' as const, amount: row.price_amount, currency: row.currency.trim() } }]
+        : []),
+    };
+  }
+
+  async readOwnerAvailability(clinicId: string, locationId: string, serviceId: string) {
+    const result = await this.database.query<OwnerAvailabilityRow>(`
+      WITH server_time AS (
+        SELECT clock_timestamp() AS value
+      )
+      SELECT clinic.public_name AS clinic_name, service.display_name AS service_name,
+        clinic.timezone, server_time.value AS server_now,
+        server_time.value + interval '14 days' AS horizon_ends_at,
+        slot.id AS slot_id, slot.starts_at, slot.ends_at,
+        to_char(slot.starts_at AT TIME ZONE clinic.timezone, 'YYYY-MM-DD') AS local_date,
+        to_char(slot.starts_at AT TIME ZONE clinic.timezone, 'HH24:MI') AS local_time,
+        slot.version
+      FROM clinic_schema.clinics clinic
+      JOIN clinic_schema.clinic_locations location
+        ON location.clinic_id = clinic.id AND location.status = 'ACTIVE'
+      JOIN clinic_schema.clinic_services service
+        ON service.clinic_location_id = location.id AND service.active = true
+      CROSS JOIN server_time
+      LEFT JOIN clinic_schema.appointment_slots slot
+        ON slot.clinic_location_id = location.id
+       AND slot.service_id = service.id
+       AND slot.state = 'OPEN'
+       AND slot.starts_at >= server_time.value
+       AND slot.starts_at < server_time.value + interval '14 days'
+       AND slot.capacity - slot.booked_count - slot.held_count > 0
+      WHERE clinic.id = $1::uuid AND location.id = $2::uuid
+        AND service.id = $3::uuid AND clinic.status = 'ACTIVE'
+      ORDER BY slot.starts_at ASC, slot.id ASC
+      LIMIT 50
+    `, [clinicId, locationId, serviceId]);
+    const first = result.rows[0];
+    if (!first) return undefined;
+    return {
+      observedAt: first.server_now.toISOString(),
+      clinicName: first.clinic_name,
+      serviceName: first.service_name,
+      timezone: first.timezone,
+      horizonEndsAt: first.horizon_ends_at.toISOString(),
+      slots: result.rows.flatMap((row) => row.slot_id && row.starts_at && row.ends_at && row.local_date && row.local_time && row.version
+        ? [{ slotId: row.slot_id, startsAt: row.starts_at.toISOString(), endsAt: row.ends_at.toISOString(), localDate: row.local_date, localTime: row.local_time, expectedVersion: row.version }]
+        : []),
     };
   }
 

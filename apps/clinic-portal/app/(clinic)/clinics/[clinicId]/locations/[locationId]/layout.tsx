@@ -2,6 +2,7 @@ import { ClinicPortalShell } from '@/components/layout/ClinicPortalShell';
 import { ClinicPortalShellV50 } from '@/components/layout/ClinicPortalShellV50';
 import { isPortalV50ShellEnabled } from '@/app/design-system/feature-flags';
 import type { ReactNode } from 'react';
+import { resolveMvpProductScope } from '@/lib/config/mvp-product-scope';
 
 type LocationLayoutProps = {
   children: ReactNode;
@@ -14,7 +15,7 @@ type LocationLayoutProps = {
 export default async function ClinicLocationLayout({ children, params }: LocationLayoutProps) {
   const { clinicId, locationId } = await params;
 
-  if (isPortalV50ShellEnabled()) {
+  if (resolveMvpProductScope() === 'PILOT_V1' || isPortalV50ShellEnabled()) {
     return <ClinicPortalShellV50 clinicId={clinicId} locationId={locationId}>{children}</ClinicPortalShellV50>;
   }
 

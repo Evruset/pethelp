@@ -10,8 +10,9 @@ describe('HoldExpirationService lifecycle', () => {
   });
 
   function createService(expireHolds = jest.fn().mockResolvedValue({ expired: 0 })) {
-    const service = new HoldExpirationService({ expireHolds } as never);
-    return { service, expireHolds };
+    const expirationBacklog = jest.fn().mockResolvedValue({ pendingCount: 3, overdueCount: 1, oldestOverdueAgeSeconds: 12 });
+    const service = new HoldExpirationService({ expireHolds, expirationBacklog } as never);
+    return { service, expireHolds, expirationBacklog };
   }
 
   it('runs one shared interval and retries after a failed scheduled cycle', async () => {
@@ -30,7 +31,6 @@ describe('HoldExpirationService lifecycle', () => {
     await jest.advanceTimersByTimeAsync(15_000);
     expect(error).toHaveBeenCalledWith(
       'Hold expiration cycle failed; the next scheduled cycle will retry',
-      failure.stack,
     );
 
     await jest.advanceTimersByTimeAsync(15_000);
@@ -85,5 +85,20 @@ describe('HoldExpirationService lifecycle', () => {
     await expect(service.runOnce()).rejects.toBe(failure);
     await expect(service.runOnce()).resolves.toEqual({ expired: 0 });
     expect(expireHolds).toHaveBeenCalledTimes(2);
+  });
+
+  it('exposes bounded success, processed, failure and backlog health signals', async () => {
+    const expireHolds = jest.fn().mockResolvedValueOnce({ expired: 2 }).mockRejectedValueOnce(new Error('secret database detail'));
+    const { service } = createService(expireHolds);
+
+    await expect(service.runOnce()).resolves.toEqual({ expired: 2 });
+    const first = service.healthSnapshot();
+    expect(first).toMatchObject({ running: false, processedTotal: 2, failuresTotal: 0, pendingCount: 3, overdueCount: 1, oldestOverdueAgeSeconds: 12 });
+    expect(first.lastSuccessAt).toEqual(expect.any(String));
+
+    await expect(service.runOnce()).rejects.toThrow('secret database detail');
+    const failed = service.healthSnapshot();
+    expect(failed).toMatchObject({ running: false, processedTotal: 2, failuresTotal: 1 });
+    expect(JSON.stringify(failed)).not.toContain('secret database detail');
   });
 });

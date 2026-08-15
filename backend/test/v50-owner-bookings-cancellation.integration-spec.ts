@@ -1,16 +1,22 @@
 import { randomUUID } from 'node:crypto';
+import { resetBookingPersistence } from './helpers/booking-test-reset';
 import { OwnerAppointmentsService } from '../src/auth/owner-appointments.service';
 import { Role } from '../src/auth/auth.types';
 import { BookingSecurityService } from '../src/booking-core/booking-security.service';
 import { DomainException } from '../src/common/domain-error';
 import { DatabaseService } from '../src/database/database.service';
+import { BookingHoldReadService } from '../src/booking-core/booking-hold-read.service';
+import { ClinicQueueService } from '../src/booking-core/clinic-queue.service';
 
 jest.setTimeout(60_000);
 
 describe('V50 owner bookings and cancellation (real PostgreSQL)', () => {
   const database = new DatabaseService();
   const bookings = new OwnerAppointmentsService(database);
-  const security = new BookingSecurityService(database, {} as never);
+  const clinicAccess = { assertLocationAccess: jest.fn(), assertBookingHoldReadAccess: jest.fn() } as never;
+  const security = new BookingSecurityService(database, clinicAccess);
+  const read = new BookingHoldReadService(database, {} as never);
+  const queue = new ClinicQueueService(database, { assertBookingQueueReadAccess: jest.fn() } as never);
   afterAll(async () => database.onModuleDestroy());
 
   it('isolates owners and returns stable server-classified pages with pet filtering', async () => {
@@ -81,10 +87,20 @@ describe('V50 owner bookings and cancellation (real PostgreSQL)', () => {
     const actor = { sub: fixture.owner, roles: [Role.OWNER] };
     await expect(security.releaseHold({ holdId: fixture.confirmedHold, actor, idempotencyKey: randomUUID(), correlationId: randomUUID(), expectedVersion: 99, normalizeOwnerNotFound: true }))
       .rejects.toMatchObject({ status: 409, response: { code: 'BOOKING_VERSION_STALE' } });
-    const result = await security.releaseHold({ holdId: fixture.confirmedHold, actor, idempotencyKey: randomUUID(), correlationId: randomUUID(), expectedVersion: 1, normalizeOwnerNotFound: true });
-    expect(result.state).toBe('CANCELLATION_REQUESTED');
+    const cancellationKey = randomUUID();
+    const result = await security.releaseHold({ holdId: fixture.confirmedHold, actor, idempotencyKey: cancellationKey, correlationId: randomUUID(), expectedVersion: 1, normalizeOwnerNotFound: true });
+    await expect(security.releaseHold({ holdId: fixture.confirmedHold, actor, idempotencyKey: cancellationKey, correlationId: randomUUID(), expectedVersion: 1, normalizeOwnerNotFound: true })).resolves.toEqual(result);
+    expect(result.state).toBe(process.env.MVP_SCOPE_PROFILE === 'PILOT_V1' ? 'RELEASED' : 'CANCELLATION_REQUESTED');
     const confirmed = await cancellationInvariant(database, fixture.confirmedHold, fixture.confirmedSlot);
-    expect(confirmed).toEqual({ state: 'CANCELLATION_REQUESTED', held_count: 0, booked_count: 1, audits: '1', effects: '1' });
+    expect(confirmed).toEqual(process.env.MVP_SCOPE_PROFILE === 'PILOT_V1'
+      ? { state: 'RELEASED', held_count: 0, booked_count: 0, audits: '1', effects: '1' }
+      : { state: 'CANCELLATION_REQUESTED', held_count: 0, booked_count: 1, audits: '1', effects: '1' });
+    if (process.env.MVP_SCOPE_PROFILE === 'PILOT_V1') {
+      const appointment = await database.query<{ status: string }>('SELECT status FROM booking_schema.appointments WHERE hold_id=$1::uuid', [fixture.confirmedHold]);
+      expect(appointment.rows[0].status).toBe('CANCELLED');
+      await expect(read.readForActor(fixture.confirmedHold, actor)).resolves.toMatchObject({ statusCode: 'CANCELLED', confirmationMode: 'MANUAL' });
+      await expect(read.readForActor(fixture.expiredHold, actor)).resolves.toMatchObject({ statusCode: 'EXPIRED', confirmationMode: 'MANUAL' });
+    }
     await expect(security.releaseHold({ holdId: fixture.foreignHold, actor, idempotencyKey: randomUUID(), correlationId: randomUUID(), expectedVersion: 1, normalizeOwnerNotFound: true }))
       .rejects.toMatchObject({ status: 404, response: { code: 'HOLD_NOT_FOUND' } });
     await expect(security.releaseHold({ holdId: fixture.expiredHold, actor, idempotencyKey: randomUUID(), correlationId: randomUUID(), expectedVersion: 1, normalizeOwnerNotFound: true }))
@@ -94,6 +110,39 @@ describe('V50 owner bookings and cancellation (real PostgreSQL)', () => {
       await expect(security.releaseHold({ holdId: fixture.expiredHold, actor, idempotencyKey: randomUUID(), correlationId: randomUUID(), expectedVersion: 1, normalizeOwnerNotFound: true }))
         .rejects.toMatchObject({ status: 422, response: { code: 'INVALID_STATE_TRANSITION' } });
     }
+  });
+
+  it('reconciles pending terminal projections, queue removal and cancel races in PILOT', async () => {
+    if (process.env.MVP_SCOPE_PROFILE !== 'PILOT_V1') return;
+    let fixture = await seed(database);
+    const actor = { sub: fixture.owner, roles: [Role.OWNER] };
+    const key = randomUUID();
+    const cancelled = await security.releaseHold({ holdId: fixture.localHold, actor, idempotencyKey: key, correlationId: randomUUID(), expectedVersion: 1, normalizeOwnerNotFound: true });
+    await expect(security.releaseHold({ holdId: fixture.localHold, actor, idempotencyKey: key, correlationId: randomUUID(), expectedVersion: 1, normalizeOwnerNotFound: true })).resolves.toEqual(cancelled);
+    await expect(read.readForActor(fixture.localHold, actor)).resolves.toMatchObject({ statusCode: 'CANCELLED', confirmationMode: 'MANUAL' });
+    const visible = await queue.listManualConfirmationQueue({ clinicId: fixture.clinic, locationId: fixture.location, employee: { sub: randomUUID(), roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [fixture.clinic] }, limit: 50 });
+    expect(visible.items.map((item) => item.holdId)).not.toContain(fixture.localHold);
+
+    fixture = await seed(database);
+    const employee = { sub: randomUUID(), roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [fixture.clinic] };
+    const cancelVsConfirm = await Promise.allSettled([
+      security.releaseHold({ holdId: fixture.localHold, actor: { sub: fixture.owner, roles: [Role.OWNER] }, idempotencyKey: randomUUID(), correlationId: randomUUID(), expectedVersion: 1, normalizeOwnerNotFound: true }),
+      security.confirmManualHold({ holdId: fixture.localHold, employee, idempotencyKey: randomUUID(), correlationId: randomUUID(), expectedVersion: 1 }),
+    ]);
+    expect(cancelVsConfirm.filter((item) => item.status === 'fulfilled')).toHaveLength(1);
+    const afterConfirmRace = await read.readForActor(fixture.localHold, { sub: fixture.owner, roles: [Role.OWNER] });
+    const activeAppointment = await database.query<{ count: string }>(`SELECT count(*)::text AS count FROM booking_schema.appointments WHERE hold_id=$1::uuid AND status NOT IN ('CANCELLED','CLINIC_CANCELLED')`, [fixture.localHold]);
+    expect(['CANCELLED', 'CONFIRMED']).toContain(afterConfirmRace.statusCode);
+    expect(activeAppointment.rows[0].count).toBe(afterConfirmRace.statusCode === 'CONFIRMED' ? '1' : '0');
+
+    fixture = await seed(database);
+    const cancelVsDecline = await Promise.allSettled([
+      security.releaseHold({ holdId: fixture.localHold, actor: { sub: fixture.owner, roles: [Role.OWNER] }, idempotencyKey: randomUUID(), correlationId: randomUUID(), expectedVersion: 1, normalizeOwnerNotFound: true }),
+      security.declineManualHold({ holdId: fixture.localHold, employee: { ...employee, clinicIds: [fixture.clinic] }, idempotencyKey: randomUUID(), correlationId: randomUUID(), expectedVersion: 1 }),
+    ]);
+    expect(cancelVsDecline.filter((item) => item.status === 'fulfilled')).toHaveLength(1);
+    const afterDeclineRace = await read.readForActor(fixture.localHold, { sub: fixture.owner, roles: [Role.OWNER] });
+    expect(['CANCELLED', 'REJECTED']).toContain(afterDeclineRace.statusCode);
   });
 
   it('rolls back state, counter, audit and idempotency when outbox persistence fails', async () => {
@@ -138,7 +187,7 @@ describe('V50 owner bookings and cancellation (real PostgreSQL)', () => {
 
 async function seed(database: DatabaseService) {
   await database.query('TRUNCATE clinic_schema.clinics, pet_schema.pets, identity_schema.users CASCADE');
-  await database.query('TRUNCATE booking_schema.outbox_events, booking_schema.idempotency_records, audit_schema.audit_log');
+  await resetBookingPersistence(database);
   const owner = randomUUID(), foreign = randomUUID(), pet = randomUUID(), foreignPet = randomUUID();
   await database.query('INSERT INTO identity_schema.users (id) VALUES ($1::uuid),($2::uuid)', [owner, foreign]);
   await database.query(`INSERT INTO pet_schema.pets (id,owner_id,name,species) VALUES ($1,$2,'Барсик','DOG'),($3,$4,'Чужой','CAT')`, [pet, owner, foreignPet, foreign]);
@@ -160,7 +209,8 @@ async function seed(database: DatabaseService) {
   const historyHold = await hold(historySlot, owner, pet, 'RELEASED');
   const foreignHold = await hold(foreignSlot, foreign, foreignPet, 'MANUAL_CONFIRM_PENDING');
   const expiredHold = await hold(expiredSlot, owner, pet, 'EXPIRED');
-  return { owner, pet, localSlot, localHold, confirmedSlot, confirmedHold, actionHold, historyHold, foreignHold, expiredHold };
+  await database.query(`INSERT INTO booking_schema.appointments (hold_id,owner_id,pet_id,clinic_location_id,slot_id) VALUES ($1,$2,$3,$4,$5)`, [confirmedHold, owner, pet, location, confirmedSlot]);
+  return { owner, pet, clinic, location, localSlot, localHold, confirmedSlot, confirmedHold, actionHold, historyHold, foreignHold, expiredHold };
 }
 
 async function cancellationInvariant(database: DatabaseService, holdId: string, slotId: string) {

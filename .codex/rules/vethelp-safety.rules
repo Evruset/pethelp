@@ -1,0 +1,59 @@
+prefix_rule(
+    pattern = ["git", "push"],
+    decision = "forbidden",
+    justification = "Autonomous VetHelp runs never push. User authorization is required.",
+)
+
+prefix_rule(
+    pattern = ["git", "reset", "--hard"],
+    decision = "forbidden",
+    justification = "Preserve the existing mixed dirty working tree.",
+)
+
+prefix_rule(
+    pattern = ["git", "clean"],
+    decision = "forbidden",
+    justification = "Do not delete untracked project evidence or user work.",
+)
+
+prefix_rule(
+    pattern = ["git", "checkout", "-f"],
+    decision = "forbidden",
+    justification = "Do not forcibly overwrite the existing mixed dirty working tree.",
+)
+
+prefix_rule(
+    pattern = ["git", "checkout", "--force"],
+    decision = "forbidden",
+    justification = "Do not forcibly overwrite the existing mixed dirty working tree.",
+)
+
+prefix_rule(
+    pattern = ["git", "switch", "--discard-changes"],
+    decision = "forbidden",
+    justification = "Do not discard existing project or user changes.",
+)
+
+prefix_rule(
+    pattern = ["gh", "pr", "create"],
+    decision = "forbidden",
+    justification = "PR creation requires explicit user authorization.",
+)
+
+prefix_rule(
+    pattern = ["gh", "pr", "edit"],
+    decision = "forbidden",
+    justification = "PR mutation requires explicit user authorization.",
+)
+
+prefix_rule(
+    pattern = ["docker", "system", "prune"],
+    decision = "forbidden",
+    justification = "Destructive Docker cleanup is outside autonomous delivery scope.",
+)
+
+prefix_rule(
+    pattern = ["docker", "volume", "prune"],
+    decision = "forbidden",
+    justification = "Do not destroy persistent local data during autonomous delivery.",
+)

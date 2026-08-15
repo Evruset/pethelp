@@ -1,0 +1,10 @@
+appId: ru.vethelp.owner.test
+name: Owner App public launch without session
+tags:
+  - foundation
+  - smoke
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    text: "Войдите, чтобы продолжить"

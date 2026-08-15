@@ -1,6 +1,7 @@
 import { Injectable, LoggerService, Optional } from '@nestjs/common';
 import { AlertForwarderService, type JsonLogPayload } from './alert-forwarder.service';
 import { TraceContext } from './trace-context.context';
+import { safeTelemetryContext, safeTelemetryCorrelationId, safeTelemetryMessage, sanitizeTelemetryFields } from './telemetry-sanitizer';
 
 type LogLevel = 'log' | 'error' | 'warn' | 'debug' | 'verbose' | 'fatal';
 
@@ -16,9 +17,8 @@ export class ContextLoggerService implements LoggerService {
   }
 
   error(message: unknown, ...optionalParams: unknown[]): void {
-    const [traceOrContext, context] = optionalParams;
-    const trace = typeof traceOrContext === 'string' && typeof context === 'string' ? traceOrContext : undefined;
-    this.write('error', message, typeof context === 'string' ? context : this.contextFrom(optionalParams), trace ? { trace } : undefined);
+    const context = optionalParams.at(-1);
+    this.write('error', message, typeof context === 'string' ? context : undefined);
   }
 
   warn(message: unknown, ...optionalParams: unknown[]): void {
@@ -52,14 +52,19 @@ export class ContextLoggerService implements LoggerService {
 
   private write(level: LogLevel, message: unknown, context?: string, fields: Record<string, unknown> = {}, suppressActor = false): void {
     const trace = this.traceContext.get();
+    let safeFields: Record<string, unknown> = {};
+    try {
+      safeFields = sanitizeTelemetryFields(fields);
+    } catch {
+      safeFields = {};
+    }
     const payload: JsonLogPayload = {
       timestamp: new Date().toISOString(),
       level: level === 'log' ? 'info' : level,
-      context: context ?? 'VetHelp',
-      message: this.toMessage(message),
-      correlationId: trace?.correlationId,
-      userId: suppressActor ? undefined : trace?.userId,
-      ...fields,
+      context: safeTelemetryContext(context),
+      message: safeTelemetryMessage(message),
+      correlationId: safeTelemetryCorrelationId(trace?.correlationId),
+      ...safeFields,
     };
     const line = JSON.stringify(payload);
 
@@ -74,19 +79,11 @@ export class ContextLoggerService implements LoggerService {
           timestamp: new Date().toISOString(),
           level: 'error',
           context: 'AlertForwarder',
-          message: error instanceof Error ? error.message : 'Alert forwarding failed',
+          message: 'ALERT_FORWARDING_FAILED',
+          errorCode: error instanceof Error ? 'ALERT_FORWARDER_REJECTED' : 'ALERT_FORWARDER_UNKNOWN',
           correlationId: payload.correlationId,
         }));
       });
-    }
-  }
-
-  private toMessage(message: unknown): string {
-    if (typeof message === 'string') return message;
-    try {
-      return JSON.stringify(message);
-    } catch {
-      return String(message);
     }
   }
 }

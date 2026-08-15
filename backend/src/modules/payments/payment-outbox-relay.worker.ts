@@ -5,6 +5,7 @@ import { DatabaseService } from '../../database/database.service';
 import { ContextLoggerService } from '../../observability/context-logger.service';
 import { ObservabilityMetricsService } from '../../observability/observability.metrics';
 import { TraceContext } from '../../observability/trace-context.context';
+import { mvpScope } from '../../config/mvp-scope.config';
 import { AcquiringClient } from './acquiring-client.service';
 
 type PaymentProviderEventType =
@@ -44,7 +45,7 @@ export class PaymentOutboxRelayWorker {
 
   @Cron(CronExpression.EVERY_5_SECONDS)
   async relay(): Promise<void> {
-    if ((process.env.WORKERS_ENABLED ?? 'true').toLowerCase() !== 'true' || this.running) return;
+    if (!mvpScope.capabilities.onlinePayments || (process.env.WORKERS_ENABLED ?? 'true').toLowerCase() !== 'true' || this.running) return;
     this.running = true;
     try {
       const events = await this.claimBatch(10);

@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { resetBookingPersistence } from './helpers/booking-test-reset';
 import type { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
@@ -589,7 +590,7 @@ function decode(cursor: string): Record<string, unknown> {
 
 async function seed(db: DatabaseService) {
   await db.query('TRUNCATE clinic_schema.clinics, pet_schema.pets, identity_schema.users CASCADE');
-  await db.query('TRUNCATE booking_schema.outbox_events, booking_schema.idempotency_records, audit_schema.audit_log');
+  await resetBookingPersistence(db);
   await db.query('ALTER SEQUENCE clinic_schema.clinic_patient_association_revision_sequence RESTART WITH 1');
   await db.query('INSERT INTO identity_schema.users(id) SELECT unnest($1::uuid[])', [[I.owner, I.employee, I.admin, I.vet]]);
   await db.query(`INSERT INTO clinic_schema.clinics(id,legal_name,public_name) VALUES($1,'Patients LLC','Patients')`, [I.clinic]);

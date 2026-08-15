@@ -12,17 +12,27 @@ import { WorkerAuthGuard } from './worker-auth.guard';
 import { CapabilityEvaluatorService } from './capability-evaluator.service';
 import { EffectiveSessionController } from './effective-session.controller';
 import { OptionalJwtAuthGuard } from './optional-jwt-auth.guard';
+import { DeterministicOtpDeliveryStub } from './deterministic-otp-delivery.stub';
+import { OTP_DELIVERY_PORT } from './otp-delivery.port';
+import { OtpAntiFraudService } from './otp-anti-fraud.service';
+import { OtpAntiFraudTelemetry } from './otp-anti-fraud.telemetry';
+import { OwnerPetMvpController } from './owner-pet-mvp.controller';
+import { mvpScope } from '../config/mvp-scope.config';
 
 @Global()
 @Module({
   imports: [JwtModule.register({})],
-  controllers: [OwnerAuthController, OwnerProfileController, OwnerPetController, EffectiveSessionController],
+  controllers: [OwnerAuthController, OwnerProfileController, mvpScope.pilot ? OwnerPetMvpController : OwnerPetController, EffectiveSessionController],
   providers: [
     JwtAuthGuard,
     OptionalJwtAuthGuard,
     RolesGuard,
     WorkerAuthGuard,
     OwnerAuthService,
+    OtpAntiFraudService,
+    OtpAntiFraudTelemetry,
+    DeterministicOtpDeliveryStub,
+    { provide: OTP_DELIVERY_PORT, useExisting: DeterministicOtpDeliveryStub },
     OwnerAppointmentsService,
     OwnerPetService,
     OcrDocumentWorker,

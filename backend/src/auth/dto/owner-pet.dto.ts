@@ -1,4 +1,24 @@
 import { IsArray, IsBoolean, IsDateString, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUrl, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+
+export class OwnerPetMvpDto {
+  @ApiProperty({ format: 'uuid' }) petId!: string;
+  @ApiProperty({ minLength: 1, maxLength: 120 }) name!: string;
+  @ApiProperty({ enum: ['DOG', 'CAT', 'OTHER'] }) species!: 'DOG' | 'CAT' | 'OTHER';
+  @ApiProperty({ format: 'date-time' }) createdAt!: string;
+  @ApiProperty({ format: 'date-time' }) updatedAt!: string;
+}
+
+export class CreateOwnerPetMvpDto {
+  @ApiProperty({ minLength: 1, maxLength: 120 })
+  @IsString()
+  name!: string;
+
+  @ApiProperty({ enum: ['DOG', 'CAT', 'OTHER'] })
+  @IsString()
+  @IsIn(['DOG', 'CAT', 'OTHER'])
+  species!: 'DOG' | 'CAT' | 'OTHER';
+}
 
 export class CreateOwnerPetDto {
   @IsString()

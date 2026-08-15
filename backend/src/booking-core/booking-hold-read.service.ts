@@ -3,13 +3,16 @@ import { JwtPayload, Role } from '../auth/auth.types';
 import { DomainErrors } from '../common/domain-error';
 import { DatabaseService } from '../database/database.service';
 import { ClinicEmployeeAccessService } from './clinic-employee-access.service';
+import { projectMvpBookingStatus, type MvpBookingStatus } from './booking.types';
+import { mvpScope } from '../config/mvp-scope.config';
 
 type Summary = { id: string; name: string };
 
 export interface HoldView {
   holdId: string;
   slotId: string;
-  state: string;
+  state?: string;
+  status: MvpBookingStatus | string;
   statusCode: string;
   statusTitle: string;
   safeDescription: string;
@@ -57,6 +60,7 @@ export class BookingHoldReadService {
         hold_id: string; owner_id: string; slot_id: string; state: string; expires_at: Date;
         confirmation_sla_expires_at: Date | null;
         manually_confirmed: boolean;
+        clinic_declined: boolean;
         hold_version: number; updated_at: Date; server_now: Date; clinic_location_id: string;
         clinic_id: string; clinic_name: string; clinic_timezone: string; location_address: string;
         starts_at: Date; ends_at: Date; integration_mode: string; pet_id: string; pet_name: string;
@@ -72,6 +76,10 @@ export class BookingHoldReadService {
                    AND event.event_type = 'CONFIRMED'
                    AND event.actor_type = 'CLINIC_EMPLOYEE'
                ) AS manually_confirmed,
+               EXISTS (
+                 SELECT 1 FROM audit_schema.audit_log audit
+                 WHERE audit.aggregate_type = 'booking_hold' AND audit.aggregate_id = h.id AND audit.action = 'booking.declined'
+               ) AS clinic_declined,
                h.version AS hold_version, h.updated_at, clock_timestamp() AS server_now,
                s.clinic_location_id::text, location.clinic_id::text, clinic.public_name AS clinic_name,
                clinic.timezone AS clinic_timezone, location.address AS location_address,
@@ -99,19 +107,28 @@ export class BookingHoldReadService {
       }
 
       const status = STATUS[hold.state] ?? { title: 'Проверяем статус заявки', description: 'Получаем актуальный статус от клиники.', next: 'WAIT' as const };
-      const confirmationMode = hold.integration_mode === 'LEVEL_C'
-        ? (hold.confirmation_sla_expires_at || hold.manually_confirmed ? 'MANUAL' : 'AUTOMATIC')
-        : 'MIS';
+      const confirmationMode = mvpScope.pilot
+        ? 'MANUAL'
+        : hold.integration_mode === 'LEVEL_C'
+          ? (hold.confirmation_sla_expires_at || hold.manually_confirmed ? 'MANUAL' : 'AUTOMATIC')
+          : 'MIS';
+      const publicStatus = projectMvpBookingStatus(hold.state as never, hold.clinic_declined);
+      if (mvpScope.pilot && !publicStatus) throw DomainErrors.bookingUnavailable();
       return {
         holdId: hold.hold_id,
         slotId: hold.slot_id,
-        state: hold.state,
-        statusCode: hold.state,
+        ...(mvpScope.pilot ? {} : { state: hold.state }),
+        status: mvpScope.pilot ? publicStatus! : hold.state,
+        statusCode: mvpScope.pilot
+          ? publicStatus!
+          : hold.state,
         statusTitle: status.title,
         safeDescription: status.description,
         nextActionCode: status.next,
         confirmationMode,
-        expiresAt: hold.expires_at.toISOString(),
+        expiresAt: (mvpScope.pilot && hold.confirmation_sla_expires_at
+          ? hold.confirmation_sla_expires_at
+          : hold.expires_at).toISOString(),
         serverNow: hold.server_now.toISOString(),
         aggregateVersion: hold.hold_version,
         lastUpdatedAt: hold.updated_at.toISOString(),

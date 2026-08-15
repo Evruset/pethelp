@@ -1,11 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException, PreconditionFailedException } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { ReadStream } from 'node:fs';
 import type { PoolClient } from 'pg';
 import { DatabaseService } from '../database/database.service';
+import { config } from '../config';
+import { DomainException } from '../common/domain-error';
 import { JwtPayload } from './auth.types';
 import { CreateOwnerPetDto, UpdateOwnerPetDto } from './dto/owner-pet.dto';
 import { ownerAppointmentPresentation, OwnerAppointmentPresentation } from './owner-appointments.service';
@@ -54,6 +56,15 @@ export type OwnerPet = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type OwnerPetMvp = {
+  petId: string;
+  name: string;
+  species: 'DOG' | 'CAT' | 'OTHER';
+  createdAt: string;
+  updatedAt: string;
+};
+export function ownerPetCreateFingerprint(name:string,species:string,key:string){return createHmac('sha256',key).update('vethelp:owner-pet:create:v1\0').update(JSON.stringify({name,species})).digest('hex');}
 
 export type OwnerPetCareDocument = {
   id: string;
@@ -197,6 +208,31 @@ export class OwnerPetService {
       ORDER BY created_at ASC, id ASC
     `, [owner.sub, includeArchived]);
     return result.rows.map((row) => this.toPet(row));
+  }
+
+  async listMvp(owner: JwtPayload): Promise<OwnerPetMvp[]> {
+    const result = await this.database.query<Pick<OwnerPetRow, 'id' | 'name' | 'species' | 'created_at' | 'updated_at'>>(`
+      SELECT id, name, species, created_at, updated_at
+      FROM pet_schema.pets
+      WHERE owner_id = $1::uuid
+        AND archived_at IS NULL
+      ORDER BY created_at ASC, id ASC
+    `, [owner.sub]);
+    this.assertMvpSpecies(result.rows);
+    return result.rows.map((row) => this.toMvpPet(row));
+  }
+
+  async readMvp(owner: JwtPayload, petId: string): Promise<OwnerPetMvp | undefined> {
+    const result = await this.database.query<Pick<OwnerPetRow, 'id' | 'name' | 'species' | 'created_at' | 'updated_at'>>(`
+      SELECT id, name, species, created_at, updated_at
+      FROM pet_schema.pets
+      WHERE id = $1::uuid
+        AND owner_id = $2::uuid
+        AND archived_at IS NULL
+      LIMIT 1
+    `, [petId, owner.sub]);
+    this.assertMvpSpecies(result.rows);
+    return result.rows[0] ? this.toMvpPet(result.rows[0]) : undefined;
   }
 
   async read(owner: JwtPayload, petId: string): Promise<OwnerPet | undefined> {
@@ -576,6 +612,74 @@ export class OwnerPetService {
     });
   }
 
+  async createMvp(owner: JwtPayload, input: CreateOwnerPetDto, idempotencyKey: string): Promise<OwnerPetMvp> {
+    const name = input.name.trim();
+    const nameLength = Array.from(name).length;
+    if (nameLength < 1 || nameLength > 120) {
+      throw new BadRequestException({ code: 'INVALID_PET_NAME', message: 'name must contain 1 to 120 Unicode characters.' });
+    }
+    const extraFields = Object.entries(input)
+      .filter(([key, value]) => !['name', 'species'].includes(key) && value !== undefined)
+      .map(([key]) => key);
+    if (extraFields.length > 0) {
+      throw new BadRequestException({ code: 'INVALID_REQUEST', message: 'Only name and species are accepted.' });
+    }
+    const scope = `owner-pet.create:${owner.sub}`;
+    const fingerprint = ownerPetCreateFingerprint(name,input.species,config.ownerPetIdempotencyHmacKey);
+
+    return this.database.withTransaction(async (client) => {
+      const insertedLedger = await client.query(`
+        INSERT INTO booking_schema.idempotency_records (scope, idempotency_key, status, request_fingerprint)
+        VALUES ($1, $2::uuid, 'PROCESSING', $3)
+        ON CONFLICT (scope, idempotency_key) DO NOTHING
+        RETURNING id
+      `, [scope, idempotencyKey, fingerprint]);
+
+      if (!insertedLedger.rows[0]) {
+        const existing = await client.query<{
+          status: string; response_status: number | null; response_body: { petId?: string } | null; request_fingerprint: string | null;
+        }>(`
+          SELECT status, response_status, response_body, request_fingerprint
+          FROM booking_schema.idempotency_records
+          WHERE scope = $1 AND idempotency_key = $2::uuid
+          FOR UPDATE
+        `, [scope, idempotencyKey]);
+        const ledger = existing.rows[0];
+        if (!ledger || ledger.request_fingerprint !== fingerprint) {
+          throw new DomainException(409, 'PET_IDEMPOTENCY_CONFLICT', 'Idempotency key was already used for another pet.');
+        }
+        if (ledger.status !== 'COMPLETED' || !ledger.response_body?.petId) {
+          throw new DomainException(425, 'IDEMPOTENCY_IN_PROGRESS', 'Pet creation is in progress.');
+        }
+        const replay = await client.query<Pick<OwnerPetRow, 'id' | 'name' | 'species' | 'created_at' | 'updated_at'>>(`
+          SELECT id, name, species, created_at, updated_at
+          FROM pet_schema.pets
+          WHERE id = $1::uuid AND owner_id = $2::uuid AND archived_at IS NULL
+          LIMIT 1
+        `, [ledger.response_body.petId, owner.sub]);
+        if (!replay.rows[0]) {
+          throw new DomainException(409, 'PET_IDEMPOTENCY_RESOURCE_UNAVAILABLE', 'The original pet is no longer available.');
+        }
+        return this.toMvpPet(replay.rows[0]);
+      }
+
+      const result = await client.query<Pick<OwnerPetRow, 'id' | 'name' | 'species' | 'created_at' | 'updated_at'>>(`
+        INSERT INTO pet_schema.pets (owner_id, name, species)
+        VALUES ($1::uuid, $2, $3)
+        RETURNING id, name, species, created_at, updated_at
+      `, [owner.sub, name, input.species]);
+      const pet = this.toMvpPet(result.rows[0]);
+      await this.writePetAudit(client, owner.sub, pet.petId, 'pet.created', { species: pet.species });
+      await client.query(`
+        UPDATE booking_schema.idempotency_records
+        SET status = 'COMPLETED', response_status = 201,
+            response_body = jsonb_build_object('petId', $3::text), updated_at = clock_timestamp()
+        WHERE scope = $1 AND idempotency_key = $2::uuid
+      `, [scope, idempotencyKey, pet.petId]);
+      return pet;
+    });
+  }
+
   async update(owner: JwtPayload, petId: string, input: UpdateOwnerPetDto, ifMatchVersion?: number): Promise<OwnerPet> {
     const current = await this.read(owner, petId);
     if (!current) {
@@ -872,6 +976,22 @@ export class OwnerPetService {
       createdAt: row.created_at.toISOString(),
       updatedAt: row.updated_at.toISOString(),
     };
+  }
+
+  private toMvpPet(row: Pick<OwnerPetRow, 'id' | 'name' | 'species' | 'created_at' | 'updated_at'>): OwnerPetMvp {
+    return {
+      petId: row.id,
+      name: row.name,
+      species: row.species,
+      createdAt: row.created_at.toISOString(),
+      updatedAt: row.updated_at.toISOString(),
+    };
+  }
+
+  private assertMvpSpecies(rows: Array<Pick<OwnerPetRow, 'species'>>): void {
+    if (rows.some((row) => !['DOG', 'CAT', 'OTHER'].includes(row.species))) {
+      throw new DomainException(500, 'INTERNAL_ERROR', 'Pet data is temporarily unavailable.');
+    }
   }
 
   private async ensurePetOwned(owner: JwtPayload, petId: string): Promise<void> {

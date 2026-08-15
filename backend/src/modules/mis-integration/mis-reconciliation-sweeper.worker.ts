@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { config } from '../../config';
+import { mvpScope } from '../../config/mvp-scope.config';
 import { DatabaseService } from '../../database/database.service';
 import { IMisAdapter, MisConfigurationError, MisNetworkError, MisReservationLookupResult } from './interfaces/mis-adapter.interface';
 import { MisReservationRequestedPayload } from './interfaces/mis-event.interface';
@@ -29,7 +30,7 @@ export class MisReconciliationSweeperWorker {
 
   @Cron(CronExpression.EVERY_MINUTE)
   async reconcile(): Promise<void> {
-    if (!config.workersEnabled || this.running) return;
+    if (!mvpScope.capabilities.mis || !config.workersEnabled || this.running) return;
     this.running = true;
 
     try {

@@ -1,0 +1,42 @@
+{
+  "generatedAt": "2026-08-13T08:52:53.391Z",
+  "source": "apps/owner-app/src/booking/BookingReviewScreen.tsx",
+  "sourceSha256": "e39ab883534d88fa5f7212c46a867e85f97355ec8db1b1a2b89c9b17c687872a",
+  "renderer": "react-native-web production component bundle; controlled query/session/API seams",
+  "physicalDevice": false,
+  "cases": [
+    {
+      "name": "compact-review",
+      "width": 375,
+      "height": 812,
+      "file": "compact-review.png",
+      "sha256": "5038b1c184b7fede039857d4a2caefc17d2ba93ee0f84900af84583726e2a4ea"
+    },
+    {
+      "name": "standard-waiting",
+      "width": 390,
+      "height": 844,
+      "submit": true,
+      "file": "standard-waiting.png",
+      "sha256": "611b565c68dccbb502c02de19b59ba97f737d00ac21abfa16ca3f911c561675a"
+    },
+    {
+      "name": "wide-conflict",
+      "width": 1024,
+      "height": 768,
+      "submit": true,
+      "hash": "#conflict",
+      "file": "wide-conflict.png",
+      "sha256": "1f5339c0e6b19524f5d86912399b322d46142fd5eb4ab7486178db67912af3a1"
+    },
+    {
+      "name": "compact-idempotency-conflict",
+      "width": 375,
+      "height": 812,
+      "submit": true,
+      "hash": "#identity",
+      "file": "compact-idempotency-conflict.png",
+      "sha256": "4f4cdf275aa16974de5b803536bed1fdf71c39b59b088d70b97afc0b326f9ee0"
+    }
+  ]
+}

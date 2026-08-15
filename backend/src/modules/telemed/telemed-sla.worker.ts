@@ -5,6 +5,7 @@ import { DatabaseService } from '../../database/database.service';
 import { ContextLoggerService } from '../../observability/context-logger.service';
 import { ObservabilityMetricsService } from '../../observability/observability.metrics';
 import { TraceContext } from '../../observability/trace-context.context';
+import { mvpScope } from '../../config/mvp-scope.config';
 
 interface ExpiredTelemedSession {
   id: string;
@@ -40,7 +41,7 @@ export class TelemedSlaWorker {
 
   @Cron('*/10 * * * * *')
   async enforceExpiredSessions(): Promise<void> {
-    if ((process.env.WORKERS_ENABLED ?? 'true').toLowerCase() !== 'true' || this.running) return;
+    if (!mvpScope.capabilities.telemedicine || (process.env.WORKERS_ENABLED ?? 'true').toLowerCase() !== 'true' || this.running) return;
     this.running = true;
     try {
       for (let index = 0; index < 10; index += 1) {

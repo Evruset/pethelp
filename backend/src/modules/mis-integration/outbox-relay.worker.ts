@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { config } from '../../config';
+import { mvpScope } from '../../config/mvp-scope.config';
 import { DatabaseService } from '../../database/database.service';
 import { ContextLoggerService } from '../../observability/context-logger.service';
 import { ObservabilityMetricsService } from '../../observability/observability.metrics';
@@ -30,7 +31,7 @@ export class MisOutboxRelayWorker {
 
   @Cron(CronExpression.EVERY_5_SECONDS)
   async relay(): Promise<void> {
-    if (!config.workersEnabled || this.running) return;
+    if (!mvpScope.capabilities.mis || !config.workersEnabled || this.running) return;
     this.running = true;
 
     try {

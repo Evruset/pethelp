@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { resetBookingPersistence } from './helpers/booking-test-reset';
 import { Role } from '../src/auth/auth.types';
 import { AlternativeSlotService } from '../src/booking-core/alternative-slot.service';
 import { ClinicEmployeeAccessService } from '../src/booking-core/clinic-employee-access.service';
@@ -138,7 +139,7 @@ const command = () => ({ expectedVersion: 2, idempotencyKey: randomUUID(), corre
 async function fixture(db: DatabaseService, alternatives: AlternativeSlotService, trace: TraceContext) {
   await db.query('TRUNCATE clinic_schema.clinics CASCADE');
   await db.query('TRUNCATE pet_schema.pets, identity_schema.users CASCADE');
-  await db.query('TRUNCATE booking_schema.outbox_events, booking_schema.idempotency_records, audit_schema.audit_log');
+  await resetBookingPersistence(db);
   const owner = randomUUID(), employee = randomUUID(), pet = randomUUID();
   await db.query('INSERT INTO identity_schema.users(id) VALUES($1::uuid),($2::uuid)', [owner, employee]);
   await db.query(`INSERT INTO pet_schema.pets(id,owner_id,name,species) VALUES($1::uuid,$2::uuid,'Alt pet','DOG')`, [pet, owner]);

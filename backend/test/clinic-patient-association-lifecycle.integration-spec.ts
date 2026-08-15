@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { resetBookingPersistence } from './helpers/booking-test-reset';
 import { DatabaseService } from '../src/database/database.service';
 import {
   ClinicPatientAssociationLifecycleService,
@@ -264,9 +265,9 @@ function evidence(appointmentId: string, overrides: Partial<AppointmentEvidence>
 
 async function reset() {
   await database.query(`
-    TRUNCATE clinic_schema.clinics, pet_schema.pets, identity_schema.users CASCADE;
-    TRUNCATE booking_schema.outbox_events, booking_schema.idempotency_records, audit_schema.audit_log
+    TRUNCATE clinic_schema.clinics, pet_schema.pets, identity_schema.users CASCADE
   `);
+  await resetBookingPersistence(database);
 }
 
 async function seed() {

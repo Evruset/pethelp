@@ -10,14 +10,14 @@ function shortIdentifier(value: string): string {
   return value.length > 12 ? `${value.slice(0, 8)}…` : value;
 }
 
-function ShellNavigation({ clinicId, locationId, patientsEnabled, workspaceHomeEnabled, compact = false }: { clinicId: string; locationId: string; patientsEnabled: boolean; workspaceHomeEnabled: boolean; compact?: boolean }) {
+function ShellNavigation({ clinicId, locationId, patientsEnabled, workspaceHomeEnabled, pilot, compact = false }: { clinicId: string; locationId: string; patientsEnabled: boolean; workspaceHomeEnabled: boolean; pilot: boolean; compact?: boolean }) {
   const pathname = usePathname();
   const { session, loading, error, hasCapability, hasClinicScope, refresh } = useEffectiveSession();
   const basePath = `/clinics/${clinicId}/locations/${locationId}`;
   const hasExactScope = hasClinicScope(clinicId, locationId);
   const items = loading || error || !session || !hasExactScope
     ? []
-    : resolveClinicShellNavigation(session.roles, hasCapability, patientsEnabled, workspaceHomeEnabled);
+    : resolveClinicShellNavigation(session.roles, hasCapability, patientsEnabled, workspaceHomeEnabled, pilot);
 
   if (loading) {
     return <p className="vh-v50-shell-state" aria-live="polite" aria-busy="true">Загрузка доступа…</p>;
@@ -64,7 +64,7 @@ function ShellNavigation({ clinicId, locationId, patientsEnabled, workspaceHomeE
   });
 }
 
-function ShellFrame({ clinicId, locationId, patientsEnabled, workspaceHomeEnabled, children }: { clinicId: string; locationId: string; patientsEnabled: boolean; workspaceHomeEnabled: boolean; children: ReactNode }) {
+function ShellFrame({ clinicId, locationId, patientsEnabled, workspaceHomeEnabled, pilot, children }: { clinicId: string; locationId: string; patientsEnabled: boolean; workspaceHomeEnabled: boolean; pilot: boolean; children: ReactNode }) {
   const { session } = useEffectiveSession();
   const persona = clinicShellPersona(session?.roles ?? []);
   const roleLabel = persona === 'multi-role'
@@ -94,7 +94,7 @@ function ShellFrame({ clinicId, locationId, patientsEnabled, workspaceHomeEnable
         </div>
         <p className="vh-v50-role-label">Рабочее место · {roleLabel}</p>
         <nav className="vh-clinic-nav" aria-label={`Разделы локации для роли ${roleLabel}`}>
-          <ShellNavigation clinicId={clinicId} locationId={locationId} patientsEnabled={patientsEnabled} workspaceHomeEnabled={workspaceHomeEnabled} />
+          <ShellNavigation clinicId={clinicId} locationId={locationId} patientsEnabled={patientsEnabled} workspaceHomeEnabled={workspaceHomeEnabled} pilot={pilot} />
         </nav>
         <p className="vh-v50-authority-note">Доступ и действия подтверждает сервер.</p>
       </aside>
@@ -115,16 +115,16 @@ function ShellFrame({ clinicId, locationId, patientsEnabled, workspaceHomeEnable
       </div>
 
       <nav className="vh-clinic-bottom-nav" aria-label="Быстрая навигация портала клиники">
-        <ShellNavigation clinicId={clinicId} locationId={locationId} patientsEnabled={patientsEnabled} workspaceHomeEnabled={workspaceHomeEnabled} compact />
+          <ShellNavigation clinicId={clinicId} locationId={locationId} patientsEnabled={patientsEnabled} workspaceHomeEnabled={workspaceHomeEnabled} pilot={pilot} compact />
       </nav>
     </div>
   );
 }
 
-export function ClinicPortalShellV50Client({ clinicId, locationId, patientsEnabled, workspaceHomeEnabled, children }: { clinicId: string; locationId: string; patientsEnabled: boolean; workspaceHomeEnabled: boolean; children: ReactNode }) {
+export function ClinicPortalShellV50Client({ clinicId, locationId, patientsEnabled, workspaceHomeEnabled, pilot, children }: { clinicId: string; locationId: string; patientsEnabled: boolean; workspaceHomeEnabled: boolean; pilot: boolean; children: ReactNode }) {
   return (
     <EffectiveSessionProvider>
-      <ShellFrame clinicId={clinicId} locationId={locationId} patientsEnabled={patientsEnabled} workspaceHomeEnabled={workspaceHomeEnabled}>{children}</ShellFrame>
+      <ShellFrame clinicId={clinicId} locationId={locationId} patientsEnabled={patientsEnabled} workspaceHomeEnabled={workspaceHomeEnabled} pilot={pilot}>{children}</ShellFrame>
     </EffectiveSessionProvider>
   );
 }

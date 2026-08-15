@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { resetBookingPersistence } from './helpers/booking-test-reset';
 import type { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
@@ -89,6 +90,28 @@ describe('Clinic Queue HTTP authority matrix', () => {
       .send({ declineReason });
     return version === null ? command : command.set('If-Match', String(version));
   };
+
+  it('blocks legacy cancellation mutations in PILOT before authentication or state change', async () => {
+    await request(app.getHttpServer())
+      .post(`/v1/booking-holds/${IDS.hold}/release`)
+      .set('Idempotency-Key', randomUUID())
+      .expect(404);
+    await request(app.getHttpServer())
+      .post(`/v1/booking-holds/${IDS.hold}/cancellation-requests`)
+      .set('X-Correlation-ID', randomUUID())
+      .expect(404);
+
+    const invariant = await database.query<{ state: string; version: number; held_count: number; appointments: string; effects: string; audits: string }>(`
+      SELECT h.state, h.version, s.held_count,
+        (SELECT count(*)::text FROM booking_schema.appointments WHERE hold_id=h.id) AS appointments,
+        (SELECT count(*)::text FROM booking_schema.outbox_events WHERE aggregate_id=h.id) AS effects,
+        (SELECT count(*)::text FROM audit_schema.audit_log WHERE aggregate_id=h.id) AS audits
+      FROM booking_schema.booking_holds h
+      JOIN clinic_schema.appointment_slots s ON s.id=h.slot_id
+      WHERE h.id=$1::uuid
+    `, [IDS.hold]);
+    expect(invariant.rows[0]).toEqual({ state: 'MANUAL_CONFIRM_PENDING', version: 1, held_count: 1, appointments: '0', effects: '0', audits: '0' });
+  });
 
   const requestNotes = async (input: Actor, idempotencyKey = randomUUID(), version: number | null = 1, noteRequest = 'Please confirm the pet vaccination date') => {
     const command = request(app.getHttpServer())
@@ -207,7 +230,8 @@ describe('Clinic Queue HTTP authority matrix', () => {
       .get(`/v1/booking-holds/${IDS.hold}`)
       .set('Authorization', `Bearer ${ownerToken}`)
       .expect(200);
-    expect(confirmedOwner.body).toMatchObject({ state: 'CONFIRMED', aggregateVersion: 2 });
+    expect(confirmedOwner.body).toMatchObject({ status: 'CONFIRMED', aggregateVersion: 2 });
+    expect(confirmedOwner.body).not.toHaveProperty('state');
 
     await resetFixtures(database);
     const declined = await decline(allowed());
@@ -217,7 +241,8 @@ describe('Clinic Queue HTTP authority matrix', () => {
       .get(`/v1/booking-holds/${IDS.hold}`)
       .set('Authorization', `Bearer ${ownerToken}`)
       .expect(200);
-    expect(declinedOwner.body).toMatchObject({ state: 'RELEASED', aggregateVersion: 2 });
+    expect(declinedOwner.body).toMatchObject({ status: 'REJECTED', aggregateVersion: 2 });
+    expect(declinedOwner.body).not.toHaveProperty('state');
   });
 
   it.each(['confirm', 'request-notes'] as const)('returns only a transactionally consistent snapshot during concurrent %s', async (command) => {
@@ -297,7 +322,8 @@ describe('Clinic Queue HTTP authority matrix', () => {
     const key = randomUUID();
     const first = await confirm(allowed(), key);
     expect(first.status).toBe(200);
-    expect(first.body).toMatchObject({ holdId: IDS.hold, state: 'CONFIRMED' });
+    expect(first.body).toMatchObject({ holdId: IDS.hold, status: 'CONFIRMED' });
+    expect(first.body).not.toHaveProperty('state');
     const repeated = await confirm(allowed(), key);
     expect(repeated.status).toBe(200);
     expect(repeated.body).toEqual(first.body);
@@ -309,7 +335,7 @@ describe('Clinic Queue HTTP authority matrix', () => {
       .expect(200);
     expect(readback.body).toMatchObject({
       holdId: IDS.hold,
-      state: 'CONFIRMED',
+      status: 'CONFIRMED',
       confirmationMode: 'MANUAL',
       nextActionCode: 'VIEW_APPOINTMENT',
       aggregateVersion: 2,
@@ -335,7 +361,8 @@ describe('Clinic Queue HTTP authority matrix', () => {
     const key = randomUUID();
     const first = await decline(allowed(), key);
     expect(first.status).toBe(200);
-    expect(first.body).toMatchObject({ holdId: IDS.hold, slotId: IDS.slot, state: 'RELEASED' });
+    expect(first.body).toMatchObject({ holdId: IDS.hold, slotId: IDS.slot, status: 'REJECTED' });
+    expect(first.body).not.toHaveProperty('state');
     expect((await decline(allowed(), key)).body).toEqual(first.body);
     expect(await mutationSnapshot(database)).toEqual({
       state: 'RELEASED', version: 2, heldCount: 0, appointments: '0', events: '1', audits: '1',
@@ -352,7 +379,8 @@ describe('Clinic Queue HTTP authority matrix', () => {
 
     const ownerToken = await tokenFor({ sub: IDS.owner, roles: [Role.OWNER] });
     const readback = await request(app.getHttpServer()).get(`/v1/booking-holds/${IDS.hold}`).set('Authorization', `Bearer ${ownerToken}`).expect(200);
-    expect(readback.body).toMatchObject({ state: 'RELEASED', nextActionCode: 'CHOOSE_ANOTHER_SLOT', aggregateVersion: 2 });
+    expect(readback.body).toMatchObject({ status: 'REJECTED', nextActionCode: 'CHOOSE_ANOTHER_SLOT', aggregateVersion: 2 });
+    expect(readback.body).not.toHaveProperty('state');
   });
 
   it('requests notes idempotently while preserving the pending hold and publishing the request text', async () => {
@@ -578,8 +606,8 @@ describe('Clinic Queue HTTP authority matrix', () => {
     expect(Number(snapshot.events)).toBe(1);
     expect(Number(snapshot.audits)).toBe(1);
     if (left === 'confirm') {
-      expect(snapshot.state).toBe(winner.body.state);
-      expect(snapshot.appointments).toBe(winner.body.state === 'CONFIRMED' ? '1' : '0');
+      expect(snapshot.state).toBe(winner.body.status === 'CONFIRMED' ? 'CONFIRMED' : 'RELEASED');
+      expect(snapshot.appointments).toBe(winner.body.status === 'CONFIRMED' ? '1' : '0');
       expect(snapshot.swaps).toBe('0');
       expect(snapshot.sourceHeld).toBe(0);
       expect(snapshot.alternativeHeld).toBe(0);
@@ -727,7 +755,7 @@ async function seedQueueVolume(database: DatabaseService, count: number) {
 
 async function resetFixtures(database: DatabaseService) {
   await database.query('TRUNCATE clinic_schema.clinics, pet_schema.pets, identity_schema.users CASCADE');
-  await database.query('TRUNCATE booking_schema.outbox_events, booking_schema.idempotency_records, audit_schema.audit_log');
+  await resetBookingPersistence(database);
   await database.query(`INSERT INTO identity_schema.users (id) SELECT unnest($1::uuid[])`, [[IDS.owner, IDS.otherOwner, IDS.allowed, IDS.revoked, IDS.noMembership, IDS.veterinarian]]);
   await database.query(`INSERT INTO clinic_schema.clinics (id, legal_name, public_name) VALUES ($1::uuid, 'Queue LLC', 'Queue clinic'), ($2::uuid, 'Other LLC', 'Other clinic')`, [IDS.clinic, IDS.otherClinic]);
   await database.query(`INSERT INTO clinic_schema.clinic_locations (id, clinic_id, address) VALUES ($1::uuid, $2::uuid, 'Queue address'), ($3::uuid, $2::uuid, 'Other location'), ($4::uuid, $5::uuid, 'Other clinic address')`, [IDS.location, IDS.clinic, IDS.otherLocation, IDS.otherClinicLocation, IDS.otherClinic]);

@@ -8,5 +8,6 @@ import { HoldExpirationService } from './hold-expiration.service';
   imports: [AuthModule, BookingCoreModule],
   controllers: [WorkerRoutesController],
   providers: [HoldExpirationService],
+  exports: [HoldExpirationService],
 })
 export class WorkersModule {}

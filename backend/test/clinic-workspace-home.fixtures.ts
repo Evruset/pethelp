@@ -1,4 +1,5 @@
 import { DatabaseService } from '../src/database/database.service';
+import { resetBookingPersistence } from './helpers/booking-test-reset';
 
 export const WORKSPACE_IDS = {
   owner: '81000000-0000-4000-8000-000000000001',
@@ -24,7 +25,7 @@ export const WORKSPACE_IDS = {
 export async function resetWorkspaceFixtures(database: DatabaseService): Promise<void> {
   const id = WORKSPACE_IDS;
   await database.query('TRUNCATE clinic_schema.clinics, pet_schema.pets, identity_schema.users CASCADE');
-  await database.query('TRUNCATE booking_schema.outbox_events, booking_schema.idempotency_records, audit_schema.audit_log');
+  await resetBookingPersistence(database);
   await database.query('INSERT INTO identity_schema.users (id) SELECT unnest($1::uuid[])', [[id.owner, id.receptionist, id.admin, id.veterinarian, id.revoked, id.noMembership, id.inactive]]);
   await database.query(`INSERT INTO clinic_schema.clinics (id, legal_name, public_name, timezone) VALUES ($1, 'Workspace LLC', 'Workspace', 'Europe/Moscow'), ($2, 'Other LLC', 'Other', 'UTC')`, [id.clinic, id.otherClinic]);
   await database.query(`INSERT INTO clinic_schema.clinic_locations (id, clinic_id, address) VALUES ($1,$2,'Main'),($3,$2,'Other'),($4,$5,'Foreign')`, [id.location, id.clinic, id.otherLocation, id.otherClinicLocation, id.otherClinic]);
