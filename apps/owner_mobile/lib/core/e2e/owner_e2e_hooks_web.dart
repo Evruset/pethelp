@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'dart:js' as js;
+import 'dart:js_util' as js_util;
 
 final Map<String, FutureOr<void> Function()> _callbacks =
     <String, FutureOr<void> Function()>{};
@@ -33,7 +34,7 @@ void setOwnerE2EMarker(String name, String value) {
 void _syncWindowObject() {
   final api = js.JsObject.jsify(<String, Object?>{});
   for (final entry in _callbacks.entries) {
-    api[entry.key] = js.allowInterop(() {
+    api[entry.key] = js_util.allowInterop(() {
       js.context['vethelpOwnerE2ELastAction'] = entry.key;
       js.context['vethelpOwnerE2ELastError'] = null;
       try {
