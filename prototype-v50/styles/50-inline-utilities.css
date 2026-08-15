@@ -109,3 +109,133 @@
 
   .mobile-bottom-nav.has-clinic-route { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 }
+
+/* Mobile clinic card density: keep care-fit close to the clinic identity,
+   not after slots and pricing. display:contents lets the main-card children
+   participate in the parent grid without changing desktop markup. */
+@layer utilities {
+  @media (max-width:760px) {
+    #catalog .v40-clinic-result {
+      grid-template-columns:minmax(0,1fr)!important;
+      gap:10px!important;
+      padding:12px!important;
+      border-radius:22px!important;
+    }
+
+    #catalog .v40-clinic-photo {
+      order:0;
+      min-height:152px!important;
+      border-radius:18px!important;
+    }
+
+    #catalog .v40-clinic-main {
+      display:contents!important;
+    }
+
+    #catalog .v40-clinic-title-row {
+      order:1;
+      display:grid!important;
+      grid-template-columns:minmax(0,1fr) auto!important;
+      align-items:center!important;
+      gap:6px 8px!important;
+      min-width:0;
+    }
+
+    #catalog .v40-clinic-title-row h3 {
+      min-width:0;
+      margin:0!important;
+      font-size:18px!important;
+      line-height:1.16!important;
+      overflow-wrap:anywhere;
+    }
+
+    #catalog .v40-clinic-title-row .pill {
+      min-height:28px!important;
+      padding:0 8px!important;
+      font-size:10px!important;
+      line-height:1.1!important;
+      white-space:nowrap;
+    }
+
+    #catalog .v40-clinic-main > p {
+      order:2;
+      margin:0!important;
+      color:#66758d!important;
+      font-size:12px!important;
+      line-height:1.3!important;
+    }
+
+    #catalog .v40-care-fit {
+      order:3;
+      display:grid!important;
+      grid-template-columns:auto minmax(0,1fr)!important;
+      align-items:center!important;
+      justify-content:stretch!important;
+      gap:3px 7px!important;
+      min-width:0;
+      padding:8px 10px!important;
+      border-radius:14px!important;
+      border-color:rgba(8,150,105,.16)!important;
+      background:rgba(8,150,105,.065)!important;
+    }
+
+    #catalog .v40-care-fit strong {
+      grid-column:1;
+      grid-row:1;
+      font-size:20px!important;
+      line-height:1!important;
+      letter-spacing:-.035em!important;
+    }
+
+    #catalog .v40-care-fit small {
+      grid-column:2;
+      grid-row:1;
+      min-width:0;
+      color:#486177!important;
+      font-size:10px!important;
+      font-weight:850!important;
+      line-height:1.15!important;
+      letter-spacing:0!important;
+      text-transform:none!important;
+      overflow-wrap:anywhere;
+    }
+
+    #catalog .v40-care-fit p {
+      grid-column:1 / -1;
+      grid-row:2;
+      display:-webkit-box!important;
+      min-width:0;
+      margin:1px 0 0!important;
+      color:#40536a!important;
+      font-size:11px!important;
+      line-height:1.28!important;
+      -webkit-box-orient:vertical;
+      -webkit-line-clamp:2;
+      overflow:hidden;
+    }
+
+    #catalog .v40-badges {
+      order:4;
+      gap:6px!important;
+    }
+
+    #catalog .v40-badges span {
+      min-height:28px!important;
+      padding-inline:8px!important;
+      font-size:11px!important;
+    }
+
+    #catalog .v40-slot-strip { order:5; }
+    #catalog .v40-clinic-footer { order:6; }
+  }
+
+  @media (max-width:380px) {
+    #catalog .v40-clinic-title-row {
+      grid-template-columns:1fr!important;
+    }
+
+    #catalog .v40-clinic-title-row .pill {
+      justify-self:start;
+    }
+  }
+}
