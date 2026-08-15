@@ -36,6 +36,9 @@ jobs:
     env:
       DATABASE_URL: postgres://vethelp:vethelp@localhost:5432/vethelp
       JWT_SECRET: b01-test-jwt-secret-at-least-32-bytes-long
+      AUTH_OTP_PEPPER: ci-test-otp-pepper-domain-key-v1-0123456789
+      OWNER_PET_IDEMPOTENCY_HMAC_KEY: ci-test-owner-pet-idempotency-hmac-key-v1-0123456789
+      AUTH_OTP_ANTI_FRAUD_PEPPER: ci-test-otp-anti-fraud-domain-key-v1-0123456789
       JWT_ISSUER: vethelp-ci-auth
       JWT_AUDIENCE: vethelp-ci-api
       WORKER_SERVICE_TOKEN: b01-test-worker-service-token

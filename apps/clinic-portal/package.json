@@ -31,5 +31,8 @@
     "allure-playwright": "^3.10.2",
     "tailwindcss": "^4.1.0",
     "typescript": "^5.9.0"
+  },
+  "optionalDependencies": {
+    "lightningcss-linux-x64-gnu": "1.32.0"
   }
 }

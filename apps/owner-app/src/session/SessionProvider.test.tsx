@@ -59,12 +59,17 @@ function SessionProbe() {
   );
 }
 
-async function renderSession(store: SessionStore, queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } }),authority=createAuthority()) {
+async function renderSession(
+  store: SessionStore,
+  queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } }),
+  authority = createAuthority(),
+  now: () => number = () => 1_000,
+) {
   return {
     queryClient,
     view: await render(
       <QueryClientProvider client={queryClient}>
-        <SessionProvider store={store} now={() => 1_000} authority={authority}>
+        <SessionProvider store={store} now={now} authority={authority}>
           <SessionNavigation />
           <SessionProbe />
         </SessionProvider>
@@ -310,17 +315,26 @@ it('serializes logout and re-authentication so a pending delete cannot erase a n
 it('expires an active session, clears its storage and removes only its owner cache scope', async () => {
   jest.useFakeTimers();
   try {
+    let nowMs = 1_000;
     const expiring = { ...VALID_SESSION, expiresAtEpochMs: 2_000 };
     const store = createStore(expiring);
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
     queryClient.setQueryData(ownerQueryKey('owner-scope-a', 'bookings'), ['private-a']);
     queryClient.setQueryData(['catalog', 'clinics'], ['public']);
-    const { view } = await renderSession(store, queryClient);
+    const { view } = await renderSession(
+      store,
+      queryClient,
+      createAuthority(),
+      () => nowMs,
+    );
     await act(async () => { jest.advanceTimersByTime(0); });
     expect(view.getByText('route:(app)')).toBeTruthy();
 
-    await act(async () => { jest.advanceTimersByTime(1_001); });
-    await waitFor(() => expect(view.getByText('route:(public)')).toBeTruthy());
+    await act(async () => {
+      nowMs = 2_001;
+      await jest.advanceTimersByTimeAsync(1_001);
+    });
+    expect(view.getByText('route:(public)')).toBeTruthy();
     expect(store.clear).toHaveBeenCalledTimes(1);
     expect(queryClient.getQueryData(ownerQueryKey('owner-scope-a', 'bookings'))).toBeUndefined();
     expect(queryClient.getQueryData(['catalog', 'clinics'])).toEqual(['public']);
