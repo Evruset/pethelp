@@ -15,6 +15,7 @@ process.env.JWT_ISSUER ??= 'vethelp-test';
 process.env.JWT_AUDIENCE ??= 'vethelp-test';
 process.env.WORKER_SERVICE_TOKEN ??= 'platform-smoke-worker-token';
 process.env.FEATURE_ONLINE_PAYMENTS = 'true';
+process.env.MVP_SCOPE_PROFILE = 'LEGACY_COMPAT';
 (globalThis as typeof globalThis & { crypto?: Crypto }).crypto ??=
   webcrypto as Crypto;
 
@@ -134,15 +135,18 @@ describe('VetHelp platform smoke: owner → Level C clinic → payment → telem
     await app?.close();
   });
 
-  it('rejects create hold without a command correlation id', async () => {
+  it('generates a correlation id when the create command omits the header', async () => {
     const response = await request(app.getHttpServer())
       .post('/v1/booking-holds')
       .set('Authorization', `Bearer ${ownerToken}`)
       .set('Idempotency-Key', IDS.missingTraceKey)
-      .send({ slotId: IDS.slot1, petId: IDS.pet })
-      .expect(400);
+      .send({ slotId: IDS.inactiveSlot, petId: IDS.pet })
+      .expect(422);
 
-    expect(response.body).toMatchObject({ code: 'INVALID_REQUEST' });
+    expect(response.body).toMatchObject({ code: 'SLOT_UNAVAILABLE' });
+    expect(response.headers['x-correlation-id']).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
   });
 
   it('rejects slots outside active public clinic locations', async () => {

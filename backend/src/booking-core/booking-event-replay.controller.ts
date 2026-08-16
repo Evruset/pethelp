@@ -57,7 +57,7 @@ export class BookingEventReplayController {
 
   @Get('booking-holds/:holdId/events')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SYSTEM_WORKER)
+  @Roles(Role.OWNER, Role.CLINIC_RECEPTIONIST, Role.CLINIC_ADMIN, Role.SYSTEM_WORKER)
   @ApiBearerAuth(SWAGGER_BEARER_AUTH)
   @ApiOperation({ summary: 'Replay versioned booking events for one hold after reconnect' })
   @ApiParam({ name: 'holdId', type: 'string', format: 'uuid' })

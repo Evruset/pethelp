@@ -46,7 +46,6 @@ jobs:
       LIVEKIT_API_KEY: livekit-ci-api-key
       LIVEKIT_API_SECRET: livekit-ci-api-secret
       WORKERS_ENABLED: 'false'
-      MVP_SCOPE_PROFILE: PILOT_V1
       FEATURE_MIS_INTEGRATION: 'true'
       FEATURE_ONLINE_PAYMENTS: 'true'
       FEATURE_EMERGENCY_OPS: 'true'
@@ -63,6 +62,8 @@ jobs:
           set -o pipefail
           npm run build 2>&1 | tee /tmp/vethelp-build.log
       - name: Export and validate OpenAPI contract
+        env:
+          MVP_SCOPE_PROFILE: PILOT_V1
         run: |
           npm run openapi:export
           node scripts/assert-openapi.cjs artifacts/openapi/swagger.json

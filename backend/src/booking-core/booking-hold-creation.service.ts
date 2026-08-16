@@ -137,6 +137,9 @@ export class BookingHoldCreationService {
         if (service.rows[0].supported_species && !service.rows[0].supported_species.includes(pet.rows[0].species)) {
           throw DomainErrors.serviceNotAvailable();
         }
+
+        await this.assertNoActiveHoldForSlot(client, input.ownerId, input.slotId, now);
+
         if (slot.capacity - slot.booked_count - slot.held_count <= 0) {
           throw DomainErrors.slotAlreadyTaken();
         }
@@ -152,8 +155,6 @@ export class BookingHoldCreationService {
           `, [input.doctorId, slot.clinic_location_id]);
           if (!doctor.rows[0]) throw DomainErrors.doctorNotAvailable();
         }
-
-        await this.assertNoActiveHoldForSlot(client, input.ownerId, input.slotId, now);
 
         const integrationMode = slot.integration_mode ?? (clinic.rows[0].mis_type ? 'LEVEL_A' : 'LEVEL_C');
         const requiresMisReservation = mvpScope.capabilities.mis && integrationMode !== 'LEVEL_C';

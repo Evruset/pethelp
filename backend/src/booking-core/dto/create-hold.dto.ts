@@ -41,7 +41,7 @@ export class CreateHoldDto {
   serviceId?: string;
 
   @ApiProperty({ format: 'uuid', nullable: true, required: false, description: 'Legacy doctor selection.' })
-  @ValidateIf(() => !mvpScope.pilot)
+  @ValidateIf((_object, value) => !mvpScope.pilot && value != null)
   @IsUUID('4')
   doctorId?: string | null;
 }
