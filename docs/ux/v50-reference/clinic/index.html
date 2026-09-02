@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>VetHelp Clinic — V50</title>
+<meta content="v3 — state model, accessibility, responsive layout and export policy" name="vethelp-audit-hardening"/>
+<link href="assets/css/app.css" rel="stylesheet"/>
+
+<meta content="v50-clinic-standalone" name="vethelp-prototype-version"/><meta content="v50-clinic-standalone" name="vethelp-build"/><link href="assets/css/clinic-only.css" rel="stylesheet"/><link href="assets/css/clinic-polish.css" rel="stylesheet"/><link href="assets/css/clinic-simple.css" rel="stylesheet"/><link href="assets/css/behavioral-layer.css" rel="stylesheet"/><link href="assets/css/clinic-ux-guideline.css" rel="stylesheet"/></head>
+<body class="v36-refactored-final v38-simplified-navigation v48-clinic-admin v49-clinic-client-alignment v50-clinic-role-workspaces vethelp-clinic-only" data-clinic-role="reception">
+
+
+<svg aria-hidden="true" class="vh-icon-defs" focusable="false" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<symbol id="i-find-clinic" viewbox="0 0 24 24">
+<path d="M3.5 20.2V9.8h4V5.2h8.1v4.6h4v10.4"></path>
+<path d="M2.6 20.2h13.1M11.5 7.4v4.1M9.45 9.45h4.1M6.8 20.2v-4.4h2.7v4.4"></path>
+<circle cx="17.7" cy="17.1" r="3.1"></circle>
+<path d="m20 19.4 2.1 2.1"></path>
+</symbol>
+<symbol id="i-telemed-consult" viewbox="0 0 24 24">
+<rect height="18.4" rx="2.3" width="10.2" x="4.1" y="2.8"></rect>
+<path d="M7.9 6.9h2.7M9.25 5.55v2.7M8.1 17.5h2.2"></path>
+<path d="M17.7 7.2v4a2.45 2.45 0 0 1-4.9 0v-4M17.7 7.2h1.15a1.1 1.1 0 0 1 1.1 1.1v1.05M12.8 7.2h-1.1a1.1 1.1 0 0 0-1.1 1.1v1.05"></path>
+<path d="M15.25 13.65v1.05a2.8 2.8 0 0 0 5.6 0v-1.3"></path>
+<circle cx="20.85" cy="12.2" r="1.45"></circle>
+</symbol>
+<symbol id="i-emergency-heart" viewbox="0 0 24 24">
+<path d="M12 20.9 4.9 14.2A5 5 0 0 1 12 7.25a5 5 0 0 1 7.1 6.95Z"></path>
+<path d="M3.2 13.1h4.1l1.4-2.5 2.1 5 2-3.5h2.1l1.3-2.1 1.1 3.1h3.6"></path>
+</symbol>
+<symbol id="i-emergency-route" viewbox="0 0 24 24">
+<path d="M5.2 17.9h7.1c2.2 0 3.6-1.4 3.6-3.4 0-1.9-1.3-3.2-3.3-3.2H10.3c-1.7 0-2.8-1.1-2.8-2.7s1.2-2.7 2.8-2.7h3.2"></path>
+<circle cx="6" cy="18" r="1.25"></circle>
+<path d="M17.3 2.8a3.15 3.15 0 0 0-3.15 3.15c0 2.25 3.15 5.4 3.15 5.4s3.15-3.15 3.15-5.4A3.15 3.15 0 0 0 17.3 2.8Z"></path>
+<circle cx="17.3" cy="5.95" fill="currentColor" r=".8" stroke="none"></circle>
+<path d="M3.2 18.2v-3.3l1.25-1.4h4.4l1.1 1.4v3.3ZM4.5 14.9h4.1M5.2 18.2v-1.2M8 18.2v-1.2M6.6 15.8v1.1"></path>
+<path d="M6.6 15.25v1.1M6.05 15.8h1.1"></path>
+</symbol>
+<symbol id="i-lab-results" viewbox="0 0 24 24">
+<path d="M4.3 3.3h9.2l3.7 3.8v13.6H4.3Z"></path>
+<path d="M13.5 3.3v3.8h3.7M7.3 10.5h5.4M7.3 13.25h4.5"></path>
+<path d="m8.1 17.2 1.55 1.55 3.1-3.15"></path>
+<path d="M19.2 7.6v8.05a2.05 2.05 0 0 1-4.1 0V7.6ZM15.1 7.6h4.1M16.15 11.15h2.05"></path>
+</symbol>
+<symbol id="i-ultrasound-probe" viewbox="0 0 24 24">
+<path d="M9.1 3.4h5.8v6.8a2.1 2.1 0 0 1-2.1 2.1h-1.6a2.1 2.1 0 0 1-2.1-2.1V3.4Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M12 12.4v1.1" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M9 15.6c2 1.45 4 1.45 6 0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M7.3 18c3.15 2.25 6.25 2.25 9.4 0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M5.7 20.4c4.2 3 8.4 3 12.6 0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</symbol>
+<symbol id="i-scalpel-balanced" viewbox="0 0 24 24">
+<path d="m14.3 4.2 5.5 5.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="m5.1 19.2 8.4-8.4 3.3 3.3-8.4 8.4H5.1Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="m12.1 12.2-3.5-3.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</symbol>
+</defs>
+</svg>
+<svg aria-hidden="true" class="vh-icon-defs" focusable="false" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<symbol id="i-spark" viewbox="0 0 24 24">
+<path d="M12 2.8 13.8 9 20 10.8 13.8 12.6 12 18.8 10.2 12.6 4 10.8 10.2 9Z"></path>
+<path d="m18.4 16.2.7 2.2 2.1.7-2.1.7-.7 2.1-.7-2.1-2.1-.7 2.1-.7Z"></path>
+</symbol>
+<symbol id="i-home" viewbox="0 0 24 24">
+<path d="m3.5 10.4 8.5-7.2 8.5 7.2v9.1a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5Z"></path>
+<path d="M9.4 21v-6.1h5.2V21"></path>
+</symbol>
+<symbol id="i-clinic" viewbox="0 0 24 24">
+<path d="M3.5 20.5V9.4h4.1V4.2h8.8v5.2h4.1v11.1"></path>
+<path d="M2.5 20.5h19"></path>
+<path d="M12 7.1v4.2M9.9 9.2h4.2"></path>
+<path d="M7.6 20.5v-5.1h2.7v5.1M13.7 20.5v-5.1h2.7v5.1"></path>
+</symbol>
+<symbol id="i-search" viewbox="0 0 24 24">
+<circle cx="10.5" cy="10.5" r="6.7"></circle>
+<path d="m15.4 15.4 5.2 5.2"></path>
+</symbol>
+<symbol id="i-pin" viewbox="0 0 24 24">
+<path d="M19.5 10.2c0 5.4-7.5 10.8-7.5 10.8S4.5 15.6 4.5 10.2a7.5 7.5 0 1 1 15 0Z"></path>
+<circle cx="12" cy="10.2" r="2.4"></circle>
+<path d="M4.1 21.3c2.6-1 5.2-1.5 7.9-1.5s5.3.5 7.9 1.5"></path>
+</symbol>
+<symbol id="i-calendar" viewbox="0 0 24 24">
+<rect height="15.1" rx="2.2" width="17" x="3.5" y="5.3"></rect>
+<path d="M7.6 3v4.6M16.4 3v4.6M3.5 10h17"></path>
+<circle cx="8" cy="14.2" fill="currentColor" r=".8" stroke="none"></circle>
+<circle cx="12" cy="14.2" fill="currentColor" r=".8" stroke="none"></circle>
+<circle cx="16" cy="14.2" fill="currentColor" r=".8" stroke="none"></circle>
+<circle cx="8" cy="17.6" fill="currentColor" r=".8" stroke="none"></circle>
+<circle cx="12" cy="17.6" fill="currentColor" r=".8" stroke="none"></circle>
+<circle cx="16" cy="17.6" fill="currentColor" r=".8" stroke="none"></circle>
+</symbol>
+<symbol id="i-clock" viewbox="0 0 24 24">
+<circle cx="12" cy="12" r="8.6"></circle>
+<path d="M12 7v5.2l3.7 2.2"></path>
+</symbol>
+<symbol id="i-paw" viewbox="0 0 24 24">
+<ellipse cx="12" cy="15.8" rx="4.8" ry="3.9"></ellipse>
+<ellipse cx="5.7" cy="10.7" rx="1.9" ry="2.6"></ellipse>
+<ellipse cx="10" cy="7.8" rx="1.9" ry="2.6"></ellipse>
+<ellipse cx="14" cy="7.8" rx="1.9" ry="2.6"></ellipse>
+<ellipse cx="18.3" cy="10.7" rx="1.9" ry="2.6"></ellipse>
+</symbol>
+<symbol id="i-dog" viewbox="0 0 24 24">
+<path d="M6.7 7.3 3.8 8.8l1.4 5.3c.8 3.3 3.5 5.4 6.8 5.4s6-2.1 6.8-5.4l1.4-5.3-2.9-1.5"></path>
+<path d="M7.4 6.4c1.3-1.3 2.8-2 4.6-2s3.3.7 4.6 2"></path>
+<circle cx="9.2" cy="11.4" fill="currentColor" r=".8" stroke="none"></circle>
+<circle cx="14.8" cy="11.4" fill="currentColor" r=".8" stroke="none"></circle>
+<path d="M11.1 14.1c.5-.4 1.3-.4 1.8 0-.1 1.4-.5 2.2-.9 2.2s-.8-.8-.9-2.2Z"></path>
+<path d="M9.9 16.7c.7.6 1.4.9 2.1.9s1.4-.3 2.1-.9"></path>
+</symbol>
+<symbol id="i-cat" viewbox="0 0 24 24">
+<path d="m5.4 8.6.7-4.2 3.1 2A9 9 0 0 1 12 6c1 0 1.9.2 2.8.5l3.1-2 .7 4.2a7.4 7.4 0 0 1 .7 3.1c0 4.3-3.2 7.5-7.3 7.5s-7.3-3.2-7.3-7.5c0-1.1.2-2.2.7-3.2Z"></path>
+<circle cx="9.2" cy="11.8" fill="currentColor" r=".75" stroke="none"></circle>
+<circle cx="14.8" cy="11.8" fill="currentColor" r=".75" stroke="none"></circle>
+<path d="M11.1 14.2c.5-.4 1.3-.4 1.8 0-.2 1-.5 1.5-.9 1.5s-.7-.5-.9-1.5Z"></path>
+<path d="M7.4 14.8 4.2 14M7.4 16.7l-3 1M16.6 14.8l3.2-.8M16.6 16.7l3 1"></path>
+</symbol>
+<symbol id="i-pet-card" viewbox="0 0 24 24">
+<rect height="14" rx="2.2" width="18" x="3" y="5"></rect>
+<path d="M14.4 9.2h3.5M14.4 12h3.5M14.4 14.8h2.2"></path>
+<path d="M8.5 11.2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2Z"></path>
+<path d="M6.5 9.2c0-.7.5-1.2 1.1-1.2s1.1.5 1.1 1.2M9.4 9.2c0-.7.5-1.2 1.1-1.2s1.1.5 1.1 1.2"></path>
+</symbol>
+<symbol id="i-stethoscope" viewbox="0 0 24 24">
+<path d="M8 4v5.4a4 4 0 0 0 8 0V4"></path>
+<path d="M8 4H6.6a1.2 1.2 0 0 0-1.2 1.2v1.5M16 4h1.4a1.2 1.2 0 0 1 1.2 1.2v1.5"></path>
+<path d="M12 13.4v1.9a4.3 4.3 0 0 0 8.6 0v-2"></path>
+<circle cx="20.6" cy="12.7" r="1.8"></circle>
+</symbol>
+<symbol id="i-video" viewbox="0 0 24 24">
+<rect height="11" rx="2.2" width="13.5" x="3" y="6.5"></rect>
+<path d="m16.5 10 4.5-2.5v9L16.5 14Z"></path>
+<path d="M9.75 9.1v5.8M6.85 12h5.8"></path>
+</symbol>
+<symbol id="i-message" viewbox="0 0 24 24">
+<path d="M4.1 5.2h15.8c.9 0 1.6.7 1.6 1.6v8.4c0 .9-.7 1.6-1.6 1.6H10l-5.1 3.4v-3.4H4.1c-.9 0-1.6-.7-1.6-1.6V6.8c0-.9.7-1.6 1.6-1.6Z"></path>
+<circle cx="8" cy="11" fill="currentColor" r=".85" stroke="none"></circle>
+<circle cx="12" cy="11" fill="currentColor" r=".85" stroke="none"></circle>
+<circle cx="16" cy="11" fill="currentColor" r=".85" stroke="none"></circle>
+</symbol>
+<symbol id="i-siren" viewbox="0 0 24 24">
+<path d="M7.2 16.8h9.6l-1-6.5a4.2 4.2 0 0 0-7.6 0Z"></path>
+<path d="M5.2 19.2h13.6M12 4.2v-2M6 6.6 4.5 5.1M18 6.6l1.5-1.5M4.6 11.2H2.5M21.5 11.2h-2.1"></path>
+<path d="M12 10.2v3.7M10.15 12.05h3.7"></path>
+</symbol>
+<symbol id="i-shield-check" viewbox="0 0 24 24">
+<path d="M12 3.2 19 6v5.6c0 4.2-2.7 7.4-7 9.2-4.3-1.8-7-5-7-9.2V6Z"></path>
+<path d="m8.7 12.1 2.1 2.1 4.6-4.7"></path>
+</symbol>
+<symbol id="i-card" viewbox="0 0 24 24">
+<rect height="13" rx="2.2" width="18" x="3" y="5.5"></rect>
+<path d="M3 9.5h18M6.6 14.4h4.5M6.6 16.7h2.8"></path>
+</symbol>
+<symbol id="i-document" viewbox="0 0 24 24">
+<path d="M6 3.3h8.1L19 8.2v12.5H6Z"></path>
+<path d="M14.1 3.3v4.9H19M8.7 12h6.6M8.7 15.3h6.6"></path>
+</symbol>
+<symbol id="i-bell" viewbox="0 0 24 24">
+<path d="M18.2 16.4H5.8l1.3-1.7V10a4.9 4.9 0 1 1 9.8 0v4.7Z"></path>
+<path d="M10 19.1c.4.8 1.1 1.2 2 1.2s1.6-.4 2-1.2M12 3V1.8"></path>
+</symbol>
+<symbol id="i-user" viewbox="0 0 24 24">
+<circle cx="12" cy="7.4" r="3.6"></circle>
+<path d="M4.2 20.2c.7-4.2 3.4-6.3 7.8-6.3s7.1 2.1 7.8 6.3"></path>
+</symbol>
+<symbol id="i-settings" viewbox="0 0 24 24">
+<circle cx="12" cy="12" r="3.1"></circle>
+<path d="M19 13.5a7.4 7.4 0 0 0 .1-1.5 7.4 7.4 0 0 0-.1-1.5l2-1.5-2-3.4-2.4 1a8.2 8.2 0 0 0-2.6-1.5L13.6 2h-4l-.4 3.1a8.2 8.2 0 0 0-2.6 1.5l-2.4-1-2 3.4 2 1.5A7.4 7.4 0 0 0 4.1 12c0 .5 0 1 .1 1.5l-2 1.5 2 3.4 2.4-1a8.2 8.2 0 0 0 2.6 1.5l.4 3.1h4l.4-3.1a8.2 8.2 0 0 0 2.6-1.5l2.4 1 2-3.4Z"></path>
+</symbol>
+<symbol id="i-check-circle" viewbox="0 0 24 24">
+<circle cx="12" cy="12" r="8.6"></circle>
+<path d="m8.1 12.1 2.5 2.5 5.3-5.4"></path>
+</symbol>
+<symbol id="i-pencil" viewbox="0 0 24 24">
+<path d="m4 17.9-.8 2.9 2.9-.8L18.6 7.5l-2.1-2.1Z"></path>
+<path d="m15 5 2.1-2.1a1.5 1.5 0 0 1 2.1 0l1 1a1.5 1.5 0 0 1 0 2.1L18.1 8"></path>
+<path d="M3.2 21h17.6"></path>
+</symbol>
+<symbol id="i-upload" viewbox="0 0 24 24">
+<path d="M6 3.3h8.1L19 8.2v12.5H6Z"></path>
+<path d="M14.1 3.3v4.9H19M12.5 17.4V10.2M9.6 13.1l2.9-2.9 2.9 2.9"></path>
+</symbol>
+<symbol id="i-history" viewbox="0 0 24 24">
+<path d="M4.1 10.4a8.2 8.2 0 1 1 .7 5.8"></path>
+<path d="M4.1 5.1v5.3h5.3M12 7.5v4.8l3.3 1.9"></path>
+</symbol>
+<symbol id="i-phone" viewbox="0 0 24 24">
+<path d="M7.1 3.7 4.8 5.1c-1.2.8-.4 4.2 1.7 7.8s5.2 6.6 6.6 6.5l2.5-1.7-2.2-3.2-2.1.8a14.5 14.5 0 0 1-2.6-2.8 14.2 14.2 0 0 1-1.6-3.5l1.6-1.5Z"></path>
+</symbol>
+<symbol id="i-help" viewbox="0 0 24 24">
+<circle cx="12" cy="12" r="8.6"></circle>
+<path d="M9.4 9.4a2.7 2.7 0 1 1 4.9 1.6c-.9 1.1-2.3 1.5-2.3 3.1"></path>
+<circle cx="12" cy="17.1" fill="currentColor" r=".85" stroke="none"></circle>
+</symbol>
+<symbol id="i-chevron-right" viewbox="0 0 24 24">
+<path d="m9 5 7 7-7 7"></path>
+</symbol>
+<symbol id="i-check" viewbox="0 0 24 24">
+<path d="m5 12.5 4.1 4.1L19 6.7"></path>
+</symbol>
+</defs>
+<svg aria-hidden="true" class="vh-icon-defs vh-icon-defs--v30" focusable="false" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<symbol id="i-mic" viewbox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M6 11.5a6 6 0 0 0 12 0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M12 17.5V21" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M8.5 21h7" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></symbol><symbol id="i-mic-off" viewbox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v2.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M15 9.8V12a3 3 0 0 1-4.8 2.4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M6 11.5a6 6 0 0 0 9.6 4.8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M12 17.5V21" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M8.5 21h7" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M4 4l16 16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></symbol><symbol id="i-video-off" viewbox="0 0 24 24"><rect fill="none" height="12" rx="3" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="12" x="3" y="6"></rect><path d="m15 10 5-3v10l-5-3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M4 4l16 16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></symbol><symbol id="i-camera-switch" viewbox="0 0 24 24"><rect fill="none" height="10" rx="2.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="12" x="3" y="7"></rect><path d="m15 10 5-3v10l-5-3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M8 12h3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="m9.8 10.2 1.8 1.8-1.8 1.8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></symbol><symbol id="i-speaker" viewbox="0 0 24 24"><path d="M5 10h3.5L13 6v12l-4.5-4H5Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M16 9a4 4 0 0 1 0 6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M18.5 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></symbol><symbol id="i-chat" viewbox="0 0 24 24"><path d="M6 7.5h12a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3H12l-4 3v-3H6a3 3 0 0 1-3-3v-4a3 3 0 0 1 3-3Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M8.5 12h7" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></symbol><symbol id="i-end-call" viewbox="0 0 24 24"><path d="M4.2 14.3c1.8-1.7 4.6-2.8 7.8-2.8s6 1.1 7.8 2.8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M6.5 14 8 18.2h2.2l.8-2.4h1.9l.8 2.4H16l1.5-4.2" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></symbol><symbol id="i-poor-connection" viewbox="0 0 24 24"><path d="M5 18h2.5M9.5 14h2.5M14 10h2.5M18.5 6H21" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M18 18H21" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M3 20.5 20.5 3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></symbol><symbol id="i-reconnect" viewbox="0 0 24 24"><path d="M20 8V4h-4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M4 16v4h4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M19 13a7 7 0 0 0-12-4l-1 1" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M5 11a7 7 0 0 0 12 4l1-1" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></symbol><symbol id="i-syringe" viewbox="0 0 24 24"><path d="m16 3 5 5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="m14.5 4.5 5 5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="m4 20 8.8-8.8 3.8 3.8L7.8 23" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M10 8l6 6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></symbol><symbol id="i-scalpel" viewbox="0 0 24 24"><path d="m14 4 6 6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="m5 19 8.8-8.8 3 3L8 22H5Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M11 13 6 8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></symbol><symbol id="i-oxygen" viewbox="0 0 24 24"><rect fill="none" height="14" rx="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="8" x="8" y="4"></rect><path d="M10 8h4M12 4V2" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><circle cx="12" cy="12.5" fill="none" r="2.3" stroke="currentColor" stroke-width="2"></circle></symbol><symbol id="i-inpatient" viewbox="0 0 24 24"><path d="M4 15h16v4H4z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M4 11h9a3 3 0 0 1 3 3H4Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M6.5 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" fill="none" stroke="currentColor" stroke-width="2"></path><path d="M18 7v3M16.5 8.5h3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></symbol><symbol id="i-xray" viewbox="0 0 24 24"><rect fill="none" height="18" rx="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="16" x="4" y="3"></rect><path d="M12 6v12M9 8.5l3 2 3-2M9 15.5l3-2 3 2" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M8 12h8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></symbol><symbol id="i-ultrasound" viewbox="0 0 24 24"><rect fill="none" height="10" rx="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="10" x="4" y="5"></rect><path d="M14 9c2-1 4.5.5 5 2.8M17 17l2-2.5v-4.2" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M6 9.5c2-1.2 4-.4 5.2 1.2-1.4 1.7-3.4 2.6-5.2 1.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></symbol><symbol id="i-heart-paw" viewbox="0 0 24 24"><path d="M12 20s-6.8-4.3-8.7-8.5C1.7 8 4 4.7 7.4 4.7c1.9 0 3.2.9 4.6 2.7 1.4-1.8 2.7-2.7 4.6-2.7 3.4 0 5.7 3.3 4.1 6.8C18.8 15.7 12 20 12 20Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><circle cx="9.2" cy="11.2" fill="currentColor" r="0.9"></circle><circle cx="11.5" cy="10.4" fill="currentColor" r="0.9"></circle><circle cx="13.8" cy="11.2" fill="currentColor" r="0.9"></circle><path d="M10 13.3c.8-.9 3.2-.9 4 0 .3.4.3 1 0 1.4-.6.8-1.5 1.2-2 1.2s-1.4-.4-2-1.2a1.2 1.2 0 0 1 0-1.4Z" fill="currentColor"></path></symbol><symbol id="i-dermatology" viewbox="0 0 24 24"><path d="M12 21c-4.5 0-7-2.9-7-6.7 0-4.4 2.6-6.1 4.7-7.6.9-.7 1.8-1.4 2.3-2.7.5 1.3 1.4 2 2.3 2.7 2 1.5 4.7 3.2 4.7 7.6 0 3.8-2.5 6.7-7 6.7Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M9.5 12.5c1.3-.9 3.7-.9 5 0M10.5 15.5h3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></symbol><symbol id="i-cardiology" viewbox="0 0 24 24"><path d="M12 20s-6.8-4.3-8.7-8.5C1.7 8 4 4.7 7.4 4.7c1.9 0 3.2.9 4.6 2.7 1.4-1.8 2.7-2.7 4.6-2.7 3.4 0 5.7 3.3 4.1 6.8C18.8 15.7 12 20 12 20Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M6.5 11.5h2.5l1.2-2.2 2.1 5 1.5-2.8h3.7" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></symbol><symbol id="i-cross-med" viewbox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"></path></symbol><symbol id="i-grid" viewbox="0 0 24 24">
+<rect height="6.4" rx="1.3" width="6.4" x="3.5" y="3.5"></rect>
+<rect height="6.4" rx="1.3" width="6.4" x="14.1" y="3.5"></rect>
+<rect height="6.4" rx="1.3" width="6.4" x="3.5" y="14.1"></rect>
+<rect height="6.4" rx="1.3" width="6.4" x="14.1" y="14.1"></rect>
+</symbol><symbol id="i-wifi" viewbox="0 0 24 24">
+<path d="M3.7 9.5a12.4 12.4 0 0 1 16.6 0"></path>
+<path d="M6.6 12.7a8.2 8.2 0 0 1 10.8 0"></path>
+<path d="M9.5 15.8a4.1 4.1 0 0 1 5 0"></path>
+<circle cx="12" cy="19" fill="currentColor" r="1" stroke="none"></circle>
+</symbol><symbol id="i-list" viewbox="0 0 24 24">
+<circle cx="5" cy="6.2" fill="currentColor" r="1" stroke="none"></circle>
+<circle cx="5" cy="12" fill="currentColor" r="1" stroke="none"></circle>
+<circle cx="5" cy="17.8" fill="currentColor" r="1" stroke="none"></circle>
+<path d="M9 6.2h10M9 12h10M9 17.8h10"></path>
+</symbol><symbol id="i-map" viewbox="0 0 24 24">
+<path d="m3.5 5.2 5.7-2 5.6 2 5.7-2v15.6l-5.7 2-5.6-2-5.7 2Z"></path>
+<path d="M9.2 3.2v15.6M14.8 5.2v15.6"></path>
+</symbol><symbol id="i-route" viewbox="0 0 24 24">
+<circle cx="5.4" cy="18.1" r="2.1"></circle>
+<path d="M7.5 18.1h2.3c2.8 0 2.8-6.2 5.6-6.2h1.4"></path>
+<path d="m15.4 8.7 3.4 3.2-3.4 3.2"></path>
+<circle cx="18.6" cy="5.8" r="2"></circle>
+</symbol><symbol id="i-filter" viewbox="0 0 24 24">
+<path d="M3.5 5.2h17l-6.5 7.1v5.4l-4 2.3v-7.7Z"></path>
+</symbol><symbol id="i-clipboard-check" viewbox="0 0 24 24">
+<rect height="16.1" rx="2.1" width="13.6" x="5.2" y="4.8"></rect>
+<path d="M9 4.8c0-1 .9-1.8 2-1.8h2c1.1 0 2 .8 2 1.8v1.4H9Z"></path>
+<path d="m8.5 14 2.2 2.2 4.8-4.9"></path>
+</symbol><symbol id="i-wallet" viewbox="0 0 24 24">
+<path d="M4.4 6.5h13.8a2.2 2.2 0 0 1 2.2 2.2v8.1a2.2 2.2 0 0 1-2.2 2.2H5.8a2.2 2.2 0 0 1-2.2-2.2V7.9a2.2 2.2 0 0 1 2.2-2.2Z"></path>
+<path d="M4.2 7.1V5.7c0-1.1.8-2 1.9-2l10.2 1.7"></path>
+<path d="M16 12.8h4.4v3.4H16a1.7 1.7 0 0 1 0-3.4Z"></path>
+<circle cx="16.9" cy="14.5" fill="currentColor" r=".75" stroke="none"></circle>
+</symbol><symbol id="i-receipt" viewbox="0 0 24 24">
+<path d="M6 3.5h12v17l-2.2-1.5-1.8 1.5-2-1.5-2 1.5-2-1.5L6 20.5Z"></path>
+<path d="M9 8h6M9 12h6M9 16h3.4"></path>
+</symbol><symbol id="i-photo" viewbox="0 0 24 24">
+<rect height="15" rx="2.3" width="17.2" x="3.4" y="4.5"></rect>
+<circle cx="9.1" cy="9.4" r="1.6"></circle>
+<path d="m5.8 17 4.4-4.5 3.2 3 2.1-2 3 3.5"></path>
+</symbol><symbol id="i-camera" viewbox="0 0 24 24">
+<path d="M5.4 7.2h3l1.2-2h4.8l1.2 2h3A2.4 2.4 0 0 1 21 9.6v7.2a2.4 2.4 0 0 1-2.4 2.4H5.4A2.4 2.4 0 0 1 3 16.8V9.6a2.4 2.4 0 0 1 2.4-2.4Z"></path>
+<circle cx="12" cy="13" r="3.2"></circle>
+</symbol><symbol id="i-medkit" viewbox="0 0 24 24">
+<rect height="12.6" rx="2" width="16.4" x="3.8" y="7"></rect>
+<path d="M8.2 7V5.3c0-1.1.9-2 2-2h3.6c1.1 0 2 .9 2 2V7M12 10.2v6.1M8.9 13.3h6.2"></path>
+</symbol>
+</defs>
+</svg>
+
+<div class="app-shell">
+<header aria-label="Верхняя навигация VetHelp Clinic" class="v38-top-nav" role="banner">
+  <a class="v38-top-brand" data-route-link="clinic-workspace" href="#clinic-workspace"><span class="brand-mark"><svg aria-hidden="true" class="vh-icon"><use href="#i-spark"></use></svg></span><span><strong>VetHelp Clinic</strong><small>ВетКлиника+ · Центр</small></span></a>
+  <nav aria-label="Основные разделы клиники" class="v38-top-primary">
+    <a data-route-link="clinic-workspace" href="#clinic-workspace"><svg aria-hidden="true" class="vh-icon"><use href="#i-grid"></use></svg><span>Сводка</span></a>
+    <a data-route-link="clinic-appointments" href="#clinic-appointments"><svg aria-hidden="true" class="vh-icon"><use href="#i-calendar"></use></svg><span>Записи</span></a>
+    <a data-route-link="clinic-schedule" href="#clinic-schedule"><svg aria-hidden="true" class="vh-icon"><use href="#i-clock"></use></svg><span>Слоты</span></a>
+    <a data-route-link="clinic-patients" href="#clinic-patients"><svg aria-hidden="true" class="vh-icon"><use href="#i-paw"></use></svg><span>Пациенты</span></a>
+  </nav>
+  <a class="v38-top-sos" href="#clinic-notifications"><svg aria-hidden="true" class="vh-icon"><use href="#i-bell"></use></svg><span>3</span></a>
+</header>
+<aside aria-label="Навигация клиники" class="sidebar">
+  <a class="brand clinic-only-brand" data-route-link="clinic-workspace" href="#clinic-workspace"><span class="brand-mark"><svg aria-hidden="true" class="vh-icon"><use href="#i-spark"></use></svg></span><span><strong>VetHelp</strong><small>Clinic workspace</small></span></a>
+  <div class="clinic-nav-label">Рабочий день</div>
+  <nav class="nav-group clinic-only-nav">
+    <a class="nav-link" data-route-link="clinic-workspace" href="#clinic-workspace"><span class="nav-ico"><img src="assets/icons/veterinary-hospital.png" alt="" aria-hidden="true"></span>Сводка</a>
+    <a class="nav-link" data-route-link="clinic-appointments" href="#clinic-appointments"><span class="nav-ico"><img src="assets/icons/booking-confirmation.png" alt="" aria-hidden="true"></span>Записи</a>
+    <a class="nav-link" data-route-link="clinic-schedule" href="#clinic-schedule"><span class="nav-ico"><img src="assets/icons/schedule-clock.png" alt="" aria-hidden="true"></span>Слоты и расписание</a>
+    <a class="nav-link" data-route-link="clinic-patients" href="#clinic-patients"><span class="nav-ico"><img src="assets/icons/pet-profile-avatar.png" alt="" aria-hidden="true"></span>Пациенты</a>
+    <a class="nav-link" data-route-link="clinic-visit" href="#clinic-visit"><span class="nav-ico"><img src="assets/icons/medical-history-card.png" alt="" aria-hidden="true"></span>Приём и лечение</a>
+    <a class="nav-link" data-route-link="clinic-telemed" href="#clinic-telemed"><span class="nav-ico"><img src="assets/icons/telemed-stethoscope.png" alt="" aria-hidden="true"></span>Телемедицина</a>
+  </nav>
+  <div class="clinic-nav-label">Управление</div>
+  <nav class="nav-group clinic-only-nav">
+    <a class="nav-link" data-route-link="clinic-staff" href="#clinic-staff"><span class="nav-ico"><img src="assets/icons/medical-specialization.png" alt="" aria-hidden="true"></span>Сотрудники</a>
+    <a class="nav-link" data-route-link="clinic-services" href="#clinic-services"><span class="nav-ico"><img src="assets/icons/consultation-history.png" alt="" aria-hidden="true"></span>Услуги и цены</a>
+    <a class="nav-link" data-route-link="clinic-profile" href="#clinic-profile"><span class="nav-ico"><img src="assets/icons/veterinary-hospital.png" alt="" aria-hidden="true"></span>Профиль клиники</a>
+    <a class="nav-link" data-route-link="clinic-quality" href="#clinic-quality"><span class="nav-ico"><img src="assets/icons/verified-trust-badge.png" alt="" aria-hidden="true"></span>Качество и SLA</a>
+    <a class="nav-link" data-route-link="clinic-settings" href="#clinic-settings"><span class="nav-ico"><img src="assets/icons/schedule-clock.png" alt="" aria-hidden="true"></span>Настройки</a>
+  </nav>
+  <div class="sidebar-bottom clinic-user-card"><a class="profile-card" href="#clinic-settings"><img src="assets/images/client-ekaterina.webp" alt="Светлана Котова"><span><strong>Светлана Котова</strong><small>Администратор</small></span><span>›</span></a></div>
+</aside>
+<main class="main">
+  <section class="page" data-page="clinic-workspace" id="clinic-workspace"></section>
+  <section class="page" data-page="clinic-appointments" id="clinic-appointments"></section>
+  <section class="page" data-page="clinic-schedule" id="clinic-schedule"></section>
+  <section class="page" data-page="clinic-patients" id="clinic-patients"></section>
+  <section class="page" data-page="clinic-patient" id="clinic-patient"></section>
+  <section class="page" data-page="clinic-visit" id="clinic-visit"></section>
+  <section class="page" data-page="clinic-telemed" id="clinic-telemed"></section>
+  <section class="page" data-page="clinic-staff" id="clinic-staff"></section>
+  <section class="page" data-page="clinic-services" id="clinic-services"></section>
+  <section class="page" data-page="clinic-profile" id="clinic-profile"></section>
+  <section class="page" data-page="clinic-quality" id="clinic-quality"></section>
+  <section class="page" data-page="clinic-settings" id="clinic-settings"></section>
+  <section class="page" data-page="clinic-notifications" id="clinic-notifications"></section>
+</main></div>
+<script>
+(() => {
+  const pages=[...document.querySelectorAll('[data-page]')];
+  const links=[...document.querySelectorAll('[data-route-link]')];
+  const fallback='clinic-workspace';
+  const titles={
+    'clinic-workspace':'Сводка клиники','clinic-appointments':'Записи клиники','clinic-schedule':'Слоты и расписание','clinic-patients':'Пациенты','clinic-patient':'Карточка пациента','clinic-visit':'Приём и лечение','clinic-telemed':'Телемедицина','clinic-staff':'Сотрудники','clinic-services':'Услуги и цены','clinic-profile':'Профиль клиники','clinic-quality':'Качество и SLA','clinic-settings':'Настройки','clinic-notifications':'Уведомления'
+  };
+  function route(){const r=(location.hash||'#'+fallback).slice(1);return pages.some(p=>p.dataset.page===r)?r:fallback;}
+  function render(){const r=route();pages.forEach(p=>p.classList.toggle('active',p.dataset.page===r));links.forEach(a=>{const on=a.getAttribute('href')==='#'+r || (r==='clinic-patient'&&a.getAttribute('href')==='#clinic-patients');a.classList.toggle('active',on);if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});document.title='VetHelp Clinic — '+(titles[r]||'V50');window.scrollTo({top:0,behavior:'instant'});}
+  window.addEventListener('hashchange',render);document.addEventListener('DOMContentLoaded',()=>{if(!location.hash)history.replaceState(null,'','#'+fallback);render();});
+})();
+</script>
+<script src="assets/js/clinic-workspace.js"></script>
+<script src="assets/js/clinic-extra.js"></script>
+<script src="assets/js/accessibility-runtime.js"></script>
+<script src="assets/js/clinic-polish.js"></script>
+</body></html>

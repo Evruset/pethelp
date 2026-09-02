@@ -1,0 +1,237 @@
+/* VetHelp V50 Owner/Aggregator — unified UX/UI guideline implementation.
+   Goal: fast decision interface, not a dense B2B workspace and not a landing page. */
+:root{
+  --owner-space-1:4px;
+  --owner-space-2:8px;
+  --owner-space-3:12px;
+  --owner-space-4:16px;
+  --owner-space-5:24px;
+  --owner-space-6:32px;
+  --owner-page-max:1440px;
+  --owner-decision-line:rgba(134,166,213,.26);
+}
+
+body.v50-owner-unified .main{
+  max-width:var(--owner-page-max)!important;
+  padding-inline:24px!important;
+  padding-bottom:48px!important;
+}
+body.v50-owner-unified .page > :where(section,article,div.glass,.two-col,.hero-grid,.dashboard-grid){
+  margin-block:16px!important;
+}
+body.v50-owner-unified .topbar{margin-bottom:12px!important;align-items:center;}
+body.v50-owner-unified .topbar h1{font-size:clamp(28px,3vw,38px)!important;line-height:1.06;}
+body.v50-owner-unified .subtitle{margin-top:4px!important;}
+body.v50-owner-unified .section-header{margin:18px 0 10px!important;}
+body.v50-owner-unified .pad{padding:18px;}
+body.v50-owner-unified .glass{box-shadow:0 12px 34px rgba(38,79,140,.09);}
+
+/* HOME — useful first fold, no landing-page scale */
+body.v50-owner-unified .v38-home-search-hero{
+  grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);
+  gap:16px;
+  padding:20px;
+}
+body.v50-owner-unified .v38-home-search-hero h2{font-size:clamp(30px,3.2vw,42px);}
+body.v50-owner-unified .v38-home-search-hero p{font-size:14px;max-width:650px;}
+body.v50-owner-unified .v38-home-hero-actions{gap:8px;}
+body.v50-owner-unified .v38-action-card{min-height:72px;padding:12px 14px;border-radius:16px;grid-template-columns:42px minmax(0,1fr);column-gap:10px;}
+body.v50-owner-unified .v38-action-card .vh-icon{width:24px;height:24px;}
+body.v50-owner-unified .v38-action-card strong{font-size:15px;}
+body.v50-owner-unified .bh-value-preview{margin-top:10px;padding:14px 16px;gap:12px;grid-template-columns:minmax(260px,1.25fr) minmax(360px,1fr) auto;}
+body.v50-owner-unified .bh-value-preview__facts span{padding:8px 10px;border-radius:12px;}
+body.v50-owner-unified #home .hero-grid{gap:16px;}
+body.v50-owner-unified #home .pet-hero,
+body.v50-owner-unified #home .next-card{min-height:260px;}
+body.v50-owner-unified #home .pet-hero{grid-template-columns:190px minmax(0,1fr);gap:20px;padding:18px;}
+body.v50-owner-unified #home .pet-hero .pet-photo{min-height:224px;border-radius:18px;}
+body.v50-owner-unified #home .pet-hero .pet-name{font-size:clamp(30px,3vw,42px);}
+body.v50-owner-unified #home .pet-hero .btn{min-width:0;}
+body.v50-owner-unified #home .next-card{padding:20px;}
+body.v50-owner-unified #home .service-card{min-height:108px;padding:16px;}
+body.v50-owner-unified #home .service-card p{margin-bottom:0;}
+
+/* CATALOG — decision tool: who / when / how much / why */
+body.v50-owner-unified .v40-catalog-search-panel{padding:16px;gap:12px;}
+body.v50-owner-unified .v40-catalog-head h2{font-size:clamp(22px,2.4vw,30px);}
+body.v50-owner-unified .v40-clinic-search{padding:6px 8px;border-radius:16px;}
+body.v50-owner-unified .v40-filter-row{gap:6px;}
+body.v50-owner-unified .v40-filter-row .filter{min-height:44px;padding-inline:12px;}
+body.v50-owner-unified .bh-priority{margin-top:8px;padding:12px 0 0;gap:8px 12px;}
+body.v50-owner-unified .bh-priority__buttons{gap:6px;}
+body.v50-owner-unified .bh-priority__buttons button{min-height:44px;}
+body.v50-owner-unified .bh-priority__explain{padding:8px 10px;}
+body.v50-owner-unified .v40-clinic-results{gap:10px;}
+body.v50-owner-unified .v40-clinic-result{
+  grid-template-columns:124px minmax(0,1fr) minmax(200px,240px);
+  gap:14px;
+  padding:14px;
+  align-items:stretch;
+  border-radius:20px!important;
+}
+body.v50-owner-unified .v40-clinic-photo{min-height:126px;border-radius:16px;}
+body.v50-owner-unified .v40-clinic-main{gap:7px;align-content:center;}
+body.v50-owner-unified .v40-clinic-title-row h3{font-size:18px;}
+body.v50-owner-unified .v40-badges{gap:5px;}
+body.v50-owner-unified .v40-badges span{min-height:27px;padding-inline:8px;font-size:11px;}
+body.v50-owner-unified .v40-slot-strip{gap:7px;}
+body.v50-owner-unified .v40-slot{min-width:138px;padding:9px 11px;border-radius:14px;box-shadow:none;}
+body.v50-owner-unified .v40-clinic-footer{gap:5px;}
+body.v50-owner-unified .v40-clinic-footer span{min-height:28px;padding-inline:8px;font-size:11px;}
+body.v50-owner-unified .v40-care-fit{justify-content:flex-start;padding:12px;border-radius:16px;gap:4px;}
+body.v50-owner-unified .v40-care-fit p{margin-top:3px;font-size:12px;}
+body.v50-owner-unified .v40-safe-note{padding:12px 14px;}
+body.v50-owner-unified .v40-safe-note h2{font-size:15px;margin-bottom:8px;}
+body.v50-owner-unified .v40-note-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+body.v50-owner-unified .v40-note-grid span{padding:9px 10px;border-radius:12px;}
+
+/* CLINIC — one decision surface first, evidence later */
+body.v50-owner-unified .owner-clinic-decision{
+  display:grid;
+  grid-template-columns:minmax(260px,1.35fr) repeat(3,minmax(120px,.55fr)) auto;
+  gap:12px;
+  align-items:center;
+  padding:14px 16px;
+  border-color:rgba(20,154,87,.20)!important;
+  background:linear-gradient(135deg,rgba(244,253,248,.96),rgba(255,255,255,.90));
+}
+.owner-clinic-decision__why,.owner-clinic-decision__fact{display:grid;gap:3px;min-width:0;}
+.owner-clinic-decision__why strong{font-size:16px;}
+.owner-clinic-decision__why small,.owner-clinic-decision__fact small{color:var(--muted);font-size:11px;}
+.owner-clinic-decision__fact{padding-left:12px;border-left:1px solid var(--owner-decision-line);}
+.owner-clinic-decision__fact>span{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:850;}
+.owner-clinic-decision__fact strong{font-size:14px;}
+body.v50-owner-unified #clinic>.v36rf-clinic-price-engine,
+body.v50-owner-unified #clinic>.v37-consent-flow,
+body.v50-owner-unified #clinic>.v33-price-and-reviews,
+body.v50-owner-unified #clinic>.v35-price-comparison,
+body.v50-owner-unified #clinic>.v36-quality-profile{display:none!important;}
+body.v50-owner-unified #clinic .clinic-detail-hero{
+  max-inline-size:none;
+  display:grid;
+  grid-template-columns:minmax(280px,380px) minmax(0,1fr);
+  gap:16px;
+  align-items:stretch;
+  margin-block:12px!important;
+}
+body.v50-owner-unified #clinic .clinic-detail-hero-media{block-size:190px;border-radius:18px;}
+body.v50-owner-unified #clinic .clinic-detail-hero figcaption{display:grid;align-content:center;gap:6px;padding:16px 18px;border:1px solid var(--owner-decision-line);border-radius:18px;background:rgba(255,255,255,.72);}
+body.v50-owner-unified #clinic .clinic-detail-hero figcaption strong{font-size:16px;display:block;}
+body.v50-owner-unified #clinic .detail-layout{gap:12px;}
+body.v50-owner-unified #clinic .detail-layout>.glass{padding:14px;}
+body.v50-owner-unified #clinic .clinic-gallery{grid-auto-rows:96px;gap:7px;}
+body.v50-owner-unified #clinic .gallery-tile{min-height:96px;border-radius:14px;}
+body.v50-owner-unified #clinic .trust-row{gap:6px;margin-top:8px;}
+body.v50-owner-unified #clinic .capability-grid{gap:7px;}
+body.v50-owner-unified #clinic .capability{padding:10px;border-radius:14px;}
+body.v50-owner-unified #clinic .clinic-trust-decision{padding:16px;}
+body.v50-owner-unified #clinic .trust-decision-grid{gap:8px;grid-template-columns:repeat(4,minmax(0,1fr));}
+body.v50-owner-unified #clinic .trust-decision-grid article{padding:11px;border-radius:14px;}
+body.v50-owner-unified #clinic .equipment-showcase{grid-template-columns:260px minmax(0,1fr);gap:14px;padding:14px;}
+body.v50-owner-unified #clinic .equipment-showcase-media{min-height:150px;}
+body.v50-owner-unified #clinic .provider-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;}
+body.v50-owner-unified #clinic .provider-card{min-height:0;padding:10px;}
+body.v50-owner-unified #clinic .provider-photo{height:96px;}
+body.v50-owner-unified #clinic .two-col{gap:12px;}
+body.v50-owner-unified #clinic .v36-case-reviews{padding:16px;}
+body.v50-owner-unified #clinic .v36-review-cards{gap:8px;}
+
+/* DOCTOR SELECTION — scan, choose, continue */
+body.v50-owner-unified #doctor-select>.two-col{grid-template-columns:minmax(0,1.45fr) minmax(280px,.55fr);gap:12px;align-items:start;}
+body.v50-owner-unified #doctor-select .provider-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+body.v50-owner-unified #doctor-select .provider-card{min-height:92px;padding:10px;}
+body.v50-owner-unified #doctor-select .provider-photo{width:64px;height:72px;}
+body.v50-owner-unified #doctor-select>.two-col>article:last-child{position:sticky;top:100px;}
+body.v50-owner-unified #doctor-detail .doctor-detail-grid{gap:12px;grid-template-columns:minmax(0,1.4fr) minmax(280px,.6fr);}
+body.v50-owner-unified #doctor-detail .doctor-profile{gap:12px;}
+body.v50-owner-unified #doctor-detail .doctor-profile-media{max-height:300px;}
+body.v50-owner-unified #doctor-detail .doctor-reviews-panel{padding:16px;}
+
+/* BOOKING — progressive disclosure, one summary, one primary action */
+body.v50-owner-unified #booking .booking-truth-banner{padding:11px 14px;margin-bottom:10px;}
+body.v50-owner-unified #booking .v39-booking-simple{padding:14px 16px;}
+body.v50-owner-unified #booking .v39-section-head-row{margin-bottom:10px;}
+body.v50-owner-unified #booking .owner-booking-steps{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+body.v50-owner-unified #booking .v39-booking-steps span{padding:9px 11px;border-radius:13px;}
+body.v50-owner-unified #booking>.v39-booking-coverage{display:none!important;}
+body.v50-owner-unified #booking .booking-layout{grid-template-columns:minmax(0,1fr) minmax(300px,360px);gap:12px;align-items:start;}
+body.v50-owner-unified #booking .booking-layout>article{padding:16px;}
+body.v50-owner-unified #booking .slot-grid{gap:7px;grid-template-columns:repeat(4,minmax(72px,1fr));}
+body.v50-owner-unified #booking .slot{min-height:44px;padding:8px;}
+body.v50-owner-unified #booking .booking-summary{position:sticky;top:98px;padding:16px;}
+body.v50-owner-unified #booking .booking-context-strip{margin-top:10px;}
+
+/* REVIEW — remove repeated status essays; keep one truthful status + decision */
+body.v50-owner-unified #booking-review>.v37-can-go,
+body.v50-owner-unified #booking-review>.v33-review-confirmation,
+body.v50-owner-unified #booking-review>.v35-status-language,
+body.v50-owner-unified #booking-review>.v36-can-go-panel{display:none!important;}
+body.v50-owner-unified #booking-review .bh-give-card{padding:12px 14px;margin-top:8px;}
+body.v50-owner-unified #booking-review .booking-truth-banner{padding:11px 14px;}
+body.v50-owner-unified #booking-review>.two-col{grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:12px;align-items:start;}
+body.v50-owner-unified #booking-review>.two-col>article{padding:16px;}
+body.v50-owner-unified #booking-review>.two-col>article:last-child{position:sticky;top:98px;}
+
+/* ALTERNATIVE SLOT — owner decision, not internal workflow */
+body.v50-owner-unified #alternative-slot>.v37-can-go,
+body.v50-owner-unified #alternative-slot>.v33-alternative-proof,
+body.v50-owner-unified #alternative-slot>.alternative-status-strip,
+body.v50-owner-unified #alternative-slot>.v36-can-go-panel{display:none!important;}
+body.v50-owner-unified #alternative-slot .bh-continuity-card{padding:14px 16px;}
+body.v50-owner-unified #alternative-slot .alternative-decision-summary{padding:16px;}
+body.v50-owner-unified #alternative-slot>.two-col{grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);gap:12px;align-items:start;}
+body.v50-owner-unified #alternative-slot>.two-col>article{padding:16px;}
+body.v50-owner-unified #alternative-slot .alt-slots{gap:7px;}
+body.v50-owner-unified #alternative-slot .alt-slot{min-height:66px;padding:9px 11px;}
+body.v50-owner-unified #alternative-slot>.two-col>article:last-child{position:sticky;top:98px;}
+
+/* Responsive: remain consumer-friendly; do not carry desktop density onto mobile. */
+@media(max-width:1100px){
+  body.v50-owner-unified .owner-clinic-decision{grid-template-columns:minmax(260px,1fr) repeat(2,minmax(120px,.45fr));}
+  body.v50-owner-unified .owner-clinic-decision__fact:nth-of-type(4){display:none;}
+  body.v50-owner-unified .owner-clinic-decision>.btn{grid-column:auto;}
+  body.v50-owner-unified .v40-clinic-result{grid-template-columns:110px minmax(0,1fr);}
+  body.v50-owner-unified .v40-care-fit{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr;align-items:center;}
+  body.v50-owner-unified .v40-care-fit p{grid-column:2;}
+  body.v50-owner-unified #clinic .trust-decision-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media(max-width:900px){
+  body.v50-owner-unified .main{padding-inline:16px!important;}
+  body.v50-owner-unified .bh-value-preview{grid-template-columns:1fr;}
+  body.v50-owner-unified .owner-clinic-decision{grid-template-columns:1fr 1fr;}
+  body.v50-owner-unified .owner-clinic-decision__why{grid-column:1/-1;}
+  body.v50-owner-unified .owner-clinic-decision>.btn{grid-column:1/-1;width:100%;}
+  body.v50-owner-unified #clinic .clinic-detail-hero{grid-template-columns:1fr;}
+  body.v50-owner-unified #clinic .clinic-detail-hero-media{block-size:220px;}
+  body.v50-owner-unified #clinic .provider-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  body.v50-owner-unified #doctor-select>.two-col,
+  body.v50-owner-unified #doctor-detail .doctor-detail-grid,
+  body.v50-owner-unified #booking .booking-layout,
+  body.v50-owner-unified #booking-review>.two-col,
+  body.v50-owner-unified #alternative-slot>.two-col{grid-template-columns:1fr;}
+  body.v50-owner-unified #doctor-select>.two-col>article:last-child,
+  body.v50-owner-unified #booking .booking-summary,
+  body.v50-owner-unified #booking-review>.two-col>article:last-child,
+  body.v50-owner-unified #alternative-slot>.two-col>article:last-child{position:static;}
+}
+@media(max-width:640px){
+  body.v50-owner-unified .main{padding-inline:12px!important;}
+  body.v50-owner-unified .page > :where(section,article,div.glass,.two-col,.hero-grid,.dashboard-grid){margin-block:12px!important;}
+  body.v50-owner-unified .v38-home-search-hero{grid-template-columns:1fr;padding:16px;}
+  body.v50-owner-unified .v38-home-search-hero h2{font-size:30px;}
+  body.v50-owner-unified #home .pet-hero{grid-template-columns:1fr;}
+  body.v50-owner-unified #home .pet-hero .pet-photo{min-height:220px;}
+  body.v50-owner-unified .v40-catalog-search-panel{padding:14px;}
+  body.v50-owner-unified .v40-clinic-result{grid-template-columns:1fr;padding:12px;}
+  body.v50-owner-unified .v40-clinic-photo{min-height:150px;}
+  body.v50-owner-unified .v40-care-fit{display:block;}
+  body.v50-owner-unified .v40-note-grid{grid-template-columns:1fr;}
+  body.v50-owner-unified .owner-clinic-decision{grid-template-columns:1fr;}
+  body.v50-owner-unified .owner-clinic-decision__fact{padding:8px 0 0;border-left:0;border-top:1px solid var(--owner-decision-line);}
+  body.v50-owner-unified #clinic .trust-decision-grid,
+  body.v50-owner-unified #clinic .provider-grid,
+  body.v50-owner-unified #doctor-select .provider-grid{grid-template-columns:1fr;}
+  body.v50-owner-unified #clinic .equipment-showcase{grid-template-columns:1fr;}
+  body.v50-owner-unified #booking .slot-grid{grid-template-columns:repeat(3,minmax(72px,1fr));}
+  body.v50-owner-unified #booking .owner-booking-steps{grid-template-columns:1fr;}
+}

@@ -2906,3 +2906,24 @@ Batch stop: exactly three checkpoints were processed (T085 continuation, T140, T
   `ACCESSIBILITY_DOCUMENT_TITLE_BLOCKER_REPAIRED=YES`. Recommended next slice
   is only W7-D-R5R — resume remaining final visual/accessibility/Product-UX
   closure.
+## 2026-09-02 — UX-V50-REF-01 canonical V50 reference bootstrap
+
+- Installed the exact approved Owner and Clinic V50 archives, their extracted
+  usable trees, authority contract, and deterministic extracted-file inventory
+  under `docs/ux/v50-reference/`. No production application, backend, runtime
+  configuration, dependency, or lockfile was changed.
+- Source identity passes: Owner
+  `cbef69d764cfe420f58bf84e83cf94a37aa23c89d7466271434bbe3d717633b6`;
+  Clinic
+  `c634654040c572fab6e6e962d722c8bc6ed140dda02b0277f42952742b78c688`.
+  Both archives contain 77 safe relative entries; the extracted inventory
+  covers 141 files with matching SHA-256 hashes.
+- Canonical entrypoints are `docs/ux/v50-reference/owner/index.html` and
+  `docs/ux/v50-reference/clinic/index.html`. Final flags:
+  `OWNER_V50_ARCHIVE_SHA=PASS`, `CLINIC_V50_ARCHIVE_SHA=PASS`,
+  `OWNER_V50_ENTRYPOINT=PASS`, `CLINIC_V50_ENTRYPOINT=PASS`,
+  `OWNER_V50_GUIDELINE=PASS`, `CLINIC_V50_GUIDELINE=PASS`,
+  `V50_REFERENCE_MANIFEST=PASS`, `V50_REFERENCE_FILE_HASHES=PASS`,
+  `V50_AUTHORITY_CONTRACT=PASS`, `V50_REFERENCE_BOOTSTRAP=PASS`.
+  Recommended next slice is only `OWNER-V50-R1` — current production Owner
+  screen map plus first bounded parity implementation.

@@ -1,0 +1,402 @@
+/* VetHelp Clinic V50 — simplified role-first workspace */
+body.vethelp-clinic-only .sidebar,
+body.vethelp-clinic-only .v38-top-nav { display:none !important; }
+body.vethelp-clinic-only .app-shell { display:block !important; max-width:none; }
+body.vethelp-clinic-only .main { width:min(1380px,100%); margin:0 auto; padding:28px 34px 48px; }
+body.vethelp-clinic-only .v48-admin-page { --simple-gap:16px; }
+body.vethelp-clinic-only .v49-prototype-note { display:none !important; }
+
+body.vethelp-clinic-only .v48-admin-topbar {
+  align-items:center; margin-bottom:16px; padding:0; gap:18px;
+}
+body.vethelp-clinic-only .v48-admin-title-line h1 { font-size:clamp(28px,3vw,40px); letter-spacing:-.035em; }
+body.vethelp-clinic-only .v48-admin-title-line .pill { display:none; }
+body.vethelp-clinic-only .v48-admin-topbar .subtitle { max-width:720px; margin-top:5px; }
+body.vethelp-clinic-only .v48-admin-top-actions { gap:8px; }
+body.vethelp-clinic-only .v48-staff-chip { min-width:0; padding:5px 8px 5px 5px; }
+body.vethelp-clinic-only .v48-staff-chip img { width:34px; height:34px; border-radius:11px; }
+body.vethelp-clinic-only .v48-staff-chip small { display:none; }
+
+body.vethelp-clinic-only .v48-role-switch.clinic-simple-role,
+body.vethelp-clinic-only .v48-role-switch {
+  padding:3px; gap:2px; border-radius:12px; background:rgba(233,240,250,.84);
+}
+body.vethelp-clinic-only .v48-role-switch button {
+  min-height:34px; padding:0 11px; border-radius:9px; font-size:12px;
+}
+
+body.vethelp-clinic-only .clinic-simple-tabs {
+  display:flex !important; width:max-content; max-width:100%; gap:4px; overflow:auto;
+  margin:0 0 18px; padding:4px; border:1px solid rgba(159,185,224,.34);
+  border-radius:15px; background:rgba(255,255,255,.68); box-shadow:none;
+  scrollbar-width:none;
+}
+body.vethelp-clinic-only .clinic-simple-tabs::-webkit-scrollbar { display:none; }
+body.vethelp-clinic-only .clinic-simple-tabs a {
+  min-height:38px; padding:0 15px; display:flex; align-items:center; justify-content:center;
+  border:0; border-radius:11px; color:#66758d; background:transparent; font-size:13px; font-weight:800; white-space:nowrap;
+}
+body.vethelp-clinic-only .clinic-simple-tabs a img { display:none !important; }
+body.vethelp-clinic-only .clinic-simple-tabs a.active {
+  color:#164fbe; background:#eef5ff; box-shadow:none;
+}
+
+body.vethelp-clinic-only .v48-panel { border-radius:18px; box-shadow:0 10px 30px rgba(42,84,146,.055); }
+body.vethelp-clinic-only .v48-panel-head { margin-bottom:14px; }
+body.vethelp-clinic-only .v48-panel-head h2 { font-size:20px; }
+body.vethelp-clinic-only .v48-panel-head p { margin-top:4px; max-width:720px; }
+
+.clinic-simple-summary {
+  display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;
+}
+.clinic-simple-summary > span {
+  display:inline-flex; align-items:baseline; gap:5px; min-height:38px; padding:8px 12px;
+  border:1px solid rgba(159,185,224,.34); border-radius:12px; background:rgba(255,255,255,.68);
+  color:#66758d; font-size:12px; font-weight:700;
+}
+.clinic-simple-summary strong { color:#17243b; font-size:16px; }
+.clinic-simple-focus { max-width:980px; }
+.clinic-simple-focus .v48-task-list { gap:6px; }
+body.vethelp-clinic-only .clinic-simple-focus .v48-task {
+  min-height:60px; padding:9px 10px; border-radius:12px; border-color:transparent; box-shadow:none;
+}
+body.vethelp-clinic-only .clinic-simple-focus .v48-task + .v48-task { border-top:1px solid rgba(174,198,231,.45); border-radius:0; }
+body.vethelp-clinic-only .clinic-simple-focus .v48-task__time { font-size:13px; }
+body.vethelp-clinic-only .clinic-simple-focus .v48-task small { margin-top:2px; }
+
+.clinic-simple-actions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.clinic-simple-action {
+  min-height:86px; display:grid; grid-template-columns:minmax(0,1fr) auto; align-content:center; gap:5px 10px;
+  padding:14px 15px; text-decoration:none; border:1px solid rgba(159,185,224,.38); border-radius:15px;
+  background:rgba(255,255,255,.68); transition:.15s ease;
+}
+.clinic-simple-action:hover { border-color:rgba(23,103,247,.28); background:#f7fbff; transform:translateY(-1px); }
+.clinic-simple-action strong { font-size:15px; }
+.clinic-simple-action small { grid-column:1; color:#748198; }
+.clinic-simple-action > span { grid-column:2; grid-row:1/3; align-self:center; color:#1767f7; font-size:20px; }
+
+.clinic-profile-hero--simple { grid-template-columns:minmax(0,1.2fr) minmax(300px,.8fr); }
+.clinic-profile-hero--simple .clinic-profile-photo { min-height:250px; }
+.clinic-simple-details { align-self:stretch; }
+
+.clinic-settings-simple { align-items:start; }
+.clinic-advanced-settings { margin-top:14px; border:1px solid rgba(159,185,224,.34); border-radius:15px; background:rgba(255,255,255,.5); }
+.clinic-advanced-settings > summary { cursor:pointer; padding:13px 15px; color:#53647d; font-weight:800; }
+.clinic-advanced-settings[open] > summary { border-bottom:1px solid rgba(159,185,224,.28); }
+.clinic-advanced-settings > div { padding:12px; }
+
+/* Dense operational screens: keep one dominant work surface. */
+body.vethelp-clinic-only #clinic-appointments .v48-toolbar,
+body.vethelp-clinic-only #clinic-patients .v48-toolbar { margin-bottom:10px; }
+body.vethelp-clinic-only #clinic-appointments .v48-table-wrap,
+body.vethelp-clinic-only #clinic-schedule .v48-schedule-scroll { box-shadow:none; }
+body.vethelp-clinic-only #clinic-patients .v48-patient-layout,
+body.vethelp-clinic-only #clinic-telemed .v48-telemed-layout { gap:10px; }
+
+/* Secondary admin pages opened from “Клиника” are intentionally quieter. */
+body.vethelp-clinic-only :is(#clinic-services,#clinic-quality) .v48-admin-topbar::before {
+  content:"← Клиника"; position:absolute; transform:translateY(-34px); color:#1767f7; font-size:12px; font-weight:800;
+}
+
+@media (max-width:900px) {
+  body.vethelp-clinic-only .main { padding:22px 20px 40px; }
+  body.vethelp-clinic-only .v48-admin-topbar { align-items:flex-start; }
+  body.vethelp-clinic-only .v48-admin-top-actions { flex-wrap:wrap; justify-content:flex-end; }
+  .clinic-simple-actions { grid-template-columns:1fr; }
+  .clinic-profile-hero--simple { grid-template-columns:1fr; }
+}
+
+@media (max-width:640px) {
+  body.vethelp-clinic-only .main { padding:16px 12px 30px; }
+  body.vethelp-clinic-only .v48-admin-topbar { display:grid; grid-template-columns:1fr auto; gap:10px; }
+  body.vethelp-clinic-only .v48-admin-topbar .subtitle { font-size:12px; }
+  body.vethelp-clinic-only .v48-admin-top-actions { grid-column:1/-1; width:100%; justify-content:space-between; }
+  body.vethelp-clinic-only .v48-staff-chip { display:none; }
+  body.vethelp-clinic-only .clinic-simple-tabs { width:100%; }
+  body.vethelp-clinic-only .clinic-simple-tabs a { flex:1 0 auto; padding:0 12px; }
+  body.vethelp-clinic-only .v48-role-switch button { padding:0 9px; }
+  .clinic-simple-summary { display:grid; grid-template-columns:repeat(3,1fr); }
+  .clinic-simple-summary > span { display:grid; gap:1px; text-align:center; justify-items:center; padding:7px 5px; }
+  .clinic-simple-summary strong { font-size:15px; }
+  body.vethelp-clinic-only .clinic-simple-focus .v48-panel-head { align-items:flex-start; }
+  .clinic-simple-actions--admin { grid-template-columns:1fr; }
+}
+
+/* Patient detail v3 — real detail surface, documents, results and 1C integration. */
+.clinic-patient-detail-toolbar { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
+.clinic-patient-detail-grid { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(320px,.65fr); gap:14px; align-items:start; }
+.clinic-patient-current { position:sticky; top:16px; }
+.clinic-patient-quick-actions { display:grid; gap:8px; margin-top:14px; }
+.clinic-patient-documents { margin-top:14px; }
+.clinic-document-list { display:grid; gap:9px; }
+.clinic-document-row { display:grid; grid-template-columns:70px minmax(0,1fr) auto; gap:12px; align-items:center; padding:10px; border:1px solid rgba(159,185,224,.34); border-radius:14px; background:rgba(250,253,255,.84); }
+.clinic-document-preview { width:70px; height:58px; padding:0; border:0; border-radius:11px; overflow:hidden; display:grid; place-items:center; background:#eef5ff; cursor:pointer; }
+.clinic-document-preview img { width:100%; height:100%; object-fit:cover; }
+.clinic-document-preview span img { width:28px; height:28px; object-fit:contain; }
+.clinic-document-copy { min-width:0; display:grid; gap:3px; }
+.clinic-document-copy small { color:#718098; }
+.clinic-document-title { display:flex; flex-wrap:wrap; align-items:center; gap:7px; }
+.clinic-document-actions { display:flex; flex-wrap:wrap; gap:7px; justify-content:flex-end; }
+.clinic-file-drop { padding:13px; border:1px dashed rgba(23,103,247,.32); border-radius:14px; background:#f7fbff; }
+.clinic-file-drop input[type="file"] { padding:8px; min-height:48px; background:#fff; }
+.clinic-file-drop small { color:#718098; }
+.clinic-share-check { display:flex; align-items:flex-start; gap:10px; padding:11px; border:1px solid rgba(159,185,224,.34); border-radius:13px; background:#fbfdff; }
+.clinic-share-check input { width:18px; min-width:18px; height:18px; min-height:18px; margin:2px 0 0; }
+.clinic-share-check strong,.clinic-share-check small { display:block; }
+.clinic-share-check small { margin-top:2px; color:#718098; }
+.clinic-file-viewer { display:grid; gap:14px; }
+.clinic-file-viewer > img { max-width:100%; max-height:440px; margin:auto; border-radius:16px; object-fit:contain; box-shadow:0 12px 30px rgba(42,84,146,.10); }
+.clinic-file-placeholder { min-height:180px; display:grid; place-items:center; align-content:center; gap:7px; border:1px dashed rgba(159,185,224,.5); border-radius:16px; background:#f7fbff; text-align:center; }
+.clinic-file-placeholder img { width:42px; height:42px; object-fit:contain; }
+.clinic-onec-card { overflow:hidden; }
+.clinic-onec-grid { display:grid; grid-template-columns:minmax(260px,1.2fr) repeat(3,minmax(150px,.8fr)); gap:9px; align-items:end; }
+.clinic-onec-scope { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+.clinic-onec-note { margin:10px 0 0; }
+
+@media (max-width:980px) {
+  .clinic-patient-detail-grid { grid-template-columns:1fr; }
+  .clinic-patient-current { position:static; }
+  .clinic-onec-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width:680px) {
+  .clinic-patient-detail-toolbar { align-items:flex-start; }
+  .clinic-document-row { grid-template-columns:56px minmax(0,1fr); }
+  .clinic-document-preview { width:56px; height:52px; }
+  .clinic-document-actions { grid-column:1/-1; justify-content:stretch; }
+  .clinic-document-actions > * { flex:1 1 auto; }
+  .clinic-document-title { align-items:flex-start; }
+  .clinic-onec-grid { grid-template-columns:1fr; }
+  .clinic-patient-documents .v48-panel-head { align-items:flex-start; }
+  .clinic-patient-documents .v48-panel-head .btn { width:100%; }
+}
+
+
+/* Upload result dialog — V50 clinic polish */
+.v48-dialog:has(#v48-document-form) {
+  width:min(720px,calc(100vw - 32px));
+  border:1px solid rgba(154,184,226,.48);
+  border-radius:24px;
+  background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);
+  box-shadow:0 30px 90px rgba(27,57,104,.24);
+}
+.v48-dialog:has(#v48-document-form) .v48-dialog__head {
+  align-items:center;
+  padding:22px 24px 17px;
+  border-bottom:1px solid rgba(166,195,236,.42);
+}
+.v48-dialog:has(#v48-document-form) .v48-dialog__head > div::before {
+  content:"VETHELP · КЛИНИКА";
+  display:block;
+  margin-bottom:5px;
+  color:#1767f7;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.12em;
+}
+.v48-dialog:has(#v48-document-form) .v48-dialog__head h2 {
+  font-size:25px;
+  line-height:1.15;
+  letter-spacing:-.035em;
+}
+.v48-dialog:has(#v48-document-form) .v48-dialog__head button {
+  width:40px;
+  height:40px;
+  flex:0 0 40px;
+  border:1px solid rgba(151,181,223,.46);
+  border-radius:13px;
+  background:#f5f9ff;
+  font-size:0;
+  box-shadow:none;
+}
+.v48-dialog:has(#v48-document-form) .v48-dialog__head button::before,
+.v48-dialog:has(#v48-document-form) .v48-dialog__head button::after {
+  content:"";
+  position:absolute;
+  width:16px;
+  height:2px;
+  border-radius:99px;
+  background:#66758b;
+}
+.v48-dialog:has(#v48-document-form) .v48-dialog__head button { position:relative; display:grid; place-items:center; }
+.v48-dialog:has(#v48-document-form) .v48-dialog__head button::before { transform:rotate(45deg); }
+.v48-dialog:has(#v48-document-form) .v48-dialog__head button::after { transform:rotate(-45deg); }
+.v48-dialog:has(#v48-document-form) .v48-dialog__body { padding:20px 24px 14px; }
+.v48-dialog:has(#v48-document-form) .v48-dialog__actions {
+  padding:6px 24px 24px;
+  gap:10px;
+}
+.v48-dialog:has(#v48-document-form) .v48-dialog__actions .btn { min-width:150px; }
+.v48-dialog:has(#v48-document-form) .v48-dialog__actions .btn:disabled {
+  opacity:.45;
+  cursor:not-allowed;
+  transform:none;
+  box-shadow:none;
+}
+.clinic-upload-form { gap:14px; }
+.clinic-upload-form .clinic-dialog-field { gap:7px; }
+.clinic-upload-form .clinic-dialog-field > span,
+.clinic-upload-form .clinic-field-label {
+  color:#536580;
+  font-size:12px;
+  font-weight:850;
+}
+.clinic-upload-form :is(input:not([type="file"]),select,textarea) {
+  width:100%;
+  min-height:46px;
+  border:1px solid rgba(151,181,223,.64);
+  border-radius:14px;
+  padding:0 14px;
+  color:#16233c;
+  background:#fff;
+  box-shadow:0 7px 18px rgba(52,85,135,.05);
+  outline:none;
+}
+.clinic-upload-form select {
+  appearance:none;
+  -webkit-appearance:none;
+  padding-right:42px;
+  background-image:linear-gradient(45deg,transparent 50%,#6d7c95 50%),linear-gradient(135deg,#6d7c95 50%,transparent 50%);
+  background-position:calc(100% - 19px) 51%,calc(100% - 13px) 51%;
+  background-size:6px 6px,6px 6px;
+  background-repeat:no-repeat;
+}
+.clinic-upload-form textarea {
+  min-height:92px;
+  padding:12px 14px;
+  line-height:1.45;
+  resize:vertical;
+}
+.clinic-upload-form :is(input,select,textarea):focus-visible {
+  border-color:rgba(23,103,247,.55);
+  box-shadow:0 0 0 4px rgba(23,103,247,.10);
+}
+.clinic-file-drop {
+  display:grid;
+  gap:8px;
+  padding:0;
+  border:0;
+  background:transparent;
+  cursor:pointer;
+}
+.clinic-file-input {
+  position:absolute !important;
+  width:1px !important;
+  height:1px !important;
+  min-height:1px !important;
+  padding:0 !important;
+  margin:-1px !important;
+  overflow:hidden !important;
+  clip:rect(0,0,0,0) !important;
+  white-space:nowrap !important;
+  border:0 !important;
+}
+.clinic-file-drop__zone {
+  display:grid;
+  grid-template-columns:44px minmax(0,1fr) auto;
+  align-items:center;
+  gap:13px;
+  min-height:92px;
+  padding:16px;
+  border:1.5px dashed rgba(23,103,247,.34);
+  border-radius:17px;
+  background:linear-gradient(180deg,#f9fcff,#f3f8ff);
+  transition:.16s ease;
+}
+.clinic-file-drop:hover .clinic-file-drop__zone,
+.clinic-file-drop.is-dragover .clinic-file-drop__zone {
+  border-color:rgba(23,103,247,.68);
+  background:#eef6ff;
+  box-shadow:0 0 0 4px rgba(23,103,247,.07);
+}
+.clinic-file-drop.has-file .clinic-file-drop__zone {
+  border-style:solid;
+  border-color:rgba(20,154,87,.34);
+  background:#f3fbf7;
+}
+.clinic-file-drop__icon {
+  width:44px;
+  height:44px;
+  display:grid;
+  place-items:center;
+  border-radius:13px;
+  background:#e9f3ff;
+}
+.clinic-file-drop__icon img { width:26px; height:26px; object-fit:contain; }
+.clinic-file-drop__copy { display:grid; gap:2px; }
+.clinic-file-drop__copy strong { font-size:14px; color:#1d2c46; }
+.clinic-file-drop__copy small { font-size:12px; color:#718098; }
+.clinic-file-button {
+  min-height:38px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0 14px;
+  border:1px solid rgba(23,103,247,.28);
+  border-radius:12px;
+  color:#1767f7;
+  background:#fff;
+  font-size:12px;
+  font-weight:850;
+  white-space:nowrap;
+  box-shadow:0 6px 14px rgba(55,92,151,.05);
+}
+.clinic-file-selected {
+  color:#52647f;
+  font-size:12px;
+  font-weight:750;
+  overflow-wrap:anywhere;
+}
+.clinic-file-hint { color:#8794a8 !important; font-size:11px; }
+.clinic-share-check {
+  align-items:center;
+  gap:12px;
+  padding:13px 14px;
+  border:1px solid rgba(151,181,223,.46);
+  border-radius:15px;
+  background:#f8fbff;
+  cursor:pointer;
+}
+.clinic-share-check input[type="checkbox"] {
+  appearance:none;
+  -webkit-appearance:none;
+  width:22px;
+  min-width:22px;
+  height:22px;
+  min-height:22px;
+  margin:0;
+  border:1.5px solid rgba(91,113,148,.42);
+  border-radius:7px;
+  background:#fff;
+  display:grid;
+  place-items:center;
+}
+.clinic-share-check input[type="checkbox"]:checked {
+  border-color:#1767f7;
+  background:#1767f7;
+}
+.clinic-share-check input[type="checkbox"]:checked::after {
+  content:"";
+  width:10px;
+  height:6px;
+  border-left:2px solid #fff;
+  border-bottom:2px solid #fff;
+  transform:translateY(-1px) rotate(-45deg);
+}
+.clinic-share-check strong { color:#21304a; font-size:13px; }
+.clinic-share-check small { color:#718098; font-size:11px; }
+
+@media (max-width:680px) {
+  .v48-dialog:has(#v48-document-form) {
+    width:calc(100vw - 16px);
+    max-height:calc(100dvh - 16px);
+    border-radius:20px;
+  }
+  .v48-dialog:has(#v48-document-form) .v48-dialog__head { padding:18px 18px 14px; }
+  .v48-dialog:has(#v48-document-form) .v48-dialog__head h2 { font-size:21px; }
+  .v48-dialog:has(#v48-document-form) .v48-dialog__body { padding:16px 18px 12px; }
+  .v48-dialog:has(#v48-document-form) .v48-dialog__actions { padding:4px 18px 18px; }
+  .clinic-upload-form { grid-template-columns:1fr; }
+  .clinic-upload-form .v48-field { grid-column:1/-1; }
+  .clinic-file-drop__zone { grid-template-columns:38px minmax(0,1fr); min-height:88px; }
+  .clinic-file-button { grid-column:1/-1; width:100%; }
+}

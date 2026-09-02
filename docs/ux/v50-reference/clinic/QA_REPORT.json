@@ -1,0 +1,14 @@
+{
+  "version": "V50 Clinic Simplified Completed",
+  "checks": {
+    "js_syntax": "PASS",
+    "missing_local_asset_refs": 0,
+    "absolute_user_paths": 0,
+    "patient_detail_route": "#clinic-patient",
+    "patient_result_upload": "implemented_demo",
+    "owner_document_delivery": "implemented_demo",
+    "one_c_primary_configuration": "1С:Бухгалтерия предприятия 3.0",
+    "one_c_medical_data_exchange": false
+  },
+  "browser_visual_qa": "NOT_CLAIMED: local Chromium hangs in this container; static/runtime syntax and asset integrity checks used."
+}

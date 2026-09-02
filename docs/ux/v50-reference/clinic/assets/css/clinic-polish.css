@@ -1,0 +1,484 @@
+/* VetHelp Clinic V50 — final standalone visual reconciliation layer. */
+.vethelp-clinic-only {
+  --clinic-ink:#16233c;
+  --clinic-muted:#65748d;
+  --clinic-line:rgba(151,181,223,.42);
+  --clinic-line-strong:rgba(124,163,219,.55);
+  --clinic-blue:#1767f7;
+  --clinic-blue-soft:rgba(23,103,247,.09);
+  --clinic-card:linear-gradient(145deg,rgba(255,255,255,.92),rgba(247,251,255,.72));
+  --clinic-shadow:0 16px 42px rgba(45,92,171,.10),0 3px 12px rgba(48,75,123,.05);
+  --clinic-shadow-hover:0 20px 50px rgba(37,89,183,.14),0 7px 20px rgba(30,66,128,.07);
+}
+
+/* Page frame and header */
+.vethelp-clinic-only.admin-route .main {
+  width:100%;
+  max-width:none;
+  padding:28px 24px 52px;
+}
+.vethelp-clinic-only .v48-admin-page {
+  width:min(100%,1540px);
+  margin-inline:auto;
+}
+.vethelp-clinic-only .v48-admin-topbar {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:24px;
+  min-height:66px;
+  margin-bottom:18px;
+}
+.vethelp-clinic-only .v48-admin-title-line h1 {
+  font-size:clamp(31px,2.7vw,44px);
+  letter-spacing:-1.4px;
+}
+.vethelp-clinic-only .v48-admin-topbar .subtitle {
+  max-width:780px;
+  margin-top:7px;
+  font-size:13px;
+}
+.vethelp-clinic-only .v48-admin-top-actions { flex-wrap:nowrap; }
+.vethelp-clinic-only .v48-role-switch { flex:0 0 auto; }
+.vethelp-clinic-only .v48-role-switch button { white-space:nowrap; }
+.vethelp-clinic-only .v48-staff-chip { min-width:220px; }
+
+/* One visual language for the clinic section tabs */
+.vethelp-clinic-only .v48-admin-tabs {
+  position:sticky;
+  top:10px;
+  display:flex;
+  align-items:center;
+  gap:5px;
+  padding:6px;
+  margin-bottom:14px;
+  border:1px solid var(--clinic-line);
+  border-radius:19px;
+  background:rgba(248,252,255,.92);
+  box-shadow:0 12px 30px rgba(45,92,171,.08);
+}
+.vethelp-clinic-only .v48-admin-tabs a {
+  min-height:42px;
+  border-radius:13px;
+  justify-content:center;
+  transition:background .16s ease,color .16s ease,transform .16s ease;
+}
+.vethelp-clinic-only .v48-admin-tabs a:hover { transform:translateY(-1px); }
+.vethelp-clinic-only .v48-admin-tabs img {
+  width:18px;
+  height:18px;
+  opacity:.72;
+  filter:saturate(.9);
+}
+.vethelp-clinic-only .v48-admin-tabs a.active img,
+.vethelp-clinic-only .v48-admin-tabs a[aria-current="page"] img { opacity:1; }
+@media (min-width:1360px) {
+  .vethelp-clinic-only .v48-admin-tabs a { flex:1 1 0; padding-inline:9px; }
+}
+
+/* Demo notice is intentionally quiet */
+.vethelp-clinic-only .v49-prototype-note {
+  border-color:rgba(145,177,224,.30);
+  background:rgba(246,250,255,.70);
+  box-shadow:none;
+}
+
+/* Panels/cards */
+.vethelp-clinic-only .v48-panel {
+  border-color:var(--clinic-line);
+  background:var(--clinic-card);
+  box-shadow:var(--clinic-shadow);
+}
+.vethelp-clinic-only .v48-panel-head { gap:18px; }
+.vethelp-clinic-only .v48-panel-head h2 { color:var(--clinic-ink); }
+.vethelp-clinic-only .v48-panel-head p { max-width:760px; }
+.vethelp-clinic-only .clinic-extra-grid { align-items:stretch; }
+.vethelp-clinic-only .clinic-extra-grid > .v48-panel,
+.vethelp-clinic-only .clinic-extra-grid > .clinic-admin-card { height:100%; }
+.vethelp-clinic-only .clinic-admin-card {
+  transition:transform .17s ease,box-shadow .17s ease,border-color .17s ease;
+}
+.vethelp-clinic-only .clinic-admin-card:hover {
+  transform:translateY(-2px);
+  border-color:var(--clinic-line-strong);
+  box-shadow:var(--clinic-shadow-hover);
+}
+.vethelp-clinic-only .clinic-admin-card h3 { line-height:1.25; }
+.vethelp-clinic-only .clinic-service-price { margin-top:2px; }
+
+/* Forms: inputs and selects must never fall back to raw browser UI. */
+.vethelp-clinic-only .v48-admin-page :where(input,textarea,select) {
+  width:100%;
+  border:1px solid rgba(151,181,223,.72);
+  color:var(--clinic-ink);
+  background-color:rgba(255,255,255,.94);
+  box-shadow:0 7px 18px rgba(55,92,151,.045);
+}
+.vethelp-clinic-only .v48-admin-page :where(input,select) {
+  min-height:46px;
+  border-radius:14px;
+  padding-inline:13px;
+}
+.vethelp-clinic-only .v48-admin-page textarea {
+  border-radius:14px;
+  padding:11px 13px;
+}
+.vethelp-clinic-only .v48-admin-page select {
+  appearance:none;
+  -webkit-appearance:none;
+  padding-right:46px;
+  background-image:
+    linear-gradient(45deg,transparent 50%,#6b7b94 50%),
+    linear-gradient(135deg,#6b7b94 50%,transparent 50%),
+    linear-gradient(to right,rgba(151,181,223,.28),rgba(151,181,223,.28));
+  background-position:
+    calc(100% - 19px) 51%,
+    calc(100% - 13px) 51%,
+    calc(100% - 42px) 50%;
+  background-size:6px 6px,6px 6px,1px 24px;
+  background-repeat:no-repeat;
+  cursor:pointer;
+}
+.vethelp-clinic-only .v48-admin-page select:hover { border-color:rgba(90,143,224,.72); }
+.vethelp-clinic-only .v48-admin-page select option {
+  color:var(--clinic-ink);
+  background:#fff;
+}
+.vethelp-clinic-only .v48-field { gap:7px; }
+.vethelp-clinic-only .v48-field > span {
+  color:#5c6d87;
+  font-size:11px;
+  letter-spacing:.01em;
+}
+.vethelp-clinic-only .v48-search { min-width:min(330px,100%); }
+
+/* Correct switch geometry: no inherited 44px button height. */
+.vethelp-clinic-only .clinic-setting-row {
+  grid-template-columns:minmax(0,1fr) 52px;
+  min-height:68px;
+  padding:12px 0;
+}
+.vethelp-clinic-only .clinic-setting-row > span { align-self:center; }
+.vethelp-clinic-only .clinic-setting-row .staff-sub {
+  margin-top:1px;
+  line-height:1.35;
+}
+.vethelp-clinic-only button.clinic-toggle {
+  appearance:none;
+  -webkit-appearance:none;
+  width:52px;
+  min-width:52px;
+  max-width:52px;
+  height:30px;
+  min-height:30px;
+  max-height:30px;
+  padding:3px;
+  margin:0;
+  align-self:center;
+  justify-self:end;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  border:0;
+  border-radius:999px;
+  line-height:0;
+  overflow:hidden;
+  background:#cfd7e5;
+  box-shadow:inset 0 0 0 1px rgba(76,92,124,.08);
+}
+.vethelp-clinic-only button.clinic-toggle::after {
+  width:24px;
+  min-width:24px;
+  height:24px;
+  margin:0;
+  flex:0 0 24px;
+}
+.vethelp-clinic-only button.clinic-toggle.is-on { background:#5368e8; }
+.vethelp-clinic-only button.clinic-toggle.is-on::after { transform:translateX(22px); }
+
+/* Toolbar/filter alignment */
+.vethelp-clinic-only .v48-toolbar {
+  min-height:48px;
+  margin-bottom:14px;
+}
+.vethelp-clinic-only .v48-toolbar__group { gap:8px; }
+.vethelp-clinic-only .v48-filter-button {
+  min-height:42px;
+  padding-inline:14px;
+  border-radius:13px;
+}
+
+/* Tables and list surfaces */
+.vethelp-clinic-only .v48-table-wrap,
+.vethelp-clinic-only .v48-schedule-scroll {
+  border-color:var(--clinic-line);
+  background:rgba(255,255,255,.68);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8);
+}
+.vethelp-clinic-only .v48-table th {
+  height:44px;
+  color:#60708a;
+  background:rgba(241,247,255,.97);
+}
+.vethelp-clinic-only .v48-table td { padding-block:12px; }
+.vethelp-clinic-only .v48-table tbody tr { transition:background .14s ease; }
+.vethelp-clinic-only .v48-person img,
+.vethelp-clinic-only .v48-patient-row img,
+.vethelp-clinic-only .v48-patient-hero img,
+.vethelp-clinic-only .v48-telemed-item img {
+  display:block;
+  object-fit:cover;
+  object-position:center;
+  background:#eaf2fc;
+  border:1px solid rgba(151,181,223,.22);
+}
+.vethelp-clinic-only .v48-person img { width:42px; height:42px; }
+.vethelp-clinic-only .v48-patient-row { min-height:76px; padding:10px; }
+.vethelp-clinic-only .v48-patient-row img { width:52px; height:52px; }
+.vethelp-clinic-only .v48-patient-hero img { width:82px; height:82px; }
+.vethelp-clinic-only .v48-patient-list { scrollbar-gutter:stable; }
+.vethelp-clinic-only .v48-record { padding-block:12px; }
+
+/* Schedule */
+.vethelp-clinic-only .v48-schedule-layout { grid-template-columns:286px minmax(0,1fr); }
+.vethelp-clinic-only .v48-schedule-grid > div { min-height:80px; }
+.vethelp-clinic-only .v48-schedule-grid .v48-schedule-head {
+  min-height:54px;
+  padding-top:10px;
+}
+.vethelp-clinic-only .v48-slot { min-height:62px; }
+.vethelp-clinic-only .v48-slot:hover { border-color:rgba(23,103,247,.42); }
+.vethelp-clinic-only .v48-slot-editor .v48-person {
+  padding:10px;
+  border-radius:14px;
+  background:rgba(240,247,255,.68);
+}
+
+/* Appointments */
+.vethelp-clinic-only .v48-grid--split { grid-template-columns:minmax(0,1.45fr) minmax(350px,.7fr); }
+.vethelp-clinic-only .v48-status { line-height:1.15; }
+.vethelp-clinic-only .v48-panel-actions { row-gap:8px; }
+
+/* Patient registry and card */
+.vethelp-clinic-only .v48-patient-layout { grid-template-columns:minmax(330px,.72fr) minmax(0,1.28fr); }
+.vethelp-clinic-only .v48-patient-row > span:nth-child(2) { min-width:0; }
+.vethelp-clinic-only .v48-alert { box-shadow:none; }
+
+/* Visit */
+.vethelp-clinic-only .v48-visit-layout { grid-template-columns:290px minmax(0,1fr) 315px; }
+.vethelp-clinic-only .v48-treatment-row {
+  grid-template-columns:minmax(190px,1fr) 100px 120px auto;
+  align-items:end;
+}
+.vethelp-clinic-only .v48-treatment-row .v48-mini-button { min-height:44px; }
+.vethelp-clinic-only .v48-consent-card { gap:10px; }
+
+/* Telemedicine */
+.vethelp-clinic-only .v48-telemed-layout { grid-template-columns:minmax(320px,360px) minmax(0,1fr); }
+.vethelp-clinic-only .v48-telemed-item {
+  grid-template-columns:50px minmax(0,1fr) auto;
+  min-height:72px;
+  padding:10px;
+}
+.vethelp-clinic-only .v48-telemed-item img { width:50px; height:50px; border-radius:15px; }
+.vethelp-clinic-only .v48-call-preview { overflow:hidden; }
+.vethelp-clinic-only .v48-call-preview img { width:100%; object-fit:cover; }
+
+/* Staff/services/profile/quality */
+.vethelp-clinic-only .clinic-admin-card__head img {
+  width:58px;
+  height:58px;
+  border-radius:18px;
+  object-fit:cover;
+  border:1px solid rgba(151,181,223,.20);
+}
+.vethelp-clinic-only .clinic-admin-meta { gap:6px; }
+.vethelp-clinic-only .clinic-profile-photo { min-height:300px; }
+.vethelp-clinic-only .clinic-quality-line { grid-template-columns:minmax(145px,180px) minmax(120px,1fr) 58px; }
+.vethelp-clinic-only .clinic-quality-track { height:9px; }
+
+/* Settings */
+.vethelp-clinic-only #clinic-settings .clinic-extra-grid--2 {
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px;
+}
+.vethelp-clinic-only #clinic-settings .v48-panel { min-height:0; }
+.vethelp-clinic-only #clinic-settings .clinic-select-field + .clinic-select-field { margin-top:12px; }
+.vethelp-clinic-only #clinic-settings .btn[data-demo-action="save-settings"] { margin-top:16px; }
+
+/* Notifications */
+.vethelp-clinic-only .clinic-notification-row {
+  min-height:64px;
+  align-items:center;
+}
+.vethelp-clinic-only .clinic-notification-row .mini-icon {
+  width:42px;
+  height:42px;
+  border-radius:13px;
+}
+
+/* Interactive states */
+.vethelp-clinic-only :where(.btn,.v48-mini-button,.v48-filter-button,.v48-slot,.v48-patient-row,.v48-telemed-item,.clinic-toggle) {
+  -webkit-tap-highlight-color:transparent;
+}
+.vethelp-clinic-only :where(.btn,.v48-mini-button,.v48-filter-button,.v48-patient-row,.v48-telemed-item):active {
+  transform:translateY(1px);
+}
+.vethelp-clinic-only :where(button,a,input,select,textarea):focus-visible {
+  outline:3px solid rgba(23,103,247,.24);
+  outline-offset:2px;
+}
+
+@media (max-width:1280px) {
+  .vethelp-clinic-only .v48-admin-top-actions { flex-wrap:wrap; max-width:560px; }
+  .vethelp-clinic-only .v48-staff-chip { min-width:200px; }
+  .vethelp-clinic-only .v48-visit-layout { grid-template-columns:270px minmax(0,1fr); }
+  .vethelp-clinic-only .v48-visit-layout > aside:last-child { grid-column:1/-1; grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+
+@media (max-width:1080px) {
+  .vethelp-clinic-only.admin-route .main { padding:22px 16px 44px; }
+  .vethelp-clinic-only .v48-admin-topbar { align-items:flex-start; }
+  .vethelp-clinic-only .v48-admin-top-actions { justify-content:flex-start; }
+  .vethelp-clinic-only .v48-schedule-layout,
+  .vethelp-clinic-only .v48-patient-layout,
+  .vethelp-clinic-only .v48-telemed-layout { grid-template-columns:1fr; }
+  .vethelp-clinic-only .v48-schedule-sidebar { position:static; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .vethelp-clinic-only .v48-patient-list { max-height:420px; }
+  .vethelp-clinic-only #clinic-settings .clinic-extra-grid--2 { grid-template-columns:1fr; }
+}
+
+@media (max-width:760px) {
+  .vethelp-clinic-only.admin-route .main { padding:16px 12px 36px; }
+  .vethelp-clinic-only .v48-admin-topbar { display:grid; gap:14px; }
+  .vethelp-clinic-only .v48-admin-title-line { align-items:flex-start; }
+  .vethelp-clinic-only .v48-admin-title-line h1 { font-size:30px; }
+  .vethelp-clinic-only .v48-admin-top-actions {
+    width:100%;
+    max-width:none;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 44px;
+  }
+  .vethelp-clinic-only .v48-role-switch { grid-column:1/-1; width:100%; }
+  .vethelp-clinic-only .v48-role-switch button { flex:1; padding-inline:8px; }
+  .vethelp-clinic-only .v48-staff-chip { grid-column:1; min-width:0; width:100%; }
+  .vethelp-clinic-only .v48-admin-tabs { margin-inline:-2px; border-radius:17px; }
+  .vethelp-clinic-only .v48-admin-tabs a { min-width:max-content; }
+  .vethelp-clinic-only .v48-grid--4,
+  .vethelp-clinic-only .v48-grid--3,
+  .vethelp-clinic-only .v48-grid--2,
+  .vethelp-clinic-only .v48-grid--dashboard,
+  .vethelp-clinic-only .v48-grid--split,
+  .vethelp-clinic-only .clinic-extra-grid,
+  .vethelp-clinic-only .clinic-extra-grid--2 { grid-template-columns:1fr; }
+  .vethelp-clinic-only .v48-schedule-sidebar { grid-template-columns:1fr; }
+  .vethelp-clinic-only .v48-visit-layout { grid-template-columns:1fr; }
+  .vethelp-clinic-only .v48-visit-layout > aside:last-child { grid-column:auto; grid-template-columns:1fr; }
+  .vethelp-clinic-only .v48-treatment-row { grid-template-columns:1fr 1fr; }
+  .vethelp-clinic-only .v48-treatment-row > span { grid-column:1/-1; }
+  .vethelp-clinic-only .v48-treatment-row > button { width:100%; }
+  .vethelp-clinic-only .clinic-setting-row { grid-template-columns:minmax(0,1fr) 52px; gap:12px; }
+  .vethelp-clinic-only .clinic-profile-photo { min-height:235px; }
+  .vethelp-clinic-only .clinic-quality-line { grid-template-columns:1fr 56px; }
+  .vethelp-clinic-only .clinic-quality-track { grid-column:1/-1; grid-row:2; }
+}
+
+@media (max-width:460px) {
+  .vethelp-clinic-only .v48-admin-title-line .pill { display:none; }
+  .vethelp-clinic-only .v48-staff-chip small { white-space:normal; }
+  .vethelp-clinic-only .v48-toolbar__group { width:100%; }
+  .vethelp-clinic-only .v48-search { min-width:0; width:100%; }
+  .vethelp-clinic-only .v48-filter-button { flex:1 1 auto; }
+  .vethelp-clinic-only .v48-treatment-row { grid-template-columns:1fr; }
+  .vethelp-clinic-only .v48-treatment-row > span { grid-column:auto; }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .vethelp-clinic-only * { scroll-behavior:auto; }
+  .vethelp-clinic-only .clinic-admin-card,
+  .vethelp-clinic-only .v48-admin-tabs a { transition:none; }
+}
+
+/* Correct clinic context and photo-overlay contrast. */
+.vethelp-clinic-only .owner-context-badge { color:#315f9b; background:rgba(239,247,255,.86); border-color:rgba(98,154,235,.42); }
+.vethelp-clinic-only .clinic-profile-photo__copy h2,
+.vethelp-clinic-only .clinic-profile-photo__copy p {
+  color:#fff;
+  text-shadow:0 2px 10px rgba(4,16,34,.55);
+}
+.vethelp-clinic-only .clinic-profile-photo__copy .pill { text-shadow:none; }
+.vethelp-clinic-only .clinic-admin-card__head .avatar-fallback {
+  color:#315f9b;
+  background:linear-gradient(145deg,#eef6ff,#e6effc);
+  border:1px solid rgba(151,181,223,.32);
+}
+
+@media (max-width:760px) {
+  /* Avoid nested scroll containers in long mobile task flows. */
+  .vethelp-clinic-only .v48-patient-list,
+  .vethelp-clinic-only .v48-telemed-list {
+    max-height:none;
+    overflow:visible;
+    padding-right:0;
+  }
+  .vethelp-clinic-only #clinic-visit .v48-visit-sidebar .v48-fact-grid {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  /* Appointment table becomes task cards instead of an 880px horizontal table. */
+  .vethelp-clinic-only #clinic-appointments .v48-table-wrap {
+    overflow:visible;
+    border:0;
+    background:transparent;
+    box-shadow:none;
+  }
+  .vethelp-clinic-only #clinic-appointments .v48-table,
+  .vethelp-clinic-only #clinic-appointments .v48-table tbody,
+  .vethelp-clinic-only #clinic-appointments .v48-table tr,
+  .vethelp-clinic-only #clinic-appointments .v48-table td {
+    display:block;
+    width:100%;
+    min-width:0;
+  }
+  .vethelp-clinic-only #clinic-appointments .v48-table { min-width:0; }
+  .vethelp-clinic-only #clinic-appointments .v48-table thead { display:none; }
+  .vethelp-clinic-only #clinic-appointments .v48-table tbody {
+    display:grid;
+    gap:10px;
+  }
+  .vethelp-clinic-only #clinic-appointments .v48-table tbody tr {
+    padding:12px;
+    border:1px solid var(--clinic-line);
+    border-radius:17px;
+    background:rgba(255,255,255,.74);
+    box-shadow:0 8px 22px rgba(45,92,171,.06);
+  }
+  .vethelp-clinic-only #clinic-appointments .v48-table tbody tr.is-selected {
+    border-color:rgba(23,103,247,.38);
+    background:rgba(236,245,255,.84);
+  }
+  .vethelp-clinic-only #clinic-appointments .v48-table tbody tr.is-selected td:first-child { box-shadow:none; }
+  .vethelp-clinic-only #clinic-appointments .v48-table td {
+    display:grid;
+    grid-template-columns:86px minmax(0,1fr);
+    gap:8px;
+    align-items:start;
+    padding:8px 0;
+    border:0;
+  }
+  .vethelp-clinic-only #clinic-appointments .v48-table td::before {
+    color:#75839a;
+    font-size:10px;
+    font-weight:900;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+  }
+  .vethelp-clinic-only #clinic-appointments .v48-table td:nth-child(1)::before { content:'Время'; }
+  .vethelp-clinic-only #clinic-appointments .v48-table td:nth-child(2)::before { content:'Пациент'; }
+  .vethelp-clinic-only #clinic-appointments .v48-table td:nth-child(3)::before { content:'Услуга'; }
+  .vethelp-clinic-only #clinic-appointments .v48-table td:nth-child(4)::before { content:'Статус'; }
+  .vethelp-clinic-only #clinic-appointments .v48-table td:nth-child(5)::before { content:'Цена'; }
+  .vethelp-clinic-only #clinic-appointments .v48-table td:nth-child(6)::before { content:'Риск'; }
+  .vethelp-clinic-only #clinic-appointments .v48-table td:first-child,
+  .vethelp-clinic-only #clinic-appointments .v48-table td:nth-child(n+2) { min-width:0; width:100%; }
+}
