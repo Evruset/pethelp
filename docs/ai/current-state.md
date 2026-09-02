@@ -2865,3 +2865,27 @@ Batch stop: exactly three checkpoints were processed (T085 continuation, T140, T
   `ACCESSIBILITY=FAIL`, `CLINIC_VISUAL_EVIDENCE=NOT_RUN`,
   `OWNER_VISUAL_EVIDENCE=NOT_RUN`, `PRODUCT_UX_REVIEW=NOT_RUN`,
   `W7_COMPLETE=NO`, `W7D_TARGETED_REPAIR_REQUIRED=YES`.
+## 2026-09-02 — W7-D-R4 publish-dialog focus containment repair
+
+- The Clinic Result publish confirmation dialog now traps keyboard focus across
+  its existing two controls: Tab from the final control returns to the first,
+  and Shift+Tab from the first returns to the final control. Keyboard handling
+  remains scoped to the open dialog; its role, accessible name, wording,
+  action structure, pointer behavior, and initial focus are unchanged.
+- Escape after repeated keyboard cycling and explicit Cancel both close the
+  dialog and restore focus to the exact publish trigger. Successful publication
+  moves focus off the soon-to-be-removed dialog before canonical reload, so it
+  does not leave focus on detached DOM.
+- Focused Chromium coverage at `430×932` passes `5/5`, including repeated Tab
+  and Shift+Tab containment, Escape and Cancel focus restoration, and the
+  confirm path. Clinic Portal typecheck and production build pass;
+  `git diff --check` passes.
+- Final flags: `PUBLISH_DIALOG_INITIAL_FOCUS=PASS`,
+  `PUBLISH_DIALOG_TAB_CONTAINMENT=PASS`,
+  `PUBLISH_DIALOG_SHIFT_TAB_CONTAINMENT=PASS`,
+  `PUBLISH_DIALOG_ESCAPE=PASS`,
+  `PUBLISH_DIALOG_TRIGGER_FOCUS_RETURN=PASS`,
+  `PUBLISH_DIALOG_CONFIRM_PATH=PASS`,
+  `W7D_PUBLISH_DIALOG_FOCUS_REPAIR=PASS`,
+  `ACCESSIBILITY_BLOCKER_REPAIRED=YES`. Recommended next slice is only
+  W7-D-R5 — final bounded visual/accessibility/Product-UX closure.

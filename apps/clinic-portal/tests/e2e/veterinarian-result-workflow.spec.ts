@@ -40,6 +40,26 @@ test('draft save, confirmed publication and immutable Amendment workflow reload 
   await page.reload(); await expect(page.locator('ol li').last()).toContainText('Новое уточнение'); expect(amendments).toBe(1);
 });
 
+test('publish dialog contains keyboard focus and restores the publish trigger', async ({ page, context, baseURL }) => {
+  phase = 'draft'; await page.setViewportSize({ width: 430, height: 932 }); await session(context, baseURL); await page.goto(route());
+  const trigger = page.getByRole('button', { name: 'Опубликовать результат' });
+  const open = async () => { await trigger.click(); const dialog = page.getByRole('dialog', { name: 'Опубликовать результат?' }); await expect(dialog).toBeVisible(); return dialog; };
+
+  let dialog = await open(); const confirm = dialog.getByRole('button', { name: 'Опубликовать', exact: true }); const cancel = dialog.getByRole('button', { name: 'Отмена' });
+  await expect(confirm).toBeFocused();
+  await page.keyboard.press('Shift+Tab'); await expect(cancel).toBeFocused();
+  await page.keyboard.press('Shift+Tab'); await expect(confirm).toBeFocused();
+  await page.keyboard.press('Tab'); await expect(cancel).toBeFocused();
+  await page.keyboard.press('Tab'); await expect(confirm).toBeFocused();
+  await page.keyboard.press('Escape'); await expect(dialog).toBeHidden(); await expect(trigger).toBeFocused();
+
+  dialog = await open(); await dialog.getByRole('button', { name: 'Отмена' }).click(); await expect(dialog).toBeHidden(); await expect(trigger).toBeFocused();
+
+  dialog = await open(); await dialog.getByRole('button', { name: 'Опубликовать', exact: true }).click();
+  await expect(page.getByText('Исходный результат')).toBeVisible(); expect(publishes).toBe(1);
+  expect(await page.evaluate(() => document.activeElement?.isConnected)).toBe(true);
+});
+
 test('read-only capability preserves authorized readback and removes all mutation actions', async ({ page, context, baseURL }) => {
   phase = 'amended'; capabilities = ['clinical.visit.workspace.read']; await session(context, baseURL); await page.goto(route()); await expect(page.getByText('Published result body')).toBeVisible(); await expect(page.getByText('Первое уточнение')).toBeVisible(); await expect(page.getByRole('button', { name: /Сохранить|Опубликовать|Добавить уточнение|Оформить результат|Завершить приём/ })).toHaveCount(0);
 });
