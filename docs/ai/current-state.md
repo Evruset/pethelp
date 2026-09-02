@@ -2889,3 +2889,20 @@ Batch stop: exactly three checkpoints were processed (T085 continuation, T140, T
   `W7D_PUBLISH_DIALOG_FOCUS_REPAIR=PASS`,
   `ACCESSIBILITY_BLOCKER_REPAIRED=YES`. Recommended next slice is only
   W7-D-R5 — final bounded visual/accessibility/Product-UX closure.
+## 2026-09-02 — W7-D-R6 Owner Web document-title repair
+
+- The canonical Expo Web root now supplies the deterministic title `VetHelp`
+  through both the server HTML shell and existing Expo Router head integration.
+  It is present synchronously, does not depend on Owner or Diary API data, and
+  does not affect native iOS or Android behavior.
+- The focused metadata regression passes `1/1`. Real Chromium on the canonical
+  authenticated Pet Diary reports `page.title() === "VetHelp"` and zero axe
+  `document-title` violations. Owner typecheck, targeted ESLint, Node 22 Expo
+  Web export, and `git diff --check` pass.
+- Final flags: `OWNER_WEB_DOCUMENT_TITLE_PRESENT=PASS`,
+  `OWNER_WEB_DOCUMENT_TITLE_NONEMPTY=PASS`,
+  `OWNER_WEB_DOCUMENT_TITLE_AXE=PASS`,
+  `W7D_OWNER_DOCUMENT_TITLE_REPAIR=PASS`,
+  `ACCESSIBILITY_DOCUMENT_TITLE_BLOCKER_REPAIRED=YES`. Recommended next slice
+  is only W7-D-R5R — resume remaining final visual/accessibility/Product-UX
+  closure.
