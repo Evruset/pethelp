@@ -8,5 +8,5 @@ export const uiTokens = Object.freeze({
   radius: Object.freeze({ control: 12, card: 16, section: 20, pill: 999 }),
   typography: Object.freeze({ largeTitle: font(34, 40, '700'), title: font(26, 32, '700'), sectionTitle: font(17, 22, '700'), body: font(16, 22, '400'), secondaryBody: font(15, 21, '400'), label: font(14, 18, '600'), caption: font(13, 17, '500'), button: font(16, 20, '700') }),
   shadow: Object.freeze({ card: Object.freeze({ shadowColor: '#14231F', shadowOpacity: 0.08, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 2 } satisfies ViewStyle) }),
-  layout: Object.freeze({ phoneMaxWidth: 500, contentMaxWidth: 460, minTouch: 48 }),
+  layout: Object.freeze({ phoneMaxWidth: 500, contentMaxWidth: 720, desktopMaxWidth: 1180, minTouch: 48 }),
 });

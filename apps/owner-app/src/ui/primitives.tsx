@@ -3,10 +3,10 @@ import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, Text, TextIn
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { uiTokens as t } from './tokens';
 
-export function OwnerAppFrame({ children }: PropsWithChildren) {
+export function OwnerAppFrame({ children, wide = false }: PropsWithChildren<{ wide?: boolean }>) {
   const { width } = useWindowDimensions();
   const webWide = Platform.OS === 'web' && width >= 768;
-  return <View style={{ flex: 1, backgroundColor: t.color.background, alignItems: webWide ? 'center' : 'stretch' }}><SafeAreaView style={{ flex: 1, width: '100%', maxWidth: webWide ? t.layout.phoneMaxWidth : undefined, backgroundColor: t.color.surface, ...(webWide ? t.shadow.card : {}) }}>{children}</SafeAreaView></View>;
+  return <View style={{ flex: 1, backgroundColor: t.color.background, alignItems: webWide ? 'center' : 'stretch' }}><SafeAreaView style={{ flex: 1, width: '100%', maxWidth: webWide ? (wide ? t.layout.desktopMaxWidth : t.layout.phoneMaxWidth) : undefined, backgroundColor: t.color.surface, ...(webWide ? t.shadow.card : {}) }}>{children}</SafeAreaView></View>;
 }
 
 export function Screen({ children, title, subtitle, accessibilityLabel = title, backAction, scroll = true }: PropsWithChildren<{ title: string; subtitle?: string; accessibilityLabel?: string; backAction?: () => void; scroll?: boolean }>) {

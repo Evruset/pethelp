@@ -2928,6 +2928,33 @@ Batch stop: exactly three checkpoints were processed (T085 continuation, T140, T
   Recommended next slice is only `OWNER-V50-R1` — current production Owner
   screen map plus first bounded parity implementation.
 
+## 2026-09-02 — OWNER-V50-R1 Owner shell and Home parity
+
+- Verified the canonical V50 manifest and opened Owner `index.html#home` in
+  Chromium at `390x844` and `1440x900`. The production map is recorded in
+  `docs/ux/OWNER-V50-SCREEN-MAP.md`; excluded prototype telemedicine,
+  insurance, and emergency surfaces remain reference-only.
+- The authenticated Owner root now uses one responsive shell: compact mobile
+  navigation and a bounded full-width desktop workspace with active state,
+  consistent typography, spacing, surfaces, cards, and 44px-class controls.
+  Existing booking, Diary, resumed-booking, and logout transitions are
+  preserved.
+- Home now follows Care Normal hierarchy: immediate care heading, truthful
+  booking action, published clinical-history entry, and Pet context. It does
+  not invent appointment, clinic, or Pet facts absent from authoritative APIs.
+- Clean-source Chromium passed public entry and controlled authenticated Home
+  at both viewports with zero horizontal overflow. Focused Home test passes
+  `1/1`; Owner typecheck, targeted ESLint, Expo Web export, and
+  `git diff --check` pass. Development comparison finds hierarchy,
+  composition, responsive navigation, density, and CTA placement suitable for
+  this bounded R1; richer authoritative Pet/appointment content remains a
+  later mapped gap.
+- Final flags: `OWNER_FRONTEND_STARTUP=PASS`, `OWNER_AUTH_ENTRY=PASS`,
+  `OWNER_V50_SCREEN_MAP=PASS`, `OWNER_HOME_MOBILE_STRUCTURE=PASS`,
+  `OWNER_HOME_DESKTOP_STRUCTURE=PASS`, `OWNER_FRONTEND_FUNCTIONAL=YES`,
+  `OWNER_V50_SHELL=PASS`, `OWNER_V50_HOME=PASS`. Recommended next slice is only
+  `OWNER-V50-R2` — Discovery + Service + Availability parity.
+
 ## W7 clinical visit/result repair — 2026-09-09
 
 - Veterinarian LIST remains the bounded eight-field projection. DETAIL adds
