@@ -84,7 +84,7 @@ export function createAppConfig({ config }: ConfigContext, env: ConfigEnvironmen
       },
       predictiveBackGestureEnabled: false,
     },
-    web: { output: 'static', favicon: './assets/images/favicon.png' },
+    web: { output: 'server', favicon: './assets/images/favicon.png' },
     plugins: [
       'expo-router',
       ['expo-splash-screen', { backgroundColor: '#208AEF', image: './assets/images/splash-icon.png', imageWidth: 76 }],

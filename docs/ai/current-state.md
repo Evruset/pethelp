@@ -2543,3 +2543,325 @@ Batch stop: exactly three checkpoints were processed (T085 continuation, T140, T
 - Machine classification and final reconciliation: after a fresh Jira DoD/dependency reread, evidence comment `10219` and Confluence evidence page `5111809`, `SCRUM-668/T044` was transitioned and immediately reread as `Готово / Готово`. `S13=MACHINE_COMPLETE / READY_FOR_HUMAN_ACCEPTANCE`; `SCRUM-602/S13` remains `К выполнению / unresolved` because `result accepted` is a human gate and machine evidence does not simulate it. S12/T037/T039 human acceptance is likewise unchanged. Canonical first-MVP progress is now `39/100 Done = 39%`.
 - No S14 implementation, clinic confirm/reject work, alternative time, cancellation, history, notifications, payments, telemedicine, production deployment, commit, push or PR was performed.
 - Exactly one next bounded slice after the remaining human acceptance/closure gate: `SCRUM-603 / S14 — Подтвердить или отклонить заявку`; `NOT_STARTED`.
+## 2026-08-31 — W7-A clinical Visit, Result, Amendment and Pet Diary foundation closure
+
+- Additive migration `1719610000000_add_clinical_visit_result_foundation.js`
+  creates the clinical Visit, Result, Amendment and immutable derived Diary
+  projection with exact Appointment/Hold, Owner/Pet, clinic/location and slot
+  lineage. A populated DOWN fails closed with
+  `W7A_DOWN_DATA_REMEDIATION_APPROVAL_REQUIRED` before removing any schema or
+  rewriting clinical history.
+- Visit completion is idempotent and retains its previously proven exactly-once
+  append-only audit/outbox evidence. Result supports editable `DRAFT` followed
+  by immutable `PUBLISHED`; every persisted column of a published Result is
+  protected. Amendments target only published Results, preserve the original
+  unchanged, retain exact provenance and are themselves immutable.
+- Diary is a unique, immutable Result-or-Amendment projection with deterministic
+  chronology. `DRAFT` Results are excluded. The Pilot Owner route is enabled
+  through the bounded MVP controller and product-scope guard; owning Owners see
+  published Results and Amendments, foreign Owners receive `404`, and unrelated
+  Pet clinical data is excluded.
+- Result publication and Amendment publication append exactly one audit and one
+  outbox business event per transition/creation; idempotent replay does not
+  duplicate rows, projections or evidence. Existing valid event names were
+  retained.
+- Focused real-PostgreSQL migration evidence passes `1/1`, covering schema,
+  Visit coherence/idempotency, DRAFT edit/exclusion, complete published-row and
+  Amendment immutability, lineage, unique Diary projection, chronology and
+  populated-DOWN preservation. Focused lifecycle/no-leak HTTP evidence passes
+  `1/1`; Pilot diary controller/scope regressions pass `24/24`.
+- The single independent clinical-data/security review completed one remediation
+  cycle and returned `CLINICAL_DATA_SECURITY_REVIEW=NO_VETO`.
+- Final flags: `POSTGRESQL_CONSTRAINTS=PASS`, `HTTP_LIFECYCLE=PASS`,
+  `OWNER_NO_LEAK=PASS`, `DRAFT_EXCLUSION=PASS`,
+  `PUBLISHED_IMMUTABILITY=PASS`, `AMENDMENT_LINEAGE=PASS`,
+  `POPULATED_DOWN_FAIL_CLOSED=PASS`, `AUDIT_OUTBOX=PASS`,
+  `CLINICAL_DATA_SECURITY_REVIEW=NO_VETO`, `CURRENT_STATE_UPDATED=YES`.
+  `GIT_DIFF_CHECK=PASS`.
+  Retained sticky evidence: `W7A_VISIT_COMPLETION_EVIDENCE=PASS`,
+  `AUDIT_OUTBOX_REPAIR=PASS`, `AMENDMENT_IDEMPOTENT_REPLAY=PASS`,
+  `AMENDMENT_IMMUTABILITY=PASS`, `HTTP_LIFECYCLE_REPAIR=PASS`.
+  `W7A_SCHEMA_COMPLETE=YES`, `VISIT_COMPLETION_FOUNDATION=PASS`,
+  `RESULT_FOUNDATION=PASS`, `AMENDMENT_FOUNDATION=PASS`,
+  `PET_DIARY_READ_MODEL_FOUNDATION=PASS`,
+  `W7A_STATUS=IMPLEMENTED/MACHINE_COMPLETE`, `W7A_COMPLETE=YES`.
+  Recommended next slice is only W7-B — Clinic Visit Completion + Result UI.
+
+## 2026-09-01 — W7-B2 one-Result-per-Visit decision and clinical readback repair
+
+- Approved Pilot cardinality is now explicit: one Visit has zero or one primary
+  Result; post-publication corrections remain append-only Amendments. The
+  configured PostgreSQL precheck found no Visit with more than one Result, so
+  no business-row remediation or rewrite was performed.
+- Additive corrective migration
+  `1719620000000_enforce_one_clinical_result_per_visit.js` adds only
+  `UNIQUE (visit_id)` and has an ordinary reversible DOWN that removes the
+  invariant without changing Result rows. The migration itself also fails
+  before the ALTER when incompatible duplicate cardinality exists.
+- Result creation now relies on database uniqueness for races. The first create
+  persists one DRAFT and its evidence; same-key replay returns that canonical
+  Result without duplicate audit/outbox evidence; a different key receives
+  `CLINICAL_RESULT_ALREADY_EXISTS` with bounded current-Result readback.
+- Authorized `GET /v1/clinic/visits/:visitId/results` returns the durable
+  `visitId`, the exact unique DRAFT or PUBLISHED Result (or `null`), and only
+  that published Result's immutable Amendments ordered by `created_at ASC,
+  id ASC`. Reads preserve existing veterinarian clinic/location authority and
+  perform no clinical, Diary, audit or outbox mutation.
+- Focused real-PostgreSQL migration evidence passes `1/1`, including first/
+  second creation, DOWN → UP, row preservation and unchanged W7-A migration
+  bytes. Focused HTTP/concurrency/readback evidence passes `1/1`, covering all
+  four reload states, single-winner concurrency, replay/conflict behavior,
+  deterministic Amendment history, no-leak and insufficient capability.
+  Backend build and OpenAPI export/assertion pass. The shared local database's
+  checksum registry still contains a pre-existing older `171961` checksum;
+  this repair did not rewrite that registry or the closed W7-A migration.
+- Final flags: `W7B_RESULT_SELECTION_DECISION_REQUIRED=NO`,
+  `W7B_RESULT_CARDINALITY=ONE_PER_VISIT`,
+  `W7B_RESULT_CARDINALITY_SCHEMA=PASS`, `W7B_CLINICAL_READBACK=PASS`,
+  `W7B_BACKEND_CONTRACT_GAP=NO`. Recommended next slice is only W7-B — Resume
+  Clinic Visit Completion + Result UI.
+
+## 2026-09-01 — W7-B4 veterinarian Visit identity readback repair
+
+- The existing exact-scope veterinarian Visit detail now returns the bounded
+  identity projection `appointmentId`, `petId`, and `visitId`. Appointment and
+  Pet are joined through the exact Hold/slot/location lineage; Visit is joined
+  only through that Appointment plus Hold, Pet, clinic, location, and slot.
+  Before durable Visit creation `visitId` is `null`; no Pet/latest/timestamp
+  inference is used and the read path contains no mutation.
+- Clinic Portal detail parsing retains the three identities. A veterinarian-only
+  exact BFF forwards canonical Result readback, and the reload client calls it
+  only for a non-null durable `visitId`; null remains the truthful pre-Visit
+  state without a premature Result request.
+- Backend focused unit evidence passes `2/2`; backend and Clinic Portal builds
+  and Clinic typecheck pass. Focused Portal veterinarian visit/completion
+  coverage passes `15/15`, including identity survival across reload, canonical
+  published Result plus Amendment readback, and the null-Visit no-call guard.
+  `git diff --check` passes.
+- The focused backend HTTP/PostgreSQL matrix is implemented but could not run in
+  this workstation because the configured local PostgreSQL role/database
+  `vethelp` does not exist. OpenAPI export succeeds, while the repository-wide
+  assertion stops on the pre-existing unrelated create-Hold closure assertion
+  (`Create hold request must be closed`). Clinic Portal has no ESLint script or
+  ESLint dependency, so no targeted ESLint command exists.
+- Repair outcome: `W7B_VISIT_IDENTITY_READBACK=PASS`,
+  `W7B_BACKEND_CONTRACT_GAP=NO`. Remaining verification-tooling limitations do
+  not indicate an identity schema gap. Recommended next slice is only W7-B3 —
+  Resume Clinic Visit Completion + Result UI.
+
+## 2026-09-01 — W7-B3R Clinic Visit completion and Result UI closure
+
+- The veterinarian Visit workspace now follows only the authoritative reload
+  chain Hold → Appointment/Pet → durable Visit → unique Result → ordered
+  Amendments. Completion and controlled replay reload Visit detail to obtain
+  `visitId`; no client identity is synthesized and no mutation is used for
+  discovery.
+- A completed Visit with no Result exposes bounded draft creation. A competing
+  create conflict converges by canonical reload. DRAFT shows localized
+  visibility status, bounded editing, versioned save, validation/network states,
+  and explicit publish confirmation describing Owner visibility, main-text
+  immutability, and Amendment-only correction.
+- PUBLISHED renders the original Result read-only with publication facts and no
+  ordinary editor. Immutable Amendments remain in backend order. Amendment
+  creation uses a stable idempotency key across retry and reloads canonical
+  history, preventing a duplicate presentation row after response loss/replay.
+  Authorized read-only users retain clinical readback while mutation controls
+  are removed.
+- Exact veterinarian-only Portal BFF mutations now forward Result create,
+  versioned draft update, publish, and Amendment create to the already-approved
+  backend contract with bounded content, UUID validation, no-store responses,
+  correlation IDs, and forwarded stable idempotency keys.
+- Focused workflow tests pass `4/4`, explicitly covering all five reload states,
+  identity/no-discovery-mutation behavior, competing creation, save/publish/
+  Amendment convergence, immutable published UX, backend ordering, and
+  read-only capability. Existing focused veterinarian Visit/completion suites
+  pass `15/15`. Clinic Portal typecheck and production build pass;
+  `git diff --check` passes. No backend file or contract was changed.
+- Final flags: `CLINIC_VISIT_COMPLETION_UI=PASS`,
+  `CLINIC_RESULT_DRAFT_UI=PASS`, `CLINIC_RESULT_RELOAD_SAFETY=PASS`,
+  `CLINIC_RESULT_PUBLICATION_UI=PASS`,
+  `CLINIC_RESULT_IMMUTABILITY_UX=PASS`, `CLINIC_AMENDMENT_UI=PASS`,
+  `W7B_COMPLETE=YES`. The previously recorded local PostgreSQL, unrelated
+  OpenAPI assertion, and absent Portal ESLint-command debts remain non-blocking
+  and unchanged. Recommended next slice is only W7-C — Owner Pet Diary UI.
+
+## 2026-09-01 — W7-C1 grouped Owner clinical Diary readback repair
+
+- The existing owner-scoped Pet Diary endpoint retains its legacy flattened
+  `entries` array and adds a bounded Result-centric `clinicalEntries` projection.
+  Each entry carries the exact completed Visit date, display-safe clinic and
+  optional location/service context, the immutable published Result, and only
+  its exact FK-linked Amendments. Doctor remains explicitly `null` because no
+  already-approved display name exists in this lineage.
+- Grouping is server-authoritative through Result → Visit and Amendment → Result
+  context keys plus the immutable Diary source rows. DRAFT Results and orphan
+  Amendment projections are excluded. Top-level entries remain deterministic
+  newest-Visit-first; nested Amendments are emitted in `created_at ASC, id ASC`
+  order. The read performs SELECTs only and does not emit audit/outbox events or
+  mutate clinical/Diary state.
+- Expo Owner Web now allowlists the exact bounded Pet Diary GET. A separate
+  Owner Diary client/parser validates Pet identity, grouped Visit/Result IDs,
+  timestamps, nullable display facts, content, and Amendment order as returned;
+  the existing injected Pet API contract remains unchanged. No Owner UI was
+  started in this repair.
+- Focused backend projection tests pass `16/16`; focused Owner parser/BFF tests
+  pass `14/14`; backend and Owner typechecks/build pass; targeted Owner ESLint,
+  OpenAPI export, and `git diff --check` pass. The focused real-PostgreSQL HTTP
+  assertion is updated for the grouped contract but its bounded execution stops
+  at the existing disposable-database guard because no `vethelp_w7a5r_*`
+  database is configured; no local database setup or repair was attempted.
+- Final flags: `W7C_GROUPED_DIARY_READBACK=PASS`,
+  `W7C_VISIT_CONTEXT_READBACK=PASS`,
+  `W7C_AMENDMENT_PARENT_LINKAGE=PASS`, `W7C_BACKEND_CONTRACT_GAP=NO`.
+  Recommended next slice is only W7-C — Resume Owner Pet Diary UI using the
+  grouped authoritative projection.
+
+## 2026-09-01 — W7-C2 Owner Pet Diary UI closure
+
+- The shared Expo Owner app now opens the selected Pet's Diary from the existing
+  Pet selection journey. Diary queries are scoped by Owner authority and exact
+  `petId`; a Pet change clears any open Result detail and foreign-Pet response
+  data fails closed without flashing clinical content.
+- The Diary list consumes only authoritative `clinicalEntries` in backend order,
+  with one item per published Result. Each item uses the exact Visit date and
+  clinic context, includes available service/veterinarian/location facts, a
+  bounded Result preview, and an Amendment count without exposing identifiers or
+  enums. Empty, loading, retryable error, and missing optional-fact states are
+  Owner-safe; legacy flattened Diary entries are not used for clinical grouping.
+- Result detail is read-only and presents exact Visit context, the immutable
+  original Result, then Amendments in backend oldest-first order. Owner copy
+  explicitly preserves the original in history and identifies Amendments as
+  later clarifications rather than separate Visits.
+- Focused Diary and navigation tests pass `11/11`; Owner typecheck and targeted
+  ESLint pass. Expo Web static export passes under the repository-required Node
+  22 runtime; `git diff --check` passes. No backend, schema, authorization, or
+  clinical mutation contract changed.
+- Final flags: `OWNER_PET_DIARY_LIST_UI=PASS`,
+  `OWNER_PET_DIARY_RESULT_DETAIL=PASS`,
+  `OWNER_PET_DIARY_AMENDMENTS=PASS`,
+  `OWNER_PET_DIARY_DRAFT_EXCLUSION=PASS`,
+  `OWNER_PET_DIARY_VISIT_CONTEXT=PASS`,
+  `OWNER_PET_SWITCH_ISOLATION=PASS`, `W7C_COMPLETE=YES`. Recommended next slice
+  is only W7-D — Visit → Published Result → Owner Pet Diary Real E2E + Bounded
+  Visual Closure.
+
+## 2026-09-02 — W7-D-R1 Owner Web entry and auth/BFF repair
+
+- Real Chromium reproduction confirmed that the canonical local Owner launcher
+  omitted all three required BFF settings. Guest `GET /api/owner/v1/auth/session`
+  therefore returned `503 UNAVAILABLE`, while OTP mutation returned
+  `403 ORIGIN_REJECTED` before reaching the backend. Direct backend OTP remained
+  healthy. `localhost:8081` and `127.0.0.1:8081` were also distinct under the
+  exact Host/Origin gate.
+- The local launcher now supplies the backend URL, one canonical
+  `http://127.0.0.1:8081` Owner origin, and the existing local IP-signing secret.
+  An early exact-only loopback normalization redirects `localhost:8081` to that
+  canonical origin while preserving path/query/hash. It does not relax
+  production Origin/Host matching, trust forwarded Host, or permit wildcards.
+  The BFF now resolves a missing protected-session cookie as normal `401` guest
+  bootstrap before requiring upstream configuration.
+- A bounded real-browser smoke against backend/PostgreSQL passed: canonical
+  redirect; guest bootstrap; OTP request and verify; HttpOnly, Secure,
+  SameSite=Lax session establishment; authenticated reload; real owned-Pet
+  readback; exact Pet Diary entry; and a second reload/readback. No credential or
+  development OTP was exposed to browser storage or URL.
+- Focused Owner auth/BFF/origin/navigation regression coverage passes. The
+  ordinary backend Compose restart encountered the known stale `171961`
+  checksum-registration debt after applying `171962`; no checksum was rewritten.
+  The smoke used the same Compose backend environment with current source while
+  skipping only the blocked migration wrapper. OTP rate rows created solely by
+  repeated reproduction were removed; one real local smoke Pet remains.
+- Final flags: `OWNER_WEB_GUEST_BOOTSTRAP=PASS`,
+  `OWNER_WEB_CANONICAL_LOCAL_ORIGIN=PASS`, `OWNER_WEB_OTP_REQUEST=PASS`,
+  `OWNER_WEB_OTP_VERIFY=PASS`, `OWNER_WEB_SESSION_ESTABLISHMENT=PASS`,
+  `OWNER_WEB_SESSION_RELOAD=PASS`, `OWNER_WEB_PETS_READBACK=PASS`,
+  `OWNER_WEB_PET_DIARY_ENTRY=PASS`,
+  `PRODUCTION_ORIGIN_SECURITY_REGRESSION=PASS`,
+  `W7D_OWNER_WEB_AUTH_REPAIR=PASS`, `OWNER_WEB_REAL_UI_REACHABLE=PASS`,
+  `W7D_FIRST_DEFECT_REPAIRED=YES`. Recommended next slice is only W7-D-R —
+  resume remaining real E2E + bounded visual closure.
+
+## 2026-09-02 — W7-D-R real journey stopped by Pilot Clinic route exclusion
+
+- Reused the exact Owner/Pet fixture (`W7D Рекс`) and a real available slot,
+  established an Owner session through the backend/PostgreSQL path, created one
+  `MANUAL_CONFIRM_PENDING` hold, and confirmed it through the live Clinic Portal
+  queue/BFF/backend path. PostgreSQL readback proves the same hold and appointment
+  are `CONFIRMED`.
+- The next mandatory step cannot enter the current-source veterinarian Visit
+  workspace. Live Chromium receives literal `404 Not Found` for
+  `/clinics/{clinicId}/locations/{locationId}/vet/visits/{holdId}`. A current-source
+  Portal restart reproduced the same result, while the page file exists and the
+  confirmed rows remain authoritative.
+- Root cause is deterministic: under `MVP_SCOPE_PROFILE=PILOT_V1`,
+  `apps/clinic-portal/lib/config/mvp-product-scope.ts:isPilotProductPath` explicitly
+  blocks both `vet/visits` Clinic pages and their `/api/clinic/.../vet/visits` BFF
+  routes. This contradicts the mandatory W7 Clinic Visit completion path and is a
+  new independent production defect after the already-consumed W7-D defect budget.
+- Per W7-D-R instructions, no repair was attempted and closure stopped immediately.
+  No final screenshots, accessibility verdict, or Product/UX review were produced.
+- Current flags: `REAL_VISIT_COMPLETION_E2E=BLOCKED`,
+  `REAL_DRAFT_EXCLUSION_E2E=NOT_RUN`, `REAL_RESULT_PUBLICATION_E2E=NOT_RUN`,
+  `REAL_OWNER_DIARY_READBACK_E2E=NOT_RUN`, `REAL_AMENDMENT_E2E=NOT_RUN`,
+  `AMENDMENT_ORIGINAL_PRESERVED=NOT_RUN`, `DIARY_PROVENANCE=NOT_RUN`,
+  `CLINIC_RELOAD_READBACK=NOT_RUN`, `OWNER_RELOAD_READBACK=NOT_RUN`,
+  `CLINIC_VISUAL_EVIDENCE=NOT_RUN`, `OWNER_VISUAL_EVIDENCE=NOT_RUN`,
+  `ACCESSIBILITY=NOT_RUN`, `PRODUCT_UX_REVIEW=NOT_RUN`,
+  `W7_D_R=BLOCKED_SCOPE_EXPANSION`.
+
+## 2026-09-02 — W7-D-R2 Pilot Visit/Result route repair
+
+- Repaired only the Pilot route-containment guards in Clinic Portal and Backend.
+  Exact canonical Visit list/detail, Visit completion, Result create/read/update,
+  publish, and Amendment routes are admitted. Broader descendants and the
+  existing telemedicine, quality, alternative-slot and other non-Pilot routes
+  remain explicitly blocked. Existing capability and clinic/location ABAC code
+  was not changed.
+- Focused Portal containment passed 10/10, including all required W7 page/BFF
+  shapes, retained 404s for unrelated descendants, and missing/invalid-session
+  denial. Existing veterinarian denied-session and wrong-scope checks passed
+  2/2. Backend Pilot guard tests passed 24/24.
+- The current-source real smoke reused confirmed hold
+  `edddb377-80e9-448e-94ac-b9d0269bdb4b`: Clinic queue shell loaded, the exact
+  `W7D Рекс` veterinarian Visit workspace returned 200, and its appointment
+  context plus completion form rendered. No Visit or Result mutation was made.
+- Clinic typecheck/build and Backend build passed. Final flags:
+  `PILOT_VISIT_PAGE_ROUTE=PASS`, `PILOT_VISIT_BFF_ROUTES=PASS`,
+  `PILOT_SCOPE_FAIL_CLOSED=PASS`, `CLINIC_AUTHORIZATION_UNCHANGED=PASS`,
+  `REAL_VET_VISIT_ROUTE_SMOKE=PASS`,
+  `W7D_PILOT_VISIT_ROUTE_REPAIR=PASS`,
+  `REAL_VET_VISIT_ROUTE_REACHABLE=PASS`,
+  `W7D_SECOND_DEFECT_REPAIRED=YES`. Recommended next slice is only W7-D-R3 —
+  resume remaining Visit → Result → Diary real E2E plus bounded visual closure.
+
+## 2026-09-02 — W7-D-R3 real clinical journey green; accessibility stop gate
+
+- The existing confirmed `W7D Рекс` appointment completed through the live
+  Clinic Portal/BFF/backend/PostgreSQL path. The same browser journey created
+  one DRAFT, proved its exact text absent from the live Owner Expo Web Diary,
+  published it, opened the Owner Result detail with Visit context, published
+  one Amendment, and restored Result plus Amendment after both Clinic and Owner
+  reloads.
+- Exact PostgreSQL proof for hold `edddb377-80e9-448e-94ac-b9d0269bdb4b`
+  shows one durable Visit `d3843d8b-8a65-45c7-a5e0-ff607ec0bd96`, one
+  `PUBLISHED` Result `466a35c2-d2c8-4ab3-93a6-98b281a68997`, one Result Diary
+  projection, one Amendment `f54860e4-0e18-46db-9301-75357304df5c`, one
+  Amendment Diary projection, exact Owner/Pet provenance, and unchanged
+  original Result text.
+- The pre-screenshot accessibility gate found a new independent production
+  defect. In Chromium at `430×932`, publish-dialog focus entry works, but Tab
+  after the second dialog button escapes to `BODY`; Shift+Tab from the first
+  button escapes to the background publish trigger; after leakage, Escape does
+  not close the dialog. Horizontal overflow remains zero. The current
+  `ConfirmPublish` implementation has initial focus and Escape handling but no
+  focus containment.
+- Per the R3 defect rule, closure stopped immediately. No final screenshots or
+  Product/UX review were produced and no repair was attempted. Current flags:
+  `REAL_VISIT_COMPLETION_E2E=PASS`, `REAL_DRAFT_EXCLUSION_E2E=PASS`,
+  `REAL_RESULT_PUBLICATION_E2E=PASS`, `REAL_OWNER_DIARY_READBACK_E2E=PASS`,
+  `REAL_AMENDMENT_E2E=PASS`, `CLINIC_RELOAD_READBACK=PASS`,
+  `OWNER_RELOAD_READBACK=PASS`, `PUBLISHED_RESULT_IMMUTABILITY_UX=PASS`,
+  `AMENDMENT_ORIGINAL_PRESERVED=PASS`, `DIARY_PROVENANCE=PASS`,
+  `ACCESSIBILITY=FAIL`, `CLINIC_VISUAL_EVIDENCE=NOT_RUN`,
+  `OWNER_VISUAL_EVIDENCE=NOT_RUN`, `PRODUCT_UX_REVIEW=NOT_RUN`,
+  `W7_COMPLETE=NO`, `W7D_TARGETED_REPAIR_REQUIRED=YES`.

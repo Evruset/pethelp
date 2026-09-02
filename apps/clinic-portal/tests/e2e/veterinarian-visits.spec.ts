@@ -8,13 +8,16 @@ const clinicId = '11111111-1111-4111-8111-111111111111';
 const locationId = '22222222-2222-4222-8222-222222222222';
 const otherClinicId = '33333333-3333-4333-8333-333333333333';
 const holdId = '44444444-4444-4444-8444-444444444444';
+const appointmentId = '55555555-5555-4555-8555-555555555555';
+const petId = '66666666-6666-4666-8666-666666666666';
+const visitId = '77777777-7777-4777-8777-777777777777';
 const port = 3212; const secret = 'clinic-e2e-secret-at-least-32-bytes';
-let server: Server; let mode: 'allowed' | 'denied' | 'wrong-scope' | 'backend-deny' = 'allowed'; let reads = 0; let listReads = 0; let detailReads = 0; let payloadOverride: unknown;
+let server: Server; let mode: 'allowed' | 'denied' | 'wrong-scope' | 'backend-deny' = 'allowed'; let reads = 0; let listReads = 0; let detailReads = 0; let resultReads = 0; let detailVisitId: string | null = null; let payloadOverride: unknown;
 
 test.describe.configure({ mode: 'serial' });
 test.beforeAll(async () => { server = createServer(handle); await new Promise<void>((resolve) => server.listen(port, '127.0.0.1', resolve)); });
 test.afterAll(async () => { await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve())); });
-test.beforeEach(() => { mode = 'allowed'; reads = 0; listReads = 0; detailReads = 0; payloadOverride = undefined; });
+test.beforeEach(() => { mode = 'allowed'; reads = 0; listReads = 0; detailReads = 0; resultReads = 0; detailVisitId = null; payloadOverride = undefined; });
 
 test('allowed scope exposes navigation, list and keyboard detail/back flow', async ({ page, context, baseURL }) => {
   await session(context, baseURL); await page.goto(listRoute());
@@ -26,7 +29,7 @@ test('allowed scope exposes navigation, list and keyboard detail/back flow', asy
   await expect(page.getByText('Milo · CAT')).toBeVisible();
   await page.getByRole('link', { name: 'Открыть приём Milo' }).focus(); await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: 'Milo' })).toBeVisible();
-  await expect(page.getByText('Приём завершён или действие недоступно.')).toBeVisible();
+  await expect(page.getByText('Завершение приёма недоступно для вашей роли.')).toBeVisible();
   await expect(page.getByRole('button', { name: /заверш/i })).toHaveCount(0);
   await page.getByRole('link', { name: 'К списку приёмов' }).click(); await expect(page.getByRole('heading', { name: 'Приёмы врача' })).toBeVisible();
   expect(listReads).toBeGreaterThanOrEqual(2);
@@ -44,15 +47,28 @@ test('wrong-scope session hides navigation and makes no protected request', asyn
 
 test('malformed holdId is rejected before the detail upstream request', async ({ page, context, baseURL }) => {
   await session(context, baseURL); await page.goto(`${listRoute()}/not-a-uuid`);
-  await expect(page.getByRole('heading', { name: 'Приёмы сейчас недоступны' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Приём сейчас недоступен' })).toBeVisible();
   expect(detailReads).toBe(0);
 });
 
 test('backend denial is normalized for list and detail', async ({ page, context, baseURL }) => {
   mode = 'backend-deny'; await session(context, baseURL); await page.goto(listRoute());
   await expect(page.getByRole('heading', { name: 'Приёмы сейчас недоступны' })).toBeVisible();
-  await page.goto(detailRoute()); await expect(page.getByRole('heading', { name: 'Приёмы сейчас недоступны' })).toBeVisible();
+  await page.goto(detailRoute()); await expect(page.getByRole('heading', { name: 'Приём сейчас недоступен' })).toBeVisible();
   await expect(page.getByText(/capability|membership|CLINIC_SCOPE/i)).toHaveCount(0);
+});
+
+test('detail reload retains exact identities and reads the canonical result only after a durable Visit exists', async ({ page, context, baseURL }) => {
+  detailVisitId = visitId; await session(context, baseURL); await page.goto(detailRoute());
+  await expect(page.getByRole('heading', { name: 'Milo' })).toBeVisible();
+  expect(resultReads).toBe(1);
+  const detailResponse = await page.request.get(`/api/clinic/${clinicId}/locations/${locationId}/vet/visits/${holdId}`);
+  expect(await detailResponse.json()).toMatchObject({ appointmentId, petId, visitId });
+  await page.reload(); await expect(page.getByRole('heading', { name: 'Milo' })).toBeVisible();
+  expect(resultReads).toBe(2);
+
+  detailVisitId = null; await page.reload(); await expect(page.getByRole('heading', { name: 'Milo' })).toBeVisible();
+  expect(resultReads).toBe(2);
 });
 
 test('runtime parser accepts approved values and fails closed for malformed HTTP 200 DTOs', async ({ page, context, baseURL }) => {
@@ -65,7 +81,7 @@ test('runtime parser accepts approved values and fails closed for malformed HTTP
     visit({ scheduledStart: 'not-a-date' }), visit({ scheduledStart: '2026-99-99T10:00:00Z' }), visit({ scheduledStart: '2026-07-12' }), visit({ scheduledStart: '2026-07-12T10:00:00' }), visit({ scheduledStart: '' }), visit({ scheduledStart: 123 }),
     { ...visit(), extra: 'unexpected' }, missing,
   ]) { payloadOverride = [invalid]; await session(context, baseURL); await page.goto(listRoute()); await expect(page.getByRole('heading', { name: 'Не удалось получить приёмы' })).toBeVisible(); await expect(page.getByText('Milo · CAT')).toHaveCount(0); }
-  payloadOverride = visit({ status: 'PENDING' }); await session(context, baseURL); await page.goto(detailRoute()); await expect(page.getByRole('heading', { name: 'Не удалось получить приёмы' })).toBeVisible(); await expect(page.getByText('PENDING')).toHaveCount(0);
+  payloadOverride = detailVisit({ status: 'PENDING' }); await session(context, baseURL); await page.goto(detailRoute()); await expect(page.getByRole('heading', { name: 'Не удалось получить приём' })).toBeVisible(); await expect(page.getByText('PENDING')).toHaveCount(0);
 });
 
 function listRoute() { return `/clinics/${clinicId}/locations/${locationId}/vet/visits`; }
@@ -78,8 +94,17 @@ async function session(context: BrowserContext, baseURL: string | undefined) {
 function handle(request: import('node:http').IncomingMessage, response: import('node:http').ServerResponse) {
   const url = new URL(request.url ?? '/', `http://${request.headers.host ?? `127.0.0.1:${port}`}`);
   if (url.pathname === '/v1/auth/session') return json(response, 200, { subjectId: 'vet-user', roles: ['CLINIC_VETERINARIAN'], effectiveCapabilities: mode === 'allowed' || mode === 'backend-deny' ? ['clinical.visit.workspace.read'] : [], clinicScopes: [{ clinicId: mode === 'wrong-scope' ? otherClinicId : clinicId, locationId }] });
-  if (url.pathname === `/v1/clinic/${clinicId}/locations/${locationId}/vet/visits` || url.pathname === `/v1/clinic/${clinicId}/locations/${locationId}/vet/visits/${holdId}`) { reads += 1; if (url.pathname.endsWith(holdId)) detailReads += 1; else listReads += 1; if (mode === 'backend-deny') return json(response, 403, { code: 'CLINIC_SCOPE_MISMATCH' }); return json(response, 200, payloadOverride ?? (url.pathname.endsWith(holdId) ? visit() : [visit()])); }
+  if (url.pathname === `/v1/clinic/${clinicId}/locations/${locationId}/vet/visits` || url.pathname === `/v1/clinic/${clinicId}/locations/${locationId}/vet/visits/${holdId}`) { reads += 1; if (url.pathname.endsWith(holdId)) detailReads += 1; else listReads += 1; if (mode === 'backend-deny') return json(response, 403, { code: 'CLINIC_SCOPE_MISMATCH' }); return json(response, 200, payloadOverride ?? (url.pathname.endsWith(holdId) ? detailVisit() : [visit()])); }
+  if (url.pathname === `/v1/clinic/visits/${visitId}/results`) {
+    resultReads += 1;
+    return json(response, 200, {
+      visitId,
+      result: { id: '88888888-8888-4888-8888-888888888888', visitId, status: 'PUBLISHED', clinicalSummary: 'Canonical result', version: 2, createdAt: '2026-07-12T10:30:00.000Z', updatedAt: '2026-07-12T10:35:00.000Z', publishedAt: '2026-07-12T10:35:00.000Z' },
+      amendments: [{ amendmentId: '99999999-9999-4999-8999-999999999999', resultId: '88888888-8888-4888-8888-888888888888', content: 'Correction', publishedAt: '2026-07-12T10:40:00.000Z' }],
+    });
+  }
   return json(response, 404, { code: 'NOT_FOUND' });
 }
 function visit(overrides: Record<string, unknown> = {}) { return { holdId, clinicId, locationId, scheduledStart: '2026-07-12T10:00:00.000Z', scheduledEnd: '2026-07-12T10:30:00.000Z', status: 'CONFIRMED', petDisplayName: 'Milo', species: 'CAT', ...overrides }; }
+function detailVisit(overrides: Record<string, unknown> = {}) { return { ...visit(), appointmentId, petId, visitId: detailVisitId, ...overrides }; }
 function json(response: import('node:http').ServerResponse, status: number, body: unknown) { response.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); response.end(JSON.stringify(body)); }

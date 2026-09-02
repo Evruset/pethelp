@@ -24,11 +24,22 @@ export function isProductSurfaceEnabled(
 }
 
 export function isPilotProductPath(pathname: string): boolean {
+  const clinicalVisitRoutes = [
+    /^\/clinics\/[^/]+\/locations\/[^/]+\/vet\/visits(?:\/[^/]+)?\/?$/,
+    /^\/api\/clinic\/[^/]+\/locations\/[^/]+\/vet\/visits(?:\/[^/]+)?\/?$/,
+    /^\/api\/clinic\/booking-holds\/[^/]+\/complete\/?$/,
+    /^\/api\/clinic\/visits\/[^/]+\/results\/?$/,
+    /^\/api\/clinic\/visits\/[^/]+\/results\/[^/]+\/?$/,
+    /^\/api\/clinic\/visits\/[^/]+\/results\/[^/]+\/(?:publish|amendments)\/?$/,
+  ];
+  if (clinicalVisitRoutes.some((pattern) => pattern.test(pathname))) return true;
+
   const blocked = [
     /^\/telemed(?:\/|$)/,
     /^\/clinics\/[^/]+\/locations\/[^/]+\/(?:telemed|quality|vet\/visits)(?:\/|$)/,
     /^\/api\/telemed(?:\/|$)/,
     /^\/api\/clinic\/[^/]+\/locations\/[^/]+\/(?:telemed|quality-dashboard|vet\/visits)(?:\/|$)/,
+    /^\/api\/clinic\/visits(?:\/|$)/,
     /^\/api\/clinic\/booking-holds\/[^/]+\/(?:alternative-slot|complete)(?:\/|$)/,
     /^\/api\/clinic\/[^/]+\/locations\/[^/]+\/booking-holds\/[^/]+\/audit-trail(?:\/|$)/,
   ];
