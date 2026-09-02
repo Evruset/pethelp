@@ -18,8 +18,6 @@ const ROUTES = [
   { pattern: /^v1\/booking-holds$/, methods: ['POST'] },
   { pattern: new RegExp(`^v1/booking-holds/${UUID}$`), methods: ['GET'] },
   { pattern: new RegExp(`^v1/owner/bookings/${UUID}/cancel$`), methods: ['POST'] },
-  { pattern: new RegExp(`^v1/owner/bookings/${UUID}/change-requests$`), methods: ['POST'] },
-  { pattern: new RegExp(`^v1/owner/bookings/${UUID}/change-requests/current$`), methods: ['GET'] },
 ] as const;
 
 type CookieSession = Readonly<{ credential: string; expiresAt: string }>;
