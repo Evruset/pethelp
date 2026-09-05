@@ -3134,3 +3134,46 @@ Batch stop: exactly three checkpoints were processed (T085 continuation, T140, T
   `PRODUCT_OWNER_VISUAL_REVIEW_REQUIRED=YES`. V50 Home PASS and Product Owner
   visual acceptance are not asserted. Discovery/R2 was not started; stop for
   direct inspection.
+
+## 2026-09-06 — OWNER-V50-R2 Discovery, service and availability implementation
+
+- Exact canonical Chromium states are `#catalog`, `#clinic`, and `#booking`.
+  They map to the in-app Owner journey components `ClinicCatalogScreen`,
+  `ClinicServiceScreen`, and `AvailabilityScreen` respectively. The prototype
+  `#decision-comparison` state is excluded because the Pilot catalog projection
+  does not authoritatively expose cross-clinic service, price, distance, rating,
+  or availability comparison data.
+- Discovery now uses compact decision cards with explicit selection, clinic
+  identity, address/contact when returned, and one clear next action. Clinic and
+  Service preserve the selected clinic IDs, expose readable single-selection
+  services and informational server-authored prices, and refresh authority
+  before handoff. Availability keeps clinic/service context, uses actual
+  clinic-local dates and DoctorShift-derived slots, shows a selected summary,
+  and revalidates the slot/version before continuation.
+- Loading, empty, error, stale-selection and retry states remain deterministic.
+  No ratings, reviews, distance, urgency, scarcity, availability, or prices are
+  fabricated. `DATA_AUTHORITY_GAP` remains: catalog-level service context,
+  catalog-level price, catalog-level next availability, distance/travel time,
+  ratings/reviews, service grouping metadata, and doctor identity. Supplying
+  those fields would require an additive backend projection outside R2.
+- Approved Home and Shell composition is unchanged. Its existing `Записаться`,
+  `Выбрать клинику`, and `Найти время` actions already enter the same real Pet →
+  Catalog journey. `HOME_IMMEDIATE_VALUE_DATA_GAP` remains open because the Home
+  read path has no bounded clinic/service/availability summary projection.
+- Real Chromium/BFF/backend/auth execution completed Catalog → Service →
+  Availability against production API responses. At `390x844` and `1440x900`,
+  post-auth relevant console/page errors, failed required requests, and
+  horizontal overflow are zero; visible interactive targets below 44 px are
+  zero on mobile. Development comparisons were captured only; no final visual
+  package or Product/UX review was performed.
+- Focused Clinic journey tests pass `20/20`; typecheck, targeted ESLint, Node 22
+  Expo Web export, and `git diff --check` pass. The canonical local seed wrapper
+  remains blocked by a pre-existing migration checksum mismatch; its bounded
+  base seed ran directly and supplied the real catalog/slot inventory. The
+  optional fixed local identity seed then stopped safely on an ownership
+  collision and made no identity change.
+- Implementation-only flags:
+  `OWNER_V50_DISCOVERY_IMPLEMENTATION_READY=YES`,
+  `OWNER_V50_SERVICE_IMPLEMENTATION_READY=YES`, and
+  `OWNER_V50_AVAILABILITY_IMPLEMENTATION_READY=YES`. Product Owner visual review
+  is required. No R3 work was started.
