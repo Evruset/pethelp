@@ -3064,3 +3064,36 @@ Batch stop: exactly three checkpoints were processed (T085 continuation, T140, T
   `OWNER_LIVE_STYLES=PASS`, `OWNER_PUBLIC_AUTH_STYLED=PASS`,
   `OWNER_AUTHENTICATED_HOME_STYLED=PASS`. V50 parity is not asserted. R2 was not
   started; stop for direct Product Owner inspection.
+
+## 2026-09-06 — OWNER-V50-R1-R2 real Home composition repair
+
+- Product Owner veto remains authoritative: live rendering and styles are
+  restored, but no V50 Home or visual-acceptance PASS is asserted. Reopened the
+  exact canonical `owner/index.html#home` and the real current Owner runtime
+  side-by-side at `390x844` and `1440x900` before changing composition.
+- Mobile bottom navigation no longer overlays the Home ScrollView. It now owns
+  a stable bottom safe-area row outside scrolling content, while Home retains
+  explicit bottom padding. Real Chromium at the bottom of the page reports the
+  nav as `position: relative`, the final history heading ending 97 px above the
+  nav, and zero horizontal overflow. `OWNER_MOBILE_NAV_NO_CONTENT_OVERLAP=PASS`.
+- Removed implementation-facing copy about unavailable Home APIs, fabricated
+  data, confirmed profiles, and profile illustrations. The appointment surface
+  now says `Ближайших записей пока нет` and offers `Записаться в клинику`.
+  Pet identity remains authoritative, while the missing photo is represented by
+  a warm code-native animal avatar with no technical label or fabricated image.
+- Home hierarchy now gives the white search/booking hero primary weight, uses a
+  lighter unboxed next-step continuation, pairs a warm Pet surface with a blue
+  appointment empty state, and reduces repeated equal-weight dashboard cards.
+  Desktop retains the bounded V50 product shell and fills the first viewport
+  with an intentional hero → care step → Pet/appointment sequence. Public auth
+  keeps the same corrected Owner shell and tokens without auth redesign.
+- A fresh real OTP login passed through the current Chromium bundle, BFF, and
+  backend. Final authenticated captures used a backend-revalidated HttpOnly
+  session and authoritative `W7D Рекс`; no API route was intercepted or mocked.
+  Both required viewports report zero relevant console errors, page errors,
+  failed requests, and horizontal overflow.
+- Focused public/auth/Home/Pet tests pass `26/26`; Owner typecheck, targeted
+  ESLint, Node 22 Expo Web export, and `git diff --check` pass. Implementation
+  flags only: `OWNER_V50_HOME_IMPLEMENTATION_READY=YES`,
+  `PRODUCT_OWNER_VISUAL_REVIEW_REQUIRED=YES`. Product Owner visual acceptance
+  remains vetoed. Discovery/R2 was not started; stop for direct inspection.

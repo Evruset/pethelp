@@ -11,7 +11,9 @@ it('renders the V50 Home composition and keeps authoritative workflow actions', 
   expect(view.getByText('Найти клинику для Барни')).toBeTruthy();
   expect(view.getByText('Следующий шаг')).toBeTruthy();
   expect(view.getAllByText('Барни').length).toBeGreaterThan(0);
-  expect(view.getByText('Запись появится здесь')).toBeTruthy();
-  fireEvent.press(view.getAllByText('Записаться')[0]); fireEvent.press(view.getAllByText('Открыть дневник')[0]); fireEvent.press(view.getByText('Выйти'));
+  expect(view.getByText('Ближайших записей пока нет')).toBeTruthy();
+  expect(view.queryByText(/Home пока/)).toBeNull();
+  expect(view.queryByText(/подтверждённый профиль/)).toBeNull();
+  fireEvent.press(view.getAllByText('Записаться')[0]); fireEvent.press(view.getAllByText('Дневник')[0]); fireEvent.press(view.getByText('Выйти'));
   expect(onBook).toHaveBeenCalledTimes(1); expect(onDiary).toHaveBeenCalledTimes(1); expect(onLogout).toHaveBeenCalledTimes(1);
 });
