@@ -9,4 +9,5 @@ export const uiTokens = Object.freeze({
   typography: Object.freeze({ largeTitle: font(34, 40, '700'), title: font(26, 32, '700'), sectionTitle: font(17, 22, '700'), body: font(16, 22, '400'), secondaryBody: font(15, 21, '400'), label: font(14, 18, '600'), caption: font(13, 17, '500'), button: font(16, 20, '700') }),
   shadow: Object.freeze({ card: Object.freeze({ shadowColor: '#14231F', shadowOpacity: 0.08, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 2 } satisfies ViewStyle) }),
   layout: Object.freeze({ phoneMaxWidth: 500, contentMaxWidth: 720, desktopMaxWidth: 1180, minTouch: 48 }),
+  ownerHome: Object.freeze({ canvas: '#EEF5FF', canvasStrong: '#E1ECFF', surface: '#FFFFFF', surfaceSoft: '#F7FAFF', ink: '#17233D', muted: '#657590', blue: '#1767F7', blueSoft: '#EAF2FF', border: '#CFE0F7', sidebarWidth: 248, desktopMaxWidth: 1400 }),
 });

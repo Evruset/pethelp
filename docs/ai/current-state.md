@@ -2954,3 +2954,38 @@ Batch stop: exactly three checkpoints were processed (T085 continuation, T140, T
   `OWNER_HOME_DESKTOP_STRUCTURE=PASS`, `OWNER_FRONTEND_FUNCTIONAL=YES`,
   `OWNER_V50_SHELL=PASS`, `OWNER_V50_HOME=PASS`. Recommended next slice is only
   `OWNER-V50-R2` — Discovery + Service + Availability parity.
+
+## 2026-09-02 — OWNER-V50-R1-R1 Shell/Home visual-gap repair
+
+- Reopened the exact canonical Owner V50 `#home` at `390x844` and `1440x900`
+  after Product comparison found the first R1 too restrained. The repaired
+  production shell now uses a V50-weighted desktop navigation rail, useful wide
+  canvas, dedicated mobile header and bottom product navigation, blue active
+  state, layered surfaces, and compact Care Normal spacing instead of the prior
+  sparse top-navigation layout.
+- Authenticated Home now loads the existing owner-scoped Pet list on entry and
+  makes the authoritative current Pet name/species dominant. The current Pet
+  contract has no image field, so Home uses a bounded initial-avatar fallback
+  and does not invent breed, age, weight, or photography. Opening the existing
+  Pet journey preserves the sole authoritative Pet selection.
+- No Owner appointment-list contract exists in this app. Home therefore renders
+  the V50-like unavailable-data placeholder `Запись появится здесь`, explicitly
+  says that Home does not receive the list yet, and explains which confirmed
+  clinic facts will appear when that authority exists; it does not infer zero
+  appointments or fabricate one. Existing booking, resumed-booking, Diary, logout,
+  session, clinic/service and backend-authority flows remain unchanged.
+- Real authenticated Chromium at both required viewports shows the `W7D Рекс`
+  Pet context, appointment unavailable-data context, primary booking action, clinic/service
+  entry and history action with zero horizontal overflow. Compared with the
+  first R1, the desktop empty canvas and generic repeated-card composition are
+  closed; mobile now has V50 product navigation and denser first-viewport care
+  context. Remaining differences are authoritative Pet photography and a real
+  upcoming appointment when those fields/routes become available.
+- Focused auth/Home/Pet tests PASS `18/18`; Owner typecheck and targeted ESLint PASS;
+  Expo Web export PASS; `git diff --check` PASS. Final flags:
+  `OWNER_FRONTEND_STARTUP=PASS`, `OWNER_AUTH_ENTRY=PASS`,
+  `OWNER_HOME_FUNCTIONAL=PASS`, `OWNER_V50_SHELL=PASS`,
+  `OWNER_V50_HOME=PASS`, `OWNER_V50_PET_CONTEXT=PASS`,
+  `OWNER_V50_APPOINTMENT_CONTEXT=PASS`,
+  `OWNER_HOME_MOBILE_PARITY=PASS`, `OWNER_HOME_DESKTOP_PARITY=PASS`,
+  `PRODUCT_OWNER_VISUAL_REVIEW_REQUIRED=YES`. R2 was not started.
