@@ -9,7 +9,11 @@ it('renders the V50 Home composition and keeps authoritative workflow actions', 
   expect(view.getByLabelText('Основная навигация')).toBeTruthy();
   expect(view.getByRole('header',{name:'Доброе утро!'})).toBeTruthy();
   expect(view.getByText('Найти клинику для Барни')).toBeTruthy();
-  expect(view.getByText('Следующий шаг')).toBeTruthy();
+  expect(view.getByText('Польза сразу')).toBeTruthy();
+  expect(view.getByText('Подберём подходящую клинику для Барни')).toBeTruthy();
+  expect(view.getByText('Выбрать клинику')).toBeTruthy();
+  expect(view.getByText('Найти время')).toBeTruthy();
+  expect(view.queryByText('Следующий шаг')).toBeNull();
   expect(view.getAllByText('Барни').length).toBeGreaterThan(0);
   expect(view.getByText('Ближайших записей пока нет')).toBeTruthy();
   expect(view.queryByText(/Home пока/)).toBeNull();

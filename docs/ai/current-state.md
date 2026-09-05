@@ -3097,3 +3097,40 @@ Batch stop: exactly three checkpoints were processed (T085 continuation, T140, T
   flags only: `OWNER_V50_HOME_IMPLEMENTATION_READY=YES`,
   `PRODUCT_OWNER_VISUAL_REVIEW_REQUIRED=YES`. Product Owner visual acceptance
   remains vetoed. Discovery/R2 was not started; stop for direct inspection.
+
+## 2026-09-06 — OWNER-V50-R1-R3 Home decision-architecture repair
+
+- Product Owner classified the shell as partial-pass and Home as partial, with
+  visual acceptance still vetoed. Exact canonical/runtime comparison was scoped
+  to the hero action rail, the section immediately following it, and the
+  transition into the already-accepted Pet/appointment composition; Shell,
+  public auth, Pet card, appointment card, and downstream booking screens were
+  not redesigned.
+- Removed the generic Home process continuation (`Питомец → Клиника → Время` and
+  `Начать выбор`). The post-hero section now restores the canonical `Польза
+  сразу` role: `Подберём подходящую клинику`, a concise online-selection value
+  proposition, three non-numeric Pilot capability indicators, and `Показать
+  клиники`. The rendered sequence is now search/decision → immediate value →
+  Pet/next-care context at both required viewports.
+- Replaced the hero shortcuts `Дневник` and selected Pet with direct booking
+  decisions: `Записаться`, `Выбрать клинику`, and `Найти время`. Diary and Pet
+  identity remain available in their dedicated Home surfaces and navigation.
+  Emergency, telemedicine, insurance, and other out-of-Pilot actions remain
+  absent.
+- `HOME_IMMEDIATE_VALUE_DATA_GAP=clinic_count,current_city_or_area,service_count,next_available_slot`.
+  Home does not fetch an authoritative discovery/availability summary, so no
+  counts, location, price, distance, date, or availability promise is shown.
+  Existing catalog/service/availability data continues to load only inside the
+  established booking journey.
+- A fresh real OTP login passed through Chromium, the current bundle, BFF, and
+  backend. Final authenticated comparison used a backend-revalidated HttpOnly
+  session with authoritative `W7D Рекс`; no route was intercepted or mocked.
+  At `390x844` and `1440x900`, relevant console errors, page errors, failed
+  requests, and horizontal overflow are zero; mobile content/nav separation
+  remains 97 px at the final history heading.
+- Focused public/auth/Home/Pet tests pass `26/26`; Owner typecheck, targeted
+  ESLint, Node 22 Expo Web export, and `git diff --check` pass. Implementation
+  flags only: `OWNER_V50_HOME_IMPLEMENTATION_READY=YES`,
+  `PRODUCT_OWNER_VISUAL_REVIEW_REQUIRED=YES`. V50 Home PASS and Product Owner
+  visual acceptance are not asserted. Discovery/R2 was not started; stop for
+  direct inspection.
