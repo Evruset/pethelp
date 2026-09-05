@@ -3027,6 +3027,44 @@ Batch stop: exactly three checkpoints were processed (T085 continuation, T140, T
   `PRODUCT_OWNER_VISUAL_REVIEW_REQUIRED=YES`. R2 was not started. Stop for direct
   Product Owner inspection.
 
+## 2026-09-05 — OWNER-WEB-RUNTIME-R1 styled live-runtime repair
+
+- Product Owner live evidence invalidated the prior implementation-ready claim
+  for runtime presentation. Exact Chromium reproduction on `127.0.0.1:8182`
+  proved that the correct worktree and Expo Router bundle were served and React
+  Native Web injected 18 style elements without hydration or page errors. The
+  root cause was the `(public)` route itself: it rendered unstyled base
+  `View`, `Text`, `TextInput`, and `Pressable` components with no production
+  layout or control styles. It was not a missing JS bundle or CSS resource.
+- The public and OTP entry now use the existing Owner V50 tokens for the page
+  canvas, VetHelp identity, responsive care hero, bounded auth card, typography,
+  inputs, buttons, disabled/error states, and mobile composition. Authentication
+  state transitions, validation, OTP commands, session storage, and resumed
+  booking behavior are unchanged.
+- Real backend/browser verification exposed a second runtime-only contract seam:
+  the current backend Pet list returns the identifier as `id`, while the Expo
+  parser accepted only `petId`. The parser now safely normalizes either validated
+  UUID field to internal `petId`; malformed identifiers remain rejected.
+- A real development OTP login completed through the live BFF/backend, and a
+  separately existing HttpOnly Owner session was revalidated by the same live
+  backend for final stable Home captures with authoritative `W7D Рекс`. No
+  browser API route was intercepted or mocked. At `1440x900` and `390x844`,
+  required JS loaded with HTTP 200, React Native Web styles were present,
+  relevant console errors, page errors, failed required resources, and
+  horizontal overflow were all zero.
+- Focused public/auth/Home/Pet tests pass `26/26`; Owner typecheck, targeted
+  ESLint, Node 22 Expo Web export, and `git diff --check` pass. The canonical
+  Compose migration command remains blocked on repository migration history:
+  the retained database reports an out-of-order migration, while a clean
+  additive database reaches PostgreSQL `42830` because a clinical foreign key
+  lacks a referenced unique constraint. Runtime proof therefore used the exact
+  current backend on the retained seeded database with `migrate:up` skipped;
+  no backend or schema file was changed.
+- Runtime flags only: `OWNER_LIVE_FRONTEND_RENDER=PASS`,
+  `OWNER_LIVE_STYLES=PASS`, `OWNER_PUBLIC_AUTH_STYLED=PASS`,
+  `OWNER_AUTHENTICATED_HOME_STYLED=PASS`. V50 parity is not asserted. R2 was not
+  started; stop for direct Product Owner inspection.
+
 ## W7 clinical visit/result repair — 2026-09-09
 
 - Veterinarian LIST remains the bounded eight-field projection. DETAIL adds

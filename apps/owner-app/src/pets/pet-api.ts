@@ -29,10 +29,11 @@ function pet(value: unknown): Pet {
   }
 
   const v = value as Record<string, unknown>;
+  const petId = typeof v.petId === 'string' ? v.petId : v.id;
 
   if (
-    typeof v.petId !== 'string'
-    || !UUID.test(v.petId)
+    typeof petId !== 'string'
+    || !UUID.test(petId)
     || typeof v.name !== 'string'
     || !SPECIES.has(String(v.species))
     || typeof v.createdAt !== 'string'
@@ -44,7 +45,7 @@ function pet(value: unknown): Pet {
   }
 
   return {
-    petId: v.petId,
+    petId,
     name: v.name,
     species: v.species as PetSpecies,
     createdAt: v.createdAt,
