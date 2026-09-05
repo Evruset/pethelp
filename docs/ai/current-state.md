@@ -2990,6 +2990,43 @@ Batch stop: exactly three checkpoints were processed (T085 continuation, T140, T
   `OWNER_HOME_MOBILE_PARITY=PASS`, `OWNER_HOME_DESKTOP_PARITY=PASS`,
   `PRODUCT_OWNER_VISUAL_REVIEW_REQUIRED=YES`. R2 was not started.
 
+## 2026-09-05 — OWNER-V50-R1-RESET exact V50 Shell/Home rebuild
+
+- Product Owner veto supersedes and invalidates the visual/parity PASS flags
+  recorded by the two earlier OWNER-V50-R1 entries. Current product verdict is
+  `PRODUCT_OWNER_VISUAL_ACCEPTANCE=VETO`; no agent visual PASS is asserted by
+  this reset.
+- Reverified the canonical Owner archive SHA-256 as
+  `cbef69d764cfe420f58bf84e83cf94a37aa23c89d7466271434bbe3d717633b6`
+  against `docs/ux/v50-reference/MANIFEST.json`, then rendered the exact
+  `owner/index.html#home` at `390x844` and `1440x900`. Concrete geometry and the
+  KEEP/MODIFY/REPLACE/REMOVE audit are recorded in
+  `docs/ux/OWNER-V50-HOME-GEOMETRY.md`.
+- Rebuilt Home around the rendered V50 composition: responsive horizontal
+  product shell/mobile bottom navigation, greeting, search-and-booking hero,
+  compact action stack, immediate-value strip, dominant selected-Pet surface,
+  next-action surface, Pilot services, and care-history continuation. Existing
+  session, navigation, booking, resumed-booking, Pet Diary, logout, and
+  owner-scoped Pet authority remain intact.
+- Out-of-Pilot emergency, telemedicine, insurance, and nearby-map capabilities
+  were not implemented. The Pet API has no image field, so the selected Pet uses
+  a deterministic code-native illustration rather than a fabricated photo. Home
+  has no authoritative appointment-list contract, so the next-action surface is
+  a purposeful unavailable-data state without invented clinic, date, status,
+  or price. `HOME_APPOINTMENT_DATA_AUTHORITY_GAP=YES`.
+- Focused auth/Home/Pet tests pass `18/18`; Owner typecheck, targeted ESLint,
+  Node 22 Expo Web export, and `git diff --check` pass. Deterministic authenticated
+  Chromium fixtures at both required viewports report zero horizontal overflow
+  and zero console errors. The live BFF startup endpoint is reachable through
+  Expo, but its real upstream session request currently returns `503` because
+  the local backend on port 3000 is not running; no real authenticated browser
+  result is claimed from that environment.
+- Implementation flags only:
+  `OWNER_V50_HOME_IMPLEMENTATION_READY=YES`,
+  `OWNER_V50_SHELL_IMPLEMENTATION_READY=YES`,
+  `PRODUCT_OWNER_VISUAL_REVIEW_REQUIRED=YES`. R2 was not started. Stop for direct
+  Product Owner inspection.
+
 ## W7 clinical visit/result repair — 2026-09-09
 
 - Veterinarian LIST remains the bounded eight-field projection. DETAIL adds
