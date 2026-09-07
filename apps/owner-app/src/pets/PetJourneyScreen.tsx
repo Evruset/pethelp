@@ -39,7 +39,13 @@ const purposeCopy: Record<PetJourneyPurpose, { eyebrow: string; title: string; b
 const speciesLabel = (species: PetSpecies) =>
   species === 'DOG' ? 'Собака' : species === 'CAT' ? 'Кошка' : 'Другой вид';
 
-export function PetJourneyScreen({ purpose = 'booking' }: { purpose?: PetJourneyPurpose }) {
+export function PetJourneyScreen({
+  purpose = 'booking',
+  onCancel,
+}: {
+  purpose?: PetJourneyPurpose;
+  onCancel?(): void;
+}) {
   const journey = usePetJourney();
   const { width } = useWindowDimensions();
   const desktop = width >= 860;
@@ -49,6 +55,10 @@ export function PetJourneyScreen({ purpose = 'booking' }: { purpose?: PetJourney
   const [species, setSpecies] = useState<PetSpecies>('DOG');
   const normalized = name.trim();
   const invalid = Array.from(normalized).length < 1 || Array.from(normalized).length > 120;
+  const cancelJourney = () => {
+    journey.cancel();
+    onCancel?.();
+  };
 
   return (
     <OwnerAppFrame wide>
@@ -227,7 +237,7 @@ export function PetJourneyScreen({ purpose = 'booking' }: { purpose?: PetJourney
                 ) : (
                   <Text style={{ ...t.typography.secondaryBody, color: t.ownerHome.muted }}>Выберите одного питомца, чтобы продолжить</Text>
                 )}
-                <Button label={copy.cancel} variant="secondary" onPress={journey.cancel} />
+                <Button label={copy.cancel} variant="secondary" onPress={cancelJourney} />
               </View>
             ) : null}
           </View>
