@@ -19,6 +19,7 @@ const data = {
   serviceName: "Осмотр",
   timezone: "Europe/Moscow",
   horizonEndsAt: "2026-08-27T08:00:00.000Z",
+  informationalPrice: { kind: "INFORMATIONAL", amount: "1250.00", currency: "RUB" },
   slots: [slot],
 };
 const mockUseQuery = jest.fn();
@@ -43,11 +44,16 @@ describe("AvailabilityScreen", () => {
     const screen = await render(
       <AvailabilityScreen
         context={context}
+        petName="Барни"
         onBack={jest.fn()}
         onContinue={onContinue}
       />,
     );
     fireEvent.press(screen.getByText("11:00"));
+    expect(screen.getByText("Питомец")).toBeTruthy();
+    expect(screen.getByText("Барни")).toBeTruthy();
+    expect(screen.getByText("Стоимость приёма")).toBeTruthy();
+    expect(screen.getByText(/1.?250 ₽/)).toBeTruthy();
     await waitFor(() =>
       expect(screen.getByText("Выбрано: 14.08.2026 в 11:00")).toBeTruthy(),
     );
@@ -95,6 +101,20 @@ describe("AvailabilityScreen", () => {
     await waitFor(() =>
       expect(screen.getByText("Обновить время")).toBeTruthy(),
     );
+    expect(onContinue).not.toHaveBeenCalled();
+  });
+  it("clears a slot whose authoritative version changed", async () => {
+    const onContinue = jest.fn(),
+      refetch = jest.fn().mockResolvedValue({
+        isError: false,
+        data: { ...data, slots: [{ ...slot, expectedVersion: 3 }] },
+      });
+    mockUseQuery.mockReturnValue({ isPending: false, isError: false, data, refetch });
+    const screen = await render(<AvailabilityScreen context={context} onBack={jest.fn()} onContinue={onContinue} />);
+    fireEvent.press(screen.getByText("11:00"));
+    await waitFor(() => expect(screen.getByText("Выбрано: 14.08.2026 в 11:00")).toBeTruthy());
+    fireEvent.press(screen.getByText("Продолжить"));
+    await waitFor(() => expect(screen.getByText("Выбранное время больше недоступно. Выберите другое.")).toBeTruthy());
     expect(onContinue).not.toHaveBeenCalled();
   });
   it("never continues on failed refresh with stale cached data", async () => {

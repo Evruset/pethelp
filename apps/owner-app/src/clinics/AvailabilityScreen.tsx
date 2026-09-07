@@ -10,6 +10,7 @@ import {
   type AvailabilitySlot,
 } from "./availability-api";
 import type { ClinicServiceHandoff } from "./clinic-service-api";
+import { formatInformationalPrice } from "./ClinicServiceScreen";
 import {
   ClinicDecisionLayout,
   DecisionHeading,
@@ -41,11 +42,13 @@ const shortDate = (iso: string) => {
 export function AvailabilityScreen({
   context,
   authorityGeneration = "component-session",
+  petName,
   onBack,
   onContinue,
 }: {
   context: ClinicServiceHandoff;
   authorityGeneration?: string;
+  petName?: string;
   onBack(): void;
   onContinue(value: AvailabilityHandoff): void;
 }) {
@@ -162,7 +165,7 @@ export function AvailabilityScreen({
     <ClinicDecisionLayout
       eyebrow="Запись в клинику"
       title="Выберите время"
-      subtitle="Показываем только свободные интервалы из актуального расписания клиники. Перед продолжением слот будет проверен ещё раз."
+      subtitle="Выберите удобный свободный интервал. Клиника подтвердит запись после отправки заявки."
       onBack={() => {
         operation.current += 1;
         refreshInFlight.current = false;
@@ -196,8 +199,15 @@ export function AvailabilityScreen({
             />
             <FactRow>
               <Fact tone="positive">Свободные слоты</Fact>
-              <Fact>Время клиники · {query.data.timezone}</Fact>
+              <Fact>Время указано местное для клиники</Fact>
             </FactRow>
+            <View style={{ gap: 10 }} accessibilityLabel="Контекст выбранной записи">
+              {petName ? <SummaryFact label="Питомец" value={petName} /> : null}
+              <SummaryFact label="Клиника" value={query.data.clinicName} />
+              <SummaryFact label="Услуга" value={query.data.serviceName} />
+              <SummaryFact label="Стоимость приёма" value={formatInformationalPrice(query.data.informationalPrice.amount, query.data.informationalPrice.currency)} />
+              <SummaryFact label="Дата и время" value={selected && current ? `${dateLabel(selected.localDate)} в ${selected.localTime}` : "Выберите свободное время"} />
+            </View>
           </DecisionPanel>
           {query.data.slots.length === 0 ? (
             <StateMessage
@@ -212,7 +222,7 @@ export function AvailabilityScreen({
                   <DecisionHeading
                     kicker="Дата"
                     title="Доступное время"
-                    detail="Сначала выберите дату, затем один интервал."
+                    detail="Выберите дату, затем удобное время."
                   />
                   <View
                     accessibilityRole="tablist"
@@ -334,8 +344,8 @@ export function AvailabilityScreen({
                     }
                     detail={
                       selected && current
-                        ? "Слот будет перепроверен перед переходом."
-                        : "Выберите доступный интервал слева."
+                        ? `${query.data.clinicName} · ${query.data.serviceName}`
+                        : "Выберите доступный интервал."
                     }
                   />
                   {selected && current ? (
@@ -397,5 +407,14 @@ export function AvailabilityScreen({
         />
       ) : null}
     </ClinicDecisionLayout>
+  );
+}
+
+function SummaryFact({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={{ gap: 2 }}>
+      <Text style={{ ...t.typography.caption, color: decisionColors.muted }}>{label}</Text>
+      <Text style={{ ...t.typography.body, fontWeight: "700", color: decisionColors.ink }}>{value}</Text>
+    </View>
   );
 }

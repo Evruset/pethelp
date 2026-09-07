@@ -3177,3 +3177,494 @@ Batch stop: exactly three checkpoints were processed (T085 continuation, T140, T
   `OWNER_V50_SERVICE_IMPLEMENTATION_READY=YES`, and
   `OWNER_V50_AVAILABILITY_IMPLEMENTATION_READY=YES`. Product Owner visual review
   is required. No R3 work was started.
+
+## 2026-09-06 — V50-OWNER-R2B product and visual reconciliation
+
+- Continued from clean R2 commit `7ba891f`. Sticky API validation,
+  refresh-before-handoff, slot version fencing, state continuity, responsive
+  foundation, and data-authority constraints were not reopened.
+- Catalog no longer combines radio selection with a separate CTA. Each clinic
+  card is now one keyboard-accessible button that continues directly to the
+  authoritative Clinic/Service screen. Internal copy such as `Без выдуманных
+  рейтингов` and `Без неподтверждённого расстояния` was removed and replaced by
+  concise owner-task framing.
+- Service keeps clinic identity visibly alongside the selection, formats the
+  authoritative informational RUB amount for Russian presentation, and retains
+  explicit non-payment/clinic-confirmation meaning. Availability now also shows
+  the authoritative selected Pet, and owner-facing request-confirmation copy
+  replaces implementation terminology.
+- `docs/v50/V50-OWNER-DISCOVERY-DATA-GAPS.md` records the bounded V50 matrix,
+  exact proposed additive fields/owners/priorities/absent-state behavior, and
+  `DECISION_COMPARISON_BLOCKED_BY_DATA_AUTHORITY=YES`. It also records the local
+  seed's English and repeated service display names as governed content defects;
+  the client does not translate names or collapse distinct service IDs.
+- Evidence `docs/v50/evidence/V50-OWNER-R2B/` contains six live implementation
+  screenshots, six matching canonical references, and a parity report across
+  `390x844` and `1440x900`. Matching blocks are separated from
+  `APPROXIMATED`, `BLOCKED_BY_DATA`, and `OUT_OF_SCOPE`; overall visual parity is
+  not asserted.
+- Focused Clinic/API/Home tests PASS `36/36`; TypeScript, targeted ESLint,
+  Node 22 Expo Web export, and `git diff --check` PASS. Real authenticated
+  Chromium Catalog → Clinic/Service → selected Availability reports zero
+  post-auth console/page errors, required request failures, horizontal overflow,
+  and visible sub-44px targets at both viewports.
+- Flags: `OWNER_R2_ENGINEERING_READY=YES`,
+  `OWNER_R2_PRODUCT_RECONCILED=YES`, `OWNER_R2_VISUAL_PARITY=NO`,
+  `OWNER_R2_DATA_GAPS_DOCUMENTED=YES`, and
+  `DECISION_COMPARISON_BLOCKED_BY_DATA_AUTHORITY=YES`. Stop after R2B; R3 was not
+  started.
+## 2026-09-06 — V50-OWNER-R2C Discovery Decision Projection
+
+- The authenticated Owner clinic catalog now adds an exact `decisionSummary`
+  containing nullable earliest `nextAvailability`, nullable same-currency
+  minimum `informationalPrice` (`kind=FROM`), and the authoritative PILOT_V1
+  `confirmation.mode=MANUAL`. S09 eligibility remains unchanged: only active
+  clinic/locations with a future OPEN, positive-capacity slot on an active
+  exact-location service enter the bounded 50-row catalog.
+- Catalog derivation is one PostgreSQL statement and therefore one database
+  round trip, not N+1. It uses database time and deterministic slot and catalog
+  tie-breakers. Representative isolated-database `EXPLAIN ANALYZE` used the
+  existing partial slot index and completed in 0.306 ms on the focused fixture.
+- Availability now carries the exact selected service's existing
+  `INFORMATIONAL` price from the Clinic Service Catalog row. No price is copied
+  into slot rows and no payment state or flow was introduced. Generated OpenAPI
+  and strict RN parsers model the additive fields exactly, including nullable
+  catalog facts, decimal/currency/time/date constraints, and closed objects.
+- Focused evidence: backend unit/controller `8/8` PASS; isolated real PostgreSQL
+  catalog/service/availability projection `3/3` PASS; focused authenticated HTTP
+  contract `4/4` PASS; Owner API parser `16/16` PASS; backend build and Owner
+  typecheck PASS; OpenAPI export PASS and targeted
+  R2C schema inspection PASS; `git diff --check` PASS. The repository-wide
+  OpenAPI assertion remains stopped by the pre-existing unrelated Pilot Pet
+  Diary exposure, and the default shared database still lacks role `vethelp`.
+  A clean full migration attempt also encountered the pre-existing W7
+  appointment unique-key dependency, so focused PostgreSQL evidence used an
+  isolated database migrated only through the required catalog schema.
+- Ratings/reviews, distance/travel, media, capabilities/equipment, emergency,
+  recommendations/ranking, doctor identity/ranking, specialty-first discovery,
+  service taxonomy/grouping, and comparison remain out. Comparison remains
+  blocked by data authority. No R2D UI, screenshot recapture, migration, commit,
+  push, merge, deploy, or Jira transition was performed.
+- Recommended next slice only: `V50-OWNER-R2D — Decision Projection UI Integration`.
+## 2026-09-06 — V50-OWNER-R2D Decision Projection UI Integration
+
+- The existing R2B Catalog → Service → Availability journey now consumes all
+  four R2C projections. Catalog cards render clinic-local nearest availability,
+  localized informational `FROM` price, and explicit manual-confirmation copy;
+  null decision facts are omitted without fabricated values. Service selection
+  visibly retains the selected service and price. Availability presents Pet,
+  clinic, service, the selected-service informational price, and clinic-local
+  date/time in one Owner-oriented context summary.
+- No backend, query, DTO, OpenAPI, migration, payment, insurance, doctor,
+  comparison, ranking or R3 scope was added. Strict parsers, service refetch,
+  slot identity/version fencing, 1180px desktop bound and 44px controls remain
+  intact.
+- Focused Owner screen/parser matrix PASS `39/39`; Owner TypeScript and targeted
+  ESLint PASS; Expo Web export PASS; `git diff --check` PASS. Authenticated
+  Chromium at `390x844` and `1440x900` completed the full journey with zero
+  failed required responses, console/page errors, horizontal overflow or
+  visible controls below 44px. Six fresh captures and the reconciliation report
+  are in `docs/v50/evidence/V50-OWNER-R2D/`.
+- Visual reconciliation is YES for this bounded integration, but full V50
+  parity remains NO. Specialist identity, service taxonomy/grouping, clinic
+  media, trust/capabilities, ratings/reviews, distance/travel, recommendation
+  reasons and the comparison contract remain data-authority gaps.
+- Recommended next slice only: `V50-OWNER-R2E — Specialist / Service Discovery Projection`.
+
+## 2026-09-06 — V50-OWNER-R2E Specialist / Service Discovery Projection
+
+- The authenticated Owner clinic/service projection adds explicit nullable
+  service `specialty` plus bounded `specialists[]`. The authoritative specialist
+  query is guarded by default-off `OWNER_V50_DOCTOR_DISCOVERY`, the canonical
+  exact-true shell → catalog → clinic-detail chain, and the preceding
+  `OWNER_DOCTOR_DISCOVERY_SCHEMA_READY_V1` dependency. Every gate must equal the
+  literal `true`; case and whitespace variants stay disabled. The default
+  response remains `specialty=null` and `specialists=[]`. Catalog and UI remain
+  unchanged.
+- History-first reconciliation found an open normative public-profile consent
+  debt: `public_booking_enabled` is not auditable consent and defaults true. It
+  also found that this worktree has no checked-in DoctorService/DoctorShift and
+  publication-lineage migration, despite those structures existing in a shared
+  developer database. The unsafe identity query was removed after independent
+  review. The query was restored only behind the required default-off mitigation,
+  so the normal endpoint does not rely on database drift or expose names.
+- Services are capped at 50 and the future specialist contract at 10. Strict RN
+  parsing rejects 51 services, 11 specialists, malformed/null availability,
+  UUID-shaped display fallback and any extra employee field. A PostgreSQL
+  no-fabrication test proves that a decorative doctor-bound slot does not cause
+  identity disclosure while disabled. Enabled PostgreSQL and authenticated HTTP
+  tests prove exact DoctorService/DoctorShift/slot lineage, negative eligibility,
+  deterministic ordering, no-leak shape and the specialist bound. No migration
+  or index was added.
+- Doctor specialty exists, but there is no authoritative service-to-specialty
+  relation, so `SERVICE_TAXONOMY_AUTHORITY_GAP=YES`. The existing availability
+  route now accepts an optional UUID `doctorId` behind the same exact-true gate
+  and returns only slots with exact active/public Doctor, VETERINARIAN staff,
+  DoctorService, published DoctorShift, published/non-stale slot and resource
+  lineage. Unknown doctors receive an empty slot list; disabled reads fail
+  before workforce tables are queried. Booking remains slot/version based and
+  its closed payload is unchanged. Thus `DOCTOR_SLOT_AUTHORITY_GAP=NO` for the
+  enabled integration contract, while production remains blocked by consent and
+  the missing checked-in schema authority.
+- Focused feature-flag/service unit `16/16`, default-off PostgreSQL/HTTP `2/2`,
+  enabled PostgreSQL/HTTP specialist projection and selected-doctor availability
+  checks pass, and Owner service parser/screen `14/14` plus availability API
+  `10/10` pass. Backend
+  build, Owner typecheck, OpenAPI generation, targeted R2E schema assertion and
+  `git diff --check` pass. Final independent review PASSed with zero implementation
+  vetoes and confirmed that public rollout and R2F remain blocked until consent
+  and reproducible schema authority are resolved. Default-off
+  integration implementation is complete, but production
+  activation and R2F remain blocked.
+- Representative selected-doctor availability `EXPLAIN (ANALYZE, BUFFERS)`
+  used the existing `appointment_slots_doctor_search_idx` and completed in
+  0.350 ms; no R2E index or migration was added.
+- Flags: `OWNER_R2E_SPECIALIST_PROJECTION_READY=NO`,
+  `OWNER_R2E_OWNER_SAFE_DOCTOR_IDENTITY_READY=NO`,
+  `OWNER_R2E_SERVICE_SPECIALIST_ELIGIBILITY_READY=NO`,
+  `OWNER_R2E_SPECIALTY_PROJECTION_READY=NO`,
+  `OWNER_R2E_DOCTOR_AVAILABILITY_READY=YES`,
+  `OWNER_R2E_DOCTOR_SLOT_AUTHORITY_READY=YES`,
+  `OWNER_R2E_OPENAPI_READY=YES`, `SERVICE_TAXONOMY_AUTHORITY_GAP=YES`,
+  `DOCTOR_SLOT_AUTHORITY_GAP=NO`, and
+  `DECISION_COMPARISON_BLOCKED_BY_DATA_AUTHORITY=YES`.
+- Sticky flags remain `OWNER_R2D_DECISION_UI_READY=YES`,
+  `OWNER_R2D_VISUAL_RECONCILED=YES`, `OWNER_R2_VISUAL_PARITY=NO`, and
+  `DECISION_COMPARISON_BLOCKED_BY_DATA_AUTHORITY=YES`.
+- Recommended bounded prerequisite: `V50-OWNER-R2E-PRE — Public Doctor Consent + Reproducible Workforce Schema`.
+
+## 2026-09-06 — V50-OWNER-R2E-PRE blocked before implementation
+
+- Machine status: `BLOCKED_EXTERNAL_DEPENDENCY`. History-first inspection
+  confirmed that the shared developer database has applied workforce migrations
+  `1719540000000_add_doctor_shift_generated_inventory` and
+  `1719550000000_tighten_doctor_shift_publication_timestamp_constraint`, but
+  those files are untracked in another worktree and absent from this branch.
+  Existing applied migrations were not copied, renamed or edited.
+- The mandatory clean-database lifecycle check on temporary database
+  `vethelp_r2e_pre_clean_20260906` failed in the checked-in migration
+  `1719610000000_add_clinical_visit_result_foundation` with PostgreSQL
+  `SQLSTATE 42830`: its `visits_appointment_context_fkey` references
+  `booking_schema.appointments (id, hold_id, owner_id, clinic_location_id,
+  slot_id)`, but the preceding checked-in chain does not create a matching
+  unique candidate key. The attempted transaction rolled back and the temporary
+  database was removed.
+- This W7 appointments candidate-key defect occurs before any new R2E-PRE
+  migration could run. Repairing it would be unrelated historical migration
+  cleanup, which this goal explicitly forbids. Per the goal stop condition, no
+  consent table, workforce repair migration, projection predicate or tests were
+  added. Independent migration review PASSed with no veto and confirmed that a
+  later migration cannot run, while backdating a repair would create an unsafe
+  out-of-order existing-database path.
+- Sticky R2E results remain unchanged:
+  `OWNER_R2E_DOCTOR_AVAILABILITY_READY=YES`,
+  `OWNER_R2E_DOCTOR_SLOT_AUTHORITY_READY=YES`, and
+  `OWNER_R2E_OPENAPI_READY=YES`. Blocked flags remain
+  `PUBLIC_DOCTOR_PROFILE_CONSENT_READY=NO`,
+  `WORKFORCE_SCHEMA_REPRODUCIBLE=NO`,
+  `OWNER_R2E_SPECIALIST_PROJECTION_READY=NO`,
+  `OWNER_R2E_OWNER_SAFE_DOCTOR_IDENTITY_READY=NO`, and
+  `OWNER_R2E_SERVICE_SPECIALIST_ELIGIBILITY_READY=NO`.
+  `SERVICE_TAXONOMY_AUTHORITY_GAP=YES` and
+  `DECISION_COMPARISON_BLOCKED_BY_DATA_AUTHORITY=YES` remain unchanged. R2F is
+  not unblocked.
+- Required next action: integrate the already-applied workforce migration files
+  through their owning workstream and resolve the W7 appointments composite
+  candidate-key migration defect. Then rerun R2E-PRE from a fresh database and
+  an existing upgraded database; do not enable public specialist identity until
+  the separate Product and Legal/Privacy consent approval is authoritative.
+
+## 2026-09-06 — MIGRATION-CHAIN-R1 exact historical lineage restored
+
+- Source provenance: exact untracked artifacts were recovered from
+  `/Users/evrusetskiy/work/pethelp-alpha/backend/migrations/node-pg` on branch
+  `agent/w7-visit-result-diary`, HEAD
+  `d622a285b93c49761fdac3f28072f0aea012e992`. All seven names are recorded as
+  applied in the preserved seeded database and their stored checksum rows match
+  the recovered and restored bytes exactly.
+- Bounded artifact inventory:
+
+| Migration | SHA-256 | Seeded | Direct schema effect |
+| --- | --- | --- | --- |
+| `1719540000000_add_doctor_shift_generated_inventory` | `29e7767741d9daa05d4ce0cf14d93cc2a5a27a38d9b1df86015969e20595995f` | applied | staff↔Doctor bridge; DoctorService, DoctorShift and generation-run tables; published slot lineage |
+| `1719550000000_tighten_doctor_shift_publication_timestamp_constraint` | `c92bb0ca75964066640884f035de1432f81230a035fc73037b4db45b0f1045a8` | applied | strict published-slot timestamp invariant |
+| `1719560000000_add_booking_change_requests` | `963dc82bff78b90bc0fd323996e85171204ad2c51f51e53db67acc39e3325ec4` | applied | booking-change schema and `appointments_change_request_context_key` |
+| `1719570000000_make_booking_change_request_context_fks_deferrable` | `cc3f6fa11f4cd452557d6a639dc4bc55cd3864aaef2e0b31170cb0cd5f46590e` | applied | deferrable booking-change context FKs |
+| `1719580000000_add_reallocation_cases_and_offers` | `78dd45a58b821c43f8de675e8b5c4a20f3bb72ec3b4bc7e44f4dd001d6d03013` | applied | reallocation case/offer lineage |
+| `1719590000000_add_reallocation_acceptance_lineage` | `5797ee0314e1288a2c2191e519e678c8d696ebb7b18f2506c9ba82eddae3a342` | applied | accepted-offer/replacement-hold authority |
+| `1719600000000_allow_terminal_reallocation_acceptance_lineage` | `5f14c8141906bdcb02b58f075dee56b62ebdd7602433881896ccd2fe5d77d27a` | applied | terminal reallocation acceptance invariant |
+
+- Critical dependency: exact migration `171956` creates
+  `UNIQUE (id, hold_id, owner_id, clinic_location_id, slot_id)` on
+  `booking_schema.appointments`; this is the candidate key referenced by
+  `171961` and proves Case A. No repair, renumbering, semantic rewrite, applied
+  migration edit or migration-table mutation was used.
+- Fresh database `vethelp_migration_chain_r1_clean_20260906` migrated from zero
+  through `171962` with the canonical `npm run migrate:up`. Explicit inspection
+  confirmed `doctor_services`, `doctor_shifts`, `inventory_generation_runs`,
+  the appointment candidate key and all `171954`–`171962` migration rows. The
+  temporary database was deleted afterward.
+- Seeded database reconciliation: all restored file hashes equal the existing
+  checksum registry. Canonical migration execution reported `No migrations to
+  run!`; migration count remained `67` before and after, proving no duplicate
+  replay. However, checksum verification is part of canonical `npm run
+  migrate:up`, so the command exits nonzero on the separate, pre-existing
+  `171961` mismatch: seeded checksum
+  `ecb597aa248f97418f17d05d807c452409a46868f15ae758f0a0fb41b309a7a3`
+  versus current tracked file
+  `8f82894f6528f6d194ffde9975cbe3297971f4b631e06ba9368ca1dd73d95acd`.
+  Verification stops there, and the seeded database has no checksum row for
+  applied `171962`. R1 did not edit `171961` or migration metadata.
+- Results: `HISTORICAL_MIGRATIONS_171954_171960_FOUND=PASS`,
+  `HISTORICAL_MIGRATION_IDENTITY=PASS`, `CLEAN_DB_MIGRATE_UP=PASS`,
+  `EXISTING_DB_MIGRATION_IDENTITY=PASS`,
+  `EXISTING_DB_NO_DUPLICATE_REPLAY=PASS`,
+  `WORKFORCE_SCHEMA_REPRODUCIBLE=YES`, but
+  `MIGRATION_CHAIN_REPRODUCIBLE=NO` and
+  `EXISTING_DB_FORWARD_MIGRATION_READY=NO`. Independent review PASSed the exact
+  restoration and vetoed broad chain readiness until seeded `171961`/`171962`
+  checksum history is reconciled. A later migration could otherwise apply and
+  then be reported failed by the canonical command.
+- Required next action: a dedicated owning migration-history goal must
+  reconcile the seeded `171961` checksum identity and missing `171962` checksum
+  without editing applied migration SQL or manually mutating migration history.
+  Do not begin the consent migration slice until canonical seeded
+  `npm run migrate:up` exits successfully.
+
+## 2026-09-07 — MIGRATION-HISTORY-R2 provenance and fail-early repair
+
+- Worktree safety: `/tmp/pethelp-owner-v50-r1` remains on
+  `agent/owner-v50-r1-shell-home` at
+  `7ba891f163ff7c80558121362d14ed41cda46ef5`; the historical source worktree
+  remains on `agent/w7-visit-result-diary` at
+  `d622a285b93c49761fdac3f28072f0aea012e992`. The restored `171954`–`171960`
+  files end with exactly one newline and retain their approved hashes. No
+  accidental artifact edits remain.
+- Exact seeded state:
+
+| Migration | Applied at | Execution row | Stored checksum | Current SHA-256 | Consistent |
+| --- | --- | --- | --- | --- | --- |
+| `1719600000000_allow_terminal_reallocation_acceptance_lineage` | `2026-08-31 06:29:09.029585` | yes | `5f14c8141906bdcb02b58f075dee56b62ebdd7602433881896ccd2fe5d77d27a` | same | yes |
+| `1719610000000_add_clinical_visit_result_foundation` | `2026-08-31 13:54:01.34061` | yes | `ecb597aa248f97418f17d05d807c452409a46868f15ae758f0a0fb41b309a7a3` | `8f82894f6528f6d194ffde9975cbe3297971f4b631e06ba9368ca1dd73d95acd` | no |
+| `1719620000000_enforce_one_clinical_result_per_visit` | `2026-09-02 05:40:32.26151` | yes | missing | `9bb7457b911c16ccc115e0aa37f0cd356968879fdd69962185324b82cd24ccf2` | unknown |
+
+- Exact `171961` provenance search covered Git path history and all refs, local
+  branches/worktrees, reflogs, size-bounded unreachable Git blobs, project
+  worktrees and local Codex attachments. No byte artifact matching the seeded
+  `ecb597…a7a3` checksum was found. Only the current `8f8289…5acd` artifact is
+  available, introduced in commit `02755347d52f9c2473c7c2638140348d68f2a24c`.
+  Therefore `MIGRATION_171961_APPLIED_ARTIFACT_PROVENANCE=UNKNOWN`; no semantic
+  or byte diff can be truthfully produced, and no checksum reconciliation or
+  migration restoration was attempted.
+- `171962` was applied before commit `0275534` recorded both `171961` and
+  `171962`. The old runner applied migrations before checksum verification; its
+  verifier iterates files in timestamp order and would abort on the earlier
+  `171961` mismatch before inserting a checksum for `171962`. This is consistent
+  with interrupted post-apply checksum insertion, but no exact invocation/audit
+  record excludes direct `node-pg-migrate` or another path. Therefore the cause
+  and applied byte identity of `171962` remain `UNKNOWN` despite the matching
+  live schema shape.
+- Fail-late behavior was repaired only in the migration harness. Canonical
+  `migrate:up` now runs `migrate:preflight`, which validates every applied
+  migration file against an existing per-file checksum before invoking
+  `node-pg-migrate`. It passes on an empty database, fails closed when an applied
+  file/checksum/table is missing or mismatched, and retains the existing
+  post-apply checksum registration for newly applied migrations. It introduces
+  no wildcard, bypass or accepted-drift list.
+- Focused disposable-database regression PASSed (`2/2`). It accepts a truly
+  empty or internally consistent history, and fails closed for a non-empty
+  checksum registry without execution history, execution history without its
+  registry, an applied migration without a checksum or file, and registered
+  file drift. `PREEXISTING_CHECKSUM_DRIFT_BLOCKS_BEFORE_NEW_MIGRATION=PASS`;
+  the command rejected a known mismatch, left the migration count at one and
+  created no application schema. Because runtime ordering changed, canonical clean replay
+  was repeated and PASSed with 67 execution rows and 67 checksum rows; the
+  temporary database was removed. On the seeded database, preflight now fails
+  before `node-pg-migrate` (no `No migrations to run!` output) and the migration
+  count remains 67.
+- No established safe legacy reconciliation mechanism was found. Per Case B,
+  `SEEDED_DB_MIGRATION_HISTORY_CONSISTENT=NO`,
+  `MIGRATION_CHAIN_REPRODUCIBLE=NO`, and
+  `EXISTING_DB_FORWARD_MIGRATION_READY=NO`. Consent migration remains unsafe.
+  The remaining repair requires authoritative recovery of the exact applied
+  `171961` artifact and the exact applied `171962` artifact or another separately
+  approved, explicit per-migration governance mechanism; no database-history
+  mutation is authorized.
+
+## 2026-09-07 — MIGRATION-HISTORY-R3 explicit legacy attestation
+
+- The repository now carries exactly two immutable, per-migration definitions
+  in `backend/scripts/legacy-migration-attestations.cjs`. Each binds the full
+  migration name/file, current SHA-256, observed legacy checksum state, exact
+  execution adjacency, `LEGACY_PROVENANCE_UNRECOVERABLE`, the 2026-09-07
+  Product Owner governance authorization and mandatory catalog invariants.
+  There are no ranges, wildcards, environment switches or general ignore mode.
+- `171961` is bound to current SHA
+  `8f82894f6528f6d194ffde9975cbe3297971f4b631e06ba9368ca1dd73d95acd`,
+  legacy stored SHA
+  `ecb597aa248f97418f17d05d807c452409a46868f15ae758f0a0fb41b309a7a3`,
+  immediate execution after `171960` and before `171962`. Its schema
+  attestation checks the complete column/type/nullability/default signatures
+  of `visits`, `visit_results`, `visit_result_amendments` and `diary_entries`;
+  all migration-defined PK/UK/check/FK identities and definitions, including
+  the five-column appointment context FK; the seven direct indexes; both
+  trigger functions by SHA-256 of PostgreSQL-normalized definitions; and all
+  six ordinary/constraint triggers by full catalog definition and enabled
+  state.
+- `171962` is bound to current SHA
+  `9bb7457b911c16ccc115e0aa37f0cd356968879fdd69962185324b82cd24ccf2`,
+  an exactly missing checksum row, immediate execution after `171961`, and a
+  dependency on successful `171961` attestation. It requires the exact
+  `visit_results_visit_key UNIQUE (visit_id)` catalog constraint.
+- Preflight uses the legacy path only when identity, observed checksum state,
+  current artifact hash, execution order and every schema invariant match. It
+  otherwise fails closed and never writes either history table. Every use emits
+  `LEGACY_MIGRATION_ATTESTATION_USED=171961|171962` and
+  `LEGACY_PROVENANCE=UNKNOWN`; provenance remains permanently unknown. The
+  post-apply verifier recognizes the same fully verified pair so it does not
+  manufacture the intentionally absent `171962` legacy registry row, while
+  ordinary future migrations retain normal checksum registration.
+- Focused disposable-database tests PASS `3/3`. The matrix proves normal exact
+  history, both exact legacy checksum states against a current-replay schema,
+  wrong `171961` constraints, altered/no-op trigger functions, disabled or
+  event-mutated triggers, a different `171961` checksum, changed current
+  `171961` bytes, wrong `171962` schema, un-attested missing checksum, unrelated
+  drift and blocking before a pending schema write. A copied test-only migration directory additionally proves
+  attested legacy → future migration → normal new checksum → clean second
+  no-op; the test migration never enters repository production history.
+- Mandatory behavior-level verification exposed a material seeded-schema
+  difference. A clean replay of the current `171961` produces normalized
+  `protect_published_clinical_data()` SHA
+  `674cb89be31a3905e533af7f46ca0d5e0bf45a05c85a3a0f44532a24f5b4d4a0`;
+  the preserved seeded function is
+  `b139058a999e4de6d57693ebfd831cb45ce201321894a24eecdf71cff1cb4078`.
+  The seeded function enumerates protected fields, while current `171961`
+  rejects any row difference for a published result; fields including version,
+  idempotency and update metadata are therefore not governed identically.
+  This is not treated as equivalence.
+- The earlier seeded preflight/no-op run occurred before function bodies and
+  full trigger definitions were added to the mandatory invariants. It preserved
+  `67/66` history counts but is superseded as qualification evidence. With the
+  complete attestation, seeded read-only preflight fails closed at
+  `171961:function:protect_published_clinical_data`; canonical migration was not
+  rerun after that failure. `SEEDED_DB_NO_HISTORY_MUTATION=PASS`, the disposable
+  `ATTESTED_LEGACY_CAN_FORWARD_MIGRATE=PASS`, and
+  `NEW_MIGRATIONS_USE_NORMAL_CHECKSUM_RULES=PASS`, but real seeded forward
+  readiness is not authorized.
+- Final flags:
+  `LEGACY_171961_SCHEMA_ATTESTATION=FAIL`,
+  `LEGACY_171961_ATTESTED=NO`, `LEGACY_171962_ATTESTED=NO`,
+  `SEEDED_DB_MIGRATION_HISTORY_CONSISTENT=NO`,
+  `MIGRATION_CHAIN_REPRODUCIBLE=NO`, and
+  `EXISTING_DB_FORWARD_MIGRATION_READY=NO`. Permanently retain
+  `171961_APPLIED_ARTIFACT_PROVENANCE=UNKNOWN` and
+  `171962_APPLIED_ARTIFACT_PROVENANCE=UNKNOWN`. Consent migration remains
+  unsafe. A separately authorized additive repair migration or exact historical
+  artifact recovery is required; R3 does not choose or perform either path.
+
+## 2026-09-07 — W7-MIGRATION-R4 legacy published-result guard repair
+
+- Added the next monotonic migration
+  `1719630000000_repair_published_clinical_data_immutability` (SHA-256
+  `c47aae64033d546512f14190e7938c38ae8208de400f7fda0deeb2b9f005ed52`).
+  Its `up` installs the canonical `171961`
+  `protect_published_clinical_data()` body verbatim; its `down` refuses without
+  explicit data-governance approval. No historical migration artifact changed.
+- The focused behavior fixture first reproduced the preserved defect: the
+  legacy function allowed `version=version+1` on a `PUBLISHED` result. After
+  R4, arbitrary published UPDATE, direct clinical-summary correction and DELETE
+  all fail with `23514`; DRAFT summary edits and an append-only Amendment plus
+  matching diary projection succeed unchanged.
+- Added `migrate:repair-published-result-guard`, hard-bound to the exact
+  pre-repair state: the complete ordered execution history through `171962`;
+  exact legacy `171961` checksum; exact current `171961` artifact; exactly
+  missing `171962` checksum; all `171961` catalog invariants with only the
+  function-definition hash overridden to the known legacy
+  `b139058a…4078`; all independent `171962` invariants; exact attestation pair;
+  and exact R4 artifact/hash as the sole pending migration. It exposes no force,
+  ignore, environment escape, migration selector or arbitrary SQL input.
+  Authorization also requires the complete checksum filename set to equal
+  every applied migration except the documented missing `171962` row; a
+  pre-registered R4 checksum or any unrelated registry row fails before write.
+- The repair command authorizes before write, then invokes `node-pg-migrate`
+  with the normal migration table and single-transaction mechanics and invokes
+  normal checksum registration. It verifies the canonical function hash,
+  historical checksum preservation, R4 execution/checksum rows and both legacy
+  attestations after commit. A second call is a verified no-write no-op.
+- Focused repair authorization/clinical regression PASSed (`1/1`). Unknown
+  `171961` checksum, pre-registered R4 checksum, wrong legacy function, required-index drift, changed current
+  `171961` bytes, failed `171962` constraint, unrelated execution history and
+  changed R4 bytes all fail before write. The existing checksum/attestation
+  matrix also PASSed (`3/3`); combined focused result was `4/4`.
+- Clean disposable database `vethelp_r4_clean_20260907` migrated normally to
+  `68/68` execution/checksum rows, including exactly one R4 row of each kind,
+  and produced canonical normalized function SHA
+  `674cb89be31a3905e533af7f46ca0d5e0bf45a05c85a3a0f44532a24f5b4d4a0`.
+  The database was removed.
+- Preserved seeded proof: before repair it had `67/66`, legacy `171961` checksum
+  `ecb597aa…a7a3`, no `171962` checksum, no R4 row and function SHA
+  `b139058a…4078`; normal `migrate:up` still failed before write. The dedicated
+  repair passed exact authorization and normal migration execution. Afterward
+  it has `68/67`, exactly one R4 execution/checksum row and canonical function
+  SHA `674cb89b…4d4a0`; the `171961` checksum is byte-for-byte unchanged and the
+  `171962` checksum remains absent. Canonical `npm run migrate:up` exits `0`,
+  emits both explicit legacy attestations and reports no pending migrations.
+  A second exact repair call reports `LEGACY_REPAIR_ALREADY_APPLIED` without a
+  write.
+- Independent migration review initially vetoed acceptance of a pre-registered
+  checksum for still-unapplied R4. Exact complete pre/post checksum filename
+  sets and the matching negative regression closed the gap; final review is
+  `PASS / NO VETO`.
+- Final flags:
+  `LEGACY_PUBLISHED_RESULT_GUARD_REPAIRED=YES`,
+  `LEGACY_171961_SCHEMA_ATTESTATION=PASS`,
+  `LEGACY_171961_ATTESTED=YES`, `LEGACY_171962_ATTESTED=YES`,
+  `SEEDED_DB_MIGRATION_HISTORY_CONSISTENT=YES_WITH_EXPLICIT_LEGACY_ATTESTATION`,
+  `MIGRATION_CHAIN_REPRODUCIBLE=YES`, and
+  `EXISTING_DB_FORWARD_MIGRATION_READY=YES`. Permanently retain
+  `171961_APPLIED_ARTIFACT_PROVENANCE=UNKNOWN` and
+  `171962_APPLIED_ARTIFACT_PROVENANCE=UNKNOWN`. The migration gate for consent
+  work is now safe; recommend only
+  `V50-OWNER-R2E-PRE-R2 — Public Doctor Profile Consent`, without starting it.
+
+## 2026-09-07 — V50-OWNER-R2E-PRE-R2 public doctor profile consent
+
+- Added monotonic migration `1719640000000_add_doctor_public_profile_consent_events`
+  (SHA-256 `e9560f530f7a94f8327707661e7ff32c42919568cf6c224382c47f943e8c5824`).
+  Consent is an append-only grant/revoke event history bound to the exact doctor
+  and clinic location. Every event records the acting employee and occurrence
+  time; UPDATE/DELETE is rejected, timestamps must strictly increase, and the
+  doctor row lock serializes concurrent transitions.
+- Consent defaults to denied. A grant or revocation requires an active,
+  non-revoked `CLINIC_ADMIN` membership at the same clinic location. A revoke
+  requires a current grant, duplicate grants are rejected, and inactive,
+  wrong-role or cross-location actors cannot create a valid event. Consent is
+  independent of the doctor roster, service eligibility, shift and slot state.
+- The enabled Owner service specialist projection now additionally requires the
+  latest consent event to be `CONSENT_GRANTED`. All existing doctor, roster,
+  DoctorService, published DoctorShift, published-slot, resource, capacity and
+  14-day-window eligibility remains conjunctive. The response remains bounded
+  to doctor ID, display name, specialty name and clinic-local next availability;
+  no consent, actor, role, contact or internal state is projected.
+- Clean disposable migration plus database consent invariants PASSed (`1/1`).
+  The focused projection regression PASSed (`1/1`), covering default deny,
+  eligible grant, revocation removal, inactive doctor/roster/DoctorService,
+  unpublished or invalid availability, cross-clinic mismatches, deterministic
+  limits and safe public fields. Backend TypeScript build and `git diff --check`
+  PASSed.
+- The legacy checksum/attestation and published-result repair regression suites
+  PASSed together (`4/4`). The R4 repair command also remains a verified no-write
+  no-op after 171964. No historical migration bytes changed.
+- Seeded forward migration ran through canonical `npm run migrate:up`. It now
+  has `69` execution rows and `68` checksum rows: exactly one normal 171964
+  execution/checksum, unchanged legacy 171961 checksum
+  `ecb597aa248f97418f17d05d807c452409a46868f15ae758f0a0fb41b309a7a3`,
+  and the intentionally absent 171962 checksum. Clean replay has `69/69`.
+- Final flags:
+  `PUBLIC_DOCTOR_PROFILE_CONSENT_READY=YES`,
+  `WORKFORCE_SCHEMA_REPRODUCIBLE=YES`,
+  `OWNER_R2E_SPECIALIST_PROJECTION_READY=YES`,
+  `OWNER_R2E_OWNER_SAFE_DOCTOR_IDENTITY_READY=YES`, and
+  `OWNER_R2E_SERVICE_SPECIALIST_ELIGIBILITY_READY=YES`. Retain
+  `SERVICE_TAXONOMY_AUTHORITY_GAP=YES`; no R2E UI or taxonomy expansion was
+  implemented.

@@ -19,6 +19,15 @@ import {
   decisionColors,
 } from "./ClinicDecisionLayout";
 
+export function formatInformationalPrice(amount: string, currency: string) {
+  const value = Number(amount);
+  if (!Number.isFinite(value)) return `${amount} ${currency}`;
+  const formatted = new Intl.NumberFormat("ru-RU", {
+    maximumFractionDigits: 2,
+  }).format(value);
+  return currency === "RUB" ? `${formatted} ₽` : `${formatted} ${currency}`;
+}
+
 export function ClinicServiceScreen({
   clinic,
   onBack,
@@ -59,6 +68,9 @@ export function ClinicServiceScreen({
         (service) => service.serviceId === selectedServiceId,
       ),
   );
+  const selectedService = query.data?.services.find(
+    (service) => service.serviceId === selectedServiceId,
+  );
   const proceed = async () => {
     if (!selectedServiceId || checking) return;
     setChecking(true);
@@ -93,7 +105,7 @@ export function ClinicServiceScreen({
     <ClinicDecisionLayout
       eyebrow="Клиника и услуга"
       title="Что нужно питомцу?"
-      subtitle="Клиника уже выбрана. Выберите одну услугу — повторно вводить данные не нужно."
+      subtitle="Выберите услугу — клиника сохранится при переходе к свободному времени."
       onBack={onBack}
     >
       {query.isPending ? (
@@ -120,7 +132,7 @@ export function ClinicServiceScreen({
               <DecisionHeading
                 kicker="Доступные услуги"
                 title="Выберите услугу"
-                detail="Цена показана как информационная — ровно в том виде, в котором её вернула клиника."
+                detail="Стоимость информационная. Клиника подтвердит детали записи."
               />
               {query.data.services.length === 0 ? (
                 <StateMessage
@@ -177,8 +189,11 @@ export function ClinicServiceScreen({
                               color: decisionColors.muted,
                             }}
                           >
-                            Информационная цена: {service.price.amount}{" "}
-                            {service.price.currency}
+                            Информационная стоимость:{" "}
+                            {formatInformationalPrice(
+                              service.price.amount,
+                              service.price.currency,
+                            )}
                           </Text>
                         </View>
                         <View
@@ -231,7 +246,9 @@ export function ClinicServiceScreen({
                   color: decisionColors.muted,
                 }}
               >
-                Выбранная клиника сохранится при возврате из выбора времени.
+                {selectedService
+                  ? `Выбрано: ${selectedService.name} · ${formatInformationalPrice(selectedService.price.amount, selectedService.price.currency)}`
+                  : "Выберите услугу, чтобы перейти к свободному времени."}
               </Text>
               <Button
                 label={checking ? "Проверяем…" : "Продолжить"}

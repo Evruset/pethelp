@@ -15,11 +15,13 @@ export type AvailabilitySnapshot = Readonly<{
   serviceName: string;
   timezone: string;
   horizonEndsAt: string;
+  informationalPrice: Readonly<{ kind: "INFORMATIONAL"; amount: string; currency: string }>;
   slots: AvailabilitySlot[];
 }>;
 export type AvailabilityHandoff = Readonly<
   ClinicServiceHandoff & { slotId: string; expectedSlotVersion: number }
 >;
+export type AvailabilityReadContext = Readonly<ClinicServiceHandoff & { doctorId?: string }>;
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const exact = (value: Record<string, unknown>, keys: string[]) =>
@@ -77,6 +79,7 @@ export function parseAvailability(raw: unknown): AvailabilitySnapshot {
       "serviceName",
       "timezone",
       "horizonEndsAt",
+      "informationalPrice",
       "slots",
     ]) ||
     !instant(value.observedAt) ||
@@ -84,8 +87,13 @@ export function parseAvailability(raw: unknown): AvailabilitySnapshot {
     typeof value.clinicName !== "string" ||
     typeof value.serviceName !== "string" ||
     !timeZone(value.timezone) ||
+    !value.informationalPrice ||
+    typeof value.informationalPrice !== "object" ||
     !Array.isArray(value.slots)
   )
+    throw new Error("INVALID_AVAILABILITY_RESPONSE");
+  const price = value.informationalPrice as Record<string, unknown>;
+  if (!exact(price, ["kind", "amount", "currency"]) || price.kind !== "INFORMATIONAL" || typeof price.amount !== "string" || !/^\d{1,10}\.\d{2}$/.test(price.amount) || typeof price.currency !== "string" || !/^[A-Z]{3}$/.test(price.currency))
     throw new Error("INVALID_AVAILABILITY_RESPONSE");
   const slots = value.slots.map((rawSlot) => {
     if (!rawSlot || typeof rawSlot !== "object")
@@ -121,6 +129,7 @@ export function parseAvailability(raw: unknown): AvailabilitySnapshot {
     serviceName: value.serviceName,
     timezone: value.timezone,
     horizonEndsAt: value.horizonEndsAt as string,
+    informationalPrice: price as AvailabilitySnapshot["informationalPrice"],
     slots,
   };
 }
@@ -128,12 +137,12 @@ export function createAvailabilityApi(client: ApiClient = apiClient) {
   return {
     async read(
       credential: string,
-      context: ClinicServiceHandoff,
+      context: AvailabilityReadContext,
       signal?: AbortSignal,
     ) {
       return parseAvailability(
         await client.request<unknown>(
-          `v1/owner/clinic-catalog/${context.clinicId}/locations/${context.locationId}/services/${context.serviceId}/availability`,
+          `v1/owner/clinic-catalog/${context.clinicId}/locations/${context.locationId}/services/${context.serviceId}/availability${context.doctorId ? `?doctorId=${context.doctorId}` : ""}`,
           { headers: { Authorization: `Bearer ${credential}` }, signal },
         ),
       );

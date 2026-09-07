@@ -18,6 +18,15 @@ function readBooleanFlag(name: string, fallback: boolean): boolean {
   throw new Error(`${name} must be either "true" or "false"`);
 }
 
+function readExactTrueFlag(name: string): boolean {
+  return process.env[name] === 'true';
+}
+
+const ownerDoctorDiscoverySchemaReady = readExactTrueFlag('OWNER_DOCTOR_DISCOVERY_SCHEMA_READY_V1');
+const ownerV50Shell = readExactTrueFlag('VETHELP_OWNER_V50_SHELL');
+const ownerV50Catalog = ownerV50Shell && readExactTrueFlag('OWNER_V50_CATALOG');
+const ownerV50ClinicDetail = ownerV50Catalog && readExactTrueFlag('OWNER_V50_CLINIC_DETAIL');
+
 export const featureFlags = Object.freeze({
   FEATURE_MIS_INTEGRATION: readBooleanFlag('FEATURE_MIS_INTEGRATION', false),
   FEATURE_ONLINE_PAYMENTS: readBooleanFlag('FEATURE_ONLINE_PAYMENTS', false),
@@ -30,6 +39,10 @@ export const featureFlags = Object.freeze({
   TELEMED_VET_QUEUE_READ_CAPABILITY_V1: readBooleanFlag('TELEMED_VET_QUEUE_READ_CAPABILITY_V1', true),
   TELEMED_VET_AUDIT_TRAIL_READ_CAPABILITY_V1: readBooleanFlag('TELEMED_VET_AUDIT_TRAIL_READ_CAPABILITY_V1', true),
   OPS_SLO_SNAPSHOT_READ_CAPABILITY_V1: readBooleanFlag('OPS_SLO_SNAPSHOT_READ_CAPABILITY_V1', true),
+  OWNER_DOCTOR_DISCOVERY_SCHEMA_READY_V1: ownerDoctorDiscoverySchemaReady,
+  OWNER_V50_CATALOG: ownerV50Catalog,
+  OWNER_V50_CLINIC_DETAIL: ownerV50ClinicDetail,
+  OWNER_V50_DOCTOR_DISCOVERY: ownerDoctorDiscoverySchemaReady && ownerV50ClinicDetail && readExactTrueFlag('OWNER_V50_DOCTOR_DISCOVERY'),
 });
 
 export type FeatureFlags = typeof featureFlags;

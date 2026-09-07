@@ -9,6 +9,7 @@ const payload = {
   serviceName: "Осмотр",
   timezone: "Europe/Moscow",
   horizonEndsAt: "2026-08-27T08:00:00.000Z",
+  informationalPrice: { kind: "INFORMATIONAL", amount: "1250.00", currency: "RUB" },
   slots: [
     {
       slotId: T,
@@ -35,6 +36,19 @@ describe("availability api", () => {
       expect.objectContaining({ headers: { Authorization: "Bearer token" } }),
     );
   });
+  it("adds only the selected doctor UUID to an availability read", async () => {
+    const request = jest.fn().mockResolvedValue(payload);
+    await createAvailabilityApi({ request }).read("token", {
+      clinicId: C,
+      locationId: L,
+      serviceId: S,
+      doctorId: T,
+    });
+    expect(request).toHaveBeenCalledWith(
+      `v1/owner/clinic-catalog/${C}/locations/${L}/services/${S}/availability?doctorId=${T}`,
+      expect.objectContaining({ headers: { Authorization: "Bearer token" } }),
+    );
+  });
   it("accepts a valid multi-segment IANA timezone", () =>
     expect(
       parseAvailability({
@@ -48,6 +62,8 @@ describe("availability api", () => {
     { ...payload, observedAt: "2026-02-30T08:00:00Z" },
     { ...payload, slots: [{ ...payload.slots[0], localDate: "2026-02-30" }] },
     { ...payload, slots: [{ ...payload.slots[0], localTime: "25:00" }] },
+    { ...payload, informationalPrice: { kind: "INFORMATIONAL", amount: "free", currency: "RUB" } },
+    { ...payload, informationalPrice: { kind: "FROM", amount: "1250.00", currency: "RUB" } },
   ])("fails closed for malformed or extra payload", (value) =>
     expect(() => parseAvailability(value)).toThrow(
       "INVALID_AVAILABILITY_RESPONSE",

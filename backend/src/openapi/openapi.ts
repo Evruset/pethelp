@@ -53,7 +53,7 @@ export function createOpenApiDocument(app: INestApplication) {
     }
   }
 
-  for (const name of ['OwnerClinicCatalogDto', 'OwnerClinicCatalogItemDto', 'OwnerClinicServiceCatalogDto', 'OwnerClinicServiceDto', 'OwnerClinicServicePriceDto', 'OwnerAvailabilityDto', 'OwnerAvailabilitySlotDto', ...(process.env.MVP_SCOPE_PROFILE === 'PILOT_V1' ? ['HoldDto'] : [])]) {
+  for (const name of ['OwnerClinicCatalogDto', 'OwnerClinicCatalogItemDto', 'OwnerClinicDecisionSummaryDto', 'OwnerClinicNextAvailabilityDto', 'OwnerClinicInformationalPriceDto', 'OwnerClinicConfirmationDto', 'OwnerClinicServiceCatalogDto', 'OwnerClinicServiceDto', 'OwnerClinicServicePriceDto', 'OwnerClinicServiceSpecialtyDto', 'OwnerClinicServiceSpecialistDto', 'OwnerAvailabilityDto', 'OwnerAvailabilitySlotDto', ...(process.env.MVP_SCOPE_PROFILE === 'PILOT_V1' ? ['HoldDto'] : [])]) {
     const schema = document.components?.schemas?.[name];
     if (schema && typeof schema === 'object' && !('$ref' in schema)) schema.additionalProperties = false;
   }

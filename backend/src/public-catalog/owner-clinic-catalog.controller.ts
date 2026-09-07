@@ -1,5 +1,5 @@
-import { Controller, Get, NotFoundException, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
-import { ApiBadRequestResponse, ApiBearerAuth, ApiForbiddenResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { Controller, Get, NotFoundException, Param, ParseUUIDPipe, Query, UseGuards } from '@nestjs/common';
+import { ApiBadRequestResponse, ApiBearerAuth, ApiForbiddenResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiQuery, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Role } from '../auth/auth.types';
 import { Roles } from '../auth/roles.decorator';
@@ -23,17 +23,7 @@ export class OwnerClinicCatalogController {
   @ApiForbiddenResponse({ type: ApiErrorDto })
   @ApiInternalServerErrorResponse({ type: ApiErrorDto })
   async list(): Promise<OwnerClinicCatalogDto> {
-    const result = await this.catalog.listClinicLocations({ limit: 50, openNow: true });
-    return {
-      observedAt: result.observedAt,
-      clinics: result.locations.map(({ clinic, location }) => ({
-        clinicId: clinic.id,
-        locationId: location.id,
-        name: clinic.name,
-        address: location.address,
-        phone: location.phone,
-      })),
-    };
+    return this.catalog.listOwnerClinicDecisionCatalog(50);
   }
 
   @Get(':clinicId/locations/:locationId')
@@ -55,6 +45,7 @@ export class OwnerClinicCatalogController {
   @ApiParam({ name: 'clinicId', format: 'uuid' })
   @ApiParam({ name: 'locationId', format: 'uuid' })
   @ApiParam({ name: 'serviceId', format: 'uuid' })
+  @ApiQuery({ name: 'doctorId', required: false, format: 'uuid', description: 'Default-off R2E specialist filter; accepted only while Doctor Discovery authority is enabled.' })
   @ApiOkResponse({ type: OwnerAvailabilityDto })
   @ApiBadRequestResponse({ type: ApiErrorDto })
   @ApiUnauthorizedResponse({ type: ApiErrorDto })
@@ -65,8 +56,9 @@ export class OwnerClinicCatalogController {
     @Param('clinicId', new ParseUUIDPipe()) clinicId: string,
     @Param('locationId', new ParseUUIDPipe()) locationId: string,
     @Param('serviceId', new ParseUUIDPipe()) serviceId: string,
+    @Query('doctorId', new ParseUUIDPipe({ optional: true })) doctorId?: string,
   ): Promise<OwnerAvailabilityDto> {
-    const result = await this.catalog.readOwnerAvailability(clinicId, locationId, serviceId);
+    const result = await this.catalog.readOwnerAvailability(clinicId, locationId, serviceId, doctorId);
     if (!result) throw new NotFoundException({ code: 'OWNER_AVAILABILITY_CONTEXT_NOT_FOUND', message: 'Availability context not found' });
     return result;
   }

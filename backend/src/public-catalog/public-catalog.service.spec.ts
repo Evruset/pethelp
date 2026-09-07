@@ -2,6 +2,46 @@ import { DatabaseService } from '../database/database.service';
 import { PublicCatalogService } from './public-catalog.service';
 
 describe('PublicCatalogService', () => {
+  it('builds the Owner decision projection in one bounded query and maps explicit nulls', async () => {
+    const now=new Date('2026-08-12T12:00:00.000Z');
+    const query=jest.fn().mockResolvedValue({rows:[{clinic_id:'11111111-1111-4111-8111-111111111111',clinic_name:'Clinic',location_id:'22222222-2222-4222-8222-222222222222',address:'Address',phone:null,starts_at:null,local_date:null,local_time:null,timezone:'Europe/Moscow',price_amount:null,currency:null,server_now:now}]});
+    const service=new PublicCatalogService({query} as unknown as DatabaseService);
+    const response=await service.listOwnerClinicDecisionCatalog(50);
+    expect(query).toHaveBeenCalledTimes(1);
+    const [sql,params]=query.mock.calls[0] as [string,unknown[]];
+    expect(params).toEqual([50]);
+    expect(sql).toContain('JOIN LATERAL');
+    expect(sql).toContain("slot.state = 'OPEN'");
+    expect(sql).toContain('slot.starts_at > server_time.value');
+    expect(sql).toContain('slot.capacity - slot.booked_count - slot.held_count > 0');
+    expect(sql).toContain('service.clinic_location_id = location.id');
+    expect(sql).toContain('service.active = true');
+    expect(sql).toContain('ORDER BY slot.starts_at ASC, slot.id ASC');
+    expect(sql).toContain('COUNT(DISTINCT service.currency) = 1');
+    expect(sql).toContain('LIMIT $1');
+    expect(response.clinics[0]).toEqual({clinicId:'11111111-1111-4111-8111-111111111111',locationId:'22222222-2222-4222-8222-222222222222',name:'Clinic',address:'Address',phone:null,decisionSummary:{nextAvailability:null,informationalPrice:null,confirmation:{mode:'MANUAL'}}});
+  });
+
+  it('keeps the bounded Owner service projection fail-closed while doctor consent authority is absent', async () => {
+    const now=new Date('2026-08-12T12:00:00.000Z');
+    const query=jest.fn().mockResolvedValue({rows:[{clinic_id:'11111111-1111-4111-8111-111111111111',clinic_name:'Clinic',location_id:'22222222-2222-4222-8222-222222222222',address:'Address',phone:null,service_id:'33333333-3333-4333-8333-333333333333',service_name:'Осмотр',price_amount:'1250.00',currency:'RUB',specialists:[],server_now:now}]});
+    const service=new PublicCatalogService({query} as unknown as DatabaseService);
+    const response=await service.readOwnerClinicServices('11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222');
+    expect(query).toHaveBeenCalledTimes(1);
+    const [sql,params]=query.mock.calls[0] as [string,unknown[]];
+    expect(params).toEqual(['11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222']);
+    expect(sql).toContain('LIMIT 50');
+    expect(sql).not.toMatch(/doctor_services|doctor_shifts|doctor\.full_name|catalog_doctor_id/);
+    expect(response?.services[0]).toEqual({serviceId:'33333333-3333-4333-8333-333333333333',name:'Осмотр',price:{kind:'INFORMATIONAL',amount:'1250.00',currency:'RUB'},specialty:null,specialists:[]});
+  });
+
+  it('rejects a doctor-filtered availability read before querying while discovery is disabled', async () => {
+    const query=jest.fn();
+    const service=new PublicCatalogService({query} as unknown as DatabaseService);
+    await expect(service.readOwnerAvailability('11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222','33333333-3333-4333-8333-333333333333','44444444-4444-4444-8444-444444444444')).resolves.toBeUndefined();
+    expect(query).not.toHaveBeenCalled();
+  });
+
   it('returns public locations with availability marked as a read-only snapshot', async () => {
     const observedAt = new Date('2026-06-25T12:00:00.000Z');
     const query = jest.fn().mockResolvedValue({
