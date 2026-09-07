@@ -61,7 +61,7 @@ async function runJourney(browser,label,viewport){
   page.on('pageerror',e=>consoleErrors.push(`PAGEERROR ${e.message}`));
   await mockApi(page);
   try {
-    const response=await page.goto('http://127.0.0.1:4173/(app)',{waitUntil:'networkidle'});
+    const response=await page.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle'});
     fs.writeFileSync(path.join(dir,'00-boot-meta.txt'),`url=${page.url()}\nstatus=${response?.status() ?? 'none'}\ntitle=${await page.title()}\n`);
     fs.writeFileSync(path.join(dir,'00-boot.html'),await page.content());
     await shot(page,dir,'00-boot.png');
