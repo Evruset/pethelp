@@ -31,7 +31,7 @@ export function ClinicDecisionLayout({
   eyebrow: string;
   title: string;
   subtitle: string;
-  onBack(): void;
+  onBack?(): void;
 }>) {
   const { width } = useWindowDimensions();
   const desktop = Platform.OS === "web" && width >= 900;
@@ -51,7 +51,7 @@ export function ClinicDecisionLayout({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <BackAction onPress={onBack} />
+        {onBack ? <BackAction onPress={onBack} /> : null}
         <View style={{ gap: 6 }}>
           <Text
             style={{
