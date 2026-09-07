@@ -1,6 +1,6 @@
-name: Owner Exact 9139 Visual Walk
+name: Owner R2F Code Gates
 
-# Temporary CI-only visual harness. Do not merge.
+# Temporary CI-only harness. Do not merge.
 on:
   pull_request:
     paths:
@@ -11,229 +11,39 @@ permissions:
   contents: read
 
 concurrency:
-  group: owner-exact-9139-visual-${{ github.ref }}
+  group: owner-r2f-code-gates-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  visual-walk:
+  checks:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/owner-app
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-
-      - name: Pin exact Owner product commit
-        run: |
-          set -euo pipefail
-          git fetch --depth=1 origin 9139bb8b9c35fe468df9b00d819c11de8ce12d1f
-          git checkout --detach FETCH_HEAD
-          test "$(git rev-parse HEAD)" = "9139bb8b9c35fe468df9b00d819c11de8ce12d1f"
-          mkdir -p visual-evidence-9139bb8/diagnostics
-          echo "OWNER_FRONTEND_SHA=$(git rev-parse HEAD)" | tee visual-evidence-9139bb8/diagnostics/provenance.txt
-          echo "FULL_REPO_EXACT_RUNTIME=FAIL_MISSING_171954_171960" >> visual-evidence-9139bb8/diagnostics/provenance.txt
-
-      - name: Overlay validated migration lineage 171954-171960
-        run: |
-          set -euo pipefail
-          git fetch --depth=1 origin backup/owner-v50-r1-20260907
-          OVERLAY_SHA=$(git rev-parse FETCH_HEAD)
-          echo "MIGRATION_OVERLAY_REF=backup/owner-v50-r1-20260907" >> visual-evidence-9139bb8/diagnostics/provenance.txt
-          echo "MIGRATION_OVERLAY_SHA=$OVERLAY_SHA" >> visual-evidence-9139bb8/diagnostics/provenance.txt
-          for f in \
-            backend/migrations/node-pg/1719540000000_add_doctor_shift_generated_inventory.js \
-            backend/migrations/node-pg/1719550000000_tighten_doctor_shift_publication_timestamp_constraint.js \
-            backend/migrations/node-pg/1719560000000_add_booking_change_requests.js \
-            backend/migrations/node-pg/1719570000000_make_booking_change_request_context_fks_deferrable.js \
-            backend/migrations/node-pg/1719580000000_add_reallocation_cases_and_offers.js \
-            backend/migrations/node-pg/1719590000000_add_reallocation_acceptance_lineage.js \
-            backend/migrations/node-pg/1719600000000_allow_terminal_reallocation_acceptance_lineage.js; do
-            git show "$OVERLAY_SHA:$f" > "$f"
-          done
-          sha256sum backend/migrations/node-pg/17195*.js backend/migrations/node-pg/171960*.js \
-            > visual-evidence-9139bb8/diagnostics/migration-overlay.sha256
-          test "$(git rev-parse HEAD)" = "9139bb8b9c35fe468df9b00d819c11de8ce12d1f"
-          git diff --quiet -- apps/owner-app
-          echo "OWNER_FRONTEND_WORKTREE_DIFF=NONE" >> visual-evidence-9139bb8/diagnostics/provenance.txt
-
-      - name: Start compatibility backend stack
-        run: |
-          set -euo pipefail
-          docker compose -f docker-compose.local.yml down -v --remove-orphans || true
-          docker compose -f docker-compose.local.yml up -d postgres mock-mis mock-cloud backend
-          for i in $(seq 1 120); do
-            if curl -fsS http://127.0.0.1:3000/v1/health >/dev/null 2>&1; then
-              echo BACKEND_HEALTH=PASS
-              exit 0
-            fi
-            sleep 2
-          done
-          docker compose -f docker-compose.local.yml ps
-          docker compose -f docker-compose.local.yml logs --tail=250 backend
-          exit 1
-
-      - name: Seed deterministic Owner journey data
-        run: |
-          set -euo pipefail
-          # Harness-only compatibility bridge: 171954 made location timezone NOT NULL,
-          # while the historical 9139 seed predates that column. Add a temporary DB
-          # default for the old fixture, then remove it immediately.
-          docker compose -f docker-compose.local.yml exec -T postgres \
-            psql -U vethelp -d vethelp -v ON_ERROR_STOP=1 \
-            -c "ALTER TABLE clinic_schema.clinic_locations ALTER COLUMN timezone SET DEFAULT 'Europe/Moscow';"
-          set +e
-          docker compose -f docker-compose.local.yml --profile setup run --rm seed
-          SEED_RC=$?
-          set -e
-          docker compose -f docker-compose.local.yml exec -T postgres \
-            psql -U vethelp -d vethelp -v ON_ERROR_STOP=1 \
-            -c "ALTER TABLE clinic_schema.clinic_locations ALTER COLUMN timezone DROP DEFAULT;"
-          test "$SEED_RC" -eq 0
-          docker compose -f docker-compose.local.yml exec -T backend npx ts-node /workspace/backend/scripts/seed-local-identities.ts
-          docker compose -f docker-compose.local.yml exec -T backend npx ts-node /workspace/backend/scripts/seed-local-owner-marketplace.ts
-          echo "LEGACY_SEED_TIMEZONE_BRIDGE=EPHEMERAL_ONLY" >> visual-evidence-9139bb8/diagnostics/provenance.txt
-
-      - name: Install exact Owner dependencies
-        working-directory: apps/owner-app
+      - name: Install exact dependencies
         run: npm ci
-
-      - name: Install isolated browser harness
+      - name: Record baseline Expo drift
+        continue-on-error: true
+        run: npx expo-doctor
+      - name: Record baseline lint drift
+        continue-on-error: true
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Focused Owner tests
+        run: npm test -- --ci --runInBand --forceExit
+      - name: Validate test and pilot public config
         run: |
-          set -euo pipefail
-          rm -rf /tmp/pw
-          mkdir -p /tmp/pw
-          cd /tmp/pw
-          npm init -y >/dev/null
-          npm install playwright@1.55.0
-          npx playwright install --with-deps chromium
-
-      - name: Start exact Expo Web runtime
-        working-directory: apps/owner-app
+          VETHELP_ENV=test EXPO_PUBLIC_API_BASE_URL=https://test-api.vethelp.local npx expo config --type public >/tmp/owner-test-config.json
+          VETHELP_ENV=pilot EXPO_PUBLIC_API_BASE_URL=https://api.vethelp.local npx expo config --type public >/tmp/owner-pilot-config.json
+      - name: Validate native prebuild
         run: |
-          set -euo pipefail
-          nohup env CI=1 VETHELP_ENV=test EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:3000 npx expo start --web --port 8081 > /tmp/owner-web.log 2>&1 &
-          echo $! > /tmp/owner-web.pid
-          for i in $(seq 1 90); do
-            if curl -fsS http://127.0.0.1:8081 >/dev/null 2>&1; then
-              echo OWNER_WEB_RUNTIME=PASS
-              exit 0
-            fi
-            sleep 2
-          done
-          cat /tmp/owner-web.log
-          exit 1
-
-      - name: Browser visual walkthrough
-        run: |
-          set -euo pipefail
-          cat > /tmp/pw/owner-visual-walk.mjs <<'NODE'
-          import { chromium } from 'playwright';
-          import fs from 'node:fs';
-          import path from 'node:path';
-
-          const out = path.join(process.env.GITHUB_WORKSPACE, 'visual-evidence-9139bb8');
-          fs.mkdirSync(out, { recursive: true });
-          const report = {
-            ownerFrontendSha: '9139bb8b9c35fe468df9b00d819c11de8ce12d1f',
-            runtimeKind: 'exact Owner frontend + validated 171954-171960 migration overlay + ephemeral legacy-seed timezone bridge',
-            steps: [], console: [], requestFailures: []
-          };
-          const browser = await chromium.launch({ headless: true });
-          const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
-          page.on('console', msg => {
-            if (msg.type() === 'error' || msg.type() === 'warning') report.console.push({ type: msg.type(), text: msg.text() });
-          });
-          page.on('requestfailed', request => report.requestFailures.push({ url: request.url(), error: request.failure()?.errorText ?? 'unknown' }));
-
-          async function snap(name, expected) {
-            if (expected) await page.getByText(expected, { exact: false }).first().waitFor({ state: 'visible', timeout: 20000 });
-            await page.waitForTimeout(500);
-            await page.screenshot({ path: path.join(out, `${name}.png`), fullPage: true });
-            const body = await page.locator('body').innerText();
-            fs.writeFileSync(path.join(out, `${name}.txt`), body);
-            report.steps.push({ name, url: page.url(), expected: expected ?? null, visibleButtons: await page.getByRole('button').allTextContents() });
-          }
-
-          async function clickText(text) {
-            const target = page.getByText(text, { exact: true }).first();
-            await target.waitFor({ state: 'visible', timeout: 20000 });
-            await target.click();
-          }
-
-          try {
-            await page.goto('http://127.0.0.1:8081', { waitUntil: 'domcontentloaded', timeout: 120000 });
-            await snap('00-public-home', 'Начать запись');
-
-            await clickText('Войти');
-            await snap('01-auth-phone', 'Получить код');
-            await page.getByLabel('Номер телефона').fill('+79991234567');
-            await clickText('Получить код');
-            await snap('02-auth-otp', 'Введите код');
-            await page.getByLabel('Код из сообщения').fill('246810');
-            await clickText('Подтвердить');
-            await page.locator('[aria-label="Личный кабинет"]').waitFor({ state: 'visible', timeout: 20000 });
-            await snap('03-home-authenticated');
-
-            await clickText('Записаться');
-            await snap('04-booking-pet', 'Кого записываем?');
-            await clickText('Demo Pet');
-            await clickText('Продолжить');
-            await snap('05-booking-clinics', 'Выберите клинику');
-            await clickText('Открыть клинику');
-            await snap('06-booking-service', 'Что нужно питомцу?');
-            await page.getByRole('radiogroup', { name: 'Выбор услуги' }).getByRole('radio').first().click();
-            await clickText('Продолжить');
-            await snap('07-booking-time', 'Выберите время');
-            await page.getByRole('radiogroup', { name: 'Выбор доступного времени' }).getByRole('radio').first().click();
-            await snap('08-booking-time-selected', 'Выбрано:');
-            await clickText('Продолжить');
-            await snap('09-booking-review', 'Проверьте заявку');
-            await clickText('Отправить заявку');
-            await snap('10-booking-submitted', 'Ожидает подтверждения клиникой');
-
-            await page.reload({ waitUntil: 'domcontentloaded' });
-            await page.locator('[aria-label="Личный кабинет"]').waitFor({ state: 'visible', timeout: 20000 });
-            await snap('11-home-after-booking');
-            await clickText('Дневник');
-            await snap('12-diary-pet', 'Чей дневник открыть?');
-            await clickText('Demo Pet');
-            await clickText('Продолжить');
-            await snap('13-diary', 'Дневник: Demo Pet');
-            report.result = 'PASS';
-          } catch (error) {
-            report.result = 'FAIL';
-            report.error = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-            try { await page.screenshot({ path: path.join(out, '99-failure.png'), fullPage: true }); } catch {}
-            try { fs.writeFileSync(path.join(out, '99-failure.txt'), await page.locator('body').innerText()); } catch {}
-            throw error;
-          } finally {
-            fs.writeFileSync(path.join(out, 'report.json'), JSON.stringify(report, null, 2));
-            await browser.close();
-          }
-          NODE
-          cd /tmp/pw
-          node owner-visual-walk.mjs
-
-      - name: Collect runtime diagnostics
-        if: always()
-        run: |
-          mkdir -p visual-evidence-9139bb8/diagnostics
-          cp /tmp/owner-web.log visual-evidence-9139bb8/diagnostics/owner-web.log 2>/dev/null || true
-          docker compose -f docker-compose.local.yml ps > visual-evidence-9139bb8/diagnostics/compose-ps.txt 2>&1 || true
-          docker compose -f docker-compose.local.yml logs --tail=400 backend > visual-evidence-9139bb8/diagnostics/backend.log 2>&1 || true
-
-      - name: Upload visual evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: owner-9139bb8-compat-visual-evidence
-          path: visual-evidence-9139bb8
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Cleanup
-        if: always()
-        run: docker compose -f docker-compose.local.yml down -v --remove-orphans || true
+          rm -rf /tmp/owner-prebuild
+          cp -R . /tmp/owner-prebuild
+          cd /tmp/owner-prebuild
+          VETHELP_ENV=local EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:3000 npx expo prebuild --no-install --platform android
