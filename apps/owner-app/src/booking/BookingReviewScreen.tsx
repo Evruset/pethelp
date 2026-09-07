@@ -71,8 +71,12 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
     return (
       <ClinicDecisionLayout
         eyebrow="Заявка отправлена"
-        title="Ожидает подтверждения клиникой"
+        title="Заявка передана в клинику"
         subtitle="Мы уже передали выбранные данные. Звонить и создавать вторую заявку не нужно."
+        onBack={() => {
+          generation.current += 1;
+          onBack();
+        }}
       >
         <DecisionPanel>
           <DecisionHeading
