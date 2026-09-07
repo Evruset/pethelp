@@ -60,54 +60,58 @@ async function runJourney(browser,label,viewport){
   page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text());});
   page.on('pageerror',e=>consoleErrors.push(`PAGEERROR ${e.message}`));
   await mockApi(page);
+  try {
+    const response=await page.goto('http://127.0.0.1:4173/(app)',{waitUntil:'networkidle'});
+    fs.writeFileSync(path.join(dir,'00-boot-meta.txt'),`url=${page.url()}\nstatus=${response?.status() ?? 'none'}\ntitle=${await page.title()}\n`);
+    fs.writeFileSync(path.join(dir,'00-boot.html'),await page.content());
+    await shot(page,dir,'00-boot.png');
+    await page.getByLabel('Личный кабинет').waitFor({state:'visible',timeout:15000});
+    await shot(page,dir,'01-home.png');
 
-  await page.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle'});
-  await page.getByLabel('Личный кабинет').waitFor({state:'visible',timeout:15000});
-  await shot(page,dir,'01-home.png');
+    await page.getByRole('button',{name:'Начать запись'}).first().click();
+    if(await visible(page.getByText('Кого записываем?'))){
+      await shot(page,dir,'02-booking-pet.png');
+      if(await visible(page.getByText('Рекс',{exact:true}))) await page.getByText('Рекс',{exact:true}).click();
+      const cont=page.getByRole('button',{name:'Продолжить'});if(await visible(cont))await cont.click();
+    }
+    await page.getByText('Выберите клинику',{exact:true}).waitFor({state:'visible',timeout:10000});
+    await shot(page,dir,'03-clinic-catalog.png');
+    await page.getByRole('button',{name:'Открыть клинику'}).first().click();
 
-  await page.getByRole('button',{name:'Начать запись'}).first().click();
-  if(await visible(page.getByText('Кого записываем?'))){
-    await shot(page,dir,'02-booking-pet.png');
-    if(await visible(page.getByText('Рекс',{exact:true}))) await page.getByText('Рекс',{exact:true}).click();
-    const cont=page.getByRole('button',{name:'Продолжить'});if(await visible(cont))await cont.click();
+    await page.getByText('Первичный приём ветеринара',{exact:true}).waitFor({state:'visible',timeout:10000});
+    await shot(page,dir,'04-service.png');
+    await page.getByText('Первичный приём ветеринара',{exact:true}).click();
+    await page.getByRole('button',{name:'Продолжить'}).click();
+
+    await page.getByText('11:00',{exact:true}).waitFor({state:'visible',timeout:10000});
+    await shot(page,dir,'05-availability.png');
+    await page.getByText('11:00',{exact:true}).click();
+    await shot(page,dir,'06-availability-selected.png');
+    await page.getByRole('button',{name:'Продолжить'}).click();
+
+    await page.getByText('Проверьте заявку',{exact:true}).waitFor({state:'visible',timeout:10000});
+    await shot(page,dir,'07-booking-review.png');
+    await page.getByRole('button',{name:'Отправить заявку'}).click();
+    await page.getByText('Ожидает подтверждения клиникой',{exact:true}).waitFor({state:'visible',timeout:10000});
+    await shot(page,dir,'08-booking-success.png');
+
+    await page.reload({waitUntil:'networkidle'});
+    await page.getByLabel('Личный кабинет').waitFor({state:'visible',timeout:10000});
+    await page.getByRole('button',{name:'Дневник'}).first().click();
+    if(await visible(page.getByText('Чей дневник открыть?'))){
+      await shot(page,dir,'09-diary-pet.png');
+      if(await visible(page.getByText('Рекс',{exact:true})))await page.getByText('Рекс',{exact:true}).click();
+      const cont=page.getByRole('button',{name:'Продолжить'});if(await visible(cont))await cont.click();
+    }
+    await page.getByText('Дневник: Рекс',{exact:true}).waitFor({state:'visible',timeout:10000});
+    await shot(page,dir,'10-diary.png');
+    await page.getByRole('button',{name:/Открыть результат приёма/}).first().click();
+    await page.getByText('Исходный результат',{exact:true}).waitFor({state:'visible',timeout:10000});
+    await shot(page,dir,'11-diary-detail.png');
+  } finally {
+    fs.writeFileSync(path.join(dir,'console-errors.txt'),consoleErrors.join('\n'));
+    await context.close();
   }
-  await page.getByText('Выберите клинику',{exact:true}).waitFor({state:'visible',timeout:10000});
-  await shot(page,dir,'03-clinic-catalog.png');
-  await page.getByRole('button',{name:'Открыть клинику'}).first().click();
-
-  await page.getByText('Первичный приём ветеринара',{exact:true}).waitFor({state:'visible',timeout:10000});
-  await shot(page,dir,'04-service.png');
-  await page.getByText('Первичный приём ветеринара',{exact:true}).click();
-  await page.getByRole('button',{name:'Продолжить'}).click();
-
-  await page.getByText('11:00',{exact:true}).waitFor({state:'visible',timeout:10000});
-  await shot(page,dir,'05-availability.png');
-  await page.getByText('11:00',{exact:true}).click();
-  await shot(page,dir,'06-availability-selected.png');
-  await page.getByRole('button',{name:'Продолжить'}).click();
-
-  await page.getByText('Проверьте заявку',{exact:true}).waitFor({state:'visible',timeout:10000});
-  await shot(page,dir,'07-booking-review.png');
-  await page.getByRole('button',{name:'Отправить заявку'}).click();
-  await page.getByText('Ожидает подтверждения клиникой',{exact:true}).waitFor({state:'visible',timeout:10000});
-  await shot(page,dir,'08-booking-success.png');
-
-  await page.reload({waitUntil:'networkidle'});
-  await page.getByLabel('Личный кабинет').waitFor({state:'visible',timeout:10000});
-  await page.getByRole('button',{name:'Дневник'}).first().click();
-  if(await visible(page.getByText('Чей дневник открыть?'))){
-    await shot(page,dir,'09-diary-pet.png');
-    if(await visible(page.getByText('Рекс',{exact:true})))await page.getByText('Рекс',{exact:true}).click();
-    const cont=page.getByRole('button',{name:'Продолжить'});if(await visible(cont))await cont.click();
-  }
-  await page.getByText('Дневник: Рекс',{exact:true}).waitFor({state:'visible',timeout:10000});
-  await shot(page,dir,'10-diary.png');
-  await page.getByRole('button',{name:/Открыть результат приёма/}).first().click();
-  await page.getByText('Исходный результат',{exact:true}).waitFor({state:'visible',timeout:10000});
-  await shot(page,dir,'11-diary-detail.png');
-
-  fs.writeFileSync(path.join(dir,'console-errors.txt'),consoleErrors.join('\n'));
-  await context.close();
 }
 
 (async()=>{const browser=await chromium.launch({headless:true});try{await runJourney(browser,'desktop',{width:1440,height:1000});await runJourney(browser,'mobile',{width:390,height:844});}finally{await browser.close();}})().catch(e=>{console.error(e);process.exit(1);});
