@@ -498,7 +498,7 @@ export class OwnerAppointmentsService {
           (row.latitude && row.longitude) || row.address?.trim(),
         ),
         canReviewAlternative:
-            row.bucket === 'ACTIVE' && row.state === 'ALTERNATIVE_PENDING',
+            row.bucket === 'REQUIRES_ACTION' && row.state === 'ALTERNATIVE_PENDING',
         canCancel: policy.canCancel,
       },
       cancellation: {
