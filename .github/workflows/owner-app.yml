@@ -1,6 +1,6 @@
 name: Owner App
 
-# Temporary CI harness for Owner V50 R2F code gates. Do not merge.
+# Temporary CI harness for Owner V50 R2F repaired code gates. Do not merge.
 on:
   pull_request:
     paths:
