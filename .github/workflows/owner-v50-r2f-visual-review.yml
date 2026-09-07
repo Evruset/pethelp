@@ -68,7 +68,10 @@ jobs:
       - name: Capture desktop and mobile journeys
         env:
           NODE_PATH: /tmp/pw/node_modules
-        run: node .github/owner-v50-r2f-visual-review.cjs
+        run: |
+          sed "s/waitUntil:'networkidle'/waitUntil:'domcontentloaded'/g" .github/owner-v50-r2f-visual-review.cjs > /tmp/owner-v50-r2f-visual-review.cjs
+          grep -q "waitUntil:'domcontentloaded'" /tmp/owner-v50-r2f-visual-review.cjs
+          node /tmp/owner-v50-r2f-visual-review.cjs
 
       - name: Upload visual evidence
         if: always()
