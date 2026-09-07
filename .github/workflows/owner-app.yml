@@ -52,7 +52,8 @@ jobs:
       - name: Lint (known baseline react-hooks/refs blocker; informational for this temporary CI branch)
         run: npm run lint || true
       - run: npm run typecheck
-      - run: npm test -- --ci
+      - name: Run Owner tests past known baseline open handle
+        run: npm test -- --ci --forceExit
       - name: Validate test and pilot public config
         run: |
           VETHELP_ENV=test EXPO_PUBLIC_API_BASE_URL=https://test.invalid npx expo config --type public --json > /tmp/owner-app-test-config.json
