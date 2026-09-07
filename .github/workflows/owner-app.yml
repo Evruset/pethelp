@@ -96,12 +96,18 @@ jobs:
           docker compose -f docker-compose.local.yml exec -T backend npx ts-node /workspace/backend/scripts/seed-local-owner-marketplace.ts
           echo "LEGACY_SEED_TIMEZONE_BRIDGE=EPHEMERAL_ONLY" >> visual-evidence-9139bb8/diagnostics/provenance.txt
 
-      - name: Install Owner and browser dependencies
+      - name: Install exact Owner dependencies
         working-directory: apps/owner-app
+        run: npm ci
+
+      - name: Install isolated browser harness
         run: |
           set -euo pipefail
-          npm ci
-          npm install --no-save --package-lock=false playwright@1.55.0
+          rm -rf /tmp/pw
+          mkdir -p /tmp/pw
+          cd /tmp/pw
+          npm init -y >/dev/null
+          npm install playwright@1.55.0
           npx playwright install --with-deps chromium
 
       - name: Start exact Expo Web runtime
@@ -121,10 +127,9 @@ jobs:
           exit 1
 
       - name: Browser visual walkthrough
-        working-directory: apps/owner-app
         run: |
           set -euo pipefail
-          cat > /tmp/owner-visual-walk.mjs <<'NODE'
+          cat > /tmp/pw/owner-visual-walk.mjs <<'NODE'
           import { chromium } from 'playwright';
           import fs from 'node:fs';
           import path from 'node:path';
@@ -209,7 +214,8 @@ jobs:
             await browser.close();
           }
           NODE
-          node /tmp/owner-visual-walk.mjs
+          cd /tmp/pw
+          node owner-visual-walk.mjs
 
       - name: Collect runtime diagnostics
         if: always()
