@@ -72,21 +72,41 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
       <ClinicDecisionLayout
         eyebrow="Заявка отправлена"
         title="Заявка передана в клинику"
-        subtitle="Мы уже передали выбранные данные. Звонить и создавать вторую заявку не нужно."
+        subtitle="Выбранные данные сохранены. Не нужно звонить в клинику и отправлять заявку повторно."
         onBack={() => {
           generation.current += 1;
           onBack();
         }}
       >
+        <View
+          style={{
+            padding: 16,
+            gap: 8,
+            borderRadius: 18,
+            borderWidth: 1,
+            borderColor: 'rgba(20,154,87,.22)',
+            backgroundColor: decisionColors.greenSoft,
+          }}
+        >
+          <Text style={{ ...t.typography.caption, color: decisionColors.green, fontWeight: '800', textTransform: 'uppercase' }}>
+            Что дальше
+          </Text>
+          <Text style={{ ...t.typography.sectionTitle, color: decisionColors.ink }}>
+            Ожидает подтверждения клиникой
+          </Text>
+          <Text style={{ ...t.typography.secondaryBody, color: decisionColors.muted }}>
+            Как только клиника подтвердит или изменит статус, он обновится в VetHelp. Звонить и уточнять вручную не нужно.
+          </Text>
+        </View>
         <DecisionPanel>
           <DecisionHeading
-            kicker="Статус заявки"
-            title="Ожидает подтверждения клиникой"
+            kicker="Текущий статус"
+            title="Заявка принята сервером"
             detail="Это ещё не подтверждённая запись. Финальный статус приходит от клиники."
           />
           <FactRow>
-            <Fact tone="positive">Заявка принята сервером</Fact>
-            <Fact>Статус сервера: ожидает подтверждения</Fact>
+            <Fact tone="positive">Заявка сохранена</Fact>
+            <Fact>Ждём ответ клиники</Fact>
           </FactRow>
           <Text style={{ ...t.typography.secondaryBody, color: decisionColors.muted }}>
             Это ещё не подтверждённая запись.
@@ -100,7 +120,7 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
     <ClinicDecisionLayout
       eyebrow="Проверка записи"
       title="Проверьте заявку"
-      subtitle="Один компактный итог перед отправкой. Выбранный слот пока не равен подтверждённой записи."
+      subtitle="Питомец, клиника, услуга и время — в одном месте перед отправкой."
       onBack={() => {
         generation.current += 1;
         onBack();
@@ -121,24 +141,36 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
                 title={`${pet!.name} · ${service!.name}`}
                 detail={`${clinic!.name} · ${slot!.localDate} · ${slot!.localTime}`}
               />
-              <View style={{ gap: 10 }}>
+              <View style={{ gap: 8 }}>
                 <ReviewRow label="Питомец" text={`Питомец: ${pet!.name}`} />
                 <ReviewRow label="Клиника" text={`Клиника: ${clinic!.name}`} />
                 <ReviewRow label="Услуга" text={`Услуга: ${service!.name}`} />
                 <ReviewRow label="Информационная цена" text={`Информационная цена: ${service!.price.amount} ${service!.price.currency}`} />
                 <ReviewRow label="Дата и время" text={`Дата и время: ${slot!.localDate} · ${slot!.localTime}`} />
               </View>
-              <Text style={{ ...t.typography.caption, color: decisionColors.muted }}>
-                После отправки появится отдельный статус ожидания. Мы не называем заявку подтверждённой раньше ответа клиники.
-              </Text>
+              <View
+                style={{
+                  padding: 12,
+                  gap: 4,
+                  borderRadius: 14,
+                  backgroundColor: decisionColors.greenSoft,
+                }}
+              >
+                <Text style={{ ...t.typography.caption, color: decisionColors.green, fontWeight: '800' }}>
+                  После отправки
+                </Text>
+                <Text style={{ ...t.typography.secondaryBody, color: decisionColors.ink }}>
+                  Статус заявки останется в VetHelp — не придётся звонить и узнавать, приняла ли её клиника.
+                </Text>
+              </View>
             </DecisionPanel>
           }
           secondary={
             <DecisionPanel>
               <DecisionHeading
                 kicker="Следующий шаг"
-                title="Отправить одну заявку"
-                detail="Если ответ сервера потеряется, повторная проверка использует тот же idempotency-контекст."
+                title="Отправить заявку"
+                detail="Отправьте один раз. Если связь прервётся, VetHelp безопасно проверит эту же заявку, а не создаст новую."
               />
               {failure === 'conflict' ? (
                 <StateMessage kind="error" title="Это время уже недоступно. Выберите другое." action={<Button label="Выбрать другое время" onPress={onConflict} />} />
@@ -169,7 +201,7 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
 
 function ReviewRow({ label, text }: { label: string; text: string }) {
   return (
-    <View style={{ paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: decisionColors.border, gap: 3 }}>
+    <View style={{ paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: decisionColors.border, gap: 2 }}>
       <Text style={{ ...t.typography.caption, color: decisionColors.muted }}>{label}</Text>
       <Text accessibilityLabel={text} style={{ ...t.typography.body, fontWeight: '700', color: decisionColors.ink }}>
         {text}
