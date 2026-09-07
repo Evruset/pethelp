@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 
 import { useSession } from '@/session/SessionProvider';
-import { BodyText, Button, Card, GhostButton, InsetSection, Screen, SectionTitle, SkeletonCard, StateMessage, StatusPill } from '@/ui/primitives';
+import { Button, OwnerAppFrame, StateMessage, StatusPill } from '@/ui/primitives';
 import { uiTokens as t } from '@/ui/tokens';
+import { v50ReferenceAssets } from '@/ui/v50-reference-assets';
 import { petDiaryApi, type PetClinicalDiaryEntry } from './pet-api';
 
 type DiaryApi = Pick<typeof petDiaryApi, 'read'>;
@@ -15,33 +16,74 @@ const visitDate = (value: string) => new Intl.DateTimeFormat('ru-RU', {
 
 function VisitContext({ entry }: { entry: PetClinicalDiaryEntry }) {
   const details = [entry.visit.service?.name, entry.visit.doctor?.name, entry.visit.location?.address].filter(Boolean);
-  return <View style={{ gap: t.spacing.xs }}>
-    <BodyText>{entry.visit.clinic.name}</BodyText>
-    {details.map((detail) => <BodyText key={detail} secondary>{detail}</BodyText>)}
-  </View>;
+  return (
+    <View style={{ gap: 4 }}>
+      <Text style={{ ...t.typography.body, fontWeight: '700', color: t.ownerHome.ink }}>{entry.visit.clinic.name}</Text>
+      {details.map((detail) => (
+        <Text key={detail} style={{ ...t.typography.caption, color: t.ownerHome.muted }}>{detail}</Text>
+      ))}
+    </View>
+  );
+}
+
+function DiarySurface({ children }: { children: React.ReactNode }) {
+  return (
+    <View style={{ padding: 18, gap: 10, borderWidth: 1, borderColor: t.ownerHome.border, borderRadius: 20, backgroundColor: t.ownerHome.surface, ...t.shadow.card }}>
+      {children}
+    </View>
+  );
 }
 
 function ResultDetail({ petName, entry, onBack }: { petName: string; entry: PetClinicalDiaryEntry; onBack(): void }) {
-  return <Screen title="Результат приёма" subtitle={`${petName} · ${visitDate(entry.visit.occurredAt)}`} backAction={onBack}>
-    <InsetSection title="Приём">
-      <View style={{ padding: t.spacing.lg, gap: t.spacing.sm }}><VisitContext entry={entry} /></View>
-    </InsetSection>
-    <InsetSection title="Исходный результат">
-      <View style={{ padding: t.spacing.lg }}><BodyText>{entry.result.content}</BodyText></View>
-    </InsetSection>
-    {entry.amendments.length > 0 ? <View style={{ gap: t.spacing.md }}>
-      <SectionTitle>Уточнения к результату</SectionTitle>
-      <BodyText secondary>Исходный результат остаётся частью истории приёма. Уточнения опубликованы позже и не являются отдельными приёмами.</BodyText>
-      {entry.amendments.map((amendment) => <Card key={amendment.amendmentId}>
-        <BodyText>Уточнение к результату</BodyText>
-        <BodyText secondary>{amendment.content}</BodyText>
-      </Card>)}
-    </View> : null}
-  </Screen>;
+  const { width } = useWindowDimensions();
+  const desktop = width >= 860;
+  return (
+    <OwnerAppFrame wide>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: t.ownerHome.canvas }}
+        contentContainerStyle={{ width: '100%', maxWidth: 980, alignSelf: 'center', paddingHorizontal: desktop ? 28 : 14, paddingVertical: desktop ? 28 : 16, gap: 14 }}
+      >
+        <View style={{ gap: 6 }}>
+          <Text style={{ ...t.typography.caption, color: t.ownerHome.blue, fontWeight: '800', textTransform: 'uppercase' }}>Дневник · опубликованный результат</Text>
+          <Text accessibilityRole="header" style={{ fontSize: desktop ? 34 : 28, lineHeight: desktop ? 40 : 34, fontWeight: '800', color: t.ownerHome.ink }}>Результат приёма</Text>
+          <Text style={{ ...t.typography.secondaryBody, color: t.ownerHome.muted }}>{petName} · {visitDate(entry.visit.occurredAt)}</Text>
+        </View>
+
+        <DiarySurface>
+          <Text style={{ ...t.typography.caption, color: t.ownerHome.muted, textTransform: 'uppercase', fontWeight: '700' }}>Приём</Text>
+          <VisitContext entry={entry} />
+        </DiarySurface>
+
+        <DiarySurface>
+          <Text style={{ ...t.typography.sectionTitle, color: t.ownerHome.ink }}>Исходный результат</Text>
+          <Text style={{ ...t.typography.body, color: t.ownerHome.ink }}>{entry.result.content}</Text>
+        </DiarySurface>
+
+        {entry.amendments.length > 0 ? (
+          <View style={{ gap: 10 }}>
+            <Text style={{ ...t.typography.sectionTitle, color: t.ownerHome.ink }}>Уточнения к результату</Text>
+            <Text style={{ ...t.typography.secondaryBody, color: t.ownerHome.muted }}>
+              Исходный результат остаётся частью истории приёма. Уточнения опубликованы позже и не являются отдельными приёмами.
+            </Text>
+            {entry.amendments.map((amendment) => (
+              <DiarySurface key={amendment.amendmentId}>
+                <Text style={{ ...t.typography.caption, color: t.ownerHome.blue, fontWeight: '800' }}>Уточнение к результату</Text>
+                <Text style={{ ...t.typography.body, color: t.ownerHome.ink }}>{amendment.content}</Text>
+              </DiarySurface>
+            ))}
+          </View>
+        ) : null}
+
+        <Button label="Назад к дневнику" variant="secondary" onPress={onBack} />
+      </ScrollView>
+    </OwnerAppFrame>
+  );
 }
 
 export function PetDiaryScreen({ petId, petName, onBack, onSwitchPet, api = petDiaryApi }: { petId: string; petName: string; onBack(): void; onSwitchPet(): void; api?: DiaryApi }) {
   const { session } = useSession();
+  const { width } = useWindowDimensions();
+  const desktop = width >= 860;
   const [selection, setSelection] = useState<{ petId: string; resultId: string } | null>(null);
   const query = useQuery({
     queryKey: ['owner', session?.cacheScope, 'pet-diary', petId],
@@ -53,27 +95,85 @@ export function PetDiaryScreen({ petId, petName, onBack, onSwitchPet, api = petD
 
   if (selected) return <ResultDetail petName={petName} entry={selected} onBack={() => setSelection(null)} />;
 
-  return <Screen title={`Дневник: ${petName}`} subtitle="Опубликованные клиникой результаты приёмов." backAction={onBack}>
-    <Button label="Выбрать другого питомца" variant="secondary" onPress={onSwitchPet} />
-    {query.isPending ? <View style={{ gap: t.spacing.md }}><StateMessage kind="loading" title="Загружаем дневник" /><SkeletonCard /><SkeletonCard /></View> : null}
-    {query.isError || (query.data && query.data.petId !== petId) ? <StateMessage kind="error" title="Дневник недоступен" body="Не удалось безопасно загрузить результаты. Повторите попытку." action={<Button label="Повторить" onPress={() => { void query.refetch(); }} />} /> : null}
-    {data?.clinicalEntries.length === 0 ? <StateMessage kind="empty" title="В дневнике пока нет результатов" body="Здесь появятся результаты приёмов после публикации клиникой." /> : null}
-    {data?.clinicalEntries.map((entry) => <Pressable
-      key={entry.result.resultId}
-      accessibilityRole="button"
-      accessibilityLabel={`Открыть результат приёма ${visitDate(entry.visit.occurredAt)}, ${entry.visit.clinic.name}`}
-      onPress={() => setSelection({ petId, resultId: entry.result.resultId })}
-      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-    >
-      <Card>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: t.spacing.sm }}>
-          <Text style={{ ...t.typography.sectionTitle, color: t.color.textPrimary, flex: 1 }}>{visitDate(entry.visit.occurredAt)}</Text>
-          {entry.amendments.length > 0 ? <StatusPill label={`Уточнений: ${entry.amendments.length}`} tone="info" /> : null}
+  return (
+    <OwnerAppFrame wide>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: t.ownerHome.canvas }}
+        contentContainerStyle={{ width: '100%', maxWidth: 1040, alignSelf: 'center', paddingHorizontal: desktop ? 28 : 14, paddingVertical: desktop ? 28 : 16, gap: 14 }}
+      >
+        <View style={{ minHeight: desktop ? 210 : 172, borderRadius: 24, overflow: 'hidden', backgroundColor: '#EAF2FF', flexDirection: desktop ? 'row' : 'column' }}>
+          <View style={{ flex: 1.05, padding: desktop ? 26 : 18, justifyContent: 'center', gap: 7 }}>
+            <Text style={{ ...t.typography.caption, color: t.ownerHome.blue, fontWeight: '800', textTransform: 'uppercase' }}>История заботы</Text>
+            <Text accessibilityRole="header" style={{ fontSize: desktop ? 34 : 28, lineHeight: desktop ? 40 : 34, fontWeight: '800', color: t.ownerHome.ink }}>Дневник: {petName}</Text>
+            <Text style={{ ...t.typography.secondaryBody, color: t.ownerHome.muted }}>
+              Опубликованные клиникой результаты приёмов. Один результат сохраняется как исходный, поздние уточнения идут отдельно.
+            </Text>
+            <Text style={{ ...t.typography.caption, color: t.ownerHome.muted }}>
+              Документы и результаты остаются с питомцем — их не нужно искать заново перед следующим визитом.
+            </Text>
+          </View>
+          <Image
+            accessibilityLabel="Визуальный референс VetHelp: ветеринарный приём"
+            source={v50ReferenceAssets.clinicDiagnostic}
+            resizeMode="cover"
+            style={{ width: desktop ? 340 : '100%', height: desktop ? 210 : 124 }}
+          />
         </View>
-        <VisitContext entry={entry} />
-        <Text numberOfLines={3} style={{ ...t.typography.secondaryBody, color: t.color.textSecondary }}>{entry.result.content}</Text>
-      </Card>
-    </Pressable>)}
-    <GhostButton label="Назад" onPress={onBack} />
-  </Screen>;
+
+        <View style={{ alignItems: 'flex-start' }}>
+          <Button label="Выбрать другого питомца" variant="secondary" onPress={onSwitchPet} />
+        </View>
+
+        {query.isPending ? <StateMessage kind="loading" title="Загружаем дневник" /> : null}
+        {query.isError || (query.data && query.data.petId !== petId) ? (
+          <StateMessage
+            kind="error"
+            title="Дневник недоступен"
+            body="Не удалось безопасно загрузить результаты. Повторите попытку."
+            action={<Button label="Повторить" onPress={() => { void query.refetch(); }} />}
+          />
+        ) : null}
+        {data?.clinicalEntries.length === 0 ? (
+          <StateMessage
+            kind="empty"
+            title="В дневнике пока нет результатов"
+            body="Здесь появятся результаты приёмов после публикации клиникой."
+          />
+        ) : null}
+
+        {data?.clinicalEntries.length ? (
+          <View style={{ gap: 10 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+              <Text style={{ ...t.typography.sectionTitle, color: t.ownerHome.ink }}>Приёмы</Text>
+              <Text style={{ ...t.typography.caption, color: t.ownerHome.muted }}>Сначала новые по порядку backend</Text>
+            </View>
+            {data.clinicalEntries.map((entry) => (
+              <Pressable
+                key={entry.result.resultId}
+                accessibilityRole="button"
+                accessibilityLabel={`Открыть результат приёма ${visitDate(entry.visit.occurredAt)}, ${entry.visit.clinic.name}`}
+                onPress={() => setSelection({ petId, resultId: entry.result.resultId })}
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+              >
+                <DiarySurface>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
+                    <View style={{ flex: 1, gap: 3 }}>
+                      <Text style={{ ...t.typography.caption, color: t.ownerHome.blue, fontWeight: '800', textTransform: 'uppercase' }}>Опубликованный результат</Text>
+                      <Text style={{ ...t.typography.sectionTitle, color: t.ownerHome.ink }}>{visitDate(entry.visit.occurredAt)}</Text>
+                    </View>
+                    {entry.amendments.length > 0 ? <StatusPill label={`Уточнений: ${entry.amendments.length}`} tone="info" /> : null}
+                  </View>
+                  <VisitContext entry={entry} />
+                  <Text numberOfLines={3} style={{ ...t.typography.secondaryBody, color: t.ownerHome.muted }}>{entry.result.content}</Text>
+                  <Text style={{ ...t.typography.label, color: t.ownerHome.blue }}>Открыть результат ›</Text>
+                </DiarySurface>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+
+        <Button label="Назад" variant="ghost" onPress={onBack} />
+      </ScrollView>
+    </OwnerAppFrame>
+  );
 }
