@@ -122,19 +122,11 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
                 detail={`${clinic!.name} · ${slot!.localDate} · ${slot!.localTime}`}
               />
               <View style={{ gap: 10 }}>
-                <ReviewRow label="Питомец" value={pet!.name} testText={`Питомец: ${pet!.name}`} />
-                <ReviewRow label="Клиника" value={clinic!.name} testText={`Клиника: ${clinic!.name}`} />
-                <ReviewRow label="Услуга" value={service!.name} testText={`Услуга: ${service!.name}`} />
-                <ReviewRow
-                  label="Информационная цена"
-                  value={`${service!.price.amount} ${service!.price.currency}`}
-                  testText={`Информационная цена: ${service!.price.amount} ${service!.price.currency}`}
-                />
-                <ReviewRow
-                  label="Дата и время"
-                  value={`${slot!.localDate} · ${slot!.localTime}`}
-                  testText={`Дата и время: ${slot!.localDate} · ${slot!.localTime}`}
-                />
+                <ReviewRow label="Питомец" text={`Питомец: ${pet!.name}`} />
+                <ReviewRow label="Клиника" text={`Клиника: ${clinic!.name}`} />
+                <ReviewRow label="Услуга" text={`Услуга: ${service!.name}`} />
+                <ReviewRow label="Информационная цена" text={`Информационная цена: ${service!.price.amount} ${service!.price.currency}`} />
+                <ReviewRow label="Дата и время" text={`Дата и время: ${slot!.localDate} · ${slot!.localTime}`} />
               </View>
               <Text style={{ ...t.typography.caption, color: decisionColors.muted }}>
                 После отправки появится отдельный статус ожидания. Мы не называем заявку подтверждённой раньше ответа клиники.
@@ -175,14 +167,13 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
   );
 }
 
-function ReviewRow({ label, value, testText }: { label: string; value: string; testText: string }) {
+function ReviewRow({ label, text }: { label: string; text: string }) {
   return (
     <View style={{ paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: decisionColors.border, gap: 3 }}>
       <Text style={{ ...t.typography.caption, color: decisionColors.muted }}>{label}</Text>
-      <Text accessibilityLabel={testText} style={{ ...t.typography.body, fontWeight: '700', color: decisionColors.ink }}>
-        {testText}
+      <Text accessibilityLabel={text} style={{ ...t.typography.body, fontWeight: '700', color: decisionColors.ink }}>
+        {text}
       </Text>
-      <Text style={{ display: 'none' }}>{value}</Text>
     </View>
   );
 }
