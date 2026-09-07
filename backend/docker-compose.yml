@@ -37,6 +37,8 @@ services:
       PORT: 3000
       DATABASE_URL: postgres://vethelp:vethelp@postgres:5432/vethelp
       WORKERS_ENABLED: "true"
+      MVP_SCOPE_PROFILE: ${MVP_SCOPE_PROFILE:?MVP_SCOPE_PROFILE must be explicitly set to PILOT_V1 or LEGACY_COMPAT}
+      DOCTOR_SHIFT_INVENTORY_V1: ${DOCTOR_SHIFT_INVENTORY_V1:-false}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       JWT_ISSUER: ${JWT_ISSUER:-vethelp-auth}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-vethelp-api}

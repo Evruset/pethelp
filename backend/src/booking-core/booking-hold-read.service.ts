@@ -22,6 +22,7 @@ export interface HoldView {
   serverNow: string;
   aggregateVersion: number;
   lastUpdatedAt: string;
+  canCancel: boolean;
   pet: Summary & { species: string };
   clinic: Summary;
   location: { id: string; address: string };
@@ -59,7 +60,9 @@ export class BookingHoldReadService {
       const result = await client.query<{
         hold_id: string; owner_id: string; slot_id: string; state: string; expires_at: Date;
         confirmation_sla_expires_at: Date | null;
+        alternative_expires_at: Date | null;
         manually_confirmed: boolean;
+        active_cancellable_appointment: boolean;
         clinic_declined: boolean;
         hold_version: number; updated_at: Date; server_now: Date; clinic_location_id: string;
         clinic_id: string; clinic_name: string; clinic_timezone: string; location_address: string;
@@ -68,7 +71,7 @@ export class BookingHoldReadService {
         doctor_name: string | null;
       }>(`
         SELECT h.id::text AS hold_id, h.owner_id::text, h.slot_id::text, h.state, h.expires_at,
-               h.confirmation_sla_expires_at,
+               h.confirmation_sla_expires_at, h.alternative_expires_at,
                EXISTS (
                  SELECT 1
                  FROM booking_schema.appointment_events event
@@ -76,6 +79,12 @@ export class BookingHoldReadService {
                    AND event.event_type = 'CONFIRMED'
                    AND event.actor_type = 'CLINIC_EMPLOYEE'
                ) AS manually_confirmed,
+               EXISTS (
+                 SELECT 1
+                 FROM booking_schema.appointments appointment
+                 WHERE appointment.hold_id = h.id
+                   AND appointment.status = 'CONFIRMED'
+               ) AS active_cancellable_appointment,
                EXISTS (
                  SELECT 1 FROM audit_schema.audit_log audit
                  WHERE audit.aggregate_type = 'booking_hold' AND audit.aggregate_id = h.id AND audit.action = 'booking.declined'
@@ -114,6 +123,11 @@ export class BookingHoldReadService {
           : 'MIS';
       const publicStatus = projectMvpBookingStatus(hold.state as never, hold.clinic_declined);
       if (mvpScope.pilot && !publicStatus) throw DomainErrors.bookingUnavailable();
+      const pendingDeadlineActive = hold.expires_at > hold.server_now
+        && (hold.confirmation_sla_expires_at === null || hold.confirmation_sla_expires_at > hold.server_now)
+        && (hold.alternative_expires_at === null || hold.alternative_expires_at > hold.server_now);
+      const canCancel = (['MANUAL_CONFIRM_PENDING', 'ALTERNATIVE_PENDING'].includes(hold.state) && pendingDeadlineActive)
+        || (hold.state === 'CONFIRMED' && hold.active_cancellable_appointment);
       return {
         holdId: hold.hold_id,
         slotId: hold.slot_id,
@@ -132,6 +146,7 @@ export class BookingHoldReadService {
         serverNow: hold.server_now.toISOString(),
         aggregateVersion: hold.hold_version,
         lastUpdatedAt: hold.updated_at.toISOString(),
+        canCancel,
         pet: { id: hold.pet_id, name: hold.pet_name, species: hold.pet_species },
         clinic: { id: hold.clinic_id, name: hold.clinic_name },
         location: { id: hold.clinic_location_id, address: hold.location_address },

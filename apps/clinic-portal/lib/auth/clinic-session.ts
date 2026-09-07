@@ -71,3 +71,7 @@ export function canAccessClinicLocation(
 export function canAccessOps(session: ClinicSession): boolean {
   return session.roles.includes('PLATFORM_ADMIN') || session.roles.includes('SECURITY_AUDITOR');
 }
+
+export function canAccessBookingChangeRequests(session: ClinicSession): boolean {
+  return session.roles.some((role) => role === 'SUPPORT_L1' || role === 'SUPPORT_L2' || role === 'PLATFORM_ADMIN');
+}

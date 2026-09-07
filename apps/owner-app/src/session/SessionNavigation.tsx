@@ -14,7 +14,7 @@ export function SessionNavigation() {
   }
   if(status==='recovering') return <View accessibilityRole="alert"><Text>Не удалось проверить вход</Text><Pressable accessibilityRole="button" onPress={()=>void retryValidation()}><Text>Повторить</Text></Pressable></View>;
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ headerShown: false, title: 'VetHelp — запись к ветеринару' }}>
       <Stack.Protected guard={status === 'public'}>
         <Stack.Screen name="(public)" />
       </Stack.Protected>

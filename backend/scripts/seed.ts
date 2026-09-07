@@ -100,8 +100,8 @@ async function upsertLocation(client: Client, clinicId: string): Promise<{ id: s
   }
 
   const created = await client.query<{ id: string }>(`
-    INSERT INTO clinic_schema.clinic_locations (clinic_id, address, latitude, longitude, phone, status)
-    VALUES ($1::uuid, $2, 55.7558, 37.6173, '+7 495 000-00-00', 'ACTIVE')
+    INSERT INTO clinic_schema.clinic_locations (clinic_id, address, latitude, longitude, phone, status, timezone)
+    VALUES ($1::uuid, $2, 55.7558, 37.6173, '+7 495 000-00-00', 'ACTIVE', 'Europe/Moscow')
     RETURNING id
   `, [clinicId, locationAddress]);
   return created.rows[0];

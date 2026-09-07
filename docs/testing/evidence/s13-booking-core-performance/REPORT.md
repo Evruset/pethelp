@@ -2,7 +2,7 @@
 
 **Classification:** ENGINEERING BASELINE / NOT PRODUCTION SLA.
 
-Branch: `agent/v51-stage-01-architecture`; HEAD: `62efdc0300537a1621d92c681f0a7efbac5b67bf`; dirty snapshot: `f2dcf692857e7ad257a8dc9ab88ce31f5e094ef5cfc79d9dc67e6752b43d6ad2`.
+Branch: `agent/v51-stage-01-architecture`; HEAD: `e9b7b2fb8a9208fb76e0ba2003246a741f3a1c8b`; dirty snapshot: `6788af384dfcab4fb208ce77c4a035fb031ddd28ee9d6fc3870d6d05bd835dac`.
 
 ## Fixed engineering thresholds
 
@@ -10,20 +10,20 @@ Hard gates: invariant violations, duplicate mutations, unexpected 5xx, PostgreSQ
 
 | Profile | Requests | Concurrency | Success | Controlled | Unexpected | p50 ms | p95 ms | p99 ms | req/s |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| final-unit-50-1 | 50 | 50 | 1 | 49 | 0 | 502.07 | 574.78 | 580.64 | 85.75 |
-| final-unit-50-2 | 50 | 50 | 1 | 49 | 0 | 227.93 | 312.35 | 316.5 | 157.7 |
-| final-unit-50-3 | 50 | 50 | 1 | 49 | 0 | 163.66 | 234.62 | 237.13 | 210.34 |
-| final-unit-100-4 | 100 | 100 | 1 | 99 | 0 | 432.41 | 783.2 | 806.59 | 122.86 |
-| multi-capacity-5-of-30 | 30 | 30 | 5 | 25 | 0 | 1032.21 | 1064.81 | 1067.06 | 28.11 |
-| distributed-c1 | 40 | 1 | 40 | 0 | 0 | 7.54 | 12.69 | 15.13 | 126.98 |
-| distributed-c5 | 40 | 5 | 40 | 0 | 0 | 35.34 | 46.85 | 112.26 | 125.26 |
-| distributed-c10 | 40 | 10 | 40 | 0 | 0 | 69.79 | 161.77 | 275.85 | 120.36 |
-| distributed-c20 | 40 | 20 | 40 | 0 | 0 | 145.9 | 382.19 | 390.98 | 102.26 |
-| distributed-c40 | 80 | 40 | 80 | 0 | 0 | 371.59 | 507.3 | 518.26 | 103.85 |
-| idempotency-storm-100 | 100 | 100 | 100 | 0 | 0 | 130.8 | 208.41 | 211.48 | 469.04 |
-| stale-version-50 | 50 | 50 | 0 | 50 | 0 | 107.19 | 147.09 | 148.88 | 335.02 |
-| mixed-command-race-36 | 36 | 36 | 7 | 29 | 0 | 111.37 | 232.77 | 232.79 | 151.93 |
-| expiry-backlog-50-cycle | 1 | 1 | 1 | 0 | 0 | 258.98 | 258.98 | 258.98 | 3.86 |
+| final-unit-50-1 | 50 | 50 | 1 | 49 | 0 | 570.61 | 642.99 | 645.01 | 77.16 |
+| final-unit-50-2 | 50 | 50 | 1 | 49 | 0 | 311.27 | 382.09 | 392.47 | 125.9 |
+| final-unit-50-3 | 50 | 50 | 1 | 49 | 0 | 187.14 | 271.84 | 276.9 | 179.95 |
+| final-unit-100-4 | 100 | 100 | 1 | 99 | 0 | 530.6 | 695.79 | 703.42 | 140.77 |
+| multi-capacity-5-of-30 | 30 | 30 | 5 | 25 | 0 | 1459.05 | 1548.42 | 1550.32 | 19.35 |
+| distributed-c1 | 40 | 1 | 40 | 0 | 0 | 8.36 | 15.83 | 25.32 | 103.35 |
+| distributed-c5 | 40 | 5 | 40 | 0 | 0 | 56.08 | 101.23 | 139.73 | 80.49 |
+| distributed-c10 | 40 | 10 | 40 | 0 | 0 | 140.66 | 237.57 | 282.95 | 68.41 |
+| distributed-c20 | 40 | 20 | 40 | 0 | 0 | 162.53 | 432.24 | 440.15 | 90.85 |
+| distributed-c40 | 80 | 40 | 80 | 0 | 0 | 492.73 | 750.39 | 775.72 | 69.72 |
+| idempotency-storm-100 | 100 | 100 | 100 | 0 | 0 | 143.08 | 221.25 | 225.35 | 440.8 |
+| stale-version-50 | 50 | 50 | 0 | 50 | 0 | 186.26 | 260.98 | 263.29 | 189.66 |
+| mixed-command-race-36 | 36 | 36 | 12 | 24 | 0 | 84.81 | 135.79 | 136.49 | 260.23 |
+| expiry-backlog-50-cycle | 1 | 1 | 1 | 0 | 0 | 319.6 | 319.6 | 319.6 | 3.13 |
 
 Expiry is one measured worker cycle; its row contains one batch latency. Processed count and items/sec are in results.json; no per-hold percentile is fabricated.
 

@@ -1,4 +1,4 @@
-import { Controller, Get, NotFoundException, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
+import { BadRequestException, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Query, UseGuards } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiBearerAuth, ApiForbiddenResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Role } from '../auth/auth.types';
@@ -6,7 +6,7 @@ import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { ApiErrorDto } from '../booking-core/dto/booking-openapi.dto';
 import { SWAGGER_BEARER_AUTH } from '../openapi/openapi';
-import { OwnerAvailabilityDto, OwnerClinicCatalogDto, OwnerClinicServiceCatalogDto } from './owner-clinic-catalog.dto';
+import { OwnerAvailabilityDto, OwnerClinicCatalogDto, OwnerClinicServiceCatalogDto, OwnerSpecialistDiscoveryDto, OwnerSpecialistDiscoveryOptionsDto, OwnerSpecialistDiscoveryQueryDto } from './owner-clinic-catalog.dto';
 import { PublicCatalogService } from './public-catalog.service';
 
 @ApiTags('Owner clinic catalog')
@@ -34,6 +34,29 @@ export class OwnerClinicCatalogController {
         phone: location.phone,
       })),
     };
+  }
+
+  @Get('specialist-discovery/options')
+  @ApiOkResponse({ type: OwnerSpecialistDiscoveryOptionsDto })
+  @ApiUnauthorizedResponse({ type: ApiErrorDto })
+  @ApiForbiddenResponse({ type: ApiErrorDto })
+  @ApiInternalServerErrorResponse({ type: ApiErrorDto })
+  async specialistDiscoveryOptions(): Promise<OwnerSpecialistDiscoveryOptionsDto> {
+    return this.catalog.readOwnerSpecialistDiscoveryOptions();
+  }
+
+  @Get('specialist-discovery')
+  @ApiOkResponse({ type: OwnerSpecialistDiscoveryDto })
+  @ApiBadRequestResponse({ type: ApiErrorDto })
+  @ApiUnauthorizedResponse({ type: ApiErrorDto })
+  @ApiForbiddenResponse({ type: ApiErrorDto })
+  @ApiInternalServerErrorResponse({ type: ApiErrorDto })
+  async specialistDiscovery(@Query() query: OwnerSpecialistDiscoveryQueryDto): Promise<OwnerSpecialistDiscoveryDto> {
+    const serviceCode = query.serviceCode?.trim().toUpperCase();
+    if (!query.specialtyId && !serviceCode) {
+      throw new BadRequestException({ code: 'SPECIALIST_DISCOVERY_SELECTOR_REQUIRED', message: 'specialtyId or serviceCode is required' });
+    }
+    return this.catalog.readOwnerSpecialistDiscovery({ specialtyId: query.specialtyId, serviceCode, limit: query.limit });
   }
 
   @Get(':clinicId/locations/:locationId')

@@ -31,6 +31,7 @@ jest.mock("@/session/SessionProvider", () => ({
   }),
 }));
 describe("AvailabilityScreen", () => {
+  it('hydrates an exact discovery slot before continuing through the existing availability authority check',async()=>{mockUseQuery.mockReturnValue({isPending:false,isError:false,data,refetch:jest.fn().mockResolvedValue({data})});const onContinue=jest.fn();const screen=await render(<AvailabilityScreen context={context} preferredSlot={{slotId:T,expectedVersion:2}} onBack={jest.fn()} onContinue={onContinue}/>);await waitFor(()=>expect(screen.getByRole('radio').props.accessibilityState.selected).toBe(true));fireEvent.press(screen.getByText('Продолжить'));await waitFor(()=>expect(onContinue).toHaveBeenCalledWith({clinicId:C,locationId:L,serviceId:S,slotId:T,expectedSlotVersion:2}));});
   it("shows clinic-local time, selects exactly one and refreshes before handoff", async () => {
     const onContinue = jest.fn(),
       refetch = jest.fn().mockResolvedValue({ isError: false, data });
@@ -49,7 +50,7 @@ describe("AvailabilityScreen", () => {
     );
     fireEvent.press(screen.getByText("11:00"));
     await waitFor(() =>
-      expect(screen.getByText("Выбрано: 14.08.2026 в 11:00")).toBeTruthy(),
+      expect(screen.getByText("Выбрано")).toBeTruthy(),
     );
     fireEvent.press(screen.getByText("Продолжить"));
     await waitFor(() =>
@@ -84,7 +85,7 @@ describe("AvailabilityScreen", () => {
     );
     fireEvent.press(screen.getByText("11:00"));
     await waitFor(() =>
-      expect(screen.getByText("Выбрано: 14.08.2026 в 11:00")).toBeTruthy(),
+      expect(screen.getByText("Выбрано")).toBeTruthy(),
     );
     fireEvent.press(screen.getByText("Продолжить"));
     await waitFor(() =>
@@ -115,7 +116,7 @@ describe("AvailabilityScreen", () => {
     );
     fireEvent.press(screen.getByText("11:00"));
     await waitFor(() =>
-      expect(screen.getByText("Выбрано: 14.08.2026 в 11:00")).toBeTruthy(),
+      expect(screen.getByText("Выбрано")).toBeTruthy(),
     );
     fireEvent.press(screen.getByText("Продолжить"));
     await waitFor(() =>
@@ -179,7 +180,7 @@ describe("AvailabilityScreen", () => {
     );
     fireEvent.press(screen.getByText("11:00"));
     await waitFor(() =>
-      expect(screen.getByText("Выбрано: 14.08.2026 в 11:00")).toBeTruthy(),
+      expect(screen.getByText("Выбрано")).toBeTruthy(),
     );
     fireEvent.press(screen.getByText("Продолжить"));
     fireEvent.press(screen.getByText("Продолжить"));
@@ -192,7 +193,7 @@ describe("AvailabilityScreen", () => {
     );
     fireEvent.press(screen.getByText("12:00"));
     expect(refetch).toHaveBeenCalledTimes(1);
-    expect(screen.queryByText("Выбрано: 14.08.2026 в 12:00")).toBeNull();
+    expect(screen.queryByText("14.08.2026 в 12:00")).toBeNull();
     expect(
       screen.getByLabelText("Выбор доступного времени").props.accessibilityRole,
     ).toBe("radiogroup");

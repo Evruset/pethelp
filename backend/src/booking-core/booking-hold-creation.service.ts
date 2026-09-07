@@ -31,6 +31,11 @@ interface ClinicMisRow {
   location_status: string;
 }
 
+export interface LocalHoldTransactionHooks {
+  beforeCreate(client: PoolClient): Promise<void>;
+  afterCreate(client: PoolClient, result: CreateHoldResult): Promise<void>;
+}
+
 const ACTIVE_HOLD_STATES: HoldState[] = [
   'MANUAL_CONFIRM_PENDING',
   'ALTERNATIVE_PENDING',
@@ -66,7 +71,7 @@ export class BookingHoldCreationService {
     locationId?: string;
     serviceId?: string;
     doctorId?: string | null;
-  }): Promise<CreateHoldResult> {
+  }, hooks?: LocalHoldTransactionHooks): Promise<CreateHoldResult> {
     if (mvpScope.pilot && (!Number.isInteger(input.expectedSlotVersion) || input.expectedSlotVersion! < 1)) {
       throw new DomainException(HttpStatus.BAD_REQUEST, 'INVALID_REQUEST', 'expectedSlotVersion must be a positive integer');
     }
@@ -84,8 +89,9 @@ export class BookingHoldCreationService {
         const fingerprint = this.requestFingerprint(input);
         const existing = await this.acquireIdempotency(client, idempotencyScope, input.idempotencyKey, fingerprint);
         if (existing) return existing as unknown as CreateHoldResult;
+        await hooks?.beforeCreate(client);
 
-        // Global interactive lock order: pet, then slot.
+        // Global interactive lock order: pet, generated-doctor advisory lock, then slot.
         const pet = await client.query<PetOwnershipRow>(`
           SELECT owner_id, external_patient_id, archived_at, species
           FROM pet_schema.pets
@@ -96,6 +102,19 @@ export class BookingHoldCreationService {
           throw DomainErrors.petOwnershipMismatch();
         }
 
+        const generatedDoctor = await client.query<{ doctor_id: string | null; doctor_shift_id: string | null }>(`
+          SELECT slot.doctor_id::text,slot.doctor_shift_id::text
+          FROM clinic_schema.appointment_slots slot
+          JOIN clinic_schema.clinic_locations location ON location.id=slot.clinic_location_id
+          WHERE slot.id=$1::uuid
+            AND ($2::uuid IS NULL OR location.clinic_id=$2::uuid)
+            AND ($3::uuid IS NULL OR slot.clinic_location_id=$3::uuid)
+            AND ($4::uuid IS NULL OR slot.service_id=$4::uuid)
+        `, [input.slotId,input.clinicId??null,input.locationId??null,input.serviceId??null]);
+        if (generatedDoctor.rows[0]?.doctor_shift_id && generatedDoctor.rows[0].doctor_id) {
+          await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))', [generatedDoctor.rows[0].doctor_id]);
+        }
+
         const slot = await this.repository.lockSlot(client, input.slotId);
         if (!slot) throw DomainErrors.slotNotFound();
 
@@ -103,6 +122,8 @@ export class BookingHoldCreationService {
 
         if (input.locationId !== undefined && slot.clinic_location_id !== input.locationId) throw DomainErrors.slotNotFound();
         if (input.serviceId !== undefined && slot.service_id !== input.serviceId) throw DomainErrors.serviceNotAvailable();
+        if (slot.doctor_shift_id && slot.publication_state !== 'PUBLISHED') throw DomainErrors.slotUnavailable();
+        if (slot.doctor_shift_id && input.doctorId != null && (slot.staff_id ?? null) !== input.doctorId) throw DomainErrors.doctorNotAvailable();
         if (!mvpScope.pilot && (slot.doctor_id ?? null) !== (input.doctorId ?? null)) throw DomainErrors.doctorNotAvailable();
         if (!mvpScope.pilot && (!slot.last_freshness_sync || slot.last_freshness_sync.getTime() < now.getTime() - 15 * 60 * 1000)) {
           throw DomainErrors.slotVersionStale();
@@ -138,13 +159,44 @@ export class BookingHoldCreationService {
           throw DomainErrors.serviceNotAvailable();
         }
 
+        if(slot.doctor_shift_id){
+          const eligible=await client.query(`
+            SELECT 1 FROM clinic_schema.doctor_shifts shift
+            JOIN clinic_schema.doctor_services eligibility ON eligibility.id=$2::uuid AND eligibility.active
+              AND eligibility.staff_id=$3::uuid AND eligibility.doctor_id=$4::uuid AND eligibility.service_id=$5::uuid
+            JOIN clinic_schema.clinic_staff staff ON staff.id=$3::uuid AND staff.active AND staff.role='VETERINARIAN' AND staff.catalog_doctor_id=$4::uuid
+            JOIN catalog_schema.doctors doctor ON doctor.id=$4::uuid AND doctor.active AND doctor.public_booking_enabled
+            WHERE shift.id=$1::uuid AND shift.status='PUBLISHED'
+              AND (eligibility.resource_id IS NULL OR EXISTS (SELECT 1 FROM clinic_schema.clinic_resources resource WHERE resource.id=eligibility.resource_id AND resource.clinic_location_id=shift.clinic_location_id AND resource.active))
+          `,[slot.doctor_shift_id,slot.doctor_service_id,slot.staff_id,slot.doctor_id,slot.service_id]);
+          if(!eligible.rows[0]) throw DomainErrors.slotUnavailable();
+        }
+
         await this.assertNoActiveHoldForSlot(client, input.ownerId, input.slotId, now);
+
+        if (slot.doctor_shift_id && slot.doctor_id) {
+          const overlap = await client.query<{ id: string }>(`
+            SELECT hold.id
+            FROM booking_schema.booking_holds hold
+            JOIN clinic_schema.appointment_slots occupied ON occupied.id=hold.slot_id
+            WHERE occupied.doctor_id=$1::uuid
+              AND occupied.id<>$2::uuid
+              AND tstzrange(occupied.starts_at,occupied.ends_at,'[)') && tstzrange($3::timestamptz,$4::timestamptz,'[)')
+              AND (
+                hold.state IN ('CONFIRMED','CANCELLATION_REQUESTED','RESCHEDULE_REQUESTED')
+                OR (hold.state IN ('MANUAL_CONFIRM_PENDING','ALTERNATIVE_PENDING','MIS_RESERVATION_PENDING','MIS_RECONCILIATION_PENDING','MIS_HELD','PAYMENT_PENDING','PAYMENT_IN_PROGRESS','PAYMENT_RECONCILIATION_PENDING') AND hold.expires_at>clock_timestamp())
+              )
+            LIMIT 1
+          `, [slot.doctor_id, slot.id, slot.starts_at, slot.ends_at]);
+          if (overlap.rows[0]) throw DomainErrors.slotAlreadyTaken();
+        }
 
         if (slot.capacity - slot.booked_count - slot.held_count <= 0) {
           throw DomainErrors.slotAlreadyTaken();
         }
 
-        if (input.doctorId) {
+        const authoritativeDoctorId = slot.doctor_shift_id ? slot.doctor_id : input.doctorId;
+        if (authoritativeDoctorId) {
           const doctor = await client.query<{ id: string }>(`
             SELECT id::text
             FROM catalog_schema.doctors
@@ -152,7 +204,7 @@ export class BookingHoldCreationService {
               AND clinic_location_id = $2::uuid
               AND active = true
               AND public_booking_enabled = true
-          `, [input.doctorId, slot.clinic_location_id]);
+          `, [authoritativeDoctorId, slot.clinic_location_id]);
           if (!doctor.rows[0]) throw DomainErrors.doctorNotAvailable();
         }
 
@@ -306,6 +358,7 @@ export class BookingHoldCreationService {
           }),
         ]);
 
+        await hooks?.afterCreate(client, result);
         await this.completeIdempotency(
           client,
           idempotencyScope,

@@ -4,6 +4,7 @@ import { SessionNavigation } from '@/session/SessionNavigation';
 import { SessionProvider, useSession } from '@/session/SessionProvider';
 import { AuthJourneyProvider } from '@/auth/AuthJourneyProvider';
 import { PetJourneyProvider } from '@/pets/PetJourneyProvider';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Head from 'expo-router/head';
 import { OWNER_WEB_DOCUMENT_TITLE } from './+html';
 
@@ -19,14 +20,16 @@ export function AuthorityScopedPetJourney({ children }: { children: ReactNode })
 export default function RootLayout() {
   return (
     <>
-      <Head><title>{OWNER_WEB_DOCUMENT_TITLE}</title></Head>
-      <AppProviders>
+    <Head><title>{OWNER_WEB_DOCUMENT_TITLE}</title></Head>
+    <SafeAreaProvider>
+    <AppProviders>
       <SessionProvider>
         <AuthJourneyProvider>
           <AuthorityScopedPetJourney><SessionNavigation /></AuthorityScopedPetJourney>
         </AuthJourneyProvider>
       </SessionProvider>
-      </AppProviders>
+    </AppProviders>
+    </SafeAreaProvider>
     </>
   );
 }

@@ -6,7 +6,8 @@ import { HoldRow, SlotRow } from './booking.types';
 export class BookingRepository {
   async lockSlot(client: PoolClient, slotId: string): Promise<SlotRow | undefined> {
     const result = await client.query<SlotRow>(`
-      SELECT id, clinic_location_id, service_id, doctor_id, starts_at, ends_at, capacity, booked_count, held_count,
+      SELECT id, clinic_location_id, service_id, staff_id, doctor_id, doctor_shift_id, doctor_service_id, publication_state,
+             starts_at, ends_at, capacity, booked_count, held_count,
              state, status, integration_mode, last_freshness_sync, version
       FROM clinic_schema.appointment_slots
       WHERE id = $1

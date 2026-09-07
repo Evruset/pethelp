@@ -1,47 +1,91 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { HoldAuditTrail, ManualConfirmationQueue, ManualConfirmationQueueItem } from '@/lib/api/clinic-queue';
-import { BookingHold, BookingHoldParseError, BookingHoldState, parseBookingHold } from '@/lib/api/booking-hold';
-import { AlternativeSlotDrawer } from './AlternativeSlotDrawer';
+import { useCallback, useEffect, useRef, useState } from "react";
+import type {
+  HoldAuditTrail,
+  ManualConfirmationQueue,
+  ManualConfirmationQueueItem,
+} from "@/lib/api/clinic-queue";
+import {
+  BookingHold,
+  BookingHoldParseError,
+  BookingHoldState,
+  parseBookingHold,
+} from "@/lib/api/booking-hold";
+import { parseBookingDecisionResult } from "@/lib/api/clinic-booking-decision";
+import { AlternativeSlotDrawer } from "./AlternativeSlotDrawer";
 
-type Props = { clinicId: string; locationId: string; initialQueue: ManualConfirmationQueue; canInspectHold: boolean; canReplayHold: boolean };
-type RowState = 'idle' | 'confirming' | 'declining' | 'requestingNotes' | 'fenced';
+type Props = {
+  clinicId: string;
+  locationId: string;
+  initialQueue: ManualConfirmationQueue;
+  canInspectHold: boolean;
+  canReplayHold: boolean;
+};
+type RowState =
+  "idle" | "confirming" | "declining" | "requestingNotes" | "fenced";
 
+const SLA_WARNING_MS = 300000;
 const SLA_CRITICAL_MS = 180000;
+const SLA_URGENT_MS = 60000;
 const POLL_MS = 15000;
-const SPECIES_LABELS: Record<string, string> = { cat: 'Кошка', dog: 'Собака' };
+const SPECIES_LABELS: Record<string, string> = { cat: "Кошка", dog: "Собака" };
 
 function timestampMs(value: unknown): number | null {
-  if (typeof value !== 'string') return null;
-  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.exec(value);
+  if (typeof value !== "string") return null;
+  const match =
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.exec(
+      value,
+    );
   if (!match) return null;
   const [, year, month, day, hour, minute, second] = match.map(Number);
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  if (month < 1 || month > 12 || day < 1 || day > daysInMonth || hour > 23 || minute > 59 || second > 59) return null;
+  if (
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > daysInMonth ||
+    hour > 23 ||
+    minute > 59 ||
+    second > 59
+  )
+    return null;
   const parsed = Date.parse(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-const dt = (value: string) => new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
-const tm = (value: string) => new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' }).format(new Date(value));
+const dt = (value: string) =>
+  new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+const tm = (value: string) =>
+  new Intl.DateTimeFormat("ru-RU", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 const species = (value: string) => SPECIES_LABELS[value.toLowerCase()] ?? value;
-const auditAction = (value: string): string => ({
-  'booking.hold.created': 'Заявка создана',
-  'booking.confirmed': 'Подтверждена',
-  'booking.declined': 'Отклонена',
-  'booking.hold.released': 'Освобождена',
-  'booking.hold.expired': 'Истекла',
-  'booking.notes.requested': 'Запрошены уточнения',
-}[value] ?? 'Статус обновлён');
+const auditAction = (value: string): string =>
+  ({
+    "booking.hold.created": "Заявка создана",
+    "booking.confirmed": "Подтверждена",
+    "booking.declined": "Отклонена",
+    "booking.hold.released": "Освобождена",
+    "booking.hold.expired": "Истекла",
+    "booking.notes.requested": "Запрошены уточнения",
+  })[value] ?? "Статус обновлён";
 
 function clock(ms: number): string {
   const sec = Math.max(0, Math.ceil(ms / 1000));
-  return `${Math.floor(sec / 60).toString().padStart(2, '0')}:${(sec % 60).toString().padStart(2, '0')}`;
+  return `${Math.floor(sec / 60)
+    .toString()
+    .padStart(2, "0")}:${(sec % 60).toString().padStart(2, "0")}`;
 }
 
 function correlationId(): string {
-  const key = 'vethelp.clinic.correlation-id';
+  const key = "vethelp.clinic.correlation-id";
   const current = window.sessionStorage.getItem(key);
   if (current) return current;
   const next = crypto.randomUUID();
@@ -50,113 +94,198 @@ function correlationId(): string {
 }
 
 function errorCode(payload: unknown): string {
-  return typeof payload === 'object' && payload !== null && 'code' in payload && typeof payload.code === 'string'
+  return typeof payload === "object" &&
+    payload !== null &&
+    "code" in payload &&
+    typeof payload.code === "string"
     ? payload.code
-    : 'BACKEND_UNAVAILABLE';
+    : "BACKEND_UNAVAILABLE";
 }
 
-function isQueuePayload(payload: unknown, clinicId: string, locationId: string): payload is ManualConfirmationQueue {
-  if (!payload || typeof payload !== 'object') return false;
+function isQueuePayload(
+  payload: unknown,
+  clinicId: string,
+  locationId: string,
+): payload is ManualConfirmationQueue {
+  if (!payload || typeof payload !== "object") return false;
   const candidate = payload as Partial<ManualConfirmationQueue>;
-  if (candidate.clinicId !== clinicId || candidate.locationId !== locationId || timestampMs(candidate.serverNow) === null || !Array.isArray(candidate.items)) return false;
+  if (
+    candidate.clinicId !== clinicId ||
+    candidate.locationId !== locationId ||
+    timestampMs(candidate.serverNow) === null ||
+    !Array.isArray(candidate.items)
+  )
+    return false;
   const ids = new Set<string>();
   return candidate.items.every((item) => {
-    if (!item || typeof item !== 'object' || typeof item.holdId !== 'string' || !Number.isInteger(item.version) || item.version < 1 || ids.has(item.holdId)) return false;
+    if (
+      !item ||
+      typeof item !== "object" ||
+      typeof item.holdId !== "string" ||
+      !Number.isInteger(item.version) ||
+      item.version < 1 ||
+      ids.has(item.holdId)
+    )
+      return false;
     ids.add(item.holdId);
-    return timestampMs(item.confirmationSlaExpiresAt) !== null
-      && timestampMs(item.holdExpiresAt) !== null
-      && timestampMs(item.manualConfirmPendingAt) !== null
-      && timestampMs(item.slot?.startsAt) !== null
-      && timestampMs(item.slot?.endsAt) !== null
-      && (item.latestAudit == null || timestampMs(item.latestAudit.occurredAt) !== null)
-      && typeof item.pet?.name === 'string';
+    return (
+      timestampMs(item.confirmationSlaExpiresAt) !== null &&
+      timestampMs(item.holdExpiresAt) !== null &&
+      timestampMs(item.manualConfirmPendingAt) !== null &&
+      timestampMs(item.slot?.startsAt) !== null &&
+      timestampMs(item.slot?.endsAt) !== null &&
+      (item.latestAudit == null ||
+        timestampMs(item.latestAudit.occurredAt) !== null) &&
+      typeof item.pet?.name === "string"
+    );
   });
 }
 
-export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canInspectHold, canReplayHold }: Props) {
+export function ClinicQueueClientV2({
+  clinicId,
+  locationId,
+  initialQueue,
+  canInspectHold,
+  canReplayHold,
+}: Props) {
   const [queue, setQueue] = useState(initialQueue);
-  const [offsetMs, setOffsetMs] = useState(() => Date.parse(initialQueue.serverNow) - Date.now());
+  const [offsetMs, setOffsetMs] = useState(
+    () => Date.parse(initialQueue.serverNow) - Date.now(),
+  );
   const [now, setNow] = useState(Date.now());
   const [notice, setNotice] = useState<string | null>(null);
   const [online, setOnline] = useState(true);
   const [lastSyncedAt, setLastSyncedAt] = useState(Date.now());
   const [rowState, setRowState] = useState<Record<string, RowState>>({});
-  const [alternativeItem, setAlternativeItem] = useState<ManualConfirmationQueueItem | null>(null);
-  const [notesItem, setNotesItem] = useState<ManualConfirmationQueueItem | null>(null);
-  const [declineItem, setDeclineItem] = useState<ManualConfirmationQueueItem | null>(null);
-  const [auditItem, setAuditItem] = useState<ManualConfirmationQueueItem | null>(null);
+  const [alternativeItem, setAlternativeItem] =
+    useState<ManualConfirmationQueueItem | null>(null);
+  const [notesItem, setNotesItem] =
+    useState<ManualConfirmationQueueItem | null>(null);
+  const [declineItem, setDeclineItem] =
+    useState<ManualConfirmationQueueItem | null>(null);
+  const [auditItem, setAuditItem] =
+    useState<ManualConfirmationQueueItem | null>(null);
   const [auditTrail, setAuditTrail] = useState<HoldAuditTrail | null>(null);
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState<string | null>(null);
-  const [holdItem, setHoldItem] = useState<ManualConfirmationQueueItem | null>(null);
+  const [holdItem, setHoldItem] = useState<ManualConfirmationQueueItem | null>(
+    null,
+  );
   const commandKeys = useRef(new Map<string, string>());
   const refreshRequest = useRef<AbortController | null>(null);
-  const refreshDone = useRef<Promise<void> | null>(null);
-  const refreshWaiters = useRef<Array<() => void>>([]);
+  const refreshDone = useRef<Promise<boolean> | null>(null);
+  const refreshWaiters = useRef<Array<(result: boolean) => void>>([]);
+  const inFlightHolds = useRef(new Set<string>());
+  const declineReturnFocus = useRef<HTMLElement | null>(null);
+  const noticeFocus = useRef<HTMLDivElement | null>(null);
   const scopeRef = useRef(`${clinicId}:${locationId}`);
 
-  const commandKey = (holdId: string, action: 'confirm' | 'decline' | 'requestNotes'): string => `${holdId}:${action}`;
+  const commandKey = (
+    holdId: string,
+    action: "confirm" | "decline" | "requestNotes",
+  ): string => `${holdId}:${action}`;
 
-  const refresh = useCallback(async function refreshQueue(quiet = false, authoritative = false): Promise<void> {
-    if (quiet && !authoritative && document.visibilityState === 'hidden') return;
-    if (refreshDone.current) {
-      if (!authoritative) return;
-      return new Promise<void>((resolve) => refreshWaiters.current.push(resolve));
-    }
-    const scope = `${clinicId}:${locationId}`;
-    const controller = new AbortController();
-    refreshRequest.current = controller;
-    const work = (async () => { try {
-      const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/booking-queue`, { cache: 'no-store', signal: controller.signal });
-      if (controller.signal.aborted || scopeRef.current !== scope) return;
-      if (response.status === 403) {
-        window.location.assign('/forbidden');
-        return;
+  const refresh = useCallback(
+    async function refreshQueue(
+      quiet = false,
+      authoritative = false,
+    ): Promise<boolean> {
+      if (quiet && !authoritative && document.visibilityState === "hidden")
+        return false;
+      if (refreshDone.current) {
+        if (!authoritative) return false;
+        return new Promise<boolean>((resolve) =>
+          refreshWaiters.current.push(resolve),
+        );
       }
-      const payload: unknown = await response.json().catch(() => null);
-      if (!response.ok || !isQueuePayload(payload, clinicId, locationId)) throw new Error('queue');
-      setQueue(payload);
-      setOffsetMs(timestampMs(payload.serverNow)! - Date.now());
-      setOnline(true);
-      setLastSyncedAt(Date.now());
-      if (!quiet) setNotice(null);
-    } catch {
-      if (controller.signal.aborted || scopeRef.current !== scope) return;
-      setOnline(false);
-      if (!quiet) setNotice('Нет связи с VetHelp. Показаны последние полученные данные.');
-    } finally {
-      if (refreshRequest.current === controller) refreshRequest.current = null;
-    } })();
-    refreshDone.current = work;
-    try {
-      await work;
-    } finally {
-      if (refreshDone.current === work) refreshDone.current = null;
-      if (refreshWaiters.current.length > 0 && scopeRef.current === scope) {
-        const waiters = refreshWaiters.current.splice(0);
-        await refreshQueue(true, true);
-        waiters.forEach((resolve) => resolve());
+      const scope = `${clinicId}:${locationId}`;
+      const controller = new AbortController();
+      refreshRequest.current = controller;
+      const work = (async () => {
+        try {
+          const response = await fetch(
+            `/api/clinic/${clinicId}/locations/${locationId}/booking-queue`,
+            { cache: "no-store", signal: controller.signal },
+          );
+          if (controller.signal.aborted || scopeRef.current !== scope)
+            return false;
+          if (response.status === 403) {
+            window.location.assign("/forbidden");
+            return false;
+          }
+          const payload: unknown = await response.json().catch(() => null);
+          if (!response.ok || !isQueuePayload(payload, clinicId, locationId))
+            throw new Error("queue");
+          setQueue(payload);
+          const validatedPendingIds = new Set(
+            payload.items.map((item) => item.holdId),
+          );
+          setRowState((current) =>
+            Object.fromEntries(
+              Object.entries(current).map(([holdId, state]) => [
+                holdId,
+                state === "fenced" && validatedPendingIds.has(holdId)
+                  ? "idle"
+                  : state,
+              ]),
+            ),
+          );
+          setOffsetMs(timestampMs(payload.serverNow)! - Date.now());
+          setOnline(true);
+          setLastSyncedAt(Date.now());
+          if (!quiet) setNotice(null);
+          return true;
+        } catch {
+          if (controller.signal.aborted || scopeRef.current !== scope)
+            return false;
+          setOnline(false);
+          if (!quiet)
+            setNotice(
+              "Нет связи с VetHelp. Показаны последние полученные данные.",
+            );
+          return false;
+        } finally {
+          if (refreshRequest.current === controller)
+            refreshRequest.current = null;
+        }
+      })();
+      refreshDone.current = work;
+      let result = false;
+      try {
+        result = await work;
+      } finally {
+        if (refreshDone.current === work) refreshDone.current = null;
+        if (refreshWaiters.current.length > 0 && scopeRef.current === scope) {
+          const waiters = refreshWaiters.current.splice(0);
+          const authoritativeResult = await refreshQueue(true, true);
+          waiters.forEach((resolve) => resolve(authoritativeResult));
+        }
       }
-    }
-  }, [clinicId, locationId]);
+      return result;
+    },
+    [clinicId, locationId],
+  );
 
   useEffect(() => {
     scopeRef.current = `${clinicId}:${locationId}`;
     refreshRequest.current?.abort();
     refreshRequest.current = null;
     refreshDone.current = null;
-    refreshWaiters.current.splice(0).forEach((resolve) => resolve());
+    refreshWaiters.current.splice(0).forEach((resolve) => resolve(false));
     setQueue(initialQueue);
-    setOffsetMs((timestampMs(initialQueue.serverNow) ?? Date.now()) - Date.now());
+    setOffsetMs(
+      (timestampMs(initialQueue.serverNow) ?? Date.now()) - Date.now(),
+    );
     setOnline(true);
     setLastSyncedAt(Date.now());
     setRowState({});
     commandKeys.current.clear();
+    inFlightHolds.current.clear();
     return () => {
       refreshRequest.current?.abort();
       refreshRequest.current = null;
       refreshDone.current = null;
-      refreshWaiters.current.splice(0).forEach((resolve) => resolve());
+      refreshWaiters.current.splice(0).forEach((resolve) => resolve(false));
     };
   }, [clinicId, locationId, initialQueue]);
 
@@ -168,198 +297,386 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
   useEffect(() => {
     const poller = window.setInterval(() => void refresh(true), POLL_MS);
     const onVisibility = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === "visible") {
         setNow(Date.now());
         void refresh(true);
       }
     };
-    document.addEventListener('visibilitychange', onVisibility);
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
       window.clearInterval(poller);
-      document.removeEventListener('visibilitychange', onVisibility);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [refresh]);
 
-  const confirm = useCallback(async (item: ManualConfirmationQueueItem) => {
-    const holdId = item.holdId;
-    if ((rowState[holdId] ?? 'idle') !== 'idle') return;
-    const mapKey = commandKey(holdId, 'confirm');
-    const key = commandKeys.current.get(mapKey) ?? crypto.randomUUID();
-    commandKeys.current.set(mapKey, key);
-    setRowState((state) => ({ ...state, [holdId]: 'confirming' }));
-    setNotice(null);
-    try {
-      const response = await fetch(`/api/clinic/booking-holds/${holdId}/confirm`, {
-        method: 'POST',
-        headers: { 'Idempotency-Key': key, 'If-Match': String(item.version), 'X-Correlation-ID': correlationId() },
-      });
-      const payload = await response.json().catch(() => null);
-      const code = errorCode(payload);
-      if (response.ok) {
-        commandKeys.current.delete(mapKey);
-        setRowState((state) => ({ ...state, [holdId]: 'idle' }));
-        setNotice('Запись подтверждена. Очередь обновлена.');
-        await refresh(true, true);
+  const confirm = useCallback(
+    async (item: ManualConfirmationQueueItem) => {
+      const holdId = item.holdId;
+      if (
+        (rowState[holdId] ?? "idle") !== "idle" ||
+        inFlightHolds.current.has(holdId)
+      )
         return;
+      inFlightHolds.current.add(holdId);
+      const mapKey = commandKey(holdId, "confirm");
+      const key = commandKeys.current.get(mapKey) ?? crypto.randomUUID();
+      commandKeys.current.set(mapKey, key);
+      setRowState((state) => ({ ...state, [holdId]: "confirming" }));
+      setNotice(null);
+      try {
+        const response = await fetch(
+          `/api/clinic/booking-holds/${holdId}/confirm`,
+          {
+            method: "POST",
+            headers: {
+              "Idempotency-Key": key,
+              "If-Match": String(item.version),
+              "X-Correlation-ID": correlationId(),
+              "X-VetHelp-Slot-ID": item.slot.id,
+            },
+          },
+        );
+        const payload: unknown = await response.json().catch(() => null);
+        const code = errorCode(payload);
+        if (response.ok) {
+          const result = parseBookingDecisionResult(payload, {
+            holdId,
+            slotId: item.slot.id,
+            status: "CONFIRMED",
+          });
+          if (!result) {
+            setRowState((state) => ({ ...state, [holdId]: "fenced" }));
+            const refreshed = await refresh(true, true);
+            setRowState((state) => ({
+              ...state,
+              [holdId]: refreshed ? "idle" : "fenced",
+            }));
+            setNotice(
+              refreshed
+                ? "Ответ сервера не удалось проверить. Очередь авторитетно обновлена."
+                : "Ответ сервера неоднозначен. Действия заблокированы до обновления.",
+            );
+            return;
+          }
+          commandKeys.current.delete(mapKey);
+          const refreshed = await refresh(true, true);
+          setRowState((state) => ({ ...state, [holdId]: "idle" }));
+          setNotice(
+            refreshed
+              ? "Запись подтверждена. Очередь обновлена."
+              : "Запись подтверждена сервером. Не удалось обновить очередь — повторите обновление.",
+          );
+          return;
+        }
+        if (response.status === 409 && code === "SLOT_LOCKED_RETRY") {
+          commandKeys.current.delete(mapKey);
+          setRowState((state) => ({ ...state, [holdId]: "idle" }));
+          setNotice("Обновляем состояние заявки.");
+          await refresh(true, true);
+          return;
+        }
+        if (response.status === 409 && code === "QUEUE_FIFO_VIOLATION") {
+          commandKeys.current.delete(mapKey);
+          setRowState((state) => ({ ...state, [holdId]: "idle" }));
+          setNotice(
+            "Сначала обработайте более раннюю заявку. Очередь обновлена.",
+          );
+          await refresh(true, true);
+          return;
+        }
+        if (response.status === 401 || response.status === 403) {
+          commandKeys.current.delete(mapKey);
+          setRowState((state) => ({ ...state, [holdId]: "fenced" }));
+          window.location.assign("/forbidden?reason=scope_denied");
+          return;
+        }
+        if ([409, 422, 423].includes(response.status)) {
+          commandKeys.current.delete(mapKey);
+          setRowState((state) => ({ ...state, [holdId]: "fenced" }));
+          const refreshed = await refresh(true, true);
+          setNotice(
+            response.status === 422 || code === "HOLD_EXPIRED"
+              ? "Срок заявки истёк. Решение больше недоступно."
+              : refreshed
+                ? "Другой сотрудник уже обработал заявку. Данные обновлены."
+                : "Заявка уже изменилась. Не удалось обновить очередь.",
+          );
+          return;
+        }
+        if (response.status < 500) commandKeys.current.delete(mapKey);
+        setRowState((state) => ({ ...state, [holdId]: "fenced" }));
+        const refreshed = await refresh(true, true);
+        setRowState((state) => ({
+          ...state,
+          [holdId]: refreshed ? "idle" : "fenced",
+        }));
+        setNotice(
+          response.status >= 500
+            ? refreshed
+              ? "Сервис временно недоступен. Очередь обновлена — действие можно повторить."
+              : "Сервис временно недоступен. Действия заблокированы до обновления."
+            : "Подтверждение недоступно. Обновите данные заявки.",
+        );
+      } catch {
+        setRowState((state) => ({ ...state, [holdId]: "fenced" }));
+        setOnline(false);
+        setNotice(
+          "Нет связи с VetHelp. Действия заблокированы до авторитетного обновления.",
+        );
+      } finally {
+        inFlightHolds.current.delete(holdId);
       }
-      if (response.status === 409 && code === 'SLOT_LOCKED_RETRY') {
-        commandKeys.current.delete(mapKey);
-        setRowState((state) => ({ ...state, [holdId]: 'idle' }));
-        setNotice('Обновляем состояние заявки.');
-        await refresh(true, true);
-        return;
-      }
-      if (response.status === 409 && code === 'QUEUE_FIFO_VIOLATION') {
-        commandKeys.current.delete(mapKey);
-        setRowState((state) => ({ ...state, [holdId]: 'idle' }));
-        setNotice('Сначала обработайте более раннюю заявку. Очередь обновлена.');
-        await refresh(true, true);
-        return;
-      }
-      if ([409, 422, 423].includes(response.status)) {
-        commandKeys.current.delete(mapKey);
-        setRowState((state) => ({ ...state, [holdId]: 'fenced' }));
-        setNotice('Заявка изменилась или срок действия истёк. Очередь обновлена.');
-        await refresh(true, true);
-        return;
-      }
-      if (response.status < 500) commandKeys.current.delete(mapKey);
-      setRowState((state) => ({ ...state, [holdId]: 'idle' }));
-      setNotice('Не удалось подтвердить запись.');
-    } catch {
-      setRowState((state) => ({ ...state, [holdId]: 'idle' }));
-      setNotice('Нет связи с VetHelp. Подтверждение не отправлено.');
-    }
-  }, [refresh, rowState]);
+    },
+    [refresh, rowState],
+  );
 
-  const decline = useCallback(async (item: ManualConfirmationQueueItem, declineReason: string) => {
-    const holdId = item.holdId;
-    if ((rowState[holdId] ?? 'idle') !== 'idle') return;
+  const decline = useCallback(
+    async (item: ManualConfirmationQueueItem) => {
+      const holdId = item.holdId;
+      if (
+        (rowState[holdId] ?? "idle") !== "idle" ||
+        inFlightHolds.current.has(holdId)
+      )
+        return;
+      inFlightHolds.current.add(holdId);
 
-    const mapKey = commandKey(holdId, 'decline');
-    const key = commandKeys.current.get(mapKey) ?? crypto.randomUUID();
-    commandKeys.current.set(mapKey, key);
-    setRowState((state) => ({ ...state, [holdId]: 'declining' }));
-    setNotice(null);
-    try {
-      const response = await fetch(`/api/clinic/booking-holds/${holdId}/decline`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': key,
-          'If-Match': String(item.version),
-          'X-Correlation-ID': correlationId(),
-        },
-        body: JSON.stringify({ declineReason }),
-      });
-      const payload = await response.json().catch(() => null);
-      const code = errorCode(payload);
-      if (response.ok) {
-        commandKeys.current.delete(mapKey);
-        setRowState((state) => ({ ...state, [holdId]: 'idle' }));
-        setDeclineItem(null);
-        setNotice('Заявка отклонена, слот освобождён. Очередь обновлена.');
-        await refresh(true, true);
-        return;
+      const mapKey = commandKey(holdId, "decline");
+      const key = commandKeys.current.get(mapKey) ?? crypto.randomUUID();
+      commandKeys.current.set(mapKey, key);
+      setRowState((state) => ({ ...state, [holdId]: "declining" }));
+      setNotice(null);
+      try {
+        const response = await fetch(
+          `/api/clinic/booking-holds/${holdId}/decline`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Idempotency-Key": key,
+              "If-Match": String(item.version),
+              "X-Correlation-ID": correlationId(),
+              "X-VetHelp-Slot-ID": item.slot.id,
+            },
+            body: JSON.stringify({}),
+          },
+        );
+        const payload: unknown = await response.json().catch(() => null);
+        const code = errorCode(payload);
+        if (response.ok) {
+          const result = parseBookingDecisionResult(payload, {
+            holdId,
+            slotId: item.slot.id,
+            status: "REJECTED",
+          });
+          if (!result) {
+            setRowState((state) => ({ ...state, [holdId]: "fenced" }));
+            const refreshed = await refresh(true, true);
+            setRowState((state) => ({
+              ...state,
+              [holdId]: refreshed ? "idle" : "fenced",
+            }));
+            setNotice(
+              refreshed
+                ? "Ответ сервера не удалось проверить. Очередь авторитетно обновлена."
+                : "Ответ сервера неоднозначен. Действия заблокированы до обновления.",
+            );
+            return;
+          }
+          commandKeys.current.delete(mapKey);
+          setDeclineItem(null);
+          const refreshed = await refresh(true, true);
+          setRowState((state) => ({ ...state, [holdId]: "idle" }));
+          setNotice(
+            refreshed
+              ? "Заявка отклонена, слот освобождён. Очередь обновлена."
+              : "Заявка отклонена сервером. Не удалось обновить очередь — повторите обновление.",
+          );
+          requestAnimationFrame(() => noticeFocus.current?.focus());
+          return;
+        }
+        if (response.status === 409 && code === "SLOT_LOCKED_RETRY") {
+          commandKeys.current.delete(mapKey);
+          setRowState((state) => ({ ...state, [holdId]: "idle" }));
+          setDeclineItem(null);
+          setNotice("Обновляем состояние заявки. Отклонение можно повторить.");
+          await refresh(true, true);
+          return;
+        }
+        if (response.status === 409 && code === "QUEUE_FIFO_VIOLATION") {
+          commandKeys.current.delete(mapKey);
+          setRowState((state) => ({ ...state, [holdId]: "idle" }));
+          setNotice(
+            "Сначала обработайте более раннюю заявку. Очередь обновлена.",
+          );
+          await refresh(true, true);
+          return;
+        }
+        if (response.status === 401 || response.status === 403) {
+          commandKeys.current.delete(mapKey);
+          setRowState((state) => ({ ...state, [holdId]: "fenced" }));
+          setDeclineItem(null);
+          window.location.assign("/forbidden?reason=scope_denied");
+          return;
+        }
+        if ([409, 422, 423].includes(response.status)) {
+          commandKeys.current.delete(mapKey);
+          setRowState((state) => ({ ...state, [holdId]: "fenced" }));
+          const refreshed = await refresh(true, true);
+          setNotice(
+            response.status === 422 || code === "HOLD_EXPIRED"
+              ? "Срок заявки истёк. Решение больше недоступно."
+              : refreshed
+                ? "Другой сотрудник уже обработал заявку. Данные обновлены."
+                : "Заявка уже изменилась. Не удалось обновить очередь.",
+          );
+          return;
+        }
+        setRowState((state) => ({ ...state, [holdId]: "fenced" }));
+        const refreshed = await refresh(true, true);
+        setRowState((state) => ({
+          ...state,
+          [holdId]: refreshed ? "idle" : "fenced",
+        }));
+        setNotice(
+          response.status >= 500
+            ? refreshed
+              ? "Сервис временно недоступен. Очередь обновлена — действие можно повторить."
+              : "Сервис временно недоступен. Действия заблокированы до обновления."
+            : "Отклонение недоступно. Обновите данные заявки.",
+        );
+      } catch {
+        setRowState((state) => ({ ...state, [holdId]: "fenced" }));
+        setOnline(false);
+        setNotice(
+          "Нет связи с VetHelp. Действия заблокированы до авторитетного обновления.",
+        );
+      } finally {
+        inFlightHolds.current.delete(holdId);
       }
-      if (response.status === 409 && code === 'QUEUE_FIFO_VIOLATION') {
-        commandKeys.current.delete(mapKey);
-        setRowState((state) => ({ ...state, [holdId]: 'idle' }));
-        setNotice('Сначала обработайте более раннюю заявку. Очередь обновлена.');
-        await refresh(true, true);
-        return;
-      }
-      if ([409, 422, 423].includes(response.status)) {
-        setRowState((state) => ({ ...state, [holdId]: 'fenced' }));
-        setNotice('Заявка изменилась или срок действия истёк. Очередь обновлена.');
-        await refresh(true, true);
-        return;
-      }
-      setRowState((state) => ({ ...state, [holdId]: 'idle' }));
-      setNotice('Не удалось отклонить заявку.');
-    } catch {
-      setRowState((state) => ({ ...state, [holdId]: 'idle' }));
-      setNotice('Нет связи с VetHelp. Отклонение не отправлено.');
-    }
-  }, [refresh, rowState]);
+    },
+    [refresh, rowState],
+  );
 
-  const openAudit = useCallback(async (item: ManualConfirmationQueueItem) => {
-    setAuditItem(item);
-    setAuditTrail(null);
-    setAuditError(null);
-    setAuditLoading(true);
-    try {
-      const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/booking-holds/${item.holdId}/audit-trail`, { cache: 'no-store' });
-      if (response.status === 403) {
-        window.location.assign('/forbidden');
-        return;
+  const openAudit = useCallback(
+    async (item: ManualConfirmationQueueItem) => {
+      setAuditItem(item);
+      setAuditTrail(null);
+      setAuditError(null);
+      setAuditLoading(true);
+      try {
+        const response = await fetch(
+          `/api/clinic/${clinicId}/locations/${locationId}/booking-holds/${item.holdId}/audit-trail`,
+          { cache: "no-store" },
+        );
+        if (response.status === 403) {
+          window.location.assign("/forbidden");
+          return;
+        }
+        const payload = (await response
+          .json()
+          .catch(() => null)) as HoldAuditTrail | null;
+        if (!response.ok || !payload) {
+          setAuditError("Не удалось загрузить историю заявки.");
+          return;
+        }
+        setAuditTrail(payload);
+      } catch {
+        setAuditError("Нет связи с VetHelp. История недоступна.");
+      } finally {
+        setAuditLoading(false);
       }
-      const payload = await response.json().catch(() => null) as HoldAuditTrail | null;
-      if (!response.ok || !payload) {
-        setAuditError('Не удалось загрузить историю заявки.');
-        return;
-      }
-      setAuditTrail(payload);
-    } catch {
-      setAuditError('Нет связи с VetHelp. История недоступна.');
-    } finally {
-      setAuditLoading(false);
-    }
-  }, [clinicId, locationId]);
+    },
+    [clinicId, locationId],
+  );
 
-  const requestNotes = useCallback(async (item: ManualConfirmationQueueItem, noteRequest: string) => {
-    const holdId = item.holdId;
-    if ((rowState[holdId] ?? 'idle') !== 'idle') return;
-    const mapKey = commandKey(holdId, 'requestNotes');
-    const key = commandKeys.current.get(mapKey) ?? crypto.randomUUID();
-    commandKeys.current.set(mapKey, key);
-    setRowState((state) => ({ ...state, [holdId]: 'requestingNotes' }));
-    setNotice(null);
-    try {
-      const response = await fetch(`/api/clinic/booking-holds/${holdId}/request-notes`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': key,
-          'If-Match': String(item.version),
-          'X-Correlation-ID': correlationId(),
-        },
-        body: JSON.stringify({ noteRequest }),
-      });
-      const payload = await response.json().catch(() => null);
-      const code = errorCode(payload);
-      if (response.ok) {
-        commandKeys.current.delete(mapKey);
-        setRowState((state) => ({ ...state, [holdId]: 'idle' }));
-        setNotesItem(null);
-        setNotice('Запрос уточнений отправлен владельцу. Очередь обновлена.');
-        await refresh(true, true);
-        return;
+  const requestNotes = useCallback(
+    async (item: ManualConfirmationQueueItem, noteRequest: string) => {
+      const holdId = item.holdId;
+      if ((rowState[holdId] ?? "idle") !== "idle") return;
+      const mapKey = commandKey(holdId, "requestNotes");
+      const key = commandKeys.current.get(mapKey) ?? crypto.randomUUID();
+      commandKeys.current.set(mapKey, key);
+      setRowState((state) => ({ ...state, [holdId]: "requestingNotes" }));
+      setNotice(null);
+      try {
+        const response = await fetch(
+          `/api/clinic/booking-holds/${holdId}/request-notes`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Idempotency-Key": key,
+              "If-Match": String(item.version),
+              "X-Correlation-ID": correlationId(),
+            },
+            body: JSON.stringify({ noteRequest }),
+          },
+        );
+        const payload = await response.json().catch(() => null);
+        const code = errorCode(payload);
+        if (response.ok) {
+          commandKeys.current.delete(mapKey);
+          setRowState((state) => ({ ...state, [holdId]: "idle" }));
+          setNotesItem(null);
+          setNotice("Запрос уточнений отправлен владельцу. Очередь обновлена.");
+          await refresh(true, true);
+          return;
+        }
+        if (response.status === 409 && code === "QUEUE_FIFO_VIOLATION") {
+          commandKeys.current.delete(mapKey);
+          setRowState((state) => ({ ...state, [holdId]: "idle" }));
+          setNotice(
+            "Сначала обработайте более раннюю заявку. Очередь обновлена.",
+          );
+          await refresh(true, true);
+          return;
+        }
+        if ([409, 422, 423].includes(response.status)) {
+          setRowState((state) => ({ ...state, [holdId]: "fenced" }));
+          setNotice(
+            "Заявка изменилась или срок действия истёк. Очередь обновлена.",
+          );
+          await refresh(true, true);
+          return;
+        }
+        setRowState((state) => ({ ...state, [holdId]: "idle" }));
+        setNotice("Не удалось запросить уточнения.");
+      } catch {
+        setRowState((state) => ({ ...state, [holdId]: "idle" }));
+        setNotice("Нет связи с VetHelp. Запрос уточнений не отправлен.");
       }
-      if (response.status === 409 && code === 'QUEUE_FIFO_VIOLATION') {
-        commandKeys.current.delete(mapKey);
-        setRowState((state) => ({ ...state, [holdId]: 'idle' }));
-        setNotice('Сначала обработайте более раннюю заявку. Очередь обновлена.');
-        await refresh(true, true);
-        return;
-      }
-      if ([409, 422, 423].includes(response.status)) {
-        setRowState((state) => ({ ...state, [holdId]: 'fenced' }));
-        setNotice('Заявка изменилась или срок действия истёк. Очередь обновлена.');
-        await refresh(true, true);
-        return;
-      }
-      setRowState((state) => ({ ...state, [holdId]: 'idle' }));
-      setNotice('Не удалось запросить уточнения.');
-    } catch {
-      setRowState((state) => ({ ...state, [holdId]: 'idle' }));
-      setNotice('Нет связи с VetHelp. Запрос уточнений не отправлен.');
-    }
-  }, [refresh, rowState]);
+    },
+    [refresh, rowState],
+  );
 
   const serverNowMs = now + offsetMs;
-  const firstSlaMs = queue.items.length > 0 ? timestampMs(queue.items[0].confirmationSlaExpiresAt) : null;
-  const firstActionableIndex = firstSlaMs !== null && firstSlaMs > serverNowMs ? 0 : -1;
+  const firstActionableIndex = queue.items.findIndex((item) => {
+    const deadline = timestampMs(item.confirmationSlaExpiresAt);
+    return deadline !== null && deadline > serverNowMs;
+  });
+  const currentDeclineItem = declineItem
+    ? (queue.items.find((item) => item.holdId === declineItem.holdId) ?? null)
+    : null;
+  const declineIndex = currentDeclineItem
+    ? queue.items.findIndex((item) => item.holdId === currentDeclineItem.holdId)
+    : -1;
+  const declineDeadline = currentDeclineItem
+    ? timestampMs(currentDeclineItem.confirmationSlaExpiresAt)
+    : null;
+  const declineAllowed = Boolean(
+    currentDeclineItem &&
+    declineItem &&
+    currentDeclineItem.version === declineItem.version &&
+    online &&
+    declineIndex === firstActionableIndex &&
+    declineDeadline !== null &&
+    declineDeadline > serverNowMs &&
+    (rowState[currentDeclineItem.holdId] ?? "idle") === "idle",
+  );
+  const closeDecline = () => {
+    setDeclineItem(null);
+    requestAnimationFrame(() => declineReturnFocus.current?.focus());
+  };
 
   return (
     <main className="min-h-screen px-4 py-6 sm:px-8 lg:px-12">
@@ -367,128 +684,419 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
         <header className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-blue-700">VetHelp</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">Очередь подтверждения</h1>
-            <p className="mt-2 text-sm text-slate-600">FIFO порядок задаёт backend. Таймеры основаны на serverNow.</p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">
+              Очередь подтверждения
+            </h1>
+            <p className="mt-2 text-sm text-slate-600">
+              FIFO порядок задаёт backend. Таймеры основаны на serverNow.
+            </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${online ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`} aria-live="polite">
-              {online ? 'Синхронизировано' : `Нет соединения · данные на ${tm(new Date(lastSyncedAt).toISOString())}`}
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${online ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}
+              aria-live="polite"
+            >
+              {online
+                ? "Синхронизировано"
+                : `Нет соединения · данные на ${tm(new Date(lastSyncedAt).toISOString())}`}
             </span>
-            <button type="button" onClick={() => void refresh(false)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Обновить</button>
+            <button
+              type="button"
+              onClick={() => void refresh(false)}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              Обновить
+            </button>
           </div>
         </header>
 
         <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-          При предложении альтернативы исходный и новый слот защищаются backend до решения владельца.
+          При предложении альтернативы исходный и новый слот защищаются backend
+          до решения владельца.
         </div>
-        {notice ? <div className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700" role="status">{notice}</div> : null}
+        {notice ? (
+          <div
+            ref={noticeFocus}
+            tabIndex={-1}
+            className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700"
+            role="status"
+          >
+            {notice}
+          </div>
+        ) : null}
 
         <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          {queue.items.length === 0 ? <Empty /> : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full table-fixed border-collapse text-left">
-                <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          {queue.items.length === 0 ? (
+            <Empty />
+          ) : (
+            <div>
+              <table className="w-full table-fixed border-collapse text-left">
+                <thead className="hidden bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500 lg:table-header-group">
                   <tr>
-                    <th className="w-16 px-4 py-3">№</th><th className="w-40 px-4 py-3">Поступила</th><th className="w-48 px-4 py-3">Питомец</th><th className="w-52 px-4 py-3">Услуга</th><th className="w-44 px-4 py-3">Визит</th><th className="w-44 px-4 py-3">SLA</th><th className="w-56 px-4 py-3">Действия</th>
+                    <th className="w-16 px-4 py-3">№</th>
+                    <th className="w-40 px-4 py-3">Поступила</th>
+                    <th className="w-48 px-4 py-3">Питомец</th>
+                    <th className="w-52 px-4 py-3">Услуга</th>
+                    <th className="w-44 px-4 py-3">Визит</th>
+                    <th className="w-44 px-4 py-3">SLA</th>
+                    <th className="w-56 px-4 py-3">Действия</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {queue.items.map((item, index) => <QueueRow key={item.holdId} item={item} position={index + 1} serverNowMs={serverNowMs} state={rowState[item.holdId] ?? 'idle'} canAct={online && firstActionableIndex === index} onConfirm={confirm} onDecline={setDeclineItem} onAlternative={setAlternativeItem} onNotes={setNotesItem} onAudit={openAudit} onHold={canInspectHold ? setHoldItem : undefined} />)}
+                <tbody className="block lg:table-row-group">
+                  {queue.items.map((item, index) => (
+                    <QueueRow
+                      key={item.holdId}
+                      item={item}
+                      position={index + 1}
+                      serverNowMs={serverNowMs}
+                      state={rowState[item.holdId] ?? "idle"}
+                      canAct={online && firstActionableIndex === index}
+                      onConfirm={confirm}
+                      onDecline={(selected, trigger) => {
+                        declineReturnFocus.current = trigger;
+                        setDeclineItem(selected);
+                      }}
+                      onAlternative={setAlternativeItem}
+                      onNotes={setNotesItem}
+                      onAudit={openAudit}
+                      onHold={canInspectHold ? setHoldItem : undefined}
+                    />
+                  ))}
                 </tbody>
               </table>
             </div>
           )}
         </div>
       </section>
-      <AlternativeSlotDrawer locationId={locationId} item={alternativeItem} onClose={() => setAlternativeItem(null)} onProposed={async () => { setNotice('Альтернативное время отправлено владельцу.'); await refresh(true, true); }} />
-      <RequestNotesDrawer item={notesItem} submitting={notesItem ? rowState[notesItem.holdId] === 'requestingNotes' : false} onClose={() => setNotesItem(null)} onSubmit={requestNotes} />
-      <DeclineDialog item={declineItem} submitting={declineItem ? rowState[declineItem.holdId] === 'declining' : false} onClose={() => setDeclineItem(null)} onConfirm={decline} />
-      <AuditTrailDrawer item={auditItem} trail={auditTrail} loading={auditLoading} error={auditError} onClose={() => { setAuditItem(null); setAuditTrail(null); setAuditError(null); }} />
-      {canInspectHold ? <BookingHoldDrawer item={holdItem} canReplay={canReplayHold} onClose={() => setHoldItem(null)} /> : null}
+      <AlternativeSlotDrawer
+        locationId={locationId}
+        item={alternativeItem}
+        onClose={() => setAlternativeItem(null)}
+        onProposed={async () => {
+          setNotice("Альтернативное время отправлено владельцу.");
+          await refresh(true, true);
+        }}
+      />
+      <RequestNotesDrawer
+        item={notesItem}
+        submitting={
+          notesItem ? rowState[notesItem.holdId] === "requestingNotes" : false
+        }
+        onClose={() => setNotesItem(null)}
+        onSubmit={requestNotes}
+      />
+      <DeclineDialog
+        item={currentDeclineItem ?? declineItem}
+        submitting={
+          declineItem ? rowState[declineItem.holdId] === "declining" : false
+        }
+        allowed={declineAllowed}
+        onClose={closeDecline}
+        onConfirm={decline}
+      />
+      <AuditTrailDrawer
+        item={auditItem}
+        trail={auditTrail}
+        loading={auditLoading}
+        error={auditError}
+        onClose={() => {
+          setAuditItem(null);
+          setAuditTrail(null);
+          setAuditError(null);
+        }}
+      />
+      {canInspectHold ? (
+        <BookingHoldDrawer
+          item={holdItem}
+          canReplay={canReplayHold}
+          onClose={() => setHoldItem(null)}
+        />
+      ) : null}
     </main>
   );
 }
 
 function Empty() {
-  return <div className="px-6 py-16 text-center"><p className="text-lg font-semibold text-slate-900">Нет заявок, ожидающих подтверждения</p><p className="mt-2 text-sm text-slate-600">Новые заявки появятся здесь в порядке поступления.</p></div>;
+  return (
+    <div className="px-6 py-16 text-center">
+      <p className="text-lg font-semibold text-slate-900">
+        Нет заявок, ожидающих подтверждения
+      </p>
+      <p className="mt-2 text-sm text-slate-600">
+        Новые заявки появятся здесь в порядке поступления.
+      </p>
+    </div>
+  );
 }
 
-function QueueRow({ item, position, serverNowMs, state, canAct, onConfirm, onDecline, onAlternative, onNotes, onAudit, onHold }: { item: ManualConfirmationQueueItem; position: number; serverNowMs: number; state: RowState; canAct: boolean; onConfirm: (item: ManualConfirmationQueueItem) => void; onDecline: (item: ManualConfirmationQueueItem) => void; onAlternative: (item: ManualConfirmationQueueItem) => void; onNotes: (item: ManualConfirmationQueueItem) => void; onAudit: (item: ManualConfirmationQueueItem) => void; onHold?: (item: ManualConfirmationQueueItem) => void }) {
+function QueueRow({
+  item,
+  position,
+  serverNowMs,
+  state,
+  canAct,
+  onConfirm,
+  onDecline,
+  onAlternative,
+  onNotes,
+  onAudit,
+  onHold,
+}: {
+  item: ManualConfirmationQueueItem;
+  position: number;
+  serverNowMs: number;
+  state: RowState;
+  canAct: boolean;
+  onConfirm: (item: ManualConfirmationQueueItem) => void;
+  onDecline: (item: ManualConfirmationQueueItem, trigger: HTMLElement) => void;
+  onAlternative: (item: ManualConfirmationQueueItem) => void;
+  onNotes: (item: ManualConfirmationQueueItem) => void;
+  onAudit: (item: ManualConfirmationQueueItem) => void;
+  onHold?: (item: ManualConfirmationQueueItem) => void;
+}) {
   const expiresAtMs = timestampMs(item.confirmationSlaExpiresAt);
   const remainingMs = expiresAtMs === null ? null : expiresAtMs - serverNowMs;
   const breached = remainingMs !== null && remainingMs <= 0;
-  const critical = remainingMs !== null && remainingMs > 0 && remainingMs <= SLA_CRITICAL_MS;
-  const normal = remainingMs !== null && remainingMs > SLA_CRITICAL_MS;
+  const urgent =
+    remainingMs !== null && remainingMs > 0 && remainingMs <= SLA_URGENT_MS;
+  const critical =
+    remainingMs !== null &&
+    remainingMs > SLA_URGENT_MS &&
+    remainingMs <= SLA_CRITICAL_MS;
+  const warning =
+    remainingMs !== null &&
+    remainingMs > SLA_CRITICAL_MS &&
+    remainingMs <= SLA_WARNING_MS;
+  const normal = remainingMs !== null && remainingMs > SLA_WARNING_MS;
   const notApplicable = item.confirmationSlaExpiresAt == null;
-  const blocked = !normal && !critical || state === 'fenced' || !canAct;
+  const blocked =
+    breached || remainingMs === null || state === "fenced" || !canAct;
   const slaLabel = breached
-    ? 'SLA просрочен'
-    : critical
-      ? `SLA скоро истечёт · ${clock(remainingMs!)}`
-      : normal
-        ? `SLA в норме · ${clock(remainingMs!)}`
-        : notApplicable
-          ? 'SLA не применим'
-          : 'SLA неизвестен';
-  const actionLabel = state === 'confirming'
-    ? 'Подтверждаем...'
-    : state === 'declining'
-      ? 'Отклоняем...'
-      : state === 'requestingNotes'
-        ? 'Запрашиваем...'
-    : breached || state === 'fenced'
-      ? 'Недоступно'
-      : !canAct
-        ? 'Ожидает очередь'
-        : 'Подтвердить';
+    ? "SLA просрочен"
+    : urgent
+      ? `SLA срочно · ${clock(remainingMs!)}`
+      : critical
+        ? `SLA критично · ${clock(remainingMs!)}`
+        : warning
+          ? `SLA скоро истечёт · ${clock(remainingMs!)}`
+          : normal
+            ? `SLA в норме · ${clock(remainingMs!)}`
+            : notApplicable
+              ? "SLA не применим"
+              : "SLA неизвестен";
+  const actionLabel =
+    state === "confirming"
+      ? "Подтверждаем..."
+      : state === "declining"
+        ? "Отклоняем..."
+        : state === "requestingNotes"
+          ? "Запрашиваем..."
+          : breached || state === "fenced"
+            ? "Недоступно"
+            : !canAct
+              ? "Ожидает очередь"
+              : "Подтвердить";
   return (
-    <tr className={`border-t border-slate-200 ${breached ? 'bg-red-50 text-red-950' : critical ? 'bg-red-50/70 text-slate-950 motion-safe:animate-pulse' : 'bg-white text-slate-900'}`}>
-      <td className="px-4 py-4 align-top text-sm font-semibold">{position}</td>
-      <td className="px-4 py-4 align-top text-sm text-slate-700">{dt(item.manualConfirmPendingAt)}</td>
-      <td className="px-4 py-4 align-top"><p className="text-sm font-semibold">{item.pet.name}</p><p className="mt-1 text-xs text-slate-600">{species(item.pet.species)}</p></td>
-      <td className="px-4 py-4 align-top text-sm text-slate-700"><p>{item.service?.displayName ?? 'Услуга не указана'}</p>{item.latestAudit ? <p className="mt-2 text-xs text-slate-500">Последнее: {auditAction(item.latestAudit.action)} · {dt(item.latestAudit.occurredAt)}</p> : null}</td>
-      <td className="px-4 py-4 align-top"><p className="text-sm font-medium text-slate-800">{dt(item.slot.startsAt)}</p><p className="mt-1 text-xs text-slate-600">{tm(item.slot.startsAt)}-{tm(item.slot.endsAt)}</p></td>
-      <td className="px-4 py-4 align-top"><span className={`inline-flex rounded-full px-2.5 py-1 text-sm font-semibold ${(critical || breached) ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'}`} aria-live={critical || breached ? 'polite' : undefined}>{slaLabel}</span>{(critical || breached) ? <p className="mt-2 text-xs font-medium text-red-800">{breached ? 'Требуется авторитетное обновление: backend ещё не перевёл заявку.' : 'Внимание: срок подтверждения истекает.'}</p> : !canAct ? <p className="mt-2 text-xs text-slate-600">Сначала обработайте более раннюю заявку.</p> : null}</td>
-      <td className="px-4 py-4 align-top"><div className="flex flex-col gap-2"><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onConfirm(item)} className="w-full rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">{actionLabel}</button><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onAlternative(item)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Другое время</button><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onNotes(item)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Уточнения</button><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onDecline(item)} className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Отклонить</button>{onHold ? <button type="button" onClick={() => onHold(item)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Состояние удержания</button> : null}<button type="button" onClick={() => onAudit(item)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">История</button></div></td>
+    <tr
+      className={`block border-t border-slate-200 lg:table-row ${breached ? "bg-red-50 text-red-950" : urgent ? "bg-red-50/70 text-slate-950 motion-safe:animate-pulse" : critical ? "bg-orange-50 text-slate-950" : warning ? "bg-amber-50 text-slate-950" : "bg-white text-slate-900"}`}
+    >
+      <td className="block px-4 pt-4 align-top text-sm font-semibold lg:table-cell lg:py-4">
+        Заявка № {position}
+      </td>
+      <td className="block px-4 py-2 align-top text-sm text-slate-700 lg:table-cell lg:py-4">
+        Поступила: {dt(item.manualConfirmPendingAt)}
+      </td>
+      <td className="block px-4 py-2 align-top lg:table-cell lg:py-4">
+        <p className="text-sm font-semibold">{item.pet.name}</p>
+        <p className="mt-1 text-xs text-slate-600">
+          {species(item.pet.species)}
+        </p>
+      </td>
+      <td className="block px-4 py-2 align-top text-sm text-slate-700 lg:table-cell lg:py-4">
+        <p>{item.service?.displayName ?? "Услуга не указана"}</p>
+        <p className="mt-2 text-xs font-semibold text-blue-800">
+          Статус: ожидает решения клиники
+        </p>
+        {item.latestAudit ? (
+          <p className="mt-2 text-xs text-slate-500">
+            Последнее: {auditAction(item.latestAudit.action)} ·{" "}
+            {dt(item.latestAudit.occurredAt)}
+          </p>
+        ) : null}
+      </td>
+      <td className="block px-4 py-2 align-top lg:table-cell lg:py-4">
+        <p className="text-sm font-medium text-slate-800">
+          Визит: {dt(item.slot.startsAt)}
+        </p>
+        <p className="mt-1 text-xs text-slate-600">
+          {tm(item.slot.startsAt)}-{tm(item.slot.endsAt)}
+        </p>
+      </td>
+      <td className="block px-4 py-2 align-top lg:table-cell lg:py-4">
+        <span
+          className={`inline-flex rounded-full px-2.5 py-1 text-sm font-semibold ${urgent || breached ? "bg-red-100 text-red-800" : critical ? "bg-orange-100 text-orange-900" : warning ? "bg-amber-100 text-amber-900" : "bg-slate-100 text-slate-700"}`}
+        >
+          {slaLabel}
+        </span>
+        {expiresAtMs !== null ? (
+          <p className="mt-1 text-xs text-slate-600">
+            До {tm(item.confirmationSlaExpiresAt!)}
+          </p>
+        ) : null}
+        {warning || critical || urgent || breached ? (
+          <p
+            className={`mt-2 text-xs font-medium ${urgent || breached ? "text-red-800" : critical ? "text-orange-900" : "text-amber-900"}`}
+          >
+            {breached
+              ? "Срок истёк: действия недоступны до авторитетного обновления."
+              : "Внимание: срок подтверждения истекает."}
+          </p>
+        ) : !canAct ? (
+          <p className="mt-2 text-xs text-slate-600">
+            Сначала обработайте более раннюю активную заявку.
+          </p>
+        ) : null}
+      </td>
+      <td className="block px-4 pb-4 pt-2 align-top lg:table-cell lg:py-4">
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            disabled={blocked || state !== "idle"}
+            onClick={() => onConfirm(item)}
+            className="min-h-11 w-full rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
+          >
+            {actionLabel}
+          </button>
+          <button
+            type="button"
+            disabled={blocked || state !== "idle"}
+            onClick={() => onAlternative(item)}
+            className="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+          >
+            Другое время
+          </button>
+          <button
+            type="button"
+            disabled={blocked || state !== "idle"}
+            onClick={() => onNotes(item)}
+            className="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+          >
+            Уточнения
+          </button>
+          <button
+            type="button"
+            disabled={blocked || state !== "idle"}
+            onClick={(event) => onDecline(item, event.currentTarget)}
+            className="min-h-11 w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+          >
+            Отклонить
+          </button>
+          {onHold ? (
+            <button
+              type="button"
+              onClick={() => onHold(item)}
+              className="min-h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+            >
+              Состояние удержания
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => onAudit(item)}
+            className="min-h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+          >
+            История
+          </button>
+        </div>
+      </td>
     </tr>
   );
 }
 
-function RequestNotesDrawer({ item, submitting, onClose, onSubmit }: { item: ManualConfirmationQueueItem | null; submitting: boolean; onClose: () => void; onSubmit: (item: ManualConfirmationQueueItem, noteRequest: string) => void }) {
-  const [noteRequest, setNoteRequest] = useState('');
+function RequestNotesDrawer({
+  item,
+  submitting,
+  onClose,
+  onSubmit,
+}: {
+  item: ManualConfirmationQueueItem | null;
+  submitting: boolean;
+  onClose: () => void;
+  onSubmit: (item: ManualConfirmationQueueItem, noteRequest: string) => void;
+}) {
+  const [noteRequest, setNoteRequest] = useState("");
 
   useEffect(() => {
-    setNoteRequest('');
+    setNoteRequest("");
   }, [item?.holdId]);
 
   if (!item) return null;
 
   const normalized = noteRequest.trim();
   return (
-    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="notes-title">
-      <button type="button" aria-label="Close" className="absolute inset-0 bg-slate-950/40" onClick={onClose} />
+    <div
+      className="fixed inset-0 z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="notes-title"
+    >
+      <button
+        type="button"
+        aria-label="Close"
+        className="absolute inset-0 bg-slate-950/40"
+        onClick={onClose}
+      />
       <aside className="absolute right-0 top-0 flex h-full w-full max-w-xl flex-col bg-white shadow-2xl">
         <header className="border-b border-slate-200 px-6 py-5">
           <p className="text-sm font-semibold text-blue-700">VetHelp</p>
-          <h2 id="notes-title" className="mt-1 text-2xl font-semibold text-slate-950">Запросить уточнения</h2>
-          <p className="mt-2 text-sm text-slate-600">{item.pet.name} · {item.service?.displayName ?? 'Услуга не указана'}</p>
+          <h2
+            id="notes-title"
+            className="mt-1 text-2xl font-semibold text-slate-950"
+          >
+            Запросить уточнения
+          </h2>
+          <p className="mt-2 text-sm text-slate-600">
+            {item.pet.name} · {item.service?.displayName ?? "Услуга не указана"}
+          </p>
         </header>
         <section className="flex-1 px-6 py-4">
-          <label htmlFor="note-request" className="text-sm font-semibold text-slate-900">Что нужно уточнить у владельца</label>
+          <label
+            htmlFor="note-request"
+            className="text-sm font-semibold text-slate-900"
+          >
+            Что нужно уточнить у владельца
+          </label>
           <textarea
             id="note-request"
             value={noteRequest}
-            onChange={(event) => setNoteRequest(event.target.value.slice(0, 1000))}
+            onChange={(event) =>
+              setNoteRequest(event.target.value.slice(0, 1000))
+            }
             rows={8}
             className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
             placeholder="Например: уточните, были ли анализы за последние 14 дней, и приложите фото назначения."
           />
-          <p className="mt-2 text-xs text-slate-500">Запрос фиксируется в audit trail и отправляется через backend outbox.</p>
+          <p className="mt-2 text-xs text-slate-500">
+            Запрос фиксируется в audit trail и отправляется через backend
+            outbox.
+          </p>
         </section>
         <footer className="flex gap-3 border-t border-slate-200 px-6 py-4">
-          <button type="button" onClick={onClose} disabled={submitting} className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Отмена</button>
-          <button type="button" disabled={normalized.length < 3 || submitting} onClick={() => onSubmit(item, normalized)} className="flex-1 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
-            {submitting ? 'Отправляем...' : 'Запросить'}
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={submitting}
+            className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+          >
+            Отмена
+          </button>
+          <button
+            type="button"
+            disabled={normalized.length < 3 || submitting}
+            onClick={() => onSubmit(item, normalized)}
+            className="flex-1 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
+          >
+            {submitting ? "Отправляем..." : "Запросить"}
           </button>
         </footer>
       </aside>
@@ -496,42 +1104,120 @@ function RequestNotesDrawer({ item, submitting, onClose, onSubmit }: { item: Man
   );
 }
 
-function DeclineDialog({ item, submitting, onClose, onConfirm }: { item: ManualConfirmationQueueItem | null; submitting: boolean; onClose: () => void; onConfirm: (item: ManualConfirmationQueueItem, declineReason: string) => void }) {
-  const [declineReason, setDeclineReason] = useState('');
-
+function DeclineDialog({
+  item,
+  submitting,
+  allowed,
+  onClose,
+  onConfirm,
+}: {
+  item: ManualConfirmationQueueItem | null;
+  submitting: boolean;
+  allowed: boolean;
+  onClose: () => void;
+  onConfirm: (item: ManualConfirmationQueueItem) => void;
+}) {
+  const dialog = useRef<HTMLElement | null>(null);
   useEffect(() => {
-    setDeclineReason('');
-  }, [item?.holdId]);
-
+    if (!item) return;
+    requestAnimationFrame(() => {
+      const primary = dialog.current?.querySelector<HTMLElement>(
+        "[data-primary-focus]:not([disabled])",
+      );
+      const fallback = dialog.current?.querySelector<HTMLElement>(
+        "button:not([disabled])",
+      );
+      (primary ?? fallback ?? dialog.current)?.focus();
+    });
+  }, [item, allowed, submitting]);
   if (!item) return null;
-  const normalized = declineReason.trim();
 
   return (
-    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="decline-title">
-      <button type="button" aria-label="Закрыть" className="absolute inset-0 bg-slate-950/40" onClick={onClose} disabled={submitting} />
-      <section className="absolute left-1/2 top-1/2 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white shadow-2xl">
+    <div
+      className="fixed inset-0 z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="decline-title"
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && !submitting) onClose();
+      }}
+    >
+      <button
+        type="button"
+        aria-label="Закрыть"
+        className="absolute inset-0 bg-slate-950/40"
+        onClick={onClose}
+        disabled={submitting}
+      />
+      <section
+        ref={dialog}
+        tabIndex={-1}
+        aria-busy={submitting}
+        className="absolute left-1/2 top-1/2 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white shadow-2xl"
+        onKeyDown={(event) => {
+          if (event.key !== "Tab") return;
+          const controls = Array.from(
+            dialog.current?.querySelectorAll<HTMLElement>(
+              "button:not([disabled])",
+            ) ?? [],
+          );
+          if (!controls.length) {
+            event.preventDefault();
+            dialog.current?.focus();
+            return;
+          }
+          const first = controls[0];
+          const last = controls[controls.length - 1];
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        }}
+      >
         <header className="border-b border-slate-200 px-6 py-5">
-          <p className="text-sm font-semibold text-red-700">VetHelp · booking queue</p>
-          <h2 id="decline-title" className="mt-1 text-2xl font-semibold text-slate-950">Отклонить заявку</h2>
-          <p className="mt-2 text-sm text-slate-600">{item.pet.name} · {item.service?.displayName ?? 'Услуга не указана'}</p>
+          <p className="text-sm font-semibold text-red-700">
+            VetHelp · booking queue
+          </p>
+          <h2
+            id="decline-title"
+            className="mt-1 text-2xl font-semibold text-slate-950"
+          >
+            Отклонить заявку
+          </h2>
+          <p className="mt-2 text-sm text-slate-600">
+            {item.pet.name} · {item.service?.displayName ?? "Услуга не указана"}
+          </p>
         </header>
         <div className="px-6 py-5 text-sm text-slate-700">
-          <p>Слот будет освобождён, а владелец увидит актуальный статус заявки.</p>
-          <label htmlFor="decline-reason" className="mt-4 block font-semibold text-slate-900">Причина отклонения</label>
-          <textarea
-            id="decline-reason"
-            value={declineReason}
-            onChange={(event) => setDeclineReason(event.target.value.slice(0, 1000))}
-            rows={4}
-            aria-describedby="decline-reason-hint"
-            className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-red-600 focus:ring-2 focus:ring-red-600/20"
-          />
-          <p id="decline-reason-hint" className="mt-2 text-xs text-slate-500">Минимум 3 символа. Текст сохранится, если связь прервётся.</p>
+          <p>
+            Слот будет освобождён, а владелец увидит актуальный статус заявки.
+            Это действие не является отменой записи.
+          </p>
         </div>
         <footer className="flex gap-3 border-t border-slate-200 px-6 py-4">
-          <button type="button" onClick={onClose} disabled={submitting} className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Отмена</button>
-          <button type="button" onClick={() => onConfirm(item, normalized)} disabled={submitting || normalized.length < 3} className="flex-1 rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
-            {submitting ? 'Отклоняем...' : 'Отклонить заявку'}
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={submitting}
+            className="min-h-11 flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+          >
+            Отмена
+          </button>
+          <button
+            data-primary-focus
+            type="button"
+            onClick={() => onConfirm(item)}
+            disabled={submitting || !allowed}
+            className="min-h-11 flex-1 rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
+          >
+            {submitting
+              ? "Отклоняем..."
+              : allowed
+                ? "Отклонить заявку"
+                : "Решение недоступно"}
           </button>
         </footer>
       </section>
@@ -539,48 +1225,127 @@ function DeclineDialog({ item, submitting, onClose, onConfirm }: { item: ManualC
   );
 }
 
-function AuditTrailDrawer({ item, trail, loading, error, onClose }: { item: ManualConfirmationQueueItem | null; trail: HoldAuditTrail | null; loading: boolean; error: string | null; onClose: () => void }) {
+function AuditTrailDrawer({
+  item,
+  trail,
+  loading,
+  error,
+  onClose,
+}: {
+  item: ManualConfirmationQueueItem | null;
+  trail: HoldAuditTrail | null;
+  loading: boolean;
+  error: string | null;
+  onClose: () => void;
+}) {
   if (!item) return null;
   return (
-    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="audit-title">
-      <button type="button" aria-label="Close" className="absolute inset-0 bg-slate-950/40" onClick={onClose} />
+    <div
+      className="fixed inset-0 z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="audit-title"
+    >
+      <button
+        type="button"
+        aria-label="Close"
+        className="absolute inset-0 bg-slate-950/40"
+        onClick={onClose}
+      />
       <aside className="absolute right-0 top-0 flex h-full w-full max-w-xl flex-col bg-white shadow-2xl">
         <header className="border-b border-slate-200 px-6 py-5">
-          <p className="text-sm font-semibold text-blue-700">VetHelp audit trail</p>
-          <h2 id="audit-title" className="mt-1 text-2xl font-semibold text-slate-950">История заявки</h2>
-          <p className="mt-2 text-sm text-slate-600">{item.pet.name} · {dt(item.slot.startsAt)}</p>
+          <p className="text-sm font-semibold text-blue-700">
+            VetHelp audit trail
+          </p>
+          <h2
+            id="audit-title"
+            className="mt-1 text-2xl font-semibold text-slate-950"
+          >
+            История заявки
+          </h2>
+          <p className="mt-2 text-sm text-slate-600">
+            {item.pet.name} · {dt(item.slot.startsAt)}
+          </p>
         </header>
         <section className="flex-1 overflow-y-auto px-6 py-4">
           {loading ? (
-            <div className="space-y-3">{Array.from({ length: 5 }).map((_, index) => <div key={index} className="h-20 animate-pulse rounded-xl bg-slate-100" />)}</div>
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="h-20 animate-pulse rounded-xl bg-slate-100"
+                />
+              ))}
+            </div>
           ) : error ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">{error}</div>
+            <div
+              className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+              role="alert"
+            >
+              {error}
+            </div>
           ) : !trail || trail.items.length === 0 ? (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-600">История пока пуста.</div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-600">
+              История пока пуста.
+            </div>
           ) : (
             <ol className="space-y-3">
               {trail.items.map((event) => (
-                <li key={event.id} className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                <li
+                  key={event.id}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-3"
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-slate-950">{auditAction(event.action)}</p>
-                      <p className="mt-1 text-xs text-slate-500">{event.actorType}{event.actorId ? ` · ${event.actorId}` : ''}</p>
+                      <p className="text-sm font-semibold text-slate-950">
+                        {auditAction(event.action)}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {event.actorType}
+                        {event.actorId ? ` · ${event.actorId}` : ""}
+                      </p>
                     </div>
-                    <time className="shrink-0 text-xs text-slate-500">{dt(event.occurredAt)}</time>
+                    <time className="shrink-0 text-xs text-slate-500">
+                      {dt(event.occurredAt)}
+                    </time>
                   </div>
-                  {event.correlationId ? <p className="mt-2 text-xs text-slate-500">Correlation: {event.correlationId}</p> : null}
-                  {event.causationId ? <p className="mt-1 text-xs text-slate-500">Causation: {event.causationId}</p> : null}
-                  {event.traceparent ? <p className="mt-1 break-all text-xs text-slate-500">Traceparent: {event.traceparent}</p> : null}
-                  <p className="mt-2 break-all text-xs text-slate-500">Ссылка: {event.eventRef}</p>
-                  <p className="mt-1 text-xs text-slate-500">Хранить до: {dt(event.retainedUntil)}</p>
-                  <pre className="mt-3 max-h-32 overflow-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-600">{JSON.stringify(event.payload, null, 2)}</pre>
+                  {event.correlationId ? (
+                    <p className="mt-2 text-xs text-slate-500">
+                      Correlation: {event.correlationId}
+                    </p>
+                  ) : null}
+                  {event.causationId ? (
+                    <p className="mt-1 text-xs text-slate-500">
+                      Causation: {event.causationId}
+                    </p>
+                  ) : null}
+                  {event.traceparent ? (
+                    <p className="mt-1 break-all text-xs text-slate-500">
+                      Traceparent: {event.traceparent}
+                    </p>
+                  ) : null}
+                  <p className="mt-2 break-all text-xs text-slate-500">
+                    Ссылка: {event.eventRef}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Хранить до: {dt(event.retainedUntil)}
+                  </p>
+                  <pre className="mt-3 max-h-32 overflow-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+                    {JSON.stringify(event.payload, null, 2)}
+                  </pre>
                 </li>
               ))}
             </ol>
           )}
         </section>
         <footer className="border-t border-slate-200 px-6 py-4">
-          <button type="button" onClick={onClose} className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Закрыть</button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            Закрыть
+          </button>
         </footer>
       </aside>
     </div>
@@ -588,44 +1353,64 @@ function AuditTrailDrawer({ item, trail, loading, error, onClose }: { item: Manu
 }
 
 const HOLD_LABELS: Record<BookingHoldState, string> = {
-  MANUAL_CONFIRM_PENDING: 'Ожидает подтверждения клиникой',
-  MIS_RESERVATION_PENDING: 'Ожидает подтверждения внешней системой',
-  MIS_HELD: 'Слот удерживается',
-  CONFIRMED: 'Запись подтверждена',
-  EXPIRED: 'Срок удержания истёк',
-  RELEASED: 'Удержание освобождено',
-  MIS_BOOKING_FAILED: 'Внешнее бронирование не завершено',
+  MANUAL_CONFIRM_PENDING: "Ожидает подтверждения клиникой",
+  MIS_RESERVATION_PENDING: "Ожидает подтверждения внешней системой",
+  MIS_HELD: "Слот удерживается",
+  CONFIRMED: "Запись подтверждена",
+  EXPIRED: "Срок удержания истёк",
+  RELEASED: "Удержание освобождено",
+  MIS_BOOKING_FAILED: "Внешнее бронирование не завершено",
 };
 
-function BookingHoldDrawer({ item, canReplay, onClose }: { item: ManualConfirmationQueueItem | null; canReplay: boolean; onClose: () => void }) {
+function BookingHoldDrawer({
+  item,
+  canReplay,
+  onClose,
+}: {
+  item: ManualConfirmationQueueItem | null;
+  canReplay: boolean;
+  onClose: () => void;
+}) {
   const [hold, setHold] = useState<BookingHold | null>(null);
-  const [phase, setPhase] = useState<'initial-loading' | 'unavailable' | 'recoverable' | 'retrying' | 'ready'>('initial-loading');
+  const [phase, setPhase] = useState<
+    "initial-loading" | "unavailable" | "recoverable" | "retrying" | "ready"
+  >("initial-loading");
   const requestRef = useRef<AbortController | null>(null);
   const replayButtonRef = useRef<HTMLButtonElement | null>(null);
   const [replayOpen, setReplayOpen] = useState(false);
 
-  const load = useCallback(async (retry = false) => {
-    if (!item || requestRef.current) return;
-    const controller = new AbortController();
-    requestRef.current = controller;
-    setHold(null);
-    setPhase(retry ? 'retrying' : 'initial-loading');
-    try {
-      const response = await fetch(`/api/booking-holds/${item.holdId}`, { cache: 'no-store', signal: controller.signal });
-      if (!response.ok) {
-        setPhase(response.status >= 500 ? 'recoverable' : 'unavailable');
-        return;
+  const load = useCallback(
+    async (retry = false) => {
+      if (!item || requestRef.current) return;
+      const controller = new AbortController();
+      requestRef.current = controller;
+      setHold(null);
+      setPhase(retry ? "retrying" : "initial-loading");
+      try {
+        const response = await fetch(`/api/booking-holds/${item.holdId}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          setPhase(response.status >= 500 ? "recoverable" : "unavailable");
+          return;
+        }
+        const payload: unknown = await response.json().catch(() => null);
+        setHold(parseBookingHold(payload));
+        setPhase("ready");
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setPhase(
+          error instanceof BookingHoldParseError
+            ? "unavailable"
+            : "recoverable",
+        );
+      } finally {
+        if (requestRef.current === controller) requestRef.current = null;
       }
-      const payload: unknown = await response.json().catch(() => null);
-      setHold(parseBookingHold(payload));
-      setPhase('ready');
-    } catch (error) {
-      if (controller.signal.aborted) return;
-      setPhase(error instanceof BookingHoldParseError ? 'unavailable' : 'recoverable');
-    } finally {
-      if (requestRef.current === controller) requestRef.current = null;
-    }
-  }, [item]);
+    },
+    [item],
+  );
 
   useEffect(() => {
     if (!item) return;
@@ -636,32 +1421,304 @@ function BookingHoldDrawer({ item, canReplay, onClose }: { item: ManualConfirmat
     };
   }, [item?.holdId]); // a selected item is the request identity
 
-  useEffect(() => { setReplayOpen(false); }, [item?.holdId]);
+  useEffect(() => {
+    setReplayOpen(false);
+  }, [item?.holdId]);
   if (!item) return null;
   return (
-    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="hold-inspector-title">
-      <button type="button" aria-label="Close" className="absolute inset-0 bg-slate-950/40" onClick={onClose} />
-      <aside aria-labelledby="hold-inspector-title" className="absolute right-0 top-0 flex h-full w-full max-w-xl flex-col bg-white shadow-2xl">
-        <header className="border-b border-slate-200 px-6 py-5"><p className="text-sm font-semibold text-blue-700">VetHelp</p><h2 id="hold-inspector-title" className="mt-1 text-2xl font-semibold text-slate-950">Состояние удержания слота</h2><p className="mt-2 text-sm text-slate-600">{item.pet.name} · {dt(item.slot.startsAt)}</p></header>
-        <section className="flex-1 overflow-y-auto px-6 py-4" aria-live="polite">
-          {phase === 'initial-loading' ? <p role="status" className="text-sm text-slate-600">Загружаем состояние удержания…</p> : null}
-          {phase === 'unavailable' ? <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Состояние удержания сейчас недоступно.</p> : null}
-          {(phase === 'recoverable' || phase === 'retrying') ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900" role="alert"><p>Не удалось загрузить состояние удержания.</p>{phase === 'retrying' ? <p role="status" className="mt-2">Повторная попытка выполняется…</p> : null}<button type="button" disabled={phase === 'retrying'} onClick={() => void load(true)} className="mt-3 rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60">{phase === 'retrying' ? 'Повторная попытка…' : 'Повторить'}</button></div> : null}
-          {phase === 'ready' && hold ? <dl className="space-y-4"><div><dt className="text-sm text-slate-600">Статус</dt><dd className="mt-1 text-base font-semibold text-slate-950">{HOLD_LABELS[hold.state]}</dd></div><div><dt className="text-sm text-slate-600">Слот</dt><dd className="mt-1 break-all text-sm text-slate-900">{hold.slotId}</dd></div><div><dt className="text-sm text-slate-600">Начало визита</dt><dd className="mt-1 text-sm text-slate-900"><time dateTime={hold.startsAt}>{dt(hold.startsAt)}</time></dd></div><div><dt className="text-sm text-slate-600">Окончание визита</dt><dd className="mt-1 text-sm text-slate-900"><time dateTime={hold.endsAt}>{dt(hold.endsAt)}</time></dd></div><div><dt className="text-sm text-slate-600">Действует до</dt><dd className="mt-1 text-sm text-slate-900"><time dateTime={hold.expiresAt}>{dt(hold.expiresAt)}</time></dd></div></dl> : null}
+    <div
+      className="fixed inset-0 z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="hold-inspector-title"
+    >
+      <button
+        type="button"
+        aria-label="Close"
+        className="absolute inset-0 bg-slate-950/40"
+        onClick={onClose}
+      />
+      <aside
+        aria-labelledby="hold-inspector-title"
+        className="absolute right-0 top-0 flex h-full w-full max-w-xl flex-col bg-white shadow-2xl"
+      >
+        <header className="border-b border-slate-200 px-6 py-5">
+          <p className="text-sm font-semibold text-blue-700">VetHelp</p>
+          <h2
+            id="hold-inspector-title"
+            className="mt-1 text-2xl font-semibold text-slate-950"
+          >
+            Состояние удержания слота
+          </h2>
+          <p className="mt-2 text-sm text-slate-600">
+            {item.pet.name} · {dt(item.slot.startsAt)}
+          </p>
+        </header>
+        <section
+          className="flex-1 overflow-y-auto px-6 py-4"
+          aria-live="polite"
+        >
+          {phase === "initial-loading" ? (
+            <p role="status" className="text-sm text-slate-600">
+              Загружаем состояние удержания…
+            </p>
+          ) : null}
+          {phase === "unavailable" ? (
+            <p
+              role="alert"
+              className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+            >
+              Состояние удержания сейчас недоступно.
+            </p>
+          ) : null}
+          {phase === "recoverable" || phase === "retrying" ? (
+            <div
+              className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900"
+              role="alert"
+            >
+              <p>Не удалось загрузить состояние удержания.</p>
+              {phase === "retrying" ? (
+                <p role="status" className="mt-2">
+                  Повторная попытка выполняется…
+                </p>
+              ) : null}
+              <button
+                type="button"
+                disabled={phase === "retrying"}
+                onClick={() => void load(true)}
+                className="mt-3 rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {phase === "retrying" ? "Повторная попытка…" : "Повторить"}
+              </button>
+            </div>
+          ) : null}
+          {phase === "ready" && hold ? (
+            <dl className="space-y-4">
+              <div>
+                <dt className="text-sm text-slate-600">Статус</dt>
+                <dd className="mt-1 text-base font-semibold text-slate-950">
+                  {HOLD_LABELS[hold.state]}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm text-slate-600">Слот</dt>
+                <dd className="mt-1 break-all text-sm text-slate-900">
+                  {hold.slotId}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm text-slate-600">Начало визита</dt>
+                <dd className="mt-1 text-sm text-slate-900">
+                  <time dateTime={hold.startsAt}>{dt(hold.startsAt)}</time>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm text-slate-600">Окончание визита</dt>
+                <dd className="mt-1 text-sm text-slate-900">
+                  <time dateTime={hold.endsAt}>{dt(hold.endsAt)}</time>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm text-slate-600">Действует до</dt>
+                <dd className="mt-1 text-sm text-slate-900">
+                  <time dateTime={hold.expiresAt}>{dt(hold.expiresAt)}</time>
+                </dd>
+              </div>
+            </dl>
+          ) : null}
         </section>
-        <footer className="flex gap-3 border-t border-slate-200 px-6 py-4">{canReplay ? <button ref={replayButtonRef} type="button" onClick={() => setReplayOpen(true)} className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">История обработки</button> : null}<button type="button" onClick={onClose} className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Закрыть</button></footer>
+        <footer className="flex gap-3 border-t border-slate-200 px-6 py-4">
+          {canReplay ? (
+            <button
+              ref={replayButtonRef}
+              type="button"
+              onClick={() => setReplayOpen(true)}
+              className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              История обработки
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            Закрыть
+          </button>
+        </footer>
       </aside>
-      {replayOpen ? <BookingReplayPanel holdId={item.holdId} onClose={() => { setReplayOpen(false); queueMicrotask(() => replayButtonRef.current?.focus()); }} /> : null}
+      {replayOpen ? (
+        <BookingReplayPanel
+          holdId={item.holdId}
+          onClose={() => {
+            setReplayOpen(false);
+            queueMicrotask(() => replayButtonRef.current?.focus());
+          }}
+        />
+      ) : null}
     </div>
   );
 }
 
-type ReplayEvent = { id: string; occurredAt: string; label: string; source: string; outcome: string; description?: string };
-function BookingReplayPanel({ holdId, onClose }: { holdId: string; onClose: () => void }) {
-  const [events, setEvents] = useState<ReplayEvent[] | null>(null); const [phase, setPhase] = useState<'initial-loading' | 'ready' | 'empty' | 'recoverable' | 'retrying' | 'unavailable'>('initial-loading'); const requestRef = useRef<AbortController | null>(null);
+type ReplayEvent = {
+  id: string;
+  occurredAt: string;
+  label: string;
+  source: string;
+  outcome: string;
+  description?: string;
+};
+function BookingReplayPanel({
+  holdId,
+  onClose,
+}: {
+  holdId: string;
+  onClose: () => void;
+}) {
+  const [events, setEvents] = useState<ReplayEvent[] | null>(null);
+  const [phase, setPhase] = useState<
+    | "initial-loading"
+    | "ready"
+    | "empty"
+    | "recoverable"
+    | "retrying"
+    | "unavailable"
+  >("initial-loading");
+  const requestRef = useRef<AbortController | null>(null);
   const headingRef = useRef<HTMLHeadingElement | null>(null);
-  const load = useCallback(async (retry = false) => { if (requestRef.current) return; const controller = new AbortController(); requestRef.current = controller; setEvents(null); setPhase(retry ? 'retrying' : 'initial-loading'); try { const response = await fetch(`/api/booking-holds/${holdId}/events`, { cache: 'no-store', signal: controller.signal }); if (!response.ok) { setPhase(response.status >= 500 ? 'recoverable' : 'unavailable'); return; } const payload: unknown = await response.json().catch(() => null); if (!payload || typeof payload !== 'object' || (payload as { holdId?: unknown }).holdId !== holdId || !Array.isArray((payload as { events?: unknown }).events)) { setPhase('unavailable'); return; } const result = (payload as { events: ReplayEvent[] }).events; if (!result.every((event) => event && typeof event.id === 'string' && typeof event.occurredAt === 'string' && typeof event.label === 'string' && typeof event.source === 'string' && typeof event.outcome === 'string')) { setPhase('unavailable'); return; } setEvents(result); setPhase(result.length ? 'ready' : 'empty'); } catch { if (!controller.signal.aborted) setPhase('recoverable'); } finally { if (requestRef.current === controller) requestRef.current = null; } }, [holdId]);
-  useEffect(() => { void load(); return () => { requestRef.current?.abort(); requestRef.current = null; }; }, [load]);
-  useEffect(() => { headingRef.current?.focus(); }, []);
-  return <div className="fixed inset-0 z-[60]"><div aria-hidden="true" tabIndex={-1} className="absolute inset-0 bg-slate-950/40" onClick={onClose} /><section role="dialog" aria-modal="true" aria-labelledby="booking-replay-title" className="absolute bottom-0 right-0 flex h-[85vh] w-full max-w-xl flex-col bg-white shadow-2xl sm:top-0 sm:h-full"><header className="border-b border-slate-200 px-6 py-5"><h2 ref={headingRef} tabIndex={-1} id="booking-replay-title" className="text-2xl font-semibold text-slate-950">История обработки</h2></header><section className="flex-1 overflow-y-auto px-6 py-4" aria-live="polite">{phase === 'initial-loading' ? <p role="status">Загружаем историю обработки…</p> : null}{phase === 'empty' ? <p>История обработки пока пуста.</p> : null}{phase === 'unavailable' ? <p role="alert">История обработки сейчас недоступна.</p> : null}{(phase === 'recoverable' || phase === 'retrying') ? <div role="alert"><p>Не удалось загрузить историю обработки.</p><button type="button" disabled={phase === 'retrying'} onClick={() => void load(true)}>{phase === 'retrying' ? 'Повторная попытка…' : 'Повторить'}</button></div> : null}{phase === 'ready' ? <ol className="space-y-3">{events?.map((event) => <li key={event.id} className="rounded-xl border border-slate-200 p-3"><p className="font-semibold">{event.label}</p><p>{event.source} · {event.outcome}</p><time dateTime={event.occurredAt}>{dt(event.occurredAt)}</time></li>)}</ol> : null}</section><footer className="border-t border-slate-200 p-4"><button type="button" onClick={onClose}>Закрыть историю обработки</button></footer></section></div>;
+  const load = useCallback(
+    async (retry = false) => {
+      if (requestRef.current) return;
+      const controller = new AbortController();
+      requestRef.current = controller;
+      setEvents(null);
+      setPhase(retry ? "retrying" : "initial-loading");
+      try {
+        const response = await fetch(`/api/booking-holds/${holdId}/events`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          setPhase(response.status >= 500 ? "recoverable" : "unavailable");
+          return;
+        }
+        const payload: unknown = await response.json().catch(() => null);
+        if (
+          !payload ||
+          typeof payload !== "object" ||
+          (payload as { holdId?: unknown }).holdId !== holdId ||
+          !Array.isArray((payload as { events?: unknown }).events)
+        ) {
+          setPhase("unavailable");
+          return;
+        }
+        const result = (payload as { events: ReplayEvent[] }).events;
+        if (
+          !result.every(
+            (event) =>
+              event &&
+              typeof event.id === "string" &&
+              typeof event.occurredAt === "string" &&
+              typeof event.label === "string" &&
+              typeof event.source === "string" &&
+              typeof event.outcome === "string",
+          )
+        ) {
+          setPhase("unavailable");
+          return;
+        }
+        setEvents(result);
+        setPhase(result.length ? "ready" : "empty");
+      } catch {
+        if (!controller.signal.aborted) setPhase("recoverable");
+      } finally {
+        if (requestRef.current === controller) requestRef.current = null;
+      }
+    },
+    [holdId],
+  );
+  useEffect(() => {
+    void load();
+    return () => {
+      requestRef.current?.abort();
+      requestRef.current = null;
+    };
+  }, [load]);
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
+  return (
+    <div className="fixed inset-0 z-[60]">
+      <div
+        aria-hidden="true"
+        tabIndex={-1}
+        className="absolute inset-0 bg-slate-950/40"
+        onClick={onClose}
+      />
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="booking-replay-title"
+        className="absolute bottom-0 right-0 flex h-[85vh] w-full max-w-xl flex-col bg-white shadow-2xl sm:top-0 sm:h-full"
+      >
+        <header className="border-b border-slate-200 px-6 py-5">
+          <h2
+            ref={headingRef}
+            tabIndex={-1}
+            id="booking-replay-title"
+            className="text-2xl font-semibold text-slate-950"
+          >
+            История обработки
+          </h2>
+        </header>
+        <section
+          className="flex-1 overflow-y-auto px-6 py-4"
+          aria-live="polite"
+        >
+          {phase === "initial-loading" ? (
+            <p role="status">Загружаем историю обработки…</p>
+          ) : null}
+          {phase === "empty" ? <p>История обработки пока пуста.</p> : null}
+          {phase === "unavailable" ? (
+            <p role="alert">История обработки сейчас недоступна.</p>
+          ) : null}
+          {phase === "recoverable" || phase === "retrying" ? (
+            <div role="alert">
+              <p>Не удалось загрузить историю обработки.</p>
+              <button
+                type="button"
+                disabled={phase === "retrying"}
+                onClick={() => void load(true)}
+              >
+                {phase === "retrying" ? "Повторная попытка…" : "Повторить"}
+              </button>
+            </div>
+          ) : null}
+          {phase === "ready" ? (
+            <ol className="space-y-3">
+              {events?.map((event) => (
+                <li
+                  key={event.id}
+                  className="rounded-xl border border-slate-200 p-3"
+                >
+                  <p className="font-semibold">{event.label}</p>
+                  <p>
+                    {event.source} · {event.outcome}
+                  </p>
+                  <time dateTime={event.occurredAt}>
+                    {dt(event.occurredAt)}
+                  </time>
+                </li>
+              ))}
+            </ol>
+          ) : null}
+        </section>
+        <footer className="border-t border-slate-200 p-4">
+          <button type="button" onClick={onClose}>
+            Закрыть историю обработки
+          </button>
+        </footer>
+      </section>
+    </div>
+  );
 }

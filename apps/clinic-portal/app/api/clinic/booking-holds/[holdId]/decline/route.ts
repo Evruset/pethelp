@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { getClinicSession } from '@/lib/auth/clinic-session';
+import { parseBookingDecisionResult, safeBookingDecisionError } from '@/lib/api/clinic-booking-decision';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -34,14 +35,17 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
   }
 
   const idempotencyKey = requiredUuid(request.headers.get('Idempotency-Key'));
+  const expectedSlotId = requiredUuid(request.headers.get('X-VetHelp-Slot-ID'));
   const correlationId = requiredUuid(request.headers.get('X-Correlation-ID')) ?? randomUUID();
   const ifMatch = requiredVersion(request.headers.get('If-Match'));
-  if (!idempotencyKey || !ifMatch) {
+  if (!idempotencyKey || !expectedSlotId || !ifMatch) {
     return NextResponse.json({ code: 'INVALID_REQUEST' }, { status: 400 });
   }
 
-  const body = await request.json().catch(() => null) as { declineReason?: unknown } | null;
-  const declineReason = typeof body?.declineReason === 'string' ? body.declineReason.slice(0, 500) : undefined;
+  const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+  if (!body || Array.isArray(body) || Object.keys(body).length > 0) {
+    return NextResponse.json({ code: 'INVALID_REQUEST' }, { status: 400, headers: { 'Cache-Control': 'no-store', 'X-Correlation-ID': correlationId } });
+  }
 
   try {
     const upstream = await fetch(`${backendBaseUrl()}/v1/clinic/booking-holds/${holdId}/decline`, {
@@ -54,12 +58,36 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
         'If-Match': ifMatch,
         'X-Correlation-ID': correlationId,
       },
-      body: JSON.stringify({ declineReason }),
+      body: JSON.stringify({}),
       cache: 'no-store',
     });
-    const payload = await upstream.json().catch(() => ({ code: 'BACKEND_UNAVAILABLE' }));
+    const payload: unknown = await upstream.json().catch(() => null);
 
-    return NextResponse.json(payload, {
+    if (!upstream.ok) {
+      const retryAfter = upstream.headers.get('Retry-After');
+      return NextResponse.json(
+        { code: safeBookingDecisionError(payload) },
+        {
+          status: upstream.status,
+          headers: {
+            'Cache-Control': 'no-store',
+            'X-Correlation-ID': correlationId,
+            ...(retryAfter === '1' ? { 'Retry-After': retryAfter } : {}),
+          },
+        },
+      );
+    }
+
+    const result = parseBookingDecisionResult(payload, {
+      holdId,
+      slotId: expectedSlotId,
+      status: 'REJECTED',
+    });
+    if (!result) {
+      return NextResponse.json({ code: 'BACKEND_UNAVAILABLE' }, { status: 502, headers: { 'Cache-Control': 'no-store', 'X-Correlation-ID': correlationId } });
+    }
+
+    return NextResponse.json(result, {
       status: upstream.status,
       headers: {
         'Cache-Control': 'no-store',

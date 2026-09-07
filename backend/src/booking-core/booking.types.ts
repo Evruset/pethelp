@@ -21,6 +21,15 @@ export type HoldState = (typeof HOLD_STATES)[number];
 export type MvpHoldState = Extract<HoldState, 'MANUAL_CONFIRM_PENDING' | 'ALTERNATIVE_PENDING' | 'CONFIRMED' | 'EXPIRED' | 'RELEASED' | 'SLA_BREACHED'>;
 export type MvpBookingStatus = 'PENDING_CONFIRMATION' | 'CONFIRMED' | 'REJECTED' | 'CANCELLED' | 'EXPIRED';
 
+export const CLINIC_DECLINE_REASON_CODES = [
+  'CAPACITY_UNAVAILABLE',
+  'STAFF_UNAVAILABLE',
+  'SERVICE_UNAVAILABLE',
+  'OTHER',
+] as const;
+
+export type ClinicDeclineReasonCode = (typeof CLINIC_DECLINE_REASON_CODES)[number];
+
 export function projectMvpBookingStatus(state: HoldState, clinicDeclined = false): MvpBookingStatus | undefined {
   if (state === 'MANUAL_CONFIRM_PENDING' || state === 'ALTERNATIVE_PENDING') return 'PENDING_CONFIRMATION';
   if (state === 'CONFIRMED' || state === 'COMPLETED') return 'CONFIRMED';
@@ -33,7 +42,11 @@ export interface SlotRow {
   id: string;
   clinic_location_id: string;
   service_id?: string | null;
+  staff_id?: string | null;
   doctor_id?: string | null;
+  doctor_shift_id?: string | null;
+  doctor_service_id?: string | null;
+  publication_state?: 'DRAFT' | 'PUBLISHED' | 'UNPUBLISHED' | 'BLOCKED' | 'STALE_SOURCE';
   starts_at: Date;
   ends_at: Date;
   capacity: number;
@@ -83,6 +96,9 @@ export interface ConfirmHoldResult {
   state: 'CONFIRMED';
   slotId: string;
   correlationId: string;
+  aggregateVersion?: number;
+  lastUpdatedAt?: string;
+  serverNow?: string;
 }
 
 export interface ReleaseHoldResult {
@@ -90,7 +106,17 @@ export interface ReleaseHoldResult {
   state: 'RELEASED';
   slotId: string;
   correlationId: string;
+  aggregateVersion?: number;
+  lastUpdatedAt?: string;
+  serverNow?: string;
   swapGroupId?: string | null;
+  appointmentId?: string;
+}
+
+export interface OwnerCancellationResult extends ReleaseHoldResult {
+  aggregateVersion: number;
+  lastUpdatedAt: string;
+  serverNow: string;
 }
 
 export interface RequestCancellationResult {
@@ -101,6 +127,7 @@ export interface RequestCancellationResult {
 }
 
 export interface CompleteAppointmentResult {
+  visitId: string;
   holdId: string;
   state: 'COMPLETED';
   slotId: string;

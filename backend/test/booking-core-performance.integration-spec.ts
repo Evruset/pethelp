@@ -56,6 +56,8 @@ const booking = new BookingService(database, new BookingRepository());
 const clinicAccess = {
   assertBookingHoldReadAccess: jest.fn(),
   assertLocationAccess: jest.fn(),
+  assertBookingDecisionCapability: jest.fn(),
+  assertBookingDecisionAccess: jest.fn(),
 } as never;
 const security = new BookingSecurityService(database, clinicAccess);
 const profiles: Profile[] = [];
@@ -78,6 +80,7 @@ const controlledCodes = new Set([
   "SLOT_VERSION_STALE",
   "BOOKING_VERSION_STALE",
   "HOLD_ALREADY_TERMINAL",
+  "HOLD_NOT_FOUND",
   "QUEUE_FIFO_VIOLATION",
 ]);
 const engineeringThresholds = {
@@ -665,7 +668,7 @@ async function seed(
     [`T044-${randomUUID()}`],
   );
   const location = await database.query<{ id: string }>(
-    `INSERT INTO clinic_schema.clinic_locations(clinic_id,address) VALUES($1,$2) RETURNING id`,
+    `INSERT INTO clinic_schema.clinic_locations(clinic_id,address,timezone) VALUES($1,$2,'Europe/Moscow') RETURNING id`,
     [clinic.rows[0].id, `T044-${randomUUID()}`],
   );
   const service = await database.query<{ id: string }>(

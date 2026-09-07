@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Text, View } from "react-native";
-import { Button, Card, Screen, StateMessage } from "@/ui/primitives";
+import { BodyText, Button, Card, InsetSection, Screen, SkeletonCard, StateMessage, StatusPill } from "@/ui/primitives";
+import { uiTokens as t } from "@/ui/tokens";
 import { useSession } from "@/session/SessionProvider";
 import {
   availabilityApi,
@@ -16,11 +17,13 @@ const dateLabel = (iso: string) => {
 };
 export function AvailabilityScreen({
   context,
+  preferredSlot,
   authorityGeneration = "component-session",
   onBack,
   onContinue,
 }: {
   context: ClinicServiceHandoff;
+  preferredSlot?: Readonly<{slotId:string;expectedVersion:number}>;
   authorityGeneration?: string;
   onBack(): void;
   onContinue(value: AvailabilityHandoff): void;
@@ -60,18 +63,20 @@ export function AvailabilityScreen({
     queryFn: ({ signal }) =>
       availabilityApi.read(session!.opaqueCredential, context, signal),
   });
+  const preferredCurrent=preferredSlot?query.data?.slots.find(item=>item.slotId===preferredSlot.slotId&&item.expectedVersion===preferredSlot.expectedVersion):undefined;
+  const selectedSlot=selected??preferredCurrent??null;
   const current =
-    selected &&
+    selectedSlot &&
     query.data?.slots.find(
       (slot) =>
-        slot.slotId === selected.slotId &&
-        slot.expectedVersion === selected.expectedVersion,
+        slot.slotId === selectedSlot.slotId &&
+        slot.expectedVersion === selectedSlot.expectedVersion,
     );
   const refresh = async (forward: boolean) => {
     if (refreshInFlight.current) return;
     refreshInFlight.current = true;
     const request = ++operation.current;
-    const selectedAtStart = selected;
+    const selectedAtStart = selectedSlot;
     const selectedGeneration = selectionGeneration.current;
     setRefreshing(true);
     setRefreshFailed(false);
@@ -120,9 +125,9 @@ export function AvailabilityScreen({
     for (const slot of query.data?.slots ?? [])
       groups.set(slot.localDate, [...(groups.get(slot.localDate) ?? []), slot]);
   return (
-    <Screen title="Доступное время">
+    <Screen title="Доступное время" subtitle="Время показано по часовому поясу клиники." backAction={onBack}>
       {query.isPending ? (
-        <StateMessage kind="loading" title="Загружаем доступное время" />
+        <View style={{gap:t.spacing.md}}><StateMessage kind="loading" title="Загружаем доступное время"/><SkeletonCard/><SkeletonCard/><SkeletonCard/></View>
       ) : null}
       {query.isError ? (
         <StateMessage
@@ -140,13 +145,7 @@ export function AvailabilityScreen({
       ) : null}
       {!query.isError && query.data ? (
         <>
-          <Card>
-            <View style={{ gap: 6 }}>
-              <Text style={{ fontWeight: "700" }}>{query.data.clinicName}</Text>
-              <Text>{query.data.serviceName}</Text>
-              <Text>Время клиники · {query.data.timezone}</Text>
-            </View>
-          </Card>
+          <Card><BodyText>{query.data.clinicName}</BodyText><BodyText secondary>{query.data.serviceName}</BodyText><StatusPill label="Время указано по часовому поясу клиники" tone="info" /></Card>
           {query.data.slots.length === 0 ? (
             <StateMessage
               kind="empty"
@@ -156,27 +155,23 @@ export function AvailabilityScreen({
             <View
               accessibilityRole="radiogroup"
               accessibilityLabel="Выбор доступного времени"
+              style={{gap:t.spacing.lg}}
             >
               {[...groups].map(([date, slots]) => (
                 <View
                   key={date}
                   accessibilityLabel={`Дата ${dateLabel(date)}`}
-                  style={{ gap: 10 }}
+                  style={{ gap: t.spacing.sm }}
                 >
-                  <Text
-                    accessibilityRole="header"
-                    style={{ fontWeight: "700", fontSize: 18 }}
-                  >
-                    {dateLabel(date)}
-                  </Text>
-                  <View style={{ gap: 10 }}>
+                  <Text accessibilityRole="header" style={{ ...t.typography.sectionTitle, color:t.color.textPrimary }}>{dateLabel(date)}</Text>
+                  <View style={{ flexDirection:'row', flexWrap:'wrap', gap:t.spacing.sm }}>
                     {slots.map((slot) => (
                       <Card
                         key={slot.slotId}
                         disabled={refreshing}
                         selected={
-                          slot.slotId === selected?.slotId &&
-                          slot.expectedVersion === selected.expectedVersion
+                          slot.slotId === selectedSlot?.slotId &&
+                          slot.expectedVersion === selectedSlot.expectedVersion
                         }
                         onPress={() => {
                           if (refreshInFlight.current) return;
@@ -186,7 +181,7 @@ export function AvailabilityScreen({
                           setRefreshFailed(false);
                         }}
                       >
-                        <Text style={{ fontSize: 17, fontWeight: "600" }}>
+                        <Text style={{ ...t.typography.body, fontWeight: "700", color:t.color.textPrimary, minWidth:62, textAlign:'center' }}>
                           {slot.localTime}
                         </Text>
                       </Card>
@@ -198,17 +193,16 @@ export function AvailabilityScreen({
           )}
         </>
       ) : null}
-      {selected && current ? (
-        <Text accessibilityRole="text">
-          Выбрано: {dateLabel(selected.localDate)} в {selected.localTime}
-        </Text>
+      {selectedSlot && current ? (
+        <InsetSection title="Выбрано"><View style={{padding:t.spacing.lg,gap:t.spacing.xs}}><BodyText>{dateLabel(selectedSlot.localDate)} в {selectedSlot.localTime}</BodyText><BodyText secondary>Перед продолжением ещё раз проверим доступность на сервере.</BodyText></View></InsetSection>
       ) : null}
-      {stale || (selected && !current) ? (
+      {stale || (selectedSlot && !current) ? (
         <StateMessage
           kind="error"
           title="Выбранное время больше недоступно. Выберите другое."
         />
       ) : null}
+      {preferredSlot&&query.data&&!preferredCurrent&&!selected?<StateMessage kind="error" title="Выбранное в поиске время больше недоступно. Выберите другое."/>:null}
       {refreshFailed ? (
         <StateMessage
           kind="error"
@@ -216,20 +210,13 @@ export function AvailabilityScreen({
         />
       ) : null}
       <Button
-        label={refreshing ? "Обновляем…" : "Обновить время"}
-        variant="secondary"
-        disabled={refreshing}
-        onPress={() => {
-          void refresh(false);
-        }}
-      />
-      <Button
-        label="Продолжить"
-        disabled={!selected || !current || refreshing || query.isError}
+        label={refreshing ? "Проверяем время…" : "Продолжить"}
+        disabled={!selectedSlot || !current || refreshing || query.isError}
         onPress={() => {
           void refresh(true);
         }}
       />
+      <Button label={refreshing ? "Обновляем…" : "Обновить время"} variant="secondary" disabled={refreshing} onPress={() => { void refresh(false); }} />
       <Button
         label="Назад к услугам"
         variant="ghost"

@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger, Optional } from '@nestjs/common';
 import type { PoolClient } from 'pg';
 import { DatabaseService } from '../database/database.service';
 import { DomainErrors, DomainException } from '../common/domain-error';
@@ -8,6 +8,7 @@ import { canTransition } from './booking-state-machine';
 import { BookingRepository } from './booking.repository';
 import { ConfirmHoldResult, CreateHoldResult, HoldRow, ReleaseHoldResult, SlotRow } from './booking.types';
 import { TraceContext } from '../observability/trace-context.context';
+import { ReallocationFinalizationService } from './reallocation-finalization.service';
 
 interface IdempotencyRow {
   id: string;
@@ -24,6 +25,7 @@ export class BookingService {
   constructor(
     private readonly database: DatabaseService,
     private readonly repository: BookingRepository,
+    @Optional() private readonly reallocationFinalization?: ReallocationFinalizationService,
   ) {}
 
   async createLocalHold(input: { slotId: string; ownerId: string; petId: string; idempotencyKey: string; correlationId: string }): Promise<CreateHoldResult> {
@@ -139,6 +141,7 @@ export class BookingService {
           aggregateVersion: updatedHold.rows[0].version, payload: { ...result, clinicLocationId: input.clinicLocationId },
         });
         await this.writeAudit(client, 'CLINIC_RECEPTIONIST', input.clinicLocationId, 'booking.confirmed', 'booking_hold', hold.id, input.correlationId, { appointmentId: result.appointmentId });
+        await this.reallocationFinalization?.finalizeReplacement(client, hold.id, 'CONFIRMED', input.correlationId);
         await this.completeIdempotency(client, 'booking.confirm-manual-hold', input.idempotencyKey, result, HttpStatus.OK);
         return result;
       });
@@ -339,6 +342,7 @@ export class BookingService {
       aggregateVersion: updated.rows[0].version, payload: { holdId: hold.id, slotId: slot.id, reason },
     });
     await this.writeAudit(client, actorType, null, 'booking.hold.expired', 'booking_hold', hold.id, correlationId, { slotId: slot.id, reason });
+    await this.reallocationFinalization?.finalizeReplacement(client, hold.id, 'EXPIRED', correlationId);
   }
 
   private async setInteractiveTransactionLimits(client: PoolClient): Promise<void> {

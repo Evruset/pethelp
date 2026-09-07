@@ -22,7 +22,7 @@ export class CapabilityEvaluatorService {
       if (!TELEMED_INTAKE_CATEGORIES.includes(resource.dataCategory as typeof TELEMED_INTAKE_CATEGORIES[number]) || !TELEMED_AUDIT_TRAIL_DATA_CATEGORIES.has(resource.dataCategory)) return this.deny('data-category');
       return;
     }
-    if (resource.aggregateType === 'telemed.vet.queue' || resource.aggregateType === 'ops.slo.snapshot') return;
+    if (resource.aggregateType === 'telemed.vet.queue' || resource.aggregateType === 'ops.slo.snapshot' || resource.aggregateType === 'booking.change-request') return;
     if (!actor.locationIds?.includes(resource.locationId)) return this.deny('location-scope');
     if (resource.clinicId && !actor.clinicIds?.includes(resource.clinicId)) return this.deny('clinic-scope');
 

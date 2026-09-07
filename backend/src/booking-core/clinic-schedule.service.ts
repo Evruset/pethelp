@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import type { PoolClient } from 'pg';
-import { JwtPayload } from '../auth/auth.types';
+import { JwtPayload, Role } from '../auth/auth.types';
 import { DomainErrors } from '../common/domain-error';
 import { featureFlags } from '../config/feature-flags.config';
 import { DatabaseService } from '../database/database.service';
@@ -427,6 +427,19 @@ export class ClinicScheduleService {
       const replay = await this.acquireIdempotency(client, scope, input.idempotencyKey);
       if (replay) return replay as unknown as ClinicScheduleServiceItem;
 
+      const generatedDoctors = await client.query<{ doctor_id: string }>(`
+        SELECT DISTINCT doctor_id::text
+        FROM clinic_schema.doctor_services
+        WHERE service_id=$1::uuid AND active
+        ORDER BY doctor_id::text
+      `, [input.serviceId]);
+      if (generatedDoctors.rows.length && !input.employee.roles.includes(Role.CLINIC_ADMIN)) {
+        throw DomainErrors.clinicScopeMismatch();
+      }
+      for (const doctor of generatedDoctors.rows) {
+        await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))', [doctor.doctor_id]);
+      }
+
       const current = await client.query<ScheduleServiceRow>(`
         SELECT id, code, display_name, duration_minutes, active, price_amount::text AS price_amount,
                currency, version, updated_at
@@ -470,6 +483,28 @@ export class ClinicScheduleService {
                   currency, version, updated_at
       `, [input.serviceId, input.code, input.displayName, input.durationMinutes, input.active, input.priceAmount, input.currency]);
       const service = this.toService(updated.rows[0]);
+      if (row.duration_minutes !== input.durationMinutes || row.active !== input.active) {
+        await client.query(`
+          UPDATE clinic_schema.appointment_slots
+          SET state='CLOSED',publication_state='STALE_SOURCE',source_stale_at=clock_timestamp(),published_at=NULL,
+              unpublished_at=NULL,blocked_at=NULL,
+              updated_at=clock_timestamp(),version=version+1
+          WHERE source='DOCTOR_SHIFT' AND service_id=$1::uuid AND publication_state<>'STALE_SOURCE'
+        `, [input.serviceId]);
+        await client.query(`
+          UPDATE clinic_schema.doctor_shifts shift
+          SET status='DRAFT',aggregate_version=aggregate_version+1,updated_at=clock_timestamp()
+          WHERE EXISTS (SELECT 1 FROM clinic_schema.doctor_services eligibility WHERE eligibility.service_id=$1::uuid AND eligibility.doctor_id=shift.doctor_id)
+            AND shift.status<>'CANCELLED'
+        `, [input.serviceId]);
+        await client.query(`
+          UPDATE clinic_schema.inventory_generation_runs run SET status='SUPERSEDED'
+          WHERE run.status IN ('GENERATED','PUBLISHED') AND EXISTS (
+            SELECT 1 FROM clinic_schema.doctor_shifts shift
+            JOIN clinic_schema.doctor_services eligibility ON eligibility.doctor_id=shift.doctor_id
+            WHERE shift.id=run.doctor_shift_id AND eligibility.service_id=$1::uuid)
+        `,[input.serviceId]);
+      }
       await this.writeOutbox(client, 'clinic.schedule.service.updated.v1', input.correlationId, service.id, service.version, {
         clinicId: input.clinicId,
         locationId: input.locationId,
@@ -554,6 +589,9 @@ export class ClinicScheduleService {
       const scope = `clinic.schedule.update-staff:${input.employee.sub}`;
       const replay = await this.acquireIdempotency(client, scope, input.idempotencyKey);
       if (replay) return replay as unknown as ClinicScheduleStaffItem;
+      const generatedDoctors=await client.query<{doctor_id:string}>(`SELECT DISTINCT doctor_id::text FROM clinic_schema.doctor_services WHERE staff_id=$1::uuid AND active ORDER BY doctor_id::text`,[input.staffId]);
+      if(generatedDoctors.rows.length&&!input.employee.roles.includes(Role.CLINIC_ADMIN)) throw DomainErrors.clinicScopeMismatch();
+      for(const doctor of generatedDoctors.rows) await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1::text,0))',[doctor.doctor_id]);
       const current = await client.query<ScheduleStaffRow>(`
         SELECT id, code, display_name, role, active, source, external_staff_id, version, updated_at
         FROM clinic_schema.clinic_staff
@@ -587,6 +625,7 @@ export class ClinicScheduleService {
         RETURNING id, code, display_name, role, active, source, external_staff_id, version, updated_at
       `, [input.staffId, input.code, input.displayName, input.role, input.active]);
       const staff = this.toStaff(updated.rows[0]);
+      if(row.active!==input.active||row.role!==input.role) await this.staleGeneratedInventoryForDoctors(client,generatedDoctors.rows.map((item)=>item.doctor_id));
       await this.writeOutbox(client, 'clinic.schedule.staff.updated.v1', input.correlationId, staff.id, staff.version, {
         clinicId: input.clinicId,
         locationId: input.locationId,
@@ -670,6 +709,9 @@ export class ClinicScheduleService {
       const scope = `clinic.schedule.update-resource:${input.employee.sub}`;
       const replay = await this.acquireIdempotency(client, scope, input.idempotencyKey);
       if (replay) return replay as unknown as ClinicScheduleResourceItem;
+      const generatedDoctors=await client.query<{doctor_id:string}>(`SELECT DISTINCT doctor_id::text FROM clinic_schema.doctor_services WHERE resource_id=$1::uuid AND active ORDER BY doctor_id::text`,[input.resourceId]);
+      if(generatedDoctors.rows.length&&!input.employee.roles.includes(Role.CLINIC_ADMIN)) throw DomainErrors.clinicScopeMismatch();
+      for(const doctor of generatedDoctors.rows) await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1::text,0))',[doctor.doctor_id]);
       const current = await client.query<ScheduleResourceRow>(`
         SELECT id, code, display_name, resource_type, active, source, external_resource_id, version, updated_at
         FROM clinic_schema.clinic_resources
@@ -703,6 +745,7 @@ export class ClinicScheduleService {
         RETURNING id, code, display_name, resource_type, active, source, external_resource_id, version, updated_at
       `, [input.resourceId, input.code, input.displayName, input.resourceType, input.active]);
       const resource = this.toResource(updated.rows[0]);
+      if(row.active!==input.active) await this.staleGeneratedInventoryForDoctors(client,generatedDoctors.rows.map((item)=>item.doctor_id));
       await this.writeOutbox(client, 'clinic.schedule.resource.updated.v1', input.correlationId, resource.id, resource.version, {
         clinicId: input.clinicId,
         locationId: input.locationId,
@@ -753,7 +796,9 @@ export class ClinicScheduleService {
 
       if (input.periodType !== 'EMERGENCY_DUTY') {
         await this.closeSlotsForBlockingPeriod(client, {
+          clinicId:input.clinicId,
           locationId: input.locationId,
+          employee:input.employee,
           startsAt: input.startsAt,
           endsAt: input.endsAt,
           staffId: input.staffId ?? null,
@@ -1021,6 +1066,9 @@ export class ClinicScheduleService {
       const replay = await this.acquireIdempotency(client, scope, input.idempotencyKey);
       if (replay) return replay as unknown as ClinicScheduleSlot;
 
+      const lineage=await client.query<{source:string}>(`SELECT source FROM clinic_schema.appointment_slots WHERE id=$1::uuid AND clinic_location_id=$2::uuid`,[input.slotId,input.locationId]);
+      if(lineage.rows[0]?.source==='DOCTOR_SHIFT') throw DomainErrors.generatedSlotManagedByDoctorShift();
+
       const current = await client.query<ScheduleSlotRow>(`
         SELECT s.id, s.service_id, service.display_name AS service_name,
                s.staff_id, staff.display_name AS staff_name,
@@ -1090,6 +1138,9 @@ export class ClinicScheduleService {
       const scope = `clinic.schedule.update-slot-capacity:${input.employee.sub}`;
       const replay = await this.acquireIdempotency(client, scope, input.idempotencyKey);
       if (replay) return replay as unknown as ClinicScheduleSlot;
+
+      const lineage=await client.query<{source:string}>(`SELECT source FROM clinic_schema.appointment_slots WHERE id=$1::uuid AND clinic_location_id=$2::uuid`,[input.slotId,input.locationId]);
+      if(lineage.rows[0]?.source==='DOCTOR_SHIFT') throw DomainErrors.generatedSlotManagedByDoctorShift();
 
       const current = await client.query<ScheduleSlotRow>(`
         SELECT s.id, s.service_id, service.display_name AS service_name,
@@ -1192,6 +1243,13 @@ export class ClinicScheduleService {
     if (!location.rows[0]) throw DomainErrors.clinicScopeMismatch();
   }
 
+  private async staleGeneratedInventoryForDoctors(client:PoolClient,doctorIds:string[]):Promise<void>{
+    if(!doctorIds.length)return;
+    await client.query(`UPDATE clinic_schema.appointment_slots SET state='CLOSED',publication_state='STALE_SOURCE',source_stale_at=clock_timestamp(),published_at=NULL,unpublished_at=NULL,blocked_at=NULL,version=version+1,updated_at=clock_timestamp() WHERE source='DOCTOR_SHIFT' AND doctor_id=ANY($1::uuid[]) AND publication_state<>'STALE_SOURCE'`,[doctorIds]);
+    await client.query(`UPDATE clinic_schema.doctor_shifts SET status='DRAFT',aggregate_version=aggregate_version+1,updated_at=clock_timestamp() WHERE doctor_id=ANY($1::uuid[]) AND status<>'CANCELLED'`,[doctorIds]);
+    await client.query(`UPDATE clinic_schema.inventory_generation_runs run SET status='SUPERSEDED' WHERE run.status IN ('GENERATED','PUBLISHED') AND EXISTS (SELECT 1 FROM clinic_schema.doctor_shifts shift WHERE shift.id=run.doctor_shift_id AND shift.doctor_id=ANY($1::uuid[]))`,[doctorIds]);
+  }
+
   private async assertServiceBelongsToLocation(client: PoolClient, serviceId: string, locationId: string): Promise<void> {
     const result = await client.query<{ id: string }>(`
       SELECT id
@@ -1268,12 +1326,31 @@ export class ClinicScheduleService {
   }
 
   private async closeSlotsForBlockingPeriod(client: PoolClient, input: {
+    clinicId:string;
     locationId: string;
+    employee:JwtPayload;
     startsAt: string;
     endsAt: string;
     staffId: string | null;
     resourceId: string | null;
   }): Promise<void> {
+    const generatedDoctors = await client.query<{ doctor_id: string }>(`
+      SELECT DISTINCT shift.doctor_id::text
+      FROM clinic_schema.doctor_shifts shift
+      WHERE shift.clinic_location_id=$1::uuid AND shift.status<>'CANCELLED'
+        AND shift.starts_at<$3::timestamptz AND shift.ends_at>$2::timestamptz
+        AND ($4::uuid IS NULL OR shift.staff_id=$4::uuid)
+        AND ($5::uuid IS NULL OR EXISTS (
+          SELECT 1 FROM clinic_schema.doctor_services eligibility
+          WHERE eligibility.doctor_id=shift.doctor_id AND eligibility.staff_id=shift.staff_id
+            AND eligibility.resource_id=$5::uuid AND eligibility.active))
+      ORDER BY shift.doctor_id::text
+    `,[input.locationId,input.startsAt,input.endsAt,input.staffId,input.resourceId]);
+    if(generatedDoctors.rows.length) await this.clinicAccess.assertScheduleManageAccess(client,input.employee,input.clinicId,input.locationId);
+    for(const doctor of generatedDoctors.rows){
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))',[doctor.doctor_id]);
+    }
+
     const active = await client.query<{ id: string }>(`
       SELECT id
       FROM clinic_schema.appointment_slots
@@ -1290,6 +1367,18 @@ export class ClinicScheduleService {
 
     await client.query(`
       UPDATE clinic_schema.appointment_slots
+      SET state='CLOSED',publication_state='BLOCKED',blocked_at=clock_timestamp(),
+          published_at=NULL,unpublished_at=NULL,source_stale_at=NULL,
+          status='AVAILABLE',last_freshness_sync=clock_timestamp(),version=version+1,updated_at=clock_timestamp()
+      WHERE clinic_location_id=$1::uuid AND source='DOCTOR_SHIFT'
+        AND starts_at<$3::timestamptz AND ends_at>$2::timestamptz
+        AND ($4::uuid IS NULL OR staff_id=$4::uuid)
+        AND ($5::uuid IS NULL OR resource_id=$5::uuid)
+        AND held_count=0 AND booked_count=0 AND publication_state<>'BLOCKED'
+    `,[input.locationId,input.startsAt,input.endsAt,input.staffId,input.resourceId]);
+
+    await client.query(`
+      UPDATE clinic_schema.appointment_slots
       SET state = 'CLOSED',
           status = 'AVAILABLE',
           last_freshness_sync = clock_timestamp(),
@@ -1301,6 +1390,7 @@ export class ClinicScheduleService {
         AND ($4::uuid IS NULL OR staff_id = $4::uuid)
         AND ($5::uuid IS NULL OR resource_id = $5::uuid)
         AND state = 'OPEN'
+        AND source <> 'DOCTOR_SHIFT'
         AND held_count = 0
         AND booked_count = 0
     `, [input.locationId, input.startsAt, input.endsAt, input.staffId, input.resourceId]);
