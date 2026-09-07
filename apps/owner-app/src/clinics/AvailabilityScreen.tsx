@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Pressable, Text, View } from "react-native";
+import {
+  Platform,
+  Pressable,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { Button, StateMessage } from "@/ui/primitives";
 import { uiTokens as t } from "@/ui/tokens";
 import { useSession } from "@/session/SessionProvider";
@@ -50,6 +56,8 @@ export function AvailabilityScreen({
   onContinue(value: AvailabilityHandoff): void;
 }) {
   const { session } = useSession();
+  const { width } = useWindowDimensions();
+  const desktop = Platform.OS === "web" && width >= 900;
   const [selected, setSelected] = useState<AvailabilitySlot | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -162,16 +170,14 @@ export function AvailabilityScreen({
     <ClinicDecisionLayout
       eyebrow="Запись в клинику"
       title="Выберите время"
-      subtitle="Показываем только свободные интервалы из актуального расписания клиники. Перед продолжением слот будет проверен ещё раз."
+      subtitle="Только свободные интервалы из актуального расписания клиники. Перед продолжением выбранный слот проверим ещё раз."
       onBack={() => {
         operation.current += 1;
         refreshInFlight.current = false;
         onBack();
       }}
     >
-      {query.isPending ? (
-        <StateMessage kind="loading" title="Загружаем доступное время" />
-      ) : null}
+      {query.isPending ? <StateMessage kind="loading" title="Загружаем доступное время" /> : null}
       {query.isError ? (
         <StateMessage
           kind="error"
@@ -189,15 +195,24 @@ export function AvailabilityScreen({
       {!query.isError && query.data ? (
         <>
           <DecisionPanel>
-            <DecisionHeading
-              kicker="Контекст записи"
-              title={query.data.clinicName}
-              detail={query.data.serviceName}
-            />
-            <FactRow>
-              <Fact tone="positive">Свободные слоты</Fact>
-              <Fact>Время клиники · {query.data.timezone}</Fact>
-            </FactRow>
+            <View
+              style={{
+                flexDirection: desktop ? "row" : "column",
+                justifyContent: "space-between",
+                alignItems: desktop ? "center" : "flex-start",
+                gap: 8,
+              }}
+            >
+              <DecisionHeading
+                kicker="Контекст записи"
+                title={query.data.clinicName}
+                detail={query.data.serviceName}
+              />
+              <FactRow>
+                <Fact tone="positive">Свободные слоты</Fact>
+                <Fact>Время клиники · {query.data.timezone}</Fact>
+              </FactRow>
+            </View>
           </DecisionPanel>
           {query.data.slots.length === 0 ? (
             <StateMessage
@@ -210,14 +225,14 @@ export function AvailabilityScreen({
               primary={
                 <DecisionPanel>
                   <DecisionHeading
-                    kicker="Дата"
-                    title="Доступное время"
-                    detail="Сначала выберите дату, затем один интервал."
+                    kicker="Дата и время"
+                    title="Доступные интервалы"
+                    detail="Выберите дату, затем один слот."
                   />
                   <View
                     accessibilityRole="tablist"
                     accessibilityLabel="Даты с доступным временем"
-                    style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
+                    style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}
                   >
                     {dates.map((date) => {
                       const label = shortDate(date),
@@ -232,18 +247,14 @@ export function AvailabilityScreen({
                             if (selected?.localDate !== date) setSelected(null);
                           }}
                           style={({ pressed }) => ({
-                            minWidth: 64,
-                            minHeight: 58,
-                            paddingHorizontal: 12,
-                            paddingVertical: 8,
-                            borderRadius: 14,
+                            minWidth: 62,
+                            minHeight: 52,
+                            paddingHorizontal: 10,
+                            paddingVertical: 7,
+                            borderRadius: 13,
                             borderWidth: active ? 2 : 1,
-                            borderColor: active
-                              ? decisionColors.blue
-                              : decisionColors.border,
-                            backgroundColor: active
-                              ? decisionColors.blueSoft
-                              : decisionColors.soft,
+                            borderColor: active ? decisionColors.blue : decisionColors.border,
+                            backgroundColor: active ? decisionColors.blueSoft : decisionColors.soft,
                             alignItems: "center",
                             justifyContent: "center",
                             opacity: pressed ? 0.72 : 1,
@@ -260,7 +271,7 @@ export function AvailabilityScreen({
                           </Text>
                           <Text
                             style={{
-                              fontSize: 18,
+                              fontSize: 17,
                               fontWeight: "800",
                               color: decisionColors.ink,
                             }}
@@ -274,7 +285,7 @@ export function AvailabilityScreen({
                   <View
                     accessibilityRole="radiogroup"
                     accessibilityLabel="Выбор доступного времени"
-                    style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}
+                    style={{ flexDirection: "row", flexWrap: "wrap", gap: 7 }}
                   >
                     {visibleSlots.map((slot) => {
                       const active =
@@ -284,25 +295,19 @@ export function AvailabilityScreen({
                         <Pressable
                           key={slot.slotId}
                           accessibilityRole="radio"
-                          accessibilityState={{
-                            selected: active,
-                            disabled: refreshing,
-                          }}
+                          accessibilityState={{ selected: active, disabled: refreshing }}
                           disabled={refreshing}
                           onPress={() => choose(slot)}
                           style={({ pressed }) => ({
-                            minWidth: 88,
-                            minHeight: 52,
-                            paddingHorizontal: 16,
-                            paddingVertical: 12,
-                            borderRadius: 14,
+                            width: desktop ? "23.5%" : undefined,
+                            minWidth: desktop ? 72 : 86,
+                            minHeight: 44,
+                            paddingHorizontal: 10,
+                            paddingVertical: 8,
+                            borderRadius: 12,
                             borderWidth: active ? 2 : 1,
-                            borderColor: active
-                              ? decisionColors.blue
-                              : decisionColors.border,
-                            backgroundColor: active
-                              ? decisionColors.blueSoft
-                              : decisionColors.surface,
+                            borderColor: active ? decisionColors.blue : decisionColors.border,
+                            backgroundColor: active ? decisionColors.blueSoft : decisionColors.surface,
                             alignItems: "center",
                             justifyContent: "center",
                             opacity: refreshing ? 0.5 : pressed ? 0.7 : 1,
@@ -310,7 +315,7 @@ export function AvailabilityScreen({
                         >
                           <Text
                             style={{
-                              fontSize: 17,
+                              fontSize: 16,
                               fontWeight: "700",
                               color: decisionColors.ink,
                             }}
@@ -334,7 +339,7 @@ export function AvailabilityScreen({
                     }
                     detail={
                       selected && current
-                        ? "Слот будет перепроверен перед переходом."
+                        ? "Перед переходом ещё раз проверим, что слот свободен."
                         : "Выберите доступный интервал слева."
                     }
                   />
@@ -347,8 +352,7 @@ export function AvailabilityScreen({
                         color: decisionColors.ink,
                       }}
                     >
-                      Выбрано: {dateLabel(selected.localDate)} в{" "}
-                      {selected.localTime}
+                      Выбрано: {dateLabel(selected.localDate)} в {selected.localTime}
                     </Text>
                   ) : null}
                   <Button
@@ -361,9 +365,7 @@ export function AvailabilityScreen({
                   />
                   <Button
                     label="Продолжить"
-                    disabled={
-                      !selected || !current || refreshing || query.isError
-                    }
+                    disabled={!selected || !current || refreshing || query.isError}
                     onPress={() => {
                       void refresh(true);
                     }}
