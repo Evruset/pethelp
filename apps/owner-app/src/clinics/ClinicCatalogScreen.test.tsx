@@ -13,6 +13,21 @@ describe('ClinicCatalogScreen',()=>{
     fireEvent.press(screen.getByText('Открыть клинику'));
     expect(onOpenClinic).toHaveBeenCalledWith({clinicId:'11111111-1111-4111-8111-111111111111',locationId:'22222222-2222-4222-8222-222222222222'});
   });
+
+  it('opens a browse-first catalog without pretending pet selection is required',async()=>{
+    mockUseQuery.mockReturnValue({isPending:false,isError:false,data:{clinics:[]}});
+    const screen=await render(<ClinicCatalogScreen mode="browse" onClose={jest.fn()} onOpenClinic={jest.fn()}/>);
+    expect(screen.getByText('Клиники VetHelp')).toBeTruthy();
+    expect(screen.getByText(/питомца попросим выбрать только когда/)).toBeTruthy();
+  });
+
+  it('keeps nearest-time entry truthful until service inventory is known',async()=>{
+    mockUseQuery.mockReturnValue({isPending:false,isError:false,data:{clinics:[]}});
+    const screen=await render(<ClinicCatalogScreen mode="time" onClose={jest.fn()} onOpenClinic={jest.fn()}/>);
+    expect(screen.getByText('Где искать ближайшее время')).toBeTruthy();
+    expect(screen.getByText(/точное время приходит из авторитетного inventory/)).toBeTruthy();
+  });
+
   it.each([
     [{isPending:true,isError:false},'Загружаем клиники'],
     [{isPending:false,isError:false,data:{clinics:[]}},'Сейчас нет клиник для онлайн-записи'],
