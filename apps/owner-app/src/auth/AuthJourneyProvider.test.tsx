@@ -98,11 +98,11 @@ it('completes guest booking intent through OTP and restores it only after T012 h
   await requestCode(view);
   await act(async () => { fireEvent.changeText(view.getByLabelText('Код из сообщения'), '123456'); });
   await act(async () => { fireEvent.press(view.getByText('Подтвердить')); });
-  await waitFor(() => expect(view.getByText('Вход выполнен. Продолжите запись.')).toBeTruthy());
+  await waitFor(() => expect(view.getByText(/Вход выполнен\. Продолжите запись/)).toBeTruthy());
   expect(api.verifyOtp).toHaveBeenCalledWith(CHALLENGE.challengeId, '123456', expect.any(AbortSignal));
   expect(store.write).toHaveBeenCalledWith({ opaqueCredential: SESSION.sessionToken, cacheScope: SESSION.owner.id, expiresAtEpochMs: Date.parse(SESSION.expiresAt) });
   await act(async () => { fireEvent.press(view.getByText('Продолжить запись')); });
-  await waitFor(() => expect(view.queryByText('Вход выполнен. Продолжите запись.')).toBeNull());
+  await waitFor(() => expect(view.queryByText(/Вход выполнен\. Продолжите запись/)).toBeNull());
 });
 
 it('direct login uses the canonical authenticated landing without synthetic resume intent', async () => {
