@@ -26,15 +26,40 @@ jobs:
         with:
           node-version: 22
 
-      - name: Pin exact product commit
+      - name: Pin exact Owner product commit
         run: |
           set -euo pipefail
           git fetch --depth=1 origin 9139bb8b9c35fe468df9b00d819c11de8ce12d1f
           git checkout --detach FETCH_HEAD
           test "$(git rev-parse HEAD)" = "9139bb8b9c35fe468df9b00d819c11de8ce12d1f"
-          echo "EXACT_VISUAL_SHA=$(git rev-parse HEAD)"
+          mkdir -p visual-evidence-9139bb8/diagnostics
+          echo "OWNER_FRONTEND_SHA=$(git rev-parse HEAD)" | tee visual-evidence-9139bb8/diagnostics/provenance.txt
+          echo "FULL_REPO_EXACT_RUNTIME=FAIL_MISSING_171954_171960" >> visual-evidence-9139bb8/diagnostics/provenance.txt
 
-      - name: Start exact local backend stack
+      - name: Overlay validated migration lineage 171954-171960
+        run: |
+          set -euo pipefail
+          git fetch --depth=1 origin backup/owner-v50-r1-20260907
+          OVERLAY_SHA=$(git rev-parse FETCH_HEAD)
+          echo "MIGRATION_OVERLAY_REF=backup/owner-v50-r1-20260907" >> visual-evidence-9139bb8/diagnostics/provenance.txt
+          echo "MIGRATION_OVERLAY_SHA=$OVERLAY_SHA" >> visual-evidence-9139bb8/diagnostics/provenance.txt
+          for f in \
+            backend/migrations/node-pg/1719540000000_add_doctor_shift_generated_inventory.js \
+            backend/migrations/node-pg/1719550000000_tighten_doctor_shift_publication_timestamp_constraint.js \
+            backend/migrations/node-pg/1719560000000_add_booking_change_requests.js \
+            backend/migrations/node-pg/1719570000000_make_booking_change_request_context_fks_deferrable.js \
+            backend/migrations/node-pg/1719580000000_add_reallocation_cases_and_offers.js \
+            backend/migrations/node-pg/1719590000000_add_reallocation_acceptance_lineage.js \
+            backend/migrations/node-pg/1719600000000_allow_terminal_reallocation_acceptance_lineage.js; do
+            git show "$OVERLAY_SHA:$f" > "$f"
+          done
+          sha256sum backend/migrations/node-pg/17195*.js backend/migrations/node-pg/171960*.js \
+            > visual-evidence-9139bb8/diagnostics/migration-overlay.sha256
+          test "$(git rev-parse HEAD)" = "9139bb8b9c35fe468df9b00d819c11de8ce12d1f"
+          git diff --quiet -- apps/owner-app
+          echo "OWNER_FRONTEND_WORKTREE_DIFF=NONE" >> visual-evidence-9139bb8/diagnostics/provenance.txt
+
+      - name: Start compatibility backend stack
         run: |
           set -euo pipefail
           docker compose -f docker-compose.local.yml down -v --remove-orphans || true
@@ -47,7 +72,7 @@ jobs:
             sleep 2
           done
           docker compose -f docker-compose.local.yml ps
-          docker compose -f docker-compose.local.yml logs --tail=200 backend
+          docker compose -f docker-compose.local.yml logs --tail=250 backend
           exit 1
 
       - name: Seed deterministic Owner journey data
@@ -92,7 +117,11 @@ jobs:
 
           const out = path.join(process.env.GITHUB_WORKSPACE, 'visual-evidence-9139bb8');
           fs.mkdirSync(out, { recursive: true });
-          const report = { sha: '9139bb8b9c35fe468df9b00d819c11de8ce12d1f', steps: [], console: [], requestFailures: [] };
+          const report = {
+            ownerFrontendSha: '9139bb8b9c35fe468df9b00d819c11de8ce12d1f',
+            runtimeKind: 'exact Owner frontend + validated 171954-171960 migration overlay',
+            steps: [], console: [], requestFailures: []
+          };
           const browser = await chromium.launch({ headless: true });
           const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
           page.on('console', msg => {
@@ -174,13 +203,13 @@ jobs:
           mkdir -p visual-evidence-9139bb8/diagnostics
           cp /tmp/owner-web.log visual-evidence-9139bb8/diagnostics/owner-web.log 2>/dev/null || true
           docker compose -f docker-compose.local.yml ps > visual-evidence-9139bb8/diagnostics/compose-ps.txt 2>&1 || true
-          docker compose -f docker-compose.local.yml logs --tail=300 backend > visual-evidence-9139bb8/diagnostics/backend.log 2>&1 || true
+          docker compose -f docker-compose.local.yml logs --tail=400 backend > visual-evidence-9139bb8/diagnostics/backend.log 2>&1 || true
 
-      - name: Upload exact visual evidence
+      - name: Upload visual evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: owner-exact-9139bb8-visual-evidence
+          name: owner-9139bb8-compat-visual-evidence
           path: visual-evidence-9139bb8
           if-no-files-found: error
           retention-days: 7
