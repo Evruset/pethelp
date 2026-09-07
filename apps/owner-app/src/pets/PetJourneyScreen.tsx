@@ -19,13 +19,13 @@ const purposeCopy: Record<PetJourneyPurpose, { eyebrow: string; title: string; b
   booking: {
     eyebrow: 'Запись в клинику',
     title: 'Кого записываем?',
-    body: 'Выберите питомца. Его профиль будет использован только для продолжения записи.',
+    body: 'Выберите питомца. Его профиль используем для этой записи и следующих визитов.',
     cancel: 'Отменить запись',
   },
   time: {
     eyebrow: 'Поиск времени',
     title: 'Для кого ищем ближайшее время?',
-    body: 'После выбора питомца покажем клиники, а затем — только опубликованные свободные слоты.',
+    body: 'После выбора питомца перейдём к клинике и опубликованным свободным слотам.',
     cancel: 'Закрыть поиск',
   },
   diary: {
@@ -66,37 +66,47 @@ export function PetJourneyScreen({
         style={{ flex: 1, backgroundColor: t.ownerHome.canvas }}
         contentContainerStyle={{
           width: '100%',
-          maxWidth: 1040,
+          maxWidth: 1180,
           alignSelf: 'center',
-          paddingHorizontal: desktop ? 28 : 14,
-          paddingVertical: desktop ? 28 : 16,
-          gap: 16,
+          paddingHorizontal: desktop ? 24 : 12,
+          paddingTop: desktop ? 14 : 10,
+          paddingBottom: desktop ? 42 : 92,
+          gap: 12,
         }}
+        showsVerticalScrollIndicator={false}
       >
         <View
           style={{
-            minHeight: desktop ? 220 : 168,
-            borderRadius: 24,
+            minHeight: desktop ? 154 : undefined,
+            borderWidth: 1,
+            borderColor: t.ownerHome.border,
+            borderRadius: 18,
             overflow: 'hidden',
-            backgroundColor: '#EAF2FF',
+            backgroundColor: t.ownerHome.surface,
             flexDirection: desktop ? 'row' : 'column',
+            ...t.shadow.card,
           }}
         >
-          <View style={{ flex: 1.05, padding: desktop ? 28 : 18, justifyContent: 'center', gap: 8 }}>
+          <View style={{ flex: 1, padding: desktop ? 18 : 16, justifyContent: 'center', gap: 5 }}>
             <Text style={{ ...t.typography.caption, color: t.ownerHome.blue, fontWeight: '800', textTransform: 'uppercase' }}>
               {copy.eyebrow}
             </Text>
-            <Text accessibilityRole="header" style={{ fontSize: desktop ? 34 : 27, lineHeight: desktop ? 40 : 33, fontWeight: '800', color: t.ownerHome.ink }}>
+            <Text accessibilityRole="header" style={{ fontSize: desktop ? 30 : 26, lineHeight: desktop ? 35 : 31, fontWeight: '800', color: t.ownerHome.ink }}>
               {copy.title}
             </Text>
-            <Text style={{ ...t.typography.secondaryBody, color: t.ownerHome.muted }}>{copy.body}</Text>
+            <Text style={{ ...t.typography.secondaryBody, color: t.ownerHome.muted, maxWidth: 620 }}>{copy.body}</Text>
           </View>
-          <Image
-            accessibilityLabel="Визуальный референс VetHelp: визит к ветеринару"
-            source={v50ReferenceAssets.vetExam}
-            resizeMode="cover"
-            style={{ width: desktop ? 360 : '100%', height: desktop ? 220 : 132 }}
-          />
+          <View style={{ width: desktop ? 280 : '100%', height: desktop ? 154 : 132, backgroundColor: t.ownerHome.blueSoft }}>
+            <Image
+              accessibilityLabel="Визуальный референс VetHelp: визит к ветеринару"
+              source={v50ReferenceAssets.vetExam}
+              resizeMode="cover"
+              style={{ width: '100%', height: '100%' }}
+            />
+            <View style={{ position: 'absolute', left: 7, bottom: 7, paddingHorizontal: 7, paddingVertical: 4, borderRadius: 9, backgroundColor: 'rgba(24,37,65,.82)' }}>
+              <Text style={{ fontSize: 9, color: '#fff', fontWeight: '700' }}>V50 референс</Text>
+            </View>
+          </View>
         </View>
 
         {journey.loading ? <StateMessage kind="loading" title="Загружаем питомцев" /> : null}
@@ -109,21 +119,21 @@ export function PetJourneyScreen({
         ) : null}
 
         {!journey.loading && !journey.error ? (
-          <View style={{ gap: 12 }}>
+          <View style={{ gap: 10 }}>
             {journey.pets.length === 0 && !creatingForm ? (
-              <View style={{ padding: 22, gap: 10, borderWidth: 1, borderColor: t.ownerHome.border, borderRadius: 22, backgroundColor: t.ownerHome.surface }}>
+              <View style={{ padding: 16, gap: 8, borderWidth: 1, borderColor: t.ownerHome.border, borderRadius: 16, backgroundColor: t.ownerHome.surface }}>
                 <Text style={{ ...t.typography.sectionTitle, color: t.ownerHome.ink }}>У вас пока нет питомцев</Text>
                 <Text style={{ ...t.typography.secondaryBody, color: t.ownerHome.muted }}>
                   Добавьте профиль один раз — имя и вид питомца будут доступны в следующих записях.
                 </Text>
-                <View style={{ maxWidth: 260 }}>
+                <View style={{ maxWidth: 240 }}>
                   <Button label="Добавить питомца" onPress={() => setCreatingForm(true)} />
                 </View>
               </View>
             ) : null}
 
             {journey.pets.length > 0 && !creatingForm ? (
-              <View accessibilityRole="radiogroup" accessibilityLabel="Выбор питомца" style={{ gap: 10 }}>
+              <View accessibilityRole="radiogroup" accessibilityLabel="Выбор питомца" style={{ gap: 8 }}>
                 {journey.pets.map((pet) => {
                   const selected = journey.selectedPetId === pet.petId;
                   return (
@@ -133,35 +143,36 @@ export function PetJourneyScreen({
                       accessibilityState={{ selected }}
                       onPress={() => journey.select(pet.petId)}
                       style={({ pressed }) => ({
-                        minHeight: 92,
-                        padding: 16,
+                        minHeight: 76,
+                        paddingHorizontal: 13,
+                        paddingVertical: 10,
                         borderWidth: selected ? 2 : 1,
                         borderColor: selected ? t.ownerHome.blue : t.ownerHome.border,
-                        borderRadius: 20,
+                        borderRadius: 16,
                         backgroundColor: selected ? t.ownerHome.blueSoft : t.ownerHome.surface,
                         flexDirection: 'row',
                         alignItems: 'center',
-                        gap: 14,
+                        gap: 12,
                         opacity: pressed ? 0.72 : 1,
                         ...t.shadow.card,
                       })}
                     >
                       <View
                         style={{
-                          width: 54,
-                          height: 54,
-                          borderRadius: 18,
+                          width: 48,
+                          height: 48,
+                          borderRadius: 16,
                           backgroundColor: '#FFF1E2',
                           alignItems: 'center',
                           justifyContent: 'center',
                         }}
                       >
-                        <Text style={{ fontSize: 25, fontWeight: '800', color: '#9A622F' }}>
+                        <Text style={{ fontSize: 22, fontWeight: '800', color: '#9A622F' }}>
                           {pet.name.trim().slice(0, 1).toUpperCase() || '•'}
                         </Text>
                       </View>
-                      <View style={{ flex: 1, gap: 3 }}>
-                        <Text style={{ fontSize: 20, lineHeight: 25, fontWeight: '800', color: t.ownerHome.ink }}>{pet.name}</Text>
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <Text style={{ fontSize: 18, lineHeight: 22, fontWeight: '800', color: t.ownerHome.ink }}>{pet.name}</Text>
                         <Text style={{ ...t.typography.caption, color: t.ownerHome.muted }}>{speciesLabel(pet.species)}</Text>
                       </View>
                       <Text style={{ ...t.typography.label, color: selected ? t.ownerHome.blue : t.ownerHome.muted }}>
@@ -174,8 +185,17 @@ export function PetJourneyScreen({
             ) : null}
 
             {journey.pets.length > 0 && !creatingForm ? (
-              <View style={{ alignItems: 'flex-start' }}>
-                <Button label="Добавить ещё" variant="secondary" onPress={() => setCreatingForm(true)} />
+              <View style={{ flexDirection: desktop ? 'row' : 'column', justifyContent: 'space-between', gap: 8 }}>
+                <View style={{ maxWidth: 220 }}>
+                  <Button label="Добавить ещё" variant="secondary" onPress={() => setCreatingForm(true)} />
+                </View>
+                <View style={{ minWidth: desktop ? 220 : undefined, gap: 8 }}>
+                  {journey.selectedPetId ? (
+                    <Button label="Продолжить" onPress={journey.continueSelection} />
+                  ) : (
+                    <Text style={{ ...t.typography.secondaryBody, color: t.ownerHome.muted }}>Выберите одного питомца, чтобы продолжить</Text>
+                  )}
+                </View>
               </View>
             ) : null}
 
@@ -184,7 +204,7 @@ export function PetJourneyScreen({
             ) : null}
 
             {creatingForm ? (
-              <View style={{ padding: desktop ? 22 : 16, gap: 12, borderWidth: 1, borderColor: t.ownerHome.border, borderRadius: 22, backgroundColor: t.ownerHome.surface }}>
+              <View style={{ padding: desktop ? 18 : 14, gap: 10, borderWidth: 1, borderColor: t.ownerHome.border, borderRadius: 16, backgroundColor: t.ownerHome.surface }}>
                 <Text style={{ ...t.typography.sectionTitle, color: t.ownerHome.ink }}>Новый питомец</Text>
                 <Field
                   label="Имя питомца"
@@ -201,9 +221,9 @@ export function PetJourneyScreen({
                       onPress={() => setSpecies(value)}
                       style={({ pressed }) => ({
                         flex: desktop ? 1 : undefined,
-                        minHeight: 48,
-                        paddingHorizontal: 14,
-                        borderRadius: 14,
+                        minHeight: 44,
+                        paddingHorizontal: 12,
+                        borderRadius: 12,
                         borderWidth: species === value ? 2 : 1,
                         borderColor: species === value ? t.ownerHome.blue : t.ownerHome.border,
                         backgroundColor: species === value ? t.ownerHome.blueSoft : t.ownerHome.surface,
@@ -231,12 +251,7 @@ export function PetJourneyScreen({
             ) : null}
 
             {!creatingForm ? (
-              <View style={{ gap: 8, paddingTop: 4 }}>
-                {journey.selectedPetId ? (
-                  <Button label="Продолжить" onPress={journey.continueSelection} />
-                ) : (
-                  <Text style={{ ...t.typography.secondaryBody, color: t.ownerHome.muted }}>Выберите одного питомца, чтобы продолжить</Text>
-                )}
+              <View style={{ paddingTop: 2, alignItems: 'flex-start' }}>
                 <Button label={copy.cancel} variant="secondary" onPress={cancelJourney} />
               </View>
             ) : null}
