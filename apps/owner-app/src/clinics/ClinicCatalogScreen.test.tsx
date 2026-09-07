@@ -18,7 +18,7 @@ describe('ClinicCatalogScreen',()=>{
     mockUseQuery.mockReturnValue({isPending:false,isError:false,data:{clinics:[]}});
     const screen=await render(<ClinicCatalogScreen mode="browse" onClose={jest.fn()} onOpenClinic={jest.fn()}/>);
     expect(screen.getByText('Клиники VetHelp')).toBeTruthy();
-    expect(screen.getByText(/питомца попросим выбрать только когда/)).toBeTruthy();
+    expect(screen.getByText(/питомца попросим выбрать только когда/i)).toBeTruthy();
   });
 
   it('keeps nearest-time entry truthful until service inventory is known',async()=>{
