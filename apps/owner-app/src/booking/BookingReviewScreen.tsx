@@ -169,7 +169,7 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
             <DecisionPanel>
               <DecisionHeading
                 kicker="Следующий шаг"
-                title="Отправить заявку"
+                title="Всё готово к отправке"
                 detail="Отправьте один раз. Если связь прервётся, VetHelp безопасно проверит эту же заявку, а не создаст новую."
               />
               {failure === 'conflict' ? (
