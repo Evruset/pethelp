@@ -78,9 +78,23 @@ jobs:
       - name: Seed deterministic Owner journey data
         run: |
           set -euo pipefail
+          # Harness-only compatibility bridge: 171954 made location timezone NOT NULL,
+          # while the historical 9139 seed predates that column. Add a temporary DB
+          # default for the old fixture, then remove it immediately.
+          docker compose -f docker-compose.local.yml exec -T postgres \
+            psql -U vethelp -d vethelp -v ON_ERROR_STOP=1 \
+            -c "ALTER TABLE clinic_schema.clinic_locations ALTER COLUMN timezone SET DEFAULT 'Europe/Moscow';"
+          set +e
           docker compose -f docker-compose.local.yml --profile setup run --rm seed
+          SEED_RC=$?
+          set -e
+          docker compose -f docker-compose.local.yml exec -T postgres \
+            psql -U vethelp -d vethelp -v ON_ERROR_STOP=1 \
+            -c "ALTER TABLE clinic_schema.clinic_locations ALTER COLUMN timezone DROP DEFAULT;"
+          test "$SEED_RC" -eq 0
           docker compose -f docker-compose.local.yml exec -T backend npx ts-node /workspace/backend/scripts/seed-local-identities.ts
           docker compose -f docker-compose.local.yml exec -T backend npx ts-node /workspace/backend/scripts/seed-local-owner-marketplace.ts
+          echo "LEGACY_SEED_TIMEZONE_BRIDGE=EPHEMERAL_ONLY" >> visual-evidence-9139bb8/diagnostics/provenance.txt
 
       - name: Install Owner and browser dependencies
         working-directory: apps/owner-app
@@ -119,7 +133,7 @@ jobs:
           fs.mkdirSync(out, { recursive: true });
           const report = {
             ownerFrontendSha: '9139bb8b9c35fe468df9b00d819c11de8ce12d1f',
-            runtimeKind: 'exact Owner frontend + validated 171954-171960 migration overlay',
+            runtimeKind: 'exact Owner frontend + validated 171954-171960 migration overlay + ephemeral legacy-seed timezone bridge',
             steps: [], console: [], requestFailures: []
           };
           const browser = await chromium.launch({ headless: true });
