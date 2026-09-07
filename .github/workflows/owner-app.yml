@@ -1,92 +1,190 @@
-name: Owner App
+name: Owner Exact 9139 Visual Walk
 
-# Temporary CI harness for final Owner V50 R2F code gates. Do not merge.
+# Temporary CI-only visual harness. Do not merge.
 on:
   pull_request:
     paths:
-      - 'apps/owner-app/**'
       - '.github/workflows/owner-app.yml'
-  push:
-    branches: [main]
-    paths:
       - 'apps/owner-app/**'
-      - '.github/workflows/owner-app.yml'
-  workflow_dispatch:
-    inputs:
-      platform:
-        description: Native test-build platform
-        required: true
-        default: android
-        type: choice
-        options: [android, ios]
-      profile:
-        description: EAS build profile
-        required: true
-        default: test
-        type: choice
-        options: [test, pilot]
 
 permissions:
   contents: read
 
 concurrency:
-  group: owner-app-${{ github.workflow }}-${{ github.ref }}
+  group: owner-exact-9139-visual-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  checks:
+  visual-walk:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/owner-app
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: apps/owner-app/package-lock.json
-      - run: npm ci
-      - name: Expo doctor (known patch drift; informational for this temporary CI branch)
-        run: npx expo-doctor || true
-      - name: Lint (known baseline react-hooks/refs blocker; informational for this temporary CI branch)
-        run: npm run lint || true
-      - run: npm run typecheck
-      - name: Run Owner tests past known baseline open handle
-        run: npm test -- --ci --forceExit
-      - name: Validate test and pilot public config
-        run: |
-          VETHELP_ENV=test EXPO_PUBLIC_API_BASE_URL=https://test.invalid npx expo config --type public --json > /tmp/owner-app-test-config.json
-          VETHELP_ENV=pilot EXPO_PUBLIC_API_BASE_URL=https://pilot.invalid npx expo config --type public --json > /tmp/owner-app-pilot-config.json
-      - name: Validate native prebuild
-        run: VETHELP_ENV=test EXPO_PUBLIC_API_BASE_URL=https://test.invalid npx expo prebuild --no-install
+          fetch-depth: 1
 
-  eas-build:
-    if: github.event_name == 'workflow_dispatch'
-    needs: checks
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/owner-app
-    steps:
-      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: apps/owner-app/package-lock.json
-      - run: npm ci
-      - uses: expo/expo-github-action@v8
-        with:
-          eas-version: 21.7.0
-          token: ${{ secrets.EXPO_TOKEN }}
-      - name: Queue EAS build
-        env:
-          EAS_NO_VCS: '1'
-        run: eas build --platform '${{ inputs.platform }}' --profile '${{ inputs.profile }}' --non-interactive --no-wait --json > eas-build.json
-      - name: Upload build identity
+
+      - name: Pin exact product commit
+        run: |
+          set -euo pipefail
+          git fetch --depth=1 origin 9139bb8b9c35fe468df9b00d819c11de8ce12d1f
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "9139bb8b9c35fe468df9b00d819c11de8ce12d1f"
+          echo "EXACT_VISUAL_SHA=$(git rev-parse HEAD)"
+
+      - name: Start exact local backend stack
+        run: |
+          set -euo pipefail
+          docker compose -f docker-compose.local.yml down -v --remove-orphans || true
+          docker compose -f docker-compose.local.yml up -d postgres mock-mis mock-cloud backend
+          for i in $(seq 1 120); do
+            if curl -fsS http://127.0.0.1:3000/v1/health >/dev/null 2>&1; then
+              echo BACKEND_HEALTH=PASS
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose -f docker-compose.local.yml ps
+          docker compose -f docker-compose.local.yml logs --tail=200 backend
+          exit 1
+
+      - name: Seed deterministic Owner journey data
+        run: |
+          set -euo pipefail
+          docker compose -f docker-compose.local.yml --profile setup run --rm seed
+          docker compose -f docker-compose.local.yml exec -T backend npx ts-node /workspace/backend/scripts/seed-local-identities.ts
+          docker compose -f docker-compose.local.yml exec -T backend npx ts-node /workspace/backend/scripts/seed-local-owner-marketplace.ts
+
+      - name: Install Owner and browser dependencies
+        working-directory: apps/owner-app
+        run: |
+          set -euo pipefail
+          npm ci
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start exact Expo Web runtime
+        working-directory: apps/owner-app
+        run: |
+          set -euo pipefail
+          nohup env CI=1 VETHELP_ENV=test EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:3000 npx expo start --web --port 8081 > /tmp/owner-web.log 2>&1 &
+          echo $! > /tmp/owner-web.pid
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:8081 >/dev/null 2>&1; then
+              echo OWNER_WEB_RUNTIME=PASS
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/owner-web.log
+          exit 1
+
+      - name: Browser visual walkthrough
+        working-directory: apps/owner-app
+        run: |
+          set -euo pipefail
+          cat > /tmp/owner-visual-walk.mjs <<'NODE'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+          import path from 'node:path';
+
+          const out = path.join(process.env.GITHUB_WORKSPACE, 'visual-evidence-9139bb8');
+          fs.mkdirSync(out, { recursive: true });
+          const report = { sha: '9139bb8b9c35fe468df9b00d819c11de8ce12d1f', steps: [], console: [], requestFailures: [] };
+          const browser = await chromium.launch({ headless: true });
+          const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+          page.on('console', msg => {
+            if (msg.type() === 'error' || msg.type() === 'warning') report.console.push({ type: msg.type(), text: msg.text() });
+          });
+          page.on('requestfailed', request => report.requestFailures.push({ url: request.url(), error: request.failure()?.errorText ?? 'unknown' }));
+
+          async function snap(name, expected) {
+            if (expected) await page.getByText(expected, { exact: false }).first().waitFor({ state: 'visible', timeout: 20000 });
+            await page.waitForTimeout(500);
+            await page.screenshot({ path: path.join(out, `${name}.png`), fullPage: true });
+            const body = await page.locator('body').innerText();
+            fs.writeFileSync(path.join(out, `${name}.txt`), body);
+            report.steps.push({ name, url: page.url(), expected: expected ?? null, visibleButtons: await page.getByRole('button').allTextContents() });
+          }
+
+          async function clickText(text) {
+            const target = page.getByText(text, { exact: true }).first();
+            await target.waitFor({ state: 'visible', timeout: 20000 });
+            await target.click();
+          }
+
+          try {
+            await page.goto('http://127.0.0.1:8081', { waitUntil: 'domcontentloaded', timeout: 120000 });
+            await snap('00-public-home', 'Начать запись');
+
+            await clickText('Войти');
+            await snap('01-auth-phone', 'Получить код');
+            await page.getByLabel('Номер телефона').fill('+79991234567');
+            await clickText('Получить код');
+            await snap('02-auth-otp', 'Введите код');
+            await page.getByLabel('Код из сообщения').fill('246810');
+            await clickText('Подтвердить');
+            await page.locator('[aria-label="Личный кабинет"]').waitFor({ state: 'visible', timeout: 20000 });
+            await snap('03-home-authenticated');
+
+            await clickText('Записаться');
+            await snap('04-booking-pet', 'Кого записываем?');
+            await clickText('Demo Pet');
+            await clickText('Продолжить');
+            await snap('05-booking-clinics', 'Выберите клинику');
+            await clickText('Открыть клинику');
+            await snap('06-booking-service', 'Что нужно питомцу?');
+            await page.getByRole('radiogroup', { name: 'Выбор услуги' }).getByRole('radio').first().click();
+            await clickText('Продолжить');
+            await snap('07-booking-time', 'Выберите время');
+            await page.getByRole('radiogroup', { name: 'Выбор доступного времени' }).getByRole('radio').first().click();
+            await snap('08-booking-time-selected', 'Выбрано:');
+            await clickText('Продолжить');
+            await snap('09-booking-review', 'Проверьте заявку');
+            await clickText('Отправить заявку');
+            await snap('10-booking-submitted', 'Ожидает подтверждения клиникой');
+
+            await page.reload({ waitUntil: 'domcontentloaded' });
+            await page.locator('[aria-label="Личный кабинет"]').waitFor({ state: 'visible', timeout: 20000 });
+            await snap('11-home-after-booking');
+            await clickText('Дневник');
+            await snap('12-diary-pet', 'Чей дневник открыть?');
+            await clickText('Demo Pet');
+            await clickText('Продолжить');
+            await snap('13-diary', 'Дневник: Demo Pet');
+            report.result = 'PASS';
+          } catch (error) {
+            report.result = 'FAIL';
+            report.error = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+            try { await page.screenshot({ path: path.join(out, '99-failure.png'), fullPage: true }); } catch {}
+            try { fs.writeFileSync(path.join(out, '99-failure.txt'), await page.locator('body').innerText()); } catch {}
+            throw error;
+          } finally {
+            fs.writeFileSync(path.join(out, 'report.json'), JSON.stringify(report, null, 2));
+            await browser.close();
+          }
+          NODE
+          node /tmp/owner-visual-walk.mjs
+
+      - name: Collect runtime diagnostics
+        if: always()
+        run: |
+          mkdir -p visual-evidence-9139bb8/diagnostics
+          cp /tmp/owner-web.log visual-evidence-9139bb8/diagnostics/owner-web.log 2>/dev/null || true
+          docker compose -f docker-compose.local.yml ps > visual-evidence-9139bb8/diagnostics/compose-ps.txt 2>&1 || true
+          docker compose -f docker-compose.local.yml logs --tail=300 backend > visual-evidence-9139bb8/diagnostics/backend.log 2>&1 || true
+
+      - name: Upload exact visual evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: owner-app-${{ inputs.profile }}-${{ inputs.platform }}-build
-          path: apps/owner-app/eas-build.json
-          retention-days: 30
+          name: owner-exact-9139bb8-visual-evidence
+          path: visual-evidence-9139bb8
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Cleanup
+        if: always()
+        run: docker compose -f docker-compose.local.yml down -v --remove-orphans || true
