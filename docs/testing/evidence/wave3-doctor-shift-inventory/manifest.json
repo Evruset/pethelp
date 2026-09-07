@@ -1,0 +1,619 @@
+{
+  "schemaVersion": 1,
+  "wave": "WAVE_3_DOCTORSHIFT_INVENTORY",
+  "renderer": "Clinic Portal production Next.js build; Playwright Chromium",
+  "browser": {
+    "name": "chromium",
+    "version": "149.0.7827.55"
+  },
+  "physicalDevice": false,
+  "states": [
+    "vis-01-empty",
+    "vis-02-doctor-selected",
+    "vis-03-draft-shift",
+    "vis-04-shift-editor",
+    "vis-05-generated-preview",
+    "vis-06-published-inventory",
+    "vis-07-blocked-inventory",
+    "vis-08-held-slot",
+    "vis-09-booked-slot",
+    "vis-10-stale-conflict",
+    "vis-11-technical-degraded",
+    "vis-12-read-only-role"
+  ],
+  "viewports": [
+    {
+      "width": 390,
+      "height": 844
+    },
+    {
+      "width": 430,
+      "height": 932
+    },
+    {
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "width": 1440,
+      "height": 900
+    }
+  ],
+  "runtimeBuild": {
+    "buildId": "M0l1goFcwmW2BlJmnNGdw",
+    "sha256": "98415fb9cdd4748d72ef41611ed91f4856d5a270cfd14d6bc97134a2bc9580f6"
+  },
+  "runtimeHash": "580fa38bd9d2805ebffd592369bae6256af3612176a6fde001c68d2e10bba1be",
+  "v50Sources": {
+    "prototype-v50/index.html": "81d5effec9805021f9ad5c74d93519903ec6624895bacfe9282ad185a3c270c9",
+    "prototype-v50/manifest.json": "baed55f816f098f5e5772761176029260b2a0c01f41781ebe3659820eba15d41"
+  },
+  "v50SourceHash": "a06f7fc9dff89ec9af91f72e358878859d05225459f3fdebe15dd73d064458d7",
+  "captureScript": {
+    "file": "apps/clinic-portal/tests/e2e/clinic-schedule-admin.spec.ts",
+    "sha256": "a2a6ad186320fda751d8d9e67c3c091fa4dd50fe8b2956bd227a1213b2203f6a"
+  },
+  "captureRun": {
+    "file": "capture-run.json",
+    "sha256": "9e97d4b3f4a1d3281fe8555c53d0e171b3eab3c6507c034158658aca3bcff2e3",
+    "completedAt": "2026-08-28T15:26:58.152Z"
+  },
+  "sources": {
+    "apps/clinic-portal/app/(clinic)/clinics/[clinicId]/locations/[locationId]/schedule/page.tsx": "5f80fc2f8a13bb5297bac16fd431529ebdb1c2898163cf37584b63f128fb4c7f",
+    "apps/clinic-portal/components/schedule/ClinicScheduleClient.tsx": "d05366d3cfc5c627d155cf966ccd9ef567290bea98e40a45dbd8d007eb70503b",
+    "apps/clinic-portal/components/schedule/DoctorShiftPanel.tsx": "6824c4c52f687ae0ef1a59032bc1fa32bc6cae6851e377ad3fe1d5a0032b3aa7",
+    "apps/clinic-portal/lib/api/clinic-schedule.ts": "76b5ad903c52f001c7876c7834b7a39f7b8a241af19a59497ff4c8c4da696c1d"
+  },
+  "checks": {
+    "horizontalOverflow": "PASS_60_OF_60",
+    "axeSeriousCritical": "PASS_12_OF_12",
+    "semanticStates": "PASS_12_OF_12",
+    "machineIntegrity": "RUN_VERIFIER"
+  },
+  "artifacts": [
+    {
+      "state": "vis-01-empty",
+      "viewport": "390x844",
+      "file": "vis-01-empty-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "0b06a00d1752f8df6bb56f035ba395b084704b378c71aba38c4c1b81f5a26d9c",
+      "bytes": 75296
+    },
+    {
+      "state": "vis-01-empty",
+      "viewport": "430x932",
+      "file": "vis-01-empty-430x932.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "d215b7b0b09a84df9e63d20b6babc33ad5eaf6c0a7be76c1363c5aa60a1a724d",
+      "bytes": 81694
+    },
+    {
+      "state": "vis-01-empty",
+      "viewport": "768x1024",
+      "file": "vis-01-empty-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "sha256": "8b611da5f64761f235f3706f961bbccd5275f313e4ad0f6fddd40e0008e411ab",
+      "bytes": 127988
+    },
+    {
+      "state": "vis-01-empty",
+      "viewport": "1024x768",
+      "file": "vis-01-empty-1024x768.png",
+      "width": 1024,
+      "height": 768,
+      "sha256": "e54fcf201f195f0a29081409dc5c1480abe1d3fa77ebb0eca550525cc5e56223",
+      "bytes": 114502
+    },
+    {
+      "state": "vis-01-empty",
+      "viewport": "1440x900",
+      "file": "vis-01-empty-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "94bf030b2730e8458514537a7b8175474e0bda83637de1884526a75ae00a49fb",
+      "bytes": 145978
+    },
+    {
+      "state": "vis-02-doctor-selected",
+      "viewport": "390x844",
+      "file": "vis-02-doctor-selected-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "c59a42c7e4021cff1e62a444ea17275332964cb4eafe8ab257746e81e50418cc",
+      "bytes": 71254
+    },
+    {
+      "state": "vis-02-doctor-selected",
+      "viewport": "430x932",
+      "file": "vis-02-doctor-selected-430x932.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "c9f112dc3c4842e44a4a4a55a7e0cb31156b8ce8e7bd30b23922ad2136d6b634",
+      "bytes": 77315
+    },
+    {
+      "state": "vis-02-doctor-selected",
+      "viewport": "768x1024",
+      "file": "vis-02-doctor-selected-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "sha256": "cc2da426b98d13339efe97544bed1617f2545ea0f7aa845febcb62a1fd7a83a6",
+      "bytes": 129521
+    },
+    {
+      "state": "vis-02-doctor-selected",
+      "viewport": "1024x768",
+      "file": "vis-02-doctor-selected-1024x768.png",
+      "width": 1024,
+      "height": 768,
+      "sha256": "fb219d49ca7c535e0c86fbc46defe275291056138f8949113effb219cbf3d2ad",
+      "bytes": 116226
+    },
+    {
+      "state": "vis-02-doctor-selected",
+      "viewport": "1440x900",
+      "file": "vis-02-doctor-selected-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "359d349dbf78a05a015f0d2e713f80ce0eeec3ab833e78d162b269b4855e64a1",
+      "bytes": 151273
+    },
+    {
+      "state": "vis-03-draft-shift",
+      "viewport": "390x844",
+      "file": "vis-03-draft-shift-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "40e1ae368913b5b4d7cf12070f05feb54ab9525d11e75bbf402657b2bafffa4d",
+      "bytes": 66439
+    },
+    {
+      "state": "vis-03-draft-shift",
+      "viewport": "430x932",
+      "file": "vis-03-draft-shift-430x932.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "c131ce03bdddea6d41bbfe1a8ae3a58d02d072d8c57d59e67bad9f190ef0dca3",
+      "bytes": 72036
+    },
+    {
+      "state": "vis-03-draft-shift",
+      "viewport": "768x1024",
+      "file": "vis-03-draft-shift-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "sha256": "657c346dd6b5a876ac2d4cdfa861cba93612f07a3a88dabacd0e1129edee590f",
+      "bytes": 125432
+    },
+    {
+      "state": "vis-03-draft-shift",
+      "viewport": "1024x768",
+      "file": "vis-03-draft-shift-1024x768.png",
+      "width": 1024,
+      "height": 768,
+      "sha256": "4006e5dfa2e216fb4cea4e4b1890d07666bfa29faab9889ff282205e3f906c00",
+      "bytes": 115472
+    },
+    {
+      "state": "vis-03-draft-shift",
+      "viewport": "1440x900",
+      "file": "vis-03-draft-shift-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "b24296a777a5f128c872cadeba036bee7376d5e6e2dc1a7d5294623bfd96eefe",
+      "bytes": 146985
+    },
+    {
+      "state": "vis-04-shift-editor",
+      "viewport": "390x844",
+      "file": "vis-04-shift-editor-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "25f580d24ac52b90532935283ec3f10c85c6dad1ee7a2d23496a5b44eeab752c",
+      "bytes": 70739
+    },
+    {
+      "state": "vis-04-shift-editor",
+      "viewport": "430x932",
+      "file": "vis-04-shift-editor-430x932.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "43f02a88f4212abf3fbaaebac3108b0eb35e0f3ba2bb05e53cdf5ce14b34a598",
+      "bytes": 76185
+    },
+    {
+      "state": "vis-04-shift-editor",
+      "viewport": "768x1024",
+      "file": "vis-04-shift-editor-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "sha256": "faa1fd3c05cdbd3331b3e04e85895552695e375073261939ce71ebf0b36e18ef",
+      "bytes": 128777
+    },
+    {
+      "state": "vis-04-shift-editor",
+      "viewport": "1024x768",
+      "file": "vis-04-shift-editor-1024x768.png",
+      "width": 1024,
+      "height": 768,
+      "sha256": "309ef4c8a62352b807c9bcf3ef214b423383910f2a6dd3d9d33db280e94b5f8f",
+      "bytes": 109232
+    },
+    {
+      "state": "vis-04-shift-editor",
+      "viewport": "1440x900",
+      "file": "vis-04-shift-editor-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "c19dafb38e044cc5e38dcc1afdb2df888573c44becd65cb260a2b25a3fea0c2a",
+      "bytes": 147353
+    },
+    {
+      "state": "vis-05-generated-preview",
+      "viewport": "390x844",
+      "file": "vis-05-generated-preview-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "6abaec68891ccb60f8716cb20eaa11fe2383b4bbd6eadaf0b6faa741a2d7d3d8",
+      "bytes": 61848
+    },
+    {
+      "state": "vis-05-generated-preview",
+      "viewport": "430x932",
+      "file": "vis-05-generated-preview-430x932.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "549a98ba5930853ee7a7ccb13d0873f0c57ae7622f52010c534503a44946c091",
+      "bytes": 75065
+    },
+    {
+      "state": "vis-05-generated-preview",
+      "viewport": "768x1024",
+      "file": "vis-05-generated-preview-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "sha256": "b0f9bacaf59ede73e250c58529a2b56937f2257278bfa5acb20701f098b48f59",
+      "bytes": 129887
+    },
+    {
+      "state": "vis-05-generated-preview",
+      "viewport": "1024x768",
+      "file": "vis-05-generated-preview-1024x768.png",
+      "width": 1024,
+      "height": 768,
+      "sha256": "b397b277a8cea0d4cc862064ac7eb612065e0878c7fabc3d5c1080b273a52e63",
+      "bytes": 109888
+    },
+    {
+      "state": "vis-05-generated-preview",
+      "viewport": "1440x900",
+      "file": "vis-05-generated-preview-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "1e7e99fd80fc735f28f3cc1770d4edebe68d61ded997e0d1076e8067f599e3fb",
+      "bytes": 152203
+    },
+    {
+      "state": "vis-06-published-inventory",
+      "viewport": "390x844",
+      "file": "vis-06-published-inventory-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "dc8e218140323268f029be9dd00c2d3ed97cc93ec153b9d52c1fa43ec2c829bb",
+      "bytes": 60491
+    },
+    {
+      "state": "vis-06-published-inventory",
+      "viewport": "430x932",
+      "file": "vis-06-published-inventory-430x932.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "ba3bf10622ba4c221183634554e60a980a052151c8c978b77c7e1e646df432b0",
+      "bytes": 73655
+    },
+    {
+      "state": "vis-06-published-inventory",
+      "viewport": "768x1024",
+      "file": "vis-06-published-inventory-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "sha256": "f71d6a586ee9310d61d97d0e9d17e0499b9a239107ceaff2f78ca8f19863c3d8",
+      "bytes": 130439
+    },
+    {
+      "state": "vis-06-published-inventory",
+      "viewport": "1024x768",
+      "file": "vis-06-published-inventory-1024x768.png",
+      "width": 1024,
+      "height": 768,
+      "sha256": "adaf7f5a6031b9e6a7b1524c420474c8a7bb4bced86e4cf6c9b86e77d9b65475",
+      "bytes": 110875
+    },
+    {
+      "state": "vis-06-published-inventory",
+      "viewport": "1440x900",
+      "file": "vis-06-published-inventory-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "1da459b896b13d99347b9e3cd626e00a4d0e623a91d257c9be56c50b3f0e7f82",
+      "bytes": 153484
+    },
+    {
+      "state": "vis-07-blocked-inventory",
+      "viewport": "390x844",
+      "file": "vis-07-blocked-inventory-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "5a649c53ed122ed764e9e987eb78571df9a74679771c9e2d8b79cafaa05bab67",
+      "bytes": 63509
+    },
+    {
+      "state": "vis-07-blocked-inventory",
+      "viewport": "430x932",
+      "file": "vis-07-blocked-inventory-430x932.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "aa6b12a50040b1ef08a4dcd1345a967cf5e94ecdc775c52b7c3511887180dceb",
+      "bytes": 74600
+    },
+    {
+      "state": "vis-07-blocked-inventory",
+      "viewport": "768x1024",
+      "file": "vis-07-blocked-inventory-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "sha256": "d9f21eb837868ec1c1461c3ec786f4c9e8cc91f38d0260df9d3b5eaae81c11c5",
+      "bytes": 127481
+    },
+    {
+      "state": "vis-07-blocked-inventory",
+      "viewport": "1024x768",
+      "file": "vis-07-blocked-inventory-1024x768.png",
+      "width": 1024,
+      "height": 768,
+      "sha256": "d2b49f33f6c8a04d98db6b6858d61bc200aae92a7eea469473d330ce08f28852",
+      "bytes": 109568
+    },
+    {
+      "state": "vis-07-blocked-inventory",
+      "viewport": "1440x900",
+      "file": "vis-07-blocked-inventory-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "cd69049fef18fa8e09fbb8fc60fc6dafa3b5fd13525c9c73d0ac547122dcd1b9",
+      "bytes": 150487
+    },
+    {
+      "state": "vis-08-held-slot",
+      "viewport": "390x844",
+      "file": "vis-08-held-slot-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "95cc4387522d0b1b9758d3a062b086dfdae90f8acb218ddebe16965e09ccfb33",
+      "bytes": 64770
+    },
+    {
+      "state": "vis-08-held-slot",
+      "viewport": "430x932",
+      "file": "vis-08-held-slot-430x932.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "7b5a494c837542d6e2aaf1b145559c2f5d99ea7feac01b302cf487351a1fff30",
+      "bytes": 78525
+    },
+    {
+      "state": "vis-08-held-slot",
+      "viewport": "768x1024",
+      "file": "vis-08-held-slot-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "sha256": "6a15cff4ffa839e94f6892681d4d55f98568444307262832eacf6bd6b7ed98df",
+      "bytes": 136474
+    },
+    {
+      "state": "vis-08-held-slot",
+      "viewport": "1024x768",
+      "file": "vis-08-held-slot-1024x768.png",
+      "width": 1024,
+      "height": 768,
+      "sha256": "62b036fcdc4ac7be0ab69b4a3f276abd2c56d2bf447c3ef0f77501cef341183a",
+      "bytes": 103258
+    },
+    {
+      "state": "vis-08-held-slot",
+      "viewport": "1440x900",
+      "file": "vis-08-held-slot-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "a8eee05cb1ec58bafad95a4e3719e3308b10edbafcacc54bce4f7f272c15be85",
+      "bytes": 145851
+    },
+    {
+      "state": "vis-09-booked-slot",
+      "viewport": "390x844",
+      "file": "vis-09-booked-slot-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "3406b1a628d0429102a3629cb7eb77da214870f08485af789f5215437c988bf5",
+      "bytes": 63797
+    },
+    {
+      "state": "vis-09-booked-slot",
+      "viewport": "430x932",
+      "file": "vis-09-booked-slot-430x932.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "087b8144231b60334127319ea560199b1549a0320b7a0cbd9c0f965fcf6334b8",
+      "bytes": 78103
+    },
+    {
+      "state": "vis-09-booked-slot",
+      "viewport": "768x1024",
+      "file": "vis-09-booked-slot-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "sha256": "6c6ca6bdb257f0e995210acb4b5ca397d266a1da0640e6ae0c315252ce0e70ff",
+      "bytes": 135490
+    },
+    {
+      "state": "vis-09-booked-slot",
+      "viewport": "1024x768",
+      "file": "vis-09-booked-slot-1024x768.png",
+      "width": 1024,
+      "height": 768,
+      "sha256": "1846d4644cf2f02a288a174e40446b0cff46aaf23a57a41615e2421d0f1bf0ec",
+      "bytes": 104277
+    },
+    {
+      "state": "vis-09-booked-slot",
+      "viewport": "1440x900",
+      "file": "vis-09-booked-slot-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "dca0982276a8fae1e5b56a068a131d8e9a47f52aeabd50fef09ebd6636c1512f",
+      "bytes": 144619
+    },
+    {
+      "state": "vis-10-stale-conflict",
+      "viewport": "390x844",
+      "file": "vis-10-stale-conflict-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "ab9629e7b33ad7b997c9d32a15e70a691d0a544aeacd108f4c57fbf80fc14048",
+      "bytes": 74139
+    },
+    {
+      "state": "vis-10-stale-conflict",
+      "viewport": "430x932",
+      "file": "vis-10-stale-conflict-430x932.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "206aeb0db06a3d53cf7073e5bd151fe5bc552bc141ac20930abe129f8627add6",
+      "bytes": 82081
+    },
+    {
+      "state": "vis-10-stale-conflict",
+      "viewport": "768x1024",
+      "file": "vis-10-stale-conflict-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "sha256": "74cd47e2c3523cf0dc3d9bffabf4f89645da2c03cc24ece42699319ceed92b6e",
+      "bytes": 132436
+    },
+    {
+      "state": "vis-10-stale-conflict",
+      "viewport": "1024x768",
+      "file": "vis-10-stale-conflict-1024x768.png",
+      "width": 1024,
+      "height": 768,
+      "sha256": "1a3ac429b869048b486f1ea66f6b99a9f29a43778e7c3f398a4934d6eff261a8",
+      "bytes": 113061
+    },
+    {
+      "state": "vis-10-stale-conflict",
+      "viewport": "1440x900",
+      "file": "vis-10-stale-conflict-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "4b70ce3e7e309c250a9a4ff6dcf5c2f604fb9e5afe6622c6b2c968be2074b56b",
+      "bytes": 150171
+    },
+    {
+      "state": "vis-11-technical-degraded",
+      "viewport": "390x844",
+      "file": "vis-11-technical-degraded-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "13bc936e3a1ba3e9a9472a969170f3437fad4478ffb25cab0ca32112e5e2cdb5",
+      "bytes": 76626
+    },
+    {
+      "state": "vis-11-technical-degraded",
+      "viewport": "430x932",
+      "file": "vis-11-technical-degraded-430x932.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "8d748f5e6efaf1d4eadd4d996ec9ac32b26b061195d662f94f96d93e58bf6cee",
+      "bytes": 79367
+    },
+    {
+      "state": "vis-11-technical-degraded",
+      "viewport": "768x1024",
+      "file": "vis-11-technical-degraded-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "sha256": "ba80360faafa7eae50d99b37fea92fdc69e6b4131fa60dce0611ed1dcfa17a7b",
+      "bytes": 123733
+    },
+    {
+      "state": "vis-11-technical-degraded",
+      "viewport": "1024x768",
+      "file": "vis-11-technical-degraded-1024x768.png",
+      "width": 1024,
+      "height": 768,
+      "sha256": "5f25aea51a2b3ddf4c363f10ea3afea149319d7efa885322d4f9cbf8afa1850d",
+      "bytes": 119748
+    },
+    {
+      "state": "vis-11-technical-degraded",
+      "viewport": "1440x900",
+      "file": "vis-11-technical-degraded-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "43247b8aa4db0ef0c53199504ad418905763b2fdd62706e9d7a2d06f4cbed5a8",
+      "bytes": 146724
+    },
+    {
+      "state": "vis-12-read-only-role",
+      "viewport": "390x844",
+      "file": "vis-12-read-only-role-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "85a2a31179af82d6f297995ddd63a296b9e3b767e47e9601ddccb652b6c4e4ec",
+      "bytes": 79391
+    },
+    {
+      "state": "vis-12-read-only-role",
+      "viewport": "430x932",
+      "file": "vis-12-read-only-role-430x932.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "8a7d25e8d48f606c98de309031896367af50ff0ce41a851c1beb62dec8356941",
+      "bytes": 85329
+    },
+    {
+      "state": "vis-12-read-only-role",
+      "viewport": "768x1024",
+      "file": "vis-12-read-only-role-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "sha256": "a3c19e0518eb99176841dbd8ec82185b53a5e9e75e857e45f5475a6fc7e95f68",
+      "bytes": 128743
+    },
+    {
+      "state": "vis-12-read-only-role",
+      "viewport": "1024x768",
+      "file": "vis-12-read-only-role-1024x768.png",
+      "width": 1024,
+      "height": 768,
+      "sha256": "1e8526a0d9f4d8a6df60b83b64ac653357064b350a94482c48077892bc1c5827",
+      "bytes": 115458
+    },
+    {
+      "state": "vis-12-read-only-role",
+      "viewport": "1440x900",
+      "file": "vis-12-read-only-role-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "7571ce9146556048573d28100d3e625bb79dc6c47891059b045913cf9b8f606c",
+      "bytes": 148515
+    }
+  ]
+}

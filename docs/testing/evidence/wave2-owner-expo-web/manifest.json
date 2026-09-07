@@ -1,0 +1,43 @@
+{
+  "label": "OWNER_EXPO_WEB_RUNTIME",
+  "capturedAt": "2026-08-27",
+  "baselineCommit": "e9b7b2fb8a9208fb76e0ba2003246a741f3a1c8b",
+  "runtime": "apps/owner-app Expo SDK 57 production server export",
+  "browser": "Playwright Chromium 1.61.1",
+  "stack": "PILOT_V1 Backend + PostgreSQL + Clinic Queue",
+  "sourceHashes": {
+    "apps/owner-app/src/ui/tokens.ts": "954472924bbf234169a2180b34b4a888f0b26ec819c76b4d9687de4284a142d7",
+    "apps/owner-app/src/booking/BookingStatusScreen.tsx": "c6850b50c835c78cca692c726b3fda23f8af27fa67b629dcc015e07c79ed8dd2",
+    "apps/owner-app/tests/e2e/owner-expo-web.real-stack.spec.ts": "f628a36d198ef3466061f2ad0d9ada29ee418fc7bb1eaa37ce9488bac9ec9dbe"
+  },
+  "v50SourceHashes": {
+    "prototype-v50/index.html": "81d5effec9805021f9ad5c74d93519903ec6624895bacfe9282ad185a3c270c9",
+    "prototype-v50/manifest.json": "baed55f816f098f5e5772761176029260b2a0c01f41781ebe3659820eba15d41"
+  },
+  "artifacts": {
+    "pending-390x844.png": "5f1f187f5fae5a32b7ee0996ba97b8e633773d24a04784632cda20734715c7d7",
+    "pending-430x932.png": "25c4720b0afb4aca8923b6470bd39ba3a10fc01e3e4de8876a6fb7575d4a5d65",
+    "pending-768x1024.png": "6a2c832faf6bb3e9a2244748f1e33812ebfcf63ffa6bd92d6c0badf0e8768dae",
+    "pending-1024x768.png": "e1454505c346cf80cfc4291b43bb55c064e2627482d02660d5923b377fdfdb7d",
+    "pending-1440x900.png": "39d305a1ed7eb28a63d3ed3250737f649bcde97dde698e9d5857c40bde395067",
+    "confirmed-1440x900.png": "419d3bf07323165967c8b3d3ebb28a99e071f5ce242a6b1673fd86b9f0761786",
+    "rejected-390x844.png": "760cbf481b9b25ccf2867a0998c134b3fe8c3e5f37f45ae39e6bee9b4fb51c48",
+    "expired-390x844.png": "9cc07cc45eb73aea35486aaed7c66f9f665fc765978047e241a7e9263970df97"
+  },
+  "gates": {
+    "horizontalOverflow": "PASS_5_OF_5",
+    "axeCriticalSerious": "PASS_ZERO_VIOLATIONS",
+    "visualClassification": "MACHINE_VISUAL_REVIEW_PASS",
+    "physicalDevice": false,
+    "deployment": false
+  },
+  "visualReview": {
+    "result": "PASS",
+    "scope": "MACHINE_REVIEW_NOT_HUMAN_PRODUCT_ACCEPTANCE",
+    "observations": [
+      "shared V50 Owner typography, spacing, rounded inset cards and restrained status palette are preserved",
+      "phone, tablet and desktop captures retain one Owner composition with bounded content width rather than a portal shell",
+      "pending, confirmed, rejected and expired states remain visually distinct without changing shared state copy"
+    ]
+  }
+}

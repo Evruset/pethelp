@@ -1,0 +1,172 @@
+{
+  "generatedAt": "2026-08-26T12:51:38.507Z",
+  "renderer": "OWNER_WEB_NEXT_PRODUCTION_BUILD",
+  "physicalDevice": false,
+  "nodeVersion": "v22.23.1",
+  "browserVersion": "151.0.7922.174",
+  "buildId": "RF9LkbmJZD7SSwXXGjx4M",
+  "sources": {
+    "apps/owner-web/app/globals.css": "f51536171b46dbe1df9f6b348e239b9c8a24aab54bbec936daec26b6963b3e61",
+    "apps/owner-web/components/AuthFlow.tsx": "2e380dcd8de52fb10e116b9f088b88a4d26d5e85504aac8440a8f01e7e7ac5ff",
+    "apps/owner-web/components/Journey.tsx": "fb841b694db0c39538ebceae18ba7fb62c097eac2179b47f59f96219fa33128c",
+    "apps/owner-web/lib/bff.ts": "d5c625b6a069434bec736ee226c8c0aa0a8eedb7ae4837e75af3cf07571df9cd",
+    "scripts/visual/capture-wave2-owner-web.mjs": "47ee377b709f1a895d413a0c63ec6a3e97b264586980067c31f3d6083f63579f",
+    "prototype-v50/index.html": "81d5effec9805021f9ad5c74d93519903ec6624895bacfe9282ad185a3c270c9",
+    "prototype-v50/manifest.json": "baed55f816f098f5e5772761176029260b2a0c01f41781ebe3659820eba15d41"
+  },
+  "cases": [
+    {
+      "name": "OW-VIS-01-landing",
+      "file": "OW-VIS-01-landing-390x844.png",
+      "width": 390,
+      "height": 844,
+      "state": "OW-VIS-01-landing",
+      "classification": "CONTROLLED_SEAM",
+      "sha256": "1a1d5e1902b5f76388f8e8d0b8be5b859ab35a5a57be90420910fc14c1c470a9"
+    },
+    {
+      "name": "OW-VIS-02-phone",
+      "file": "OW-VIS-02-phone-430x932.png",
+      "width": 430,
+      "height": 932,
+      "state": "OW-VIS-02-phone",
+      "classification": "CONTROLLED_SEAM",
+      "sha256": "c0479c624be62ad95422b33a05e2187d8dff1ebc7034e09c505ebbe4e17df273"
+    },
+    {
+      "name": "OW-VIS-03-otp",
+      "file": "OW-VIS-03-otp-390x844.png",
+      "width": 390,
+      "height": 844,
+      "state": "otp",
+      "classification": "CONTROLLED_SEAM",
+      "sha256": "f964c877934e658db239b9d3c855e0faa7ac1d5126be5fdbcb1b0a91fbbaecb0"
+    },
+    {
+      "name": "OW-VIS-04-pet-selection",
+      "file": "OW-VIS-04-pet-selection-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "state": "OW-VIS-04-pet-selection",
+      "classification": "CONTROLLED_SEAM",
+      "sha256": "f89c989bb18806cc3aaad733602dfba5b930ff99ded26be885cc813525200426"
+    },
+    {
+      "name": "OW-VIS-05-clinic-catalog",
+      "file": "OW-VIS-05-clinic-catalog-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "state": "OW-VIS-05-clinic-catalog",
+      "classification": "CONTROLLED_SEAM",
+      "sha256": "e4cac5832286939ce42c71cb57530e0a661abf09705481049e3bf21521f00419"
+    },
+    {
+      "name": "OW-VIS-06-clinic-service",
+      "file": "OW-VIS-06-clinic-service-1024x768.png",
+      "width": 1024,
+      "height": 768,
+      "state": "OW-VIS-06-clinic-service",
+      "classification": "CONTROLLED_SEAM",
+      "sha256": "9d6feeab1deafeb7814a59b765fd91e6a551d33247392891cc86fbfd6f1200e8"
+    },
+    {
+      "name": "OW-VIS-07-availability",
+      "file": "OW-VIS-07-availability-430x932.png",
+      "width": 430,
+      "height": 932,
+      "state": "OW-VIS-07-availability",
+      "classification": "CONTROLLED_SEAM",
+      "sha256": "9c361cb4cb8960677d3d4d872fb63a8963179c87c4f9c75028619b451365a349"
+    },
+    {
+      "name": "OW-VIS-08-booking-review",
+      "file": "OW-VIS-08-booking-review-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "state": "OW-VIS-08-booking-review",
+      "classification": "CONTROLLED_SEAM",
+      "sha256": "7865a5e38b12a4d9f994ca67b918fed43a8d026d6a41d71b2c7e1dc325b514a4"
+    },
+    {
+      "name": "OW-VIS-09-pending-normal",
+      "file": "OW-VIS-09-pending-normal-390x844.png",
+      "width": 390,
+      "height": 844,
+      "state": "OW-VIS-09-pending-normal",
+      "classification": "CONTROLLED_SEAM",
+      "sha256": "840cf3cdd944da4e233d4ee68ebf97ad12d9c906fe7163f42d7b78696b5c86b7"
+    },
+    {
+      "name": "OW-VIS-10-pending-urgent",
+      "file": "OW-VIS-10-pending-urgent-430x932.png",
+      "width": 430,
+      "height": 932,
+      "state": "OW-VIS-10-pending-urgent",
+      "classification": "CONTROLLED_SEAM",
+      "sha256": "f745be211873afdcce48eaf046da4b2b4eadd5cf151abfec2e5d9d00ba8b2cfe"
+    },
+    {
+      "name": "OW-VIS-11-confirmed",
+      "file": "OW-VIS-11-confirmed-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "state": "OW-VIS-11-confirmed",
+      "classification": "CONTROLLED_SEAM",
+      "sha256": "c96b499f10270d52b98f66ca6c7f908b5c82211bb121e73f4024bba5916c75d2"
+    },
+    {
+      "name": "OW-VIS-12-rejected",
+      "file": "OW-VIS-12-rejected-1024x768.png",
+      "width": 1024,
+      "height": 768,
+      "state": "OW-VIS-12-rejected",
+      "classification": "CONTROLLED_SEAM",
+      "sha256": "fcd4c1ccd719d317cafc66a2bf524d0f305c4f08dba45aaaa4cb9f1d7c6d755f"
+    },
+    {
+      "name": "OW-VIS-13-expired",
+      "file": "OW-VIS-13-expired-390x844.png",
+      "width": 390,
+      "height": 844,
+      "state": "OW-VIS-13-expired",
+      "classification": "CONTROLLED_SEAM",
+      "sha256": "893747699050ae4a23b8ff26abecb2c2ea38de05f5f32390078fac261b137b2d"
+    },
+    {
+      "name": "OW-VIS-14-technical-error",
+      "file": "OW-VIS-14-technical-error-390x844.png",
+      "width": 390,
+      "height": 844,
+      "state": "technical-error",
+      "classification": "CONTROLLED_SEAM",
+      "sha256": "be94685beb2362aca234ab941a222e884be23ead08ab3f2b0cbc00776e13e2a1"
+    },
+    {
+      "name": "OW-VIS-15-session-expired",
+      "file": "OW-VIS-15-session-expired-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "state": "OW-VIS-15-session-expired",
+      "classification": "CONTROLLED_SEAM",
+      "sha256": "5ddcaf4eb016f4da0a6deaf0c8157d4a5a2120b21bc4ac036a6fb59ba19e11fb"
+    }
+  ],
+  "references": [
+    {
+      "name": "current-v50-owner-home",
+      "file": "v50-current-owner-home-390x844.png",
+      "width": 390,
+      "height": 844,
+      "source": "prototype-v50/index.html",
+      "sha256": "6d277c5ce73c5d95227d0e66175bc91db02c8b31d91e3a07aadbbc76b2833c81"
+    }
+  ],
+  "verdicts": {
+    "hierarchy": "VISUAL_PASS_WITH_PRODUCT_ADAPTATION",
+    "typography": "VISUAL_PASS",
+    "spacing": "VISUAL_PASS",
+    "actionHierarchy": "VISUAL_PASS",
+    "responsive": "VISUAL_PASS",
+    "accessibility": "VISUAL_PASS"
+  }
+}

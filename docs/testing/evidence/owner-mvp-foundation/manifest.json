@@ -1,0 +1,86 @@
+{
+  "generatedAt": "2026-08-22T16:52:02.717Z",
+  "sources": {
+    "apps/owner-app/src/app/(public)/index.tsx": "5348dc37bf6ef204e7dd5bc23cc30d7ddc01ccb6ef9a79f12af2ae1ff10b895b",
+    "apps/owner-app/src/app/(app)/index.tsx": "f77c2b3caf59d016af9a025119f2b7e31791f8f52410f1a6b58bb192561d9797",
+    "apps/owner-app/src/pets/PetJourneyScreen.tsx": "48ad98ac29053ae0183c153a2e7e2cec04adf8f6f9b2f6b6172b586020fd43f9",
+    "apps/owner-app/src/clinics/ClinicCatalogScreen.tsx": "a76f2e7278c32b23a0210e4c77ebb1c1c74caaea8f2cdd286ff25bf616eb3a88",
+    "apps/owner-app/src/clinics/ClinicServiceScreen.tsx": "393a038ac726a4c8796669440297cb6adcf20800b2c1f762dfa1fdd221cf3dc7"
+  },
+  "renderer": "react-native-web production components; controlled local seams",
+  "physicalDevice": false,
+  "cases": [
+    {
+      "name": "01-welcome",
+      "state": "welcome",
+      "width": 390,
+      "height": 844,
+      "wait": "VetHelp",
+      "file": "01-welcome.png",
+      "sha256": "550d46cea5a9984b0f689668227b57fa9af5ca2cbed1485296718d57523d7648"
+    },
+    {
+      "name": "02-phone-login",
+      "state": "phone",
+      "width": 390,
+      "height": 844,
+      "wait": "Вход",
+      "file": "02-phone-login.png",
+      "sha256": "78ae2d8ed92b96aa0704a47f4ee2d4783cc9cdbc86f877391cd15513b4fa36a9"
+    },
+    {
+      "name": "03-otp",
+      "state": "otp",
+      "width": 390,
+      "height": 844,
+      "wait": "Введите код",
+      "file": "03-otp.png",
+      "sha256": "cb00bad1dc2184a20923c30e2e4bb754f763ae6794acf19b7f0d144547e1999d"
+    },
+    {
+      "name": "04-home",
+      "state": "home",
+      "width": 1440,
+      "height": 900,
+      "wait": "Начать запись",
+      "file": "04-home.png",
+      "sha256": "3811c990e09308983d3d7101e5f1e85e024fde3bd4392802e335c16e4b49732b"
+    },
+    {
+      "name": "05-pet-selection",
+      "state": "pet",
+      "width": 320,
+      "height": 568,
+      "wait": "Барсик",
+      "file": "05-pet-selection.png",
+      "sha256": "fd98413286a6bee2c6a507d7fa71c39f18289804a3691f135001529a647c2430"
+    },
+    {
+      "name": "06-clinic-catalog",
+      "state": "catalog",
+      "width": 768,
+      "height": 1024,
+      "wait": "Ветеринарный центр «Лапа»",
+      "file": "06-clinic-catalog.png",
+      "sha256": "5fa62d554dc17fe751d343f3c2f10334991b295efce1d657bdc7807e41e05cd7"
+    },
+    {
+      "name": "07-clinic-service",
+      "state": "service",
+      "width": 430,
+      "height": 932,
+      "wait": "Первичный приём",
+      "file": "07-clinic-service.png",
+      "sha256": "9aab01eb66f3347aed7c34dc1663e35e18269ad67e45af0bff5baaa0b2818882"
+    },
+    {
+      "name": "15-loading",
+      "state": "loading",
+      "width": 390,
+      "height": 844,
+      "wait": "Загружаем питомцев",
+      "file": "15-loading.png",
+      "sha256": "22a06709070367a0aa78c63cb14c6c38b98d056c6bf360d94bc570eea92b8f85"
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-08-22T16:52:36.342Z",
+  "source": "apps/owner-app/src/booking/BookingStatusScreen.tsx",
+  "sourceSha256": "e7af10d79abdec75213c518214b33cf79b008dfdd4c04ae7e819fe9c9d69565a",
+  "renderer": "react-native-web production component bundle; controlled session/API seams",
+  "physicalDevice": false,
+  "cases": [
+    {
+      "name": "compact-cancellable-pending",
+      "width": 375,
+      "height": 812,
+      "state": "pending",
+      "wait": "Отменить запись",
+      "file": "compact-cancellable-pending.png",
+      "sha256": "9c1586e89e1f7e180e3b9489dfdc5c85c7f226a5142c8afa30ce3ab70afa1cb2"
+    },
+    {
+      "name": "compact-confirmation",
+      "width": 375,
+      "height": 812,
+      "state": "dialog",
+      "wait": "Отменить запись?",
+      "file": "compact-confirmation.png",
+      "sha256": "7cefc3914467288e07be758cbfd0f7fd04b065de0cb3d2322df7ad67afc69171"
+    },
+    {
+      "name": "compact-submitting",
+      "width": 375,
+      "height": 812,
+      "state": "submitting",
+      "action": "submit",
+      "wait": "Проверяем результат отмены…",
+      "file": "compact-submitting.png",
+      "sha256": "6593c486aeb9de06c0b71629b991994481c02bf9f4ccf70d13ff0465d6cf7d66"
+    },
+    {
+      "name": "compact-cancelled",
+      "width": 375,
+      "height": 812,
+      "state": "cancelled",
+      "wait": "Запись отменена",
+      "file": "compact-cancelled.png",
+      "sha256": "2e086a3562a2a3fc8406a77868c0233903a23b2b26ade56e21315489ec972661"
+    },
+    {
+      "name": "wide-stale-conflict",
+      "width": 1024,
+      "height": 768,
+      "state": "conflict",
+      "action": "submit",
+      "wait": "Статус записи изменился. Мы показали последние данные — проверьте их перед новой попыткой.",
+      "file": "wide-stale-conflict.png",
+      "sha256": "25cb71b9fa98c9e21ba62911e46a1112c78550bab8733be632c1766243d3c2f4"
+    }
+  ]
+}

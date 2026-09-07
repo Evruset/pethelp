@@ -1,0 +1,187 @@
+{
+  "status": "PASS",
+  "generatedAt": "2026-08-29T10:45:41.710Z",
+  "browser": "149.0.7827.55",
+  "sources": {
+    "apps/owner-app/src/discovery/SpecialistDiscoveryScreen.tsx": "bb2107c000442d6e7394ab7c92dd31d8ba13e846bdde71234448cee697ab931f",
+    "apps/owner-app/src/discovery/DiscoveryMapSurface.tsx": "898de8e0bc65aa22fbb9a3013d517b90b80f38fa9cf64840be442234a1fee1ff",
+    "apps/owner-app/src/discovery/specialist-discovery-api.ts": "c561c291c039d8bd5903dc2ea1599ea5b8e54a9735a8a2973c3a767f96f165e9",
+    "apps/owner-app/src/clinics/ClinicServiceScreen.tsx": "42e1e1f337c566cb6cedd5bde73c371062ff57e0066f84039644e6d649f0efd3",
+    "apps/owner-app/src/clinics/AvailabilityScreen.tsx": "f0c8fc051e3fc1447d6eb207cb2d11d8cea6e25a9e08ed3db576af07250b7104",
+    "apps/owner-app/src/booking/BookingReviewScreen.tsx": "6611d755e0f9f2b711e5de5cca7a62dcc1aabed69159b7fdd930ba4f50276e20",
+    "apps/owner-app/src/ui/primitives.tsx": "7580069ee3d74a36eb79bb707c11c9859e44403cb52cb109c7aa62452d56bc80",
+    "apps/owner-app/tests/e2e/owner-expo-web.real-stack.spec.ts": "ef3e4668a52d3b109b0ec3231b15b6d7262ae72269bdbc5462392043196d1958"
+  },
+  "checks": {
+    "screenshots": 19,
+    "horizontalOverflow": 19,
+    "axeSeriousCritical": 19,
+    "keyboardFocus": {
+      "status": "PASS",
+      "targets": [
+        "specialty-selector",
+        "error-retry",
+        "map-pin",
+        "published-slot",
+        "booking-submit"
+      ]
+    }
+  },
+  "states": [
+    "specialty-entry",
+    "empty",
+    "service-entry",
+    "error-retry",
+    "discovery-loading",
+    "discovery-results-list",
+    "discovery-results-map",
+    "selected-map-pin",
+    "selected-doctor",
+    "stale-selection",
+    "location-without-coordinates-list-fallback",
+    "booking-handoff",
+    "pending-confirmation"
+  ],
+  "viewports": [
+    "390x844",
+    "768x1024",
+    "430x932",
+    "1440x900",
+    "1024x768"
+  ],
+  "cases": [
+    {
+      "state": "specialty-entry",
+      "file": "01-specialty-entry-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "05a39ac5e971e4965a3652e8e80e108cedb3ecb5b305628eab5458c4af11085b"
+    },
+    {
+      "state": "empty",
+      "file": "02-empty-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "sha256": "154f83ddea2c3fa424dccb555c681361f85e80375846f9f12195ddfa3964551d"
+    },
+    {
+      "state": "service-entry",
+      "file": "03-service-entry-430x932.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "36b2e8c8fbc787eac46f52dbdd7faba5a47197a2d276313800723fd3cc444595"
+    },
+    {
+      "state": "error-retry",
+      "file": "04-error-retry-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "e76448291651265e0f6cbf563b676b6c29ccc60bc8997b36d8d64c52250ad24b"
+    },
+    {
+      "state": "discovery-loading",
+      "file": "05-discovery-loading-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "d0a0466a32a9dba3c83efaaa35768caa1f0ce2d576241810885122c70200c746"
+    },
+    {
+      "state": "discovery-results-list",
+      "file": "06-discovery-results-list-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "sha256": "aaad56b08462911bc861303029fd4f3b1b9c5448d044d83a7ddc808cb8b3c209"
+    },
+    {
+      "state": "discovery-results-list",
+      "file": "07-discovery-results-list-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "ede20d3dcbe37fcb4045df746679e29b1c35b59e768f3a0c8a7b3f7787f11226"
+    },
+    {
+      "state": "discovery-results-list",
+      "file": "08-discovery-results-list-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "54eeb76cbfaae6a6938d936b7893df890ffe6c8c3c062e2e7c7672e4c4e5ac1f"
+    },
+    {
+      "state": "discovery-results-map",
+      "file": "09-discovery-results-map-430x932.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "2e3424ad328868ce38d17042797004bb70f0e21ac1482936c571b5638468cec8"
+    },
+    {
+      "state": "discovery-results-map",
+      "file": "10-discovery-results-map-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "sha256": "d42030cfaee6493552841618c88e6c4291dd1019e4db4cd0b8f53079e95ed9f2"
+    },
+    {
+      "state": "discovery-results-map",
+      "file": "11-discovery-results-map-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "44109d626cdecdbb7db7368931690c37e05a1cf916c577627dc4692796fce3af"
+    },
+    {
+      "state": "selected-map-pin",
+      "file": "12-selected-map-pin-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "648b8c416bdc497e4ba5291e66c22395642ba242e5589123a84ff800b040afbc"
+    },
+    {
+      "state": "selected-doctor",
+      "file": "13-selected-doctor-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "sha256": "d66adb99ecc09ff5a70f71b3ab859c60a2714d78e33e59caf450e6579dd8e64f"
+    },
+    {
+      "state": "stale-selection",
+      "file": "14-stale-selection-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "3433fbc2b3f26472156bd786008d6a00881b05d6081823abc5b65e57230ca38b"
+    },
+    {
+      "state": "location-without-coordinates-list-fallback",
+      "file": "15-location-without-coordinates-list-fallback-430x932.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "dbcba6f51b269099a2a2b0ec82675f1fb09a0c0a748b96b2f5d9f33652c4ac9d"
+    },
+    {
+      "state": "booking-handoff",
+      "file": "16-booking-handoff-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "2492befd366b2b539b57daf5eeee65e515a556e1daab8791d1f93f4ececfa095"
+    },
+    {
+      "state": "booking-handoff",
+      "file": "17-booking-handoff-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "sha256": "18894c5e6373f2c314b9111aea615302cb3421ebf5f9924c51368bfdb87e3d48"
+    },
+    {
+      "state": "booking-handoff",
+      "file": "18-booking-handoff-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "87ec02d70e1be563e48a2c11c711b5904c28ded72dd106317cdfedeb2ffcec9d"
+    },
+    {
+      "state": "pending-confirmation",
+      "file": "19-pending-confirmation-1024x768.png",
+      "width": 1024,
+      "height": 768,
+      "sha256": "f4a8ffa6c89160b04829189541943ba552e13d88f08455204661e8f4181b48d5"
+    }
+  ]
+}
