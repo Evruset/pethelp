@@ -1,6 +1,6 @@
 name: Owner R2F Code Gates
 
-# Temporary CI-only harness. Do not merge.
+# Temporary CI-only harness for latest visual-repair base. Do not merge.
 on:
   pull_request:
     paths:
