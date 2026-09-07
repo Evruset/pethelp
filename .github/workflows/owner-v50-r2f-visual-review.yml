@@ -39,7 +39,10 @@ jobs:
         env:
           VETHELP_ENV: test
           EXPO_PUBLIC_API_BASE_URL: https://api.visual.invalid
-        run: npx expo export --platform web
+        run: |
+          npx expo export --platform web
+          echo '--- dist route files ---'
+          find dist -maxdepth 2 -type f -print | sort
 
       - name: Install Chromium harness
         run: |
@@ -47,12 +50,29 @@ jobs:
           npm install --prefix /tmp/pw --no-save playwright@1.55.0
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
 
-      - name: Serve bundle
+      - name: Serve bundle with extensionless route rewrite
         working-directory: apps/owner-app
         run: |
-          python3 -m http.server 4173 -d dist >/tmp/owner-http.log 2>&1 &
+          cat >/tmp/owner-static-server.py <<'PY'
+          from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+          import os
+          from urllib.parse import urlsplit
+
+          os.chdir('dist')
+
+          class Handler(SimpleHTTPRequestHandler):
+              def do_GET(self):
+                  parsed = urlsplit(self.path)
+                  translated = self.translate_path(parsed.path)
+                  if not os.path.exists(translated) and os.path.isfile(translated + '.html'):
+                      self.path = parsed.path + '.html' + (('?' + parsed.query) if parsed.query else '')
+                  return super().do_GET()
+
+          ThreadingHTTPServer(('127.0.0.1', 4173), Handler).serve_forever()
+          PY
+          python3 /tmp/owner-static-server.py >/tmp/owner-http.log 2>&1 &
           for i in $(seq 1 30); do
-            curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0
+            curl -fsS 'http://127.0.0.1:4173/(app)' >/dev/null && exit 0
             sleep 1
           done
           cat /tmp/owner-http.log
