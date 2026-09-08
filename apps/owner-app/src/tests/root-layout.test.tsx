@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-require-imports, import/first -- Jest factory must load mocked runtime dependencies lazily. */
 import { render } from '@testing-library/react-native';
 
+jest.mock('react-native-safe-area-context',()=>{const React=require('react');return{SafeAreaProvider:({children}:{children:React.ReactNode})=>React.createElement(React.Fragment,null,children),SafeAreaView:({children}:{children:React.ReactNode})=>React.createElement(React.Fragment,null,children)};});
+
 jest.mock('expo-router', () => {
   const React = require('react');
   const { Text } = require('react-native');

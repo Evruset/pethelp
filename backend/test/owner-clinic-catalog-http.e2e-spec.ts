@@ -29,6 +29,19 @@ describe('Owner clinic catalog HTTP authority',()=>{
     expect(Object.keys(response.body).sort()).toEqual(['clinics','observedAt']);
     for(const item of response.body.clinics)expect(Object.keys(item).sort()).toEqual(['address','clinicId','locationId','name','phone']);
   });
+  it('protects, normalizes, and bounds specialist-first discovery without leaking protected identities',async()=>{
+    const path='/v1/owner/clinic-catalog/specialist-discovery?serviceCode=%20primary_exam%20&limit=7';
+    await request(app.getHttpServer()).get(path).expect(401);
+    const denied=await request(app.getHttpServer()).get(path).set('Authorization',`Bearer ${await token([Role.CLINIC_ADMIN])}`).expect(403);
+    expect(JSON.stringify(denied.body)).not.toMatch(/staffId|resourceId|generationRunId|doctorServiceId/i);
+    const response=await request(app.getHttpServer()).get(path).set('Authorization',`Bearer ${await token([Role.OWNER])}`).expect(200);
+    expect(response.body).toEqual(expect.objectContaining({limit:7,doctors:[]}));
+    expect(Object.keys(response.body).sort()).toEqual(['doctors','limit','observedAt']);
+    await request(app.getHttpServer()).get('/v1/owner/clinic-catalog/specialist-discovery').set('Authorization',`Bearer ${await token([Role.OWNER])}`).expect(400);
+    await request(app.getHttpServer()).get('/v1/owner/clinic-catalog/specialist-discovery?serviceCode=%24bad&limit=51').set('Authorization',`Bearer ${await token([Role.OWNER])}`).expect(400);
+    await request(app.getHttpServer()).get('/v1/owner/clinic-catalog/specialist-discovery?serviceCode=PRIMARY_EXAM&unexpected=true').set('Authorization',`Bearer ${await token([Role.OWNER])}`).expect(400);
+  });
+  it('protects the bounded specialist discovery options projection',async()=>{const path='/v1/owner/clinic-catalog/specialist-discovery/options';await request(app.getHttpServer()).get(path).expect(401);await request(app.getHttpServer()).get(path).set('Authorization',`Bearer ${await token([Role.CLINIC_ADMIN])}`).expect(403);const response=await request(app.getHttpServer()).get(path).set('Authorization',`Bearer ${await token([Role.OWNER])}`).expect(200);expect(Object.keys(response.body).sort()).toEqual(['observedAt','services','specialties']);expect(response.body.specialties.length).toBeLessThanOrEqual(100);expect(response.body.services.length).toBeLessThanOrEqual(100);});
   it('protects and validates the clinic service route with masked not-found',async()=>{
     const path='/v1/owner/clinic-catalog/11111111-1111-4111-8111-111111111111/locations/22222222-2222-4222-8222-222222222222';
     await request(app.getHttpServer()).get(path).expect(401);
@@ -41,7 +54,7 @@ describe('Owner clinic catalog HTTP authority',()=>{
     const db=app.get(DatabaseService),clinic=randomUUID(),location=randomUUID(),service=randomUUID();
     try{
       await db.query("INSERT INTO clinic_schema.clinics(id,legal_name,public_name,status) VALUES($1,'Legal','Public','ACTIVE')",[clinic]);
-      await db.query("INSERT INTO clinic_schema.clinic_locations(id,clinic_id,address,status) VALUES($1,$2,'Address','ACTIVE')",[location,clinic]);
+      await db.query("INSERT INTO clinic_schema.clinic_locations(id,clinic_id,address,status,timezone) VALUES($1,$2,'Address','ACTIVE','Europe/Moscow')",[location,clinic]);
       await db.query("INSERT INTO clinic_schema.clinic_services(id,clinic_location_id,code,display_name,duration_minutes,active,price_amount,currency) VALUES($1,$2,$3,'Осмотр',30,true,1250.00,'RUB')",[service,location,`S_${service.replaceAll('-','')}`]);
       const response=await request(app.getHttpServer()).get(`/v1/owner/clinic-catalog/${clinic}/locations/${location}`).set('Authorization',`Bearer ${await token([Role.OWNER])}`).expect(200);
       expect(Object.keys(response.body).sort()).toEqual(['address','clinicId','locationId','name','observedAt','phone','services']);
@@ -56,7 +69,7 @@ describe('Owner clinic catalog HTTP authority',()=>{
     const path=`/v1/owner/clinic-catalog/${clinic}/locations/${location}/services/${service}/availability`;
     try{
       await db.query("INSERT INTO clinic_schema.clinics(id,legal_name,public_name,status) VALUES($1,'Legal availability','Availability','ACTIVE')",[clinic]);
-      await db.query("INSERT INTO clinic_schema.clinic_locations(id,clinic_id,address,status) VALUES($1,$2,'Address','ACTIVE')",[location,clinic]);
+      await db.query("INSERT INTO clinic_schema.clinic_locations(id,clinic_id,address,status,timezone) VALUES($1,$2,'Address','ACTIVE','Europe/Moscow')",[location,clinic]);
       await db.query("INSERT INTO clinic_schema.clinic_services(id,clinic_location_id,code,display_name,duration_minutes,active,price_amount,currency) VALUES($1,$2,$3,'Осмотр',30,true,1250.00,'RUB')",[service,location,`S_${service.replaceAll('-','')}`]);
       await request(app.getHttpServer()).get(path).expect(401);await request(app.getHttpServer()).get(path).set('Authorization',`Bearer ${await token([Role.CLINIC_ADMIN])}`).expect(403);
       const response=await request(app.getHttpServer()).get(path).set('Authorization',`Bearer ${await token([Role.OWNER])}`).expect(200);expect(Object.keys(response.body).sort()).toEqual(['clinicName','horizonEndsAt','observedAt','serviceName','slots','timezone']);expect(response.body.slots).toEqual([]);
@@ -71,7 +84,7 @@ describe('Owner clinic catalog HTTP authority',()=>{
       await db.query('INSERT INTO identity_schema.users(id) VALUES($1::uuid) ON CONFLICT DO NOTHING',[owner]);
       await db.query("INSERT INTO pet_schema.pets(id,owner_id,name,species) VALUES($1,$2,'HTTP pet','DOG')",[pet,owner]);
       await db.query("INSERT INTO clinic_schema.clinics(id,legal_name,public_name,status) VALUES($1,'HTTP Legal','HTTP Clinic','ACTIVE')",[clinic]);
-      await db.query("INSERT INTO clinic_schema.clinic_locations(id,clinic_id,address,status) VALUES($1,$2,'HTTP address','ACTIVE')",[location,clinic]);
+      await db.query("INSERT INTO clinic_schema.clinic_locations(id,clinic_id,address,status,timezone) VALUES($1,$2,'HTTP address','ACTIVE','Europe/Moscow')",[location,clinic]);
       await db.query("INSERT INTO clinic_schema.clinic_services(id,clinic_location_id,code,display_name,duration_minutes,active) VALUES($1,$2,$3,'HTTP service',30,true)",[service,location,`S_${service.replaceAll('-','')}`]);
       await db.query("INSERT INTO clinic_schema.appointment_slots(id,clinic_location_id,service_id,starts_at,ends_at,capacity,integration_mode) VALUES($1,$2,$3,clock_timestamp()+interval '2 hours',clock_timestamp()+interval '150 minutes',1,'LEVEL_A')",[slot,location,service]);
       await request(app.getHttpServer()).post(path).set('Idempotency-Key',key).send(body).expect(401);

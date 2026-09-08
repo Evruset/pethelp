@@ -1,12 +1,13 @@
-import { Controller, Get, NotFoundException, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
+import { BadRequestException, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Query, UseGuards } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiBearerAuth, ApiForbiddenResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Role } from '../auth/auth.types';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
+import { featureFlags } from '../config/feature-flags.config';
 import { ApiErrorDto } from '../booking-core/dto/booking-openapi.dto';
 import { SWAGGER_BEARER_AUTH } from '../openapi/openapi';
-import { OwnerAvailabilityDto, OwnerClinicCatalogDto, OwnerClinicServiceCatalogDto } from './owner-clinic-catalog.dto';
+import { OwnerAvailabilityDto, OwnerClinicCatalogDto, OwnerClinicServiceCatalogDto, OwnerSpecialistDiscoveryDto, OwnerSpecialistDiscoveryOptionsDto, OwnerSpecialistDiscoveryQueryDto } from './owner-clinic-catalog.dto';
 import { PublicCatalogService } from './public-catalog.service';
 
 @ApiTags('Owner clinic catalog')
@@ -34,6 +35,37 @@ export class OwnerClinicCatalogController {
         phone: location.phone,
       })),
     };
+  }
+
+  @Get('specialist-discovery/options')
+  @ApiOkResponse({ type: OwnerSpecialistDiscoveryOptionsDto })
+  @ApiUnauthorizedResponse({ type: ApiErrorDto })
+  @ApiForbiddenResponse({ type: ApiErrorDto })
+  @ApiInternalServerErrorResponse({ type: ApiErrorDto })
+  async specialistDiscoveryOptions(): Promise<OwnerSpecialistDiscoveryOptionsDto> {
+    this.assertSpecialistProjectionEnabled();
+    return this.catalog.readOwnerSpecialistDiscoveryOptions();
+  }
+
+  @Get('specialist-discovery')
+  @ApiOkResponse({ type: OwnerSpecialistDiscoveryDto })
+  @ApiBadRequestResponse({ type: ApiErrorDto })
+  @ApiUnauthorizedResponse({ type: ApiErrorDto })
+  @ApiForbiddenResponse({ type: ApiErrorDto })
+  @ApiInternalServerErrorResponse({ type: ApiErrorDto })
+  async specialistDiscovery(@Query() query: OwnerSpecialistDiscoveryQueryDto): Promise<OwnerSpecialistDiscoveryDto> {
+    this.assertSpecialistProjectionEnabled();
+    const serviceCode = query.serviceCode?.trim().toUpperCase();
+    if (!query.specialtyId && !serviceCode && !query.serviceId) {
+      throw new BadRequestException({ code: 'SPECIALIST_DISCOVERY_SELECTOR_REQUIRED', message: 'specialtyId, serviceCode or serviceId is required' });
+    }
+    return this.catalog.readOwnerSpecialistDiscovery({ specialtyId: query.specialtyId, serviceCode, serviceId: query.serviceId, limit: query.limit });
+  }
+
+  private assertSpecialistProjectionEnabled(): void {
+    if (!featureFlags.OWNER_R2E_SPECIALIST_PROJECTION) {
+      throw new NotFoundException({ code: 'OWNER_SPECIALIST_PROJECTION_DISABLED', message: 'Specialist projection is not available' });
+    }
   }
 
   @Get(':clinicId/locations/:locationId')

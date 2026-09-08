@@ -6,6 +6,12 @@ export class DomainException extends HttpException {
   }
 }
 
+export class DomainRateLimitException extends DomainException {
+  constructor(readonly retryAfterSeconds: number) {
+    super(HttpStatus.TOO_MANY_REQUESTS, 'RATE_LIMITED', 'Too many owner cancellation commands.');
+  }
+}
+
 export const DomainErrors = {
   slotNotFound: () => new DomainException(HttpStatus.NOT_FOUND, 'SLOT_NOT_FOUND', 'Slot not found'),
   holdNotFound: () => new DomainException(HttpStatus.NOT_FOUND, 'HOLD_NOT_FOUND', 'Hold not found'),
@@ -19,6 +25,8 @@ export const DomainErrors = {
   serviceNotAvailable: () => new DomainException(HttpStatus.UNPROCESSABLE_ENTITY, 'SERVICE_NOT_AVAILABLE', 'Service is not available'),
   doctorNotAvailable: () => new DomainException(HttpStatus.UNPROCESSABLE_ENTITY, 'DOCTOR_NOT_AVAILABLE', 'Doctor is not available'),
   slotHasActiveBookings: () => new DomainException(HttpStatus.CONFLICT, 'SLOT_HAS_ACTIVE_BOOKINGS', 'Slot has active holds or bookings'),
+  generatedSlotManagedByDoctorShift: () => new DomainException(HttpStatus.CONFLICT, 'GENERATED_SLOT_MANAGED_BY_DOCTOR_SHIFT', 'Generated slot must be changed through DoctorShift inventory'),
+  doctorShiftInventoryDisabled: () => new DomainException(HttpStatus.SERVICE_UNAVAILABLE, 'DOCTOR_SHIFT_INVENTORY_DISABLED', 'DoctorShift inventory mutations are disabled'),
   serviceNotFound: () => new DomainException(HttpStatus.NOT_FOUND, 'SERVICE_NOT_FOUND', 'Service not found'),
   serviceCodeExists: () => new DomainException(HttpStatus.CONFLICT, 'SERVICE_CODE_EXISTS', 'Service code already exists for location'),
   serviceVersionStale: () => new DomainException(HttpStatus.CONFLICT, 'SERVICE_VERSION_STALE', 'Service version is stale'),
@@ -50,4 +58,5 @@ export const DomainErrors = {
   idempotencyInProgress: () => new DomainException(425, 'IDEMPOTENCY_IN_PROGRESS', 'Command is in progress'),
   workerUnauthorized: () => new DomainException(HttpStatus.FORBIDDEN, 'WORKER_UNAUTHORIZED', 'Worker key is invalid'),
   bookingUnavailable: () => new DomainException(HttpStatus.SERVICE_UNAVAILABLE, 'BOOKING_TEMPORARILY_UNAVAILABLE', 'Booking unavailable'),
+  ownerCancellationRateLimited: (retryAfterSeconds: number) => new DomainRateLimitException(retryAfterSeconds),
 };

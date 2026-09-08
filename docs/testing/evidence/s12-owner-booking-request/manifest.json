@@ -1,16 +1,16 @@
 {
-  "generatedAt": "2026-08-13T08:52:53.391Z",
+  "generatedAt": "2026-08-22T16:40:17.292Z",
   "source": "apps/owner-app/src/booking/BookingReviewScreen.tsx",
-  "sourceSha256": "e39ab883534d88fa5f7212c46a867e85f97355ec8db1b1a2b89c9b17c687872a",
+  "sourceSha256": "0431d25b60ade73ca738dfb47996c86d97abad813f9947db418278f049d60708",
   "renderer": "react-native-web production component bundle; controlled query/session/API seams",
   "physicalDevice": false,
   "cases": [
     {
       "name": "compact-review",
-      "width": 375,
-      "height": 812,
+      "width": 1280,
+      "height": 800,
       "file": "compact-review.png",
-      "sha256": "5038b1c184b7fede039857d4a2caefc17d2ba93ee0f84900af84583726e2a4ea"
+      "sha256": "06ebda5d78a176efbd2ef7739aa1f9fa3c052028d46cd554061e7d837365ff51"
     },
     {
       "name": "standard-waiting",
@@ -18,16 +18,16 @@
       "height": 844,
       "submit": true,
       "file": "standard-waiting.png",
-      "sha256": "611b565c68dccbb502c02de19b59ba97f737d00ac21abfa16ca3f911c561675a"
+      "sha256": "4902201cbd2e7220acc97f09df54ef37eac26a0ee205514ecac45bcf29689ce5"
     },
     {
       "name": "wide-conflict",
-      "width": 1024,
-      "height": 768,
+      "width": 1280,
+      "height": 800,
       "submit": true,
       "hash": "#conflict",
       "file": "wide-conflict.png",
-      "sha256": "1f5339c0e6b19524f5d86912399b322d46142fd5eb4ab7486178db67912af3a1"
+      "sha256": "412529b5a53efef80c1e5250a6dc27fa182b2644ff51b5b3ab8ad2f78986385a"
     },
     {
       "name": "compact-idempotency-conflict",
@@ -36,7 +36,7 @@
       "submit": true,
       "hash": "#identity",
       "file": "compact-idempotency-conflict.png",
-      "sha256": "4f4cdf275aa16974de5b803536bed1fdf71c39b59b088d70b97afc0b326f9ee0"
+      "sha256": "30caaf05d85f199fe4d7c621ba8923ddeb686d8fb65181ba5c47c9ec59323e57"
     }
   ]
 }

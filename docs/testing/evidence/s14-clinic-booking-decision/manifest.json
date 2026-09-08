@@ -1,0 +1,98 @@
+{
+  "generatedAt": "2026-08-26T11:52:31.921Z",
+  "productSemantics": "MANUAL_CONFIRM → PENDING_CONFIRMATION → 15-minute PostgreSQL-authoritative deadline → CONFIRMED | REJECTED | EXPIRED",
+  "renderer": "Clinic Portal production Next.js build; focused Chromium with controlled session/API seams",
+  "physicalDevice": false,
+  "runtimeBuild": {
+    "buildId": "UiOTFe6GQXlKV4dVninni",
+    "sha256": "931c94a36f9ce0bee802b4b114534bc4f0a3e42eefe5d94d595b7b32cecf711d"
+  },
+  "sources": {
+    "apps/clinic-portal/components/queue/ClinicQueueClientV2.tsx": "ae54d4bddd7f46d4cf9c5af1e074454dc9629d4b2a3a9bb7e5589e5e6ac7ef85",
+    "apps/clinic-portal/app/api/clinic/booking-holds/[holdId]/confirm/route.ts": "4487ac8fe58c1931a93d9b170429ce78057c0a85f2a2ec55714e4cc458f4eac6",
+    "apps/clinic-portal/app/api/clinic/booking-holds/[holdId]/decline/route.ts": "950e3b5164f005cdef61bc06c51890cb2ae724e7e09234dfae36b39c14d7bf6e",
+    "apps/clinic-portal/tests/e2e/clinic-queue.spec.ts": "4918e3657a1b176881d17302d831326a46ca164ae58b9a96e80db4dd1f82ffb9",
+    "apps/clinic-portal/package-lock.json": "788cb32a4c9417138896d38a0d5a9da5a852b0b914dfbf04337ea72a4a66849e",
+    "scripts/visual/build-clinic-booking-decision-manifest.mjs": "42aad7bc9c6341f48230b34addea660b22e7c0a07ea8361a9eb92a3faead24c2",
+    "scripts/visual/capture-wave1-v50-references.mjs": "3dc0ca8e618016784042d86d1023555d25bbf74ebce96c9da60290bc75c23339",
+    "prototype-v50/manifest.json": "baed55f816f098f5e5772761176029260b2a0c01f41781ebe3659820eba15d41",
+    "prototype-v50/clinic-booking-journal/manifest.json": "75dbb040a1c831ae3e186928ad4decaed7ba478ef876e3d4fdfdd3f1ba6ffb33",
+    "prototype-v50/clinic-booking-journal/booking-journal.css": "8de6afae020b9b86f5fc3e7b9d5a9d4b53e9aef2125405c9513092e063475384"
+  },
+  "cases": [
+    {
+      "name": "normal",
+      "width": 1440,
+      "height": 900,
+      "file": "portal-normal-1440x900.png",
+      "sha256": "cfb62fe99d7494a31233970bc3a6c9803ea5c0683135d72ecbfa24789d0f329b"
+    },
+    {
+      "name": "sla-bands",
+      "width": 1024,
+      "height": 768,
+      "file": "portal-sla-bands-1024x768.png",
+      "sha256": "4a48d5c0217426d936d67c3e39050933db8653da49fcb37eee3eb0dc1555fd5a"
+    },
+    {
+      "name": "expired-non-actionable",
+      "width": 390,
+      "height": 844,
+      "file": "portal-expired-390x844.png",
+      "sha256": "5d9316e4a876c19fd1257f6bfaa0050876770d41cd95fca753beeb8a9252b581"
+    },
+    {
+      "name": "confirm-readback",
+      "width": 768,
+      "height": 1024,
+      "file": "portal-confirm-readback-768x1024.png",
+      "sha256": "39802c468c69719dcfe9873f157bb78a02d4e80d04519f906043e189a372dd15"
+    },
+    {
+      "name": "decline-dialog",
+      "width": 1440,
+      "height": 900,
+      "file": "portal-decline-dialog-1440x900.png",
+      "sha256": "709bcd13ac4a73aa888760e6944bffdc25081210677b31e5c0145cf04fcc0e2e"
+    },
+    {
+      "name": "reject-readback",
+      "width": 1440,
+      "height": 900,
+      "file": "portal-reject-readback-1440x900.png",
+      "sha256": "d64c6fce593c0820d4a51cb24eeb34848d81944b73007914fc54c40f461b08b3"
+    },
+    {
+      "name": "stale-conflict",
+      "width": 1024,
+      "height": 768,
+      "file": "portal-stale-conflict-1024x768.png",
+      "sha256": "f1c7b084ceeb2f26041e1746efe8dd875c203f8fec815ff906a8d413527af84c"
+    },
+    {
+      "name": "degraded",
+      "width": 390,
+      "height": 844,
+      "file": "portal-degraded-390x844.png",
+      "sha256": "e615ea1490f92d27e8cd78064ee163cfeba0a8208760db37df5db3262e0d71b5"
+    }
+  ],
+  "references": [
+    {
+      "name": "v50-journal-due-soon",
+      "width": 1440,
+      "height": 900,
+      "file": "v50-reference-journal-due-soon-1440x900.png",
+      "sha256": "7937dcbb410c4faac501d8275560def7d63ecec942a6d0dff39f9e7663cd3a2f",
+      "sourceUrl": "/prototype-v50/clinic-booking-journal/index.html?state=request-due-soon&role=reception&date=2026-08-01"
+    },
+    {
+      "name": "v50-journal-mobile-overdue",
+      "width": 390,
+      "height": 844,
+      "file": "v50-reference-journal-mobile-overdue-390x844.png",
+      "sha256": "5d371be9ed7822f03385c4a19f5311be41a81c46ba70624eb2078fffb32abbc5",
+      "sourceUrl": "/prototype-v50/clinic-booking-journal/index.html?state=mobile-request-detail-overdue&role=reception&date=2026-08-01"
+    }
+  ]
+}

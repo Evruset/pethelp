@@ -97,6 +97,20 @@ export type ClinicSchedule = {
   slots: ClinicScheduleSlot[];
 };
 
+export type DoctorShiftInventory = {
+  clinicId: string;
+  locationId: string;
+  timezone: string;
+  mutationEnabled: boolean;
+  doctors: Array<{ staff_id: string; doctor_id: string; display_name: string; full_name: string }>;
+  veterinarians: Array<{ id: string; display_name: string; catalog_doctor_id: string | null }>;
+  catalogDoctors: Array<{ id: string; full_name: string }>;
+  doctorServices: Array<{ id: string; staff_id: string; doctor_id: string; service_id: string; resource_id: string | null; slot_capacity: number; active: boolean; version: number; doctor_name: string; service_name: string; duration_minutes: number }>;
+  runs: Array<{ id: string; doctor_shift_id: string; shift_version: number; generation_version: number; status: 'GENERATING' | 'GENERATED' | 'PUBLISHED' | 'SUPERSEDED' | 'FAILED'; slot_count: number; completed_at: string | null }>;
+  generatedSlots: Array<{ id:string; doctor_shift_id:string; generation_run_id:string; service_id:string; service_name:string; starts_at:string; ends_at:string; capacity:number; held_count:number; booked_count:number; state:string; status:string; publication_state:'DRAFT'|'PUBLISHED'|'UNPUBLISHED'|'BLOCKED'|'STALE_SOURCE'; version:number }>;
+  shifts: Array<{ id: string; staffId: string; doctorId: string; startsAt: string; endsAt: string; timezone: string; status: 'DRAFT' | 'PUBLISHED' | 'BLOCKED' | 'CANCELLED'; version: number; generationVersion: number }>;
+};
+
 export class ClinicScheduleBackendError extends Error {
   constructor(
     public readonly status: number,
@@ -141,4 +155,13 @@ export async function getClinicSchedule(
   }
 
   return response.json() as Promise<ClinicSchedule>;
+}
+
+export async function getDoctorShiftInventory(session: ClinicSession, clinicId: string, locationId: string, from: string, to: string): Promise<DoctorShiftInventory> {
+  const url = new URL(`${backendBaseUrl()}/v1/clinic/${clinicId}/locations/${locationId}/schedule/doctor-shifts`);
+  url.searchParams.set('from', from);
+  url.searchParams.set('to', to);
+  const response = await fetch(url, { headers: { Authorization: `Bearer ${session.token}`, Accept: 'application/json' }, cache: 'no-store' });
+  if (!response.ok) throw new ClinicScheduleBackendError(response.status, await parseErrorCode(response));
+  return response.json() as Promise<DoctorShiftInventory>;
 }

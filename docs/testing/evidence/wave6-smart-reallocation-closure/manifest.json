@@ -1,0 +1,249 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS",
+  "generatedAt": "2026-08-31T12:25:27.246Z",
+  "stack": "Owner Expo Web -> Owner BFF -> Backend -> PostgreSQL -> canonical Clinic Queue -> Backend -> PostgreSQL -> Owner authoritative readback",
+  "physicalDevice": false,
+  "visualAuthority": {
+    "outer": {
+      "file": "/Users/evrusetskiy/Downloads/VetHelp_V50_Unified_UX_UI_Pack.zip",
+      "sha256": "7100f42c274130ddc04a87de1cf555e855b150d617971158ba6f88428fb7a540"
+    },
+    "owner": {
+      "entry": "VetHelp_Owner_V50_Behavioral_Unified.zip",
+      "sha256": "cbef69d764cfe420f58bf84e83cf94a37aa23c89d7466271434bbe3d717633b6"
+    },
+    "clinic": {
+      "entry": "VetHelp_Clinic_V50_Behavioral_Dense.zip",
+      "sha256": "c634654040c572fab6e6e962d722c8bc6ed140dda02b0277f42952742b78c688"
+    }
+  },
+  "sources": {
+    "backend/src/booking-core/reallocation.service.ts": "1ddb8d8da6d209db982543efda0bd1fc72c37c685ffd17f57175db8b0bfed459",
+    "backend/src/booking-core/reallocation-finalization.service.ts": "cf59e47df370f89ec4381fdd966c49dc5c3b977a22430e32fcee266da64efe3b",
+    "backend/src/booking-core/reallocation.controller.ts": "65024c6e12de40e1330d7b77c193312db3fc5cca2b965de5765c7b0ba7c3ca1a",
+    "apps/owner-app/src/booking/ReallocationOfferPanel.tsx": "18bcd158c6418646cc0d6175dae1a374eb1064dcdd8ed29b535d48de6a4c383e",
+    "apps/owner-app/src/booking/BookingChangeRequestPanel.tsx": "31292debc92fac6783844f681b6e0c64241ce4406411e3f99e1f5c577eacff77",
+    "apps/owner-app/src/booking/BookingStatusScreen.tsx": "be8ea015426b0ec7de6ae32c22f4b0b5735e0132673f9ffa74ba16a958903108",
+    "apps/owner-app/src/booking/booking-api.ts": "0cda2f2ce68061993bb723449dbf56e8060b0b7e3798c63df3c24338cb2fa36a",
+    "apps/clinic-portal/components/queue/ClinicQueueClientV2.tsx": "115a2b50d4479de38d6578b6c278ceb7cd2f7cf4df4923ff18175198dd1c8f8e",
+    "apps/owner-app/tests/e2e/wave6-reallocation.real-stack.spec.ts": "790d82bb5a5a2e88e2c34c0b14d99dac33102f8bcd78de2d527b0be07fd86082"
+  },
+  "checks": {
+    "realConfirmed": "PASS",
+    "realRejected": "PASS",
+    "realExpired": "PASS",
+    "staleOfferSafety": "PASS",
+    "bookingAPreservedUntilConfirmation": "PASS",
+    "ownerAuthoritativeReadback": "PASS",
+    "rankingOrderAndBound": "PASS",
+    "missingOptionalFactsUsable": "PASS",
+    "axeSeriousCritical": 0,
+    "horizontalOverflow": 0,
+    "minActionHeight": 44,
+    "keyboardFocus": "PASS",
+    "rawEnumsVisible": 0
+  },
+  "states": [
+    "booking-A-preserved",
+    "reallocation-loading",
+    "reallocation-offers",
+    "offer-with-missing-optional-facts",
+    "offer-expiring",
+    "offer-accept-confirmation",
+    "booking-B-pending-A-preserved",
+    "clinic-replacement-pending",
+    "replacement-confirmed",
+    "owner-final-replaced-booking",
+    "replacement-rejected-original-preserved",
+    "replacement-expired-original-preserved",
+    "stale-offer",
+    "no-alternatives",
+    "error-retry"
+  ],
+  "viewports": [
+    "390x844",
+    "768x1024",
+    "1440x900",
+    "430x932",
+    "1024x768"
+  ],
+  "cases": [
+    {
+      "state": "booking-A-preserved",
+      "file": "01-booking-A-preserved-390x844.png",
+      "width": 390,
+      "height": 844,
+      "surface": "owner",
+      "sha256": "01a3075512d9e138e983caaec758be2b3dc5e96f70dff12ef202979953691b8b"
+    },
+    {
+      "state": "booking-A-preserved",
+      "file": "02-booking-A-preserved-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "surface": "owner",
+      "sha256": "f2ffd6f024add5ae7cfea66e02b0280ef85ec1fa02f563442eff830db3ac4d41"
+    },
+    {
+      "state": "booking-A-preserved",
+      "file": "03-booking-A-preserved-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "surface": "owner",
+      "sha256": "64151c2822e1e45a6e3fc7f6610f2176b1f2e5e0836b04ebfdb77a03157b7d98"
+    },
+    {
+      "state": "reallocation-loading",
+      "file": "04-reallocation-loading-390x844.png",
+      "width": 390,
+      "height": 844,
+      "surface": "owner",
+      "sha256": "33a3b030f5519285ad191d39587cef9ebd76df7186f7086d04fe444a1943477c"
+    },
+    {
+      "state": "reallocation-offers",
+      "file": "05-reallocation-offers-390x844.png",
+      "width": 390,
+      "height": 844,
+      "surface": "owner",
+      "sha256": "65cf51a233ab675ae5c3e48415b986a657d24bdd191f9770d964309aedc0b4f8"
+    },
+    {
+      "state": "reallocation-offers",
+      "file": "06-reallocation-offers-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "surface": "owner",
+      "sha256": "cc796cc460da59081e940965cf1b2a816322a8b9d8bf846e3c771c3538773ad1"
+    },
+    {
+      "state": "offer-with-missing-optional-facts",
+      "file": "07-offer-with-missing-optional-facts-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "surface": "owner",
+      "sha256": "eac12fa83c1c7f72dbb6a591f2173280f57dc6d8d8bfa25a79b2d398d70e5438"
+    },
+    {
+      "state": "offer-expiring",
+      "file": "08-offer-expiring-390x844.png",
+      "width": 390,
+      "height": 844,
+      "surface": "owner",
+      "sha256": "f31fc31e96f2ca20ca445c2bea6c14396b21578bc81c924bbd609cd90228ef97"
+    },
+    {
+      "state": "offer-accept-confirmation",
+      "file": "09-offer-accept-confirmation-390x844.png",
+      "width": 390,
+      "height": 844,
+      "surface": "owner",
+      "sha256": "7338207a1e7d5bd7f6447de86c3234b5f5a4cc9572240648c824f1d401d10297"
+    },
+    {
+      "state": "booking-B-pending-A-preserved",
+      "file": "10-booking-B-pending-A-preserved-390x844.png",
+      "width": 390,
+      "height": 844,
+      "surface": "owner",
+      "sha256": "c3391b222afd6653d3bd26747f6723f05ae4c09bfec33130dea45cc3654f8303"
+    },
+    {
+      "state": "clinic-replacement-pending",
+      "file": "11-clinic-replacement-pending-430x932.png",
+      "width": 430,
+      "height": 932,
+      "surface": "clinic",
+      "sha256": "3d4090e6c732480f869da94933ce48a4aae86fc6dccc6ec0ce1ceeac953662ce"
+    },
+    {
+      "state": "clinic-replacement-pending",
+      "file": "12-clinic-replacement-pending-1024x768.png",
+      "width": 1024,
+      "height": 768,
+      "surface": "clinic",
+      "sha256": "0483994f72ab6a467040bfdfe1d7b803fd18a4ca69d69d2b93686fe2b58971b1"
+    },
+    {
+      "state": "clinic-replacement-pending",
+      "file": "13-clinic-replacement-pending-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "surface": "clinic",
+      "sha256": "b47f469d480f98db9c858f250b17a2d73cd56635c6fde645858185142ea23a1a"
+    },
+    {
+      "state": "replacement-confirmed",
+      "file": "14-replacement-confirmed-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "surface": "clinic",
+      "sha256": "17efd3fcd6e062bbd9b13d2a6259066d8cd0559e5540a388aeac1281ecc0e504"
+    },
+    {
+      "state": "owner-final-replaced-booking",
+      "file": "15-owner-final-replaced-booking-390x844.png",
+      "width": 390,
+      "height": 844,
+      "surface": "owner",
+      "sha256": "9cd00b7d721291b3d7a740d7e5432584c5365070a5e192799461438e0f49ea1f"
+    },
+    {
+      "state": "owner-final-replaced-booking",
+      "file": "16-owner-final-replaced-booking-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "surface": "owner",
+      "sha256": "5e4f1f9bd2b689d706c3c9fdabaabd9e99942761a752d4792f956b642eecdb0b"
+    },
+    {
+      "state": "owner-final-replaced-booking",
+      "file": "17-owner-final-replaced-booking-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "surface": "owner",
+      "sha256": "471e7b5f162225a0c2f59fe75fad485ee3c8320a25c9683d1b3bb29b1d241002"
+    },
+    {
+      "state": "replacement-rejected-original-preserved",
+      "file": "18-replacement-rejected-original-preserved-390x844.png",
+      "width": 390,
+      "height": 844,
+      "surface": "owner",
+      "sha256": "05c8a796bf6481f0f211714b0b5da73f9e27e81682017c123de86ab28fa08071"
+    },
+    {
+      "state": "replacement-expired-original-preserved",
+      "file": "19-replacement-expired-original-preserved-390x844.png",
+      "width": 390,
+      "height": 844,
+      "surface": "owner",
+      "sha256": "d59c2b87ecf96683b61396d5f2218a52faa40585b0856383209ed7fabe966c32"
+    },
+    {
+      "state": "stale-offer",
+      "file": "20-stale-offer-390x844.png",
+      "width": 390,
+      "height": 844,
+      "surface": "owner",
+      "sha256": "c459bbb0d2962c8916a73f7c59ec23b5979c9e1a01ebec1ceaedd7c546250a3e"
+    },
+    {
+      "state": "no-alternatives",
+      "file": "21-no-alternatives-390x844.png",
+      "width": 390,
+      "height": 844,
+      "surface": "owner",
+      "sha256": "b7dc37b4806bc6ca92c9c37ee6bdfdd24d511de370283cf2e8c65fde7512d4e2"
+    },
+    {
+      "state": "error-retry",
+      "file": "22-error-retry-390x844.png",
+      "width": 390,
+      "height": 844,
+      "surface": "owner",
+      "sha256": "6455684a88b65c9670b95ddb7c529f94f0fb241fa08cea101d9945e592e52a3a"
+    }
+  ]
+}

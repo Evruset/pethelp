@@ -487,41 +487,20 @@
     },
     "/v1/owner/pets": {
       "get": {
-        "operationId": "OwnerPetMvp_list",
-        "parameters": [],
+        "operationId": "OwnerPet_list",
+        "parameters": [
+          {
+            "name": "includeArchived",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/OwnerPetMvpDto"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorDto"
-                }
-              }
-            }
+            "description": "Питомцы доступны только владельцу из JWT."
           }
         },
         "security": [
@@ -529,103 +508,27 @@
             "bearerAuth": []
           }
         ],
+        "summary": "Список питомцев текущего владельца",
         "tags": [
           "Owner pets"
         ]
       },
       "post": {
-        "operationId": "OwnerPetMvp_create",
-        "parameters": [
-          {
-            "name": "Idempotency-Key",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
+        "operationId": "OwnerPet_create",
+        "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "name",
-                  "species"
-                ],
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 120
-                  },
-                  "species": {
-                    "type": "string",
-                    "enum": [
-                      "DOG",
-                      "CAT",
-                      "OTHER"
-                    ]
-                  }
-                }
+                "$ref": "#/components/schemas/CreateOwnerPetDto"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OwnerPetMvpDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorDto"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorDto"
-                }
-              }
-            }
+            "description": "Питомец создан и принадлежит владельцу из JWT."
           }
         },
         "security": [
@@ -633,14 +536,132 @@
             "bearerAuth": []
           }
         ],
+        "summary": "Создание питомца для текущего владельца",
         "tags": [
           "Owner pets"
         ]
       }
     },
-    "/v1/owner/pets/{petId}": {
+    "/v1/owner/pets/{petId}/diary": {
       "get": {
-        "operationId": "OwnerPetMvp_read",
+        "operationId": "diary",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Единая owner-scoped хронология питомца",
+        "tags": [
+          "Owner pets"
+        ]
+      }
+    },
+    "/v1/owner/pets/{petId}/documents/{documentId}": {
+      "get": {
+        "operationId": "documentMetadata",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Безопасные метаданные документа питомца",
+        "tags": [
+          "Owner pets"
+        ]
+      },
+      "delete": {
+        "operationId": "deleteDocument",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Удаление документа питомца владельцем",
+        "tags": [
+          "Owner pets"
+        ]
+      }
+    },
+    "/v1/owner/pets/{petId}/care-summary": {
+      "get": {
+        "operationId": "careSummary",
         "parameters": [
           {
             "name": "petId",
@@ -653,54 +674,7 @@
         ],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OwnerPetMvpDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorDto"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorDto"
-                }
-              }
-            }
+            "description": "Owner-scoped care summary без внутренних MIS/provider данных."
           }
         },
         "security": [
@@ -708,6 +682,322 @@
             "bearerAuth": []
           }
         ],
+        "summary": "Медицинская карта питомца: профиль, документы и история помощи",
+        "tags": [
+          "Owner pets"
+        ]
+      }
+    },
+    "/v1/owner/pets/{petId}/documents": {
+      "post": {
+        "operationId": "uploadDocumentPhoto",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "docType": {
+                    "type": "string",
+                    "enum": [
+                      "PASSPORT",
+                      "HISTORY"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Документ сохранён и доступен только владельцу питомца."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Загрузка медицинского файла питомца",
+        "tags": [
+          "Owner pets"
+        ]
+      }
+    },
+    "/v1/owner/pets/{petId}/photo": {
+      "post": {
+        "operationId": "uploadPhoto",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Загрузка или замена фото профиля питомца",
+        "tags": [
+          "Owner pets"
+        ]
+      },
+      "delete": {
+        "operationId": "deletePhoto",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Удаление фото профиля питомца",
+        "tags": [
+          "Owner pets"
+        ]
+      }
+    },
+    "/v1/owner/pets/{petId}/documents/{documentId}/download": {
+      "get": {
+        "operationId": "downloadDocument",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Owner-scoped download документа питомца",
+        "tags": [
+          "Owner pets"
+        ]
+      }
+    },
+    "/v1/owner/pets/{petId}": {
+      "get": {
+        "operationId": "OwnerPet_read",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Расширенный профиль питомца без чужих owner данных."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Профиль питомца текущего владельца",
+        "tags": [
+          "Owner pets"
+        ]
+      },
+      "patch": {
+        "operationId": "OwnerPet_update",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "if-match",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOwnerPetDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Профиль обновлён, profileVersion увеличен."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Обновление профиля питомца текущего владельца",
+        "tags": [
+          "Owner pets"
+        ]
+      }
+    },
+    "/v1/owner/pets/{petId}/archive": {
+      "post": {
+        "operationId": "archive",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "if-match",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Архивировать питомца без отмены записей и телемедицины",
+        "tags": [
+          "Owner pets"
+        ]
+      }
+    },
+    "/v1/owner/pets/{petId}/restore": {
+      "post": {
+        "operationId": "restore",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "if-match",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Восстановить питомца из архива",
         "tags": [
           "Owner pets"
         ]
@@ -757,6 +1047,178 @@
         "summary": "Authoritative effective session read for opaque Owner session or legacy staff JWT",
         "tags": [
           "Authentication"
+        ]
+      }
+    },
+    "/v1/clinic/visits/{visitId}/results": {
+      "get": {
+        "operationId": "ClinicalResult_readCurrent",
+        "parameters": [
+          {
+            "name": "visitId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "",
+        "tags": [
+          "ClinicalResult"
+        ]
+      },
+      "post": {
+        "operationId": "ClinicalResult_createDraft",
+        "parameters": [
+          {
+            "name": "visitId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "",
+        "tags": [
+          "ClinicalResult"
+        ]
+      }
+    },
+    "/v1/clinic/visits/{visitId}/results/{resultId}": {
+      "get": {
+        "operationId": "ClinicalResult_read",
+        "parameters": [
+          {
+            "name": "visitId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resultId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "",
+        "tags": [
+          "ClinicalResult"
+        ]
+      },
+      "patch": {
+        "operationId": "ClinicalResult_updateDraft",
+        "parameters": [
+          {
+            "name": "visitId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resultId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "",
+        "tags": [
+          "ClinicalResult"
+        ]
+      }
+    },
+    "/v1/clinic/visits/{visitId}/results/{resultId}/publish": {
+      "post": {
+        "operationId": "ClinicalResult_publish",
+        "parameters": [
+          {
+            "name": "visitId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resultId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "",
+        "tags": [
+          "ClinicalResult"
+        ]
+      }
+    },
+    "/v1/clinic/visits/{visitId}/results/{resultId}/amendments": {
+      "post": {
+        "operationId": "ClinicalResult_createAmendment",
+        "parameters": [
+          {
+            "name": "visitId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resultId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "",
+        "tags": [
+          "ClinicalResult"
         ]
       }
     },
@@ -839,42 +1301,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "petId",
-                  "clinicId",
-                  "locationId",
-                  "serviceId",
-                  "slotId",
-                  "expectedSlotVersion"
-                ],
-                "properties": {
-                  "petId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "clinicId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "locationId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "serviceId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "slotId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "expectedSlotVersion": {
-                    "type": "integer",
-                    "minimum": 1
-                  }
-                }
+                "$ref": "#/components/schemas/CreateHoldDto"
               }
             }
           }
@@ -1222,7 +1649,7 @@
     },
     "/v1/clinic/booking-holds/{holdId}/confirm": {
       "post": {
-        "description": "Доступно только CLINIC_RECEPTIONIST и CLINIC_ADMIN. Scope проверяется по JWT и employee_location_memberships внутри транзакции.",
+        "description": "CONFIRM_BOOKING_REQUEST. Booking decision capability, exact clinic/location scope, aggregate version and PostgreSQL deadline are rechecked inside the transaction.",
         "operationId": "confirmManualHold",
         "parameters": [
           {
@@ -1246,9 +1673,11 @@
           {
             "name": "If-Match",
             "in": "header",
+            "description": "Positive authoritative booking aggregate version.",
             "required": true,
             "schema": {
               "type": "string",
+              "pattern": "^[1-9][0-9]*$",
               "example": "1"
             }
           },
@@ -1264,11 +1693,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Hold подтверждён, appointment создан.",
+            "description": "Authoritative CONFIRMED result; appointment created exactly once.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BookingCommandStatusDto"
+                  "$ref": "#/components/schemas/ClinicConfirmDecisionStatusDto"
                 }
               }
             }
@@ -1314,7 +1743,16 @@
             }
           },
           "409": {
-            "description": "SLOT_LOCKED_RETRY.",
+            "description": "BOOKING_STATE_CONFLICT, IDEMPOTENCY_CONFLICT, SLOT_LOCKED_RETRY or QUEUE_FIFO_VIOLATION.",
+            "headers": {
+              "Retry-After": {
+                "description": "Present as 1 second for SLOT_LOCKED_RETRY; omitted for other conflicts.",
+                "schema": {
+                  "type": "string",
+                  "example": "1"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1324,7 +1762,7 @@
             }
           },
           "422": {
-            "description": "HOLD_EXPIRED или INVALID_STATE_TRANSITION.",
+            "description": "HOLD_EXPIRED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1335,6 +1773,16 @@
           },
           "500": {
             "description": "Controlled technical failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "BOOKING_TEMPORARILY_UNAVAILABLE.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1357,7 +1805,7 @@
     },
     "/v1/clinic/booking-holds/{holdId}/decline": {
       "post": {
-        "description": "Команда освобождает hold и слот только после backend ABAC, FIFO и If-Match проверки.",
+        "description": "REJECT_BOOKING_REQUEST. Releases held capacity without creating an appointment after transactional capability, scope, state, deadline and version checks.",
         "operationId": "declineManualHold",
         "parameters": [
           {
@@ -1381,9 +1829,11 @@
           {
             "name": "If-Match",
             "in": "header",
+            "description": "Positive authoritative booking aggregate version.",
             "required": true,
             "schema": {
               "type": "string",
+              "pattern": "^[1-9][0-9]*$",
               "example": "1"
             }
           },
@@ -1397,19 +1847,29 @@
             }
           }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClinicDeclineCommandDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Hold отклонён клиникой и освобождён.",
+            "description": "Authoritative REJECTED result; no appointment created.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BookingCommandStatusDto"
+                  "$ref": "#/components/schemas/ClinicRejectDecisionStatusDto"
                 }
               }
             }
           },
           "400": {
-            "description": "Malformed hold ID or required command headers.",
+            "description": "INVALID_REQUEST: malformed hold ID/header/body or unsupported decline reason.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1449,7 +1909,16 @@
             }
           },
           "409": {
-            "description": "SLOT_LOCKED_RETRY или QUEUE_FIFO_VIOLATION.",
+            "description": "BOOKING_STATE_CONFLICT, IDEMPOTENCY_CONFLICT, SLOT_LOCKED_RETRY or QUEUE_FIFO_VIOLATION.",
+            "headers": {
+              "Retry-After": {
+                "description": "Present as 1 second for SLOT_LOCKED_RETRY; omitted for other conflicts.",
+                "schema": {
+                  "type": "string",
+                  "example": "1"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1459,7 +1928,7 @@
             }
           },
           "422": {
-            "description": "HOLD_EXPIRED или INVALID_STATE_TRANSITION.",
+            "description": "HOLD_EXPIRED.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1470,6 +1939,16 @@
           },
           "500": {
             "description": "Controlled technical failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "BOOKING_TEMPORARILY_UNAVAILABLE.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1741,8 +2220,8 @@
           {
             "name": "X-Correlation-ID",
             "in": "header",
-            "description": "Optional valid UUID; the server generates or replaces it otherwise.",
-            "required": false,
+            "description": "Required for command tracing. Malformed or duplicate supplied values are replaced by the server trace middleware.",
+            "required": true,
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -1754,7 +2233,8 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "\"3\""
+              "pattern": "^[1-9][0-9]*$",
+              "example": "3"
             }
           },
           {
@@ -1767,6 +2247,21 @@
             }
           }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reasonCode": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -1798,6 +2293,16 @@
               }
             }
           },
+          "403": {
+            "description": "Authenticated actor is not an Owner.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Booking is absent or belongs to another Owner.",
             "content": {
@@ -1809,7 +2314,16 @@
             }
           },
           "409": {
-            "description": "Booking version is stale, command conflicts or slot is locked.",
+            "description": "BOOKING_STATE_CONFLICT, IDEMPOTENCY_CONFLICT or SLOT_LOCKED_RETRY.",
+            "headers": {
+              "Retry-After": {
+                "description": "Retry delay for SLOT_LOCKED_RETRY.",
+                "schema": {
+                  "type": "string",
+                  "example": "1"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1818,8 +2332,16 @@
               }
             }
           },
-          "422": {
-            "description": "Booking transition is not allowed.",
+          "429": {
+            "description": "Replica-safe Owner cancellation command limit exceeded.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "example": "1"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1837,6 +2359,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "BOOKING_TEMPORARILY_UNAVAILABLE.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1846,6 +2378,701 @@
         ],
         "tags": [
           "Owner bookings"
+        ]
+      }
+    },
+    "/v1/owner/bookings/{holdId}/change-requests": {
+      "post": {
+        "operationId": "BookingChangeRequest_create",
+        "parameters": [
+          {
+            "name": "holdId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookingChangeRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingChangeRequestDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "425": {
+            "description": "An identical command is still processing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create an Owner cancellation or reschedule request without mutating Booking",
+        "tags": [
+          "Booking change requests"
+        ]
+      }
+    },
+    "/v1/owner/bookings/{holdId}/change-requests/current": {
+      "get": {
+        "operationId": "current",
+        "parameters": [
+          {
+            "name": "holdId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingChangeRequestDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Booking change requests"
+        ]
+      }
+    },
+    "/v1/operations/booking-change-requests": {
+      "get": {
+        "operationId": "operations",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "OPEN",
+                "PROCESSING",
+                "COMPLETED",
+                "REJECTED",
+                "CANCELLED"
+              ]
+            }
+          },
+          {
+            "name": "locationId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 25,
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Object"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationsBookingChangeRequestPageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Booking change requests"
+        ]
+      }
+    },
+    "/v1/operations/booking-change-requests/{requestId}": {
+      "get": {
+        "operationId": "operationsDetail",
+        "parameters": [
+          {
+            "name": "requestId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationsBookingChangeRequestDetailDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Booking change requests"
+        ]
+      }
+    },
+    "/v1/operations/booking-change-requests/{requestId}/{command}": {
+      "post": {
+        "operationId": "transition",
+        "parameters": [
+          {
+            "name": "requestId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "command",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProcessBookingChangeRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationsBookingChangeRequestDetailDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "425": {
+            "description": "An identical command is still processing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Transition the request or atomically apply its authoritative Booking cancellation/reschedule",
+        "tags": [
+          "Booking change requests"
+        ]
+      }
+    },
+    "/v1/owner/booking-change-requests/{requestId}/reallocation": {
+      "post": {
+        "operationId": "open",
+        "parameters": [
+          {
+            "name": "requestId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-correlation-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReallocationCaseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "booking-reallocation"
+        ]
+      }
+    },
+    "/v1/owner/reallocation-cases/{caseId}": {
+      "get": {
+        "operationId": "owner",
+        "parameters": [
+          {
+            "name": "caseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReallocationCaseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "booking-reallocation"
+        ]
+      }
+    },
+    "/v1/owner/reallocation-cases/{caseId}/accept": {
+      "post": {
+        "operationId": "accept",
+        "parameters": [
+          {
+            "name": "caseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-correlation-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptReallocationOfferDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReallocationCaseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "booking-reallocation"
+        ]
+      }
+    },
+    "/v1/operations/reallocation-cases/{caseId}": {
+      "get": {
+        "operationId": "readOperationsCase",
+        "parameters": [
+          {
+            "name": "caseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReallocationCaseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "booking-reallocation"
         ]
       }
     },
@@ -3827,6 +5054,1479 @@
         ]
       }
     },
+    "/v1/clinic/{clinicId}/locations/{locationId}/schedule/doctor-shifts": {
+      "get": {
+        "operationId": "DoctorShiftInventory_list",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Location-scoped schedule inventory administration projection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorShiftInventoryResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List DoctorShift configuration and DoctorService eligibility",
+        "tags": [
+          "Clinic Schedule Inventory"
+        ]
+      },
+      "post": {
+        "operationId": "createShift",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DoctorShiftRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Draft DoctorShift created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorShiftResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Overlapping non-cancelled doctor shift.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create a draft DoctorShift",
+        "tags": [
+          "Clinic Schedule Inventory"
+        ]
+      }
+    },
+    "/v1/clinic/{clinicId}/locations/{locationId}/schedule/doctor-services": {
+      "post": {
+        "operationId": "createDoctorService",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DoctorServiceRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "DoctorService eligibility created with Pilot capacity 1.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorServiceResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Assign an eligible service to a bridged doctor",
+        "tags": [
+          "Clinic Schedule Inventory"
+        ]
+      }
+    },
+    "/v1/clinic/{clinicId}/locations/{locationId}/schedule/doctor-mappings": {
+      "post": {
+        "operationId": "mapDoctor",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DoctorMappingRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorMappingResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Explicitly bridge an operational veterinarian to a same-location catalog doctor",
+        "tags": [
+          "Clinic Schedule Inventory"
+        ]
+      }
+    },
+    "/v1/clinic/{clinicId}/locations/{locationId}/schedule/doctor-shifts/{shiftId}": {
+      "post": {
+        "operationId": "updateShift",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "shiftId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DoctorShiftUpdateRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorShiftResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Update a DoctorShift using optimistic version fencing",
+        "tags": [
+          "Clinic Schedule Inventory"
+        ]
+      }
+    },
+    "/v1/clinic/{clinicId}/locations/{locationId}/schedule/doctor-shifts/{shiftId}/generate": {
+      "post": {
+        "operationId": "generate",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "shiftId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryGenerationResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Deterministically generate draft canonical slots",
+        "tags": [
+          "Clinic Schedule Inventory"
+        ]
+      }
+    },
+    "/v1/clinic/{clinicId}/locations/{locationId}/schedule/inventory-runs/{runId}/publish": {
+      "post": {
+        "operationId": "publish",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "runId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryPublicationResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Publish one generated inventory run to Owner availability",
+        "tags": [
+          "Clinic Schedule Inventory"
+        ]
+      }
+    },
+    "/v1/clinic/{clinicId}/locations/{locationId}/schedule/inventory-runs/{runId}/unpublish": {
+      "post": {
+        "operationId": "unpublish",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "runId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryPublicationResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Remove a generated run from Owner availability without deleting booked history",
+        "tags": [
+          "Clinic Schedule Inventory"
+        ]
+      }
+    },
+    "/v1/clinic/{clinicId}/locations/{locationId}/schedule/doctor-shifts/{shiftId}/block": {
+      "post": {
+        "operationId": "block",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "shiftId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorShiftResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Block a DoctorShift and all of its generated availability",
+        "tags": [
+          "Clinic Schedule Inventory"
+        ]
+      }
+    },
+    "/v1/clinic/{clinicId}/locations/{locationId}/schedule/doctor-shifts/{shiftId}/cancel": {
+      "post": {
+        "operationId": "DoctorShiftInventory_cancel",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "shiftId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorShiftResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Cancel a DoctorShift while preserving generated booking history",
+        "tags": [
+          "Clinic Schedule Inventory"
+        ]
+      }
+    },
     "/v1/clinic/{clinicId}/locations/{locationId}/workspace-home": {
       "get": {
         "description": "Live database snapshot. Cache-Control: private, no-store. No ETag or 304 response is supported.",
@@ -4300,6 +7000,158 @@
         ]
       }
     },
+    "/v1/emergency/clinics": {
+      "get": {
+        "operationId": "search",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Only reviewed, fresh and accepting emergency capability profiles are returned."
+          },
+          "400": {
+            "description": "Unsupported species, malformed capability code or invalid coordinates."
+          }
+        },
+        "summary": "Return verified clinics that are accepting emergency cases now",
+        "tags": [
+          "Emergency Routing"
+        ]
+      }
+    },
+    "/v1/emergency/triage-decisions": {
+      "post": {
+        "operationId": "decide",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmergencyTriageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Safety routing outcome, rule-set version and recommended emergency capabilities."
+          },
+          "400": {
+            "description": "Unsupported species, malformed signal code or missing acknowledgement."
+          }
+        },
+        "summary": "Versioned red-flag triage decision for emergency routing",
+        "tags": [
+          "Emergency Routing"
+        ]
+      }
+    },
+    "/v1/emergency/route-actions": {
+      "post": {
+        "operationId": "recordRouteAction",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordEmergencyRouteActionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Emergency route action was stored for safety analytics and optional follow-up."
+          },
+          "400": {
+            "description": "Unknown clinic location, triage session or unsupported action."
+          }
+        },
+        "summary": "Record an emergency call, route open or optional follow-up request without requiring auth",
+        "tags": [
+          "Emergency Routing"
+        ]
+      }
+    },
+    "/v1/clinic/locations/{locationId}/emergency-profile": {
+      "put": {
+        "operationId": "upsert",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertEmergencyProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile was stored as pending review and is not publicly routable until approved by platform operations."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Submit a clinic-owned emergency capability declaration for independent review",
+        "tags": [
+          "Emergency Routing"
+        ]
+      }
+    },
+    "/v1/admin/clinic-locations/{locationId}/emergency-profile/review": {
+      "post": {
+        "operationId": "review",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewEmergencyProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Approve or reject a clinic emergency capability declaration",
+        "tags": [
+          "Emergency Routing"
+        ]
+      }
+    },
     "/internal/workers/expire-holds": {
       "post": {
         "operationId": "expireHolds",
@@ -4311,6 +7163,782 @@
         },
         "tags": [
           "WorkerRoutes"
+        ]
+      }
+    },
+    "/v1/booking-holds/{holdId}/payment-intents": {
+      "post": {
+        "operationId": "createIntent",
+        "parameters": [
+          {
+            "name": "holdId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Payment intent создан у эквайринга; checkoutUrl передаётся фронтенду."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Создание удалённого payment intent и checkout-сессии с фиксацией hold_version fence",
+        "tags": [
+          "Payments & Ledger"
+        ]
+      }
+    },
+    "/v1/payments/webhooks/authorized": {
+      "post": {
+        "operationId": "Payment_paymentAuthorized",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Acquiring-Event-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Acquiring-Signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Подпись эквайринга невалидна."
+          },
+          "422": {
+            "description": "PAYMENT_FENCED_SLOT_EXPIRED, PAYMENT_FENCED_HOLD_VERSION_MISMATCH или provider reference error."
+          }
+        },
+        "summary": "Подписанный webhook авторизации: fencing, подтверждение hold и постановка capture в outbox",
+        "tags": [
+          "Payments & Ledger"
+        ]
+      }
+    },
+    "/v1/payments/webhooks/refunded": {
+      "post": {
+        "operationId": "paymentRefunded",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Acquiring-Event-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Acquiring-Signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Подпись эквайринга невалидна."
+          }
+        },
+        "summary": "Подписанный webhook полного refund: фиксирует REFUNDED и immutable ledger confirmation",
+        "tags": [
+          "Payments & Ledger"
+        ]
+      }
+    },
+    "/v1/telemed/webhooks/livekit": {
+      "post": {
+        "operationId": "receive",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "LIVEKIT_SIGNATURE_INVALID"
+          }
+        },
+        "summary": "Проверенный webhook LiveKit: аудит входа врача и завершение телемедицинской сессии",
+        "tags": [
+          "Telemedicine"
+        ]
+      }
+    },
+    "/v1/telemed/intakes": {
+      "post": {
+        "operationId": "createIntake",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTelemedIntakeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Eligibility outcome and routing target for the next owner step."
+          },
+          "400": {
+            "description": "Consent, category or red flag payload is invalid."
+          },
+          "401": {
+            "description": "Bearer JWT is missing or invalid."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create telemedicine intake and return safety eligibility before payment or queue",
+        "tags": [
+          "Telemedicine"
+        ]
+      }
+    },
+    "/v1/telemed/intakes/{intakeId}/payment-intents": {
+      "post": {
+        "operationId": "createPaymentIntent",
+        "parameters": [
+          {
+            "name": "intakeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Telemedicine case is PAYMENT_PENDING and checkoutUrl is returned."
+          },
+          "400": {
+            "description": "Missing or malformed intakeId or Idempotency-Key."
+          },
+          "401": {
+            "description": "Bearer JWT is missing or invalid."
+          },
+          "422": {
+            "description": "Only TELEMED_ELIGIBLE intakes can enter payment."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create telemedicine checkout for an eligible intake with payment fencing",
+        "tags": [
+          "Telemedicine"
+        ]
+      }
+    },
+    "/v1/telemed/sessions/{sessionId}/cancel": {
+      "post": {
+        "operationId": "TelemedOwnerSession_cancel",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The waiting room is cancelled and authorization void is queued when required."
+          },
+          "400": {
+            "description": "Missing or malformed sessionId or Idempotency-Key."
+          },
+          "401": {
+            "description": "Bearer JWT is missing or invalid."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Cancel a case-based telemedicine waiting room before doctor connection",
+        "tags": [
+          "Telemedicine"
+        ]
+      }
+    },
+    "/v1/telemed/sessions": {
+      "get": {
+        "operationId": "TelemedOwnerSession_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Owner telemedicine sessions ordered by active status and creation time."
+          },
+          "401": {
+            "description": "Bearer JWT is missing or invalid."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List owner telemedicine sessions with server-owned status buckets",
+        "tags": [
+          "Telemedicine"
+        ]
+      }
+    },
+    "/v1/telemed/sessions/{sessionId}": {
+      "get": {
+        "operationId": "TelemedOwnerSession_read",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Telemed state, serverNow, doctor join deadline and aggregate version."
+          },
+          "401": {
+            "description": "Bearer JWT is missing or invalid."
+          },
+          "404": {
+            "description": "Session is absent or does not belong to the owner."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Authoritative waiting room snapshot for the owner",
+        "tags": [
+          "Telemedicine"
+        ]
+      }
+    },
+    "/v1/telemed/sessions/{sessionId}/room-token": {
+      "post": {
+        "operationId": "issueToken",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Short-lived room token is issued only for CONNECTED sessions."
+          },
+          "401": {
+            "description": "Bearer JWT is missing or invalid."
+          },
+          "404": {
+            "description": "Session is absent or does not belong to the owner."
+          },
+          "409": {
+            "description": "TELEMED_DOCTOR_NOT_CONNECTED."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Issue a short-lived owner video room token after doctor connection",
+        "tags": [
+          "Telemedicine"
+        ]
+      }
+    },
+    "/v1/telemed/payments/webhooks/authorized": {
+      "post": {
+        "operationId": "TelemedPaymentWebhook_paymentAuthorized",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Acquiring-Event-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Acquiring-Signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Acquiring signature is invalid."
+          },
+          "422": {
+            "description": "Telemedicine payment is not ready or provider reference mismatched."
+          }
+        },
+        "summary": "Signed telemedicine payment authorization webhook: provider dedupe and queue transition",
+        "tags": [
+          "Telemedicine"
+        ]
+      }
+    },
+    "/v1/telemed/vet/queue": {
+      "get": {
+        "operationId": "queue",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Queued cases plus only cases assigned to the requesting veterinarian."
+          },
+          "401": {
+            "description": "Platform veterinarian JWT is required."
+          },
+          "403": {
+            "description": "Only the assigned platform veterinarian can edit or join a case."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Read platform telemedicine queue and cases assigned to the current veterinarian",
+        "tags": [
+          "Telemedicine veterinarian workspace"
+        ]
+      }
+    },
+    "/v1/telemed/vet/cases/{caseId}/assign": {
+      "post": {
+        "operationId": "assign",
+        "parameters": [
+          {
+            "name": "caseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "401": {
+            "description": "Platform veterinarian JWT is required."
+          },
+          "403": {
+            "description": "Only the assigned platform veterinarian can edit or join a case."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Assign a queued platform telemedicine case to the current veterinarian",
+        "tags": [
+          "Telemedicine veterinarian workspace"
+        ]
+      }
+    },
+    "/v1/telemed/vet/cases/{caseId}/start-session": {
+      "post": {
+        "operationId": "startSession",
+        "parameters": [
+          {
+            "name": "caseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "401": {
+            "description": "Platform veterinarian JWT is required."
+          },
+          "403": {
+            "description": "Only the assigned platform veterinarian can edit or join a case."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Start a waiting room session for a case assigned to the current veterinarian",
+        "tags": [
+          "Telemedicine veterinarian workspace"
+        ]
+      }
+    },
+    "/v1/telemed/vet/cases/{caseId}/sessions/{sessionId}/connect": {
+      "post": {
+        "operationId": "connectDoctor",
+        "parameters": [
+          {
+            "name": "caseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sessionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "401": {
+            "description": "Platform veterinarian JWT is required."
+          },
+          "403": {
+            "description": "Only the assigned platform veterinarian can edit or join a case."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Connect the assigned veterinarian to a case-based telemedicine room",
+        "tags": [
+          "Telemedicine veterinarian workspace"
+        ]
+      }
+    },
+    "/v1/telemed/vet/cases/{caseId}/workspace": {
+      "patch": {
+        "operationId": "updateWorkspace",
+        "parameters": [
+          {
+            "name": "caseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTelemedCaseWorkspaceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "401": {
+            "description": "Platform veterinarian JWT is required."
+          },
+          "403": {
+            "description": "Only the assigned platform veterinarian can edit or join a case."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Update safety escalation, recommendation and follow-up for an assigned case",
+        "tags": [
+          "Telemedicine veterinarian workspace"
+        ]
+      }
+    },
+    "/v1/telemed/vet/cases/{caseId}/audit-trail": {
+      "get": {
+        "operationId": "auditTrail",
+        "parameters": [
+          {
+            "name": "caseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "401": {
+            "description": "Platform veterinarian JWT is required."
+          },
+          "403": {
+            "description": "Only the assigned platform veterinarian can edit or join a case."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Read audit trail of a case assigned to the current veterinarian",
+        "tags": [
+          "Telemedicine veterinarian workspace"
+        ]
+      }
+    },
+    "/v1/insurance/profiles": {
+      "get": {
+        "operationId": "listProfiles",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Only caller-owned masked insurance profile summaries are returned."
+          },
+          "401": {
+            "description": "Bearer JWT is missing or invalid."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List owner insurance profiles with masked policy data",
+        "tags": [
+          "Insurance Gateway"
+        ]
+      },
+      "post": {
+        "operationId": "createProfile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInsuranceProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Insurance profile stored with masked policy reference; VetHelp does not decide coverage."
+          },
+          "401": {
+            "description": "Bearer JWT is missing or invalid."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create or update an owner insurance profile with masked policy reference",
+        "tags": [
+          "Insurance Gateway"
+        ]
+      }
+    },
+    "/v1/insurance/profiles/{profileId}/consent": {
+      "delete": {
+        "operationId": "revokeProfileConsent",
+        "parameters": [
+          {
+            "name": "profileId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Consent is revoked; profile is hidden from active owner lists and audit is appended."
+          },
+          "404": {
+            "description": "Profile is absent or does not belong to the owner."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Revoke owner consent for an insurance profile",
+        "tags": [
+          "Insurance Gateway"
+        ]
+      }
+    },
+    "/v1/insurance/coverage-checks": {
+      "post": {
+        "operationId": "Insurance_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCoverageCheckDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Coverage check is CONSENT_REQUIRED or REQUESTED. Provider remains authoritative for the final decision."
+          },
+          "401": {
+            "description": "Bearer JWT is missing or invalid."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create consent-first insurance coverage check request",
+        "tags": [
+          "Insurance Gateway"
+        ]
+      }
+    },
+    "/v1/insurance/coverage-checks/{checkId}": {
+      "get": {
+        "operationId": "Insurance_read",
+        "parameters": [
+          {
+            "name": "checkId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Provider-backed coverage-check state; VetHelp does not make the insurance decision."
+          },
+          "404": {
+            "description": "Coverage check is absent or does not belong to the owner."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Read coverage check state owned by the caller",
+        "tags": [
+          "Insurance Gateway"
         ]
       }
     },
@@ -4799,6 +8427,160 @@
         ]
       }
     },
+    "/v1/owner/clinic-catalog/specialist-discovery/options": {
+      "get": {
+        "operationId": "specialistDiscoveryOptions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerSpecialistDiscoveryOptionsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Owner clinic catalog"
+        ]
+      }
+    },
+    "/v1/owner/clinic-catalog/specialist-discovery": {
+      "get": {
+        "operationId": "specialistDiscovery",
+        "parameters": [
+          {
+            "name": "specialtyId",
+            "required": false,
+            "in": "query",
+            "description": "Authoritative specialty identity. At least one of specialtyId or serviceCode is required.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceCode",
+            "required": false,
+            "in": "query",
+            "description": "Clinic service taxonomy code, normalized to uppercase. At least one selector is required.",
+            "schema": {
+              "example": "PRIMARY_EXAM",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 25,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerSpecialistDiscoveryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "Owner clinic catalog"
+        ]
+      }
+    },
     "/v1/owner/clinic-catalog/{clinicId}/locations/{locationId}": {
       "get": {
         "operationId": "OwnerClinicCatalog_detail",
@@ -5226,71 +9008,13 @@
           "owner"
         ]
       },
-      "OwnerPetMvpDto": {
+      "CreateOwnerPetDto": {
         "type": "object",
-        "properties": {
-          "petId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 120
-          },
-          "species": {
-            "type": "string",
-            "enum": [
-              "DOG",
-              "CAT",
-              "OTHER"
-            ]
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "petId",
-          "name",
-          "species",
-          "createdAt",
-          "updatedAt"
-        ]
+        "properties": {}
       },
-      "ApiErrorDto": {
+      "UpdateOwnerPetDto": {
         "type": "object",
-        "properties": {
-          "statusCode": {
-            "type": "number",
-            "example": 403
-          },
-          "code": {
-            "type": "string",
-            "example": "PET_OWNERSHIP_MISMATCH"
-          },
-          "message": {
-            "type": "string",
-            "example": "Pet ownership mismatch"
-          },
-          "correlationId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "details": {
-            "type": "object"
-          }
-        },
-        "required": [
-          "statusCode",
-          "code",
-          "message"
-        ]
+        "properties": {}
       },
       "EffectiveSessionScopeDto": {
         "type": "object",
@@ -5387,11 +9111,7 @@
         },
         "required": [
           "slotId",
-          "petId",
-          "clinicId",
-          "locationId",
-          "expectedSlotVersion",
-          "serviceId"
+          "petId"
         ]
       },
       "BookingStatus": {
@@ -5413,10 +9133,16 @@
             "format": "uuid",
             "example": "7f04cd21-642a-4c48-8a82-5650ca5ce06c"
           },
-          "status": {
+          "appointmentId": {
             "type": "string",
-            "enum": [
-              "PENDING_CONFIRMATION"
+            "format": "uuid"
+          },
+          "status": {
+            "description": "Canonical first-MVP booking status. Internal persistence state is never public.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BookingStatus"
+              }
             ]
           },
           "slotId": {
@@ -5449,7 +9175,9 @@
           "confirmationMode": {
             "type": "string",
             "enum": [
-              "MANUAL"
+              "AUTOMATIC",
+              "MANUAL",
+              "MIS"
             ]
           },
           "nextAction": {
@@ -5470,8 +9198,36 @@
           "aggregateVersion",
           "confirmationMode",
           "nextAction"
-        ],
-        "additionalProperties": false
+        ]
+      },
+      "ApiErrorDto": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 403
+          },
+          "code": {
+            "type": "string",
+            "example": "PET_OWNERSHIP_MISMATCH"
+          },
+          "message": {
+            "type": "string",
+            "example": "Pet ownership mismatch"
+          },
+          "correlationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "details": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "statusCode",
+          "code",
+          "message"
+        ]
       },
       "PetSummaryDto": {
         "type": "object",
@@ -5612,6 +9368,10 @@
             "type": "string",
             "format": "date-time"
           },
+          "canCancel": {
+            "type": "boolean",
+            "description": "Server-authoritative cancellation availability for the current booking snapshot."
+          },
           "pet": {
             "$ref": "#/components/schemas/PetSummaryDto"
           },
@@ -5662,6 +9422,7 @@
           "serverNow",
           "aggregateVersion",
           "lastUpdatedAt",
+          "canCancel",
           "pet",
           "clinic",
           "location",
@@ -5703,6 +9464,113 @@
           "correlationId"
         ]
       },
+      "ClinicConfirmDecisionStatusDto": {
+        "type": "object",
+        "properties": {
+          "holdId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CONFIRMED"
+            ]
+          },
+          "appointmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "correlationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "aggregateVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "lastUpdatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "serverNow": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "holdId",
+          "slotId",
+          "status",
+          "appointmentId",
+          "correlationId",
+          "aggregateVersion",
+          "lastUpdatedAt",
+          "serverNow"
+        ]
+      },
+      "ClinicDeclineCommandDto": {
+        "type": "object",
+        "properties": {
+          "declineReason": {
+            "type": "string",
+            "enum": [
+              "CAPACITY_UNAVAILABLE",
+              "STAFF_UNAVAILABLE",
+              "SERVICE_UNAVAILABLE",
+              "OTHER"
+            ]
+          }
+        }
+      },
+      "ClinicRejectDecisionStatusDto": {
+        "type": "object",
+        "properties": {
+          "holdId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "REJECTED"
+            ]
+          },
+          "correlationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "aggregateVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "lastUpdatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "serverNow": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "holdId",
+          "slotId",
+          "status",
+          "correlationId",
+          "aggregateVersion",
+          "lastUpdatedAt",
+          "serverNow"
+        ]
+      },
       "BookingCommandStatusDto": {
         "type": "object",
         "properties": {
@@ -5735,6 +9603,604 @@
           "status",
           "slotId",
           "correlationId"
+        ]
+      },
+      "CreateBookingChangeRequestDto": {
+        "type": "object",
+        "properties": {
+          "requestType": {
+            "type": "string",
+            "enum": [
+              "CANCEL",
+              "RESCHEDULE"
+            ]
+          }
+        },
+        "required": [
+          "requestType"
+        ]
+      },
+      "BookingChangeRequestDto": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "requestType": {
+            "type": "string",
+            "enum": [
+              "CANCEL",
+              "RESCHEDULE"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "PROCESSING",
+              "COMPLETED",
+              "REJECTED",
+              "CANCELLED"
+            ]
+          },
+          "bookingHoldId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "appointmentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "clinicId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "number",
+            "minimum": 1
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "stateChangedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "terminalAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "requestId",
+          "requestType",
+          "status",
+          "bookingHoldId",
+          "clinicId",
+          "locationId",
+          "slotId",
+          "version",
+          "createdAt",
+          "stateChangedAt",
+          "updatedAt"
+        ]
+      },
+      "Object": {
+        "type": "object",
+        "properties": {}
+      },
+      "OperationsBookingChangeRequestItemDto": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "requestType": {
+            "type": "string",
+            "enum": [
+              "CANCEL",
+              "RESCHEDULE"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "PROCESSING",
+              "COMPLETED",
+              "REJECTED",
+              "CANCELLED"
+            ]
+          },
+          "bookingHoldId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "appointmentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "clinicId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "number",
+            "minimum": 1
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "stateChangedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "terminalAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "requestId",
+          "requestType",
+          "status",
+          "bookingHoldId",
+          "clinicId",
+          "locationId",
+          "slotId",
+          "version",
+          "createdAt",
+          "stateChangedAt",
+          "updatedAt"
+        ]
+      },
+      "OperationsBookingChangeRequestPageDto": {
+        "type": "object",
+        "properties": {
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OperationsBookingChangeRequestItemDto"
+            }
+          }
+        },
+        "required": [
+          "observedAt",
+          "items"
+        ]
+      },
+      "OperationsReplacementSlotDto": {
+        "type": "object",
+        "properties": {
+          "slotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "number",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "slotId",
+          "startsAt",
+          "endsAt",
+          "version"
+        ]
+      },
+      "OperationsBookingChangeRequestDetailDto": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "requestType": {
+            "type": "string",
+            "enum": [
+              "CANCEL",
+              "RESCHEDULE"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "PROCESSING",
+              "COMPLETED",
+              "REJECTED",
+              "CANCELLED"
+            ]
+          },
+          "bookingHoldId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "appointmentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "clinicId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "number",
+            "minimum": 1
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "stateChangedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "terminalAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "serverNow": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "currentBookingStatus": {
+            "type": "string"
+          },
+          "currentAppointmentStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "replacementSlots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OperationsReplacementSlotDto"
+            }
+          }
+        },
+        "required": [
+          "requestId",
+          "requestType",
+          "status",
+          "bookingHoldId",
+          "clinicId",
+          "locationId",
+          "slotId",
+          "version",
+          "createdAt",
+          "stateChangedAt",
+          "updatedAt",
+          "serverNow",
+          "currentBookingStatus",
+          "replacementSlots"
+        ]
+      },
+      "ProcessBookingChangeRequestDto": {
+        "type": "object",
+        "properties": {
+          "replacementSlotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "replacementSlotVersion": {
+            "type": "number",
+            "minimum": 1
+          }
+        }
+      },
+      "ReplacementBookingDto": {
+        "type": "object",
+        "properties": {
+          "holdId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING_CONFIRMATION",
+              "CONFIRMED",
+              "REJECTED",
+              "EXPIRED"
+            ]
+          },
+          "confirmationMode": {
+            "type": "string",
+            "enum": [
+              "MANUAL"
+            ]
+          },
+          "slotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "aggregateVersion": {
+            "type": "number",
+            "minimum": 1
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "holdId",
+          "status",
+          "confirmationMode",
+          "slotId",
+          "aggregateVersion",
+          "expiresAt"
+        ]
+      },
+      "ReallocationOfferDto": {
+        "type": "object",
+        "properties": {
+          "offerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "number",
+            "minimum": 1
+          },
+          "rank": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "clinicId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "clinicName": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationAddress": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "doctorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "doctorName": {
+            "type": "string"
+          },
+          "serviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "serviceName": {
+            "type": "string"
+          },
+          "slotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slotVersion": {
+            "type": "number",
+            "minimum": 1
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "distanceMeters": {
+            "type": "number",
+            "nullable": true
+          },
+          "priceAmount": {
+            "type": "number",
+            "nullable": true
+          },
+          "priceCurrency": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OFFERED",
+              "EXPIRED",
+              "INVALIDATED",
+              "ACCEPTED"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "offerId",
+          "version",
+          "rank",
+          "clinicId",
+          "clinicName",
+          "locationId",
+          "locationAddress",
+          "timezone",
+          "doctorId",
+          "doctorName",
+          "serviceId",
+          "serviceName",
+          "slotId",
+          "slotVersion",
+          "startsAt",
+          "endsAt",
+          "status",
+          "expiresAt"
+        ]
+      },
+      "ReallocationCaseDto": {
+        "type": "object",
+        "properties": {
+          "caseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "bookingChangeRequestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "bookingHoldId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "REPLACEMENT_PENDING_CONFIRMATION",
+              "CLOSED",
+              "CANCELLED"
+            ]
+          },
+          "eligibility": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "BOOKING_INELIGIBLE"
+            ]
+          },
+          "version": {
+            "type": "number",
+            "minimum": 1
+          },
+          "serverNow": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "acceptedOfferId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "replacementBooking": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReplacementBookingDto"
+              }
+            ]
+          },
+          "offers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReallocationOfferDto"
+            }
+          }
+        },
+        "required": [
+          "caseId",
+          "bookingChangeRequestId",
+          "bookingHoldId",
+          "status",
+          "eligibility",
+          "version",
+          "serverNow",
+          "createdAt",
+          "offers"
+        ]
+      },
+      "AcceptReallocationOfferDto": {
+        "type": "object",
+        "properties": {
+          "offerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "caseVersion": {
+            "type": "number",
+            "minimum": 1
+          },
+          "offerVersion": {
+            "type": "number",
+            "minimum": 1
+          },
+          "slotVersion": {
+            "type": "number",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "offerId",
+          "caseVersion",
+          "offerVersion",
+          "slotVersion"
         ]
       },
       "ProposeAlternativeSlotDto": {
@@ -6338,6 +10804,405 @@
           "updatedAt"
         ]
       },
+      "DoctorShiftResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "clinicId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "staffId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "doctorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "timezone": {
+            "type": "string",
+            "example": "Europe/Moscow"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "BLOCKED",
+              "CANCELLED"
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "generationVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "clinicId",
+          "locationId",
+          "staffId",
+          "doctorId",
+          "startsAt",
+          "endsAt",
+          "timezone",
+          "status",
+          "version",
+          "generationVersion",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "DoctorServiceResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "clinic_location_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "staff_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "doctor_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "service_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "resource_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "slot_capacity": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "id",
+          "clinic_location_id",
+          "staff_id",
+          "doctor_id",
+          "service_id",
+          "resource_id",
+          "slot_capacity",
+          "active",
+          "version"
+        ]
+      },
+      "DoctorShiftInventoryResponseDto": {
+        "type": "object",
+        "properties": {
+          "clinicId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "timezone": {
+            "type": "string",
+            "example": "Europe/Moscow"
+          },
+          "mutationEnabled": {
+            "type": "boolean",
+            "description": "False during rollout rollback; every mutation fails closed."
+          },
+          "shifts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DoctorShiftResponseDto"
+            }
+          },
+          "doctorServices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DoctorServiceResponseDto"
+            }
+          },
+          "doctors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false
+            }
+          },
+          "veterinarians": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false
+            }
+          },
+          "catalogDoctors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false
+            }
+          },
+          "runs": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "generatedSlots": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "clinicId",
+          "locationId",
+          "timezone",
+          "mutationEnabled",
+          "shifts",
+          "doctorServices",
+          "doctors",
+          "veterinarians",
+          "catalogDoctors",
+          "runs",
+          "generatedSlots"
+        ]
+      },
+      "DoctorServiceRequestDto": {
+        "type": "object",
+        "properties": {
+          "staffId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "doctorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "serviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "resourceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "required": [
+          "staffId",
+          "doctorId",
+          "serviceId"
+        ]
+      },
+      "DoctorMappingRequestDto": {
+        "type": "object",
+        "properties": {
+          "staffId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "doctorId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "staffId",
+          "doctorId"
+        ]
+      },
+      "DoctorMappingResponseDto": {
+        "type": "object",
+        "properties": {
+          "staff_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "doctor_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "staff_id",
+          "doctor_id",
+          "version"
+        ]
+      },
+      "DoctorShiftRequestDto": {
+        "type": "object",
+        "properties": {
+          "staffId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "doctorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startsAt": {
+            "type": "string",
+            "description": "Clinic-local datetime or ISO-8601 instant.",
+            "example": "2026-09-10T09:00"
+          },
+          "endsAt": {
+            "type": "string",
+            "description": "Clinic-local datetime or ISO-8601 instant.",
+            "example": "2026-09-10T12:00"
+          }
+        },
+        "required": [
+          "staffId",
+          "doctorId",
+          "startsAt",
+          "endsAt"
+        ]
+      },
+      "DoctorShiftUpdateRequestDto": {
+        "type": "object",
+        "properties": {
+          "startsAt": {
+            "type": "string",
+            "description": "Clinic-local datetime or ISO-8601 instant.",
+            "example": "2026-09-10T09:00"
+          },
+          "endsAt": {
+            "type": "string",
+            "description": "Clinic-local datetime or ISO-8601 instant.",
+            "example": "2026-09-10T12:00"
+          }
+        },
+        "required": [
+          "startsAt",
+          "endsAt"
+        ]
+      },
+      "InventoryGenerationResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "shiftId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "shiftVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "generationVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "GENERATED",
+              "PUBLISHED"
+            ]
+          },
+          "slotCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rulesFingerprint": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "id",
+          "shiftId",
+          "shiftVersion",
+          "generationVersion",
+          "status",
+          "slotCount",
+          "rulesFingerprint"
+        ]
+      },
+      "InventoryPublicationResponseDto": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "shiftId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "publicationState": {
+            "type": "string",
+            "enum": [
+              "PUBLISHED",
+              "UNPUBLISHED"
+            ]
+          },
+          "slotCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "runId",
+          "shiftId",
+          "publicationState",
+          "slotCount"
+        ]
+      },
       "QueueWorkspaceFactsDto": {
         "type": "object",
         "properties": {
@@ -6890,6 +11755,38 @@
           "notifications"
         ]
       },
+      "CreateEmergencyTriageDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "RecordEmergencyRouteActionDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpsertEmergencyProfileDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ReviewEmergencyProfileDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateTelemedIntakeDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateTelemedCaseWorkspaceDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateInsuranceProfileDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateCoverageCheckDto": {
+        "type": "object",
+        "properties": {}
+      },
       "OwnerClinicCatalogItemDto": {
         "type": "object",
         "properties": {
@@ -6940,6 +11837,198 @@
           "clinics"
         ],
         "additionalProperties": false
+      },
+      "OwnerSpecialistDiscoverySpecialtyOptionDto": {
+        "type": "object",
+        "properties": {
+          "specialtyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "specialtyId",
+          "name"
+        ]
+      },
+      "OwnerSpecialistDiscoveryServiceOptionDto": {
+        "type": "object",
+        "properties": {
+          "serviceCode": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "serviceCode",
+          "name"
+        ]
+      },
+      "OwnerSpecialistDiscoveryOptionsDto": {
+        "type": "object",
+        "properties": {
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "specialties": {
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnerSpecialistDiscoverySpecialtyOptionDto"
+            }
+          },
+          "services": {
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnerSpecialistDiscoveryServiceOptionDto"
+            }
+          }
+        },
+        "required": [
+          "observedAt",
+          "specialties",
+          "services"
+        ]
+      },
+      "OwnerSpecialistAvailabilitySlotDto": {
+        "type": "object",
+        "properties": {
+          "slotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "slotId",
+          "startsAt",
+          "endsAt",
+          "expectedVersion"
+        ]
+      },
+      "OwnerSpecialistDiscoveryDoctorDto": {
+        "type": "object",
+        "properties": {
+          "specialtyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "specialtyName": {
+            "type": "string"
+          },
+          "doctorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "doctorName": {
+            "type": "string"
+          },
+          "serviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "serviceCode": {
+            "type": "string"
+          },
+          "serviceName": {
+            "type": "string"
+          },
+          "clinicId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "clinicName": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "address": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "latitude": {
+            "type": "number",
+            "nullable": true,
+            "minimum": -90,
+            "maximum": 90
+          },
+          "longitude": {
+            "type": "number",
+            "nullable": true,
+            "minimum": -180,
+            "maximum": 180
+          },
+          "slots": {
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnerSpecialistAvailabilitySlotDto"
+            }
+          }
+        },
+        "required": [
+          "specialtyId",
+          "specialtyName",
+          "doctorId",
+          "doctorName",
+          "serviceId",
+          "serviceCode",
+          "serviceName",
+          "clinicId",
+          "clinicName",
+          "locationId",
+          "address",
+          "timezone",
+          "latitude",
+          "longitude",
+          "slots"
+        ]
+      },
+      "OwnerSpecialistDiscoveryDto": {
+        "type": "object",
+        "properties": {
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 50
+          },
+          "doctors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnerSpecialistDiscoveryDoctorDto"
+            }
+          }
+        },
+        "required": [
+          "observedAt",
+          "limit",
+          "doctors"
+        ]
       },
       "OwnerClinicServicePriceDto": {
         "type": "object",

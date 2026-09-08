@@ -31,21 +31,23 @@ type QueueItem = {
   latestAudit?: { action: string; occurredAt: string; actorType: string } | null;
 };
 
-type ConfirmMode = 'success' | 'slot-locked-retry' | 'denied-once' | 'server-error-once';
+type ConfirmMode = 'success' | 'slot-locked-retry' | 'state-conflict' | 'expired' | 'malformed-success' | 'denied-once' | 'server-error-once';
 type AlternativeMode = 'success' | 'slot-locked-retry';
+type DeclineMode = 'success' | 'slot-locked-retry' | 'delayed-success';
 
 let server: Server;
 let items: QueueItem[] = [];
 let confirmMode: ConfirmMode = 'success';
 let alternativeMode: AlternativeMode = 'success';
+let declineMode: DeclineMode = 'success';
 let sessionMode: 'allowed' | 'denied' | 'error' = 'allowed';
 let queueFailures = 0;
 let holdQueueResponse = false;
 let releaseQueue: (() => void) | undefined;
 let queueReads = 0;
-let confirmRequests: Array<{ holdId: string; ifMatch: string | undefined; idempotencyKey: string | undefined }> = [];
+let confirmRequests: Array<{ holdId: string; ifMatch: string | undefined; idempotencyKey: string | undefined; correlationId: string | undefined }> = [];
 let alternativeRequests: Array<{ holdId: string; newSlotId: string; ifMatch: string | undefined; idempotencyKey: string | undefined }> = [];
-let declineRequests: Array<{ holdId: string; declineReason: string; ifMatch: string | undefined; idempotencyKey: string | undefined }> = [];
+let declineRequests: Array<{ holdId: string; declineReason: string; ifMatch: string | undefined; idempotencyKey: string | undefined; correlationId: string | undefined }> = [];
 let notesRequests: Array<{ holdId: string; noteRequest: string; ifMatch: string | undefined; idempotencyKey: string | undefined }> = [];
 
 test.describe.configure({ mode: 'serial' });
@@ -135,6 +137,7 @@ test('blocks clinic location URL tampering before backend queue fetch', async ({
 });
 
 test('renders backend FIFO order and SLA risk state from serverNow', async ({ page, context, baseURL }, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
   await addClinicSession(context, baseURL);
 
   await uiStep(page, testInfo, 'Открыть очередь подтверждений', () => page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`));
@@ -143,28 +146,51 @@ test('renders backend FIFO order and SLA risk state from serverNow', async ({ pa
     await expect(rowFor(page, 'Барс')).toContainText('1');
     await expect(rowFor(page, 'Шарик')).toContainText('2');
     await expect(rowFor(page, 'Марта')).toContainText('3');
-    await expect(rowFor(page, 'Барс')).toContainText('SLA скоро истечёт');
+    await expect(rowFor(page, 'Барс')).toContainText('SLA критично');
+    await expect(rowFor(page, 'Барс')).toContainText('Статус: ожидает решения клиники');
     await expect(rowFor(page, 'Барс')).toContainText('Внимание: срок подтверждения истекает.');
     await expect(rowFor(page, 'Шарик')).toContainText('SLA в норме');
-    await expect(rowFor(page, 'Шарик')).toContainText('Сначала обработайте более раннюю заявку.');
-    await expect(rowFor(page, 'Марта')).toContainText('Сначала обработайте более раннюю заявку.');
+    await expect(rowFor(page, 'Шарик')).toContainText('Сначала обработайте более раннюю активную заявку.');
+    await expect(rowFor(page, 'Марта')).toContainText('Сначала обработайте более раннюю активную заявку.');
     await expect(rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' })).toBeEnabled();
     await expect(rowFor(page, 'Шарик').getByRole('button', { name: 'Ожидает очередь' })).toBeDisabled();
-    if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-queue-desktop.png`, fullPage: true });
+    if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-normal-1440x900.png`, fullPage: false });
   });
 });
 
 test('keeps an expired-but-not-transitioned MANUAL_CONFIRM_PENDING fixture in authoritative position', async ({ page, context, baseURL }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   items[0] = { ...items[0], confirmationSlaExpiresAt: '2026-06-25T11:59:59.000Z' };
   await addClinicSession(context, baseURL);
   await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
 
   await expect(rowFor(page, 'Барс')).toContainText('1');
   await expect(rowFor(page, 'Барс')).toContainText('SLA просрочен');
-  await expect(rowFor(page, 'Барс')).toContainText('backend ещё не перевёл заявку');
+  await expect(rowFor(page, 'Барс')).toContainText('Срок истёк: действия недоступны');
   await expect(rowFor(page, 'Барс').getByRole('button', { name: 'Недоступно' })).toBeDisabled();
   await expect(rowFor(page, 'Шарик')).toContainText('2');
-  await expect(rowFor(page, 'Шарик').getByRole('button', { name: 'Ожидает очередь' })).toBeDisabled();
+  await expect(rowFor(page, 'Шарик').getByRole('button', { name: 'Подтвердить' })).toBeEnabled();
+  await rowFor(page, 'Барс').evaluate((element) => {
+    const container = element.closest('table')?.parentElement;
+    if (!container) throw new Error('QUEUE_SCROLL_CONTAINER_NOT_FOUND');
+    container.scrollLeft = container.scrollWidth;
+  });
+  if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-expired-390x844.png`, fullPage: false });
+});
+
+test('renders warning, critical and urgent SLA bands from the calibrated server clock', async ({ page, context, baseURL }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  items = [
+    { ...items[0], pet: { ...items[0].pet, name: 'Предупреждение' }, confirmationSlaExpiresAt: '2026-06-25T12:04:00.000Z' },
+    { ...items[1], pet: { ...items[1].pet, name: 'Критично' }, confirmationSlaExpiresAt: '2026-06-25T12:02:00.000Z' },
+    { ...items[2], pet: { ...items[2].pet, name: 'Срочно' }, confirmationSlaExpiresAt: '2026-06-25T12:00:30.000Z' },
+  ];
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  await expect(rowFor(page, 'Предупреждение')).toContainText('SLA скоро истечёт');
+  await expect(rowFor(page, 'Критично')).toContainText('SLA критично');
+  await expect(rowFor(page, 'Срочно')).toContainText('SLA срочно');
+  if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-sla-bands-1024x768.png`, fullPage: false });
 });
 
 test('presents not-applicable and unknown SLA explicitly without relying on color', async ({ page, context, baseURL }) => {
@@ -200,7 +226,7 @@ test('uses one shared UI clock, preserves row order locally and accepts authorit
   });
   await page.getByRole('button', { name: 'Обновить' }).click();
   await expect.poll(() => correctedReads).toBe(1);
-  await expect(rowFor(page, 'Шарик')).toContainText('SLA скоро истечёт');
+  await expect(rowFor(page, 'Шарик')).toContainText(/SLA (критично|срочно)/);
   await expect(rowFor(page, 'Барс')).toContainText('1');
 });
 
@@ -223,6 +249,7 @@ test('recomputes SLA immediately when a hidden tab becomes visible', async ({ pa
 });
 
 test('confirms the first actionable hold and refreshes authoritative queue', async ({ page, context, baseURL }, testInfo) => {
+  await page.setViewportSize({ width: 768, height: 1024 });
   await addClinicSession(context, baseURL);
   await uiStep(page, testInfo, 'Открыть очередь с первой actionable заявкой', () => page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`));
 
@@ -232,29 +259,93 @@ test('confirms the first actionable hold and refreshes authoritative queue', asy
     await expect(page.getByRole('status')).toContainText('Запись подтверждена. Очередь обновлена.');
     await expect(rowFor(page, 'Барс')).toHaveCount(0);
     await expect(rowFor(page, 'Шарик')).toContainText('1');
-    expect(confirmRequests).toEqual([{ holdId: holdA, ifMatch: '1', idempotencyKey: expect.any(String) }]);
+    expect(confirmRequests).toEqual([{ holdId: holdA, ifMatch: '1', idempotencyKey: expect.any(String), correlationId: expect.any(String) }]);
     expect(queueReads).toBeGreaterThanOrEqual(2);
+    if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-confirm-readback-768x1024.png`, fullPage: false });
   });
 });
 
-test('declines with a required reason and refreshes the authoritative queue', async ({ page, context, baseURL }) => {
+test('declines after an explicit destructive confirmation without collecting free text', async ({ page, context, baseURL }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
   await addClinicSession(context, baseURL);
   await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
   await rowFor(page, 'Барс').getByRole('button', { name: 'Отклонить' }).click();
   const dialog = page.getByRole('dialog', { name: 'Отклонить заявку' });
   const submit = dialog.getByRole('button', { name: 'Отклонить заявку' });
-  await expect(submit).toBeDisabled();
-  await dialog.getByLabel('Причина отклонения').fill('Врач недоступен в выбранное время');
-  if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-decline-dialog.png`, fullPage: true });
-  await submit.click();
+  await expect(submit).toBeEnabled();
+  await expect(submit).toBeFocused();
+  await expect(dialog.getByRole('textbox')).toHaveCount(0);
+  expect((await new AxeBuilder({ page }).include('[role="dialog"]').analyze()).violations).toEqual([]);
+  await page.keyboard.press('Tab');
+  await expect(dialog.getByRole('button', { name: 'Отмена' })).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(submit).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(rowFor(page, 'Барс').getByRole('button', { name: 'Отклонить' })).toBeFocused();
+  await rowFor(page, 'Барс').getByRole('button', { name: 'Отклонить' }).click();
+  if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-decline-dialog-1440x900.png`, fullPage: false });
+  await page.getByRole('dialog', { name: 'Отклонить заявку' }).getByRole('button', { name: 'Отклонить заявку' }).evaluate((button) => {
+    (button as HTMLButtonElement).click();
+    (button as HTMLButtonElement).click();
+  });
   await expect(page.getByRole('status')).toContainText('Заявка отклонена, слот освобождён. Очередь обновлена.');
+  await expect(page.getByRole('status')).toBeFocused();
   await expect(rowFor(page, 'Барс')).toHaveCount(0);
+  if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-reject-readback-1440x900.png`, fullPage: false });
   expect(declineRequests).toEqual([{
     holdId: holdA,
-    declineReason: 'Врач недоступен в выбранное время',
+    declineReason: '',
     ifMatch: '1',
     idempotencyKey: expect.any(String),
+    correlationId: expect.any(String),
   }]);
+});
+
+test('keeps focus inside the decline dialog while the command is submitting', async ({ page, context, baseURL }) => {
+  declineMode = 'delayed-success';
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  await rowFor(page, 'Барс').getByRole('button', { name: 'Отклонить' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Отклонить заявку' });
+  await dialog.getByRole('button', { name: 'Отклонить заявку' }).click();
+  await expect(dialog.locator('section')).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(dialog.locator('section')).toBeFocused();
+  await expect(page.getByRole('status')).toBeFocused();
+});
+
+test('disables an open decline decision after authoritative deadline invalidation', async ({ page, context, baseURL }) => {
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  await rowFor(page, 'Барс').getByRole('button', { name: 'Отклонить' }).click();
+  items[0] = { ...items[0], confirmationSlaExpiresAt: '2026-06-25T11:59:59.000Z' };
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  const dialog = page.getByRole('dialog', { name: 'Отклонить заявку' });
+  await expect(dialog.getByRole('button', { name: 'Решение недоступно' })).toBeDisabled();
+  await expect(dialog.getByRole('button', { name: 'Отмена' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(dialog.getByRole('button', { name: 'Отмена' })).toBeFocused();
+  expect(declineRequests).toHaveLength(0);
+});
+
+test('keeps a pending row actionable after retryable decline lock conflict and authoritative refresh', async ({ page, context, baseURL }) => {
+  declineMode = 'slot-locked-retry';
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  await rowFor(page, 'Барс').getByRole('button', { name: 'Отклонить' }).click();
+  await page.getByRole('dialog', { name: 'Отклонить заявку' }).getByRole('button', { name: 'Отклонить заявку' }).click();
+  await expect(page.getByRole('status')).toContainText('Обновляем состояние заявки. Отклонение можно повторить.');
+  await expect(rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' })).toBeEnabled();
+  await expect(rowFor(page, 'Барс').getByRole('button', { name: 'Отклонить' })).toBeEnabled();
+  expect(declineRequests).toHaveLength(1);
+
+  declineMode = 'success';
+  await rowFor(page, 'Барс').getByRole('button', { name: 'Отклонить' }).click();
+  await page.getByRole('dialog', { name: 'Отклонить заявку' }).getByRole('button', { name: 'Отклонить заявку' }).click();
+  await expect(rowFor(page, 'Барс')).toHaveCount(0);
+  expect(declineRequests).toHaveLength(2);
+  expect(declineRequests[1].idempotencyKey).not.toBe(declineRequests[0].idempotencyKey);
 });
 
 test('requests notes once and keeps the authoritative updated row', async ({ page, context, baseURL }) => {
@@ -275,6 +366,7 @@ test('requests notes once and keeps the authoritative updated row', async ({ pag
 });
 
 test('keeps the last snapshot visibly degraded and recovers without overlapping refreshes', async ({ page, context, baseURL }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   await addClinicSession(context, baseURL);
   await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
   queueFailures = 1;
@@ -282,7 +374,8 @@ test('keeps the last snapshot visibly degraded and recovers without overlapping 
   await expect(page.getByText(/Нет соединения · данные на/)).toBeVisible();
   await expect(rowFor(page, 'Барс')).toBeVisible();
   await expect(rowFor(page, 'Барс').getByRole('button', { name: 'Ожидает очередь' })).toBeDisabled();
-  if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-queue-degraded.png`, fullPage: true });
+  await page.locator('table').locator('..').evaluate((element) => { element.scrollLeft = element.scrollWidth; });
+  if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-degraded-390x844.png`, fullPage: false });
   await page.getByRole('button', { name: 'Обновить' }).click();
   await expect(page.getByText('Синхронизировано')).toBeVisible();
   await expect(rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' })).toBeEnabled();
@@ -318,8 +411,8 @@ test('queues an authoritative readback behind a stale in-flight poll after comma
   await expect.poll(() => routeReads).toBe(1);
   await rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' }).click();
   await expect.poll(() => confirmRequests.length).toBe(1);
-  await expect(page.getByRole('status')).toContainText('Запись подтверждена. Очередь обновлена.');
   releaseStale?.();
+  await expect(page.getByRole('status')).toContainText('Запись подтверждена. Очередь обновлена.');
   await expect.poll(() => routeReads).toBe(2);
   await expect.poll(() => queueReads).toBe(readsBefore + 1);
   await expect(rowFor(page, 'Барс')).toHaveCount(0);
@@ -367,24 +460,75 @@ test('rejects malformed, wrong-scope and duplicate queue payloads without replac
   await expect(page.getByText('Синхронизировано')).toBeVisible();
 });
 
-for (const [mode, reusesKey, message] of [
-  ['denied-once', false, 'Не удалось подтвердить запись.'],
-  ['server-error-once', true, 'Не удалось подтвердить запись.'],
-] as const) {
-test(`handles ${mode} safely and applies the idempotency policy on explicit retry`, async ({ page, context, baseURL }) => {
-  confirmMode = mode;
+test('fails closed when backend command authority is denied', async ({ page, context, baseURL }) => {
+  confirmMode = 'denied-once';
   await addClinicSession(context, baseURL);
   await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
   await rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' }).click();
-  await expect(page.getByRole('status')).toContainText(message);
-  await expect(rowFor(page, 'Барс')).toBeVisible();
+  await expect(page).toHaveURL(/\/forbidden\?reason=scope_denied$/);
+  await expect(rowFor(page, 'Барс')).toHaveCount(0);
+  expect(confirmRequests).toHaveLength(1);
+});
+
+test('reuses the idempotency key when retrying a technical confirm failure', async ({ page, context, baseURL }) => {
+  confirmMode = 'server-error-once';
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  await rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' }).click();
+  await expect(page.getByRole('status')).toContainText('Сервис временно недоступен. Очередь обновлена — действие можно повторить.');
   await rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' }).click();
   await expect(rowFor(page, 'Барс')).toHaveCount(0);
   expect(confirmRequests).toHaveLength(2);
-  if (reusesKey) expect(confirmRequests[1].idempotencyKey).toBe(confirmRequests[0].idempotencyKey);
-  else expect(confirmRequests[1].idempotencyKey).not.toBe(confirmRequests[0].idempotencyKey);
+  expect(confirmRequests[1].idempotencyKey).toBe(confirmRequests[0].idempotencyKey);
 });
+
+test('recovers a fenced pending row only after a successful authoritative refresh', async ({ page, context, baseURL }) => {
+  await addClinicSession(context, baseURL);
+  await page.route('**/api/clinic/booking-holds/*/confirm', async (route) => route.abort('connectionfailed'));
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  await rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' }).click();
+  await expect(page.getByRole('status')).toContainText('Нет связи с VetHelp. Действия заблокированы до авторитетного обновления.');
+  await expect(rowFor(page, 'Барс').getByRole('button', { name: 'Недоступно' })).toBeDisabled();
+  await page.unroute('**/api/clinic/booking-holds/*/confirm');
+  await page.getByRole('button', { name: 'Обновить' }).click();
+  await expect(page.getByText('Синхронизировано')).toBeVisible();
+  await expect(rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' })).toBeEnabled();
+});
+
+test('submits only one confirm command for a rapid duplicate click', async ({ page, context, baseURL }) => {
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  const confirm = rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' });
+  await confirm.evaluate((button) => {
+    (button as HTMLButtonElement).click();
+    (button as HTMLButtonElement).click();
+  });
+  await expect(rowFor(page, 'Барс')).toHaveCount(0);
+  expect(confirmRequests).toHaveLength(1);
+});
+
+for (const [mode, message] of [
+  ['state-conflict', 'Другой сотрудник уже обработал заявку. Данные обновлены.'],
+  ['expired', 'Срок заявки истёк. Решение больше недоступно.'],
+] as const) {
+  test(`fails closed for authoritative ${mode} and removes decision controls`, async ({ page, context, baseURL }) => {
+    confirmMode = mode;
+    await addClinicSession(context, baseURL);
+    await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+    await rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' }).click();
+    await expect(page.getByRole('status')).toContainText(message);
+    await expect(rowFor(page, 'Барс')).toHaveCount(0);
+  });
 }
+
+test('rejects a malformed success response and preserves the last valid queue snapshot', async ({ page, context, baseURL }) => {
+  confirmMode = 'malformed-success';
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  await rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' }).click();
+  await expect(page.getByRole('status')).toContainText('Сервис временно недоступен. Очередь обновлена — действие можно повторить.');
+  await expect(rowFor(page, 'Барс')).toBeVisible();
+});
 
 test('keeps critical queue actions keyboard-accessible at tablet width', async ({ page, context, baseURL }) => {
   await page.setViewportSize({ width: 768, height: 900 });
@@ -398,6 +542,17 @@ test('keeps critical queue actions keyboard-accessible at tablet width', async (
   await page.keyboard.press('Enter');
   await expect(page.getByRole('status')).toContainText('Запись подтверждена. Очередь обновлена.');
   expect(confirmRequests).toHaveLength(1);
+});
+
+test('keeps the queue contained at 390px with 200 percent root text', async ({ page, context, baseURL }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
+  await expect(rowFor(page, 'Барс')).toBeVisible();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });
 
 test('proposes an alternative with version fencing and removes the row after authoritative readback', async ({ page, context, baseURL }) => {
@@ -418,6 +573,7 @@ test('proposes an alternative with version fencing and removes the row after aut
 });
 
 test('refreshes queue after retryable confirm conflict without fencing the row', async ({ page, context, baseURL }, testInfo) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
   confirmMode = 'slot-locked-retry';
   await addClinicSession(context, baseURL);
   await uiStep(page, testInfo, 'Открыть очередь перед retryable conflict', () => page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`));
@@ -427,9 +583,9 @@ test('refreshes queue after retryable confirm conflict without fencing the row',
   await uiStep(page, testInfo, 'Проверить refresh без fencing строки', async () => {
     await expect(page.getByRole('status')).toContainText('Обновляем состояние заявки.');
     await expect(rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' })).toBeEnabled();
-    expect(confirmRequests).toEqual([{ holdId: holdA, ifMatch: '1', idempotencyKey: expect.any(String) }]);
+    expect(confirmRequests).toEqual([{ holdId: holdA, ifMatch: '1', idempotencyKey: expect.any(String), correlationId: expect.any(String) }]);
     expect(queueReads).toBeGreaterThanOrEqual(2);
-    if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-stale-conflict.png`, fullPage: true });
+    if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-stale-conflict-1024x768.png`, fullPage: false });
   });
 
   await rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' }).click();
@@ -507,6 +663,7 @@ function resetBackend() {
   items = makeQueueItems();
   confirmMode = 'success';
   alternativeMode = 'success';
+  declineMode = 'success';
   sessionMode = 'allowed';
   queueFailures = 0;
   holdQueueResponse = false;
@@ -560,13 +717,29 @@ function handleBackendRequest(request: IncomingMessage, response: ServerResponse
   const confirmMatch = url.pathname.match(/^\/v1\/clinic\/booking-holds\/([^/]+)\/confirm$/);
   if (request.method === 'POST' && confirmMatch) {
     const holdId = confirmMatch[1];
+    const currentItem = items.find((queueItem) => queueItem.holdId === holdId);
     confirmRequests.push({
       holdId,
       ifMatch: headerValue(request, 'if-match'),
       idempotencyKey: headerValue(request, 'idempotency-key'),
+      correlationId: headerValue(request, 'x-correlation-id'),
     });
     if (confirmMode === 'slot-locked-retry') {
       sendJson(response, 409, { code: 'SLOT_LOCKED_RETRY' });
+      return;
+    }
+    if (confirmMode === 'state-conflict') {
+      items = items.filter((item) => item.holdId !== holdId);
+      sendJson(response, 409, { code: 'BOOKING_STATE_CONFLICT', detail: 'private' });
+      return;
+    }
+    if (confirmMode === 'expired') {
+      items = items.filter((item) => item.holdId !== holdId);
+      sendJson(response, 422, { code: 'HOLD_EXPIRED', internalState: 'EXPIRED' });
+      return;
+    }
+    if (confirmMode === 'malformed-success') {
+      sendJson(response, 200, { ...decisionResult(holdId, currentItem?.slot.id ?? '', 'CONFIRMED'), lastUpdatedAt: '2026-02-30T12:00:00.000Z' });
       return;
     }
     if (confirmMode === 'denied-once') {
@@ -580,7 +753,7 @@ function handleBackendRequest(request: IncomingMessage, response: ServerResponse
       return;
     }
     items = items.filter((item) => item.holdId !== holdId);
-    sendJson(response, 200, { holdId, state: 'CONFIRMED' });
+    sendJson(response, 200, decisionResult(holdId, currentItem?.slot.id ?? '', 'CONFIRMED'));
     return;
   }
 
@@ -608,14 +781,24 @@ function handleBackendRequest(request: IncomingMessage, response: ServerResponse
   if (request.method === 'POST' && declineMatch) {
     collectBody(request).then((rawBody) => {
       const body = rawBody ? JSON.parse(rawBody) as { declineReason?: string } : {};
+      const currentItem = items.find((queueItem) => queueItem.holdId === declineMatch[1]);
       declineRequests.push({
         holdId: declineMatch[1],
         declineReason: body.declineReason ?? '',
         ifMatch: headerValue(request, 'if-match'),
         idempotencyKey: headerValue(request, 'idempotency-key'),
+        correlationId: headerValue(request, 'x-correlation-id'),
       });
-      items = items.filter((item) => item.holdId !== declineMatch[1]);
-      sendJson(response, 200, { holdId: declineMatch[1], state: 'RELEASED' });
+      if (declineMode === 'slot-locked-retry') {
+        sendJson(response, 409, { code: 'SLOT_LOCKED_RETRY' });
+        return;
+      }
+      const complete = () => {
+        items = items.filter((item) => item.holdId !== declineMatch[1]);
+        sendJson(response, 200, decisionResult(declineMatch[1], currentItem?.slot.id ?? '', 'REJECTED'));
+      };
+      if (declineMode === 'delayed-success') setTimeout(complete, 300);
+      else complete();
     }).catch(() => sendJson(response, 400, { code: 'INVALID_REQUEST' }));
     return;
   }
@@ -743,5 +926,18 @@ function item(input: {
     service: {
       displayName: 'Первичный приём',
     },
+  };
+}
+
+function decisionResult(holdId: string, slotId: string, status: 'CONFIRMED' | 'REJECTED') {
+  return {
+    holdId,
+    slotId,
+    status,
+    aggregateVersion: 2,
+    lastUpdatedAt: serverNow,
+    serverNow,
+    correlationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    ...(status === 'CONFIRMED' ? { appointmentId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' } : {}),
   };
 }

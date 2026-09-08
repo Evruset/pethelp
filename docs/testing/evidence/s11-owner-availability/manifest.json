@@ -1,16 +1,23 @@
 {
-  "generatedAt": "2026-08-13T06:39:52.972Z",
+  "generatedAt": "2026-08-22T16:40:13.379Z",
   "source": "apps/owner-app/src/clinics/AvailabilityScreen.tsx",
-  "sourceSha256": "98b3b903483f83c8d94f1dea967073db8a8b19aeeb976a8e9b53f43548d83274",
+  "sourceSha256": "abe012f5af09d77ba38f98419960113823746e2e1da131233d3368ee6141f5c6",
   "renderer": "react-native-web production component bundle; controlled query/session test seam",
   "physicalDevice": false,
   "cases": [
+    {
+      "name": "narrow-content",
+      "width": 320,
+      "height": 760,
+      "file": "narrow-content.png",
+      "sha256": "ff24db6b48c5f706ac2f89dbd643b94f3bcf27e92bbc6ed0a33151b509f08fa8"
+    },
     {
       "name": "compact-content",
       "width": 375,
       "height": 812,
       "file": "compact-content.png",
-      "sha256": "71842f2085072d427479da91d3491645f69faa38e722120b59d2476f9eb2ccb8"
+      "sha256": "32ec50c3217dcf3be3abc7f4f703110f392eeff729d315f82317a21b48ffc70b"
     },
     {
       "name": "standard-selected",
@@ -18,15 +25,15 @@
       "height": 844,
       "select": "11:00",
       "file": "standard-selected.png",
-      "sha256": "d07872a0327aa9f4c7436e5b4acfd4caf7c808729805d674601e1fe748ee5fea"
+      "sha256": "8c7ade4de9f75942b79102db82b655933879aa8b02f0e53494f1e7f66871fdf0"
     },
     {
-      "name": "wide-empty",
-      "width": 1024,
-      "height": 768,
+      "name": "tablet-empty",
+      "width": 768,
+      "height": 900,
       "hash": "#empty",
-      "file": "wide-empty.png",
-      "sha256": "27139fc301803321f2730e6045d3d0e063e855a5ccd98bf45af69f5ede14204f"
+      "file": "tablet-empty.png",
+      "sha256": "b7ae70f1b089c13faf6557477f3cf1aa98ff365db87c2d10fe7dff221c70826f"
     }
   ]
 }

@@ -1,5 +1,5 @@
 import { ClinicScheduleClient } from '@/components/schedule/ClinicScheduleClient';
-import { ClinicScheduleBackendError, getClinicSchedule } from '@/lib/api/clinic-schedule';
+import { ClinicScheduleBackendError, getClinicSchedule, getDoctorShiftInventory } from '@/lib/api/clinic-schedule';
 import { canAccessClinicLocation, getClinicSession } from '@/lib/auth/clinic-session';
 import { getEffectiveSession, hasCapability, hasClinicScope } from '@/lib/auth/effective-session';
 
@@ -58,7 +58,11 @@ export default async function ClinicSchedulePage({ params }: PageProps) {
 
   try {
     const schedule = await getClinicSchedule(session, clinicId, locationId, from, to);
-    return <ClinicScheduleClient clinicId={clinicId} locationId={locationId} initialSchedule={schedule} canCompleteAppointments={canCompleteAppointments} />;
+    let doctorShiftUnavailable=false;
+    const canReadDoctorShifts = session.roles.some((role) => role === 'CLINIC_ADMIN' || role === 'CLINIC_RECEPTIONIST' || role === 'CLINIC_VETERINARIAN');
+    const canManageDoctorShifts = session.roles.includes('CLINIC_ADMIN');
+    const loadedDoctorShiftInventory = canReadDoctorShifts ? await getDoctorShiftInventory(session, clinicId, locationId, from, to).catch(()=>{doctorShiftUnavailable=true;return undefined;}) : undefined;
+    return <ClinicScheduleClient clinicId={clinicId} locationId={locationId} initialSchedule={schedule} canCompleteAppointments={canCompleteAppointments} doctorShiftInventory={loadedDoctorShiftInventory} doctorShiftUnavailable={doctorShiftUnavailable} canManageDoctorShifts={canManageDoctorShifts} />;
   } catch (error) {
     if (error instanceof ClinicScheduleBackendError && error.status === 403) {
       return <AccessDenied />;

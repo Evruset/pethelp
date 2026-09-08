@@ -36,6 +36,38 @@ describe('CapabilityEvaluatorService booking.queue.read ABAC matrix', () => {
   });
 });
 
+describe('CapabilityEvaluatorService booking.decision ABAC matrix', () => {
+  const evaluator = new CapabilityEvaluatorService();
+  const resource = { aggregateType: 'booking.decision' as const, clinicId: CLINIC, locationId: LOCATION };
+
+  it.each([Role.CLINIC_RECEPTIONIST, Role.CLINIC_ADMIN])('allows exact scoped %s with active membership', async (role) => {
+    await expect(evaluator.assertAllowed(client() as PoolClient, {
+      actor: { sub: ACTOR, roles: [role], clinicIds: [CLINIC], locationIds: [LOCATION] },
+      capability: Capability.BOOKING_DECISION,
+      resource,
+    })).resolves.toBeUndefined();
+  });
+
+  it.each([
+    ['wrong role', { sub: ACTOR, roles: [Role.CLINIC_VETERINARIAN], clinicIds: [CLINIC], locationIds: [LOCATION] }],
+    ['foreign clinic', { sub: ACTOR, roles: [Role.CLINIC_ADMIN], clinicIds: [OTHER_LOCATION], locationIds: [LOCATION] }],
+    ['foreign location', { sub: ACTOR, roles: [Role.CLINIC_ADMIN], clinicIds: [CLINIC], locationIds: [OTHER_LOCATION] }],
+  ])('denies %s before querying membership', async (_name, actor) => {
+    const db = client();
+    await expect(evaluator.assertAllowed(db as PoolClient, { actor, capability: Capability.BOOKING_DECISION, resource }))
+      .rejects.toMatchObject({ response: { code: 'CLINIC_SCOPE_MISMATCH' } });
+    expect(db.query).not.toHaveBeenCalled();
+  });
+
+  it('denies inactive or revoked membership', async () => {
+    await expect(evaluator.assertAllowed(client(false) as PoolClient, {
+      actor: { sub: ACTOR, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [CLINIC], locationIds: [LOCATION] },
+      capability: Capability.BOOKING_DECISION,
+      resource,
+    })).rejects.toMatchObject({ response: { code: 'CLINIC_SCOPE_MISMATCH' } });
+  });
+});
+
 describe('CapabilityEvaluatorService appointment.registry.read ABAC matrix', () => {
   const evaluator = new CapabilityEvaluatorService();
   const resource = { aggregateType: 'appointment.registry' as const, clinicId: CLINIC, locationId: LOCATION };

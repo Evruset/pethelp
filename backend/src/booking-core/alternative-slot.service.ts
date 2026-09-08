@@ -28,6 +28,8 @@ interface LockedSlot {
   held_count: number;
   state: 'OPEN' | 'CLOSED' | 'CANCELLED';
   status: 'AVAILABLE' | 'LOCKED_BY_HOLD' | 'BOOKED';
+  doctor_shift_id: string | null;
+  publication_state: string;
 }
 
 interface IdempotencyRow {
@@ -104,6 +106,7 @@ export class AlternativeSlotService {
       const sourceSlot = slots.get(hold.slot_id);
       const newSlot = slots.get(newSlotId);
       if (!sourceSlot || !newSlot) throw DomainErrors.slotNotFound();
+      if(sourceSlot.doctor_shift_id||newSlot.doctor_shift_id) throw DomainErrors.generatedSlotManagedByDoctorShift();
       await this.access.assertLocationAccess(client, employeeContext, sourceSlot.clinic_location_id);
       if (sourceSlot.clinic_location_id !== newSlot.clinic_location_id) throw DomainErrors.clinicScopeMismatch();
 
@@ -176,6 +179,7 @@ export class AlternativeSlotService {
       const sourceSlot = slots.get(hold.slot_id);
       const alternativeSlot = slots.get(hold.alternative_slot_id);
       if (!sourceSlot || !alternativeSlot) throw DomainErrors.slotNotFound();
+      if(sourceSlot.doctor_shift_id||alternativeSlot.doctor_shift_id) throw DomainErrors.generatedSlotManagedByDoctorShift();
       if (hold.alternative_expires_at <= await this.databaseNow(client)) {
         await this.expireAlternativeLocked(client, hold, this.correlationId(), 'owner-accept-detected-expiry');
         throw DomainErrors.holdExpired();
@@ -235,7 +239,7 @@ export class AlternativeSlotService {
 
   private async lockSlots(client: PoolClient, ids: string[]): Promise<Map<string, LockedSlot>> {
     const result = await client.query<LockedSlot>(`
-      SELECT id, clinic_location_id, starts_at, capacity, booked_count, held_count, state, status
+      SELECT id, clinic_location_id, starts_at, capacity, booked_count, held_count, state, status,doctor_shift_id,publication_state
       FROM clinic_schema.appointment_slots
       WHERE id = ANY($1::uuid[]) ORDER BY id FOR UPDATE
     `, [[...new Set(ids)].sort()]);

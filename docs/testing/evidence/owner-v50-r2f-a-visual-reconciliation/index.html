@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>R2F-A V50 specialist reconciliation</title>
+<style>body{font:14px system-ui;margin:24px;background:#eef5ff;color:#182541}h1,h2{margin:0 0 16px}.group{margin:0 0 32px}.row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:0 0 18px;align-items:start}.cell{background:white;border:1px solid #c8daf3;border-radius:16px;padding:12px}.cell strong{display:block;margin-bottom:8px}.cell img{display:block;width:100%;height:auto;border:1px solid #dde5f0}@media(max-width:800px){.row{grid-template-columns:1fr}}</style>
+<h1>OWN-018 / #doctor-select: V50 source | current runtime</h1>
+<p>Prototype SHA-256: <code>81d5effec9805021f9ad5c74d93519903ec6624895bacfe9282ad185a3c270c9</code></p>
+<div id="pairs"></div>
+<script>
+const views=[['mobile',390,844],['tablet',768,900],['desktop',1440,900]],states=['content','selected','loading','empty','error'];
+document.querySelector('#pairs').innerHTML=views.map(([name,w,h])=>`<section class="group"><h2>${w}×${h}</h2>${states.map(state=>`<div class="row"><div class="cell"><strong>V50 source / selected (${w}×${h})</strong><img src="prototype/${name}-${w}x${h}.png"></div><div class="cell"><strong>Current runtime / ${state} (${w}×${h})</strong><img src="runtime/${name}-${state}-${w}x${h}.png"></div></div>`).join('')}</section>`).join('');
+</script>

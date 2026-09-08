@@ -121,7 +121,7 @@ it('validates phone locally as UX aid and does not dispatch', async () => {
   await enterDirectLogin(view);
   await act(async () => { fireEvent.changeText(view.getByLabelText('Номер телефона'), '8999'); });
   await act(async () => { fireEvent.press(view.getByText('Получить код')); });
-  expect(view.getByRole('alert').props.children.join('')).toContain('международном формате');
+  expect(view.getByRole('alert').props.accessibilityLabel).toContain('международном формате');
   expect(api.requestOtp).not.toHaveBeenCalled();
 });
 
@@ -134,7 +134,7 @@ it.each([
   const { view } = await setup(api);
   await enterDirectLogin(view); await act(async () => { fireEvent.changeText(view.getByLabelText('Номер телефона'), '+79991234567'); });
   await act(async () => { fireEvent.press(view.getByText('Получить код')); });
-  expect(view.getByRole('alert').props.children.join('')).toContain(copy);
+  expect(view.getByRole('alert').props.accessibilityLabel).toContain(copy);
   expect(view.queryByText('raw-hidden')).toBeNull();
 });
 
@@ -209,7 +209,7 @@ it('renders stale challenge as an action-oriented conflict without authenticatin
   const { store, view } = await setup(api);
   await requestCode(view); await act(async () => { fireEvent.changeText(view.getByLabelText('Код из сообщения'), '123456'); });
   await act(async () => { fireEvent.press(view.getByText('Подтвердить')); });
-  expect(view.getByRole('alert').props.children.join('')).toContain('больше не активен');
+  expect(view.getByRole('alert').props.accessibilityLabel).toContain('больше не активен');
   expect(view.getByText('Начать вход заново')).toBeTruthy();
   expect(store.write).not.toHaveBeenCalled();
 });
@@ -221,7 +221,7 @@ it('denies backend-invalid OTP, keeps retry usable and exposes only bounded atte
   await requestCode(view);
   await act(async () => { fireEvent.changeText(view.getByLabelText('Код из сообщения'), '000000'); });
   await act(async () => { fireEvent.press(view.getByText('Подтвердить')); });
-  expect(view.getByRole('alert').props.children.join('')).toContain('Осталось попыток: 4');
+  expect(view.getByRole('alert').props.accessibilityLabel).toContain('Осталось попыток: 4');
   expect(view.queryByText('raw verifier detail')).toBeNull();
   expect(view.getByText('Подтвердить')).toBeTruthy();
   expect(store.write).not.toHaveBeenCalled();
@@ -234,7 +234,7 @@ it('denies authoritative expired OTP and requires a safe restart without session
   await requestCode(view);
   await act(async () => { fireEvent.changeText(view.getByLabelText('Код из сообщения'), '123456'); });
   await act(async () => { fireEvent.press(view.getByText('Подтвердить')); });
-  expect(view.getByRole('alert').props.children.join('')).toContain('Срок действия кода истёк');
+  expect(view.getByRole('alert').props.accessibilityLabel).toContain('Срок действия кода истёк');
   expect(view.getByText('Начать вход заново')).toBeTruthy();
   expect(view.queryByText('raw expiry detail')).toBeNull();
   expect(store.write).not.toHaveBeenCalled();

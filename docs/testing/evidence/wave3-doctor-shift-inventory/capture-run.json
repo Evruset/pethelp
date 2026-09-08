@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "test": "captures the final DoctorShift visual state and viewport matrix",
+  "status": "PASS",
+  "completedAt": "2026-08-28T15:26:58.152Z",
+  "browser": {
+    "name": "chromium",
+    "version": "149.0.7827.55"
+  },
+  "captureScriptSha256": "a2a6ad186320fda751d8d9e67c3c091fa4dd50fe8b2956bd227a1213b2203f6a",
+  "semanticStates": [
+    "vis-01-empty",
+    "vis-02-doctor-selected",
+    "vis-03-draft-shift",
+    "vis-04-shift-editor",
+    "vis-05-generated-preview",
+    "vis-06-published-inventory",
+    "vis-07-blocked-inventory",
+    "vis-08-held-slot",
+    "vis-09-booked-slot",
+    "vis-10-stale-conflict",
+    "vis-11-technical-degraded",
+    "vis-12-read-only-role"
+  ],
+  "checks": {
+    "overflowChecks": 60,
+    "axeScans": 12,
+    "screenshots": 60
+  }
+}

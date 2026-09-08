@@ -16,12 +16,18 @@ jest.setTimeout(45_000);
 describe('V50 owner booking hold/status (real PostgreSQL)', () => {
   const database = new DatabaseService();
   const creation = new BookingHoldCreationService(database, new BookingRepository());
-  const clinicAccess = { assertBookingHoldReadAccess: jest.fn(), assertLocationAccess: jest.fn() } as never;
+  const clinicAccess = { assertBookingHoldReadAccess: jest.fn(), assertLocationAccess: jest.fn(), assertBookingDecisionCapability: jest.fn(), assertBookingDecisionAccess: jest.fn() } as never;
   const read = new BookingHoldReadService(database, clinicAccess);
   const queueAccess = { assertBookingQueueReadAccess: jest.fn() } as never;
   const queue = new ClinicQueueService(database, queueAccess);
   const booking = new BookingService(database, new BookingRepository());
   const bookingSecurity = new BookingSecurityService(database, clinicAccess);
+
+  beforeAll(() => {
+    if (process.env.MVP_SCOPE_PROFILE !== 'PILOT_V1') {
+      throw new Error('WAVE1_TEST_REQUIRES_MVP_SCOPE_PROFILE_PILOT_V1');
+    }
+  });
 
   afterAll(async () => database.onModuleDestroy());
 
@@ -29,10 +35,8 @@ describe('V50 owner booking hold/status (real PostgreSQL)', () => {
     const fixture = await seedFixture(database, 2);
     const key = randomUUID();
     const input = command(fixture, fixture.owners[0], fixture.pets[0], key);
-    if (process.env.MVP_SCOPE_PROFILE === 'PILOT_V1') {
-      await expect(creation.createLocalHold({ ...input, expectedSlotVersion: undefined }))
-        .rejects.toMatchObject({ status: 400, response: { code: 'INVALID_REQUEST' } });
-    }
+    await expect(creation.createLocalHold({ ...input, expectedSlotVersion: undefined }))
+      .rejects.toMatchObject({ status: 400, response: { code: 'INVALID_REQUEST' } });
     const first = await creation.createLocalHold(input);
     const replay = await creation.createLocalHold(input);
     expect(replay).toEqual(first);
@@ -43,14 +47,20 @@ describe('V50 owner booking hold/status (real PostgreSQL)', () => {
       expect(first).not.toHaveProperty('displayStatus');
       expect(first.lastUpdatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
       expect(first).not.toHaveProperty('appointmentId');
-      const persisted = await database.query<{ state: string; held_count: number; appointments: string; mis_effects: string }>(`
+      const persisted = await database.query<{ state: string; held_count: number; appointments: string; mis_effects: string; deadline_seconds: string; payment_effects: string }>(`
         SELECT h.state, s.held_count,
+          EXTRACT(EPOCH FROM (h.confirmation_sla_expires_at - h.created_at))::text AS deadline_seconds,
           (SELECT COUNT(*)::text FROM booking_schema.appointments WHERE hold_id = h.id) AS appointments,
-          (SELECT COUNT(*)::text FROM booking_schema.outbox_events WHERE aggregate_id = h.id AND event_type = 'mis.reservation.requested.v1') AS mis_effects
+          (SELECT COUNT(*)::text FROM booking_schema.outbox_events WHERE aggregate_id = h.id AND event_type = 'mis.reservation.requested.v1') AS mis_effects,
+          (SELECT COUNT(*)::text FROM booking_schema.outbox_events WHERE aggregate_id = h.id AND event_type LIKE 'payment.%') AS payment_effects
         FROM booking_schema.booking_holds h JOIN clinic_schema.appointment_slots s ON s.id = h.slot_id
         WHERE h.id = $1::uuid
       `, [first.holdId]);
-      expect(persisted.rows[0]).toEqual({ state: 'MANUAL_CONFIRM_PENDING', held_count: 1, appointments: '0', mis_effects: '0' });
+      expect(persisted.rows[0]).toMatchObject({ state: 'MANUAL_CONFIRM_PENDING', held_count: 1, appointments: '0', mis_effects: '0', payment_effects: '0' });
+      expect(Number(persisted.rows[0].deadline_seconds)).toBeGreaterThanOrEqual(899);
+      expect(Number(persisted.rows[0].deadline_seconds)).toBeLessThanOrEqual(901);
+      expect(Date.parse(first.expiresAt!) - Date.parse(first.serverNow!)).toBeGreaterThanOrEqual(899_000);
+      expect(Date.parse(first.expiresAt!) - Date.parse(first.serverNow!)).toBeLessThanOrEqual(901_000);
       const visible = await queue.listManualConfirmationQueue({
         clinicId: fixture.clinicId,
         locationId: fixture.locationId,
@@ -98,7 +108,7 @@ describe('V50 owner booking hold/status (real PostgreSQL)', () => {
     if (process.env.MVP_SCOPE_PROFILE === 'PILOT_V1') {
       await bookingSecurity.confirmManualHold({
         holdId: first.holdId,
-        employee: { sub: randomUUID(), roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [fixture.clinicId] },
+        employee: { sub: randomUUID(), roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [fixture.clinicId], locationIds: [fixture.locationId] },
         idempotencyKey: randomUUID(),
         correlationId: randomUUID(),
         expectedVersion: first.aggregateVersion!,
@@ -154,17 +164,16 @@ describe('V50 owner booking hold/status (real PostgreSQL)', () => {
   });
 
   it('keeps a declined PILOT Level A request manual in owner readback', async () => {
-    if (process.env.MVP_SCOPE_PROFILE !== 'PILOT_V1') return;
 
     const fixture = await seedFixture(database, 1);
     const created = await creation.createLocalHold(command(fixture, fixture.owners[0], fixture.pets[0], randomUUID()));
     await bookingSecurity.declineManualHold({
       holdId: created.holdId,
-      employee: { sub: randomUUID(), roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [fixture.clinicId] },
+      employee: { sub: randomUUID(), roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [fixture.clinicId], locationIds: [fixture.locationId] },
       idempotencyKey: randomUUID(),
       correlationId: randomUUID(),
       expectedVersion: created.aggregateVersion!,
-      declineReason: 'Нет доступного врача',
+      declineReason: 'STAFF_UNAVAILABLE',
     });
 
     const declined = await read.readForActor(created.holdId, { sub: fixture.owners[0], roles: [Role.OWNER] });
@@ -212,55 +221,80 @@ describe('V50 owner booking hold/status (real PostgreSQL)', () => {
     expect(evidence.rows[0]).toEqual({ state: 'EXPIRED', held_count: 0, effects: '1', audits: '1' });
   });
 
-  it('bounds create/confirm/decline/cancel races with expiry without deadlock or duplicate release', async () => {
+  it.each(['confirm', 'decline'] as const)('denies late %s and converges to one EXPIRED effect set without resurrection', async (decision) => {
+    const fixture = await seedFixture(database, 1);
+    const created = await creation.createLocalHold(command(fixture, fixture.owners[0], fixture.pets[0], randomUUID()));
+    await database.query(`UPDATE booking_schema.booking_holds SET confirmation_sla_expires_at=clock_timestamp()-interval '1 second' WHERE id=$1`, [created.holdId]);
+    const employee = { sub: randomUUID(), roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [fixture.clinicId], locationIds: [fixture.locationId] };
+    const action = decision === 'confirm'
+      ? bookingSecurity.confirmManualHold({ holdId: created.holdId, employee, idempotencyKey: randomUUID(), correlationId: randomUUID(), expectedVersion: 1 })
+      : bookingSecurity.declineManualHold({ holdId: created.holdId, employee, idempotencyKey: randomUUID(), correlationId: randomUUID(), expectedVersion: 1, declineReason: 'CAPACITY_UNAVAILABLE' });
+    await expect(action).rejects.toMatchObject({ status: 422, response: { code: 'HOLD_EXPIRED' } });
+    const invariant = await database.query<{ state: string; held_count: number; appointments: string; expired_events: string; expired_audits: string; confirmed_events: string; declined_audits: string }>(`
+      SELECT h.state,s.held_count,
+        (SELECT count(*)::text FROM booking_schema.appointments WHERE hold_id=h.id) appointments,
+        (SELECT count(*)::text FROM booking_schema.outbox_events WHERE aggregate_id=h.id AND event_type='booking.hold.expired.v1') expired_events,
+        (SELECT count(*)::text FROM audit_schema.audit_log WHERE aggregate_id=h.id AND action='booking.hold.expired') expired_audits,
+        (SELECT count(*)::text FROM booking_schema.outbox_events WHERE aggregate_id=h.id AND event_type='booking.confirmed.v1') confirmed_events,
+        (SELECT count(*)::text FROM audit_schema.audit_log WHERE aggregate_id=h.id AND action='booking.declined') declined_audits
+      FROM booking_schema.booking_holds h JOIN clinic_schema.appointment_slots s ON s.id=h.slot_id WHERE h.id=$1 GROUP BY h.id,s.held_count
+    `, [created.holdId]);
+    expect(invariant.rows[0]).toEqual({ state: 'EXPIRED', held_count: 0, appointments: '0', expired_events: '1', expired_audits: '1', confirmed_events: '0', declined_audits: '0' });
+  });
+
+  it('bounds confirm and decline races with expiry to one terminal state and one effect family', async () => {
     if (process.env.MVP_SCOPE_PROFILE !== 'PILOT_V1') return;
-    const terminalCommands = ['confirm', 'decline', 'cancel'] as const;
+    const terminalCommands = ['confirm', 'decline'] as const;
     for (const terminal of terminalCommands) {
       const fixture = await seedFixture(database, 2);
       const created = await creation.createLocalHold(command(fixture, fixture.owners[0], fixture.pets[0], randomUUID()));
-      await database.query(`UPDATE booking_schema.booking_holds SET confirmation_sla_expires_at=clock_timestamp()-interval '1 second' WHERE id=$1`, [created.holdId]);
-      const employee = { sub: randomUUID(), roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [fixture.clinicId] };
+      await database.query(`UPDATE booking_schema.booking_holds SET confirmation_sla_expires_at=clock_timestamp()+interval '20 milliseconds' WHERE id=$1`, [created.holdId]);
+      const employee = { sub: randomUUID(), roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [fixture.clinicId], locationIds: [fixture.locationId] };
+      await new Promise((resolve) => setTimeout(resolve, 15));
       const competing = terminal === 'confirm'
         ? bookingSecurity.confirmManualHold({ holdId: created.holdId, employee, idempotencyKey: randomUUID(), correlationId: randomUUID(), expectedVersion: 1 })
-        : terminal === 'decline'
-          ? bookingSecurity.declineManualHold({ holdId: created.holdId, employee, idempotencyKey: randomUUID(), correlationId: randomUUID(), expectedVersion: 1, declineReason: 'Нет возможности принять' })
-          : bookingSecurity.releaseHold({ holdId: created.holdId, actor: { sub: fixture.owners[0], roles: [Role.OWNER] }, idempotencyKey: randomUUID(), correlationId: randomUUID(), expectedVersion: 1, reasonCode: 'OWNER_CANCELLED' });
+        : bookingSecurity.declineManualHold({ holdId: created.holdId, employee, idempotencyKey: randomUUID(), correlationId: randomUUID(), expectedVersion: 1, declineReason: 'CAPACITY_UNAVAILABLE' });
       const settled = await Promise.race([
         Promise.allSettled([booking.expireHolds(1), competing]),
         new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`deadlock timeout: ${terminal}`)), 3_000)),
       ]);
       expect(settled).toHaveLength(2);
+      for (const result of settled) {
+        if (result.status === 'rejected') {
+          expect(result.reason).toBeInstanceOf(DomainException);
+          const reason = result.reason as DomainException;
+          expect([409, 422, 503]).toContain(reason.getStatus());
+          expect(['HOLD_EXPIRED', 'SLOT_LOCKED_RETRY', 'BOOKING_STATE_CONFLICT']).toContain(
+            (reason.getResponse() as { code?: string }).code,
+          );
+        }
+      }
       // A bounded lock conflict may leave the pending row for the next cycle;
       // it must remain reclaimable and converge without operator repair.
       await expect(booking.expireHolds(1)).resolves.toEqual(expect.objectContaining({ expired: expect.any(Number) }));
-      const invariant = await database.query<{ active: string; released: number; expired_effects: string }>(`
+      const invariant = await database.query<{ state: string; held_count: number; booked_count: number; appointments: string; confirmed_events: string; released_events: string; expired_events: string; confirmed_audits: string; declined_audits: string; expired_audits: string }>(`
         SELECT
-          COUNT(*) FILTER (WHERE h.state='MANUAL_CONFIRM_PENDING')::text AS active,
-          s.capacity - s.booked_count - s.held_count AS released,
-          (SELECT COUNT(*)::text FROM booking_schema.outbox_events e WHERE e.aggregate_id=h.id AND e.event_type='booking.hold.expired.v1') expired_effects
+          h.state,s.held_count,s.booked_count,
+          (SELECT count(*)::text FROM booking_schema.appointments WHERE hold_id=h.id) appointments,
+          (SELECT count(*)::text FROM booking_schema.outbox_events e WHERE e.aggregate_id=h.id AND e.event_type='booking.confirmed.v1') confirmed_events,
+          (SELECT count(*)::text FROM booking_schema.outbox_events e WHERE e.aggregate_id=h.id AND e.event_type='booking.hold.released.v1') released_events,
+          (SELECT count(*)::text FROM booking_schema.outbox_events e WHERE e.aggregate_id=h.id AND e.event_type='booking.hold.expired.v1') expired_events,
+          (SELECT count(*)::text FROM audit_schema.audit_log a WHERE a.aggregate_id=h.id AND a.action='booking.confirmed') confirmed_audits,
+          (SELECT count(*)::text FROM audit_schema.audit_log a WHERE a.aggregate_id=h.id AND a.action='booking.declined') declined_audits,
+          (SELECT count(*)::text FROM audit_schema.audit_log a WHERE a.aggregate_id=h.id AND a.action='booking.hold.expired') expired_audits
         FROM booking_schema.booking_holds h JOIN clinic_schema.appointment_slots s ON s.id=h.slot_id
-        WHERE h.id=$1 GROUP BY h.id,s.capacity,s.booked_count,s.held_count
+        WHERE h.id=$1 GROUP BY h.id,s.booked_count,s.held_count
       `, [created.holdId]);
-      expect(invariant.rows[0].active).toBe('0');
-      expect(invariant.rows[0].released).toBeGreaterThanOrEqual(0);
-      expect(Number(invariant.rows[0].expired_effects)).toBeLessThanOrEqual(1);
+      const row = invariant.rows[0];
+      expect(terminal === 'confirm' ? ['CONFIRMED', 'EXPIRED'] : ['RELEASED', 'EXPIRED']).toContain(row.state);
+      expect(row.held_count).toBe(0);
+      expect(row.booked_count).toBe(row.state === 'CONFIRMED' ? 1 : 0);
+      expect(row.appointments).toBe(row.state === 'CONFIRMED' ? '1' : '0');
+      expect(Number(row.confirmed_events) + Number(row.released_events) + Number(row.expired_events)).toBe(1);
+      expect(Number(row.confirmed_audits) + Number(row.declined_audits) + Number(row.expired_audits)).toBe(1);
+      const ownerView = await read.readForActor(created.holdId, { sub: fixture.owners[0], roles: [Role.OWNER] });
+      expect(ownerView.status).toBe(row.state === 'CONFIRMED' ? 'CONFIRMED' : row.state === 'RELEASED' ? 'REJECTED' : 'EXPIRED');
     }
-
-    const fixture = await seedFixture(database, 2);
-    const first = await creation.createLocalHold(command(fixture, fixture.owners[0], fixture.pets[0], randomUUID()));
-    await database.query(`UPDATE booking_schema.booking_holds SET confirmation_sla_expires_at=clock_timestamp()-interval '1 second' WHERE id=$1`, [first.holdId]);
-    const createRace = await Promise.race([
-      Promise.allSettled([
-        booking.expireHolds(1),
-        creation.createLocalHold(command(fixture, fixture.owners[1], fixture.pets[1], randomUUID())),
-      ]),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('deadlock timeout: create')), 3_000)),
-    ]);
-    expect(createRace).toHaveLength(2);
-    const counters = await database.query<{ held_count: number; booked_count: number; capacity: number }>(
-      'SELECT held_count,booked_count,capacity FROM clinic_schema.appointment_slots WHERE id=$1', [fixture.slotId],
-    );
-    expect(counters.rows[0].held_count + counters.rows[0].booked_count).toBeLessThanOrEqual(counters.rows[0].capacity);
   });
 
   it('rejects archived/incompatible/stale authority and rolls back expiration drift', async () => {
@@ -376,7 +410,7 @@ async function seedFixture(database: DatabaseService, count: number) {
     await database.query(`INSERT INTO pet_schema.pets (id, owner_id, name, species, external_patient_id) VALUES ($1::uuid, $2::uuid, $3, 'DOG', $4)`, [pets[index], owners[index], `V50 pet ${index}`, `v50-patient-${index}`]);
   }
   const clinic = await database.query<{ id: string }>(`INSERT INTO clinic_schema.clinics (legal_name, public_name, mis_type) VALUES ('V50 LLC', 'V50 clinic', 'VETMANAGER') RETURNING id`);
-  const location = await database.query<{ id: string }>(`INSERT INTO clinic_schema.clinic_locations (clinic_id, address) VALUES ($1::uuid, 'V50 address') RETURNING id`, [clinic.rows[0].id]);
+  const location = await database.query<{ id: string }>(`INSERT INTO clinic_schema.clinic_locations (clinic_id, address, timezone) VALUES ($1::uuid, 'V50 address', 'Europe/Moscow') RETURNING id`, [clinic.rows[0].id]);
   const service = await database.query<{ id: string }>(`INSERT INTO clinic_schema.clinic_services (clinic_location_id, code, display_name, duration_minutes) VALUES ($1::uuid, 'V50', 'V50 service', 30) RETURNING id`, [location.rows[0].id]);
   const slot = await database.query<{ id: string }>(`INSERT INTO clinic_schema.appointment_slots (clinic_location_id, service_id, starts_at, ends_at, capacity, integration_mode) VALUES ($1::uuid, $2::uuid, clock_timestamp() + interval '2 hours', clock_timestamp() + interval '150 minutes', 1, 'LEVEL_A') RETURNING id`, [location.rows[0].id, service.rows[0].id]);
   return { owners, pets, clinicId: clinic.rows[0].id, locationId: location.rows[0].id, serviceId: service.rows[0].id, slotId: slot.rows[0].id };

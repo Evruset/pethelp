@@ -137,7 +137,7 @@ describe('ClinicQueueService', () => {
       correlationId: randomUUID(),
       expectedVersion: 2,
     })).rejects.toMatchObject({
-      response: { code: 'SLOT_VERSION_STALE' },
+      response: { code: 'BOOKING_STATE_CONFLICT' },
       status: 409,
     });
   });
@@ -183,8 +183,8 @@ async function createQueueFixture(database: DatabaseService): Promise<{
     RETURNING id
   `);
   const location = await database.query<{ id: string }>(`
-    INSERT INTO clinic_schema.clinic_locations (clinic_id, address)
-    VALUES ($1::uuid, 'Queue location')
+    INSERT INTO clinic_schema.clinic_locations (clinic_id, address, timezone)
+    VALUES ($1::uuid, 'Queue location', 'Europe/Moscow')
     RETURNING id
   `, [clinic.rows[0].id]);
   await database.query(`

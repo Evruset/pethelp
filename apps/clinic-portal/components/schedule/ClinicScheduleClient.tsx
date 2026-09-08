@@ -3,12 +3,17 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { ClinicSchedule, ClinicSchedulePeriod, ClinicScheduleResource, ClinicScheduleService, ClinicScheduleSlot, ClinicScheduleStaff, ClinicWorkingHoursDay } from '@/lib/api/clinic-schedule';
 import { useBookingCoordinator } from './useBookingCoordinator';
+import type { DoctorShiftInventory } from '@/lib/api/clinic-schedule';
+import { DoctorShiftPanel } from './DoctorShiftPanel';
 
 type Props = {
   clinicId: string;
   locationId: string;
   initialSchedule: ClinicSchedule;
   canCompleteAppointments: boolean;
+  doctorShiftInventory?: DoctorShiftInventory;
+  doctorShiftUnavailable?: boolean;
+  canManageDoctorShifts?: boolean;
 };
 
 type ServiceForm = {
@@ -204,7 +209,7 @@ function csvCell(value: string | number | null | undefined): string {
   return `"${text.replace(/"/g, '""')}"`;
 }
 
-export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, canCompleteAppointments }: Props) {
+export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, canCompleteAppointments, doctorShiftInventory, doctorShiftUnavailable=false, canManageDoctorShifts=false }: Props) {
   const bookingCoordinator = useBookingCoordinator();
   const [schedule, setSchedule] = useState(initialSchedule);
   const [notice, setNotice] = useState<string | null>(null);
@@ -903,6 +908,9 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
         </header>
 
         {notice ? <div className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700" role="status">{notice}</div> : null}
+
+        {doctorShiftInventory ? <DoctorShiftPanel clinicId={clinicId} locationId={locationId} services={schedule.services} initialInventory={doctorShiftInventory} canManage={canManageDoctorShifts} /> : null}
+        {doctorShiftUnavailable ? <section id="doctor-shift-degraded" className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-5" role="status"><h2 className="font-semibold text-amber-950">Смены врачей временно недоступны</h2><p className="mt-1 text-sm text-amber-900">Ручное расписание продолжает работать. Обновите страницу, чтобы повторить загрузку DoctorShift.</p></section>:null}
 
         <section className="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between gap-3">

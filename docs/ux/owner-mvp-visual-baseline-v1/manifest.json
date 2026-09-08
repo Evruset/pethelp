@@ -1,0 +1,232 @@
+{
+  "id": "OWNER-MVP-VISUAL-V1",
+  "status": "CANDIDATE_READY_FOR_HUMAN_VISUAL_ACCEPTANCE",
+  "sourceRevision": "e9b7b2fb8a9208fb76e0ba2003246a741f3a1c8b",
+  "workingTree": "DIRTY_PRESERVED_USER_AND_DELIVERY_CHANGES",
+  "sourceHashes": {
+    "apps/owner-app/src/app/(public)/index.tsx": "5348dc37bf6ef204e7dd5bc23cc30d7ddc01ccb6ef9a79f12af2ae1ff10b895b",
+    "apps/owner-app/src/app/(app)/index.tsx": "f77c2b3caf59d016af9a025119f2b7e31791f8f52410f1a6b58bb192561d9797",
+    "apps/owner-app/src/pets/PetJourneyScreen.tsx": "48ad98ac29053ae0183c153a2e7e2cec04adf8f6f9b2f6b6172b586020fd43f9",
+    "apps/owner-app/src/clinics/ClinicCatalogScreen.tsx": "a76f2e7278c32b23a0210e4c77ebb1c1c74caaea8f2cdd286ff25bf616eb3a88",
+    "apps/owner-app/src/clinics/ClinicServiceScreen.tsx": "393a038ac726a4c8796669440297cb6adcf20800b2c1f762dfa1fdd221cf3dc7",
+    "apps/owner-app/src/clinics/AvailabilityScreen.tsx": "abe012f5af09d77ba38f98419960113823746e2e1da131233d3368ee6141f5c6",
+    "apps/owner-app/src/booking/BookingReviewScreen.tsx": "0431d25b60ade73ca738dfb47996c86d97abad813f9947db418278f049d60708",
+    "apps/owner-app/src/booking/BookingStatusScreen.tsx": "e7af10d79abdec75213c518214b33cf79b008dfdd4c04ae7e819fe9c9d69565a",
+    "apps/owner-app/src/ui/tokens.ts": "954472924bbf234169a2180b34b4a888f0b26ec819c76b4d9687de4284a142d7",
+    "apps/owner-app/src/ui/primitives.tsx": "5f3d332f7336b022fbe164c4cccf3aeff281b1bb8905b8df33b8788a0d20e0f3",
+    "apps/owner-app/src/app/_layout.tsx": "4553f342247486cdb6cf900500dc7524a16ba515a757254598989f93f899ef69"
+  },
+  "generatedAt": "2026-08-22T16:52:36.495Z",
+  "renderer": "React Native Web production component bundles with controlled seams",
+  "physicalDevice": false,
+  "cases": [
+    {
+      "id": "01-welcome",
+      "state": "01-welcome",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "file": "screenshots/01-welcome.png",
+      "sha256": "550d46cea5a9984b0f689668227b57fa9af5ca2cbed1485296718d57523d7648",
+      "mockLive": "MOCKED_STATE_REAL_PRODUCTION_COMPONENT",
+      "backendData": "CONTROLLED_FIXTURE_NO_LIVE_BACKEND",
+      "physicalDevice": false
+    },
+    {
+      "id": "02-phone-login",
+      "state": "02-phone-login",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "file": "screenshots/02-phone-login.png",
+      "sha256": "78ae2d8ed92b96aa0704a47f4ee2d4783cc9cdbc86f877391cd15513b4fa36a9",
+      "mockLive": "MOCKED_STATE_REAL_PRODUCTION_COMPONENT",
+      "backendData": "CONTROLLED_FIXTURE_NO_LIVE_BACKEND",
+      "physicalDevice": false
+    },
+    {
+      "id": "03-otp",
+      "state": "03-otp",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "file": "screenshots/03-otp.png",
+      "sha256": "cb00bad1dc2184a20923c30e2e4bb754f763ae6794acf19b7f0d144547e1999d",
+      "mockLive": "MOCKED_STATE_REAL_PRODUCTION_COMPONENT",
+      "backendData": "CONTROLLED_FIXTURE_NO_LIVE_BACKEND",
+      "physicalDevice": false
+    },
+    {
+      "id": "04-home",
+      "state": "04-home",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "file": "screenshots/04-home.png",
+      "sha256": "3811c990e09308983d3d7101e5f1e85e024fde3bd4392802e335c16e4b49732b",
+      "mockLive": "MOCKED_STATE_REAL_PRODUCTION_COMPONENT",
+      "backendData": "CONTROLLED_FIXTURE_NO_LIVE_BACKEND",
+      "physicalDevice": false
+    },
+    {
+      "id": "05-pet-selection-or-empty",
+      "state": "05-pet-selection",
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "file": "screenshots/05-pet-selection-or-empty.png",
+      "sha256": "fd98413286a6bee2c6a507d7fa71c39f18289804a3691f135001529a647c2430",
+      "mockLive": "MOCKED_STATE_REAL_PRODUCTION_COMPONENT",
+      "backendData": "CONTROLLED_FIXTURE_NO_LIVE_BACKEND",
+      "physicalDevice": false
+    },
+    {
+      "id": "06-clinic-catalog",
+      "state": "06-clinic-catalog",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "file": "screenshots/06-clinic-catalog.png",
+      "sha256": "5fa62d554dc17fe751d343f3c2f10334991b295efce1d657bdc7807e41e05cd7",
+      "mockLive": "MOCKED_STATE_REAL_PRODUCTION_COMPONENT",
+      "backendData": "CONTROLLED_FIXTURE_NO_LIVE_BACKEND",
+      "physicalDevice": false
+    },
+    {
+      "id": "07-clinic-service",
+      "state": "07-clinic-service",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "file": "screenshots/07-clinic-service.png",
+      "sha256": "9aab01eb66f3347aed7c34dc1663e35e18269ad67e45af0bff5baaa0b2818882",
+      "mockLive": "MOCKED_STATE_REAL_PRODUCTION_COMPONENT",
+      "backendData": "CONTROLLED_FIXTURE_NO_LIVE_BACKEND",
+      "physicalDevice": false
+    },
+    {
+      "id": "08-availability",
+      "state": "standard-selected",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "file": "screenshots/08-availability.png",
+      "sha256": "8c7ade4de9f75942b79102db82b655933879aa8b02f0e53494f1e7f66871fdf0",
+      "mockLive": "MOCKED_STATE_REAL_PRODUCTION_COMPONENT",
+      "backendData": "CONTROLLED_FIXTURE_NO_LIVE_BACKEND",
+      "physicalDevice": false
+    },
+    {
+      "id": "09-booking-review",
+      "state": "compact-review",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "file": "screenshots/09-booking-review.png",
+      "sha256": "06ebda5d78a176efbd2ef7739aa1f9fa3c052028d46cd554061e7d837365ff51",
+      "mockLive": "MOCKED_STATE_REAL_PRODUCTION_COMPONENT",
+      "backendData": "CONTROLLED_FIXTURE_NO_LIVE_BACKEND",
+      "physicalDevice": false
+    },
+    {
+      "id": "10-pending",
+      "state": "compact-pending",
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "file": "screenshots/10-pending.png",
+      "sha256": "ab4fcc4f65946356ccd123e389e0594e0747571b0b4d3261c223950ee1223676",
+      "mockLive": "MOCKED_STATE_REAL_PRODUCTION_COMPONENT",
+      "backendData": "CONTROLLED_FIXTURE_NO_LIVE_BACKEND",
+      "physicalDevice": false
+    },
+    {
+      "id": "11-confirmed",
+      "state": "compact-confirmed",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "file": "screenshots/11-confirmed.png",
+      "sha256": "b89f7c8fee7c89051d4b7ee202dad462ada6e48a50b7819e8def66eaf2369f4f",
+      "mockLive": "MOCKED_STATE_REAL_PRODUCTION_COMPONENT",
+      "backendData": "CONTROLLED_FIXTURE_NO_LIVE_BACKEND",
+      "physicalDevice": false
+    },
+    {
+      "id": "12-rejected-or-expired",
+      "state": "standard-rejected",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "file": "screenshots/12-rejected-or-expired.png",
+      "sha256": "eb872b55328c5a20614392b2e2a1a22e480ad91af30a3bf4b79e6f68ed47ffe0",
+      "mockLive": "MOCKED_STATE_REAL_PRODUCTION_COMPONENT",
+      "backendData": "CONTROLLED_FIXTURE_NO_LIVE_BACKEND",
+      "physicalDevice": false
+    },
+    {
+      "id": "13-cancel-confirmation",
+      "state": "compact-confirmation",
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "file": "screenshots/13-cancel-confirmation.png",
+      "sha256": "7cefc3914467288e07be758cbfd0f7fd04b065de0cb3d2322df7ad67afc69171",
+      "mockLive": "MOCKED_STATE_REAL_PRODUCTION_COMPONENT",
+      "backendData": "CONTROLLED_FIXTURE_NO_LIVE_BACKEND",
+      "physicalDevice": false
+    },
+    {
+      "id": "14-cancelled",
+      "state": "compact-cancelled",
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "file": "screenshots/14-cancelled.png",
+      "sha256": "2e086a3562a2a3fc8406a77868c0233903a23b2b26ade56e21315489ec972661",
+      "mockLive": "MOCKED_STATE_REAL_PRODUCTION_COMPONENT",
+      "backendData": "CONTROLLED_FIXTURE_NO_LIVE_BACKEND",
+      "physicalDevice": false
+    },
+    {
+      "id": "15-loading",
+      "state": "15-loading",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "file": "screenshots/15-loading.png",
+      "sha256": "22a06709070367a0aa78c63cb14c6c38b98d056c6bf360d94bc570eea92b8f85",
+      "mockLive": "MOCKED_STATE_REAL_PRODUCTION_COMPONENT",
+      "backendData": "CONTROLLED_FIXTURE_NO_LIVE_BACKEND",
+      "physicalDevice": false
+    },
+    {
+      "id": "16-error",
+      "state": "wide-conflict",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "file": "screenshots/16-error.png",
+      "sha256": "412529b5a53efef80c1e5250a6dc27fa182b2644ff51b5b3ab8ad2f78986385a",
+      "mockLive": "MOCKED_STATE_REAL_PRODUCTION_COMPONENT",
+      "backendData": "CONTROLLED_FIXTURE_NO_LIVE_BACKEND",
+      "physicalDevice": false
+    }
+  ]
+}

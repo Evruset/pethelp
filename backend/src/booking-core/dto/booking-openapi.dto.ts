@@ -1,5 +1,6 @@
 import { ApiHideProperty, ApiProperty } from '@nestjs/swagger';
 import { mvpScope } from '../../config/mvp-scope.config';
+import { CLINIC_DECLINE_REASON_CODES, ClinicDeclineReasonCode } from '../booking.types';
 
 export const BOOKING_STATUS_VALUES = [
   'PENDING_CONFIRMATION',
@@ -81,6 +82,7 @@ export class BookingHoldReadDto {
   @ApiProperty({ format: 'date-time' }) serverNow!: string;
   @ApiProperty({ minimum: 1 }) aggregateVersion!: number;
   @ApiProperty({ format: 'date-time' }) lastUpdatedAt!: string;
+  @ApiProperty({ description: 'Server-authoritative cancellation availability for the current booking snapshot.' }) canCancel!: boolean;
   @ApiProperty({ type: () => PetSummaryDto }) pet!: PetSummaryDto;
   @ApiProperty({ type: () => NamedSummaryDto }) clinic!: NamedSummaryDto;
   @ApiProperty({ type: () => LocationSummaryDto }) location!: LocationSummaryDto;
@@ -98,6 +100,32 @@ export class BookingCommandStatusDto {
   @ApiProperty({ format: 'uuid' }) slotId!: string;
   @ApiProperty({ format: 'uuid' }) correlationId!: string;
   @ApiProperty({ format: 'uuid', required: false }) appointmentId?: string;
+}
+
+export class ClinicConfirmDecisionStatusDto {
+  @ApiProperty({ format: 'uuid' }) holdId!: string;
+  @ApiProperty({ format: 'uuid' }) slotId!: string;
+  @ApiProperty({ enum: ['CONFIRMED'] }) status!: 'CONFIRMED';
+  @ApiProperty({ format: 'uuid' }) appointmentId!: string;
+  @ApiProperty({ format: 'uuid' }) correlationId!: string;
+  @ApiProperty({ type: 'integer', minimum: 1 }) aggregateVersion!: number;
+  @ApiProperty({ format: 'date-time' }) lastUpdatedAt!: string;
+  @ApiProperty({ format: 'date-time' }) serverNow!: string;
+}
+
+export class ClinicRejectDecisionStatusDto {
+  @ApiProperty({ format: 'uuid' }) holdId!: string;
+  @ApiProperty({ format: 'uuid' }) slotId!: string;
+  @ApiProperty({ enum: ['REJECTED'] }) status!: 'REJECTED';
+  @ApiProperty({ format: 'uuid' }) correlationId!: string;
+  @ApiProperty({ type: 'integer', minimum: 1 }) aggregateVersion!: number;
+  @ApiProperty({ format: 'date-time' }) lastUpdatedAt!: string;
+  @ApiProperty({ format: 'date-time' }) serverNow!: string;
+}
+
+export class ClinicDeclineCommandDto {
+  @ApiProperty({ enum: CLINIC_DECLINE_REASON_CODES, required: false })
+  declineReason?: ClinicDeclineReasonCode;
 }
 
 export class ConfirmHoldDto {

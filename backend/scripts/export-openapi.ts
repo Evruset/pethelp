@@ -8,6 +8,9 @@ async function main(): Promise<void> {
   process.env.JWT_ISSUER ??= 'vethelp-openapi-export';
   process.env.JWT_AUDIENCE ??= 'vethelp-openapi-export';
   process.env.WORKER_SERVICE_TOKEN ??= 'openapi-export-only-worker-token';
+  process.env.AUTH_OTP_PEPPER ??= 'openapi-export-only-otp-pepper-00000000';
+  process.env.OWNER_PET_IDEMPOTENCY_HMAC_KEY ??= 'openapi-export-owner-pet-hmac-00000000';
+  process.env.AUTH_OTP_ANTI_FRAUD_PEPPER ??= 'openapi-export-anti-fraud-pepper-0000';
 
   const [{ NestFactory }, { NestRoot }, { createOpenApiDocument }] = await Promise.all([
     import('@nestjs/core'),

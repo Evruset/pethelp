@@ -159,6 +159,8 @@ describe('PublicCatalogService', () => {
     const [sql, params] = query.mock.calls[0] as [string, unknown[]];
     expect(sql).toContain("staff.active = true");
     expect(sql).toContain("staff.role = 'VETERINARIAN'");
+    expect(sql).toContain('doctor_public_profile_consent_events');
+    expect(sql).toContain("public_consent.event_type='CONSENT_GRANTED'");
     expect(params).toEqual([
       '11111111-1111-4111-8111-111111111111', null, 'GENERAL_VISIT', null, 20,
     ]);
@@ -225,6 +227,7 @@ describe('PublicCatalogService', () => {
 
     const [slotSql, slotParams] = query.mock.calls[2] as [string, unknown[]];
     expect(slotSql).toContain("staff.role = 'VETERINARIAN'");
+    expect(slotSql).toContain('doctor_public_profile_consent_events');
     expect(slotSql).toContain('slot.capacity - slot.booked_count - slot.held_count > 0');
     expect(slotParams).toEqual([
       '22222222-2222-4222-8222-222222222222',

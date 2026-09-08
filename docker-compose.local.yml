@@ -98,6 +98,7 @@ services:
       OWNER_PET_IDEMPOTENCY_HMAC_KEY: ${OWNER_PET_IDEMPOTENCY_HMAC_KEY:-local-owner-pet-idempotency-key-stable}
       AUTH_OTP_ANTI_FRAUD_PEPPER: ${AUTH_OTP_ANTI_FRAUD_PEPPER:-local-development-anti-fraud-pepper-separate}
       AUTH_OTP_ANTI_FRAUD_PEPPER_VERSION: ${AUTH_OTP_ANTI_FRAUD_PEPPER_VERSION:-v1}
+      OWNER_WEB_BFF_IP_SIGNING_SECRET: ${OWNER_WEB_BFF_IP_SIGNING_SECRET:-local-owner-web-ip-signing-secret-32-bytes}
       WORKER_SERVICE_TOKEN: local-development-worker-token-not-for-shared-use
       MIS_VET_MANAGER_BASE_URL: http://mock-mis:4101
       MIS_VET_MANAGER_API_KEY: local-mis-api-key
@@ -116,7 +117,10 @@ services:
       FEATURE_MIS_INTEGRATION: "${FEATURE_MIS_INTEGRATION:-false}"
       FEATURE_ONLINE_PAYMENTS: "${FEATURE_ONLINE_PAYMENTS:-false}"
       FEATURE_EMERGENCY_OPS: "${FEATURE_EMERGENCY_OPS:-true}"
-      MVP_SCOPE_PROFILE: "${MVP_SCOPE_PROFILE:-LEGACY_COMPAT}"
+      # First-MVP local stack is fail-closed. Legacy compatibility remains
+      # available only when the operator explicitly exports LEGACY_COMPAT.
+      MVP_SCOPE_PROFILE: "${MVP_SCOPE_PROFILE:-PILOT_V1}"
+      DOCTOR_SHIFT_INVENTORY_V1: "${DOCTOR_SHIFT_INVENTORY_V1:-true}"
     ports:
       - "3000:3000"
     volumes:

@@ -8,11 +8,16 @@ const ALLOWED = [
   /^v1\/owner\/pets$/,
   /^v1\/owner\/pets\/[0-9a-f-]{36}\/diary\?limit=100&offset=0$/,
   /^v1\/owner\/clinic-catalog$/,
+  /^v1\/owner\/clinic-catalog\/specialist-discovery\/options$/,
+  /^v1\/owner\/clinic-catalog\/specialist-discovery\?(?:specialtyId=[0-9a-f-]{36}|serviceId=[0-9a-f-]{36}|serviceCode=[A-Z0-9_-]{1,80})&limit=50$/,
   /^v1\/owner\/clinic-catalog\/[0-9a-f-]{36}\/locations\/[0-9a-f-]{36}$/,
   /^v1\/owner\/clinic-catalog\/[0-9a-f-]{36}\/locations\/[0-9a-f-]{36}\/services\/[0-9a-f-]{36}\/availability$/,
   /^v1\/booking-holds$/,
   /^v1\/booking-holds\/[0-9a-f-]{36}$/,
   /^v1\/owner\/bookings\/[0-9a-f-]{36}\/cancel$/,
+  /^v1\/owner\/bookings\/[0-9a-f-]{36}\/change-requests(?:\/current)?$/,
+  /^v1\/owner\/booking-change-requests\/[0-9a-f-]{36}\/reallocation$/,
+  /^v1\/owner\/reallocation-cases\/[0-9a-f-]{36}(?:\/accept)?$/,
 ];
 
 export function createApiClient(_baseUrl?: string, transport: typeof fetch = fetch): ApiClient {

@@ -4,13 +4,13 @@
   "version": "1.0.0",
   "dependencies": {
     "@tanstack/react-query": "^5.101.4",
-    "expo": "~57.0.13",
-    "expo-build-properties": "~57.0.11",
-    "expo-constants": "~57.0.11",
-    "expo-linking": "~57.0.6",
-    "expo-router": "~57.0.13",
+    "expo": "~57.0.15",
+    "expo-build-properties": "~57.0.13",
+    "expo-constants": "~57.0.13",
+    "expo-linking": "~57.0.7",
+    "expo-router": "~57.0.15",
     "expo-secure-store": "~57.0.1",
-    "expo-splash-screen": "~57.0.6",
+    "expo-splash-screen": "~57.0.7",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.2",
@@ -19,6 +19,8 @@
     "react-native-web": "~0.21.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@playwright/test": "^1.61.1",
     "@testing-library/react-native": "^14.0.1",
     "@types/jest": "29.5.14",
     "@types/react": "~19.2.2",
@@ -40,7 +42,8 @@
     "preset": "jest-expo",
     "testPathIgnorePatterns": [
       "/node_modules/",
-      "/.expo/"
+      "/.expo/",
+      "/tests/e2e/"
     ]
   },
   "engines": {

@@ -13,11 +13,18 @@ const ROUTES = [
   { pattern: /^v1\/owner\/pets$/, methods: ['GET', 'POST'] },
   { pattern: new RegExp(`^v1/owner/pets/${UUID}/diary$`), methods: ['GET'] },
   { pattern: /^v1\/owner\/clinic-catalog$/, methods: ['GET'] },
+  { pattern: /^v1\/owner\/clinic-catalog\/specialist-discovery\/options$/, methods: ['GET'] },
+  { pattern: /^v1\/owner\/clinic-catalog\/specialist-discovery$/, methods: ['GET'] },
   { pattern: new RegExp(`^v1/owner/clinic-catalog/${UUID}/locations/${UUID}$`), methods: ['GET'] },
   { pattern: new RegExp(`^v1/owner/clinic-catalog/${UUID}/locations/${UUID}/services/${UUID}/availability$`), methods: ['GET'] },
   { pattern: /^v1\/booking-holds$/, methods: ['POST'] },
   { pattern: new RegExp(`^v1/booking-holds/${UUID}$`), methods: ['GET'] },
   { pattern: new RegExp(`^v1/owner/bookings/${UUID}/cancel$`), methods: ['POST'] },
+  { pattern: new RegExp(`^v1/owner/bookings/${UUID}/change-requests$`), methods: ['POST'] },
+  { pattern: new RegExp(`^v1/owner/bookings/${UUID}/change-requests/current$`), methods: ['GET'] },
+  { pattern: new RegExp(`^v1/owner/booking-change-requests/${UUID}/reallocation$`), methods: ['POST'] },
+  { pattern: new RegExp(`^v1/owner/reallocation-cases/${UUID}$`), methods: ['GET'] },
+  { pattern: new RegExp(`^v1/owner/reallocation-cases/${UUID}/accept$`), methods: ['POST'] },
 ] as const;
 
 type CookieSession = Readonly<{ credential: string; expiresAt: string }>;

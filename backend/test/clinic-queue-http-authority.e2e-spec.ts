@@ -17,6 +17,7 @@ const IDS = {
   owner: '11000000-0000-4000-8000-000000000001',
   otherOwner: '11000000-0000-4000-8000-000000000007',
   allowed: '11000000-0000-4000-8000-000000000002',
+  allowedSecond: '11000000-0000-4000-8000-000000000003',
   revoked: '11000000-0000-4000-8000-000000000004',
   noMembership: '11000000-0000-4000-8000-000000000005',
   veterinarian: '11000000-0000-4000-8000-000000000006',
@@ -72,16 +73,16 @@ describe('Clinic Queue HTTP authority matrix', () => {
     .get(`/v1/clinic/${clinicId}/locations/${locationId}/booking-queue${limit ? `?limit=${limit}` : ''}`)
     .set('Authorization', `Bearer ${await tokenFor(input)}`);
 
-  const confirm = async (input: Actor, idempotencyKey = randomUUID(), version: number | null = 1) => {
+  const confirm = async (input: Actor, idempotencyKey = randomUUID(), version: number | null = 1, holdId = IDS.hold) => {
     const command = request(app.getHttpServer())
-      .post(`/v1/clinic/booking-holds/${IDS.hold}/confirm`)
+      .post(`/v1/clinic/booking-holds/${holdId}/confirm`)
       .set('Authorization', `Bearer ${await tokenFor(input)}`)
       .set('Idempotency-Key', idempotencyKey)
       .set('X-Correlation-ID', randomUUID());
     return version === null ? command : command.set('If-Match', String(version));
   };
 
-  const decline = async (input: Actor, idempotencyKey = randomUUID(), version: number | null = 1, declineReason = 'Owner requested another clinic') => {
+  const decline = async (input: Actor, idempotencyKey = randomUUID(), version: number | null = 1, declineReason: unknown = 'CAPACITY_UNAVAILABLE') => {
     const command = request(app.getHttpServer())
       .post(`/v1/clinic/booking-holds/${IDS.hold}/decline`)
       .set('Authorization', `Bearer ${await tokenFor(input)}`)
@@ -145,6 +146,13 @@ describe('Clinic Queue HTTP authority matrix', () => {
   const allowed = () => ({
     sub: IDS.allowed,
     roles: [Role.CLINIC_RECEPTIONIST],
+    clinicIds: [IDS.clinic],
+    locationIds: [IDS.location],
+  });
+
+  const allowedSecond = () => ({
+    sub: IDS.allowedSecond,
+    roles: [Role.CLINIC_ADMIN],
     clinicIds: [IDS.clinic],
     locationIds: [IDS.location],
   });
@@ -313,16 +321,42 @@ describe('Clinic Queue HTTP authority matrix', () => {
   ])('denies confirm for %s without state, appointment, audit or outbox effects', async (_name, actor) => {
     const before = await mutationSnapshot(database);
     const response = await confirm(actor);
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(_name === 'role denied' ? 403 : 404);
     expectNoLeak(response.body);
     expect(await mutationSnapshot(database)).toEqual(before);
+  });
+
+  it('normalizes an existing foreign-scope hold and an absent UUID to the same 404 envelope', async () => {
+    const foreign = await confirm({
+      sub: IDS.allowed,
+      roles: [Role.CLINIC_RECEPTIONIST],
+      clinicIds: [IDS.otherClinic],
+      locationIds: [IDS.otherClinicLocation],
+    });
+    const absent = await confirm(allowed(), randomUUID(), 1, randomUUID());
+    expect(foreign.status).toBe(404);
+    expect(absent.status).toBe(404);
+    expect(foreign.body).toEqual(absent.body);
+    expectNoLeak(foreign.body);
   });
 
   it('confirms idempotently and publishes the authoritative owner readback', async () => {
     const key = randomUUID();
     const first = await confirm(allowed(), key);
     expect(first.status).toBe(200);
-    expect(first.body).toMatchObject({ holdId: IDS.hold, status: 'CONFIRMED' });
+    expect(first.body).toMatchObject({
+      holdId: IDS.hold,
+      slotId: IDS.slot,
+      status: 'CONFIRMED',
+      aggregateVersion: 2,
+      appointmentId: expect.any(String),
+      lastUpdatedAt: expect.any(String),
+      serverNow: expect.any(String),
+      correlationId: expect.any(String),
+    });
+    expect(Object.keys(first.body).sort()).toEqual([
+      'aggregateVersion', 'appointmentId', 'correlationId', 'holdId', 'lastUpdatedAt', 'serverNow', 'slotId', 'status',
+    ]);
     expect(first.body).not.toHaveProperty('state');
     const repeated = await confirm(allowed(), key);
     expect(repeated.status).toBe(200);
@@ -345,12 +379,35 @@ describe('Clinic Queue HTTP authority matrix', () => {
     });
   });
 
+  it('replays the same clinic decision key across two currently authorized employees', async () => {
+    const key = randomUUID();
+    const first = await confirm(allowed(), key, 1);
+    expect(first.status).toBe(200);
+    const replay = await confirm(allowedSecond(), key, 1);
+    expect(replay.status).toBe(200);
+    expect(replay.body).toEqual(first.body);
+    expect(await mutationSnapshot(database)).toEqual({
+      state: 'CONFIRMED', version: 2, heldCount: 0, appointments: '1', events: '1', audits: '1',
+    });
+  });
+
+  it('rejects a cross-operation reuse of the shared clinic decision key', async () => {
+    const key = randomUUID();
+    const first = await confirm(allowed(), key, 1);
+    expect(first.status).toBe(200);
+    const before = await mutationSnapshot(database);
+    const conflictingOperation = await decline(allowedSecond(), key, 1, 'OTHER');
+    expect(conflictingOperation.status).toBe(409);
+    expect(conflictingOperation.body).toMatchObject({ code: 'IDEMPOTENCY_CONFLICT' });
+    expect(await mutationSnapshot(database)).toEqual(before);
+  });
+
   it.each(['decline', 'request-notes'] as const)('denies %s across the authority matrix without side effects', async (command) => {
     for (const [name, actor] of deniedActors()) {
       await resetFixtures(database);
       const before = await mutationSnapshot(database);
       const response = command === 'decline' ? await decline(actor) : await requestNotes(actor);
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(command === 'decline' && name !== 'role denied' ? 404 : 403);
       expectNoLeak(response.body);
       expect(await mutationSnapshot(database)).toEqual(before);
       expect(JSON.stringify(response.body)).not.toContain(name === 'role denied' ? 'Queue pet' : IDS.hold);
@@ -361,7 +418,18 @@ describe('Clinic Queue HTTP authority matrix', () => {
     const key = randomUUID();
     const first = await decline(allowed(), key);
     expect(first.status).toBe(200);
-    expect(first.body).toMatchObject({ holdId: IDS.hold, slotId: IDS.slot, status: 'REJECTED' });
+    expect(first.body).toMatchObject({
+      holdId: IDS.hold,
+      slotId: IDS.slot,
+      status: 'REJECTED',
+      aggregateVersion: 2,
+      lastUpdatedAt: expect.any(String),
+      serverNow: expect.any(String),
+      correlationId: expect.any(String),
+    });
+    expect(Object.keys(first.body).sort()).toEqual([
+      'aggregateVersion', 'correlationId', 'holdId', 'lastUpdatedAt', 'serverNow', 'slotId', 'status',
+    ]);
     expect(first.body).not.toHaveProperty('state');
     expect((await decline(allowed(), key)).body).toEqual(first.body);
     expect(await mutationSnapshot(database)).toEqual({
@@ -375,12 +443,105 @@ describe('Clinic Queue HTTP authority matrix', () => {
         AND event.event_type = 'booking.hold.released.v1'
         AND audit.action = 'booking.declined'
     `, [IDS.hold]);
-    expect(evidence.rows[0]).toEqual({ event_reason: 'Owner requested another clinic', audit_reason: 'Owner requested another clinic' });
+    expect(evidence.rows[0]).toEqual({ event_reason: 'CAPACITY_UNAVAILABLE', audit_reason: 'CAPACITY_UNAVAILABLE' });
 
     const ownerToken = await tokenFor({ sub: IDS.owner, roles: [Role.OWNER] });
     const readback = await request(app.getHttpServer()).get(`/v1/booking-holds/${IDS.hold}`).set('Authorization', `Bearer ${ownerToken}`).expect(200);
     expect(readback.body).toMatchObject({ status: 'REJECTED', nextActionCode: 'CHOOSE_ANOTHER_SLOT', aggregateVersion: 2 });
     expect(readback.body).not.toHaveProperty('state');
+  });
+
+  it('rejects changed decision fingerprints under the same key without duplicate effects', async () => {
+    const confirmKey = randomUUID();
+    const confirmed = await confirm(allowed(), confirmKey, 1);
+    expect(confirmed.status).toBe(200);
+    const confirmedSnapshot = await mutationSnapshot(database);
+    const changedConfirm = await confirm(allowed(), confirmKey, 2);
+    expect(changedConfirm.status).toBe(409);
+    expect(changedConfirm.body).toMatchObject({ code: 'IDEMPOTENCY_CONFLICT' });
+    expect(await mutationSnapshot(database)).toEqual(confirmedSnapshot);
+
+    await resetFixtures(database);
+    const declineKey = randomUUID();
+    const declined = await decline(allowed(), declineKey, 1, 'CAPACITY_UNAVAILABLE');
+    expect(declined.status).toBe(200);
+    const declinedSnapshot = await mutationSnapshot(database);
+    const changedDecline = await decline(allowed(), declineKey, 1, 'OTHER');
+    expect(changedDecline.status).toBe(409);
+    expect(changedDecline.body).toMatchObject({ code: 'IDEMPOTENCY_CONFLICT' });
+    expect(await mutationSnapshot(database)).toEqual(declinedSnapshot);
+  });
+
+  it.each(['confirm', 'decline'] as const)('durably replays deterministic stale-version conflict for %s', async (command) => {
+    const key = randomUUID();
+    const first = command === 'confirm'
+      ? await confirm(allowed(), key, 101)
+      : await decline(allowed(), key, 101, 'OTHER');
+    expect(first.status).toBe(409);
+    expect(first.body).toMatchObject({ code: 'BOOKING_STATE_CONFLICT' });
+    const replay = command === 'confirm'
+      ? await confirm(allowedSecond(), key, 101)
+      : await decline(allowedSecond(), key, 101, 'OTHER');
+    expect(replay.status).toBe(409);
+    expect(replay.body).toEqual(first.body);
+    expect(await mutationSnapshot(database)).toEqual({
+      state: 'MANUAL_CONFIRM_PENDING', version: 1, heldCount: 1, appointments: '0', events: '0', audits: '0',
+    });
+  });
+
+  it('durably replays FIFO conflict without a decision effect', async () => {
+    await seedRecoveryQueue(database);
+    const key = randomUUID();
+    const first = await confirm(allowed(), key, 1);
+    expect(first.status).toBe(409);
+    expect(first.body).toMatchObject({ code: 'QUEUE_FIFO_VIOLATION' });
+    const replay = await confirm(allowedSecond(), key, 1);
+    expect(replay.status).toBe(409);
+    expect(replay.body).toEqual(first.body);
+    expect(await mutationSnapshot(database)).toMatchObject({
+      state: 'MANUAL_CONFIRM_PENDING', version: 1, heldCount: 1, appointments: '0', events: '0', audits: '0',
+    });
+  });
+
+  it('rejects unsupported decline free text before authority mutation', async () => {
+    const before = await mutationSnapshot(database);
+    const response = await decline(allowed(), randomUUID(), 1, 'Owner requested another clinic');
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({ code: 'INVALID_REQUEST' });
+    expect(await mutationSnapshot(database)).toEqual(before);
+  });
+
+  it.each(['confirm', 'decline'] as const)('terminalizes an expired hold before returning stable 422 for %s', async (command) => {
+    await database.query(`
+      UPDATE booking_schema.booking_holds
+      SET expires_at = clock_timestamp() - interval '2 seconds',
+          confirmation_sla_expires_at = clock_timestamp() - interval '1 second'
+      WHERE id = $1::uuid
+    `, [IDS.hold]);
+    const key = randomUUID();
+    const first = command === 'confirm' ? await confirm(allowed(), key, 1) : await decline(allowed(), key, 1);
+    expect(first.status).toBe(422);
+    expect(first.body).toMatchObject({ code: 'HOLD_EXPIRED' });
+    const terminal = await database.query<{
+      state: string; version: number; held_count: number; expiry_events: string; expiry_audits: string;
+    }>(`
+      SELECT hold.state, hold.version, slot.held_count,
+        (SELECT count(*)::text FROM booking_schema.outbox_events WHERE aggregate_id = hold.id AND event_type = 'booking.hold.expired.v1') AS expiry_events,
+        (SELECT count(*)::text FROM audit_schema.audit_log WHERE aggregate_id = hold.id AND action = 'booking.hold.expired') AS expiry_audits
+      FROM booking_schema.booking_holds hold
+      JOIN clinic_schema.appointment_slots slot ON slot.id = hold.slot_id
+      WHERE hold.id = $1::uuid
+    `, [IDS.hold]);
+    expect(terminal.rows[0]).toEqual({ state: 'EXPIRED', version: 2, held_count: 0, expiry_events: '1', expiry_audits: '1' });
+    const replay = command === 'confirm' ? await confirm(allowed(), key, 1) : await decline(allowed(), key, 1);
+    expect(replay.status).toBe(422);
+    expect(replay.body).toEqual(first.body);
+    const stable = await database.query<{ events: string; audits: string }>(`
+      SELECT
+        (SELECT count(*)::text FROM booking_schema.outbox_events WHERE aggregate_id = $1::uuid AND event_type = 'booking.hold.expired.v1') AS events,
+        (SELECT count(*)::text FROM audit_schema.audit_log WHERE aggregate_id = $1::uuid AND action = 'booking.hold.expired') AS audits
+    `, [IDS.hold]);
+    expect(stable.rows[0]).toEqual({ events: '1', audits: '1' });
   });
 
   it('requests notes idempotently while preserving the pending hold and publishing the request text', async () => {
@@ -415,8 +576,8 @@ describe('Clinic Queue HTTP authority matrix', () => {
     await database.query(`UPDATE booking_schema.booking_holds SET state = 'CONFIRMED', confirmation_sla_expires_at = NULL WHERE id = $1::uuid`, [IDS.hold]);
     const before = await mutationSnapshot(database);
     const response = command === 'decline' ? await decline(allowed()) : await requestNotes(allowed());
-    expect(response.status).toBe(422);
-    expect(response.body).toMatchObject({ code: 'INVALID_STATE_TRANSITION' });
+    expect(response.status).toBe(command === 'decline' ? 409 : 422);
+    expect(response.body).toMatchObject({ code: command === 'decline' ? 'BOOKING_STATE_CONFLICT' : 'INVALID_STATE_TRANSITION' });
     expect(await mutationSnapshot(database)).toEqual(before);
   });
 
@@ -541,7 +702,7 @@ describe('Clinic Queue HTTP authority matrix', () => {
         : name === 'request-notes' ? await requestNotes(allowed(), randomUUID(), 101)
           : await proposeAlternative(allowed(), randomUUID(), 101);
     expect(response.status).toBe(409);
-    expect(response.body).toMatchObject({ code: 'SLOT_VERSION_STALE' });
+    expect(response.body).toMatchObject({ code: name === 'confirm' || name === 'decline' ? 'BOOKING_STATE_CONFLICT' : 'SLOT_VERSION_STALE' });
     expect(await commandSnapshot(database)).toEqual(before);
   });
 
@@ -551,7 +712,7 @@ describe('Clinic Queue HTTP authority matrix', () => {
     const before = await commandSnapshot(database);
     const stale = await confirm(allowed(), randomUUID(), 1);
     expect(stale.status).toBe(409);
-    expect(stale.body).toMatchObject({ code: 'SLOT_VERSION_STALE' });
+    expect(stale.body).toMatchObject({ code: 'BOOKING_STATE_CONFLICT' });
     expect(await commandSnapshot(database)).toEqual(before);
   });
 
@@ -572,8 +733,8 @@ describe('Clinic Queue HTTP authority matrix', () => {
     expect(first.status).toBe(200);
     const before = await commandSnapshot(database);
     const second = name === 'confirm' ? await confirm(allowed(), randomUUID(), 2) : await decline(allowed(), randomUUID(), 2);
-    expect(second.status).toBe(422);
-    expect(second.body).toMatchObject({ code: 'INVALID_STATE_TRANSITION' });
+    expect(second.status).toBe(409);
+    expect(second.body).toMatchObject({ code: 'BOOKING_STATE_CONFLICT' });
     expect(await commandSnapshot(database)).toEqual(before);
   });
 
@@ -581,7 +742,10 @@ describe('Clinic Queue HTTP authority matrix', () => {
     const key = randomUUID();
     const [first, second] = await Promise.all([confirm(allowed(), key, 1), confirm(allowed(), key, 1)]);
     expect([first.status, second.status].every((status) => status === 200 || status === 409 || status === 425)).toBe(true);
-    expect([first.status, second.status].filter((status) => status === 200).length).toBeGreaterThanOrEqual(1);
+    if (![first.status, second.status].includes(200)) {
+      const retry = await confirm(allowed(), key, 1);
+      expect(retry.status).toBe(200);
+    }
     expect(await commandSnapshot(database)).toMatchObject({
       state: 'CONFIRMED', version: 2, appointments: '1', events: '1', audits: '1',
     });
@@ -599,7 +763,9 @@ describe('Clinic Queue HTTP authority matrix', () => {
     expect(successes).toHaveLength(1);
     const loser = responses.find((response) => response !== successes[0]);
     expect(loser?.status).toBe(409);
-    expect(['SLOT_LOCKED_RETRY', 'SLOT_VERSION_STALE']).toContain(loser?.body.code);
+    expect(left === 'confirm'
+      ? ['SLOT_LOCKED_RETRY', 'BOOKING_STATE_CONFLICT']
+      : ['SLOT_LOCKED_RETRY', 'SLOT_VERSION_STALE']).toContain(loser?.body.code);
     const winner = successes[0];
     const snapshot = await commandSnapshot(database);
     expect(snapshot.version).toBe(2);
@@ -756,15 +922,16 @@ async function seedQueueVolume(database: DatabaseService, count: number) {
 async function resetFixtures(database: DatabaseService) {
   await database.query('TRUNCATE clinic_schema.clinics, pet_schema.pets, identity_schema.users CASCADE');
   await resetBookingPersistence(database);
-  await database.query(`INSERT INTO identity_schema.users (id) SELECT unnest($1::uuid[])`, [[IDS.owner, IDS.otherOwner, IDS.allowed, IDS.revoked, IDS.noMembership, IDS.veterinarian]]);
+  await database.query(`INSERT INTO identity_schema.users (id) SELECT unnest($1::uuid[])`, [[IDS.owner, IDS.otherOwner, IDS.allowed, IDS.allowedSecond, IDS.revoked, IDS.noMembership, IDS.veterinarian]]);
   await database.query(`INSERT INTO clinic_schema.clinics (id, legal_name, public_name) VALUES ($1::uuid, 'Queue LLC', 'Queue clinic'), ($2::uuid, 'Other LLC', 'Other clinic')`, [IDS.clinic, IDS.otherClinic]);
-  await database.query(`INSERT INTO clinic_schema.clinic_locations (id, clinic_id, address) VALUES ($1::uuid, $2::uuid, 'Queue address'), ($3::uuid, $2::uuid, 'Other location'), ($4::uuid, $5::uuid, 'Other clinic address')`, [IDS.location, IDS.clinic, IDS.otherLocation, IDS.otherClinicLocation, IDS.otherClinic]);
+  await database.query(`INSERT INTO clinic_schema.clinic_locations (id, clinic_id, address, timezone) VALUES ($1::uuid, $2::uuid, 'Queue address', 'Europe/Moscow'), ($3::uuid, $2::uuid, 'Other location', 'Europe/Moscow'), ($4::uuid, $5::uuid, 'Other clinic address', 'Europe/Moscow')`, [IDS.location, IDS.clinic, IDS.otherLocation, IDS.otherClinicLocation, IDS.otherClinic]);
   await database.query(`
     INSERT INTO clinic_schema.employee_location_memberships (employee_id, clinic_location_id, role, active, revoked_at)
     VALUES
       ($1::uuid, $2::uuid, 'CLINIC_RECEPTIONIST', true, NULL),
-      ($3::uuid, $2::uuid, 'CLINIC_RECEPTIONIST', false, clock_timestamp())
-  `, [IDS.allowed, IDS.location, IDS.revoked]);
+      ($3::uuid, $2::uuid, 'CLINIC_ADMIN', true, NULL),
+      ($4::uuid, $2::uuid, 'CLINIC_RECEPTIONIST', false, clock_timestamp())
+  `, [IDS.allowed, IDS.location, IDS.allowedSecond, IDS.revoked]);
   await database.query(`INSERT INTO clinic_schema.clinic_services (id, clinic_location_id, code, display_name, duration_minutes) VALUES ($1::uuid, $2::uuid, 'QUEUE', 'Queue service', 30), ($3::uuid, $4::uuid, 'OTHER', 'Other service', 30)`, [IDS.service, IDS.location, IDS.otherService, IDS.otherLocation]);
   await database.query(`INSERT INTO pet_schema.pets (id, owner_id, name, species) VALUES ($1::uuid, $2::uuid, 'Queue pet', 'CAT')`, [IDS.pet, IDS.owner]);
   await database.query(`

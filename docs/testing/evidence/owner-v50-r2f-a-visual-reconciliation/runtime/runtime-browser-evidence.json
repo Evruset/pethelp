@@ -1,0 +1,3158 @@
+[
+  {
+    "viewport": "mobile",
+    "width": 390,
+    "height": 844,
+    "state": "content",
+    "file": "mobile-content-390x844.png",
+    "consoleMessages": [],
+    "failedRequests": [],
+    "httpErrors": [],
+    "dom": {
+      "url": "http://127.0.0.1:55030/#",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "body": {
+        "scrollWidth": 390,
+        "scrollHeight": 858
+      },
+      "h1": {
+        "tag": "H1",
+        "role": "heading",
+        "text": "Выберите специалиста",
+        "box": {
+          "x": 12,
+          "y": 85,
+          "width": 366,
+          "height": 32
+        },
+        "css": {
+          "display": "block",
+          "flexDirection": "row",
+          "gridTemplateColumns": "none",
+          "padding": "0px",
+          "gap": "normal",
+          "fontSize": "27px",
+          "lineHeight": "32px",
+          "fontWeight": "800",
+          "color": "rgb(24, 37, 65)",
+          "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+          "border": "0px solid rgb(0, 0, 0)",
+          "borderRadius": "0px",
+          "boxShadow": "none"
+        }
+      },
+      "headings": [
+        {
+          "tag": "H1",
+          "role": "heading",
+          "text": "Выберите специалиста",
+          "box": {
+            "x": 12,
+            "y": 85,
+            "width": 366,
+            "height": 32
+          },
+          "css": {
+            "display": "block",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "27px",
+            "lineHeight": "32px",
+            "fontWeight": "800",
+            "color": "rgb(24, 37, 65)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "radios": [
+        {
+          "tag": "DIV",
+          "role": "radio",
+          "text": "ААнна ВетроваВетеринарный терапевтЕсть опубликованное время",
+          "box": {
+            "x": 27,
+            "y": 281,
+            "width": 336,
+            "height": 98
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "12px",
+            "gap": "12px",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(200, 218, 243)",
+            "borderRadius": "15px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "DIV",
+          "role": "radio",
+          "text": "ММихаил ОрловВетеринарный терапевтЕсть опубликованное время",
+          "box": {
+            "x": 27,
+            "y": 387,
+            "width": 336,
+            "height": 98
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "12px",
+            "gap": "12px",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(200, 218, 243)",
+            "borderRadius": "15px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "buttons": [
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад",
+          "box": {
+            "x": 12,
+            "y": 10,
+            "width": 67.6875,
+            "height": 44
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "10px",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Выбрать время",
+          "box": {
+            "x": 27,
+            "y": 645,
+            "width": 336,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgba(16, 16, 16, 0.3)",
+            "background": "rgb(233, 236, 235) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад к услуге",
+          "box": {
+            "x": 27,
+            "y": 703,
+            "width": 336,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "rootChildren": [
+        {
+          "tag": "DIV",
+          "role": null,
+          "text": "НазадЗапись в клиникуВыберите специалистаПервичный приём · Ветеринарный центр «Лапа» · РексШаг 2 из 3Кто проведёт приёмОдин специалист для выбранной клиники, филиала и услуги.ААнна ВетроваВетеринарный терапевтЕсть опубликованное времяММихаил ОрловВетеринарный терапевтЕсть опубликованное времяВаш выб",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 858
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "viewport": "mobile",
+    "width": 390,
+    "height": 844,
+    "state": "selected",
+    "file": "mobile-selected-390x844.png",
+    "consoleMessages": [],
+    "failedRequests": [],
+    "httpErrors": [],
+    "dom": {
+      "url": "http://127.0.0.1:55030/#",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "body": {
+        "scrollWidth": 390,
+        "scrollHeight": 1000
+      },
+      "h1": {
+        "tag": "H1",
+        "role": "heading",
+        "text": "Выберите специалиста",
+        "box": {
+          "x": 12,
+          "y": 85,
+          "width": 366,
+          "height": 32
+        },
+        "css": {
+          "display": "block",
+          "flexDirection": "row",
+          "gridTemplateColumns": "none",
+          "padding": "0px",
+          "gap": "normal",
+          "fontSize": "27px",
+          "lineHeight": "32px",
+          "fontWeight": "800",
+          "color": "rgb(24, 37, 65)",
+          "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+          "border": "0px solid rgb(0, 0, 0)",
+          "borderRadius": "0px",
+          "boxShadow": "none"
+        }
+      },
+      "headings": [
+        {
+          "tag": "H1",
+          "role": "heading",
+          "text": "Выберите специалиста",
+          "box": {
+            "x": 12,
+            "y": 85,
+            "width": 366,
+            "height": 32
+          },
+          "css": {
+            "display": "block",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "27px",
+            "lineHeight": "32px",
+            "fontWeight": "800",
+            "color": "rgb(24, 37, 65)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "radios": [
+        {
+          "tag": "DIV",
+          "role": "radio",
+          "text": "ААнна ВетроваВетеринарный терапевтЕсть опубликованное время",
+          "box": {
+            "x": 27,
+            "y": 281,
+            "width": 336,
+            "height": 100
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "12px",
+            "gap": "12px",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(232, 241, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "2px solid rgb(13, 85, 216)",
+            "borderRadius": "15px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "DIV",
+          "role": "radio",
+          "text": "ММихаил ОрловВетеринарный терапевтЕсть опубликованное время",
+          "box": {
+            "x": 27,
+            "y": 389,
+            "width": 336,
+            "height": 98
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "12px",
+            "gap": "12px",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(200, 218, 243)",
+            "borderRadius": "15px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "buttons": [
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад",
+          "box": {
+            "x": 12,
+            "y": 10,
+            "width": 67.6875,
+            "height": 44
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "10px",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Выбрать время",
+          "box": {
+            "x": 27,
+            "y": 787,
+            "width": 336,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(13, 85, 216) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад к услуге",
+          "box": {
+            "x": 27,
+            "y": 845,
+            "width": 336,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "rootChildren": [
+        {
+          "tag": "DIV",
+          "role": null,
+          "text": "НазадЗапись в клиникуВыберите специалистаПервичный приём · Ветеринарный центр «Лапа» · РексШаг 2 из 3Кто проведёт приёмОдин специалист для выбранной клиники, филиала и услуги.ААнна ВетроваВетеринарный терапевтЕсть опубликованное времяММихаил ОрловВетеринарный терапевтЕсть опубликованное времяВаш выб",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 1000
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "viewport": "mobile",
+    "width": 390,
+    "height": 844,
+    "state": "loading",
+    "file": "mobile-loading-390x844.png",
+    "consoleMessages": [],
+    "failedRequests": [],
+    "httpErrors": [],
+    "dom": {
+      "url": "http://127.0.0.1:55030/#loading",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "body": {
+        "scrollWidth": 390,
+        "scrollHeight": 995
+      },
+      "h1": {
+        "tag": "H1",
+        "role": "heading",
+        "text": "Выберите специалиста",
+        "box": {
+          "x": 12,
+          "y": 85,
+          "width": 366,
+          "height": 32
+        },
+        "css": {
+          "display": "block",
+          "flexDirection": "row",
+          "gridTemplateColumns": "none",
+          "padding": "0px",
+          "gap": "normal",
+          "fontSize": "27px",
+          "lineHeight": "32px",
+          "fontWeight": "800",
+          "color": "rgb(24, 37, 65)",
+          "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+          "border": "0px solid rgb(0, 0, 0)",
+          "borderRadius": "0px",
+          "boxShadow": "none"
+        }
+      },
+      "headings": [
+        {
+          "tag": "H1",
+          "role": "heading",
+          "text": "Выберите специалиста",
+          "box": {
+            "x": 12,
+            "y": 85,
+            "width": 366,
+            "height": 32
+          },
+          "css": {
+            "display": "block",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "27px",
+            "lineHeight": "32px",
+            "fontWeight": "800",
+            "color": "rgb(24, 37, 65)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "radios": [],
+      "buttons": [
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад",
+          "box": {
+            "x": 12,
+            "y": 10,
+            "width": 67.6875,
+            "height": 44
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "10px",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Выбрать время",
+          "box": {
+            "x": 27,
+            "y": 782,
+            "width": 336,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgba(16, 16, 16, 0.3)",
+            "background": "rgb(233, 236, 235) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад к услуге",
+          "box": {
+            "x": 27,
+            "y": 840,
+            "width": 336,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "rootChildren": [
+        {
+          "tag": "DIV",
+          "role": null,
+          "text": "НазадЗапись в клиникуВыберите специалистаРексШаг 2 из 3Кто проведёт приёмОдин специалист для выбранной клиники, филиала и услуги.Загружаем специалистовВаш выборВыбранный специалистПеред продолжением проверим актуальность выбора.Выберите одного специалиста.Выбрать времяНазад к услуге",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 995
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "viewport": "mobile",
+    "width": 390,
+    "height": 844,
+    "state": "empty",
+    "file": "mobile-empty-390x844.png",
+    "consoleMessages": [],
+    "failedRequests": [],
+    "httpErrors": [],
+    "dom": {
+      "url": "http://127.0.0.1:55030/#empty",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "body": {
+        "scrollWidth": 390,
+        "scrollHeight": 844
+      },
+      "h1": {
+        "tag": "H1",
+        "role": "heading",
+        "text": "Выберите специалиста",
+        "box": {
+          "x": 12,
+          "y": 85,
+          "width": 366,
+          "height": 32
+        },
+        "css": {
+          "display": "block",
+          "flexDirection": "row",
+          "gridTemplateColumns": "none",
+          "padding": "0px",
+          "gap": "normal",
+          "fontSize": "27px",
+          "lineHeight": "32px",
+          "fontWeight": "800",
+          "color": "rgb(24, 37, 65)",
+          "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+          "border": "0px solid rgb(0, 0, 0)",
+          "borderRadius": "0px",
+          "boxShadow": "none"
+        }
+      },
+      "headings": [
+        {
+          "tag": "H1",
+          "role": "heading",
+          "text": "Выберите специалиста",
+          "box": {
+            "x": 12,
+            "y": 85,
+            "width": 366,
+            "height": 32
+          },
+          "css": {
+            "display": "block",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "27px",
+            "lineHeight": "32px",
+            "fontWeight": "800",
+            "color": "rgb(24, 37, 65)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "radios": [],
+      "buttons": [
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад",
+          "box": {
+            "x": 12,
+            "y": 10,
+            "width": 67.6875,
+            "height": 44
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "10px",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Выбрать время",
+          "box": {
+            "x": 27,
+            "y": 600,
+            "width": 336,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgba(16, 16, 16, 0.3)",
+            "background": "rgb(233, 236, 235) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад к услуге",
+          "box": {
+            "x": 27,
+            "y": 658,
+            "width": 336,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "rootChildren": [
+        {
+          "tag": "DIV",
+          "role": null,
+          "text": "НазадЗапись в клиникуВыберите специалистаРексШаг 2 из 3Кто проведёт приёмОдин специалист для выбранной клиники, филиала и услуги.Сейчас нет доступных специалистовВернитесь к выбору услуги или повторите позже.Ваш выборВыбранный специалистПеред продолжением проверим актуальность выбора.Выберите одного",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 813
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "viewport": "mobile",
+    "width": 390,
+    "height": 844,
+    "state": "error",
+    "file": "mobile-error-390x844.png",
+    "consoleMessages": [],
+    "failedRequests": [],
+    "httpErrors": [],
+    "dom": {
+      "url": "http://127.0.0.1:55030/#error",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "body": {
+        "scrollWidth": 390,
+        "scrollHeight": 850
+      },
+      "h1": {
+        "tag": "H1",
+        "role": "heading",
+        "text": "Выберите специалиста",
+        "box": {
+          "x": 12,
+          "y": 85,
+          "width": 366,
+          "height": 32
+        },
+        "css": {
+          "display": "block",
+          "flexDirection": "row",
+          "gridTemplateColumns": "none",
+          "padding": "0px",
+          "gap": "normal",
+          "fontSize": "27px",
+          "lineHeight": "32px",
+          "fontWeight": "800",
+          "color": "rgb(24, 37, 65)",
+          "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+          "border": "0px solid rgb(0, 0, 0)",
+          "borderRadius": "0px",
+          "boxShadow": "none"
+        }
+      },
+      "headings": [
+        {
+          "tag": "H1",
+          "role": "heading",
+          "text": "Выберите специалиста",
+          "box": {
+            "x": 12,
+            "y": 85,
+            "width": 366,
+            "height": 32
+          },
+          "css": {
+            "display": "block",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "27px",
+            "lineHeight": "32px",
+            "fontWeight": "800",
+            "color": "rgb(24, 37, 65)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "radios": [],
+      "buttons": [
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад",
+          "box": {
+            "x": 12,
+            "y": 10,
+            "width": 67.6875,
+            "height": 44
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "10px",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Повторить",
+          "box": {
+            "x": 46,
+            "y": 410,
+            "width": 298,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(13, 85, 216) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Выбрать время",
+          "box": {
+            "x": 27,
+            "y": 637,
+            "width": 336,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgba(16, 16, 16, 0.3)",
+            "background": "rgb(233, 236, 235) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад к услуге",
+          "box": {
+            "x": 27,
+            "y": 695,
+            "width": 336,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "rootChildren": [
+        {
+          "tag": "DIV",
+          "role": null,
+          "text": "НазадЗапись в клиникуВыберите специалистаРексШаг 2 из 3Кто проведёт приёмОдин специалист для выбранной клиники, филиала и услуги.Не удалось загрузить специалистовСтарые данные не используются.ПовторитьВаш выборВыбранный специалистПеред продолжением проверим актуальность выбора.Выберите одного специа",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 850
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "viewport": "tablet",
+    "width": 768,
+    "height": 900,
+    "state": "content",
+    "file": "tablet-content-768x900.png",
+    "consoleMessages": [],
+    "failedRequests": [],
+    "httpErrors": [],
+    "dom": {
+      "url": "http://127.0.0.1:55030/#",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "body": {
+        "scrollWidth": 768,
+        "scrollHeight": 900
+      },
+      "h1": {
+        "tag": "H1",
+        "role": "heading",
+        "text": "Выберите специалиста",
+        "box": {
+          "x": 18,
+          "y": 85,
+          "width": 732,
+          "height": 32
+        },
+        "css": {
+          "display": "block",
+          "flexDirection": "row",
+          "gridTemplateColumns": "none",
+          "padding": "0px",
+          "gap": "normal",
+          "fontSize": "27px",
+          "lineHeight": "32px",
+          "fontWeight": "800",
+          "color": "rgb(24, 37, 65)",
+          "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+          "border": "0px solid rgb(0, 0, 0)",
+          "borderRadius": "0px",
+          "boxShadow": "none"
+        }
+      },
+      "headings": [
+        {
+          "tag": "H1",
+          "role": "heading",
+          "text": "Выберите специалиста",
+          "box": {
+            "x": 18,
+            "y": 85,
+            "width": 732,
+            "height": 32
+          },
+          "css": {
+            "display": "block",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "27px",
+            "lineHeight": "32px",
+            "fontWeight": "800",
+            "color": "rgb(24, 37, 65)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "radios": [
+        {
+          "tag": "DIV",
+          "role": "radio",
+          "text": "ААнна ВетроваВетеринарный терапевтЕсть опубликованное время",
+          "box": {
+            "x": 33,
+            "y": 243,
+            "width": 702,
+            "height": 98
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "12px",
+            "gap": "12px",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(200, 218, 243)",
+            "borderRadius": "15px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "DIV",
+          "role": "radio",
+          "text": "ММихаил ОрловВетеринарный терапевтЕсть опубликованное время",
+          "box": {
+            "x": 33,
+            "y": 349,
+            "width": 702,
+            "height": 98
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "12px",
+            "gap": "12px",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(200, 218, 243)",
+            "borderRadius": "15px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "buttons": [
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад",
+          "box": {
+            "x": 18,
+            "y": 10,
+            "width": 67.6875,
+            "height": 44
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "10px",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Выбрать время",
+          "box": {
+            "x": 33,
+            "y": 590,
+            "width": 702,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgba(16, 16, 16, 0.3)",
+            "background": "rgb(233, 236, 235) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад к услуге",
+          "box": {
+            "x": 33,
+            "y": 648,
+            "width": 702,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "rootChildren": [
+        {
+          "tag": "DIV",
+          "role": null,
+          "text": "НазадЗапись в клиникуВыберите специалистаПервичный приём · Ветеринарный центр «Лапа» · РексШаг 2 из 3Кто проведёт приёмОдин специалист для выбранной клиники, филиала и услуги.ААнна ВетроваВетеринарный терапевтЕсть опубликованное времяММихаил ОрловВетеринарный терапевтЕсть опубликованное времяВаш выб",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 768,
+            "height": 803
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "viewport": "tablet",
+    "width": 768,
+    "height": 900,
+    "state": "selected",
+    "file": "tablet-selected-768x900.png",
+    "consoleMessages": [],
+    "failedRequests": [],
+    "httpErrors": [],
+    "dom": {
+      "url": "http://127.0.0.1:55030/#",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "body": {
+        "scrollWidth": 768,
+        "scrollHeight": 906
+      },
+      "h1": {
+        "tag": "H1",
+        "role": "heading",
+        "text": "Выберите специалиста",
+        "box": {
+          "x": 18,
+          "y": 85,
+          "width": 732,
+          "height": 32
+        },
+        "css": {
+          "display": "block",
+          "flexDirection": "row",
+          "gridTemplateColumns": "none",
+          "padding": "0px",
+          "gap": "normal",
+          "fontSize": "27px",
+          "lineHeight": "32px",
+          "fontWeight": "800",
+          "color": "rgb(24, 37, 65)",
+          "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+          "border": "0px solid rgb(0, 0, 0)",
+          "borderRadius": "0px",
+          "boxShadow": "none"
+        }
+      },
+      "headings": [
+        {
+          "tag": "H1",
+          "role": "heading",
+          "text": "Выберите специалиста",
+          "box": {
+            "x": 18,
+            "y": 85,
+            "width": 732,
+            "height": 32
+          },
+          "css": {
+            "display": "block",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "27px",
+            "lineHeight": "32px",
+            "fontWeight": "800",
+            "color": "rgb(24, 37, 65)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "radios": [
+        {
+          "tag": "DIV",
+          "role": "radio",
+          "text": "ААнна ВетроваВетеринарный терапевтЕсть опубликованное время",
+          "box": {
+            "x": 33,
+            "y": 243,
+            "width": 702,
+            "height": 100
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "12px",
+            "gap": "12px",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(232, 241, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "2px solid rgb(13, 85, 216)",
+            "borderRadius": "15px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "DIV",
+          "role": "radio",
+          "text": "ММихаил ОрловВетеринарный терапевтЕсть опубликованное время",
+          "box": {
+            "x": 33,
+            "y": 351,
+            "width": 702,
+            "height": 98
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "12px",
+            "gap": "12px",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(200, 218, 243)",
+            "borderRadius": "15px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "buttons": [
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад",
+          "box": {
+            "x": 18,
+            "y": 10,
+            "width": 67.6875,
+            "height": 44
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "10px",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Выбрать время",
+          "box": {
+            "x": 33,
+            "y": 693,
+            "width": 702,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(13, 85, 216) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад к услуге",
+          "box": {
+            "x": 33,
+            "y": 751,
+            "width": 702,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "rootChildren": [
+        {
+          "tag": "DIV",
+          "role": null,
+          "text": "НазадЗапись в клиникуВыберите специалистаПервичный приём · Ветеринарный центр «Лапа» · РексШаг 2 из 3Кто проведёт приёмОдин специалист для выбранной клиники, филиала и услуги.ААнна ВетроваВетеринарный терапевтЕсть опубликованное времяММихаил ОрловВетеринарный терапевтЕсть опубликованное времяВаш выб",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 768,
+            "height": 906
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "viewport": "tablet",
+    "width": 768,
+    "height": 900,
+    "state": "loading",
+    "file": "tablet-loading-768x900.png",
+    "consoleMessages": [],
+    "failedRequests": [],
+    "httpErrors": [],
+    "dom": {
+      "url": "http://127.0.0.1:55030/#loading",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "body": {
+        "scrollWidth": 768,
+        "scrollHeight": 961
+      },
+      "h1": {
+        "tag": "H1",
+        "role": "heading",
+        "text": "Выберите специалиста",
+        "box": {
+          "x": 18,
+          "y": 85,
+          "width": 732,
+          "height": 32
+        },
+        "css": {
+          "display": "block",
+          "flexDirection": "row",
+          "gridTemplateColumns": "none",
+          "padding": "0px",
+          "gap": "normal",
+          "fontSize": "27px",
+          "lineHeight": "32px",
+          "fontWeight": "800",
+          "color": "rgb(24, 37, 65)",
+          "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+          "border": "0px solid rgb(0, 0, 0)",
+          "borderRadius": "0px",
+          "boxShadow": "none"
+        }
+      },
+      "headings": [
+        {
+          "tag": "H1",
+          "role": "heading",
+          "text": "Выберите специалиста",
+          "box": {
+            "x": 18,
+            "y": 85,
+            "width": 732,
+            "height": 32
+          },
+          "css": {
+            "display": "block",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "27px",
+            "lineHeight": "32px",
+            "fontWeight": "800",
+            "color": "rgb(24, 37, 65)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "radios": [],
+      "buttons": [
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад",
+          "box": {
+            "x": 18,
+            "y": 10,
+            "width": 67.6875,
+            "height": 44
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "10px",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Выбрать время",
+          "box": {
+            "x": 33,
+            "y": 748,
+            "width": 702,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgba(16, 16, 16, 0.3)",
+            "background": "rgb(233, 236, 235) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад к услуге",
+          "box": {
+            "x": 33,
+            "y": 806,
+            "width": 702,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "rootChildren": [
+        {
+          "tag": "DIV",
+          "role": null,
+          "text": "НазадЗапись в клиникуВыберите специалистаРексШаг 2 из 3Кто проведёт приёмОдин специалист для выбранной клиники, филиала и услуги.Загружаем специалистовВаш выборВыбранный специалистПеред продолжением проверим актуальность выбора.Выберите одного специалиста.Выбрать времяНазад к услуге",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 768,
+            "height": 961
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "viewport": "tablet",
+    "width": 768,
+    "height": 900,
+    "state": "empty",
+    "file": "tablet-empty-768x900.png",
+    "consoleMessages": [],
+    "failedRequests": [],
+    "httpErrors": [],
+    "dom": {
+      "url": "http://127.0.0.1:55030/#empty",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "body": {
+        "scrollWidth": 768,
+        "scrollHeight": 900
+      },
+      "h1": {
+        "tag": "H1",
+        "role": "heading",
+        "text": "Выберите специалиста",
+        "box": {
+          "x": 18,
+          "y": 85,
+          "width": 732,
+          "height": 32
+        },
+        "css": {
+          "display": "block",
+          "flexDirection": "row",
+          "gridTemplateColumns": "none",
+          "padding": "0px",
+          "gap": "normal",
+          "fontSize": "27px",
+          "lineHeight": "32px",
+          "fontWeight": "800",
+          "color": "rgb(24, 37, 65)",
+          "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+          "border": "0px solid rgb(0, 0, 0)",
+          "borderRadius": "0px",
+          "boxShadow": "none"
+        }
+      },
+      "headings": [
+        {
+          "tag": "H1",
+          "role": "heading",
+          "text": "Выберите специалиста",
+          "box": {
+            "x": 18,
+            "y": 85,
+            "width": 732,
+            "height": 32
+          },
+          "css": {
+            "display": "block",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "27px",
+            "lineHeight": "32px",
+            "fontWeight": "800",
+            "color": "rgb(24, 37, 65)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "radios": [],
+      "buttons": [
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад",
+          "box": {
+            "x": 18,
+            "y": 10,
+            "width": 67.6875,
+            "height": 44
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "10px",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Выбрать время",
+          "box": {
+            "x": 33,
+            "y": 523,
+            "width": 702,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgba(16, 16, 16, 0.3)",
+            "background": "rgb(233, 236, 235) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад к услуге",
+          "box": {
+            "x": 33,
+            "y": 581,
+            "width": 702,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "rootChildren": [
+        {
+          "tag": "DIV",
+          "role": null,
+          "text": "НазадЗапись в клиникуВыберите специалистаРексШаг 2 из 3Кто проведёт приёмОдин специалист для выбранной клиники, филиала и услуги.Сейчас нет доступных специалистовВернитесь к выбору услуги или повторите позже.Ваш выборВыбранный специалистПеред продолжением проверим актуальность выбора.Выберите одного",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 768,
+            "height": 736
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "viewport": "tablet",
+    "width": 768,
+    "height": 900,
+    "state": "error",
+    "file": "tablet-error-768x900.png",
+    "consoleMessages": [],
+    "failedRequests": [],
+    "httpErrors": [],
+    "dom": {
+      "url": "http://127.0.0.1:55030/#error",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "body": {
+        "scrollWidth": 768,
+        "scrollHeight": 900
+      },
+      "h1": {
+        "tag": "H1",
+        "role": "heading",
+        "text": "Выберите специалиста",
+        "box": {
+          "x": 18,
+          "y": 85,
+          "width": 732,
+          "height": 32
+        },
+        "css": {
+          "display": "block",
+          "flexDirection": "row",
+          "gridTemplateColumns": "none",
+          "padding": "0px",
+          "gap": "normal",
+          "fontSize": "27px",
+          "lineHeight": "32px",
+          "fontWeight": "800",
+          "color": "rgb(24, 37, 65)",
+          "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+          "border": "0px solid rgb(0, 0, 0)",
+          "borderRadius": "0px",
+          "boxShadow": "none"
+        }
+      },
+      "headings": [
+        {
+          "tag": "H1",
+          "role": "heading",
+          "text": "Выберите специалиста",
+          "box": {
+            "x": 18,
+            "y": 85,
+            "width": 732,
+            "height": 32
+          },
+          "css": {
+            "display": "block",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "27px",
+            "lineHeight": "32px",
+            "fontWeight": "800",
+            "color": "rgb(24, 37, 65)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "radios": [],
+      "buttons": [
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад",
+          "box": {
+            "x": 18,
+            "y": 10,
+            "width": 67.6875,
+            "height": 44
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "10px",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Повторить",
+          "box": {
+            "x": 52,
+            "y": 371,
+            "width": 664,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(13, 85, 216) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Выбрать время",
+          "box": {
+            "x": 33,
+            "y": 581,
+            "width": 702,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgba(16, 16, 16, 0.3)",
+            "background": "rgb(233, 236, 235) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад к услуге",
+          "box": {
+            "x": 33,
+            "y": 639,
+            "width": 702,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "rootChildren": [
+        {
+          "tag": "DIV",
+          "role": null,
+          "text": "НазадЗапись в клиникуВыберите специалистаРексШаг 2 из 3Кто проведёт приёмОдин специалист для выбранной клиники, филиала и услуги.Не удалось загрузить специалистовСтарые данные не используются.ПовторитьВаш выборВыбранный специалистПеред продолжением проверим актуальность выбора.Выберите одного специа",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 768,
+            "height": 794
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "viewport": "desktop",
+    "width": 1440,
+    "height": 900,
+    "state": "content",
+    "file": "desktop-content-1440x900.png",
+    "consoleMessages": [],
+    "failedRequests": [],
+    "httpErrors": [],
+    "dom": {
+      "url": "http://127.0.0.1:55030/#",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "body": {
+        "scrollWidth": 1440,
+        "scrollHeight": 900
+      },
+      "h1": {
+        "tag": "H1",
+        "role": "heading",
+        "text": "Выберите специалиста",
+        "box": {
+          "x": 24,
+          "y": 91,
+          "width": 1392,
+          "height": 34
+        },
+        "css": {
+          "display": "block",
+          "flexDirection": "row",
+          "gridTemplateColumns": "none",
+          "padding": "0px",
+          "gap": "normal",
+          "fontSize": "30px",
+          "lineHeight": "34px",
+          "fontWeight": "800",
+          "color": "rgb(24, 37, 65)",
+          "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+          "border": "0px solid rgb(0, 0, 0)",
+          "borderRadius": "0px",
+          "boxShadow": "none"
+        }
+      },
+      "headings": [
+        {
+          "tag": "H1",
+          "role": "heading",
+          "text": "Выберите специалиста",
+          "box": {
+            "x": 24,
+            "y": 91,
+            "width": 1392,
+            "height": 34
+          },
+          "css": {
+            "display": "block",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "30px",
+            "lineHeight": "34px",
+            "fontWeight": "800",
+            "color": "rgb(24, 37, 65)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "radios": [
+        {
+          "tag": "DIV",
+          "role": "radio",
+          "text": "ААнна ВетроваВетеринарный терапевтЕсть опубликованное время",
+          "box": {
+            "x": 39,
+            "y": 251,
+            "width": 832.5,
+            "height": 98
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "12px",
+            "gap": "12px",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(200, 218, 243)",
+            "borderRadius": "15px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "DIV",
+          "role": "radio",
+          "text": "ММихаил ОрловВетеринарный терапевтЕсть опубликованное время",
+          "box": {
+            "x": 39,
+            "y": 357,
+            "width": 832.5,
+            "height": 98
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "12px",
+            "gap": "12px",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(200, 218, 243)",
+            "borderRadius": "15px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "buttons": [
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад",
+          "box": {
+            "x": 24,
+            "y": 14,
+            "width": 67.6875,
+            "height": 44
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "10px",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Выбрать время",
+          "box": {
+            "x": 913.5,
+            "y": 282,
+            "width": 487.5,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgba(16, 16, 16, 0.3)",
+            "background": "rgb(233, 236, 235) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад к услуге",
+          "box": {
+            "x": 913.5,
+            "y": 340,
+            "width": 487.5,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "rootChildren": [
+        {
+          "tag": "DIV",
+          "role": null,
+          "text": "НазадЗапись в клиникуВыберите специалистаПервичный приём · Ветеринарный центр «Лапа» · РексШаг 2 из 3Кто проведёт приёмОдин специалист для выбранной клиники, филиала и услуги.ААнна ВетроваВетеринарный терапевтЕсть опубликованное времяММихаил ОрловВетеринарный терапевтЕсть опубликованное времяВаш выб",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 1440,
+            "height": 518
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "rgba(20, 35, 31, 0.08) 0px 8px 18px 0px"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "viewport": "desktop",
+    "width": 1440,
+    "height": 900,
+    "state": "selected",
+    "file": "desktop-selected-1440x900.png",
+    "consoleMessages": [],
+    "failedRequests": [],
+    "httpErrors": [],
+    "dom": {
+      "url": "http://127.0.0.1:55030/#",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "body": {
+        "scrollWidth": 1440,
+        "scrollHeight": 900
+      },
+      "h1": {
+        "tag": "H1",
+        "role": "heading",
+        "text": "Выберите специалиста",
+        "box": {
+          "x": 24,
+          "y": 91,
+          "width": 1392,
+          "height": 34
+        },
+        "css": {
+          "display": "block",
+          "flexDirection": "row",
+          "gridTemplateColumns": "none",
+          "padding": "0px",
+          "gap": "normal",
+          "fontSize": "30px",
+          "lineHeight": "34px",
+          "fontWeight": "800",
+          "color": "rgb(24, 37, 65)",
+          "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+          "border": "0px solid rgb(0, 0, 0)",
+          "borderRadius": "0px",
+          "boxShadow": "none"
+        }
+      },
+      "headings": [
+        {
+          "tag": "H1",
+          "role": "heading",
+          "text": "Выберите специалиста",
+          "box": {
+            "x": 24,
+            "y": 91,
+            "width": 1392,
+            "height": 34
+          },
+          "css": {
+            "display": "block",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "30px",
+            "lineHeight": "34px",
+            "fontWeight": "800",
+            "color": "rgb(24, 37, 65)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "radios": [
+        {
+          "tag": "DIV",
+          "role": "radio",
+          "text": "ААнна ВетроваВетеринарный терапевтЕсть опубликованное время",
+          "box": {
+            "x": 39,
+            "y": 251,
+            "width": 832.5,
+            "height": 100
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "12px",
+            "gap": "12px",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(232, 241, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "2px solid rgb(13, 85, 216)",
+            "borderRadius": "15px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "DIV",
+          "role": "radio",
+          "text": "ММихаил ОрловВетеринарный терапевтЕсть опубликованное время",
+          "box": {
+            "x": 39,
+            "y": 359,
+            "width": 832.5,
+            "height": 98
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "12px",
+            "gap": "12px",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(200, 218, 243)",
+            "borderRadius": "15px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "buttons": [
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад",
+          "box": {
+            "x": 24,
+            "y": 14,
+            "width": 67.6875,
+            "height": 44
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "10px",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Выбрать время",
+          "box": {
+            "x": 913.5,
+            "y": 383,
+            "width": 487.5,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(13, 85, 216) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад к услуге",
+          "box": {
+            "x": 913.5,
+            "y": 441,
+            "width": 487.5,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "rootChildren": [
+        {
+          "tag": "DIV",
+          "role": null,
+          "text": "НазадЗапись в клиникуВыберите специалистаПервичный приём · Ветеринарный центр «Лапа» · РексШаг 2 из 3Кто проведёт приёмОдин специалист для выбранной клиники, филиала и услуги.ААнна ВетроваВетеринарный терапевтЕсть опубликованное времяММихаил ОрловВетеринарный терапевтЕсть опубликованное времяВаш выб",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 1440,
+            "height": 552
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "rgba(20, 35, 31, 0.08) 0px 8px 18px 0px"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "viewport": "desktop",
+    "width": 1440,
+    "height": 900,
+    "state": "loading",
+    "file": "desktop-loading-1440x900.png",
+    "consoleMessages": [],
+    "failedRequests": [],
+    "httpErrors": [],
+    "dom": {
+      "url": "http://127.0.0.1:55030/#loading",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "body": {
+        "scrollWidth": 1440,
+        "scrollHeight": 900
+      },
+      "h1": {
+        "tag": "H1",
+        "role": "heading",
+        "text": "Выберите специалиста",
+        "box": {
+          "x": 24,
+          "y": 91,
+          "width": 1392,
+          "height": 34
+        },
+        "css": {
+          "display": "block",
+          "flexDirection": "row",
+          "gridTemplateColumns": "none",
+          "padding": "0px",
+          "gap": "normal",
+          "fontSize": "30px",
+          "lineHeight": "34px",
+          "fontWeight": "800",
+          "color": "rgb(24, 37, 65)",
+          "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+          "border": "0px solid rgb(0, 0, 0)",
+          "borderRadius": "0px",
+          "boxShadow": "none"
+        }
+      },
+      "headings": [
+        {
+          "tag": "H1",
+          "role": "heading",
+          "text": "Выберите специалиста",
+          "box": {
+            "x": 24,
+            "y": 91,
+            "width": 1392,
+            "height": 34
+          },
+          "css": {
+            "display": "block",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "30px",
+            "lineHeight": "34px",
+            "fontWeight": "800",
+            "color": "rgb(24, 37, 65)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "radios": [],
+      "buttons": [
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад",
+          "box": {
+            "x": 24,
+            "y": 14,
+            "width": 67.6875,
+            "height": 44
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "10px",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Выбрать время",
+          "box": {
+            "x": 913.5,
+            "y": 282,
+            "width": 487.5,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgba(16, 16, 16, 0.3)",
+            "background": "rgb(233, 236, 235) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад к услуге",
+          "box": {
+            "x": 913.5,
+            "y": 340,
+            "width": 487.5,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "rootChildren": [
+        {
+          "tag": "DIV",
+          "role": null,
+          "text": "НазадЗапись в клиникуВыберите специалистаРексШаг 2 из 3Кто проведёт приёмОдин специалист для выбранной клиники, филиала и услуги.Загружаем специалистовВаш выборВыбранный специалистПеред продолжением проверим актуальность выбора.Выберите одного специалиста.Выбрать времяНазад к услуге",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 1440,
+            "height": 676
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "rgba(20, 35, 31, 0.08) 0px 8px 18px 0px"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "viewport": "desktop",
+    "width": 1440,
+    "height": 900,
+    "state": "empty",
+    "file": "desktop-empty-1440x900.png",
+    "consoleMessages": [],
+    "failedRequests": [],
+    "httpErrors": [],
+    "dom": {
+      "url": "http://127.0.0.1:55030/#empty",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "body": {
+        "scrollWidth": 1440,
+        "scrollHeight": 900
+      },
+      "h1": {
+        "tag": "H1",
+        "role": "heading",
+        "text": "Выберите специалиста",
+        "box": {
+          "x": 24,
+          "y": 91,
+          "width": 1392,
+          "height": 34
+        },
+        "css": {
+          "display": "block",
+          "flexDirection": "row",
+          "gridTemplateColumns": "none",
+          "padding": "0px",
+          "gap": "normal",
+          "fontSize": "30px",
+          "lineHeight": "34px",
+          "fontWeight": "800",
+          "color": "rgb(24, 37, 65)",
+          "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+          "border": "0px solid rgb(0, 0, 0)",
+          "borderRadius": "0px",
+          "boxShadow": "none"
+        }
+      },
+      "headings": [
+        {
+          "tag": "H1",
+          "role": "heading",
+          "text": "Выберите специалиста",
+          "box": {
+            "x": 24,
+            "y": 91,
+            "width": 1392,
+            "height": 34
+          },
+          "css": {
+            "display": "block",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "30px",
+            "lineHeight": "34px",
+            "fontWeight": "800",
+            "color": "rgb(24, 37, 65)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "radios": [],
+      "buttons": [
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад",
+          "box": {
+            "x": 24,
+            "y": 14,
+            "width": 67.6875,
+            "height": 44
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "10px",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Выбрать время",
+          "box": {
+            "x": 913.5,
+            "y": 282,
+            "width": 487.5,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgba(16, 16, 16, 0.3)",
+            "background": "rgb(233, 236, 235) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад к услуге",
+          "box": {
+            "x": 913.5,
+            "y": 340,
+            "width": 487.5,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "rootChildren": [
+        {
+          "tag": "DIV",
+          "role": null,
+          "text": "НазадЗапись в клиникуВыберите специалистаРексШаг 2 из 3Кто проведёт приёмОдин специалист для выбранной клиники, филиала и услуги.Сейчас нет доступных специалистовВернитесь к выбору услуги или повторите позже.Ваш выборВыбранный специалистПеред продолжением проверим актуальность выбора.Выберите одного",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 1440,
+            "height": 451
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "rgba(20, 35, 31, 0.08) 0px 8px 18px 0px"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "viewport": "desktop",
+    "width": 1440,
+    "height": 900,
+    "state": "error",
+    "file": "desktop-error-1440x900.png",
+    "consoleMessages": [],
+    "failedRequests": [],
+    "httpErrors": [],
+    "dom": {
+      "url": "http://127.0.0.1:55030/#error",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "body": {
+        "scrollWidth": 1440,
+        "scrollHeight": 900
+      },
+      "h1": {
+        "tag": "H1",
+        "role": "heading",
+        "text": "Выберите специалиста",
+        "box": {
+          "x": 24,
+          "y": 91,
+          "width": 1392,
+          "height": 34
+        },
+        "css": {
+          "display": "block",
+          "flexDirection": "row",
+          "gridTemplateColumns": "none",
+          "padding": "0px",
+          "gap": "normal",
+          "fontSize": "30px",
+          "lineHeight": "34px",
+          "fontWeight": "800",
+          "color": "rgb(24, 37, 65)",
+          "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+          "border": "0px solid rgb(0, 0, 0)",
+          "borderRadius": "0px",
+          "boxShadow": "none"
+        }
+      },
+      "headings": [
+        {
+          "tag": "H1",
+          "role": "heading",
+          "text": "Выберите специалиста",
+          "box": {
+            "x": 24,
+            "y": 91,
+            "width": 1392,
+            "height": 34
+          },
+          "css": {
+            "display": "block",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "30px",
+            "lineHeight": "34px",
+            "fontWeight": "800",
+            "color": "rgb(24, 37, 65)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "radios": [],
+      "buttons": [
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад",
+          "box": {
+            "x": 24,
+            "y": 14,
+            "width": 67.6875,
+            "height": 44
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "row",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "10px",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Повторить",
+          "box": {
+            "x": 58,
+            "y": 379,
+            "width": 794.5,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(13, 85, 216) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Выбрать время",
+          "box": {
+            "x": 913.5,
+            "y": 282,
+            "width": 487.5,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgba(16, 16, 16, 0.3)",
+            "background": "rgb(233, 236, 235) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        },
+        {
+          "tag": "BUTTON",
+          "role": "button",
+          "text": "Назад к услуге",
+          "box": {
+            "x": 913.5,
+            "y": 340,
+            "width": 487.5,
+            "height": 48
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "13px 18px",
+            "gap": "normal",
+            "fontSize": "13.3333px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "1px solid rgb(225, 230, 228)",
+            "borderRadius": "12px",
+            "boxShadow": "none"
+          }
+        }
+      ],
+      "rootChildren": [
+        {
+          "tag": "DIV",
+          "role": null,
+          "text": "НазадЗапись в клиникуВыберите специалистаРексШаг 2 из 3Кто проведёт приёмОдин специалист для выбранной клиники, филиала и услуги.Не удалось загрузить специалистовСтарые данные не используются.ПовторитьВаш выборВыбранный специалистПеред продолжением проверим актуальность выбора.Выберите одного специа",
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 1440,
+            "height": 509
+          },
+          "css": {
+            "display": "flex",
+            "flexDirection": "column",
+            "gridTemplateColumns": "none",
+            "padding": "0px",
+            "gap": "normal",
+            "fontSize": "16px",
+            "lineHeight": "normal",
+            "fontWeight": "400",
+            "color": "rgb(0, 0, 0)",
+            "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+            "border": "0px solid rgb(0, 0, 0)",
+            "borderRadius": "0px",
+            "boxShadow": "rgba(20, 35, 31, 0.08) 0px 8px 18px 0px"
+          }
+        }
+      ]
+    }
+  }
+]

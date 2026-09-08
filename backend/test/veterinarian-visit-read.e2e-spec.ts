@@ -15,8 +15,10 @@ const IDS = {
   pet: '40000000-0000-4000-8000-000000000001', service: '50000000-0000-4000-8000-000000000001', otherService: '50000000-0000-4000-8000-000000000002', otherClinicService: '50000000-0000-4000-8000-000000000003',
   confirmedSlot: '60000000-0000-4000-8000-000000000001', completedSlot: '60000000-0000-4000-8000-000000000002', cancelledSlot: '60000000-0000-4000-8000-000000000003', expiredSlot: '60000000-0000-4000-8000-000000000004', otherLocationSlot: '60000000-0000-4000-8000-000000000005', otherClinicSlot: '60000000-0000-4000-8000-000000000006',
   confirmed: '70000000-0000-4000-8000-000000000001', completed: '70000000-0000-4000-8000-000000000002', cancelled: '70000000-0000-4000-8000-000000000003', expired: '70000000-0000-4000-8000-000000000004', otherLocationHold: '70000000-0000-4000-8000-000000000005', otherClinicHold: '70000000-0000-4000-8000-000000000006', missing: '70000000-0000-4000-8000-000000000007',
+  confirmedAppointment:'80000000-0000-4000-8000-000000000001',completedAppointment:'80000000-0000-4000-8000-000000000002',otherLocationAppointment:'80000000-0000-4000-8000-000000000005',otherClinicAppointment:'80000000-0000-4000-8000-000000000006',completedVisit:'90000000-0000-4000-8000-000000000002',otherClinicVisit:'90000000-0000-4000-8000-000000000006',
 };
 const fields = ['clinicId', 'holdId', 'locationId', 'petDisplayName', 'scheduledEnd', 'scheduledStart', 'species', 'status'];
+const detailFields=[...fields,'appointmentId','petId','visitId'].sort();
 
 describe('veterinarian visit read HTTP matrix', () => {
   let app: INestApplication;
@@ -65,10 +67,11 @@ describe('veterinarian visit read HTTP matrix', () => {
     expectNoLeak(response.body);
   });
 
-  it('returns allowed detail with the same projection', async () => {
+  it('returns exact Appointment/Pet identity before completion and durable Visit identity after completion without selecting another Visit for the same Pet', async () => {
     const response = await detail(vetToken, IDS.confirmed).expect(200);
-    expect(Object.keys(response.body).sort()).toEqual(fields);
-    expect(response.body).toMatchObject({ holdId: IDS.confirmed, status: 'CONFIRMED', clinicId: IDS.clinic, locationId: IDS.location });
+    expect(Object.keys(response.body).sort()).toEqual(detailFields);
+    expect(response.body).toMatchObject({ holdId: IDS.confirmed, status: 'CONFIRMED', clinicId: IDS.clinic, locationId: IDS.location,appointmentId:IDS.confirmedAppointment,petId:IDS.pet,visitId:null });
+    const before=await mutationCounts(database);const completed=await detail(vetToken,IDS.completed).expect(200);expect(completed.body).toMatchObject({holdId:IDS.completed,appointmentId:IDS.completedAppointment,petId:IDS.pet,visitId:IDS.completedVisit});expect(completed.body.visitId).not.toBe(IDS.otherClinicVisit);expect(await mutationCounts(database)).toEqual(before);
   });
 
   it.each([IDS.otherClinicHold, IDS.otherLocationHold, IDS.missing, IDS.cancelled, IDS.expired])('normalizes non-readable detail %s', async (holdId) => {
@@ -108,4 +111,8 @@ async function resetFixtures(database: DatabaseService) {
   for (const [index, slot] of slots.entries()) await database.query(`INSERT INTO clinic_schema.appointment_slots (id, clinic_location_id, service_id, starts_at, ends_at, capacity, status, integration_mode, last_freshness_sync) VALUES ($1::uuid, $2::uuid, $3::uuid, clock_timestamp() + ($4 * interval '1 hour'), clock_timestamp() + (($4 + 1) * interval '1 hour'), 1, 'AVAILABLE', 'LEVEL_C', clock_timestamp())`, [slot, index === 4 ? IDS.otherLocation : index === 5 ? IDS.otherClinicLocation : IDS.location, index === 4 ? IDS.otherService : index === 5 ? IDS.otherClinicService : IDS.service, index + 1]);
   const holds = [[IDS.confirmed, IDS.confirmedSlot, 'CONFIRMED'], [IDS.completed, IDS.completedSlot, 'COMPLETED'], [IDS.cancelled, IDS.cancelledSlot, 'CANCELLATION_REQUESTED'], [IDS.expired, IDS.expiredSlot, 'EXPIRED'], [IDS.otherLocationHold, IDS.otherLocationSlot, 'CONFIRMED'], [IDS.otherClinicHold, IDS.otherClinicSlot, 'CONFIRMED']];
   for (const [hold, slot, state] of holds) await database.query(`INSERT INTO booking_schema.booking_holds (id, slot_id, owner_id, pet_id, state, expires_at, state_changed_at) VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, clock_timestamp() + interval '1 day', clock_timestamp())`, [hold, slot, IDS.owner, IDS.pet, state]);
+  for(const [appointment,hold,slot,location,status] of [[IDS.confirmedAppointment,IDS.confirmed,IDS.confirmedSlot,IDS.location,'CONFIRMED'],[IDS.completedAppointment,IDS.completed,IDS.completedSlot,IDS.location,'COMPLETED'],[IDS.otherLocationAppointment,IDS.otherLocationHold,IDS.otherLocationSlot,IDS.otherLocation,'CONFIRMED'],[IDS.otherClinicAppointment,IDS.otherClinicHold,IDS.otherClinicSlot,IDS.otherClinicLocation,'CONFIRMED']])await database.query(`INSERT INTO booking_schema.appointments(id,hold_id,owner_id,pet_id,clinic_location_id,slot_id,status) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::uuid,$7)`,[appointment,hold,IDS.owner,IDS.pet,location,slot,status]);
+  await database.query(`INSERT INTO clinical_schema.visits(id,appointment_id,booking_hold_id,owner_id,pet_id,clinic_id,location_id,slot_id,completed_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9),($10,$11,$12,$4,$5,$13,$14,$15,$9)`,[IDS.completedVisit,IDS.completedAppointment,IDS.completed,IDS.owner,IDS.pet,IDS.clinic,IDS.location,IDS.completedSlot,IDS.vet,IDS.otherClinicVisit,IDS.otherClinicAppointment,IDS.otherClinicHold,IDS.otherClinic,IDS.otherClinicLocation,IDS.otherClinicSlot]);
 }
+
+async function mutationCounts(database:DatabaseService){return(await database.query(`SELECT (SELECT count(*)::int FROM clinical_schema.visits) visits,(SELECT count(*)::int FROM clinical_schema.visit_results) results,(SELECT count(*)::int FROM clinical_schema.visit_result_amendments) amendments,(SELECT count(*)::int FROM clinical_schema.diary_entries) diary,(SELECT count(*)::int FROM audit_schema.audit_log) audit,(SELECT count(*)::int FROM booking_schema.outbox_events) outbox`)).rows[0];}

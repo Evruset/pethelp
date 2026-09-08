@@ -1,6 +1,62 @@
 # V50 program current state
 
-Updated: 2026-07-31
+## 2026-08-30 — W5-C2 real Booking change E2E and visual closure
+
+- Machine state: `COMPLETE / MACHINE-VERIFIED`. The canonical real local stack proves CANCEL and RESCHEDULE from Owner Expo Web through both BFFs, backend and PostgreSQL to Operations processing and Owner authoritative readback.
+- CANCEL submission does not mutate Booking/Appointment/capacity; authoritative completion cancels Appointment and releases Hold/capacity. RESCHEDULE submission preserves the original booking; authoritative completion releases old capacity, consumes the selected published replacement, and converges Hold/Appointment/request identities. A replacement consumed after load fails safely with the original booking intact and request not falsely completed.
+- Final-source evidence is `docs/testing/evidence/wave5-booking-change-closure/manifest.json`: 21 screenshots, 13 required states, all specified Owner and Operations viewport classes, SHA-256 source/image/V50 authority binding, and no orphans. Axe serious/critical is 0, horizontal overflow is 0, controls meet the 44 px class, and critical keyboard/dialog focus paths pass.
+- Closure-only repairs add a semantic focus-managed Owner web dialog, strengthen captured contrast, make the Operations mobile queue a compact no-overflow task list, and retain its actionable stale banner after authoritative refresh. No lifecycle, migration, capacity policy, DoctorShift, notification expansion, Wave 6, commit, push, deploy, Jira, or Confluence action occurred.
+- The exactly one independent Product/UX closure reviewer inspected all 21 final screenshots and returned `PASS / NO VETO`; no blocking findings remain. Browser evidence is explicitly not physical-device validation.
+- Contract: `docs/mvp/WAVE-5C2-BOOKING-CHANGE-REAL-E2E-VISUAL-CLOSURE.md`. `W5_COMPLETE=YES`; next recommendation: W6.
+
+## 2026-08-30 — W5-C1A FK repair and authoritative Booking change processing
+
+- Machine state: `IMPLEMENTED / MACHINE-VERIFIED`. Approved additive migration `1719570000000_make_booking_change_request_context_fks_deferrable` changes only the two named BookingChangeRequest context FKs to `DEFERRABLE INITIALLY IMMEDIATE`; DOWN restores their exact non-deferrable definitions.
+- Populated upgrade, definition preservation, immediate enforcement, explicit deferral, commit-time violation rollback, DOWN -> UP, row preservation, previous-migration checksum, and migration checksum verification pass.
+- Operations `complete` now applies the actual requested Booking change. CANCEL cancels Appointment, releases BookingHold and capacity exactly once, then completes the request. RESCHEDULE revalidates a selected published slot/version under locks and atomically moves Hold, Appointment, request context, and capacity before completing the request.
+- Focused PostgreSQL/HTTP evidence covers concurrent operators, idempotent response-loss replay, stale request and replacement versions, unpublished/consumed/past replacement rejection, independently terminal Booking, mid-transaction rollback, coherent final identities, and Owner/Operations readback data sources.
+- The existing Clinic V50 Operations workspace adds only a compact backend-projected replacement-slot selector. No ranking, recommendation, Smart Reallocation, Owner redesign, external call, commit, push, deploy, Jira, or Confluence action occurred.
+- Contract: `docs/mvp/WAVE-5C1-AUTHORITATIVE-BOOKING-CHANGE-PROCESSING.md`. Next: `W5-C2 — Real Cross-App E2E + Bounded Visual Closure`.
+
+## 2026-08-30 — W5-B2 Operations BookingChangeRequest workspace
+
+- Machine state: `IMPLEMENTED / MACHINE-VERIFIED`. The existing Operations authority now has narrow read/process capabilities for the bounded BookingChangeRequest queue, safe detail, and request-only lifecycle commands.
+- Queue defaults to actionable `OPEN/PROCESSING`, oldest first, maximum 50, with optional location filtering. Detail has Booking/Appointment and clinic/location context but no Owner contact, pet, or clinical projection.
+- Commands enforce idempotency, row locking, and version fencing for `OPEN -> PROCESSING`, `PROCESSING -> COMPLETED|REJECTED`, and active -> `CANCELLED`. Real PostgreSQL evidence proves concurrent claim conflict, controlled stale version, replay, terminal exclusion, and unchanged BookingHold/Appointment/slot capacity.
+- Portal route `/ops/change-requests` reuses the existing session/effective capability/BFF stack. Clinic V50 Behavioral Dense is applied as the operational design authority: compact full-width table, desktop split detail, mobile/tablet full detail, action-first hierarchy, and 44 px controls.
+- Contract: `docs/mvp/WAVE-5B2-OPERATIONS-BOOKING-CHANGE-REQUEST-CONTRACT.md`. No migration, Owner UI, Booking lifecycle, DoctorShift inventory, commit, push, deploy, Jira, or Confluence action occurred.
+- Next: `W5-C — Authoritative Booking Change Processing + Real E2E + Bounded Visual Closure`.
+
+Updated: 2026-08-27
+
+## 2026-08-25 — Total MVP reconciliation completion
+
+- Documentation-only completion pass produced all eight required TOTAL artifacts: Product Reconciliation, Application/Portal Inventory, 90-row Capability Matrix, nine-journey E2E Gap Matrix, Target Architecture, Delivery Waves, Decision Register and UX/UI Runtime Parity.
+- Superseding application truth (2026-08-27): `apps/owner-app` is the single canonical Expo Owner runtime for iOS, Android and Web; a separate Owner Web application is prohibited. The older `MISSING / NEW_APPLICATION_REQUIRED` classification in this historical 2026-08-25 block is `SUPERSEDED_BY_PRODUCT_ARCHITECTURE_DECISION`. Clinic Portal remains a substantial partial runtime; bounded Operations/Call Center remains missing.
+- The historical completeness percentages below predate the architecture correction and must not be interpreted as separate-application targets. Current Web evidence is recorded in the 2026-08-26/27 correction section at the end of this file.
+- `MANUAL_CONFIRM = PILOT_DEFAULT`; 15 minutes uses PostgreSQL/server authority. Runtime has explicit 15-minute SQL and bounded integration evidence, but no human/UAT production-booking proof. `AUTO_APPROVE_PUBLISHED = FUTURE_OPTIONAL_CAPABILITY`.
+- Current direct cancellation is reusable mechanics with a major target semantic delta; target uses BookingChangeRequest and Operations while preserving the booking. Same-location alternative-slot mechanics are a foundation, not cross-clinic Smart Reallocation.
+- OCR product delivery is `DEFERRED_BY_PRODUCT_DECISION`; worker/default-enable residue is `PARTIALLY_CONTAINED / TECHNICAL_CONTAINMENT_DEBT`, not an active critical-path feature.
+- Machine state: `TOTAL_RECONCILIATION_COMPLETE / READY_FOR_HUMAN_REVIEW`. No runtime, migration, dependency, Jira, Confluence, commit, push or deploy action occurred.
+
+## 2026-08-25 — V50 design/runtime reconciliation
+
+- Audit-only continuation completed in `docs/ux/V50-MVP-DESIGN-RUNTIME-RECONCILIATION.md`; no runtime, migration, dependency, Jira or Confluence write was made.
+- Fresh source inventory is 30 primary V50 screens plus 104 Clinic Booking Journal states (134 named identifiers); 41 lower-level state/status tokens are tracked separately. Of 134: runtime implemented 11, partial 46, future MVP 69 and over-scope 8.
+- The checked-in primary prototype manifest is stale: fresh bundle SHA-256 is `5bdc47225b79462aca8ca3dabd0a6b892682f0bc672d5cf2e4cdd3e8fb2e7de8`, while the manifest declares `245e0929...`; verification exits `5 / MANIFEST_MISMATCH`. Historical visual packages therefore do not prove exact parity against current source.
+- Current runtime evidence renders production components/builds with controlled seams and representative viewports, but is not a physical-device or live-backend visual run. Strict current-source verdict: zero newly proven exact matches and no new `VISUALLY_VERIFIED` claim.
+- Product semantics override V50 behavior: manual confirmation with a PostgreSQL-authoritative 15-minute deadline, specialist-first discovery, DoctorShift inventory, additive Visit Result/Pet Diary and Smart Reallocation require V50-system adaptation. Telemedicine, insurance and emergency remain outside Pilot Scope Freeze.
+- Machine state: `CONTRACT_VALIDATED / READY_FOR_HUMAN_REVIEW`. Next UX evidence action is a hash-bound current-prototype/current-runtime side-by-side package for the bounded Owner discovery-to-booking journey; do not implement runtime under this reconciliation goal.
+
+## 2026-08-25 — New MVP Core runtime reconciliation
+
+- Audit-only `/goal` completed against fresh runtime on branch `agent/v51-stage-01-architecture`, HEAD `e9b7b2fb8a9208fb76e0ba2003246a741f3a1c8b`. The extensive pre-existing dirty worktree was preserved; no runtime, schema, migration, generated OpenAPI, Jira or Confluence change was made.
+- The authoritative Pilot target is `Discovery → Booking → Completed Visit → Result in Pet Diary → Repeat Booking`, with published cross-clinic inventory and a longitudinal Pet Health Diary as primary assets. Evidence artifacts: `docs/mvp/MVP-CORE-IMPLEMENTATION-RECONCILIATION.md`, `docs/mvp/MVP-CORE-ARCHITECTURE-VERDICT.md`, and `docs/mvp/MVP-CORE-TARGET-WAVES.md`.
+- Weighted target-core completeness is approximately `50%`: strong reusable Booking Core atomicity/concurrency, auth/tenant isolation, manual-confirmation Queue, catalog/schedule administration, audit and outbox; the exact authoritative 15-minute expiry/terminal contract still needs consolidated target evidence; BookingChangeRequest/Call Center and cross-clinic replacement lineage are missing; no persistent DiaryEntry exists; Pilot documents/Diary are absent; legacy OCR auto-promotes unconfirmed simulated extraction and its worker is insufficiently Pilot-contained.
+- Architecture verdict: reuse the existing Booking Core; do not create a second core. `MANUAL_CONFIRM` is the first-Pilot default with `PENDING_CONFIRMATION → CONFIRMED | REJECTED | EXPIRED` and an authoritative 15-minute deadline. Add separate BookingChangeRequest and Reallocation domains and additive Result/DiaryEntry models. Current generic periods/manual slots do not satisfy DoctorShift-generated inventory or specialist-first search.
+- Containment: Pilot runtime mostly omits payment/MIS/telemedicine/insurance/emergency modules. The default `LEGACY_COMPAT` fallback is P0 configuration debt; OCR worker activation, acquiring secret/mock residue and quality/BFF exposure are bounded hardening debt. OCR product delivery remains deferred.
+- Recommended next slice after explicit acceptance: `Wave A/B1 — Pilot Manual-Confirmation Contract Closure`: freeze the 15-minute deadline and terminal semantics, reconcile create/Queue decision/expiry/Owner readback/capacity release against the existing Booking Core, and separately design the additive active-booking-per-slot database invariant. Do not begin change requests, reallocation, schedule migrations, Diary/OCR or over-scope modules in that slice.
+- Machine state: `CONTRACT_VALIDATED / READY_FOR_HUMAN_REVIEW`. No real-device, pilot-clinic, UAT, external-provider, migration approval, Pilot Candidate or Go-Live evidence is claimed.
 
 ## Program status
 
@@ -2543,6 +2599,534 @@ Batch stop: exactly three checkpoints were processed (T085 continuation, T140, T
 - Machine classification and final reconciliation: after a fresh Jira DoD/dependency reread, evidence comment `10219` and Confluence evidence page `5111809`, `SCRUM-668/T044` was transitioned and immediately reread as `Готово / Готово`. `S13=MACHINE_COMPLETE / READY_FOR_HUMAN_ACCEPTANCE`; `SCRUM-602/S13` remains `К выполнению / unresolved` because `result accepted` is a human gate and machine evidence does not simulate it. S12/T037/T039 human acceptance is likewise unchanged. Canonical first-MVP progress is now `39/100 Done = 39%`.
 - No S14 implementation, clinic confirm/reject work, alternative time, cancellation, history, notifications, payments, telemedicine, production deployment, commit, push or PR was performed.
 - Exactly one next bounded slice after the remaining human acceptance/closure gate: `SCRUM-603 / S14 — Подтвердить или отклонить заявку`; `NOT_STARTED`.
+
+## 2026-08-21 — S12/S13 closure and S14 Clinic Booking Decision
+
+- Governance baseline was reread before execution. The active Product Owner / Acting Technical Lead goal explicitly accepts the unchanged S12 and S13 packages; it does not grant S14 parent acceptance. Fresh Jira initially had S12, S13, S14, T037, T039 and T045–T049 open. Contract authority is T059 page `2195465` v3, T041 page `1835030` v3, T037 page `4456477` v3, API baseline page `655395` v6 and the new normative `21. Clinic Booking Decision — MVP Contract` page `7340033` v1.
+- T045 reuses the existing Booking Core confirm/decline commands and the existing Clinic Queue. Pilot requires `Idempotency-Key`, `If-Match`, `BOOKING_DECISION`, active employee membership and exact clinic/location scope; command identity is operation + hold + expected version + closed reason. Same key/fingerprint replays across authorized employees, changed fingerprint returns `IDEMPOTENCY_CONFLICT`, and all competing terminal commands converge to one business effect.
+- Backend implementation adds no route, migration or state. It closes the Pilot success DTOs, shared clinic decision idempotency, durable deterministic conflict replay, foreign/absent 404 masking, safe decline reason codes, exact counter row-effect assertion and canonical version/timestamps. Capability remains limited to receptionist/admin. Independent security/concurrency re-review is `PASS / NO RESIDUAL VETO`.
+- Clinic Portal reuses the current Queue screen. Confirm/reject are single-flight, strict-success parsed, authority-refetched and keep the last valid snapshot during malformed/technical failures. Retryable `SLOT_LOCKED_RETRY` leaves the row actionable after readback. Explicit S15 alternative-time tests/routes remain outside this slice. Independent Portal re-review is `PASS / NO RESIDUAL VETO`.
+- Owner React Native reads the authoritative existing booking projection and displays exactly `PENDING_CONFIRMATION`, `CONFIRMED`, `REJECTED`, `CANCELLED` or `EXPIRED`. Polling is one bounded screen timer, stops after 12 reads, resumes after manual-refresh collision and never fabricates a local terminal result. The active hold reference is Owner-session scoped in SecureStore; persistence failure is fail-closed and retries storage only, not create. Independent RN re-review is `PASS / NO RESIDUAL VETO`.
+- Final machine evidence on the shared snapshot:
+  - Node `22.22.2` backend build and Pilot OpenAPI assertion — PASS;
+  - capability unit matrix `42/42 PASS`;
+  - real PostgreSQL/HTTP S14 decision matrix `32/32 PASS`; independent disposable-DB subsets `18/18 + 6/6 PASS`;
+  - Clinic Portal Node 22 typecheck/build and focused Chromium `26/26 PASS`;
+  - Owner App Node 22 typecheck, Expo lint and focused RN `34/34 PASS`;
+  - production-built Clinic Portal → real BFF → live local `PILOT_V1` backend/PostgreSQL confirm and reject vertical journey, including Owner create/PENDING and authoritative `CONFIRMED`/`REJECTED` readback — `1/1 PASS`;
+  - migration checksum verification — PASS; S12 real-PostgreSQL status/concurrency regression `9/9 PASS` and cancellation regression `6/6 PASS`;
+  - visual evidence verifiers: Portal `5/5 PASS`, Owner RN-web `4/4 PASS` (not physical-device evidence);
+  - current canonical disposable-database T044/S13 baseline `9/9 PASS`, with privacy-preserving `HOLD_NOT_FOUND` accepted only as a controlled mixed-race loser while zero active holds/drift/duplicates/deadlocks/pool leaks remain hard gates;
+  - `git diff --check` — PASS.
+- Evidence is published as Confluence page `7471105` v2, `22. Clinic Booking Decision — Machine Evidence`; repository evidence is under `docs/testing/evidence/s14-clinic-booking-decision/` and `docs/testing/evidence/s14-owner-booking-decision/`. Jira evidence supplements are comments `10261` on T049 and `10262` on S14.
+- Deterministic Jira reconciliation after fresh DoD/dependency reread: comments `10252`–`10260` were added; `SCRUM-661/T037`, `SCRUM-663/T039`, `SCRUM-601/S12`, `SCRUM-602/S13`, and `SCRUM-669`–`SCRUM-673` / T045–T049 were transitioned and immediately reread as `Готово / Готово`. Canonical first-MVP progress is `48/100 Done = 48%`.
+- `SCRUM-603/S14 = MACHINE_COMPLETE / READY_FOR_HUMAN_ACCEPTANCE`; it remains `К выполнению / unresolved`. Product/UX/UAT acceptance, physical-device evidence, commit, push, PR and deploy were not simulated or performed. No payment, notification, WebSocket/SSE, new Queue screen or S15 implementation was added.
+- Exactly one next bounded slice, not started: `SCRUM-604 / S15 — Предложить другое время`.
+
+## 2026-08-21 — S14 acceptance and S16 Owner Booking Cancellation
+
+- The Product Owner / Acting Technical Lead acceptance supplied by the active goal applied to the unchanged S14 package. Fresh Jira/Confluence reconciliation found no revision delta; evidence comment `10295` was recorded and `SCRUM-603/S14` was transitioned and immediately reread as `Готово / Готово`. No S15 implementation was started.
+- Normative S16 authority is `23. Owner Booking Cancellation — MVP Contract`, Confluence page `7798785` v4. It reuses the canonical `POST /v1/owner/bookings/{holdId}/cancel`, requires Owner authority, `Idempotency-Key`, positive `If-Match` and supplied `X-Correlation-ID`, uses server `canCancel`, and defines exact pending/alternative-pending/active-confirmed cancellation, terminal conflicts, PostgreSQL deadline authority and Pilot/Legacy containment.
+- The durable idempotency fence is acquired before the replica-safe Owner/operation quota. Only the new-key winner consumes quota; a denied winner durably completes and replays `429 RATE_LIMITED`. Cleanup is exact-current-Owner scoped, `COMPLETED` only, older than the 24-hour minimum replay horizon and bounded to 25 rows; recent, `PROCESSING`, foreign and Legacy scopes and all booking/audit/outbox business facts are preserved.
+- Backend cancellation is atomic under canonical hold→slot locking. Pending decrements held capacity once; alternative-pending releases both held slots and finalizes the existing swap group without exposing S15; active confirmed cancellation preserves the appointment history and decrements booked capacity once. Completed/no-show/clinic-cancelled/terminal appointments are never overwritten. Canonical cancel-vs-confirm/decline/expiry and repeated-command races converge to one business outcome.
+- Owner React Native shows the destructive CTA only for authoritative `canCancel=true`, uses the exact confirmation copy, sends one fenced command, never claims optimistic success and requires authoritative GET readback. Timeout/lock retry preserves the same command identity only when version and eligibility remain unchanged; terminal, stale, malformed, authority-replaced and late results fail closed.
+- Deployment containment is explicit: alpha selects `PILOT_V1`; production Compose requires an explicit profile; the local first-MVP stack defaults to Pilot with an explicit `LEGACY_COMPAT` override. The scope resolver and explicit Legacy behavior remain unchanged.
+- Final evidence is Confluence page `7864322`, `24. Owner Booking Cancellation — Machine Evidence`, plus `docs/testing/evidence/s16-owner-cancellation/`. Node 22 backend build and Pilot OpenAPI assertion PASS; real PostgreSQL/HTTP cancellation `12/12 PASS`; Pilot and Legacy V50 cancellation `6/6 + 6/6 PASS`; RN focused matrix `8 suites / 60/60 PASS`, typecheck and lint PASS; production-built Portal→BFF→live local Pilot Backend/PostgreSQL vertical journey `1/1 PASS`; static RN-web visual verifier `5/5 PASS` with `physicalDevice=false`; `git diff --check` PASS. Independent Backend architecture, security/QA and RN reviews returned `PASS / NO RESIDUAL VETO`.
+- Machine classification and Jira reconciliation: `T055=CONTRACT_COMPLETE / DONE`; `T056=IMPLEMENTED / VALIDATED / DONE`; `T057=IMPLEMENTED / VALIDATED / DONE`; `T058=QA_COMPLETE / VALIDATED / DONE`; `S16=MACHINE_COMPLETE / READY_FOR_HUMAN_ACCEPTANCE`. After final fresh DoD/dependency reread, evidence comments `10329`, `10330` and `10331` were recorded; T056–T058 were transitioned through the available `41 / Готово` workflow and immediately reread `Готово / Готово`. Parent S16 remains `К выполнению / unresolved` because human Product acceptance is not inferred from machine evidence or child percentage.
+- No physical-device UAT, pilot-clinic acceptance, production deployment, real booking, commit, push, PR, payment/refund, S15 alternative-time capability or S17 history UI was performed. Canonical first-MVP progress is now `53/100 Done = 53%`. Exactly one next slice after explicit S16 human acceptance/closure: `SCRUM-606 / S17 — История статусов`; `NOT_STARTED`.
+## 2026-08-22 — Owner UI recovery and `OWNER-MVP-VISUAL-V1` candidate
+
+- Bounded scope: UI/UX recovery for the existing React Native + Expo Owner first-MVP journey only. No backend behavior, S17 history, dashboard, payment, mandatory MIS, telemedicine, insurance, emergency, Push/SMS/Telegram or future appointment center was added.
+- Fresh authority reconciliation: `SCRUM-637/T013` remains Done; `SCRUM-766/T142`, `SCRUM-767/T143` and `SCRUM-594/S05` remain open. T143 is blocked by T142. Machine evidence cannot satisfy Product Owner visual acceptance, real-device acceptance or the parent S05 human gate.
+- Added semantic Owner UI tokens and reusable RN primitives for the bounded web frame, large-title hierarchy, inset sections, hairline rows, entity cards, status pills, skeleton/state messages, primary/quiet/destructive actions and confirmation modal. Existing public/auth/home, pet, clinic, service, availability, review, authoritative status and cancellation screens now use that layer without changing their API/authority contracts.
+- Historical Flutter branches were inspected read-only as visual archaeology. Only layout/hierarchy concepts were translated; no Flutter code, legacy state machine, placeholder tabs, emergency banner, broad dashboard or pervasive glass behavior was ported.
+- Repository candidate baseline: `docs/ux/owner-mvp-visual-baseline-v1.md` and `docs/ux/owner-mvp-visual-baseline-v1/`, ID `OWNER-MVP-VISUAL-V1`, state `CANDIDATE_READY_FOR_HUMAN_VISUAL_ACCEPTANCE`. It contains the exact mandatory `01–16` hashed production-component RN Web captures across exact widths `320×568`, `375×812`, `390×844`, `430×932`, `768×1024`, `1280×800` and `1440×900`. Source revision/hashes and per-case mock/live/backend/physical-device classifications are explicit.
+- Canonical local launcher `run-vethelp-ui.sh` selects Node 22 and exact `PILOT_V1`, verifies existing Portal/Owner listener identity, persists and rechecks Owner PID start/command identity before signals, starts backend/Portal/Owner on `3000/3001/8081`, seeds the rich demo when compatible and otherwise preserves the existing volume/data. A complete live invocation exited `0`; Backend, Portal and Owner returned healthy/HTTP 200. No deployment or production data action was performed.
+- Reproducible final machine evidence:
+  - Owner Jest: `28/28 suites`, `180/180 tests` PASS under Node 22 (known test-harness open handles require `--forceExit` and do not change assertions);
+  - TypeScript, Expo lint and Expo web export — PASS;
+  - Expo Doctor after SDK 57 patch alignment — `21/21 PASS`;
+  - visual capture package — required `16/16` generated with all required widths and manifest hashes;
+  - launcher `bash -n` and `git diff --check` — PASS.
+- Independent final validation quorum: UX visual review PASS, RN/accessibility review PASS and business/scope review PASS. Shape-preserving loading, settled destructive modal, valid conflict evidence, safe-area/VoiceOver behavior, authoritative booking copy, source provenance and fail-closed launcher identity were explicitly rechecked.
+- Deterministic Jira evidence comments were added without transitions: `SCRUM-637/T013=10364`, `SCRUM-766/T142=10365`, `SCRUM-767/T143=10366`, `SCRUM-594/S05=10367`.
+- Workflow boundary: `T013=IMPLEMENTED_EXISTING / RECONCILED`; `T142=IMPLEMENTED_CANDIDATE / READY_FOR_HUMAN_VISUAL_ACCEPTANCE`; `T143=IMPLEMENTED_CANDIDATE / READY_FOR_HUMAN_VISUAL_ACCEPTANCE`; `S05=PARTIAL / READY_FOR_HUMAN_VISUAL_ACCEPTANCE`. No Jira transition or human approval is inferred.
+- Exactly one next action: Product Owner/Acting TL visual review of `OWNER-MVP-VISUAL-V1`. Stop after reconciliation; do not advance S17.
+
+## 2026-08-26 — Wave 1 manual-confirmation 15-minute runtime closure
+
+- Scope is explicitly `PILOT_V1`: existing Booking Core, Owner React Native/Expo and existing Clinic Portal Queue only. No Owner Web, Operations, BookingChangeRequest, Smart Reallocation, DoctorShift, Diary/Result/OCR, payment, mandatory MIS, migration, commit, push, PR, Jira write or deployment was performed.
+- Canonical persisted deadline is `booking_schema.booking_holds.confirmation_sla_expires_at`, created with PostgreSQL `clock_timestamp() + interval '15 minutes'`. Confirm/reject/expiry use database-time and row-lock authority; clients use calibrated time only for presentation. The field is preserved across terminal readback.
+- Real PostgreSQL focused evidence under explicit `NODE_ENV=test` and `MVP_SCOPE_PROFILE=PILOT_V1`: `v50-booking-hold-status.integration-spec.ts` plus `clinic-queue.integration-spec.ts` — `17/17 PASS`. It covers create/manual pending/deadline, confirm, reject, expiry, late denial, confirm/expiry and reject/expiry races, capacity/appointment cardinality, controlled race losers, audit/outbox exclusivity, authority and Owner terminal readback. The broader HTTP suite had unrelated alternative-slot route expectations under the Pilot profile and is not used as Wave 1 PASS evidence.
+- Owner Mobile implements server-calibrated deadline/countdown, authoritative-zero refresh, exact pending/confirmed/rejected/expired copy, session/network/malformed fail-closed states and full-window bounded polling. Current-source RN Web evidence is explicitly labelled `RN_WEB_EVIDENCE_RENDERER`, `physicalDevice=false`, and verifies seven affected states across `390×844`, `430×932` and `768×1024`; it is not Owner Web.
+- Clinic Queue implements exact deadline, normal/warning/critical/urgent/expired presentation, expired-head skip, version/deadline/FIFO fencing, ambiguous-result fencing and authoritative recovery, invalid-deadline safety and reject-dialog freshness/focus behavior. Production Node 22 build passes; the final Wave-scoped Chromium suite is `31/31 PASS`.
+- Final affected verification: Owner booking `7 suites / 63/63 PASS`; Owner status leak check `9/9 PASS`; Owner visual evidence `7/7 VERIFIED`; Clinic visual evidence `8/8 VERIFIED`; both evidence manifests bind current runtime, capture/build scripts and four freshly rendered current V50 references. `git diff --check` passes and `MIGRATION_CHANGED=NO`. Independent Backend, Owner Mobile and Clinic Portal reviews are `PASS / NO RESIDUAL VETO`; no human sign-off is claimed.
+- Active-slot decision: `ACTIVE_SLOT_DB_INVARIANT_NOT_NEEDED_NOW`. Canonical slot locking and capacity counters protect the current Pilot; a naive unique index would break capacity greater than one and future DoctorShift/reallocation. No migration is authorized.
+- Closure source: `docs/mvp/WAVE-1-MANUAL-CONFIRMATION-RUNTIME-CLOSURE.md`. Exact next Wave after closure/acceptance is `WAVE 2 — OWNER WEB FOUNDATION`; do not start automatically.
+# Wave 2 Owner Web closure audit — 2026-08-26
+
+Wave 2 closure is `WAVE2_INCOMPLETE`, not `MACHINE_COMPLETE` or
+`VISUALLY_VERIFIED`. Baseline was `agent/v51-stage-01-architecture` at
+`e9b7b2fb8a9208fb76e0ba2003246a741f3a1c8b` with unrelated dirty work preserved.
+
+Bounded repairs consolidated duplicate public BFF routes onto canonical auth and
+booking-holds routes, fixed the resulting clinic caller regression, made
+countdown zero request authoritative readback, required canonical production
+Origin/Host validation, cleared local logout transport on ambiguous revoke, and
+changed OTP rate-limit client identity to normalized direct socket peer authority
+that ignores all forwarding headers. Owner Web unit PASS 31/31; production
+build/type/lint PASS; initial mock Playwright 28/30 with the two route failures,
+then affected Playwright PASS 2/2; direct-peer IP matrix PASS 12/12; Backend build
+PASS; `git diff --check` PASS before documentation update.
+
+Closure blockers remain: no real Web→BFF→Backend→PostgreSQL→Clinic Queue A/B/C
+E2E, no fresh Wave 1 regression, assertion-only security/unit seams, incomplete
+strict BFF projection/session-loss/idempotency/abort behavior, and a visual
+package that is stale after repair and whose verifier checks integrity rather
+than independent visual correctness. Fresh Security and Architecture reviewers
+returned VETO. Details: `docs/mvp/WAVE-2-OWNER-WEB-FOUNDATION-CLOSURE.md`.
+
+## 2026-08-26 — Owner Web architecture correction
+
+- Product architecture supersedes the prior dedicated Next.js target: `apps/owner-app` is the single Owner application for iOS, Android and Expo Web. The accidental `apps/owner-web` implementation was audited, its Origin/Host validation, strict projection, bounded polling and client-IP security ideas were migrated, and the second active application was removed.
+- Expo Router Web now uses server output with a bounded `/api/owner/[...path]` same-origin bridge. Native credentials remain in Expo SecureStore. Web opaque credentials live only in a `__Host-` HttpOnly/Secure/SameSite=Lax cookie envelope with the Backend-authoritative expiry; the browser receives a non-secret session sentinel and safe bootstrap projection. Shared pet/catalog/availability/booking clients and screens remain unchanged; only transport/session authority have `.web.ts` adapters.
+- The bridge has an exact method/path allowlist, Origin+Host enforcement for every mutation, redirect rejection, response-size/JSON validation, safe error projection, credential stripping from browser-visible OTP verification, session-loss cookie purge and logout revocation. OTP client identity is an EAS-Hosting `X-Real-IP` assertion HMAC-signed by the Expo bridge, accepted by Backend only with a configured 32+ byte shared secret and ±30-second freshness; malformed/unsigned/stale assertions fall back to the normalized direct socket peer.
+- Final machine evidence: Owner typecheck and Expo lint PASS; Owner full Jest `30 suites / 191 tests PASS` (explicit force-exit because of known test-harness open handles); focused bridge `4/4 PASS`; shared Booking/session `8 suites / 72 tests PASS`; deep-link route `3/3 PASS`; Backend signed client-IP `9/9 PASS` and build PASS; Expo production server export PASS; real Chromium→Expo bridge→PILOT_V1 Backend→PostgreSQL→Clinic confirm/reject and expiry-worker journey `1/1 PASS`, including authoritative pending/terminal readback, refresh, dynamic deep link and session-loss purge. Responsive overflow checks pass at `390×844`, `430×932`, `768×1024`, `1024×768` and `1440×900`; axe serious/critical violations are zero. Evidence is `docs/testing/evidence/wave2-owner-expo-web/` and is source/V50/browser/viewport bound and verifier-clean `8/8`.
+- Native regression: iOS and Android Expo production bundles PASS and clean prebuild for both platforms PASS. Android full `assembleDebug` PASS (`458` tasks). iOS project discovery PASS, but native compilation is not executable on this host because React Native 0.86 requires Xcode `>=16.1` and the installed Xcode is `15.2`; CocoaPods correctly refuses the unsupported toolchain. Generated native projects were moved outside the repository to `/tmp/vethelp-owner-prebuild.ZDlX7T/generated-native/` after validation.
+- Strict 24-item reconciliation is recorded in `docs/mvp/WAVE-2-OWNER-WEB-FOUNDATION-CLOSURE.md`. Final classification is `WAVE2_ARCHITECTURE_CORRECTION_COMPLETE`: machine implementation/runtime/security/responsive/accessibility/V50 review and requested iOS/Android/Wave 1 regression gates pass. This does not claim physical-device, signed-build, UAT, deployment or human Product acceptance; Xcode 15.2 remains insufficient for an additional native iOS binary build, which was not substituted for the requested Expo bundle/prebuild validation. `MIGRATION_CHANGED=NO`; `git diff --check=PASS`; no commit, push or deployment. Do not start Wave 3.
+
+## 2026-08-27 — Wave 3 DoctorShift schema gate
+
+- Wave 3 discovery preserves the Wave 1/Wave 2 dirty delivery tree. Existing working hours, schedule periods/blackouts, services with bounded duration, staff, resources, canonical appointment slots/counters, idempotency, audit/outbox, Clinic Schedule APIs/Portal and shared Owner availability are reusable foundations.
+- Fresh schema evidence proves that `schedule_periods` is not a DoctorShift, doctor×service×location eligibility is absent, location timezone is not explicit, and canonical appointment slots have no typed generation/run/publication/stale-source lineage. Encoding these in generic source/external fields would violate the Product contract.
+- `MIGRATION_REQUIRED=YES`. The exact additive proposal is `docs/mvp/DOCTORSHIFT-SCHEMA-PLAN.md`, targeting `backend/migrations/node-pg/1719540000000_add_doctor_shift_generated_inventory.js`. No migration or Wave 3 production code was created because this specific additive revision has not yet received explicit Product Owner approval. Machine state: `MIGRATION_APPROVAL_REQUIRED`.
+- Independent architecture review initially vetoed the draft and the plan was corrected before approval: it now bridges `clinic_staff` to the canonical catalog doctor at the DB boundary, uses a canonical-doctor advisory lock, replaces contradictory publication booleans with one publication state, models Generate→Preview→Publish generation states, snapshots duration, and bounds generated DoctorShift inventory to configured capacity one without changing global slot capacity support.
+- The bounded stale-document repair is complete: Owner channel parity now reflects shared Expo Web implementations without upgrading later missing capabilities, and the exact next goal points to Wave 3. No commit, push, PR or deployment.
+
+## 2026-08-27 — Wave 3 approved revision implementation
+
+- Product Owner explicitly approved only the exact additive revision in `docs/mvp/DOCTORSHIFT-SCHEMA-PLAN.md` and migration `1719540000000_add_doctor_shift_generated_inventory.js`. No Booking Core semantic expansion, AUTO_APPROVE, BookingChangeRequest, Operations, Smart Reallocation, Map, specialist-first, Diary/OCR, payment or mandatory MIS was introduced.
+- The additive migration is implemented and exercised against PostgreSQL: location timezone, explicit same-location staff↔catalog-doctor bridge, DoctorService eligibility, non-overlapping DoctorShift persistence, generation-run lineage, publication lifecycle, capacity-one constraint and reversible fail-closed DOWN guard. Empty DOWN→UP and refusal with owned data were both observed; the migration remains applied.
+- Backend and Clinic Portal now provide Clinic Admin-only explicit doctor mapping, service eligibility, clinic-local shift create/edit, deterministic Generate→Preview→Publish, unpublish, block and cancel. Owner availability consumes only canonical `PUBLISHED` inventory and revalidates active shift, DoctorService, veterinarian and catalog-doctor eligibility. Draft/stale/unpublished/blocked generated rows are physically `CLOSED`, protecting mixed-version readers.
+- Doctor-scoped advisory locking precedes shift/run row locks on Wave 3 paths; generation fences eligibility/service/blackout inputs. Active holds and confirmed bookings cause a controlled conflict with zero mutation. Generated blackout transitions use publication state and preserve canonical rows/history.
+- Current focused evidence: Backend build PASS; real PostgreSQL DoctorShift plus Owner catalog `2 suites / 7 tests PASS`, including deterministic replay, draft invisibility, publish/unpublish/republish, stale Owner submission, Owner hold→Clinic confirmation, protected unpublish, overlap, tenant isolation and `576` generated slots under the two-second bound. Clinic Portal Node 22 production build PASS and focused Chromium DoctorShift workflow/mapping-responsive tests `2/2 PASS`.
+- Machine state remains `IMPLEMENTED / VALIDATION_IN_PROGRESS` pending the final independent re-review, OpenAPI artifact reconciliation, evidence manifest/diff check and any resulting bounded repair. No commit, push, PR, deploy, Jira/Confluence write, physical-device or human acceptance is claimed.
+
+## 2026-08-28 — Wave 3 corrective migration and closure continuation
+
+- Product approved an additive correction after the applied Wave 3 publication
+  timestamp CHECK was found more permissive than the schema plan. The original
+  `1719540000000` migration remains unchanged;
+  `1719550000000_tighten_doctor_shift_publication_timestamp_constraint.js`
+  now fail-closes on invalid existing rows and enforces mutually exclusive
+  lifecycle timestamps. DOWN restores the prior CHECK only.
+- Working PostgreSQL precheck found zero invalid rows and zero retained Wave 3
+  rollback blockers. No data was cleaned. Corrective DOWN → original DOWN →
+  original UP → corrective UP passed, both migrations remain applied, and two
+  manual slots plus two expired holds were preserved exactly. Focused Wave 3
+  migration/runtime/authority/catalog evidence passes `16/16`; Backend build,
+  OpenAPI assertion, and checksums pass.
+- Applicable Booking/Queue regression passes `18/18`; Booking performance
+  passes `9/9`. Ten assertions in the broad legacy HTTP suite still expect the
+  alternative-slot route that `PILOT_V1` intentionally blocks; the Scope Freeze
+  was not weakened to satisfy those non-applicable expectations.
+- Clinic Portal Node 22 typecheck/build and schedule Playwright pass `16/16`.
+  Shared Owner typecheck/lint, focused tests `72/72`, and Expo Web export pass.
+- That intermediate `WAVE3_INCOMPLETE` classification was superseded by the
+  final-source evidence below. The authoritative closure record is
+  `docs/mvp/WAVE-3-DOCTORSHIFT-INVENTORY-CLOSURE.md`. Do not start Wave 4.
+- Final repair cycle closed reviewer findings without broadening scope:
+  schedule reads bind exact clinic/location membership, grant veterinarian
+  read-only authority, reject non-positive or greater-than-31-day windows and
+  cap response collections; the corrective migration emits the required
+  remediation token plus exact violating-row provenance and now proves IMPORT
+  preservation; Portal mapping selects the new doctor and creates the shift,
+  read-only roles receive the projection, and previews/actions are scoped to
+  the coherent run/lifecycle. Backend affected tests pass `21/21`; Portal
+  Node 22 typecheck/build/Playwright pass `16/16`; migration/data and
+  Booking/security re-reviews PASS. The remaining evidence-gate vetoes were
+  subsequently repaired and revalidated as recorded below.
+
+## 2026-08-28 — Wave 3 DoctorShift machine closure
+
+- Final classification is `WAVE3_MACHINE_COMPLETE`; `WAVE3_COMPLETE=YES` is a
+  machine-delivery flag only. It does not infer Product acceptance, physical
+  device or signed-build evidence, pilot-clinic/UAT acceptance, deployment or
+  a real production booking.
+- A production-built Clinic Portal → Owner Expo Web → Clinic Queue vertical
+  passes `1/1`: the Portal UI creates, generates and publishes a DoctorShift;
+  Owner selects the exact generated slot and creates a `PENDING` hold; Queue UI
+  confirms it; Owner reads `CONFIRMED`. Separate generated slots prove reject
+  and expiry. PostgreSQL readback contains the expected `CONFIRMED`, `RELEASED`
+  and `EXPIRED` outcomes and zero rows violating the corrected timestamp CHECK.
+- The final-source visual package contains exactly 12 required states across
+  five viewports (`60/60` PNGs). Its verifier binds every artifact to the
+  current Portal build ID, runtime/capture sources, Chromium version, semantic
+  and overflow assertions, accessibility scans and actual V50 source hashes.
+  Receptionist and veterinarian projections are read-only with mutation
+  controls absent; held/booked inventory protects destructive actions; stale
+  conflict copy is localized and actionable.
+- Final affected checks pass: corrective migration/data review and
+  Booking/security review; independent Product/UX review `PASS / NO VETO`;
+  migration checksum/order; Backend focused
+  DoctorShift/authority suites `12/12` and build; Portal typecheck/build and
+  focused schedule/read-only visual Playwright `2/2`; Owner typecheck; real
+  cross-app vertical `1/1`; visual evidence verifier `60/60`; and
+  `git diff --check`. No applied migration was rewritten, no incompatible data
+  was cleaned, and no commit, push, PR, Jira/Confluence write or deployment was
+  performed.
+
+## 2026-08-29 — W4-A specialist-first discovery foundation
+
+- W1–W3 remain sticky and were not reopened. This slice adds only an
+  authenticated Owner read projection on the existing specialty taxonomy,
+  DoctorService eligibility, public doctor consent, and published Wave 3
+  generated inventory. No migration, Owner UI, map/ranking, Booking mutation,
+  DoctorShift lifecycle change, visual evidence, or broad TOTAL reconciliation
+  was performed.
+- `GET /v1/owner/clinic-catalog/specialist-discovery` accepts a bounded
+  specialty and/or normalized service-code selector. It preserves exact
+  specialty/doctor/service/clinic/location identity, returns at most 50
+  deterministic doctor-service projections and at most five chronological
+  available slots per projection.
+- Reads fail closed unless clinic, location, veterinarian mapping, public
+  doctor consent, DoctorService, service, DoctorShift, generation run, and
+  generated slot are all currently eligible and published. Draft,
+  unpublished, blocked, stale/closed, held-to-capacity and booked-to-capacity
+  inventory is excluded. Internal staff/resource/run/eligibility identities
+  are not projected.
+- Focused PostgreSQL, real Nest HTTP authority, and controller contract tests
+  pass `20/20`; Backend build,
+  OpenAPI export/base assertion, explicit route/schema assertion, and
+  `git diff --check` pass. The directly affected contract is
+  `docs/mvp/WAVE-4A-SPECIALIST-FIRST-DISCOVERY-CONTRACT.md`.
+- The single applicable data-boundary review initially vetoed inactive resource
+  visibility, resource-specific duplicate projections, incomplete run→shift
+  lineage, pre-validation normalization, and missing HTTP authority evidence.
+  Each finding was repaired; re-review is `PASS / NO VETO`.
+- Final machine state: `W4A_COMPLETE=YES`. The backend/shared contract is usable
+  by Owner UI. Recommended next slice is W4-B Owner Discovery UI; it was not
+  started.
+
+## 2026-08-29 — W4-B Owner specialist discovery and map UI
+
+- W1–W3 and W4-A remain sticky. The canonical `apps/owner-app` now implements
+  one shared React Native + Expo specialty-first/service-first discovery flow
+  for iOS, Android, and Web. No separate Owner Web application, migration,
+  ranking, reviews, Booking/DoctorShift semantic change, visual package, or
+  TOTAL reconciliation was introduced.
+- W4-A exposed eligible results but no authoritative selector choices, which
+  blocked a usable first interaction. The minimum Owner-only
+  `specialist-discovery/options` read was added to the same active
+  DoctorService/published-inventory boundary. The original result endpoint and
+  its data authority remain unchanged.
+- Discovery renders only API-returned specialty/service, doctor,
+  clinic/location, and nearest published slot data. Exact specialty, doctor,
+  service, clinic, location, slot, and version identities survive navigation.
+  Existing ClinicService and Availability reads revalidate the service and
+  preferred slot before the unchanged Booking Review flow.
+- Shared UI covers loading, empty, technical error/retry, refresh-in-progress,
+  removed/stale selection, and map-unavailable fallback states. Existing
+  V50-adapted primitives provide mobile-first 390/430 composition, centered
+  tablet/Web behavior, and 44px-class or larger interactive targets.
+- Focused Owner API/component/navigation/BFF evidence passes `35/35`, followed
+  by directly affected discovery/service/availability `22/22`; typecheck and
+  lint pass. Expo Web production export passes under Node `22.22.2`. The
+  bounded backend options/eligibility tests pass `22/22` before the final SQL
+  bound refinement and the directly affected PostgreSQL suite passes `9/9`
+  after it; Backend build, OpenAPI export/assertion, and `git diff --check`
+  pass.
+- W4-A contains no authoritative coordinates. The Map toggle therefore exposes
+  an honest list fallback and never invents pins or availability. Final state:
+  `W4B_PARTIAL=YES`, `W4B_MAP_COORDINATES_CONTRACT_GAP=YES`,
+  `W4B_COMPLETE=NO`. The directly affected contract is
+  `docs/mvp/WAVE-4B-OWNER-SPECIALIST-DISCOVERY-CONTRACT.md`.
+- Recommended next slice after explicit coordinate-contract resolution is
+  W4-C — Discovery Real E2E + bounded visual closure. It was not started.
+
+## 2026-08-29 — W4-B1 authoritative discovery coordinates
+
+- Product approval closed only the W4-B coordinate contract. Canonical
+  `clinic_schema.clinic_locations.latitude/longitude` already exists with
+  database range constraints, so `MIGRATION_CHANGED=NO`. No geocoding,
+  distance/ranking, new location domain, map provider, Booking/DoctorShift
+  change, visual evidence, or TOTAL reconciliation was introduced.
+- The existing Owner specialist-discovery doctor/location projection now
+  returns required nullable `latitude` and `longitude` fields bound to the
+  exact `locationId`. Valid persisted values are returned numerically; null
+  coordinates remain null. Owner parsing rejects extra, non-finite, or
+  out-of-range coordinate values.
+- The shared Expo surface renders pins only from eligible W4-A results with a
+  complete coordinate pair. Pin selection resolves exact `clinicId/locationId`
+  and reveals only that location's eligible doctor/service/slot cards; the
+  existing authoritative refresh and Booking handoff remain unchanged. Null-
+  coordinate results remain usable through the list fallback.
+- Focused PostgreSQL projection passes `9/9`; focused Owner coordinate parser,
+  API-derived pin, exact selection, and null-coordinate fallback tests pass
+  `16/16`. Backend build, OpenAPI export/base plus coordinate-schema assertion,
+  Owner typecheck/lint, and `git diff --check` pass.
+- Final state: `W4B_MAP_COORDINATES_CONTRACT_GAP=NO`, `W4B_PARTIAL=NO`,
+  `W4B_COMPLETE=YES`. Recommended next slice is W4-C — Discovery Real E2E +
+  Bounded Visual Closure. It was not started.
+
+## 2026-08-29 — Wave 4 discovery machine and visual closure
+
+- W1–W4B remain sticky. A bounded Playwright scenario now proves the final
+  Owner journey using the production Expo Web build through Owner BFF,
+  Backend, and PostgreSQL. The idempotent fixture reuses canonical persisted
+  coordinates, DoctorService eligibility, and published DoctorShift inventory;
+  no migration, ranking, geocoding, provider SDK, Booking redesign, or
+  DoctorShift lifecycle change was introduced.
+- Real specialty-first and service-first entry both return the same eligible
+  doctor/service/location authority. List and API-coordinate map selections
+  preserve exact clinic, location, doctor, service, slot, and expected-version
+  identities. Nulling the canonical location coordinate pair removes the pin
+  while leaving the eligible result usable in the list.
+- After Owner selects a published generated slot, the fixture unpublishes that
+  exact slot using the approved timestamp invariant. Continue performs the
+  authoritative refresh, shows the stale-selection recovery state, and creates
+  no booking. A fresh remaining slot proceeds through the existing service and
+  availability checks to Booking Review and creates a real
+  `PENDING_CONFIRMATION` hold; later Booking lifecycle states are not retested.
+- The real run passes `1/1`. Directly affected Owner primitive/discovery/service/
+  availability/pet tests pass `29/29`; Owner Node 22 typecheck and lint pass.
+  The closure run also exposed and repaired two shared accessibility defects:
+  radios now emit `aria-checked`, and loading progress indicators have an
+  accessible name.
+- Final-source evidence contains 19 screenshots, 13 represented states
+  (including all 12 required states), and all five required viewports. Every
+  capture passed horizontal-overflow and serious/critical axe checks; the retry
+  path passed keyboard focus. The hash verifier passes against current source.
+- Independent Owner Product/UX review is `PASS / NO VETO`; `git diff --check`
+  passes. Final flags: `REAL_SPECIALTY_DISCOVERY_E2E=PASS`,
+  `REAL_SERVICE_DISCOVERY_E2E=PASS`, `MAP_LIST_PARITY=PASS`,
+  `IDENTITY_PRESERVATION=PASS`, `STALE_SELECTION_SAFETY=PASS`,
+  `BOOKING_HANDOFF=PASS`, `VISUAL_EVIDENCE=PASS`,
+  `OWNER_PRODUCT_UX_REVIEW=NO_VETO`, `W4_COMPLETE=YES`.
+- Wave 4 status is `IMPLEMENTED/MACHINE_COMPLETE/VISUALLY_VERIFIED`. Recommended
+  next wave is only W5 — BookingChangeRequest / Operations; it was not started.
+
+## 2026-08-29 — Wave 5-A1 BookingChangeRequest schema and foundation
+
+- Added the approved additive migration `1719560000000_add_booking_change_requests.js`.
+  The canonical aggregate supports `CANCEL` and `RESCHEDULE`, the five approved
+  states, exact hold/Appointment/owner/clinic/location/slot binding, terminal
+  timestamp consistency, durable idempotency identity, and a database-enforced
+  single active request per booking. `DOWN` removes only the new aggregate and
+  its supporting composite keys; append-only audit/outbox history is retained.
+- Added Owner create/current readback and a bounded Support/Platform Operations
+  projection. Opening a request records audit/outbox evidence but never mutates
+  the Booking hold, Appointment, slot counters, capacity, or DoctorShift.
+  Existing direct cancellation semantics remain untouched.
+- Focused real-PostgreSQL migration and HTTP suites pass `3/3`, including a
+  populated previous-head upgrade, `UP → DOWN → UP`, retained ledger evidence,
+  fail-closed orphan replay, and project-standard `425` processing behavior.
+  Backend build, OpenAPI export/assertion, and migration checksum verification
+  pass.
+- Final flags: `BOOKING_CHANGE_REQUEST_MIGRATION_APPROVAL_REQUIRED=NO`,
+  `BOOKING_CHANGE_REQUEST_SCHEMA_COMPLETE=YES`, `W5_A1_COMPLETE=YES`.
+
+## 2026-08-30 — Wave 5-B1 Owner BookingChangeRequest UI
+
+- Added one shared React Native + Expo Owner panel to confirmed Booking status
+  for iOS, Android, and Web. The Owner can confirm and submit `CANCEL` or
+  `RESCHEDULE` requests through the W5-A create API and reload the authoritative
+  current request. Reschedule remains a callback request only; no replacement
+  slot, automatic swap, Operations processing, or Booking mutation was added.
+- The panel preserves the verified hold/clinic/location/slot identity and relies
+  on the W5-A aggregate for exact Appointment binding. Duplicate confirmation
+  taps are single-flighted; network and `425 IDEMPOTENCY_IN_PROGRESS` retries
+  preserve the same idempotency key; active conflicts read back the existing
+  request. Loading, success, all five request states, network retry, stale or
+  mismatched identity, and safe failure copy are covered without exposing raw
+  enums, backend codes, or foreign/internal data.
+- Cancellation-request success says `Запрос на отмену: запрос отправлен.` and
+  explicitly states that the Booking is not cancelled or rescheduled until its
+  separate authoritative status changes. The sticky existing direct Booking
+  cancellation capability remains unchanged.
+- Focused Booking API/component/navigation and recovery tests pass `70/70`;
+  the Web BFF route/header matrix passes `6/6`. Owner typecheck and lint pass.
+  Expo Web static export passes
+  under the repository-required Node 22 runtime.
+- Final flag: `W5B1_COMPLETE=YES`. Recommended next slice is W5-B2 — Operations
+  Change Request Queue; it was not started.
+
+## 2026-08-30 — W6-A1 Reallocation schema and domain foundation
+
+- Product-approved additive migration `1719580000000_add_reallocation_cases_and_offers.js`
+  adds exactly `reallocation_cases` and `reallocation_offers`. Composite FKs
+  preserve Booking A → case lineage; partial uniqueness permits one open case
+  per Booking A; offer rank is bounded to five; duplicate slot/version offers
+  are rejected; a fail-closed trigger validates the complete clinic/location/
+  doctor/service/DoctorService/slot/version identity. Offer expiry uses one
+  PostgreSQL statement clock and is constrained to exactly `created_at + 15 minutes`.
+- Owner runtime can open a case for an active RESCHEDULE BookingChangeRequest,
+  searches published cross-clinic DoctorShift inventory, fail-closes inactive,
+  stale, blocked, consumed, species-incompatible, doctor/resource-ineligible or
+  version-invalid candidates, applies the approved deterministic ranking, and
+  persists at most five proposal-only offers. It records generic audit/outbox
+  evidence but does not reserve a slot, create Booking B, mutate Booking A,
+  capacity counters, Appointment, hold, or DoctorShift.
+- Owner readback is owner-bound and derives expiry from PostgreSQL time;
+  Support L1/L2 and Platform Admin receive the same bounded projection. No
+  acceptance, UI, notification, W7, commit, push, deploy, Jira or Confluence
+  action was added.
+- Migration clean/populated UP, DOWN → UP, checksums and constraints pass on
+  PostgreSQL 16. Focused migration/ranking suites pass `3/3`; applicable W5 HTTP
+  regression plus ranking passes `11/11`. Real cross-clinic HTTP evidence
+  persists the exact candidate slot/version at rank 1 with `900` seconds DB
+  expiry, while malformed Booking/candidate identity, invalid status/expiry and
+  duplicate candidate writes are rejected. Owner create/read/replay,
+  foreign-owner `404`, and Operations read pass; Backend build, OpenAPI
+  export/assertion and migration checksums pass. Temporary case/offer and clinic
+  fixture rows were removed; protected generic audit/outbox evidence remains and
+  Booking A state, versions, timestamps and capacity counters were unchanged.
+- Final flags: `W6A_MIGRATION_APPROVAL_REQUIRED=NO`,
+  `W6A_SCHEMA_COMPLETE=YES`, `W6A_COMPLETE=YES`. Recommended next slice is only
+  W6-B — Owner Smart Reallocation Offer UI.
+
+## 2026-08-30 — W6-B Owner Smart Reallocation offer UI
+
+- Added one shared React Native + Expo decision panel to the active Owner
+  RESCHEDULE request for iOS, Android, and Web. It opens/reads the authoritative
+  W6-A case, preserves backend rank order, renders at most five alternatives,
+  and explicitly states that Booking A remains unchanged and the alternatives
+  are offers rather than reserved time.
+- Each offer renders authoritative date/time and timezone, clinic/location,
+  service, available doctor fact, optional informational price/distance, a
+  concise qualification reason, and active/expiring/expired/invalidated state.
+  Loading, empty, retry, missing optional facts, Booking-ineligible, and
+  authoritative active-to-expired refresh behavior are covered fail-closed.
+- Local selection hands off exact case/offer versions plus Booking A, clinic,
+  location, doctor, service, slot/version and expiry identities. It does not
+  call an acceptance/swap endpoint, reserve capacity, create Booking B, or
+  mutate Booking A. Expo Web forwards only the existing W6-A Owner create/read
+  routes.
+- The W6-A readback defect demonstrated by W6-B was repaired without migration
+  or lifecycle changes: readback now includes offer version and safe display
+  facts, exposes current Booking eligibility, and derives expired/invalidated
+  state from PostgreSQL time and exact current slot/service/DoctorService/
+  staff/resource/shift/clinic/location/doctor eligibility.
+- Focused Owner API/component/navigation/BFF tests pass `30/30`; the final
+  parser/component rerun passes `11/11`. Owner typecheck and directly affected
+  ESLint checks pass; Expo Web static export passes under Node `22.22.2`.
+  Focused backend ranking/readback tests pass `4/4`; backend build and OpenAPI
+  export/assertion pass. Repository-wide Owner lint was also invoked but stops
+  on an unrelated pre-existing `react-hooks/refs` finding in
+  `src/ui/primitives.tsx`; no W6-B file has a lint finding.
+- Final flag: `W6B_COMPLETE=YES`. Recommended next slice is only W6-C — Owner
+  Offer Acceptance + Atomic Booking B Switch. It was not started.
+
+## 2026-08-30 — W6-C1A acceptance lineage and Booking B creation
+
+- Product-approved additive migration
+  `1719590000000_add_reallocation_acceptance_lineage.js` adds only the four
+  approved case fields and the exact `REPLACEMENT_PENDING_CONFIRMATION` /
+  `ACCEPTED` states. Composite FKs, unique/check constraints, and deferred
+  coherence triggers prove accepted-offer ownership, one Booking B and one
+  acceptance identity per case, same-Owner hold lineage, exact offer slot and
+  pre-capacity slot version, and a complete acceptance tuple. Compatible DOWN
+  restores W6-A; accepted data makes DOWN fail closed with the approved
+  remediation diagnostic. Migration `171958` remains byte/checksum stable.
+- Owner acceptance runs inside the existing canonical local-hold transaction.
+  The case/offer/Booking A and exact offer versions are locked and revalidated,
+  then the existing Pilot path creates one `MANUAL_CONFIRM_PENDING` Booking B
+  and increments replacement held capacity exactly once. Only after that does
+  the transaction mark the selected offer `ACCEPTED`, invalidate other offered
+  alternatives, persist A → case → offer → B lineage, set the case pending
+  confirmation, and append audit/outbox evidence. Any failure rolls everything
+  back; Booking A is never updated, released, moved, or cancelled.
+- Same-key replay returns the original Booking B through canonical idempotency.
+  Competing acceptance identities are serialized at the case lock and cannot
+  create a second hold. Owner readback exposes the accepted offer and bounded
+  pending-confirmation Booking B projection while retaining Booking A's hold
+  identity. No post-confirmation cutover/recovery semantic was introduced.
+- The shared Expo UI now adds explicit confirmation, stable acceptance
+  idempotency, authoritative response-loss readback, and safe success copy:
+  the replacement request exists, clinic confirmation is pending, and the
+  current Booking A remains preserved. Expo Web allowlists only the bounded
+  acceptance route in addition to existing W6 reads.
+- Focused migration, real-PostgreSQL acceptance/concurrency, HTTP, and readback
+  tests pass `8/8`; they cover partial lineage rejection, expired/stale/
+  consumed candidates, concurrent single-winner creation, same-key replay,
+  exact capacity delta, foreign Owner no-leak, Booking A byte/business
+  preservation, and fail-closed DOWN. Directly affected Owner component/API/
+  BFF tests pass `32/32`, with the final response-loss subset passing `21/21`.
+  Backend build, OpenAPI export/assertion, migration checksum verification,
+  Owner typecheck/targeted ESLint, Expo Web export, and `git diff --check` pass.
+- Final flags: `W6C1_MIGRATION_APPROVAL_REQUIRED=NO`,
+  `W6C1_STATE_CONTRACT_DECISION_REQUIRED=NO`,
+  `W6C1_ACCEPTANCE_SCHEMA=PASS`, `BOOKING_B_CREATION=PASS`,
+  `BOOKING_A_PRESERVED=PASS`, `REPLACEMENT_CAPACITY=PASS`,
+  `REALLOCATION_LINEAGE=PASS`, `W6C1_COMPLETE=YES`. Recommended next slice is
+  only W6-C2 — Replacement Booking Confirmation + Booking A Cutover/Recovery.
+
+## 2026-08-31 — W6-C2A terminal acceptance lineage repair and W6-C2 processing
+
+- Added only the approved additive `171960` repair; historical `171959` is
+  unchanged. `CLOSED` now accepts either legacy all-null lineage or the complete
+  immutable acceptance tuple. Pending coherence retains exact current slot
+  version `offer + 1`; terminal accepted coherence preserves the historical
+  offer/Booking B relationship without comparing the subsequently changed slot
+  version. DOWN restores `171959` and fail-closes on terminal accepted rows with
+  `W6C2_TERMINAL_ACCEPTANCE_DOWN_REMEDIATION_APPROVAL_REQUIRED`.
+- Canonical Booking B confirm, clinic decline, interactive expiry, and worker
+  expiry transactions now invoke one reallocation finalizer. Confirmation
+  atomically confirms B, cancels/releases A, decrements A booked capacity once,
+  and closes the case. Decline and expiry close the case without changing A;
+  the canonical B paths remain responsible for releasing B held capacity.
+  Accepted-offer status and the full acceptance tuple are retained unchanged.
+- Owner readback exposes only `PENDING_CONFIRMATION`, `CONFIRMED`, `REJECTED`,
+  or `EXPIRED`. The shared Expo panel explains confirmed cutover and safe
+  rejection/expiry recovery without exposing internal states.
+- PostgreSQL migration DOWN/UP and terminal fail-closed behavior pass. The real
+  PostgreSQL confirmation path proves atomic A cutover, exact A/B capacity,
+  terminal case state, retained `ACCEPTED` offer and immutable lineage. Focused
+  Owner parser/component tests pass `38/38`; acceptance HTTP passes `1/1`;
+  backend build/OpenAPI export and Owner typecheck pass.
+- Final flags: `W6C2_MIGRATION_APPROVAL_REQUIRED=NO`,
+  `W6C2_TERMINAL_LINEAGE_REPAIR=PASS`, `B_CONFIRMED_CUTOVER=PASS`,
+  `B_REJECTED_RECOVERY=PASS`, `B_EXPIRED_RECOVERY=PASS`,
+  `BOOKING_A_SAFETY=PASS`, `CAPACITY_FINAL_STATE=PASS`,
+  `REALLOCATION_LINEAGE=PASS`, `W6C2_COMPLETE=YES`. Recommended next slice is
+  only W6-D.
+
+## 2026-08-31 — W6-D real E2E and bounded visual closure
+
+- One browser journey proves the complete real stack Owner Expo Web → Owner
+  BFF → Backend → PostgreSQL → canonical Clinic Queue → Backend/PostgreSQL →
+  Owner authoritative readback for confirmed, clinic-rejected, worker-expired,
+  and stale-offer paths. Booking A remains confirmed until B confirmation;
+  rejection, expiry, and stale acceptance leave A and its capacity unchanged.
+- Offer evidence is non-vacuous and bounded: 2–5 generated offers, backend rank
+  preserved in the DOM, temporal order verified, exact localized date/time and
+  clinic matched per rank, and missing optional distance/price remains usable.
+  Stale acceptance closes confirmation, invalidates the selected offer, exposes
+  the safety error, and offers authoritative refresh instead of a no-op retry.
+- Clinic Queue retains its dense desktop table and stacks each operational row
+  at mobile width so visit, SLA, and actions remain visible without horizontal
+  overflow. Dialog evidence verifies initial focus, Tab/Shift+Tab containment,
+  Escape dismissal, and focus return to the invoking control.
+- `docs/testing/evidence/wave6-smart-reallocation-closure` contains 22 current
+  screenshots covering all 15 required states across Owner `390x844`,
+  `768x1024`, `1440x900` and Clinic `430x932`, `1024x768`, `1440x900` classes.
+  Its manifest records V50/source/image hashes, axe serious/critical `0`, no
+  horizontal overflow, 44px actions, raw-enum absence, exact state/viewport
+  mapping, and no orphan images. The independent Product/UX review completed
+  one review cycle with final `PASS / NO VETO` after its bounded findings were
+  remediated.
+- Focused backend reallocation and real-PostgreSQL suites pass `8/8`; affected
+  Owner suites pass `29/29`, the final offer subset passes `7/7`, Owner and
+  Clinic typechecks pass, real-stack Playwright passes `1/1`, evidence verifier
+  passes `22/22`, and `git diff --check` passes. React test-renderer emits known
+  non-failing `act(...)` warnings; no physical-device, UAT, pilot, or external
+  provider evidence is claimed.
+- Final flags: `W6D_REAL_CONFIRMED=PASS`, `W6D_REAL_REJECTED=PASS`,
+  `W6D_REAL_EXPIRED=PASS`, `W6D_STALE_SAFETY=PASS`,
+  `W6D_RANKING_FACTS=PASS`, `W6D_VISUAL_PACKAGE=PASS`,
+  `W6D_ACCESSIBILITY=PASS`, `W6D_PRODUCT_UX_REVIEW=PASS`,
+  `W6_COMPLETE=YES`. Recommended next slice is only W7; it was not started.
+
 ## 2026-08-31 — W7-A clinical Visit, Result, Amendment and Pet Diary foundation closure
 
 - Additive migration `1719610000000_add_clinical_visit_result_foundation.js`
@@ -2865,6 +3449,7 @@ Batch stop: exactly three checkpoints were processed (T085 continuation, T140, T
   `ACCESSIBILITY=FAIL`, `CLINIC_VISUAL_EVIDENCE=NOT_RUN`,
   `OWNER_VISUAL_EVIDENCE=NOT_RUN`, `PRODUCT_UX_REVIEW=NOT_RUN`,
   `W7_COMPLETE=NO`, `W7D_TARGETED_REPAIR_REQUIRED=YES`.
+
 ## 2026-09-02 — W7-D-R4 publish-dialog focus containment repair
 
 - The Clinic Result publish confirmation dialog now traps keyboard focus across
@@ -2889,6 +3474,7 @@ Batch stop: exactly three checkpoints were processed (T085 continuation, T140, T
   `W7D_PUBLISH_DIALOG_FOCUS_REPAIR=PASS`,
   `ACCESSIBILITY_BLOCKER_REPAIRED=YES`. Recommended next slice is only
   W7-D-R5 — final bounded visual/accessibility/Product-UX closure.
+
 ## 2026-09-02 — W7-D-R6 Owner Web document-title repair
 
 - The canonical Expo Web root now supplies the deterministic title `VetHelp`
@@ -2906,6 +3492,37 @@ Batch stop: exactly three checkpoints were processed (T085 continuation, T140, T
   `ACCESSIBILITY_DOCUMENT_TITLE_BLOCKER_REPAIRED=YES`. Recommended next slice
   is only W7-D-R5R — resume remaining final visual/accessibility/Product-UX
   closure.
+
+## 2026-09-08 — V50-OWNER-R2E-PRE consent and workforce closure
+
+- Migration `1719630000000_add_doctor_public_profile_consent_events.js` adds
+  append-only, location-scoped public-profile consent events. No event means
+  deny. Only an active exact-location `CLINIC_ADMIN` may append grant or revoke
+  events; doctor and membership locks serialize concurrent authorization
+  changes. Events are attributable and timestamped, and UPDATE, DELETE and
+  TRUNCATE are guarded. Destructive down is denied when events exist under an
+  access-exclusive lock.
+- Specialist options/results, public doctor list/detail and doctor-filtered
+  booking selection now use the latest event and disclose identity only for
+  `CONSENT_GRANTED`. Revocation removes the doctor. Existing active doctor,
+  veterinarian membership, DoctorService, service, DoctorShift and published
+  slot eligibility remain mandatory. The public API is default-off behind
+  `OWNER_R2E_SPECIALIST_PROJECTION`.
+- An isolated PostgreSQL 16 lifecycle passed both a clean migration replay and
+  a predecessor-state forward migration without data reset, manual SQL or
+  backfill. The focused migration/projection, catalog service, controller and
+  feature-flag set passed 13/13; backend build and `git diff --check` passed.
+  Independent security/migration review passed with no remaining vetoes.
+- Final flags: `PUBLIC_DOCTOR_PROFILE_CONSENT_READY=YES`,
+  `WORKFORCE_SCHEMA_REPRODUCIBLE=YES`,
+  `OWNER_R2E_SPECIALIST_PROJECTION_READY=YES`,
+  `OWNER_R2E_OWNER_SAFE_DOCTOR_IDENTITY_READY=YES`,
+  `OWNER_R2E_SERVICE_SPECIALIST_ELIGIBILITY_READY=YES`,
+  `SERVICE_TAXONOMY_AUTHORITY_GAP=YES`,
+  `DECISION_COMPARISON_BLOCKED_BY_DATA_AUTHORITY=YES`, `R2F_UNBLOCKED=YES`.
+  The only recommended next slice is OWNER-V50-R2F — Specialist selection UI
+  + exact V50 decision parity; it was not started.
+
 ## 2026-09-02 — UX-V50-REF-01 canonical V50 reference bootstrap
 
 - Installed the exact approved Owner and Clinic V50 archives, their extracted
@@ -2927,3 +3544,51 @@ Batch stop: exactly three checkpoints were processed (T085 continuation, T140, T
   `V50_AUTHORITY_CONTRACT=PASS`, `V50_REFERENCE_BOOTSTRAP=PASS`.
   Recommended next slice is only `OWNER-V50-R1` — current production Owner
   screen map plus first bounded parity implementation.
+
+## 2026-09-07 — OWNER-V50-R3 canonical parity implementation
+
+- Restored the canonical V50 Owner composition for Home, Catalog,
+  Clinic/Service, Availability, Booking Review, and the responsive pet shell,
+  using one `900px` desktop breakpoint and locally bundled reference assets.
+- Removed the unsupported Home no-appointments claim. Catalog clinic identity
+  is no longer substituted with cyclic prototype imagery; unsupported decision
+  facts are recorded in `docs/v50/V50-OWNER-R3-DATA-CONTRACT-GAPS.md`.
+- Slot/version revalidation, booking idempotency, durable re-entry, and
+  `PENDING_CONFIRMATION` semantics remain covered by focused tests (`38/38`
+  PASS); Owner typecheck and `git diff --check` pass.
+- Real Chromium produced factual local-stack screenshots for Home, Catalog,
+  Clinic/Service, and Availability at `390x844` and `1440x900`. Browser closure
+  is `PARTIAL`: after Availability the pets endpoint returns the seeded pet,
+  while `PetJourneyProvider` renders an empty collection, blocking Review,
+  history, final axe, and canonical diff capture. No synthetic pet or Product
+  Owner visual acceptance was substituted. Flags:
+  `OWNER_V50_R3_IMPLEMENTATION=IMPLEMENTED`,
+  `OWNER_V50_R3_FOCUSED_TESTS=PASS`, `OWNER_V50_R3_VISUAL_EVIDENCE=PARTIAL`,
+  `OWNER_V50_R3_PRODUCT_OWNER_ACCEPTANCE=NOT_RUN`.
+## 2026-09-08 — OWNER-V50-R2F-A Specialist Selection UI
+
+- `R2F_A_COMPLETE=YES`
+- Added a bounded, responsive V50 specialist-selection step between authoritative clinic-service selection and availability. It supports loading, content, zero-result, retryable error, background refresh, exactly-one selection, authoritative revalidation, and fail-closed removal when a selected specialist disappears.
+- Journey selection is keyed by public `doctorId` and scoped to the exact `serviceId + clinicId + locationId`. Service/clinic changes and restart clear it; the authority-scoped Owner root remount clears it on auth/session generation changes. Back from availability preserves the selection; back to service clears it.
+- Availability receives only the refreshed selected specialist's projected slot IDs/versions, filters out other doctors' intervals, retains its final slot/version revalidation, and rechecks the specialist projection immediately before forward navigation. Late results after authority replacement are ignored.
+- The Owner integration is rollback-safe and default-off under `EXPO_PUBLIC_OWNER_R2F_SPECIALIST_SELECTION`; the backend projection remains default-off under `OWNER_R2E_SPECIALIST_PROJECTION`. Evidence generation enables only controlled query/session seams.
+- Added the authoritative `serviceId` query selector to the existing default-off projection because the booking journey carries `serviceId`, not a taxonomy code. The response DTO and consent boundary are unchanged.
+- Safe rendered fields: public doctor name, specialty name, service name, clinic public name/address, and projected published availability. Unsupported prototype facts are recorded in `docs/v50/V50-OWNER-R2F-A-DATA-GAPS.md` and omitted.
+- Visual evidence: `docs/testing/evidence/owner-v50-r2f-a/manifest.json` with 390x844, 768x900, and 1440x900 content/selected/loading/empty/error captures; mobile-selected and desktop-content were manually inspected against the canonical hierarchy and responsive composition.
+- Focused evidence PASS: Owner discovery/journey/availability suites, including isolated authority-replacement coverage; backend controller/service 2 suites / 10 tests; Owner typecheck; backend build; Expo web export with the R2F UI flag bounded on; changed-file ESLint; `git diff --check`.
+- Independent review initially found and drove repair of two authority races: specialist cards are now locked while their choice is revalidated, and Availability rechecks the selected doctor's projection/consent immediately before forward navigation. The parser also now rejects invalid IANA timezones before render.
+- The broader HTTP suite was attempted but is not counted as R2F-A evidence: it requires the local PostgreSQL role/schema and an explicitly enabled projection. The focused controller/service contract checks pass and no migration/security suite was rerun.
+- Sticky PRE gates remain unchanged; this diff does not modify consent, workforce schema, migrations, audit, or authorization semantics.
+- `SERVICE_TAXONOMY_AUTHORITY_GAP=YES`
+- `DECISION_COMPARISON_BLOCKED_BY_DATA_AUTHORITY=YES`
+
+## 2026-09-08 — OWNER-V50-R2F-A-VISUAL Exact Specialist UI Reconciliation
+
+- `R2F_A_VISUAL_PARITY=PASS`
+- Resolved OWN-018 from `prototype-v50/index.html#doctor-select`; source SHA-256 is `81d5effec9805021f9ad5c74d93519903ec6624895bacfe9282ad185a3c270c9`.
+- Direct prototype and production-component renders now cover `390x844`, `768x900`, and `1440x900`; content/unselected, selected, loading, empty, and error runtime states have matching-viewport side-by-side evidence under `docs/testing/evidence/owner-v50-r2f-a/`.
+- Repaired A-class defects in page gutters/title scale, V50 surface treatment, equal desktop panel geometry, portrait-card media/grid geometry, specialist hierarchy, selected treatment, authoritative nearest-slot badge, CTA geometry, and responsive transformation.
+- Intentional B/C/D differences are enumerated in `docs/testing/evidence/owner-v50-r2f-a/RECONCILIATION.md`. No prototype doctor, portrait, rating, review, experience, biography, referral rule, clinic, pet, or slot fact was fabricated.
+- Focused Owner selection/navigation/availability checks, Owner typecheck, Expo web export, deterministic visual capture, and `git diff --check` pass. Production feature defaults, consent, eligibility, backend taxonomy, and migrations are unchanged.
+- `SERVICE_TAXONOMY_AUTHORITY_GAP=YES`
+- `DECISION_COMPARISON_BLOCKED_BY_DATA_AUTHORITY=YES`

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { PoolClient } from 'pg';
-import { Capability } from '../auth/capability';
+import { Capability, hasCapability } from '../auth/capability';
 import { CapabilityEvaluatorService } from '../auth/capability-evaluator.service';
 import { JwtPayload, Role } from '../auth/auth.types';
 import { DomainErrors } from '../common/domain-error';
@@ -74,6 +74,19 @@ export class ClinicEmployeeAccessService {
     await this.capabilities.assertAllowed(client, { actor: employee, capability: Capability.BOOKING_QUEUE_READ, resource: { aggregateType: 'booking.queue', clinicId, locationId: clinicLocationId } });
   }
 
+  async assertBookingDecisionAccess(client: PoolClient, employee: JwtPayload, clinicId: string, clinicLocationId: string): Promise<void> {
+    await this.capabilities.assertAllowed(client, {
+      actor: employee,
+      capability: Capability.BOOKING_DECISION,
+      resource: { aggregateType: 'booking.decision', clinicId, locationId: clinicLocationId },
+    });
+    await this.assertExactClinicLocationMembership(client, employee, clinicId, clinicLocationId);
+  }
+
+  assertBookingDecisionCapability(employee: JwtPayload): void {
+    if (!hasCapability(employee, Capability.BOOKING_DECISION)) throw DomainErrors.clinicScopeMismatch();
+  }
+
   async assertAppointmentRegistryReadAccess(client: PoolClient, employee: JwtPayload, clinicId: string, clinicLocationId: string): Promise<void> {
     await this.capabilities.assertAllowed(client, { actor: employee, capability: Capability.APPOINTMENT_REGISTRY_READ, resource: { aggregateType: 'appointment.registry', clinicId, locationId: clinicLocationId } });
   }
@@ -96,8 +109,17 @@ export class ClinicEmployeeAccessService {
   }
 
   async assertScheduleReadAccess(client: PoolClient, employee: JwtPayload, clinicId: string, clinicLocationId: string): Promise<void> {
-    if (!featureFlags.SCHEDULE_READ_CAPABILITY_V1) return this.assertLocationAccess(client, employee, clinicLocationId);
-    await this.capabilities.assertAllowed(client, { actor: employee, capability: Capability.SCHEDULE_READ, resource: { aggregateType: 'schedule.slots', clinicId, locationId: clinicLocationId } });
+    if (featureFlags.SCHEDULE_READ_CAPABILITY_V1) {
+      await this.capabilities.assertAllowed(client, { actor: employee, capability: Capability.SCHEDULE_READ, resource: { aggregateType: 'schedule.slots', clinicId, locationId: clinicLocationId } });
+    } else if (!employee.roles.some((role) => role === Role.CLINIC_ADMIN || role === Role.CLINIC_RECEPTIONIST || role === Role.CLINIC_VETERINARIAN)) {
+      throw DomainErrors.clinicScopeMismatch();
+    }
+    await this.assertExactClinicLocationMembership(client, employee, clinicId, clinicLocationId);
+  }
+
+  async assertScheduleManageAccess(client: PoolClient, employee: JwtPayload, clinicId: string, clinicLocationId: string): Promise<void> {
+    await this.capabilities.assertAllowed(client, { actor: employee, capability: Capability.SCHEDULE_MANAGE, resource: { aggregateType: 'schedule.inventory', clinicId, locationId: clinicLocationId } });
+    await this.assertExactClinicLocationMembership(client, employee, clinicId, clinicLocationId);
   }
 
   async assertBookingReplayReadAccess(client: PoolClient, employee: JwtPayload, clinicId: string, clinicLocationId: string): Promise<void> {

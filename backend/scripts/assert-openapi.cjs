@@ -20,6 +20,10 @@ async function main() {
     const header = operation?.parameters?.find((parameter) => parameter.in === 'header' && parameter.name.toLowerCase() === 'x-correlation-id');
     required(header && header.required === false, `${label} must accept an optional client correlation header`);
   };
+  const requireRequiredCorrelation = (operation, label) => {
+    const header = operation?.parameters?.find((parameter) => parameter.in === 'header' && parameter.name.toLowerCase() === 'x-correlation-id');
+    required(header && header.required === true, `${label} must require X-Correlation-ID`);
+  };
   const requireBearerAuth = (operation, label) => {
     required(document.components?.securitySchemes?.bearerAuth, 'bearerAuth security scheme is missing');
     required(operation?.security?.some((item) => Object.hasOwn(item, 'bearerAuth')), `${label} must reference the defined bearerAuth scheme`);
@@ -69,6 +73,7 @@ async function main() {
   requireStatuses(getHold, ['200', '400', '401', '403', '404', '500'], 'Get hold');
   requireErrorSchemas(getHold, ['400', '401', '403', '404', '500'], 'Get hold');
   required(responseSchemaRef(getHold, '200') === '#/components/schemas/BookingHoldReadDto', 'Get hold must return BookingHoldReadDto');
+  required(document.components?.schemas?.BookingHoldReadDto?.required?.includes('canCancel'), 'Get hold must require authoritative canCancel');
 
   const requestOtp = document.paths?.['/v1/auth/otp/request']?.post;
   const resendOtp = document.paths?.['/v1/auth/otp/resend']?.post;
@@ -102,24 +107,59 @@ async function main() {
   required(confirmHold.security?.some((item) => item.bearerAuth), 'Confirm hold must require bearerAuth');
   required(confirmHold.responses?.['200'], 'Confirm hold must document 200');
   required(confirmHold.responses?.['403'], 'Confirm hold must document 403');
-  requireStatuses(confirmHold, ['200', '400', '401', '403', '404', '409', '422', '500'], 'Confirm hold');
-  requireErrorSchemas(confirmHold, ['400', '401', '403', '404', '409', '422', '500'], 'Confirm hold');
+  requireStatuses(confirmHold, ['200', '400', '401', '403', '404', '409', '422', '500', '503'], 'Confirm hold');
+  requireErrorSchemas(confirmHold, ['400', '401', '403', '404', '409', '422', '500', '503'], 'Confirm hold');
   requireOptionalCorrelation(confirmHold, 'Confirm hold');
-  required(responseSchemaRef(confirmHold, '200') === '#/components/schemas/BookingCommandStatusDto', 'Confirm hold must return BookingCommandStatusDto');
+  required(responseSchemaRef(confirmHold, '200') === '#/components/schemas/ClinicConfirmDecisionStatusDto', 'Confirm hold must return ClinicConfirmDecisionStatusDto');
+  required(/BOOKING_STATE_CONFLICT/.test(confirmHold.responses?.['409']?.description ?? ''), 'Confirm hold must advertise canonical state conflict');
+  required(/IDEMPOTENCY_CONFLICT/.test(confirmHold.responses?.['409']?.description ?? ''), 'Confirm hold must advertise canonical idempotency conflict');
+  required(!/SLOT_VERSION_STALE|INVALID_STATE_TRANSITION|IDEMPOTENCY_PAYLOAD_CONFLICT/.test(JSON.stringify(confirmHold)), 'Confirm hold must not advertise legacy Pilot decision errors');
+  required(confirmHold.responses?.['409']?.headers?.['Retry-After']?.schema?.example === '1', 'Confirm hold must document Retry-After: 1 for lock retry');
 
   const declineHold = document.paths?.['/v1/clinic/booking-holds/{holdId}/decline']?.post;
   required(declineHold, 'POST /v1/clinic/booking-holds/{holdId}/decline is missing');
-  requireStatuses(declineHold, ['200', '400', '401', '403', '404', '409', '422', '500'], 'Decline hold');
-  requireErrorSchemas(declineHold, ['400', '401', '403', '404', '409', '422', '500'], 'Decline hold');
+  requireStatuses(declineHold, ['200', '400', '401', '403', '404', '409', '422', '500', '503'], 'Decline hold');
+  requireErrorSchemas(declineHold, ['400', '401', '403', '404', '409', '422', '500', '503'], 'Decline hold');
   requireOptionalCorrelation(declineHold, 'Decline hold');
-  required(responseSchemaRef(declineHold, '200') === '#/components/schemas/BookingCommandStatusDto', 'Decline hold must return BookingCommandStatusDto');
+  required(responseSchemaRef(declineHold, '200') === '#/components/schemas/ClinicRejectDecisionStatusDto', 'Decline hold must return ClinicRejectDecisionStatusDto');
+  required(/BOOKING_STATE_CONFLICT/.test(declineHold.responses?.['409']?.description ?? ''), 'Decline hold must advertise canonical state conflict');
+  required(/IDEMPOTENCY_CONFLICT/.test(declineHold.responses?.['409']?.description ?? ''), 'Decline hold must advertise canonical idempotency conflict');
+  required(!/SLOT_VERSION_STALE|INVALID_STATE_TRANSITION|IDEMPOTENCY_PAYLOAD_CONFLICT/.test(JSON.stringify(declineHold)), 'Decline hold must not advertise legacy Pilot decision errors');
+  required(declineHold.responses?.['409']?.headers?.['Retry-After']?.schema?.example === '1', 'Decline hold must document Retry-After: 1 for lock retry');
+  const confirmDecisionSchema = document.components?.schemas?.ClinicConfirmDecisionStatusDto;
+  const rejectDecisionSchema = document.components?.schemas?.ClinicRejectDecisionStatusDto;
+  for (const [label, decisionSchema] of [['Confirm', confirmDecisionSchema], ['Reject', rejectDecisionSchema]]) {
+    for (const field of ['holdId', 'slotId', 'status', 'aggregateVersion', 'lastUpdatedAt', 'serverNow', 'correlationId']) {
+      required(decisionSchema?.required?.includes(field), `${label} decision response must require ${field}`);
+    }
+  }
+  required(confirmDecisionSchema?.required?.includes('appointmentId'), 'Confirm decision response must require appointmentId');
+  required(!rejectDecisionSchema?.properties?.appointmentId, 'Reject decision response must omit appointmentId');
+  required(confirmDecisionSchema?.properties?.status?.enum?.join(',') === 'CONFIRMED', 'Confirm decision status must be CONFIRMED');
+  required(rejectDecisionSchema?.properties?.status?.enum?.join(',') === 'REJECTED', 'Reject decision status must be REJECTED');
+  const declineReason = document.components?.schemas?.ClinicDeclineCommandDto?.properties?.declineReason;
+  required(declineReason?.enum?.join(',') === 'CAPACITY_UNAVAILABLE,STAFF_UNAVAILABLE,SERVICE_UNAVAILABLE,OTHER', 'Decline reason must be a closed safe-code enum');
 
   const cancelHold = document.paths?.['/v1/owner/bookings/{holdId}/cancel']?.post;
   required(cancelHold, 'POST /v1/owner/bookings/{holdId}/cancel is missing');
-  requireStatuses(cancelHold, ['200', '400', '401', '404', '409', '422', '500'], 'Cancel hold');
-  requireErrorSchemas(cancelHold, ['400', '401', '404', '409', '422', '500'], 'Cancel hold');
-  requireOptionalCorrelation(cancelHold, 'Cancel hold');
-  required(responseSchemaRef(cancelHold, '200') === '#/components/schemas/BookingCommandStatusDto', 'Cancel hold must return BookingCommandStatusDto');
+  requireStatuses(cancelHold, ['200', '400', '401', '403', '404', '409', '429', '500', '503'], 'Cancel hold');
+  requireErrorSchemas(cancelHold, ['400', '401', '403', '404', '409', '429', '500', '503'], 'Cancel hold');
+  requireRequiredCorrelation(cancelHold, 'Cancel hold');
+  const cancelIfMatch = cancelHold.parameters?.find((parameter) => parameter.in === 'header' && parameter.name.toLowerCase() === 'if-match');
+  required(cancelIfMatch?.schema?.pattern === '^[1-9][0-9]*$', 'Cancel If-Match must document a positive integer pattern');
+  required(cancelHold.responses?.['409']?.headers?.['Retry-After']?.schema?.example === '1', 'Cancel must document Retry-After: 1 for lock retry');
+  required(cancelHold.responses?.['429']?.headers?.['Retry-After']?.schema?.example === '1', 'Cancel must document Retry-After for replica-safe rate limiting');
+  const cancelResponse = cancelHold.responses?.['200']?.content?.['application/json']?.schema;
+  required(cancelResponse?.type === 'object' && cancelResponse.additionalProperties === false, 'Cancel response must be an exact closed object');
+  for (const field of ['holdId', 'slotId', 'status', 'correlationId', 'aggregateVersion', 'lastUpdatedAt', 'serverNow']) {
+    required(cancelResponse?.required?.includes(field), `Cancel response must require ${field}`);
+  }
+  required(cancelResponse?.properties?.status?.enum?.join(',') === 'CANCELLED', 'Cancel response status must be CANCELLED');
+  required(Object.keys(cancelResponse?.properties ?? {}).sort().join() === ['holdId', 'slotId', 'status', 'correlationId', 'aggregateVersion', 'lastUpdatedAt', 'serverNow', 'appointmentId'].sort().join(), 'Cancel response fields must be exact');
+  const cancelBody = cancelHold.requestBody?.content?.['application/json']?.schema;
+  required(cancelBody?.additionalProperties === false, 'Cancel request body must be closed');
+  required(!cancelHold.responses?.['422'], 'Cancel must normalize terminal Pilot transitions to 409, not 422');
+  required(!/BOOKING_VERSION_STALE|INVALID_STATE_TRANSITION|IDEMPOTENCY_PAYLOAD_CONFLICT/.test(JSON.stringify(cancelHold)), 'Cancel must not advertise legacy Pilot errors');
 
   const bookingHistory = document.paths?.['/v1/booking-holds/{holdId}/history']?.get;
   required(bookingHistory, 'GET /v1/booking-holds/{holdId}/history is missing');
@@ -141,7 +181,7 @@ async function main() {
   required(ownerPetList && ownerPetCreate && ownerPetRead, 'Owner Pet MVP routes are incomplete');
   for (const [path, method] of [
     ['/v1/owner/pets/{petId}', 'patch'], ['/v1/owner/pets/{petId}/archive', 'post'], ['/v1/owner/pets/{petId}/restore', 'post'],
-    ['/v1/owner/pets/{petId}/diary', 'get'], ['/v1/owner/pets/{petId}/care-summary', 'get'], ['/v1/owner/pets/{petId}/documents', 'post'],
+    ['/v1/owner/pets/{petId}/care-summary', 'get'], ['/v1/owner/pets/{petId}/documents', 'post'],
     ['/v1/owner/pets/{petId}/photo', 'post'], ['/v1/owner/pets/{petId}/photo', 'delete'],
   ]) required(!document.paths?.[path]?.[method], `PILOT_V1 must not advertise ${method.toUpperCase()} ${path}`);
   for (const [operation, label] of [[ownerPetList, 'Owner pet list'], [ownerPetCreate, 'Owner pet create'], [ownerPetRead, 'Owner pet read']]) requireBearerAuth(operation, label);
@@ -249,7 +289,6 @@ async function main() {
   for (const [name, requiredFields] of [
     ['HoldDto', ['holdId', 'status', 'aggregateVersion', 'lastUpdatedAt', 'serverNow']],
     ['BookingHoldReadDto', ['holdId', 'status', 'aggregateVersion', 'lastUpdatedAt', 'serverNow']],
-    ['BookingCommandStatusDto', ['holdId', 'status', 'slotId', 'correlationId']],
   ]) {
     const schema = schemas[name];
     required(schema && !schema.properties?.state && !schema.properties?.displayStatus, `${name} must not expose raw booking state`);
@@ -296,6 +335,51 @@ async function main() {
   }
   const serializedHomeSchemas = JSON.stringify(Object.fromEntries(Object.entries(schemas).filter(([name]) => /Workspace|QueueAvailable|AppointmentsAvailable/.test(name))));
   required(!/(ownerId|patientId|petId|holdId|appointmentId|doctorId|employeeId|actorId|documentId|audit|payment|clinical|https?:\\\/\\\/)/i.test(serializedHomeSchemas), 'Workspace Home schema leaks identifiers or arbitrary URLs');
+
+  const w3Base='/v1/clinic/{clinicId}/locations/{locationId}/schedule';
+  const w3Operations=[
+    [document.paths?.[`${w3Base}/doctor-shifts`]?.get,'DoctorShift list','200','DoctorShiftInventoryResponseDto'],
+    [document.paths?.[`${w3Base}/doctor-mappings`]?.post,'Doctor mapping','201','DoctorMappingResponseDto'],
+    [document.paths?.[`${w3Base}/doctor-services`]?.post,'DoctorService create','201','DoctorServiceResponseDto'],
+    [document.paths?.[`${w3Base}/doctor-shifts`]?.post,'DoctorShift create','201','DoctorShiftResponseDto'],
+    [document.paths?.[`${w3Base}/doctor-shifts/{shiftId}`]?.post,'DoctorShift update','200','DoctorShiftResponseDto'],
+    [document.paths?.[`${w3Base}/doctor-shifts/{shiftId}/generate`]?.post,'Inventory generate','200','InventoryGenerationResponseDto'],
+    [document.paths?.[`${w3Base}/inventory-runs/{runId}/publish`]?.post,'Inventory publish','200','InventoryPublicationResponseDto'],
+    [document.paths?.[`${w3Base}/inventory-runs/{runId}/unpublish`]?.post,'Inventory unpublish','200','InventoryPublicationResponseDto'],
+    [document.paths?.[`${w3Base}/doctor-shifts/{shiftId}/block`]?.post,'DoctorShift block','200','DoctorShiftResponseDto'],
+    [document.paths?.[`${w3Base}/doctor-shifts/{shiftId}/cancel`]?.post,'DoctorShift cancel','200','DoctorShiftResponseDto'],
+  ];
+  for(const [operation,label,status,response] of w3Operations){
+    required(operation,`${label} route is missing`);requireBearerAuth(operation,label);requireOptionalCorrelation(operation,label);
+    required(responseSchemaRef(operation,status)===`#/components/schemas/${response}`,`${label} response is not typed`);
+    for(const name of ['clinicId','locationId'])required(operation.parameters?.some((parameter)=>parameter.in==='path'&&parameter.name===name&&parameter.required===true&&parameter.schema?.format==='uuid'),`${label} ${name} must be UUID`);
+  }
+  for(const [operation,label] of w3Operations.slice(1)){
+    requireStatuses(operation,['400','401','403','404','409','500','503'],label);requireErrorSchemas(operation,['400','401','403','404','409','500','503'],label);
+    const key=operation.parameters?.find((parameter)=>parameter.in==='header'&&parameter.name.toLowerCase()==='idempotency-key');required(key?.required===true,`${label} must require Idempotency-Key`);
+  }
+  for(const schemaName of ['DoctorMappingRequestDto','DoctorServiceRequestDto','DoctorShiftRequestDto','DoctorShiftUpdateRequestDto'])required(schemas[schemaName]&&schemas[schemaName].additionalProperties!==true,`${schemaName} must be a bounded request schema`);
+  required(schemas.DoctorServiceRequestDto?.properties?.resourceId?.type==='string'&&schemas.DoctorServiceRequestDto.properties.resourceId.format==='uuid','DoctorService resourceId must be nullable UUID string');
+  required(schemas.DoctorShiftInventoryResponseDto?.required?.includes('mutationEnabled'),'DoctorShift list must expose rollback mutation state');
+
+  const changeCreate=document.paths?.['/v1/owner/bookings/{holdId}/change-requests']?.post;
+  const changeCurrent=document.paths?.['/v1/owner/bookings/{holdId}/change-requests/current']?.get;
+  const changeOperations=document.paths?.['/v1/operations/booking-change-requests']?.get;
+  required(changeCreate&&changeCurrent&&changeOperations,'BookingChangeRequest operation set is incomplete');
+  requireBearerAuth(changeCreate,'BookingChangeRequest create');requireBearerAuth(changeCurrent,'BookingChangeRequest current');requireBearerAuth(changeOperations,'BookingChangeRequest Operations queue');
+  requireStatuses(changeCreate,['201','400','401','403','404','409','422','425'],'BookingChangeRequest create');
+  requireErrorSchemas(changeCreate,['400','401','403','404','409','422','425'],'BookingChangeRequest create');
+  required(responseSchemaRef(changeCreate,'201')==='#/components/schemas/BookingChangeRequestDto','BookingChangeRequest create response is not typed');
+  required(responseSchemaRef(changeCurrent,'200')==='#/components/schemas/BookingChangeRequestDto','BookingChangeRequest current response is not typed');
+  required(responseSchemaRef(changeOperations,'200')==='#/components/schemas/OperationsBookingChangeRequestPageDto','BookingChangeRequest Operations response is not typed');
+  const changeKey=changeCreate.parameters?.find((parameter)=>parameter.in==='header'&&parameter.name.toLowerCase()==='idempotency-key');required(changeKey?.required===true&&changeKey.schema?.format==='uuid','BookingChangeRequest create must require UUID Idempotency-Key');
+  requireOptionalCorrelation(changeCreate,'BookingChangeRequest create');
+  required(schemas.CreateBookingChangeRequestDto?.properties?.requestType?.enum?.join(',')==='CANCEL,RESCHEDULE','BookingChangeRequest types must be closed');
+  required(schemas.BookingChangeRequestDto?.properties?.status?.enum?.join(',')==='OPEN,PROCESSING,COMPLETED,REJECTED,CANCELLED','BookingChangeRequest statuses must be closed');
+  required(schemas.BookingChangeRequestDto?.properties?.appointmentId?.type==='string'&&schemas.BookingChangeRequestDto.properties.appointmentId.format==='uuid'&&schemas.BookingChangeRequestDto.properties.appointmentId.nullable===true,'BookingChangeRequest appointmentId must be nullable UUID string');
+  required(schemas.BookingChangeRequestDto?.properties?.terminalAt?.type==='string'&&schemas.BookingChangeRequestDto.properties.terminalAt.format==='date-time'&&schemas.BookingChangeRequestDto.properties.terminalAt.nullable===true,'BookingChangeRequest terminalAt must be nullable date-time string');
+  const operationsSerialized=JSON.stringify(schemas.OperationsBookingChangeRequestPageDto);
+  required(!/(ownerId|petId|contact|phone|email|payment|price|correlationId|audit)/i.test(operationsSerialized),'BookingChangeRequest Operations projection leaks restricted data');
 
   required(document.components?.securitySchemes?.bearerAuth, 'Bearer security scheme is missing');
   console.log('OpenAPI contract assertion passed');

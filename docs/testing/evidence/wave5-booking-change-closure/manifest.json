@@ -1,0 +1,248 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS",
+  "generatedAt": "2026-08-30T11:22:53.001Z",
+  "stack": "Owner Expo Web -> Owner BFF -> Backend -> PostgreSQL -> Operations Next Portal -> BFF -> Backend -> Owner authoritative readback",
+  "physicalDevice": false,
+  "visualAuthority": {
+    "outer": {
+      "file": "/Users/evrusetskiy/Downloads/VetHelp_V50_Unified_UX_UI_Pack.zip",
+      "sha256": "7100f42c274130ddc04a87de1cf555e855b150d617971158ba6f88428fb7a540"
+    },
+    "owner": {
+      "entry": "VetHelp_Owner_V50_Behavioral_Unified.zip",
+      "sha256": "cbef69d764cfe420f58bf84e83cf94a37aa23c89d7466271434bbe3d717633b6"
+    },
+    "operations": {
+      "entry": "VetHelp_Clinic_V50_Behavioral_Dense.zip",
+      "sha256": "c634654040c572fab6e6e962d722c8bc6ed140dda02b0277f42952742b78c688"
+    }
+  },
+  "sources": {
+    "backend/src/booking-core/booking-change-request.service.ts": "f1fffa2b47ad24e69737a1dab5659f1cd998b35ce07a412a459d3976f24edd7c",
+    "backend/src/booking-core/booking-change-request.controller.ts": "2a7905be2f00d35de484d7e544bd1446fdf56f9c5d206561fe39e58736163eda",
+    "apps/owner-app/src/booking/BookingChangeRequestPanel.tsx": "75ba8ed64afd87c37fca8999f5b63c6e42aa9d540dad1a7f857d9ce158bc6583",
+    "apps/owner-app/src/booking/BookingStatusScreen.tsx": "31ac6bb97f1f8aa62ecf6b93744d7dd910bf750dfba3a9cd50c47cd24ec1b80b",
+    "apps/owner-app/src/booking/booking-api.ts": "be1530ea15726c69bf35793b1c7e3ce91d90c53bc204dc0373dcd409c148b2b1",
+    "apps/owner-app/src/ui/primitives.tsx": "03ef67e50ffa2ef1860d0fcfcf2b6c6cc24a806a7ca4fe680aec276e16f8eb61",
+    "apps/owner-app/src/ui/tokens.ts": "cc666c61478815508b6dac8fd9a527191812def44425215d6b66b27d0b455a61",
+    "apps/clinic-portal/components/ops/ChangeRequestWorkspace.tsx": "ff9971b4ca325c59b373b737ecb066404bd0504d6fc29266955f56af1aad94db",
+    "apps/clinic-portal/lib/api/booking-change-requests.ts": "e523772764f3684632d85cc39ab2f0ddee854ba1d7c02f7a850b6b4451cfebc1",
+    "apps/owner-app/tests/e2e/wave5-booking-change.real-stack.spec.ts": "98ea20797d0ac813c7d37d31d554f6c3f3874fb4f0ab790d043c05454f5716c4"
+  },
+  "checks": {
+    "realCancel": "PASS",
+    "realReschedule": "PASS",
+    "staleSafety": "PASS",
+    "ownerReadback": "PASS",
+    "operationsReadback": "PASS",
+    "capacityFinalState": "PASS",
+    "axeSeriousCritical": 0,
+    "horizontalOverflow": 0,
+    "minActionHeight": 44,
+    "keyboardFocus": {
+      "status": "PASS",
+      "targets": [
+        "owner-cancel-trigger",
+        "cancel-dialog-focus-return",
+        "ops-overlay-focus-trap-escape-return",
+        "owner-reschedule-trigger",
+        "ops-overlay-focus-trap-escape-return",
+        "ops-apply-reschedule",
+        "owner-reschedule-trigger"
+      ]
+    }
+  },
+  "states": [
+    "owner-booking-before-change",
+    "owner-cancel-confirmation",
+    "owner-cancel-request-open",
+    "ops-cancel-queue",
+    "ops-cancel-detail",
+    "owner-booking-cancelled",
+    "owner-reschedule-confirmation",
+    "owner-reschedule-request-open",
+    "ops-reschedule-queue",
+    "ops-replacement-slot-selection",
+    "ops-reschedule-completed",
+    "owner-booking-rescheduled",
+    "stale-replacement-conflict"
+  ],
+  "viewports": [
+    "390x844",
+    "1440x900",
+    "768x1024",
+    "430x932",
+    "1024x768"
+  ],
+  "cases": [
+    {
+      "state": "owner-booking-before-change",
+      "file": "01-owner-booking-before-change-390x844.png",
+      "width": 390,
+      "height": 844,
+      "surface": "owner",
+      "sha256": "ed87c5ced7d273a470a1ab64d14ae2d823b190b12267400fc514e672b6a2f8b4"
+    },
+    {
+      "state": "owner-booking-before-change",
+      "file": "02-owner-booking-before-change-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "surface": "owner",
+      "sha256": "2700ba7f2f6137b5311ce32d90bcfeef5da563dcb4932d5f4f95ef83861d843e"
+    },
+    {
+      "state": "owner-cancel-confirmation",
+      "file": "03-owner-cancel-confirmation-390x844.png",
+      "width": 390,
+      "height": 844,
+      "surface": "owner",
+      "sha256": "63ce7ca03b926fd650e35cb35e43ef904884826c53ce6d121eb65caf4c49d44e"
+    },
+    {
+      "state": "owner-cancel-request-open",
+      "file": "04-owner-cancel-request-open-390x844.png",
+      "width": 390,
+      "height": 844,
+      "surface": "owner",
+      "sha256": "bebedebf6fc94a5ab14dd7edc604343e7a862b30a7ded558e8f2359a866ff465"
+    },
+    {
+      "state": "owner-cancel-request-open",
+      "file": "05-owner-cancel-request-open-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "surface": "owner",
+      "sha256": "40fc271f7a46be5c84bad5340f96fa52f85af9af899272d88faaaf194c7e2d5a"
+    },
+    {
+      "state": "ops-cancel-queue",
+      "file": "06-ops-cancel-queue-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "surface": "operations",
+      "sha256": "c0897254e5cb30e57e3bce308bd6eceba52c0d46241cff6611d7db24f83dac19"
+    },
+    {
+      "state": "ops-cancel-queue",
+      "file": "07-ops-cancel-queue-430x932.png",
+      "width": 430,
+      "height": 932,
+      "surface": "operations",
+      "sha256": "702e615fcf0e64f4a16a95f7118812d17fda9fb14dc5dae8198eff532657a0b9"
+    },
+    {
+      "state": "ops-cancel-detail",
+      "file": "08-ops-cancel-detail-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "surface": "operations",
+      "sha256": "29ce2dd4694dbad0996ab3f70c1ea62c5beadc5420be26e7ac6492cd33726b36"
+    },
+    {
+      "state": "owner-booking-cancelled",
+      "file": "09-owner-booking-cancelled-390x844.png",
+      "width": 390,
+      "height": 844,
+      "surface": "owner",
+      "sha256": "dc1a2a047b6e97faa05ec565fcbbcc391c684a150be19f841c3548f72cc7d77d"
+    },
+    {
+      "state": "owner-booking-cancelled",
+      "file": "10-owner-booking-cancelled-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "surface": "owner",
+      "sha256": "652bb5caaac0bf69ce9f14602e4d2b9aac1e987053218f2f93452b19f7ecd678"
+    },
+    {
+      "state": "owner-reschedule-confirmation",
+      "file": "11-owner-reschedule-confirmation-390x844.png",
+      "width": 390,
+      "height": 844,
+      "surface": "owner",
+      "sha256": "5945acc47fba3b4f992745ba0fbaad5254b6bc33b3195a20f0eabef3c89dba2d"
+    },
+    {
+      "state": "owner-reschedule-request-open",
+      "file": "12-owner-reschedule-request-open-390x844.png",
+      "width": 390,
+      "height": 844,
+      "surface": "owner",
+      "sha256": "e364b0a0ce358c26c906291b5904526afbdcfa8f34790e7e83dbbc6d0f08edd1"
+    },
+    {
+      "state": "owner-reschedule-request-open",
+      "file": "13-owner-reschedule-request-open-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "surface": "owner",
+      "sha256": "52bc1204304904754b4ff394388749d1c17d68a9d993fa0f7853a20e3e780044"
+    },
+    {
+      "state": "ops-reschedule-queue",
+      "file": "14-ops-reschedule-queue-1024x768.png",
+      "width": 1024,
+      "height": 768,
+      "surface": "operations",
+      "sha256": "55d90aacc0631015310303fcdb883f3314f76ce9ad0e2b55e8d98dd96b49c64e"
+    },
+    {
+      "state": "ops-replacement-slot-selection",
+      "file": "15-ops-replacement-slot-selection-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "surface": "operations",
+      "sha256": "a56b4a208ad8b1739ca5507839b0e0050c0b49178ba616a90be06dba47196500"
+    },
+    {
+      "state": "ops-replacement-slot-selection",
+      "file": "16-ops-replacement-slot-selection-430x932.png",
+      "width": 430,
+      "height": 932,
+      "surface": "operations",
+      "sha256": "5b76061434b18fa24ddb2a7ae7d00eb685a46693f33ffaf890da36e1483d6268"
+    },
+    {
+      "state": "ops-reschedule-completed",
+      "file": "17-ops-reschedule-completed-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "surface": "operations",
+      "sha256": "7c040679a27b7f8a33ba07bc6b72601eedb11f5403fcb1dffc26d939db2df7e5"
+    },
+    {
+      "state": "owner-booking-rescheduled",
+      "file": "18-owner-booking-rescheduled-390x844.png",
+      "width": 390,
+      "height": 844,
+      "surface": "owner",
+      "sha256": "29e9023390ee0c9425820c8add84a902632dd4478d7701c98ee9f0a9b52a4f24"
+    },
+    {
+      "state": "owner-booking-rescheduled",
+      "file": "19-owner-booking-rescheduled-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "surface": "owner",
+      "sha256": "6dfd49a5ba8fcb04ae83b8a64bf4ae9cce885d841da9fe7bff9228df5315756b"
+    },
+    {
+      "state": "stale-replacement-conflict",
+      "file": "20-stale-replacement-conflict-1024x768.png",
+      "width": 1024,
+      "height": 768,
+      "surface": "operations",
+      "sha256": "97e46fd252467cedab8550023638fe2c0e3fceea2f5c505158d43408aac24624"
+    },
+    {
+      "state": "stale-replacement-conflict",
+      "file": "21-stale-replacement-conflict-430x932.png",
+      "width": 430,
+      "height": 932,
+      "surface": "operations",
+      "sha256": "45473f886043dea841f0b60356cb63f94ee3753c7b571ed61f8b0038656ea06d"
+    }
+  ]
+}

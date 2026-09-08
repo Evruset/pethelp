@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test';
 import type { BrowserContext, Locator, Page } from '@playwright/test';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import { createHash } from 'node:crypto';
+import { readFile, writeFile } from 'node:fs/promises';
 import { SignJWT } from 'jose';
+import AxeBuilder from '@axe-core/playwright';
 import { captureEvidence, uiStep } from './support/evidence';
 
 const clinicId = '11111111-1111-4111-8111-111111111111';
@@ -15,6 +18,9 @@ const periodId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const newServiceId = '99999999-9999-4999-8999-999999999999';
 const newStaffId = '10101010-1010-4010-8010-101010101010';
 const newResourceId = '20202020-2020-4020-8020-202020202020';
+const catalogDoctorId = '30303030-3030-4030-8030-303030303030';
+const doctorShiftId = '40404040-4040-4040-8040-404040404040';
+const generationRunId = '50505050-5050-4050-8050-505050505050';
 const mockBackendPort = 3212;
 const jwtSecret = 'clinic-e2e-secret-at-least-32-bytes';
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -38,7 +44,9 @@ type BackendMode =
   | 'blackout-stale'
   | 'period-stale'
   | 'period-has-bookings'
-  | 'import-business-error';
+  | 'import-business-error'
+  | 'doctor-unavailable'
+  | 'doctor-stale';
 
 type ServiceForm = {
   code: string;
@@ -68,6 +76,7 @@ let schedule: any = makeSchedule();
 let requests: RequestRecord[] = [];
 let scheduleReads = 0;
 let backendMode: BackendMode = 'normal';
+let doctorInventory: any = makeDoctorInventory(false);
 
 test.describe.configure({ mode: 'serial' });
 
@@ -87,6 +96,120 @@ test.beforeEach(() => {
   requests = [];
   scheduleReads = 0;
   backendMode = 'normal';
+  doctorInventory = makeDoctorInventory(false);
+});
+
+test('creates, previews and publishes DoctorShift inventory accessibly across the responsive matrix', async ({ page, context, baseURL },testInfo) => {
+  doctorInventory = makeDoctorInventory(true);
+  await addAdminSession(context, baseURL);
+  await page.goto(route());
+  const panel = section(page, 'Смены врачей и публикация');
+  await panel.getByRole('button', { name: 'Создать смену' }).click();
+  await expect(panel.getByRole('button', { name: 'Сгенерировать' })).toBeVisible();
+  await panel.getByRole('button', { name: 'Сгенерировать' }).click();
+  await expect(panel).toContainText('Предпросмотр · 2');
+  await expect(panel).toContainText('Удерживается');
+  await expect(panel.getByRole('button', { name: /Опубликовать 2/ })).toBeVisible();
+  await panel.getByRole('button', { name: /Опубликовать 2/ }).click();
+  await expect(panel).toContainText('PUBLISHED');
+  const accessibility=await new AxeBuilder({page}).include('[aria-labelledby="doctor-shifts-heading"]').analyze();
+  expect(accessibility.violations.filter((item)=>['serious','critical'].includes(item.impact??''))).toEqual([]);
+  for(const viewport of [{width:390,height:844},{width:430,height:932},{width:768,height:1024},{width:1024,height:768},{width:1280,height:800},{width:1440,height:900}]){
+    await page.setViewportSize(viewport);await expect(panel).toBeVisible();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
+    await captureEvidence(page,testInfo,`doctor-shift-published-${viewport.width}x${viewport.height}`);
+  }
+  expectRequest('POST', `${prefix()}/doctor-services`, expect.objectContaining({ doctorId: catalogDoctorId, serviceId }), 'idempotent');
+  expectRequest('POST', `${prefix()}/doctor-shifts`, expect.objectContaining({ doctorId: catalogDoctorId }), 'idempotent');
+  expectRequest('POST', `${prefix()}/doctor-shifts/${doctorShiftId}/generate`, expect.anything(), 'versioned');
+  expectRequest('POST', `${prefix()}/inventory-runs/${generationRunId}/publish`, expect.anything(), 'idempotent');
+});
+
+test('renders the DoctorShift publication workspace fail-closed when no bridged doctor exists', async ({ page, context, baseURL }, testInfo) => {
+  await addAdminSession(context, baseURL);
+  await page.goto(route());
+  const panel = section(page, 'Смены врачей и публикация');
+  await expect(panel).toContainText('Pilot capacity: 1');
+  await expect(panel).toContainText('Нет активного врача со связью staff ↔ каталог.');
+  await expect(panel.getByRole('button', { name: 'Создать смену' })).toHaveCount(0);
+  for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 }, { width: 1440, height: 1000 }]) {
+    await page.setViewportSize(viewport);
+    await expect(panel).toBeVisible();
+    await captureEvidence(page, testInfo, `doctor-shift-${viewport.width}`);
+  }
+  await panel.getByRole('button',{name:'Связать врача'}).click();
+  await expect(panel.getByRole('button',{name:'Создать смену'})).toBeVisible();
+  await panel.getByRole('button',{name:'Создать смену'}).click();
+  await expect(panel).toContainText('Изменения сохранены в авторитетном расписании.');
+  expectRequest('POST',`${prefix()}/doctor-mappings`,expect.objectContaining({staffId,doctorId:catalogDoctorId}),'idempotent');
+  expectRequest('POST', `${prefix()}/doctor-services`, expect.objectContaining({ doctorId: catalogDoctorId, serviceId }), 'idempotent');
+  expectRequest('POST', `${prefix()}/doctor-shifts`, expect.objectContaining({ doctorId: catalogDoctorId }), 'idempotent');
+});
+
+test('keeps the manual schedule usable when the DoctorShift projection is unavailable',async({page,context,baseURL})=>{
+  backendMode='doctor-unavailable';await addAdminSession(context,baseURL);await page.goto(route());
+  await expect(page.getByRole('heading',{name:'Услуги локации'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Смены врачей временно недоступны'})).toBeVisible();
+  await expect(page.getByText('Ручное расписание продолжает работать.')).toBeVisible();
+});
+
+test('captures the final DoctorShift visual state and viewport matrix',async({page,context,baseURL,browser,browserName})=>{
+  const viewports=[{width:390,height:844},{width:430,height:932},{width:768,height:1024},{width:1024,height:768},{width:1440,height:900}];
+  let overflowChecks=0;let axeScans=0;let screenshots=0;const semanticStates:string[]=[];
+  const capture=async(name:string,roles:string[]= ['CLINIC_ADMIN'],action?:()=>Promise<void>)=>{
+    await addClinicSession(context,baseURL,roles);
+    await page.goto(route());
+    if(action)await action();
+    const target=backendMode==='doctor-unavailable'?page.getByRole('heading',{name:'Смены врачей временно недоступны'}).locator('xpath=ancestor::section[1]'):section(page,'Смены врачей и публикация');
+    await expect(target).toBeVisible();
+    const semantic:Record<string,string>={'vis-01-empty':'Связать врача','vis-02-doctor-selected':'Создать смену','vis-03-draft-shift':'DRAFT','vis-04-shift-editor':'Сохранить смену','vis-05-generated-preview':'Предпросмотр · 2','vis-06-published-inventory':'PUBLISHED','vis-07-blocked-inventory':'BLOCKED','vis-08-held-slot':'Удерживается','vis-09-booked-slot':'Записан','vis-10-stale-conflict':'Смена уже изменена другим пользователем','vis-11-technical-degraded':'Ручное расписание продолжает работать','vis-12-read-only-role':'Режим просмотра'};
+    await expect(target).toContainText(semantic[name]);semanticStates.push(name);
+    if(['vis-08-held-slot','vis-09-booked-slot'].includes(name)){await expect(target).toContainText('Смена защищена удержанием или записью');await expect(target.getByRole('button',{name:'Снять публикацию'})).toBeDisabled();await expect(target.getByRole('button',{name:'Заблокировать'})).toBeDisabled();await expect(target.getByRole('button',{name:'Отменить смену'})).toBeDisabled();}
+    const accessibility=await new AxeBuilder({page}).include(backendMode==='doctor-unavailable'?'#doctor-shift-degraded':'[aria-labelledby="doctor-shifts-heading"]').analyze();
+    expect(accessibility.violations.filter((item)=>['serious','critical'].includes(item.impact??'')),name).toEqual([]);
+    axeScans+=1;
+    for(const viewport of viewports){
+      await page.setViewportSize(viewport);
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),`${name} ${viewport.width}`).toBe(true);
+      overflowChecks+=1;
+      if(['vis-03-draft-shift','vis-05-generated-preview','vis-06-published-inventory','vis-07-blocked-inventory','vis-08-held-slot','vis-09-booked-slot','vis-12-read-only-role'].includes(name))await target.locator('article').first().scrollIntoViewIfNeeded();
+      await page.screenshot({path:`../../docs/testing/evidence/wave3-doctor-shift-inventory/${name}-${viewport.width}x${viewport.height}.png`,animations:'disabled'});
+      screenshots+=1;
+    }
+  };
+
+  doctorInventory=makeDoctorInventory(false);await capture('vis-01-empty');
+  doctorInventory=makeDoctorInventory(true);await capture('vis-02-doctor-selected');
+  doctorInventory=makeVisualDoctorInventory('DRAFT');await capture('vis-03-draft-shift');
+  doctorInventory=makeVisualDoctorInventory('DRAFT');await capture('vis-04-shift-editor',['CLINIC_ADMIN'],async()=>{await section(page,'Смены врачей и публикация').getByRole('button',{name:'Изменить'}).click();await expect(section(page,'Смены врачей и публикация').getByRole('button',{name:'Сохранить смену'})).toBeVisible();});
+  doctorInventory=makeVisualDoctorInventory('GENERATED');await capture('vis-05-generated-preview');
+  doctorInventory=makeVisualDoctorInventory('PUBLISHED');await capture('vis-06-published-inventory');
+  doctorInventory=makeVisualDoctorInventory('BLOCKED');await capture('vis-07-blocked-inventory');
+  doctorInventory=makeVisualDoctorInventory('HELD');await capture('vis-08-held-slot');
+  doctorInventory=makeVisualDoctorInventory('BOOKED');await capture('vis-09-booked-slot');
+  doctorInventory=makeVisualDoctorInventory('DRAFT');backendMode='doctor-stale';await capture('vis-10-stale-conflict',['CLINIC_ADMIN'],async()=>{await section(page,'Смены врачей и публикация').getByRole('button',{name:'Сгенерировать'}).click();await expect(section(page,'Смены врачей и публикация').getByRole('status')).toContainText('Смена уже изменена другим пользователем');});
+  doctorInventory=makeDoctorInventory(true);backendMode='doctor-unavailable';await capture('vis-11-technical-degraded');
+  doctorInventory=makeVisualDoctorInventory('PUBLISHED');backendMode='normal';await capture('vis-12-read-only-role',['CLINIC_RECEPTIONIST'],async()=>{const panel=section(page,'Смены врачей и публикация');await expect(panel).toContainText('Режим просмотра');await expect(panel.getByRole('button')).toHaveCount(0);});
+  const captureScript=await readFile('tests/e2e/clinic-schedule-admin.spec.ts');
+  await writeFile('../../docs/testing/evidence/wave3-doctor-shift-inventory/capture-run.json',`${JSON.stringify({schemaVersion:1,test:'captures the final DoctorShift visual state and viewport matrix',status:'PASS',completedAt:new Date().toISOString(),browser:{name:browserName,version:browser.version()},captureScriptSha256:createHash('sha256').update(captureScript).digest('hex'),semanticStates,checks:{overflowChecks,axeScans,screenshots}},null,2)}\n`);
+});
+
+test('keeps receptionist and veterinarian DoctorShift views read-only and scopes preview to the published run',async({page,context,baseURL})=>{
+  for(const role of ['CLINIC_RECEPTIONIST','CLINIC_VETERINARIAN']){
+    doctorInventory=makeVisualDoctorInventory('PUBLISHED');backendMode='normal';
+    await addClinicSession(context,baseURL,[role]);await page.goto(route());
+    const panel=section(page,'Смены врачей и публикация');
+    await expect(panel).toContainText('Режим просмотра');
+    await expect(panel.getByRole('button')).toHaveCount(0);
+    await context.clearCookies();
+  }
+  doctorInventory=makeVisualDoctorInventory('PUBLISHED');
+  doctorInventory.runs.push({id:'70707070-7070-4070-8070-707070707070',doctor_shift_id:doctorShiftId,shift_version:2,generation_version:2,status:'GENERATED',slot_count:1,completed_at:'2026-08-28T09:00:00.000Z'});
+  doctorInventory.generatedSlots.push({...doctorInventory.generatedSlots[0],id:'80808080-8080-4080-8080-808080808080',generation_run_id:'70707070-7070-4070-8070-707070707070',service_name:'Устаревший предпросмотр'});
+  await addAdminSession(context,baseURL);await page.goto(route());
+  const panel=section(page,'Смены врачей и публикация');
+  await expect(panel).toContainText('Опубликован');
+  await expect(panel).not.toContainText('Устаревший предпросмотр');
 });
 
 test.afterEach(async ({ page }, testInfo) => {
@@ -450,9 +573,13 @@ function objectMatches(actual: unknown, expected: unknown): boolean {
 }
 
 async function addAdminSession(context: BrowserContext, baseURL: string | undefined): Promise<void> {
+  return addClinicSession(context,baseURL,['CLINIC_ADMIN']);
+}
+
+async function addClinicSession(context: BrowserContext, baseURL: string | undefined, roles: string[]): Promise<void> {
   if (!baseURL) throw new Error('baseURL is required');
   const token = await new SignJWT({
-    roles: ['CLINIC_ADMIN'],
+    roles,
     clinicIds: [clinicId],
     locationIds: [locationId],
   })
@@ -479,7 +606,7 @@ function handleBackendRequest(request: IncomingMessage, response: ServerResponse
     sendJson(response, 200, {
       subjectId: 'clinic-schedule-admin-e2e',
       roles: ['CLINIC_ADMIN'],
-      effectiveCapabilities: ['schedule.read'],
+      effectiveCapabilities: ['schedule.read', 'schedule.manage'],
       clinicScopes: [{ clinicId, locationId }],
     });
     return;
@@ -488,6 +615,12 @@ function handleBackendRequest(request: IncomingMessage, response: ServerResponse
   if (request.method === 'GET' && path === `${prefix()}/slots`) {
     scheduleReads += 1;
     sendJson(response, 200, schedule);
+    return;
+  }
+
+  if (request.method === 'GET' && path === `${prefix()}/doctor-shifts`) {
+    if(backendMode==='doctor-unavailable'){sendJson(response,503,{code:'DOCTOR_SHIFT_INVENTORY_DISABLED'});return;}
+    sendJson(response, 200, doctorInventory);
     return;
   }
 
@@ -508,6 +641,11 @@ function handleBackendRequest(request: IncomingMessage, response: ServerResponse
       if (path === `${prefix()}/slots/${freeSlotId}/blackout`) return handleBlackout(response);
       if (path === `${prefix()}/periods`) return handleCreatePeriod(response, body);
       if (path === `${prefix()}/periods/${periodId}/cancel`) return handleCancelPeriod(response);
+      if (path === `${prefix()}/doctor-mappings`) { doctorInventory.veterinarians[0].catalog_doctor_id=catalogDoctorId; doctorInventory.doctors=[{staff_id:staffId,doctor_id:catalogDoctorId,display_name:'Доктор Айболит',full_name:'Доктор Айболит'}]; return sendJson(response,201,{staff_id:staffId,doctor_id:catalogDoctorId,version:2}); }
+      if (path === `${prefix()}/doctor-services`) { doctorInventory.doctorServices.push({id:newServiceId,staff_id:staffId,doctor_id:catalogDoctorId,service_id:serviceId,resource_id:null,slot_capacity:1,active:true,version:1,doctor_name:'Доктор Айболит',service_name:'Первичный приём',duration_minutes:30}); return sendJson(response,201,doctorInventory.doctorServices[0]); }
+      if (path === `${prefix()}/doctor-shifts`) { doctorInventory.shifts.push({id:doctorShiftId,staffId,doctorId:catalogDoctorId,startsAt:(body as any).startsAt,endsAt:(body as any).endsAt,timezone:'Europe/Moscow',status:'DRAFT',version:1,generationVersion:0}); return sendJson(response,201,doctorInventory.shifts[0]); }
+      if (path === `${prefix()}/doctor-shifts/${doctorShiftId}/generate`) { if(backendMode==='doctor-stale')return sendJson(response,409,{code:'DOCTOR_SHIFT_STALE'});doctorInventory.runs.unshift({id:generationRunId,doctor_shift_id:doctorShiftId,shift_version:1,generation_version:1,status:'GENERATED',slot_count:2,completed_at:new Date().toISOString()}); doctorInventory.shifts[0].generationVersion=1; doctorInventory.generatedSlots=[0,1].map((index:number)=>({id:`60606060-6060-4060-8060-60606060606${index}`,doctor_shift_id:doctorShiftId,generation_run_id:generationRunId,service_id:serviceId,service_name:'Первичный приём',starts_at:new Date(Date.now()+86400000+index*1800000).toISOString(),ends_at:new Date(Date.now()+86400000+(index+1)*1800000).toISOString(),capacity:1,held_count:index,booked_count:0,state:'CLOSED',status:index?'LOCKED_BY_HOLD':'AVAILABLE',publication_state:'DRAFT',version:1})); return sendJson(response,200,{id:generationRunId,status:'GENERATED',slotCount:2}); }
+      if (path === `${prefix()}/inventory-runs/${generationRunId}/publish`) { doctorInventory.runs[0].status='PUBLISHED'; doctorInventory.shifts[0].status='PUBLISHED'; doctorInventory.generatedSlots.forEach((slot:any)=>{slot.publication_state='PUBLISHED';slot.state='OPEN';}); return sendJson(response,200,{runId:generationRunId,publicationState:'PUBLISHED',slotCount:2}); }
 
       sendJson(response, 404, { code: 'NOT_FOUND' });
     }).catch(() => sendJson(response, 400, { code: 'INVALID_REQUEST' }));
@@ -775,6 +913,23 @@ function makeSchedule(): any {
     baseSlot(freeSlotId, snapshot),
   ];
   return snapshot;
+}
+
+function makeDoctorInventory(withDoctor: boolean): any {
+  return { clinicId, locationId, timezone:'Europe/Moscow', mutationEnabled:true, doctors: withDoctor ? [{staff_id:staffId,doctor_id:catalogDoctorId,display_name:'Доктор Айболит',full_name:'Доктор Айболит'}] : [], veterinarians:[{id:staffId,display_name:'Доктор Айболит',catalog_doctor_id:withDoctor?catalogDoctorId:null}], catalogDoctors:[{id:catalogDoctorId,full_name:'Доктор Айболит'}], doctorServices: [], shifts: [], runs: [], generatedSlots:[] };
+}
+
+function makeVisualDoctorInventory(state:'DRAFT'|'GENERATED'|'PUBLISHED'|'BLOCKED'|'HELD'|'BOOKED'):any{
+  const inventory=makeDoctorInventory(true);
+  const published=['PUBLISHED','HELD','BOOKED'].includes(state);
+  const generated=state!=='DRAFT';
+  inventory.doctorServices=[{id:newServiceId,staff_id:staffId,doctor_id:catalogDoctorId,service_id:serviceId,resource_id:null,slot_capacity:1,active:true,version:1,doctor_name:'Доктор Айболит',service_name:'Первичный приём',duration_minutes:30}];
+  inventory.shifts=[{id:doctorShiftId,staffId,doctorId:catalogDoctorId,startsAt:'2026-09-10T08:00:00.000Z',endsAt:'2026-09-10T09:00:00.000Z',timezone:'Europe/Moscow',status:state==='BLOCKED'?'BLOCKED':published?'PUBLISHED':'DRAFT',version:3,generationVersion:generated?1:0}];
+  if(generated){
+    inventory.runs=[{id:generationRunId,doctor_shift_id:doctorShiftId,shift_version:3,generation_version:1,status:published?'PUBLISHED':'GENERATED',slot_count:2,completed_at:'2026-08-28T10:00:00.000Z'}];
+    inventory.generatedSlots=[0,1].map((index)=>{const startsAt=new Date(Date.parse('2026-09-10T08:00:00.000Z')+index*30*60_000);const endsAt=new Date(startsAt.getTime()+30*60_000);return {id:`60606060-6060-4060-8060-60606060606${index}`,doctor_shift_id:doctorShiftId,generation_run_id:generationRunId,service_id:serviceId,service_name:'Первичный приём',starts_at:startsAt.toISOString(),ends_at:endsAt.toISOString(),capacity:1,held_count:state==='HELD'&&index===0?1:0,booked_count:state==='BOOKED'&&index===0?1:0,state:state==='BLOCKED'?'CLOSED':'OPEN',status:state==='BOOKED'&&index===0?'BOOKED':state==='HELD'&&index===0?'LOCKED_BY_HOLD':'AVAILABLE',publication_state:state==='BLOCKED'?'BLOCKED':published?'PUBLISHED':'DRAFT',version:2};});
+  }
+  return inventory;
 }
 
 function baseSlot(id: string, snapshot: any): any {

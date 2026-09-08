@@ -13,7 +13,7 @@ jest.setTimeout(60_000);
 describe('V50 owner bookings and cancellation (real PostgreSQL)', () => {
   const database = new DatabaseService();
   const bookings = new OwnerAppointmentsService(database);
-  const clinicAccess = { assertLocationAccess: jest.fn(), assertBookingHoldReadAccess: jest.fn() } as never;
+  const clinicAccess = { assertLocationAccess: jest.fn(), assertBookingHoldReadAccess: jest.fn(), assertBookingDecisionCapability: jest.fn(), assertBookingDecisionAccess: jest.fn() } as never;
   const security = new BookingSecurityService(database, clinicAccess);
   const read = new BookingHoldReadService(database, {} as never);
   const queue = new ClinicQueueService(database, { assertBookingQueueReadAccess: jest.fn() } as never);
@@ -77,7 +77,10 @@ describe('V50 owner bookings and cancellation (real PostgreSQL)', () => {
     const replay = await security.releaseHold({ holdId: fixture.localHold, actor, idempotencyKey: key, correlationId: randomUUID(), expectedVersion: 1, reasonCode: 'OWNER_PLANS_CHANGED', normalizeOwnerNotFound: true });
     expect(replay).toEqual(first);
     await expect(security.releaseHold({ holdId: fixture.localHold, actor, idempotencyKey: key, correlationId, expectedVersion: 2, reasonCode: 'OTHER', normalizeOwnerNotFound: true }))
-      .rejects.toMatchObject({ status: 409, response: { code: 'IDEMPOTENCY_PAYLOAD_CONFLICT' } });
+      .rejects.toMatchObject({
+        status: 409,
+        response: { code: process.env.MVP_SCOPE_PROFILE === 'PILOT_V1' ? 'IDEMPOTENCY_CONFLICT' : 'IDEMPOTENCY_PAYLOAD_CONFLICT' },
+      });
     const invariant = await cancellationInvariant(database, fixture.localHold, fixture.localSlot);
     expect(invariant).toEqual({ state: 'RELEASED', held_count: 0, booked_count: 0, audits: '1', effects: '1' });
   });

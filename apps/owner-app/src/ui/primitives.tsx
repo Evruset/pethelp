@@ -3,10 +3,10 @@ import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, Text, TextIn
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { uiTokens as t } from './tokens';
 
-export function OwnerAppFrame({ children }: PropsWithChildren) {
+export function OwnerAppFrame({ children, wide = false }: PropsWithChildren<{ wide?: boolean }>) {
   const { width } = useWindowDimensions();
-  const webWide = Platform.OS === 'web' && width >= 768;
-  return <View style={{ flex: 1, backgroundColor: t.color.background, alignItems: webWide ? 'center' : 'stretch' }}><SafeAreaView style={{ flex: 1, width: '100%', maxWidth: webWide ? t.layout.phoneMaxWidth : undefined, backgroundColor: t.color.surface, ...(webWide ? t.shadow.card : {}) }}>{children}</SafeAreaView></View>;
+  const webWide = Platform.OS === 'web' && width >= t.layout.ownerV50DesktopMinWidth;
+  return <View style={{ flex: 1, backgroundColor: t.color.background, alignItems: webWide ? 'center' : 'stretch' }}><SafeAreaView style={{ flex: 1, width: '100%', maxWidth: webWide ? (wide ? t.layout.desktopMaxWidth : t.layout.phoneMaxWidth) : undefined, backgroundColor: t.color.surface, ...(webWide ? t.shadow.card : {}) }}>{children}</SafeAreaView></View>;
 }
 
 export function Screen({ children, title, subtitle, accessibilityLabel = title, backAction, scroll = true }: PropsWithChildren<{ title: string; subtitle?: string; accessibilityLabel?: string; backAction?: () => void; scroll?: boolean }>) {
@@ -22,7 +22,7 @@ export function BackAction({ onPress, label = 'Назад' }: { onPress(): void;
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive';
 export function Button({ label, onPress, disabled = false, variant = 'primary' }: { label: string; onPress(): void; disabled?: boolean; variant?: ButtonVariant }) {
   const primary = variant === 'primary'; const destructive = variant === 'destructive'; const outlined = variant === 'secondary' || destructive;
-  return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => ({ minHeight: t.layout.minTouch, justifyContent: 'center', paddingHorizontal: t.spacing.lg, paddingVertical: 13, borderWidth: outlined ? 1 : 0, borderColor: destructive ? t.color.critical : t.color.separator, borderRadius: t.radius.control, backgroundColor: disabled ? t.color.disabledSurface : primary ? (pressed ? t.color.accentPressed : t.color.accent) : destructive ? t.color.criticalSoft : variant === 'secondary' ? t.color.surface : 'transparent', opacity: pressed && !primary ? 0.62 : 1 })}><Text style={{ ...t.typography.button, color: disabled ? t.color.disabled : primary ? t.color.onAccent : destructive ? t.color.critical : t.color.accent, textAlign: 'center' }}>{label}</Text></Pressable>;
+  return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => ({ minHeight: t.layout.minTouch, justifyContent: 'center', paddingHorizontal: t.spacing.lg, paddingVertical: 13, borderWidth: outlined ? 1 : 0, borderColor: destructive ? t.color.critical : t.color.separator, borderRadius: t.radius.control, backgroundColor: disabled ? t.color.disabledSurface : primary ? (pressed ? t.ownerHome.bluePressed : t.ownerHome.blue) : destructive ? t.color.criticalSoft : variant === 'secondary' ? t.color.surface : 'transparent', opacity: pressed && !primary ? 0.62 : 1 })}><Text style={{ ...t.typography.button, color: disabled ? t.color.disabled : primary ? t.color.onAccent : destructive ? t.color.critical : t.ownerHome.blue, textAlign: 'center' }}>{label}</Text></Pressable>;
 }
 export const PrimaryButton = Button;
 export function SecondaryButton(props: Omit<Parameters<typeof Button>[0], 'variant'>) { return <Button {...props} variant="secondary" />; }

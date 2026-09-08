@@ -1,0 +1,176 @@
+{
+  "generatedAt": "2026-09-08T11:35:14.568Z",
+  "prototype": {
+    "source": "prototype-v50/index.html",
+    "selector": "#doctor-select",
+    "sourceSha256": "81d5effec9805021f9ad5c74d93519903ec6624895bacfe9282ad185a3c270c9",
+    "cases": [
+      {
+        "name": "mobile",
+        "width": 390,
+        "height": 844,
+        "file": "prototype-mobile.png",
+        "sha256": "f3082e25d225a2e26abcd5ff79006ba2b1cdb44c6546104dfe19d2ac831f4369"
+      },
+      {
+        "name": "tablet",
+        "width": 768,
+        "height": 900,
+        "file": "prototype-tablet.png",
+        "sha256": "1fea6867dcab34d214928a0a226ccfc03da2fea5f7fc625a924e8f1dc4d3f541"
+      },
+      {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900,
+        "file": "prototype-desktop.png",
+        "sha256": "1fc372a8e2b3257c23ade0cddba28ceb9cd8ceec333bb97b50ec953c897d364a"
+      }
+    ]
+  },
+  "runtime": {
+    "source": "apps/owner-app/src/discovery/SpecialistSelectionScreen.tsx",
+    "sourceSha256": "8d7f7fe547806a80e2e3cf59dae66f4c7966223bb811a0c87b9c52bf1dc1d950",
+    "cases": [
+      {
+        "name": "mobile-content",
+        "width": 390,
+        "height": 844,
+        "state": "content",
+        "file": "runtime-mobile-content.png",
+        "sha256": "916f739f59b290be0ea70768b07b8a400c64c349cffc84406c27292321e60b4e"
+      },
+      {
+        "name": "mobile-selected",
+        "width": 390,
+        "height": 844,
+        "state": "selected",
+        "file": "runtime-mobile-selected.png",
+        "sha256": "99fd77356ce62258387b44d58317d84d351514deb21a035a3fc47f9e83ee6b31"
+      },
+      {
+        "name": "mobile-loading",
+        "width": 390,
+        "height": 844,
+        "state": "loading",
+        "file": "runtime-mobile-loading.png",
+        "sha256": "c250666f614a3503f73fb79b0feeba9073fd4cc53c43ac48c58c441743af8a4b"
+      },
+      {
+        "name": "mobile-empty",
+        "width": 390,
+        "height": 844,
+        "state": "empty",
+        "file": "runtime-mobile-empty.png",
+        "sha256": "c1a37e9c88731b51ec47f6751214150f51070aaa0d182bdbd3835a0bb6d5b6af"
+      },
+      {
+        "name": "mobile-error",
+        "width": 390,
+        "height": 844,
+        "state": "error",
+        "file": "runtime-mobile-error.png",
+        "sha256": "a934015aa843b9dd5c893d53de0433dd6a84ba7ba95894bfb11b7b4458241262"
+      },
+      {
+        "name": "tablet-content",
+        "width": 768,
+        "height": 900,
+        "state": "content",
+        "file": "runtime-tablet-content.png",
+        "sha256": "43c5c13753e8e23264a379e4959b7817218657816901cd83ab2d553abe7c17a9"
+      },
+      {
+        "name": "tablet-selected",
+        "width": 768,
+        "height": 900,
+        "state": "selected",
+        "file": "runtime-tablet-selected.png",
+        "sha256": "e2790a125c1e463944c348ca394ea7bb83aa1506c390794d70286e5451829571"
+      },
+      {
+        "name": "tablet-loading",
+        "width": 768,
+        "height": 900,
+        "state": "loading",
+        "file": "runtime-tablet-loading.png",
+        "sha256": "4713f0c446cfea72cf81f5122ff8ee7ead90e017a38b12f280bea98db2ae3c2e"
+      },
+      {
+        "name": "tablet-empty",
+        "width": 768,
+        "height": 900,
+        "state": "empty",
+        "file": "runtime-tablet-empty.png",
+        "sha256": "7f10d99b6a00af447ccf23c2eb232cd05f93e630706184ca5d518bc10c8562c7"
+      },
+      {
+        "name": "tablet-error",
+        "width": 768,
+        "height": 900,
+        "state": "error",
+        "file": "runtime-tablet-error.png",
+        "sha256": "2454fe26b22a60928d32dee91a79fa82eaded8c43678cca0d49ccec8cb75e854"
+      },
+      {
+        "name": "desktop-content",
+        "width": 1440,
+        "height": 900,
+        "state": "content",
+        "file": "runtime-desktop-content.png",
+        "sha256": "91ab2893de87f4db6243b84206dc8c2882233e3def93c0a982463beaea6a8856"
+      },
+      {
+        "name": "desktop-selected",
+        "width": 1440,
+        "height": 900,
+        "state": "selected",
+        "file": "runtime-desktop-selected.png",
+        "sha256": "6e9947477d4ea541770dfdb90608572c84259c017f01b1fb843390f2c1c7d529"
+      },
+      {
+        "name": "desktop-loading",
+        "width": 1440,
+        "height": 900,
+        "state": "loading",
+        "file": "runtime-desktop-loading.png",
+        "sha256": "7007d10cb9ae0ec1ce40d1c4b2f321793871757135236867d146e65a5234f692"
+      },
+      {
+        "name": "desktop-empty",
+        "width": 1440,
+        "height": 900,
+        "state": "empty",
+        "file": "runtime-desktop-empty.png",
+        "sha256": "873ddac7fcd5dd1a72ba9aff12d7513d2ff7c014bf84a36520720fccbeec03b4"
+      },
+      {
+        "name": "desktop-error",
+        "width": 1440,
+        "height": 900,
+        "state": "error",
+        "file": "runtime-desktop-error.png",
+        "sha256": "a9e3e35a127d1092b919aaaa59e642b1a9fc0369eae43f12fb7b3b9887ffc78b"
+      }
+    ]
+  },
+  "renderer": "Playwright Chromium: prototype source and production React Native Web component at identical viewports; controlled query/session seams",
+  "physicalDevice": false,
+  "comparisons": [
+    "compare-mobile-content.png",
+    "compare-mobile-selected.png",
+    "compare-mobile-loading.png",
+    "compare-mobile-empty.png",
+    "compare-mobile-error.png",
+    "compare-tablet-content.png",
+    "compare-tablet-selected.png",
+    "compare-tablet-loading.png",
+    "compare-tablet-empty.png",
+    "compare-tablet-error.png",
+    "compare-desktop-content.png",
+    "compare-desktop-selected.png",
+    "compare-desktop-loading.png",
+    "compare-desktop-empty.png",
+    "compare-desktop-error.png"
+  ]
+}
