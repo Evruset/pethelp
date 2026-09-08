@@ -28,5 +28,5 @@ export interface JwtPayload {
 
 export interface AuthenticatedRequest extends Request {
   user?: JwtPayload;
-  authMode?: 'JWT' | 'SERVICE';
+  authMode?: 'JWT' | 'SESSION' | 'SERVICE';
 }

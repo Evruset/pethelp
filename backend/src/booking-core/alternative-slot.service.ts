@@ -180,7 +180,7 @@ export class AlternativeSlotService {
         await this.expireAlternativeLocked(client, hold, this.correlationId(), 'owner-accept-detected-expiry');
         throw DomainErrors.holdExpired();
       }
-      if (sourceSlot.held_count <= 0 || alternativeSlot.held_count <= 0) throw DomainErrors.bookingUnavailable();
+      if (sourceSlot.held_count <= 0 || alternativeSlot.held_count <= 0) throw DomainErrors.slotAlreadyTaken();
 
       await this.releaseSlotCounter(client, sourceSlot.id);
       const updated = await client.query<{ version: number }>(`

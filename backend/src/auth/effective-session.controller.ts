@@ -1,10 +1,12 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { DatabaseService } from '../database/database.service';
 import { CurrentUser } from './current-user.decorator';
 import { JwtPayload } from './auth.types';
 import { effectiveCapabilities } from './capability';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { AuthErrorDto, EffectiveOwnerSessionDto } from './dto/owner-auth.dto';
+import { SWAGGER_BEARER_AUTH } from '../openapi/openapi';
 
 @ApiTags('Authentication')
 @Controller('v1/auth')
@@ -13,15 +15,21 @@ export class EffectiveSessionController {
 
   @Get('session')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('bearer')
-  @ApiOperation({ summary: 'Server-derived effective capabilities and active clinic scopes' })
-  @ApiOkResponse({ description: 'UX hint only; authorization is always evaluated server-side.' })
+  @ApiBearerAuth(SWAGGER_BEARER_AUTH)
+  @ApiOperation({ summary: 'Authoritative effective session read for opaque Owner session or legacy staff JWT' })
+  @ApiOkResponse({ description: 'UX hint only; authorization is always evaluated server-side.', type: EffectiveOwnerSessionDto })
+  @ApiUnauthorizedResponse({ description: 'Opaque session or legacy JWT is invalid, expired or revoked.', type: AuthErrorDto })
+  @ApiInternalServerErrorResponse({ description: 'INTERNAL_ERROR', type: AuthErrorDto })
   async read(@CurrentUser() actor: JwtPayload) {
     const rows = await this.database.query<{ clinic_id: string; location_id: string }>(`
-      SELECT location.clinic_id::text, membership.clinic_location_id::text AS location_id
+      SELECT DISTINCT location.clinic_id::text, membership.clinic_location_id::text AS location_id
       FROM clinic_schema.employee_location_memberships membership
       JOIN clinic_schema.clinic_locations location ON location.id = membership.clinic_location_id
-      WHERE membership.employee_id = $1::uuid AND membership.active = true AND location.status = 'ACTIVE'
+      WHERE membership.employee_id = $1::uuid
+        AND membership.active = true
+        AND membership.revoked_at IS NULL
+        AND location.status = 'ACTIVE'
+      ORDER BY location.clinic_id::text, membership.clinic_location_id::text
     `, [actor.sub]);
     const clinicScopes = rows.rows.map((row) => ({ clinicId: row.clinic_id, locationId: row.location_id }));
     return { subjectId: actor.sub, roles: actor.roles, effectiveCapabilities: effectiveCapabilities(actor), clinicScopes };

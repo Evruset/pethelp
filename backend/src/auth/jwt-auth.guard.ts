@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { config } from '../config';
 import { TraceContext } from '../observability/trace-context.context';
 import { AuthenticatedRequest, JwtPayload, Role } from './auth.types';
+import { OwnerAuthService } from './owner-auth.service';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const allowedRoles = new Set<string>(Object.values(Role));
@@ -12,22 +13,31 @@ export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly jwt: JwtService,
     private readonly traceContext: TraceContext,
+    private readonly ownerAuth: OwnerAuthService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    request.user = await this.authenticateRequest(request);
-    request.authMode = 'JWT';
+    const authenticated = await this.authenticateRequestWithMode(request);
+    request.user = authenticated.user;
+    request.authMode = authenticated.mode;
     this.traceContext.setUserId(request.user.sub);
     return true;
   }
 
   async authenticateRequest(request: AuthenticatedRequest): Promise<JwtPayload> {
+    return (await this.authenticateRequestWithMode(request)).user;
+  }
+
+  private async authenticateRequestWithMode(request: AuthenticatedRequest): Promise<{ user: JwtPayload; mode: 'JWT' | 'SESSION' }> {
     const match = /^Bearer\s+(.+)$/i.exec(request.headers.authorization ?? '');
     if (!match?.[1]) {
       throw new UnauthorizedException({ code: 'MISSING_BEARER_TOKEN', message: 'Bearer token is required.' });
     }
 
+    if (match[1].startsWith('vh_')) {
+      return { user: await this.ownerAuth.authenticateSession(match[1]), mode: 'SESSION' };
+    }
     try {
       const raw = await this.jwt.verifyAsync<JwtPayload>(match[1], {
         secret: config.jwtSecret,
@@ -35,7 +45,7 @@ export class JwtAuthGuard implements CanActivate {
         audience: config.jwtAudience,
         algorithms: ['HS256'],
       });
-      return this.normalize(raw);
+      return { user: this.normalize(raw), mode: 'JWT' };
     } catch {
       throw new UnauthorizedException({ code: 'INVALID_ACCESS_TOKEN', message: 'Access token is invalid, expired or malformed.' });
     }

@@ -10,7 +10,9 @@ async function main(): Promise<void> {
     await client.query('BEGIN');
     await client.query('TRUNCATE clinic_schema.clinics CASCADE');
     await client.query('TRUNCATE pet_schema.pets, identity_schema.users CASCADE');
-    await client.query('TRUNCATE booking_schema.outbox_events, booking_schema.idempotency_records, audit_schema.audit_log');
+    await client.query(
+      'TRUNCATE booking_schema.owner_notification_email_deliveries, booking_schema.owner_notifications, booking_schema.outbox_events, booking_schema.idempotency_records, audit_schema.audit_log',
+    );
 
     await client.query('INSERT INTO identity_schema.users (id) VALUES ($1)', [ownerId]);
     await client.query(`INSERT INTO pet_schema.pets (id, owner_id, name, species) VALUES ($1, $2, 'B01 Test Pet', 'DOG')`, [petId, ownerId]);

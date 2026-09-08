@@ -15,12 +15,12 @@ class VetHelpSurfaceTokens extends ThemeExtension<VetHelpSurfaceTokens> {
     required this.cardRadius,
     this.spaceXs = 4,
     this.spaceSm = 8,
-    this.spaceMd = 16,
-    this.spaceLg = 24,
-    this.spaceXl = 32,
-    this.fieldRadius = 16,
-    this.focusRing = Colors.teal,
-    this.focusRingWidth = 2,
+    this.spaceMd = 12,
+    this.spaceLg = 16,
+    this.spaceXl = 24,
+    this.fieldRadius = 12,
+    this.focusRing = const Color(0xFF0B62DF),
+    this.focusRingWidth = 3,
     this.success = Colors.green,
     this.warning = Colors.orange,
     this.info = Colors.blue,
@@ -122,25 +122,34 @@ class VetHelpTheme {
   static ThemeData dark() => _theme(Brightness.dark);
 
   static ThemeData _theme(Brightness brightness) {
+    final dark = brightness == Brightness.dark;
     final colors = ColorScheme.fromSeed(
-      seedColor: Colors.blue,
+      seedColor: const Color(0xFF1767F7),
       brightness: brightness,
+    ).copyWith(
+      primary: dark ? const Color(0xFF6EA8FF) : const Color(0xFF1767F7),
+      surface: dark ? const Color(0xFF101418) : const Color(0xFFF6F8FB),
+      onSurface: dark ? const Color(0xFFF5F7FA) : const Color(0xFF182230),
+      outline: dark ? const Color(0xFF343B45) : const Color(0xFFD0D5DD),
+      error: dark ? const Color(0xFFFF8A80) : const Color(0xFFB52D40),
     );
     final base = ThemeData(useMaterial3: true, colorScheme: colors);
-    final radius = BorderRadius.circular(22);
-    final fieldRadius = BorderRadius.circular(16);
+    final radius = BorderRadius.circular(18);
+    final fieldRadius = BorderRadius.circular(12);
     final tokens = VetHelpSurfaceTokens(
-      groupedSurface: colors.surfaceContainerLowest,
-      glassSurface: colors.surface.withValues(alpha: .82),
-      hairline: colors.outlineVariant.withValues(alpha: .72),
-      desktopBackdrop: colors.surfaceContainerLow,
-      contentMaxWidth: 560,
-      cardRadius: 24,
-      fieldRadius: 16,
-      focusRing: colors.primary,
-      success: Colors.green.shade700,
-      warning: Colors.orange.shade800,
-      info: Colors.blue.shade700,
+      groupedSurface: dark ? const Color(0xFF181D22) : const Color(0xFFFFFFFF),
+      glassSurface: (dark ? const Color(0xFF1C2127) : const Color(0xFFFFFFFF))
+          .withValues(alpha: .86),
+      hairline: dark ? const Color(0xFF343B45) : const Color(0xFFD0D5DD),
+      desktopBackdrop: dark ? const Color(0xFF101418) : const Color(0xFFF6F8FB),
+      contentMaxWidth: 1180,
+      cardRadius: 18,
+      fieldRadius: 12,
+      focusRing: dark ? const Color(0xFF6EA8FF) : const Color(0xFF0B62DF),
+      focusRingWidth: 3,
+      success: dark ? const Color(0xFF62D394) : const Color(0xFF08753F),
+      warning: dark ? const Color(0xFFF7B267) : const Color(0xFF7A5A00),
+      info: dark ? const Color(0xFF6EA8FF) : const Color(0xFF1557B0),
     );
 
     return base.copyWith(
@@ -241,6 +250,13 @@ class VetHelpTheme {
           );
         }),
       ),
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: tokens.glassSurface,
+        indicatorColor: colors.primaryContainer,
+        minWidth: 88,
+        minExtendedWidth: 220,
+        labelType: NavigationRailLabelType.all,
+      ),
       tabBarTheme: TabBarThemeData(
         indicatorSize: TabBarIndicatorSize.tab,
         dividerColor: tokens.hairline,
@@ -301,7 +317,10 @@ class VetHelpCupertinoTheme {
   static CupertinoThemeData data(BuildContext context) {
     return CupertinoThemeData(
       brightness: MediaQuery.platformBrightnessOf(context),
-      primaryColor: CupertinoColors.activeBlue,
+      primaryColor: const CupertinoDynamicColor.withBrightness(
+        color: Color(0xFF1767F7),
+        darkColor: Color(0xFF6EA8FF),
+      ),
       scaffoldBackgroundColor: CupertinoColors.systemGroupedBackground,
       barBackgroundColor: CupertinoColors.systemBackground,
       textTheme: const CupertinoTextThemeData(

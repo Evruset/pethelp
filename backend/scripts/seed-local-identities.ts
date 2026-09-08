@@ -9,6 +9,22 @@ async function main(): Promise<void> {
   await client.connect();
   try {
     await client.query('BEGIN');
+    const collision = await client.query<{
+      phone_user_id: string | null;
+      pet_owner_id: string | null;
+      owner_phone: string | null;
+    }>(`
+      SELECT
+        (SELECT user_id::text FROM identity_schema.owner_identities WHERE phone_e164 = $2) AS phone_user_id,
+        (SELECT owner_id::text FROM pet_schema.pets WHERE id = $3::uuid) AS pet_owner_id,
+        (SELECT phone_e164 FROM identity_schema.owner_identities WHERE user_id = $1::uuid LIMIT 1) AS owner_phone
+    `, [ownerId, ownerPhone, petId]);
+    const existing = collision.rows[0];
+    if ((existing?.phone_user_id && existing.phone_user_id !== ownerId) ||
+        (existing?.pet_owner_id && existing.pet_owner_id !== ownerId) ||
+        (existing?.owner_phone && existing.owner_phone !== ownerPhone)) {
+      throw new Error('LOCAL_IDENTITIES_V1 ownership collision: fixed owner, phone, or pet is foreign.');
+    }
     await client.query('INSERT INTO identity_schema.users (id) VALUES ($1::uuid) ON CONFLICT (id) DO NOTHING', [ownerId]);
     await client.query(`
       INSERT INTO identity_schema.owner_identities (user_id, phone_e164)
@@ -22,21 +38,14 @@ async function main(): Promise<void> {
       ON CONFLICT (id) DO UPDATE
       SET owner_id = EXCLUDED.owner_id, external_patient_id = EXCLUDED.external_patient_id
     `, [petId, ownerId]);
-    await client.query(`
-      UPDATE clinic_schema.clinics
-      SET mis_type = 'VET_MANAGER_API'
-      WHERE public_name = 'VetHelp Pilot'
-    `);
-    await client.query(`
-      UPDATE clinic_schema.appointment_slots slot
-      SET integration_mode = 'LEVEL_A'
-      FROM clinic_schema.clinic_locations location
-      JOIN clinic_schema.clinics clinic ON clinic.id = location.clinic_id
-      WHERE slot.clinic_location_id = location.id
-        AND clinic.public_name = 'VetHelp Pilot'
-    `);
     await client.query('COMMIT');
-    console.log(JSON.stringify({ ownerId, ownerPhone, petId, integrationMode: 'LEVEL_A' }));
+    console.log(JSON.stringify({
+      source: 'LOCAL_IDENTITIES_V1',
+      ownerId,
+      ownerPhone,
+      petId,
+      ownedIds: [ownerId, petId],
+    }));
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;

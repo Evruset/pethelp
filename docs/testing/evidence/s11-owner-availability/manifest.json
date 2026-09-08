@@ -1,0 +1,32 @@
+{
+  "generatedAt": "2026-08-13T06:39:52.972Z",
+  "source": "apps/owner-app/src/clinics/AvailabilityScreen.tsx",
+  "sourceSha256": "98b3b903483f83c8d94f1dea967073db8a8b19aeeb976a8e9b53f43548d83274",
+  "renderer": "react-native-web production component bundle; controlled query/session test seam",
+  "physicalDevice": false,
+  "cases": [
+    {
+      "name": "compact-content",
+      "width": 375,
+      "height": 812,
+      "file": "compact-content.png",
+      "sha256": "71842f2085072d427479da91d3491645f69faa38e722120b59d2476f9eb2ccb8"
+    },
+    {
+      "name": "standard-selected",
+      "width": 390,
+      "height": 844,
+      "select": "11:00",
+      "file": "standard-selected.png",
+      "sha256": "d07872a0327aa9f4c7436e5b4acfd4caf7c808729805d674601e1fe748ee5fea"
+    },
+    {
+      "name": "wide-empty",
+      "width": 1024,
+      "height": 768,
+      "hash": "#empty",
+      "file": "wide-empty.png",
+      "sha256": "27139fc301803321f2730e6045d3d0e063e855a5ccd98bf45af69f5ede14204f"
+    }
+  ]
+}

@@ -2,14 +2,18 @@ import { BadRequestException, Body, Controller, Get, Headers, HttpCode, HttpStat
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiExtraModels,
   ApiForbiddenResponse,
   ApiHeader,
+  ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiServiceUnavailableResponse,
   ApiTags,
   ApiUnauthorizedResponse,
   ApiUnprocessableEntityResponse,
@@ -23,13 +27,18 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { DomainErrors } from '../common/domain-error';
 import { SWAGGER_BEARER_AUTH } from '../openapi/openapi';
+import { TraceContext } from '../observability/trace-context.context';
+import { mvpScope } from '../config/mvp-scope.config';
 import { BookingHoldCreationService } from './booking-hold-creation.service';
 import { BookingHoldReadService } from './booking-hold-read.service';
 import { BookingSecurityService } from './booking-security.service';
 import { BookingService } from './booking.service';
+import { OwnerAlternativeAcceptanceService } from './owner-alternative-acceptance.service';
+import { OwnerAlternativeSnapshotService } from './owner-alternative-snapshot.service';
 import {
   ApiErrorDto,
-  ConfirmHoldDto,
+  BookingCommandStatusDto,
+  BookingHoldReadDto,
   HoldDto,
   ReleaseHoldDto,
 } from './dto/booking-openapi.dto';
@@ -41,6 +50,112 @@ const isUuid = (value?: string): value is string => Boolean(value && UUID.test(v
 function requiredUuid(value: string | undefined, field: string): string {
   if (!isUuid(value)) throw new BadRequestException({ code: 'INVALID_REQUEST', message: `${field} must be a UUID.` });
   return value;
+}
+
+function publicCommandResult<T extends { holdId: string; slotId: string; correlationId: string; state: string; appointmentId?: string }>(
+  result: T,
+  status: 'CONFIRMED' | 'REJECTED' | 'CANCELLED',
+): Omit<T, 'state'> & { status: typeof status } {
+  const { state: _state, ...safe } = result;
+  return { ...safe, status };
+}
+
+@ApiTags('Owner bookings')
+@Controller('v1/owner/bookings')
+export class OwnerBookingCancellationController {
+  constructor(
+    private readonly bookingSecurityService: BookingSecurityService,
+    private readonly alternativeSnapshots: OwnerAlternativeSnapshotService,
+    private readonly alternativeAcceptance: OwnerAlternativeAcceptanceService,
+    private readonly traceContext: TraceContext,
+  ) {}
+
+  @Get(':bookingId/alternative')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.OWNER)
+  @ApiBearerAuth(SWAGGER_BEARER_AUTH)
+  async alternative(@Param('bookingId') bookingId: string, @CurrentUser() owner: JwtPayload) {
+    return this.alternativeSnapshots.read(requiredUuid(bookingId, 'bookingId'), owner.sub);
+  }
+
+  @Post(':bookingId/alternative/:proposalId/accept')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.OWNER)
+  @ApiBearerAuth(SWAGGER_BEARER_AUTH)
+  async acceptAlternative(
+    @Param('proposalId') proposalId: string,
+    @Param('bookingId') bookingId: string,
+    @CurrentUser() owner: JwtPayload,
+    @Headers('idempotency-key') idempotencyKey?: string,
+    @Headers('if-match') ifMatch?: string,
+    @Headers('x-correlation-id') correlationId?: string,
+  ) {
+    return this.alternativeAcceptance.resolve(requiredUuid(proposalId, 'proposalId'), owner.sub, 'ACCEPT', {
+      idempotencyKey: requiredUuid(idempotencyKey, 'Idempotency-Key'),
+      correlationId: requiredUuid(correlationId, 'X-Correlation-ID'),
+      expectedVersion: requiredVersion(ifMatch, 'If-Match'),
+    }, requiredUuid(bookingId, 'bookingId'));
+  }
+
+  @Post(':bookingId/alternative/:proposalId/decline')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.OWNER)
+  @ApiBearerAuth(SWAGGER_BEARER_AUTH)
+  async declineAlternative(
+    @Param('proposalId') proposalId: string,
+    @Param('bookingId') bookingId: string,
+    @CurrentUser() owner: JwtPayload,
+    @Headers('idempotency-key') idempotencyKey?: string,
+    @Headers('if-match') ifMatch?: string,
+    @Headers('x-correlation-id') correlationId?: string,
+  ) {
+    return this.alternativeAcceptance.resolve(requiredUuid(proposalId, 'proposalId'), owner.sub, 'DECLINE', {
+      idempotencyKey: requiredUuid(idempotencyKey, 'Idempotency-Key'),
+      correlationId: requiredUuid(correlationId, 'X-Correlation-ID'),
+      expectedVersion: requiredVersion(ifMatch, 'If-Match'),
+    }, requiredUuid(bookingId, 'bookingId'));
+  }
+
+  @Post(':holdId/cancel')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.OWNER)
+  @ApiBearerAuth(SWAGGER_BEARER_AUTH)
+  @ApiHeader({ name: 'Idempotency-Key', required: true, schema: { type: 'string', format: 'uuid' } })
+  @ApiHeader({ name: 'If-Match', required: true, schema: { type: 'string', example: '"3"' } })
+  @ApiHeader({ name: 'X-Correlation-ID', required: false, description: 'Optional valid UUID; the server generates or replaces it otherwise.', schema: { type: 'string', format: 'uuid' } })
+  @ApiOkResponse({ type: BookingCommandStatusDto })
+  @ApiBadRequestResponse({ description: 'Malformed hold ID, headers or cancellation reason.', type: ApiErrorDto })
+  @ApiUnauthorizedResponse({ description: 'Owner JWT is missing or invalid.', type: ApiErrorDto })
+  @ApiNotFoundResponse({ description: 'Booking is absent or belongs to another Owner.', type: ApiErrorDto })
+  @ApiConflictResponse({ description: 'Booking version is stale, command conflicts or slot is locked.', type: ApiErrorDto })
+  @ApiUnprocessableEntityResponse({ description: 'Booking transition is not allowed.', type: ApiErrorDto })
+  @ApiInternalServerErrorResponse({ description: 'Controlled technical failure.', type: ApiErrorDto })
+  async cancel(
+    @Param('holdId') holdId: string,
+    @CurrentUser() owner: JwtPayload,
+    @Headers('idempotency-key') idempotencyKey?: string,
+    @Headers('if-match') ifMatch?: string,
+    @Headers('x-correlation-id') correlationId?: string,
+    @Body() body?: { reasonCode?: string },
+  ) {
+    const allowedReasons = ['OWNER_PLANS_CHANGED', 'PET_RECOVERED', 'OTHER'];
+    if (body?.reasonCode && !allowedReasons.includes(body.reasonCode)) {
+      throw new BadRequestException({ code: 'INVALID_CANCELLATION_REASON', message: 'Unsupported cancellation reason.' });
+    }
+    const result = await this.bookingSecurityService.releaseHold({
+      holdId: requiredUuid(holdId, 'holdId'),
+      actor: owner,
+      idempotencyKey: requiredUuid(idempotencyKey, 'Idempotency-Key'),
+      expectedVersion: requiredVersion(ifMatch, 'If-Match'),
+      correlationId: isUuid(correlationId) ? correlationId : (this.traceContext.getCorrelationId() ?? randomUUID()),
+      reasonCode: body?.reasonCode,
+      normalizeOwnerNotFound: true,
+    });
+    return mvpScope.pilot ? publicCommandResult(result, 'CANCELLED') : result;
+  }
 }
 
 function requiredVersion(value: string | undefined, field: string): number {
@@ -61,6 +176,7 @@ function originalHeader(request: Request, field: string): string | undefined {
 }
 
 @ApiTags('Booking Core')
+@ApiExtraModels(CreateHoldDto)
 @Controller('v1')
 export class BookingController {
   constructor(
@@ -68,6 +184,7 @@ export class BookingController {
     private readonly holdCreationService: BookingHoldCreationService,
     private readonly holdReadService: BookingHoldReadService,
     private readonly bookingSecurityService: BookingSecurityService,
+    private readonly traceContext: TraceContext,
   ) {}
 
   @Get('clinic-locations/:clinicLocationId/slots')
@@ -90,8 +207,23 @@ export class BookingController {
   @Roles(Role.OWNER)
   @ApiBearerAuth(SWAGGER_BEARER_AUTH)
   @ApiOperation({
-    summary: 'Мгновенная запись владельца на выбранный слот',
-    description: 'ownerId извлекается только из Bearer JWT. Питомец проверяется внутри транзакции: чужой или отсутствующий petId не раскрывается владельцу. Для owner catalog booking non-MIS слот атомарно переводится в CONFIRMED appointment.',
+    summary: 'Отправить заявку владельца на выбранное время',
+    description: 'Owner authority извлекается только из Bearer credential. В PILOT_V1 сервер повторно проверяет полный clinic/location/service/slot context и создаёт заявку с ручным подтверждением клиникой.',
+  })
+  @ApiBody({
+    schema: mvpScope.pilot ? {
+      type: 'object',
+      additionalProperties: false,
+      required: ['petId', 'clinicId', 'locationId', 'serviceId', 'slotId', 'expectedSlotVersion'],
+      properties: {
+        petId: { type: 'string', format: 'uuid' },
+        clinicId: { type: 'string', format: 'uuid' },
+        locationId: { type: 'string', format: 'uuid' },
+        serviceId: { type: 'string', format: 'uuid' },
+        slotId: { type: 'string', format: 'uuid' },
+        expectedSlotVersion: { type: 'integer', minimum: 1 },
+      },
+    } : { $ref: '#/components/schemas/CreateHoldDto' },
   })
   @ApiHeader({
     name: 'Idempotency-Key',
@@ -101,15 +233,17 @@ export class BookingController {
   })
   @ApiHeader({
     name: 'X-Correlation-ID',
-    required: true,
+    required: false,
     schema: { type: 'string', format: 'uuid' },
-    description: 'Обязательный идентификатор распределённой трассировки команды.',
+    description: 'Optional valid UUID. Missing, malformed or duplicated input is replaced server-side.',
   })
-  @ApiCreatedResponse({ description: 'Запись создана. Для non-MIS слота ответ содержит CONFIRMED и appointmentId.', type: HoldDto })
-  @ApiBadRequestResponse({ description: 'Некорректный UUID или отсутствует Idempotency-Key/X-Correlation-ID.', type: ApiErrorDto })
-  @ApiUnauthorizedResponse({ description: 'Bearer JWT отсутствует, истёк или невалиден.', type: ApiErrorDto })
+  @ApiCreatedResponse({ description: 'PILOT_V1 returns the canonical status without internal state.', type: HoldDto })
+  @ApiBadRequestResponse({ description: 'Malformed DTO, UUID or Idempotency-Key.', type: ApiErrorDto })
+  @ApiUnauthorizedResponse({ description: 'Bearer credential отсутствует, истёк или невалиден.', type: ApiErrorDto })
+  @ApiForbiddenResponse({ description: 'Authenticated actor is not an Owner.', type: ApiErrorDto })
+  @ApiNotFoundResponse({ description: 'Slot is not found.', type: ApiErrorDto })
   @ApiConflictResponse({
-    description: 'SLOT_LOCKED_RETRY или SLOT_ALREADY_TAKEN. Для SLOT_LOCKED_RETRY сервер добавляет Retry-After: 1.',
+    description: 'BOOKING_STATE_CONFLICT, IDEMPOTENCY_CONFLICT, SLOT_LOCKED_RETRY или SLOT_ALREADY_TAKEN. Для SLOT_LOCKED_RETRY сервер добавляет Retry-After: 1.',
     type: ApiErrorDto,
     headers: {
       'Retry-After': {
@@ -122,18 +256,29 @@ export class BookingController {
     description: 'PET_OWNERSHIP_MISMATCH, HOLD_ALREADY_ACTIVE или SLOT_UNAVAILABLE.',
     type: ApiErrorDto,
   })
+  @ApiInternalServerErrorResponse({ description: 'Controlled technical failure.', type: ApiErrorDto })
+  @ApiServiceUnavailableResponse({ description: 'BOOKING_TEMPORARILY_UNAVAILABLE.', type: ApiErrorDto })
   async createHold(
     @Body() dto: CreateHoldDto,
     @CurrentUser() owner: JwtPayload,
     @Req() request: Request,
     @Headers('idempotency-key') idempotencyKey?: string,
   ) {
+    if (mvpScope.pilot && dto.doctorId !== undefined) {
+      throw new BadRequestException({ code: 'INVALID_REQUEST', message: 'Request validation failed' });
+    }
     return this.holdCreationService.createLocalHold({
       slotId: requiredUuid(dto.slotId, 'slotId'),
       petId: requiredUuid(dto.petId, 'petId'),
+      clinicId: dto.clinicId === undefined ? undefined : requiredUuid(dto.clinicId, 'clinicId'),
+      locationId: dto.locationId === undefined ? undefined : requiredUuid(dto.locationId, 'locationId'),
+      expectedSlotVersion: dto.expectedSlotVersion,
+      serviceId: dto.serviceId === undefined ? undefined : requiredUuid(dto.serviceId, 'serviceId'),
+      doctorId: dto.doctorId === null || dto.doctorId === undefined ? null : requiredUuid(dto.doctorId, 'doctorId'),
       ownerId: owner.sub,
       idempotencyKey: requiredUuid(idempotencyKey, 'Idempotency-Key'),
-      correlationId: requiredUuid(originalHeader(request, 'X-Correlation-ID'), 'X-Correlation-ID'),
+      correlationId: this.traceContext.getCorrelationId()
+        ?? (isUuid(originalHeader(request, 'X-Correlation-ID')) ? originalHeader(request, 'X-Correlation-ID')! : randomUUID()),
     });
   }
 
@@ -143,8 +288,12 @@ export class BookingController {
   @ApiBearerAuth(SWAGGER_BEARER_AUTH)
   @ApiOperation({ summary: 'Получение текущего статуса hold авторизованным участником' })
   @ApiParam({ name: 'holdId', type: 'string', format: 'uuid' })
+  @ApiOkResponse({ description: 'Canonical authoritative booking snapshot.', type: BookingHoldReadDto })
+  @ApiBadRequestResponse({ description: 'holdId is not a UUID.', type: ApiErrorDto })
+  @ApiUnauthorizedResponse({ description: 'Bearer JWT is missing or invalid.', type: ApiErrorDto })
   @ApiNotFoundResponse({ description: 'HOLD_NOT_FOUND.', type: ApiErrorDto })
-  @ApiForbiddenResponse({ description: 'HOLD_OWNER_MISMATCH или CLINIC_SCOPE_MISMATCH.', type: ApiErrorDto })
+  @ApiForbiddenResponse({ description: 'CLINIC_SCOPE_MISMATCH для clinic actor.', type: ApiErrorDto })
+  @ApiInternalServerErrorResponse({ description: 'Controlled technical failure.', type: ApiErrorDto })
   async getHold(@Param('holdId') holdId: string, @CurrentUser() actor: JwtPayload) {
     return this.holdReadService.readForActor(requiredUuid(holdId, 'holdId'), actor);
   }
@@ -165,12 +314,16 @@ export class BookingController {
     @CurrentUser() actor: JwtPayload,
     @Headers('idempotency-key') idempotencyKey?: string,
     @Headers('x-correlation-id') correlationHeader?: string,
+    @Headers('if-match') ifMatch?: string,
+    @Body() body?: { reasonCode?: string },
   ) {
     return this.bookingSecurityService.releaseHold({
       holdId: requiredUuid(holdId, 'holdId'),
       actor,
       idempotencyKey: requiredUuid(idempotencyKey, 'Idempotency-Key'),
-      correlationId: isUuid(correlationHeader) ? correlationHeader : randomUUID(),
+      correlationId: this.traceContext.getCorrelationId() ?? (isUuid(correlationHeader) ? correlationHeader : randomUUID()),
+      expectedVersion: ifMatch === undefined ? undefined : requiredVersion(ifMatch, 'If-Match'),
+      reasonCode: body?.reasonCode,
     });
   }
 
@@ -215,7 +368,7 @@ export class BookingController {
   @ApiHeader({ name: 'Idempotency-Key', required: true, schema: { type: 'string', format: 'uuid' } })
   @ApiHeader({ name: 'If-Match', required: true, schema: { type: 'string', example: '1' } })
   @ApiHeader({ name: 'X-Correlation-ID', required: false, schema: { type: 'string', format: 'uuid' } })
-  @ApiOkResponse({ description: 'Hold подтверждён, appointment создан.', type: ConfirmHoldDto })
+  @ApiOkResponse({ description: 'Hold подтверждён, appointment создан.', type: BookingCommandStatusDto })
   @ApiBadRequestResponse({ description: 'Некорректный UUID или отсутствует Idempotency-Key.', type: ApiErrorDto })
   @ApiUnauthorizedResponse({ description: 'Bearer JWT отсутствует, истёк или невалиден.', type: ApiErrorDto })
   @ApiForbiddenResponse({
@@ -223,7 +376,9 @@ export class BookingController {
     type: ApiErrorDto,
   })
   @ApiConflictResponse({ description: 'SLOT_LOCKED_RETRY.', type: ApiErrorDto })
+  @ApiNotFoundResponse({ description: 'HOLD_NOT_FOUND.', type: ApiErrorDto })
   @ApiUnprocessableEntityResponse({ description: 'HOLD_EXPIRED или INVALID_STATE_TRANSITION.', type: ApiErrorDto })
+  @ApiInternalServerErrorResponse({ description: 'Controlled technical failure.', type: ApiErrorDto })
   async confirmManualHold(
     @Param('holdId') holdId: string,
     @CurrentUser() employee: JwtPayload,
@@ -231,13 +386,14 @@ export class BookingController {
     @Headers('if-match') ifMatch?: string,
     @Headers('x-correlation-id') correlationHeader?: string,
   ) {
-    return this.bookingSecurityService.confirmManualHold({
+    const result = await this.bookingSecurityService.confirmManualHold({
       holdId: requiredUuid(holdId, 'holdId'),
       employee,
       idempotencyKey: requiredUuid(idempotencyKey, 'Idempotency-Key'),
       expectedVersion: requiredVersion(ifMatch, 'If-Match'),
-      correlationId: isUuid(correlationHeader) ? correlationHeader : randomUUID(),
+      correlationId: this.traceContext.getCorrelationId() ?? (isUuid(correlationHeader) ? correlationHeader : randomUUID()),
     });
+    return mvpScope.pilot ? publicCommandResult(result, 'CONFIRMED') : result;
   }
 
   @Post('clinic/booking-holds/:holdId/decline')
@@ -253,10 +409,14 @@ export class BookingController {
   @ApiHeader({ name: 'Idempotency-Key', required: true, schema: { type: 'string', format: 'uuid' } })
   @ApiHeader({ name: 'If-Match', required: true, schema: { type: 'string', example: '1' } })
   @ApiHeader({ name: 'X-Correlation-ID', required: false, schema: { type: 'string', format: 'uuid' } })
-  @ApiOkResponse({ description: 'Hold отклонён клиникой и освобождён.', type: ReleaseHoldDto })
+  @ApiOkResponse({ description: 'Hold отклонён клиникой и освобождён.', type: BookingCommandStatusDto })
+  @ApiBadRequestResponse({ description: 'Malformed hold ID or required command headers.', type: ApiErrorDto })
+  @ApiUnauthorizedResponse({ description: 'Bearer JWT is missing or invalid.', type: ApiErrorDto })
   @ApiForbiddenResponse({ description: 'CLINIC_SCOPE_MISMATCH.', type: ApiErrorDto })
+  @ApiNotFoundResponse({ description: 'HOLD_NOT_FOUND.', type: ApiErrorDto })
   @ApiConflictResponse({ description: 'SLOT_LOCKED_RETRY или QUEUE_FIFO_VIOLATION.', type: ApiErrorDto })
   @ApiUnprocessableEntityResponse({ description: 'HOLD_EXPIRED или INVALID_STATE_TRANSITION.', type: ApiErrorDto })
+  @ApiInternalServerErrorResponse({ description: 'Controlled technical failure.', type: ApiErrorDto })
   async declineManualHold(
     @Param('holdId') holdId: string,
     @CurrentUser() employee: JwtPayload,
@@ -266,14 +426,15 @@ export class BookingController {
     @Headers('x-correlation-id') correlationHeader?: string,
   ) {
     const declineReason = typeof body?.declineReason === 'string' ? body.declineReason.slice(0, 500) : undefined;
-    return this.bookingSecurityService.declineManualHold({
+    const result = await this.bookingSecurityService.declineManualHold({
       holdId: requiredUuid(holdId, 'holdId'),
       employee,
       idempotencyKey: requiredUuid(idempotencyKey, 'Idempotency-Key'),
       expectedVersion: requiredVersion(ifMatch, 'If-Match'),
-      correlationId: isUuid(correlationHeader) ? correlationHeader : randomUUID(),
+      correlationId: this.traceContext.getCorrelationId() ?? (isUuid(correlationHeader) ? correlationHeader : randomUUID()),
       declineReason,
     });
+    return mvpScope.pilot ? publicCommandResult(result, 'REJECTED') : result;
   }
 
   @Post('clinic/booking-holds/:holdId/request-notes')
@@ -310,7 +471,7 @@ export class BookingController {
       employee,
       idempotencyKey: requiredUuid(idempotencyKey, 'Idempotency-Key'),
       expectedVersion: requiredVersion(ifMatch, 'If-Match'),
-      correlationId: isUuid(correlationHeader) ? correlationHeader : randomUUID(),
+      correlationId: this.traceContext.getCorrelationId() ?? (isUuid(correlationHeader) ? correlationHeader : randomUUID()),
       noteRequest,
     });
   }

@@ -1,0 +1,880 @@
+{
+  "schemaVersion": 1,
+  "slice": "V50-OWNER-03",
+  "status": "CERTIFIED_VISUAL_PASS",
+  "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+  "runtimeCommit": "dc762b4",
+  "artifactPackageId": "v50-owner-03-dc762b4",
+  "artifactPackageSha256": "e07837d15af828090b6be02b50be06b9f1dde3d60fa37f913991a87cac60a67b",
+  "viewports": [
+    "375x812",
+    "412x915",
+    "768x1024",
+    "1440x900"
+  ],
+  "states": [
+    "CATALOG_READY_LIST",
+    "CATALOG_READY_MAP",
+    "CATALOG_FILTERED",
+    "CATALOG_EMPTY",
+    "CATALOG_LOCATION_DENIED",
+    "CATALOG_OFFLINE_STALE",
+    "CLINIC_READY",
+    "CLINIC_STALE_AVAILABILITY",
+    "CLINIC_NO_SLOTS",
+    "DOCTORS_READY",
+    "DOCTORS_EMPTY",
+    "DOCTOR_PROFILE"
+  ],
+  "v50Ids": [
+    "OWN-002",
+    "OWN-004",
+    "OWN-018",
+    "OWN-019"
+  ],
+  "prototypeAnchors": [
+    "#catalog",
+    "#clinic",
+    "#doctor-select",
+    "#doctor-detail"
+  ],
+  "artifacts": [
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "375x812",
+      "state": "CATALOG_READY_LIST",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/CATALOG_READY_LIST.png",
+      "sha256": "6b07aef7e080ed8a406ef0730c7b975d4d215b05bdf7c15e7d411ce03b073e3c",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "375x812",
+      "state": "CATALOG_READY_MAP",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/CATALOG_READY_MAP.png",
+      "sha256": "3f7b086da5c0414d906a96be04b3ff438ef287e3b2172cca9891e3f2c0e747c0",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "375x812",
+      "state": "CATALOG_FILTERED",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/CATALOG_FILTERED.png",
+      "sha256": "cac2a59cbad78b3bb584625bb4085e336df6e8f63b25d7e00672d6487dab6337",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "375x812",
+      "state": "CATALOG_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/CATALOG_EMPTY.png",
+      "sha256": "bb35004b44f8b61c485bf218af728512bc5d2c5a0b3400ffe3f2c9d0d780e61f",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "375x812",
+      "state": "CATALOG_LOCATION_DENIED",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/CATALOG_LOCATION_DENIED.png",
+      "sha256": "ea6dcdd640ad8c9d04d693aba550012c41a92635f024b933c3886585848b2034",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "375x812",
+      "state": "CATALOG_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/CATALOG_OFFLINE_STALE.png",
+      "sha256": "c02c1781c1b1f4e1fcc59f963afa0f6e7d039d7ed1c69e2093632bc0eae775f8",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "375x812",
+      "state": "CLINIC_READY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/CLINIC_READY.png",
+      "sha256": "58b87ea8dbf58535e621eb9bbcdd6697b0929a924aadfe25c297fb9fe8cf69fb",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "375x812",
+      "state": "CLINIC_STALE_AVAILABILITY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/CLINIC_STALE_AVAILABILITY.png",
+      "sha256": "caa36e08d3af1ee58fd289888fa302373845e24074a83979958016c98c065316",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "375x812",
+      "state": "CLINIC_NO_SLOTS",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/CLINIC_NO_SLOTS.png",
+      "sha256": "6473eb5a2f7f9a8003aafbf4a6757a14f6cbefc8b0a1a12f676c7f4414b6c114",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "375x812",
+      "state": "DOCTORS_READY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/DOCTORS_READY.png",
+      "sha256": "a6145afbc3cfaa531dc53764b540f6ceb5f81b0a996736c7ff36012356fc1b09",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Photo, biography, rating and specialty remain omitted without an approved public-consent contract."
+      ]
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "375x812",
+      "state": "DOCTORS_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/DOCTORS_EMPTY.png",
+      "sha256": "9c2e30009949ea19cf6ff7d9f7a10d0653c6de932c077b7796ac14d8e03039da",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Photo, biography, rating and specialty remain omitted without an approved public-consent contract."
+      ]
+    },
+    {
+      "v50Id": "OWN-019",
+      "prototypeAnchor": "#doctor-detail",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "375x812",
+      "state": "DOCTOR_PROFILE",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/375x812/DOCTOR_PROFILE.png",
+      "sha256": "4dd510d50cff746984c8fe11960fbbce0af363fc0167c25d45ceeb3ac639e312",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Photo, biography, rating and specialty remain omitted without an approved public-consent contract."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "412x915",
+      "state": "CATALOG_READY_LIST",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/CATALOG_READY_LIST.png",
+      "sha256": "07cd8c66a2dae785d37ebd2f5193dcbaaa6a9ce4040ad94c941d08b94b1e4b14",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "412x915",
+      "state": "CATALOG_READY_MAP",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/CATALOG_READY_MAP.png",
+      "sha256": "9bdf217f5a5dba2cf2e94d275c3d340fb6ce6e41e835efa0aa9d96044369d72b",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "412x915",
+      "state": "CATALOG_FILTERED",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/CATALOG_FILTERED.png",
+      "sha256": "3d1330ae268acd847070e258fb4ecace125b4ab28974519017701a88279f9074",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "412x915",
+      "state": "CATALOG_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/CATALOG_EMPTY.png",
+      "sha256": "a3150c250a5bdc4e3d4e6a8a52446deb52b357e37f505ac03623d24b1967881f",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "412x915",
+      "state": "CATALOG_LOCATION_DENIED",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/CATALOG_LOCATION_DENIED.png",
+      "sha256": "87619cfc4ff345edbbfd58d53839d39bb70d0b7f92df63ac69ab33b8284a737c",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "412x915",
+      "state": "CATALOG_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/CATALOG_OFFLINE_STALE.png",
+      "sha256": "0579a699c4cdc01db1cc40ee0a8d652e1bd09ee0ecb63137f68d43b500311b20",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "412x915",
+      "state": "CLINIC_READY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/CLINIC_READY.png",
+      "sha256": "34e0d1bde8d2d5fcf5e2cd0448d06c506f6166c25c90508b0bbcf85d40070561",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "412x915",
+      "state": "CLINIC_STALE_AVAILABILITY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/CLINIC_STALE_AVAILABILITY.png",
+      "sha256": "0d2f1249cc80804bc499266d71dba336eb9225f9b70e0327f02c46038aae3b2d",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "412x915",
+      "state": "CLINIC_NO_SLOTS",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/CLINIC_NO_SLOTS.png",
+      "sha256": "5e86ace5d1d4feeb7cbd66257890c19e19b25dafb628ef4c0a45948900037cf8",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "412x915",
+      "state": "DOCTORS_READY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/DOCTORS_READY.png",
+      "sha256": "d34accda87d15d5aab4eeaad9e629a74a438bf7a5a1ec68f2663e2096def1a04",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Photo, biography, rating and specialty remain omitted without an approved public-consent contract."
+      ]
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "412x915",
+      "state": "DOCTORS_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/DOCTORS_EMPTY.png",
+      "sha256": "b38b608487cdbd9bc3bc5e0936b4c53ec1a506d1d4935c9a3d27da2fddb30e69",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Photo, biography, rating and specialty remain omitted without an approved public-consent contract."
+      ]
+    },
+    {
+      "v50Id": "OWN-019",
+      "prototypeAnchor": "#doctor-detail",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "412x915",
+      "state": "DOCTOR_PROFILE",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/412x915/DOCTOR_PROFILE.png",
+      "sha256": "4cf5e1826ef7455961f2185fe3ccaa87b8ffe1d9a50c3c2e1f3883f0a7a5d0c1",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Photo, biography, rating and specialty remain omitted without an approved public-consent contract."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "768x1024",
+      "state": "CATALOG_READY_LIST",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/CATALOG_READY_LIST.png",
+      "sha256": "3fb9190fd0e06179d0cb9d4ecc2136005c8cfcff2830fdb6f9072d1fb94c92eb",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "768x1024",
+      "state": "CATALOG_READY_MAP",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/CATALOG_READY_MAP.png",
+      "sha256": "4f6a4183cbc6150a4461a40ba82939c86b97d828450a0e0b51ea8102264a3dfc",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "768x1024",
+      "state": "CATALOG_FILTERED",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/CATALOG_FILTERED.png",
+      "sha256": "6fcd2b42f2d647bdc5a1ab36de5ce8b0e5a26cafaf394a08ce3bc10278df7260",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "768x1024",
+      "state": "CATALOG_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/CATALOG_EMPTY.png",
+      "sha256": "ac35b13b348212788a45aebdcbddf4cb0983713fd4b74db7b15bac18f1a409c0",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "768x1024",
+      "state": "CATALOG_LOCATION_DENIED",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/CATALOG_LOCATION_DENIED.png",
+      "sha256": "63e3cb6fb2f65a4c58531d6551a85cdc21e9841e0e46fa4ee021193420d28a5b",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "768x1024",
+      "state": "CATALOG_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/CATALOG_OFFLINE_STALE.png",
+      "sha256": "a80caab72a94eb2e93a93c2f2825da99f9d8e0db0a337460380cea3f1426dd46",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "768x1024",
+      "state": "CLINIC_READY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/CLINIC_READY.png",
+      "sha256": "8d78f2b989bc729ed946ac30e8006148dce0639043d6cba55630bd77e7e60f16",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "768x1024",
+      "state": "CLINIC_STALE_AVAILABILITY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/CLINIC_STALE_AVAILABILITY.png",
+      "sha256": "45f8de828270b37d3d1858f40a21b25d81d4a4d13dcdb32e9812ddc4017a5303",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "768x1024",
+      "state": "CLINIC_NO_SLOTS",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/CLINIC_NO_SLOTS.png",
+      "sha256": "1e949a2ec94bef16e91931fbf4cb6e8da873bc78ed3c610cc6de86c9f1a7f9d8",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "768x1024",
+      "state": "DOCTORS_READY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/DOCTORS_READY.png",
+      "sha256": "b23405226519723a2821b256f77929db7ac1618962f24a6cbabb523632c5860f",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Photo, biography, rating and specialty remain omitted without an approved public-consent contract."
+      ]
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "768x1024",
+      "state": "DOCTORS_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/DOCTORS_EMPTY.png",
+      "sha256": "33549de894de15aa512223467692e1f94b0b2374369269548bc9321576ed844d",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Photo, biography, rating and specialty remain omitted without an approved public-consent contract."
+      ]
+    },
+    {
+      "v50Id": "OWN-019",
+      "prototypeAnchor": "#doctor-detail",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "768x1024",
+      "state": "DOCTOR_PROFILE",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/768x1024/DOCTOR_PROFILE.png",
+      "sha256": "fe2d18226a43049ad7b1d514d28bdaf3174a8cac6061ee889745991fb488d5e1",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Photo, biography, rating and specialty remain omitted without an approved public-consent contract."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "1440x900",
+      "state": "CATALOG_READY_LIST",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/CATALOG_READY_LIST.png",
+      "sha256": "b693101a0a7da1946b6c0cef513ac4a8cb81db3cf15a71517668cffd57b3e724",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "1440x900",
+      "state": "CATALOG_READY_MAP",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/CATALOG_READY_MAP.png",
+      "sha256": "98ef2a47b24328e08010d351cc32bdc589e79a3664385c8d4b54198250f99942",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "1440x900",
+      "state": "CATALOG_FILTERED",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/CATALOG_FILTERED.png",
+      "sha256": "4fbbabd5c98e084e96b440dce0d494ba4cdbece8958f33f62a3edf3e9431d308",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "1440x900",
+      "state": "CATALOG_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/CATALOG_EMPTY.png",
+      "sha256": "f03bef6c82a6a90642ae7175bc97480f09a8ec08aefa80d578628312c9d179f5",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "1440x900",
+      "state": "CATALOG_LOCATION_DENIED",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/CATALOG_LOCATION_DENIED.png",
+      "sha256": "2117c66853a26fe434c9c05b5cd47ba71fdb23c0e6e31701832f8c8c6c7b2358",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "1440x900",
+      "state": "CATALOG_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/CATALOG_OFFLINE_STALE.png",
+      "sha256": "67d1e34e380fb05ed4c30680f8ea665bc5d65148445ecb7394548bc2b1d8ae1d",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "1440x900",
+      "state": "CLINIC_READY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/CLINIC_READY.png",
+      "sha256": "edc064815abdf28b1ee304cc12486c9ae6b3d427e5514027e459b3abdc731d26",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "1440x900",
+      "state": "CLINIC_STALE_AVAILABILITY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/CLINIC_STALE_AVAILABILITY.png",
+      "sha256": "82f79de57ebb3163ccae12e1d362fc628fb91732a1f2c082f38c99a4c9d5fca0",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "1440x900",
+      "state": "CLINIC_NO_SLOTS",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/CLINIC_NO_SLOTS.png",
+      "sha256": "afb228cd4ae5c74e8c68fc8883c4a6a926b21db5b454cfdc2c8436b085a40119",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Deterministic fallback clinic media is used because the public DTO has no authoritative media field."
+      ]
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "1440x900",
+      "state": "DOCTORS_READY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/DOCTORS_READY.png",
+      "sha256": "e98a2cf130a28f1b9f8825d6deac99ce4d6ba6dcc5548488a529f7ca653ca46e",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Photo, biography, rating and specialty remain omitted without an approved public-consent contract."
+      ]
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "1440x900",
+      "state": "DOCTORS_EMPTY",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/DOCTORS_EMPTY.png",
+      "sha256": "c0a5c2a01741ed3568a15dfea6502acb39ad3d3bf75aa76b5afc6f074b4266e2",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Photo, biography, rating and specialty remain omitted without an approved public-consent contract."
+      ]
+    },
+    {
+      "v50Id": "OWN-019",
+      "prototypeAnchor": "#doctor-detail",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "runtimeCommit": "dc762b4",
+      "viewport": "1440x900",
+      "state": "DOCTOR_PROFILE",
+      "artifactLogicalPath": "V50-OWNER-03/runtime/1440x900/DOCTOR_PROFILE.png",
+      "sha256": "cab1a3e22b204ef324d43c9e4b699d5d8b6024ad21106cb91cba6fa2e3b3d211",
+      "comparisonVerdict": "PASS",
+      "knownDifferences": [
+        "Photo, biography, rating and specialty remain omitted without an approved public-consent contract."
+      ]
+    }
+  ],
+  "prototypeReferences": [
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/catalog/375x812.png",
+      "sha256": "66067bdac07766603961e8c8b31d638860d463e8b29b78920504b1cbc7c5cd5a"
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/clinic/375x812.png",
+      "sha256": "9eab9f5eeb6cf09a438cf0baa5508e0cd0d15fff276cb6452c3e44576f82e7ec"
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/doctors/375x812.png",
+      "sha256": "b1b57847c055caf40042c4157f71359be0b14d88a16c5ff7c2b219a9ef073f3f"
+    },
+    {
+      "v50Id": "OWN-019",
+      "prototypeAnchor": "#doctor-detail",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/doctor/375x812.png",
+      "sha256": "16625b46811da44028c0bf5467c8e3e2d5b4ffaa122d93597c60a7e3660d5921"
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "412x915",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/catalog/412x915.png",
+      "sha256": "c1febe7c86215d60fd2d28191709986da8ee15ee1a91c0970acbf9bc7d98a072"
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "412x915",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/clinic/412x915.png",
+      "sha256": "b7e7ee3df399c9dbfc8134b1d5807fdd34b3a7bd3a829e4c26da4711edfe18b9"
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "412x915",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/doctors/412x915.png",
+      "sha256": "b64fa18b1f7ca50cd898e0d1551bc5320bcbdcb0c8fc35da8a73b3b17182637e"
+    },
+    {
+      "v50Id": "OWN-019",
+      "prototypeAnchor": "#doctor-detail",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "412x915",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/doctor/412x915.png",
+      "sha256": "0270a71f1cf45d16bb8cca99c6b34db43a62113db4763fd8f642bcc73d0b1d4b"
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "768x1024",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/catalog/768x1024.png",
+      "sha256": "c2e70a34e11cfb271e72a5d57ae4d68f63dba92c397d1d5331d780d461bf3594"
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "768x1024",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/clinic/768x1024.png",
+      "sha256": "17fbf2eb6dd4f0d2efb361d117739512b772673a4af4eedf45fa2ff2805f222e"
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "768x1024",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/doctors/768x1024.png",
+      "sha256": "9de592ba81c764591aaf56ef9f0dc7ef939f45c6a660bd7b881b056c6349dd25"
+    },
+    {
+      "v50Id": "OWN-019",
+      "prototypeAnchor": "#doctor-detail",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "768x1024",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/doctor/768x1024.png",
+      "sha256": "c8555f4b3a6a2f0a85c339c9cd70bc6655da4fddc6b5f73625d84f0684444578"
+    },
+    {
+      "v50Id": "OWN-002",
+      "prototypeAnchor": "#catalog",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "1440x900",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/catalog/1440x900.png",
+      "sha256": "7658d07376f21521976cb1b2ea894403dcd5bbc9aa04180434620394501e772d"
+    },
+    {
+      "v50Id": "OWN-004",
+      "prototypeAnchor": "#clinic",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "1440x900",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/clinic/1440x900.png",
+      "sha256": "23229a52613177027c5479487dd4e0016049b9c8e5d0d7e6d1cecff1c5ca29c4"
+    },
+    {
+      "v50Id": "OWN-018",
+      "prototypeAnchor": "#doctor-select",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "1440x900",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/doctors/1440x900.png",
+      "sha256": "d58066219f9b08a3cc1464962567dbc8748d782bb8724844add12b4681eab4c3"
+    },
+    {
+      "v50Id": "OWN-019",
+      "prototypeAnchor": "#doctor-detail",
+      "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+      "viewport": "1440x900",
+      "artifactLogicalPath": "V50-OWNER-03/prototype/doctor/1440x900.png",
+      "sha256": "ed8ed3825c914faadddf8f68c41cc45016e02e0ccfc3a50cd5d93be2b6d7b560"
+    }
+  ],
+  "knownDifferences": [
+    "Flutter font rasterization and native focus/scrollbar rendering may differ from the HTML prototype.",
+    "Deterministic fallback clinic media is used because the public DTO has no authoritative media field.",
+    "Doctor biography, rating, photo and specialty are intentionally omitted because no approved public contract exists."
+  ],
+  "createdAt": "2026-07-15",
+  "visuallyVerified": true,
+  "runtimeArtifactCount": 48,
+  "prototypeReferenceCount": 16,
+  "storage": "External evidence root supplied through V50_EVIDENCE_ROOT",
+  "representativeGate": {
+    "verdict": "PASS",
+    "passed": 8,
+    "total": 8,
+    "viewports": [
+      "375x812",
+      "1440x900"
+    ],
+    "states": [
+      "CATALOG_READY_LIST",
+      "CLINIC_READY",
+      "DOCTORS_READY",
+      "DOCTOR_PROFILE"
+    ]
+  },
+  "independentValidation": {
+    "validator": "/root/independent_validator",
+    "verdict": "PASS",
+    "vetoes": 0
+  },
+  "readiness": {
+    "integration": "PASS",
+    "doctorProductionRollout": "BLOCKED",
+    "blocker": "PUBLIC_DOCTOR_PROFILE_CONSENT_CONTRACT_MISSING"
+  }
+}

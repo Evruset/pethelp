@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { resetBookingPersistence } from './helpers/booking-test-reset';
 import { AlternativeSlotService } from '../src/booking-core/alternative-slot.service';
 import { ClinicEmployeeAccessService } from '../src/booking-core/clinic-employee-access.service';
 import { OwnerAlternativeSnapshotService } from '../src/booking-core/owner-alternative-snapshot.service';
@@ -38,6 +39,13 @@ describe('Owner alternative slot snapshot', () => {
       state: 'ALTERNATIVE_PENDING',
       originalSlot: { id: fixture.sourceSlotId },
       alternativeSlot: { id: fixture.alternativeSlotId },
+      context: {
+        petId: expect.any(String),
+        clinicId: expect.any(String),
+        locationId: fixture.locationId,
+        serviceId: expect.any(String),
+        doctorId: null,
+      },
     });
     expect(Date.parse(snapshot.serverNow)).not.toBeNaN();
     expect(Date.parse(snapshot.expiresAt)).toBeGreaterThan(Date.parse(snapshot.serverNow));
@@ -63,7 +71,7 @@ async function createFixture(database: DatabaseService): Promise<{
 
   await database.query('TRUNCATE clinic_schema.clinics CASCADE');
   await database.query('TRUNCATE pet_schema.pets, identity_schema.users CASCADE');
-  await database.query('TRUNCATE booking_schema.outbox_events, booking_schema.idempotency_records, audit_schema.audit_log');
+  await resetBookingPersistence(database);
   await database.query('INSERT INTO identity_schema.users (id) VALUES ($1::uuid), ($2::uuid)', [ownerId, employeeId]);
   await database.query(`INSERT INTO pet_schema.pets (id, owner_id, name, species) VALUES ($1::uuid, $2::uuid, 'Snapshot pet', 'DOG')`, [petId, ownerId]);
 

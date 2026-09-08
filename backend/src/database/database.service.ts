@@ -3,6 +3,20 @@ import { Pool, PoolClient, QueryResult, QueryResultRow } from 'pg';
 import { config } from '../config';
 import { TraceContext } from '../observability/trace-context.context';
 
+export type TransactionIsolationLevel = 'READ COMMITTED' | 'REPEATABLE READ';
+
+export interface TransactionOptions {
+  isolationLevel?: TransactionIsolationLevel;
+  readOnly?: boolean;
+}
+
+const BEGIN = 'BEGIN';
+const BEGIN_READ_ONLY = 'BEGIN READ ONLY';
+const BEGIN_READ_COMMITTED = 'BEGIN ISOLATION LEVEL READ COMMITTED';
+const BEGIN_READ_COMMITTED_READ_ONLY = 'BEGIN ISOLATION LEVEL READ COMMITTED READ ONLY';
+const BEGIN_REPEATABLE_READ = 'BEGIN ISOLATION LEVEL REPEATABLE READ';
+const BEGIN_REPEATABLE_READ_READ_ONLY = 'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY';
+
 @Injectable()
 export class DatabaseService implements OnModuleDestroy {
   readonly pool = new Pool({
@@ -27,10 +41,13 @@ export class DatabaseService implements OnModuleDestroy {
     };
   }
 
-  async withTransaction<T>(work: (client: PoolClient) => Promise<T>): Promise<T> {
+  async withTransaction<T>(
+    work: (client: PoolClient) => Promise<T>,
+    options: TransactionOptions = {},
+  ): Promise<T> {
     const client = await this.pool.connect();
     try {
-      await client.query('BEGIN');
+      await client.query(this.beginStatement(options));
       await this.applyTraceContext(client);
       const result = await work(client);
       await client.query('COMMIT');
@@ -45,6 +62,16 @@ export class DatabaseService implements OnModuleDestroy {
     } finally {
       client.release();
     }
+  }
+
+  private beginStatement(options: TransactionOptions): string {
+    if (options.isolationLevel === 'REPEATABLE READ') {
+      return options.readOnly ? BEGIN_REPEATABLE_READ_READ_ONLY : BEGIN_REPEATABLE_READ;
+    }
+    if (options.isolationLevel === 'READ COMMITTED') {
+      return options.readOnly ? BEGIN_READ_COMMITTED_READ_ONLY : BEGIN_READ_COMMITTED;
+    }
+    return options.readOnly ? BEGIN_READ_ONLY : BEGIN;
   }
 
   private async applyTraceContext(client: PoolClient): Promise<void> {

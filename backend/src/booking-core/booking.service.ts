@@ -3,6 +3,7 @@ import type { PoolClient } from 'pg';
 import { DatabaseService } from '../database/database.service';
 import { DomainErrors, DomainException } from '../common/domain-error';
 import { config } from '../config';
+import { mvpScope } from '../config/mvp-scope.config';
 import { canTransition } from './booking-state-machine';
 import { BookingRepository } from './booking.repository';
 import { ConfirmHoldResult, CreateHoldResult, HoldRow, ReleaseHoldResult, SlotRow } from './booking.types';
@@ -58,6 +59,7 @@ export class BookingService {
           state: 'MANUAL_CONFIRM_PENDING',
           slotId: input.slotId,
           expiresAt: hold.rows[0].expires_at.toISOString(),
+          lastUpdatedAt: hold.rows[0].state_changed_at.toISOString(),
           correlationId: input.correlationId,
         };
 
@@ -232,54 +234,106 @@ export class BookingService {
   }
 
   async expireHolds(batchSize = 100): Promise<{ expired: number }> {
-    const expired = await this.database.withTransaction(async (client) => {
-      const candidateSlots = await client.query<{ id: string }>(`
-        SELECT s.id
-        FROM clinic_schema.appointment_slots s
-        WHERE EXISTS (
-          SELECT 1 FROM booking_schema.booking_holds h
-          WHERE h.slot_id = s.id
-            AND h.state = 'MANUAL_CONFIRM_PENDING'
-            AND h.expires_at <= clock_timestamp()
-        )
-        ORDER BY s.id
-        FOR UPDATE SKIP LOCKED
-        LIMIT $1
-      `, [batchSize]);
-
-      let count = 0;
-      for (const candidate of candidateSlots.rows) {
-        const slot = await this.repository.lockSlot(client, candidate.id);
-        if (!slot) continue;
-        const rows = await client.query<HoldRow>(`
-          SELECT id, slot_id, owner_id, pet_id, state, expires_at, state_changed_at, version, created_at
+    let expired = 0;
+    for (let index = 0; index < batchSize; index += 1) {
+      const processed = await this.database.withTransaction(async (client) => {
+        await this.setInteractiveTransactionLimits(client);
+        const candidate = await client.query<HoldRow>(mvpScope.pilot ? {
+          text: `
+          SELECT id, slot_id, owner_id, pet_id, state, expires_at,
+                 confirmation_sla_expires_at, state_changed_at, version, created_at
           FROM booking_schema.booking_holds
-          WHERE slot_id = $1 AND state = 'MANUAL_CONFIRM_PENDING' AND expires_at <= clock_timestamp()
-          FOR UPDATE
-        `, [slot.id]);
-        for (const hold of rows.rows) {
-          await this.expireLockedHold(client, hold, slot, null, 'WORKER', 'ttl-expired');
-          count += 1;
-        }
-      }
-      return count;
-    });
+          WHERE state = 'MANUAL_CONFIRM_PENDING'
+            AND confirmation_sla_expires_at <= clock_timestamp()
+          ORDER BY confirmation_sla_expires_at, id
+          FOR UPDATE SKIP LOCKED
+          LIMIT 1
+        `, values: [] } : { text: `
+          SELECT id, slot_id, owner_id, pet_id, state, expires_at,
+                 confirmation_sla_expires_at, state_changed_at, version, created_at
+          FROM booking_schema.booking_holds
+          WHERE state = ANY(ARRAY['MANUAL_CONFIRM_PENDING','MIS_RESERVATION_PENDING','MIS_RECONCILIATION_PENDING','MIS_HELD']::text[])
+            AND CASE
+              WHEN $1::boolean AND state = 'MANUAL_CONFIRM_PENDING'
+                THEN confirmation_sla_expires_at <= clock_timestamp()
+              ELSE expires_at <= clock_timestamp()
+            END
+          ORDER BY CASE
+              WHEN $1::boolean AND state = 'MANUAL_CONFIRM_PENDING'
+                THEN confirmation_sla_expires_at
+              ELSE expires_at
+            END, id
+          FOR UPDATE SKIP LOCKED
+          LIMIT 1
+        `, values: [false] });
+        const hold = candidate.rows[0];
+        if (!hold) return false;
+
+        // Canonical worker lock order: claim the hold first, then its slot.
+        const slot = await this.repository.lockSlot(client, hold.slot_id);
+        if (!slot) throw DomainErrors.bookingUnavailable();
+        await this.expireLockedHold(client, hold, slot, null, 'SYSTEM_WORKER', 'ttl-expired');
+        return true;
+      });
+      if (!processed) break;
+      expired += 1;
+    }
     return { expired };
   }
 
+  async expirationBacklog(): Promise<{
+    pendingCount: number;
+    overdueCount: number;
+    oldestOverdueAgeSeconds: number | null;
+  }> {
+    const result = await this.database.withTransaction(async (client) => {
+      await client.query("SET LOCAL statement_timeout = '250ms'");
+      return client.query<{
+        pending_count: string;
+        overdue_count: string;
+        oldest_overdue_age_seconds: string | null;
+      }>(`
+        SELECT
+          COUNT(*)::text AS pending_count,
+          COUNT(*) FILTER (WHERE deadline <= clock_timestamp())::text AS overdue_count,
+          EXTRACT(EPOCH FROM clock_timestamp() - MIN(deadline) FILTER (WHERE deadline <= clock_timestamp()))::text
+            AS oldest_overdue_age_seconds
+        FROM (
+          SELECT CASE
+            WHEN $1::boolean AND state = 'MANUAL_CONFIRM_PENDING' THEN confirmation_sla_expires_at
+            ELSE expires_at
+          END AS deadline
+          FROM booking_schema.booking_holds
+          WHERE state = ANY(ARRAY['MANUAL_CONFIRM_PENDING','MIS_RESERVATION_PENDING','MIS_RECONCILIATION_PENDING','MIS_HELD']::text[])
+        ) active
+      `, [mvpScope.pilot]);
+    });
+    const row = result.rows[0];
+    return {
+      pendingCount: Number(row.pending_count),
+      overdueCount: Number(row.overdue_count),
+      oldestOverdueAgeSeconds: row.oldest_overdue_age_seconds === null
+        ? null
+        : Math.max(0, Math.floor(Number(row.oldest_overdue_age_seconds))),
+    };
+  }
+
   private async expireLockedHold(client: PoolClient, hold: HoldRow, slot: SlotRow, correlationId: string | null, actorType: string, reason: string): Promise<void> {
-    if (hold.state !== 'MANUAL_CONFIRM_PENDING') return;
+    if (!['MANUAL_CONFIRM_PENDING', 'MIS_RESERVATION_PENDING', 'MIS_RECONCILIATION_PENDING', 'MIS_HELD'].includes(hold.state)) return;
     const updated = await client.query<HoldRow>(`
       UPDATE booking_schema.booking_holds
       SET state = 'EXPIRED', state_changed_at = clock_timestamp(), version = version + 1, updated_at = clock_timestamp()
       WHERE id = $1
+        AND state = ANY(ARRAY['MANUAL_CONFIRM_PENDING','MIS_RESERVATION_PENDING','MIS_RECONCILIATION_PENDING','MIS_HELD']::text[])
       RETURNING id, slot_id, owner_id, pet_id, state, expires_at, state_changed_at, version, created_at
     `, [hold.id]);
-    await client.query(`
+    if (updated.rowCount !== 1) return;
+    const released = await client.query(`
       UPDATE clinic_schema.appointment_slots
       SET held_count = held_count - 1, version = version + 1, updated_at = clock_timestamp()
-      WHERE id = $1
+      WHERE id = $1 AND held_count > 0
     `, [slot.id]);
+    if (released.rowCount !== 1) throw DomainErrors.bookingUnavailable();
     await this.writeOutbox(client, {
       eventType: 'booking.hold.expired.v1', correlationId, aggregateType: 'booking_hold', aggregateId: hold.id,
       aggregateVersion: updated.rows[0].version, payload: { holdId: hold.id, slotId: slot.id, reason },

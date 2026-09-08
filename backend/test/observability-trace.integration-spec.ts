@@ -38,9 +38,10 @@ describe('Observability trace context', () => {
     const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
     const correlationId = randomUUID();
     const userId = randomUUID();
+    const slotId = randomUUID();
 
     traceContext.run({ correlationId, userId }, () => {
-      logger.event('log', 'BookingCore', 'Creating local hold', { slotId: 'slot-1' });
+      logger.event('log', 'BookingCore', 'Creating local hold', { slotId });
     });
 
     const line = String(consoleSpy.mock.calls[0][0]);
@@ -49,9 +50,9 @@ describe('Observability trace context', () => {
       context: 'BookingCore',
       message: 'Creating local hold',
       correlationId,
-      userId,
-      slotId: 'slot-1',
+      slotId,
     });
+    expect(JSON.parse(line).userId).toBeUndefined();
 
     consoleSpy.mockRestore();
     process.env.NODE_ENV = previousNodeEnv;

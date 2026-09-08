@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
+import { resetBookingPersistence } from './helpers/booking-test-reset';
 import { Role, JwtPayload } from '../src/auth/auth.types';
 import { BookingSecurityService } from '../src/booking-core/booking-security.service';
+import { BookingHoldReadService } from '../src/booking-core/booking-hold-read.service';
 import { ClinicEmployeeAccessService } from '../src/booking-core/clinic-employee-access.service';
 import { ClinicQueueService } from '../src/booking-core/clinic-queue.service';
 import { DatabaseService } from '../src/database/database.service';
@@ -12,6 +14,7 @@ describe('ClinicQueueService', () => {
   const access = new ClinicEmployeeAccessService();
   const service = new ClinicQueueService(database, access);
   const bookingSecurity = new BookingSecurityService(database, access);
+  const holdRead = new BookingHoldReadService(database, access);
 
   afterAll(async () => {
     await database.onModuleDestroy();
@@ -70,6 +73,38 @@ describe('ClinicQueueService', () => {
       holdId: fixture.secondHoldId,
       state: 'CONFIRMED',
     });
+  });
+
+  it('publishes a manual clinic confirmation as the authoritative owner status', async () => {
+    const fixture = await createQueueFixture(database);
+
+    await expect(bookingSecurity.confirmManualHold({
+      holdId: fixture.firstHoldId,
+      employee: fixture.employee,
+      idempotencyKey: randomUUID(),
+      correlationId: randomUUID(),
+      expectedVersion: 1,
+    })).resolves.toMatchObject({
+      holdId: fixture.firstHoldId,
+      state: 'CONFIRMED',
+    });
+
+    await expect(holdRead.readForActor(fixture.firstHoldId, {
+      sub: fixture.ownerId,
+      roles: [Role.OWNER],
+    })).resolves.toMatchObject({
+      holdId: fixture.firstHoldId,
+      status: 'CONFIRMED',
+      statusCode: 'CONFIRMED',
+      statusTitle: 'Запись подтверждена',
+      nextActionCode: 'VIEW_APPOINTMENT',
+      confirmationMode: 'MANUAL',
+      aggregateVersion: 2,
+    });
+    await expect(holdRead.readForActor(fixture.firstHoldId, {
+      sub: fixture.ownerId,
+      roles: [Role.OWNER],
+    })).resolves.not.toHaveProperty('state');
   });
 
   it('allows the next actionable hold after the queue head SLA has expired', async () => {
@@ -131,6 +166,7 @@ async function createQueueFixture(database: DatabaseService): Promise<{
   locationId: string;
   firstHoldId: string;
   secondHoldId: string;
+  ownerId: string;
   employee: JwtPayload;
 }> {
   const employeeId = randomUUID();
@@ -138,7 +174,7 @@ async function createQueueFixture(database: DatabaseService): Promise<{
 
   await database.query('TRUNCATE clinic_schema.clinics CASCADE');
   await database.query('TRUNCATE pet_schema.pets, identity_schema.users CASCADE');
-  await database.query('TRUNCATE booking_schema.outbox_events, booking_schema.idempotency_records, audit_schema.audit_log');
+  await resetBookingPersistence(database);
 
   await database.query('INSERT INTO identity_schema.users (id) VALUES ($1::uuid), ($2::uuid)', [employeeId, ownerId]);
   const clinic = await database.query<{ id: string }>(`
@@ -187,6 +223,7 @@ async function createQueueFixture(database: DatabaseService): Promise<{
     locationId: location.rows[0].id,
     firstHoldId: holds.rows[0].id,
     secondHoldId: holds.rows[1].id,
+    ownerId,
     employee: {
       sub: employeeId,
       roles: [Role.CLINIC_RECEPTIONIST],

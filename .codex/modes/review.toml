@@ -14,9 +14,3 @@ fast_mode = false
 max_threads = 3
 max_depth = 1
 interrupt_message = false
-[mcp_servers.openaiDeveloperDocs]
-enabled = false
-[mcp_servers.context7]
-enabled = false
-[mcp_servers.playwright]
-enabled = false

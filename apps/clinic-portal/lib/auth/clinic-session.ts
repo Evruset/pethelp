@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { jwtVerify } from 'jose';
+import { SignJWT, jwtVerify } from 'jose';
 
 export const CLINIC_SESSION_COOKIE = 'vethelp_clinic_session';
 
@@ -37,6 +37,21 @@ export async function verifyClinicSessionToken(token: string): Promise<ClinicSes
   } catch {
     return null;
   }
+}
+
+export async function createClinicSessionToken(input: Omit<ClinicSession, 'token'>): Promise<string> {
+  return new SignJWT({
+    roles: input.roles,
+    clinicIds: input.clinicIds,
+    locationIds: input.locationIds,
+  })
+    .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+    .setSubject(input.userId)
+    .setIssuer('vethelp-local')
+    .setAudience('vethelp-api')
+    .setIssuedAt()
+    .setExpirationTime('30m')
+    .sign(signingKey());
 }
 
 export async function getClinicSession(): Promise<ClinicSession | null> {

@@ -3,6 +3,7 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule } from '@nestjs/swagger';
 import { BookingErrorFilter } from './common/booking-error.filter';
+import { DomainException } from './common/domain-error';
 import { PermissionDeniedAuditFilter } from './common/permission-denied-audit.filter';
 import { config } from './config';
 import { NestRoot } from './nest-root-full';
@@ -32,7 +33,12 @@ async function bootstrap(): Promise<void> {
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Accept', 'Authorization', 'Content-Type', 'Idempotency-Key', 'X-Correlation-ID', 'X-Causation-ID', 'traceparent'],
   });
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    transform: true,
+    forbidNonWhitelisted: true,
+    exceptionFactory: () => new DomainException(400, 'INVALID_REQUEST', 'Request validation failed'),
+  }));
   app.useGlobalFilters(app.get(PermissionDeniedAuditFilter), new BookingErrorFilter());
   app.enableShutdownHooks();
 

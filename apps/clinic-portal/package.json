@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "test:patient-detail-parser": "rm -rf test-results/parser-contract && tsc lib/api/clinic-patient-detail.ts --outDir test-results/parser-contract --module commonjs --target ES2022 --esModuleInterop --skipLibCheck && PATIENT_DETAIL_PARSER_MODULE=$PWD/test-results/parser-contract/clinic-patient-detail.js node --test tests/contract/clinic-patient-detail-parser.test.cjs",
     "e2e": "rm -rf test-results playwright-report allure-results allure-report && next build && playwright test",
     "e2e:local-stack": "rm -rf test-results/local-stack && next build && playwright test -c playwright.local-stack.config.ts",
     "allure:generate": "allure generate allure-results --clean -o allure-report",
@@ -30,5 +31,9 @@
     "allure-playwright": "^3.10.2",
     "tailwindcss": "^4.1.0",
     "typescript": "^5.9.0"
+  },
+  "optionalDependencies": {
+    "@tailwindcss/oxide-linux-x64-gnu": "4.3.1",
+    "lightningcss-linux-x64-gnu": "1.32.0"
   }
 }

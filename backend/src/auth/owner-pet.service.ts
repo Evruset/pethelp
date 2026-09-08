@@ -1,11 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException, PreconditionFailedException } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { ReadStream } from 'node:fs';
 import type { PoolClient } from 'pg';
 import { DatabaseService } from '../database/database.service';
+import { config } from '../config';
+import { DomainException } from '../common/domain-error';
 import { JwtPayload } from './auth.types';
 import { CreateOwnerPetDto, UpdateOwnerPetDto } from './dto/owner-pet.dto';
 import { ownerAppointmentPresentation, OwnerAppointmentPresentation } from './owner-appointments.service';
@@ -48,11 +50,21 @@ export type OwnerPet = {
   vaccinationNotes: string | null;
   photoUrl: string | null;
   insurancePolicyLinks: string[];
-  medicalHistoryOcr: Record<string, unknown> | null;
   profileVersion: number;
+  archivedAt?: string | null;
+  isArchived?: boolean;
   createdAt: string;
   updatedAt: string;
 };
+
+export type OwnerPetMvp = {
+  petId: string;
+  name: string;
+  species: 'DOG' | 'CAT' | 'OTHER';
+  createdAt: string;
+  updatedAt: string;
+};
+export function ownerPetCreateFingerprint(name:string,species:string,key:string){return createHmac('sha256',key).update('vethelp:owner-pet:create:v1\0').update(JSON.stringify({name,species})).digest('hex');}
 
 export type OwnerPetCareDocument = {
   id: string;
@@ -124,6 +136,23 @@ export type OwnerPetCareSummary = {
   serverNow: string;
 };
 
+export type OwnerPetDiaryEntry = {
+  type: 'DOCUMENT' | 'VISIT' | 'TELEMED';
+  sourceId: string;
+  occurredAt: string;
+  endsAt: string | null;
+  title: string;
+  summary: string | null;
+  lifecycleStatus: string;
+  downloadUrl: string | null;
+};
+
+export type OwnerPetDiaryPage = {
+  petId: string;
+  entries: OwnerPetDiaryEntry[];
+  page: { limit: number; offset: number; nextOffset: number | null; total: number };
+};
+
 type OwnerPetRow = {
   id: string;
   name: string;
@@ -144,6 +173,7 @@ type OwnerPetRow = {
   insurance_policy_links: string[] | null;
   medical_history_ocr: Record<string, unknown> | null;
   profile_version: string | number;
+  archived_at: Date | null;
   created_at: Date;
   updated_at: Date;
 };
@@ -166,18 +196,43 @@ type PetDocumentRow = {
 export class OwnerPetService {
   constructor(private readonly database: DatabaseService) {}
 
-  async list(owner: JwtPayload): Promise<OwnerPet[]> {
+  async list(owner: JwtPayload, includeArchived = false): Promise<OwnerPet[]> {
     const result = await this.database.query<OwnerPetRow>(`
       SELECT
         id, name, species, breed, birth_date, age_months, sex, gender,
         weight_kg::text, sterilized, is_sterilized, chip_number,
         allergies, chronic_conditions, vaccination_notes, photo_url,
-        insurance_policy_links, medical_history_ocr, profile_version, created_at, updated_at
+        insurance_policy_links, medical_history_ocr, profile_version, archived_at, created_at, updated_at
+      FROM pet_schema.pets
+      WHERE owner_id = $1::uuid AND ($2::boolean OR archived_at IS NULL)
+      ORDER BY created_at ASC, id ASC
+    `, [owner.sub, includeArchived]);
+    return result.rows.map((row) => this.toPet(row));
+  }
+
+  async listMvp(owner: JwtPayload): Promise<OwnerPetMvp[]> {
+    const result = await this.database.query<Pick<OwnerPetRow, 'id' | 'name' | 'species' | 'created_at' | 'updated_at'>>(`
+      SELECT id, name, species, created_at, updated_at
       FROM pet_schema.pets
       WHERE owner_id = $1::uuid
+        AND archived_at IS NULL
       ORDER BY created_at ASC, id ASC
     `, [owner.sub]);
-    return result.rows.map((row) => this.toPet(row));
+    this.assertMvpSpecies(result.rows);
+    return result.rows.map((row) => this.toMvpPet(row));
+  }
+
+  async readMvp(owner: JwtPayload, petId: string): Promise<OwnerPetMvp | undefined> {
+    const result = await this.database.query<Pick<OwnerPetRow, 'id' | 'name' | 'species' | 'created_at' | 'updated_at'>>(`
+      SELECT id, name, species, created_at, updated_at
+      FROM pet_schema.pets
+      WHERE id = $1::uuid
+        AND owner_id = $2::uuid
+        AND archived_at IS NULL
+      LIMIT 1
+    `, [petId, owner.sub]);
+    this.assertMvpSpecies(result.rows);
+    return result.rows[0] ? this.toMvpPet(result.rows[0]) : undefined;
   }
 
   async read(owner: JwtPayload, petId: string): Promise<OwnerPet | undefined> {
@@ -186,12 +241,30 @@ export class OwnerPetService {
         id, name, species, breed, birth_date, age_months, sex, gender,
         weight_kg::text, sterilized, is_sterilized, chip_number,
         allergies, chronic_conditions, vaccination_notes, photo_url,
-        insurance_policy_links, medical_history_ocr, profile_version, created_at, updated_at
+        insurance_policy_links, medical_history_ocr, profile_version, archived_at, created_at, updated_at
       FROM pet_schema.pets
       WHERE id = $1::uuid AND owner_id = $2::uuid
       LIMIT 1
     `, [petId, owner.sub]);
     return result.rows[0] ? this.toPet(result.rows[0]) : undefined;
+  }
+
+  async readActiveCatalogContext(
+    owner: JwtPayload,
+    petId: string,
+  ): Promise<{ id: string; species: OwnerPet['species'] } | undefined> {
+    const result = await this.database.query<{
+      id: string;
+      species: OwnerPet['species'];
+    }>(`
+      SELECT id, species
+      FROM pet_schema.pets
+      WHERE id = $1::uuid
+        AND owner_id = $2::uuid
+        AND archived_at IS NULL
+      LIMIT 1
+    `, [petId, owner.sub]);
+    return result.rows[0];
   }
 
   async careSummary(owner: JwtPayload, petId: string): Promise<OwnerPetCareSummary | undefined> {
@@ -364,6 +437,131 @@ export class OwnerPetService {
     };
   }
 
+  async diary(owner: JwtPayload, petId: string, limit: number, offset: number): Promise<OwnerPetDiaryPage> {
+    if (!await this.read(owner, petId)) {
+      throw new NotFoundException({ code: 'OWNER_PET_NOT_FOUND', message: 'Pet was not found.' });
+    }
+    const result = await this.database.query<{
+      entry_type: OwnerPetDiaryEntry['type']; source_id: string; occurred_at: Date; ends_at: Date | null;
+      title: string; summary: string | null; lifecycle_status: string; download_url: string | null; total_count: string;
+    }>(`
+      WITH diary AS (
+        SELECT 'DOCUMENT'::text AS entry_type, document.id::text AS source_id,
+          document.created_at AS occurred_at, NULL::timestamptz AS ends_at,
+          COALESCE(document.file_name, CASE WHEN document.doc_type = 'PASSPORT' THEN 'Документ питомца' ELSE 'Медицинский файл' END) AS title,
+          NULL::text AS summary,
+          CASE document.status WHEN 'PROCESSING' THEN 'PROCESSING' WHEN 'PROCESSED' THEN 'READY' ELSE 'FAILED' END AS lifecycle_status,
+          CASE WHEN document.storage_key IS NULL THEN NULL ELSE '/v1/owner/pets/' || $2::text || '/documents/' || document.id::text || '/download' END AS download_url,
+          1 AS type_rank
+        FROM pet_schema.pet_documents document
+        WHERE document.owner_id = $1::uuid AND document.pet_id = $2::uuid
+          AND document.deleted_at IS NULL AND document.doc_type IN ('PASSPORT', 'HISTORY')
+        UNION ALL
+        SELECT 'VISIT', hold.id::text, slot.starts_at, slot.ends_at,
+          COALESCE(service.display_name, 'Визит в клинику'), hold.clinical_summary,
+          hold.state, NULL::text, 2
+        FROM booking_schema.booking_holds hold
+        JOIN clinic_schema.appointment_slots slot ON slot.id = hold.slot_id
+        LEFT JOIN clinic_schema.clinic_services service ON service.id = slot.service_id
+        WHERE hold.owner_id = $1::uuid AND hold.pet_id = $2::uuid
+        UNION ALL
+        SELECT 'TELEMED', session.id::text, COALESCE(slot.starts_at, session.created_at), slot.ends_at,
+          COALESCE(service.display_name, 'Онлайн-консультация'), NULL::text,
+          session.state, NULL::text, 3
+        FROM telemed_schema.telemed_sessions session
+        LEFT JOIN booking_schema.booking_holds hold ON hold.id = session.booking_hold_id
+        LEFT JOIN telemed_schema.telemed_cases telemed_case ON telemed_case.id = session.telemed_case_id
+        LEFT JOIN clinic_schema.appointment_slots slot ON slot.id = hold.slot_id
+        LEFT JOIN clinic_schema.clinic_services service ON service.id = slot.service_id
+        WHERE session.owner_id = $1::uuid AND COALESCE(hold.pet_id, telemed_case.pet_id) = $2::uuid
+      )
+      SELECT diary.*, count(*) OVER ()::text AS total_count
+      FROM diary
+      ORDER BY occurred_at DESC, type_rank ASC, source_id ASC
+      LIMIT $3::integer OFFSET $4::integer
+    `, [owner.sub, petId, limit, offset]);
+    const total = Number(result.rows[0]?.total_count ?? 0);
+    return {
+      petId,
+      entries: result.rows.map((row) => ({
+        type: row.entry_type,
+        sourceId: row.source_id,
+        occurredAt: row.occurred_at.toISOString(),
+        endsAt: row.ends_at?.toISOString() ?? null,
+        title: row.title,
+        summary: row.summary,
+        lifecycleStatus: this.publicDiaryLifecycle(row.entry_type, row.lifecycle_status),
+        downloadUrl: row.download_url,
+      })),
+      page: { limit, offset, nextOffset: offset + result.rows.length < total ? offset + result.rows.length : null, total },
+    };
+  }
+
+  async documentMetadata(owner: JwtPayload, petId: string, documentId: string) {
+    const row = await this.readOwnedDocument(owner, petId, documentId);
+    await this.writeDocumentAccessAudit(owner.sub, petId, documentId, 'pet.document.metadata.read');
+    return {
+      id: row.id,
+      petId: row.pet_id,
+      type: row.doc_type === 'PET_PHOTO' ? 'HISTORY' : row.doc_type,
+      fileName: row.file_name ?? this.documentLabel(row),
+      mimeType: row.mime_type ?? 'application/octet-stream',
+      sizeBytes: row.file_size_bytes ?? 0,
+      lifecycleStatus: row.status === 'PROCESSED' ? 'READY' : row.status,
+      createdAt: row.created_at.toISOString(),
+      canDownload: Boolean(row.storage_key),
+      downloadUrl: row.storage_key ? this.documentDownloadUrl(petId, documentId) : null,
+    };
+  }
+
+  async setArchived(owner: JwtPayload, petId: string, archived: boolean, ifMatchVersion?: number): Promise<OwnerPet> {
+    if (ifMatchVersion === undefined) {
+      throw new PreconditionFailedException({ code: 'PET_PROFILE_VERSION_REQUIRED', message: 'If-Match is required.' });
+    }
+    return this.database.withTransaction(async (client) => {
+      const currentResult = await client.query<OwnerPetRow>(`
+        SELECT id, name, species, breed, birth_date, age_months, sex, gender,
+          weight_kg::text, sterilized, is_sterilized, chip_number, allergies, chronic_conditions,
+          vaccination_notes, photo_url, insurance_policy_links, medical_history_ocr,
+          profile_version, archived_at, created_at, updated_at
+        FROM pet_schema.pets WHERE id = $1::uuid AND owner_id = $2::uuid FOR UPDATE
+      `, [petId, owner.sub]);
+      const currentRow = currentResult.rows[0];
+      if (!currentRow) throw new NotFoundException({ code: 'OWNER_PET_NOT_FOUND', message: 'Pet was not found.' });
+      if (Number(currentRow.profile_version) !== ifMatchVersion) {
+        throw new PreconditionFailedException({
+          code: 'PET_PROFILE_VERSION_MISMATCH', message: 'Pet profile version does not match current server state.',
+          currentVersion: Number(currentRow.profile_version),
+        });
+      }
+      if (Boolean(currentRow.archived_at) === archived) {
+        return this.toPet(currentRow);
+      }
+      const result = await client.query<OwnerPetRow>(`
+        UPDATE pet_schema.pets
+        SET archived_at = CASE WHEN $3::boolean THEN clock_timestamp() ELSE NULL END,
+          profile_version = profile_version + 1, updated_at = clock_timestamp()
+        WHERE id = $1::uuid AND owner_id = $2::uuid
+          AND profile_version = $4::integer
+          AND (($3::boolean AND archived_at IS NULL) OR (NOT $3::boolean AND archived_at IS NOT NULL))
+        RETURNING id, name, species, breed, birth_date, age_months, sex, gender,
+          weight_kg::text, sterilized, is_sterilized, chip_number, allergies, chronic_conditions,
+          vaccination_notes, photo_url, insurance_policy_links, medical_history_ocr,
+          profile_version, archived_at, created_at, updated_at
+      `, [petId, owner.sub, archived, ifMatchVersion]);
+      if (!result.rows[0]) {
+        throw new PreconditionFailedException({
+          code: 'PET_PROFILE_VERSION_MISMATCH', message: 'Pet profile changed during archive transition.',
+        });
+      }
+      const pet = this.toPet(result.rows[0]);
+      await this.writePetAudit(client, owner.sub, petId, archived ? 'pet.archived' : 'pet.restored', {
+        previousProfileVersion: Number(currentRow.profile_version), profileVersion: pet.profileVersion,
+      });
+      return pet;
+    });
+  }
+
   async create(owner: JwtPayload, input: CreateOwnerPetDto): Promise<OwnerPet> {
     const name = input.name.trim();
     if (!name) {
@@ -385,7 +583,7 @@ export class OwnerPetService {
           id, name, species, breed, birth_date, age_months, sex, gender,
           weight_kg::text, sterilized, is_sterilized, chip_number,
           allergies, chronic_conditions, vaccination_notes, photo_url,
-          insurance_policy_links, medical_history_ocr, profile_version, created_at, updated_at
+          insurance_policy_links, medical_history_ocr, profile_version, archived_at, created_at, updated_at
       `, [
         owner.sub,
         name,
@@ -414,10 +612,81 @@ export class OwnerPetService {
     });
   }
 
+  async createMvp(owner: JwtPayload, input: CreateOwnerPetDto, idempotencyKey: string): Promise<OwnerPetMvp> {
+    const name = input.name.trim();
+    const nameLength = Array.from(name).length;
+    if (nameLength < 1 || nameLength > 120) {
+      throw new BadRequestException({ code: 'INVALID_PET_NAME', message: 'name must contain 1 to 120 Unicode characters.' });
+    }
+    const extraFields = Object.entries(input)
+      .filter(([key, value]) => !['name', 'species'].includes(key) && value !== undefined)
+      .map(([key]) => key);
+    if (extraFields.length > 0) {
+      throw new BadRequestException({ code: 'INVALID_REQUEST', message: 'Only name and species are accepted.' });
+    }
+    const scope = `owner-pet.create:${owner.sub}`;
+    const fingerprint = ownerPetCreateFingerprint(name,input.species,config.ownerPetIdempotencyHmacKey);
+
+    return this.database.withTransaction(async (client) => {
+      const insertedLedger = await client.query(`
+        INSERT INTO booking_schema.idempotency_records (scope, idempotency_key, status, request_fingerprint)
+        VALUES ($1, $2::uuid, 'PROCESSING', $3)
+        ON CONFLICT (scope, idempotency_key) DO NOTHING
+        RETURNING id
+      `, [scope, idempotencyKey, fingerprint]);
+
+      if (!insertedLedger.rows[0]) {
+        const existing = await client.query<{
+          status: string; response_status: number | null; response_body: { petId?: string } | null; request_fingerprint: string | null;
+        }>(`
+          SELECT status, response_status, response_body, request_fingerprint
+          FROM booking_schema.idempotency_records
+          WHERE scope = $1 AND idempotency_key = $2::uuid
+          FOR UPDATE
+        `, [scope, idempotencyKey]);
+        const ledger = existing.rows[0];
+        if (!ledger || ledger.request_fingerprint !== fingerprint) {
+          throw new DomainException(409, 'PET_IDEMPOTENCY_CONFLICT', 'Idempotency key was already used for another pet.');
+        }
+        if (ledger.status !== 'COMPLETED' || !ledger.response_body?.petId) {
+          throw new DomainException(425, 'IDEMPOTENCY_IN_PROGRESS', 'Pet creation is in progress.');
+        }
+        const replay = await client.query<Pick<OwnerPetRow, 'id' | 'name' | 'species' | 'created_at' | 'updated_at'>>(`
+          SELECT id, name, species, created_at, updated_at
+          FROM pet_schema.pets
+          WHERE id = $1::uuid AND owner_id = $2::uuid AND archived_at IS NULL
+          LIMIT 1
+        `, [ledger.response_body.petId, owner.sub]);
+        if (!replay.rows[0]) {
+          throw new DomainException(409, 'PET_IDEMPOTENCY_RESOURCE_UNAVAILABLE', 'The original pet is no longer available.');
+        }
+        return this.toMvpPet(replay.rows[0]);
+      }
+
+      const result = await client.query<Pick<OwnerPetRow, 'id' | 'name' | 'species' | 'created_at' | 'updated_at'>>(`
+        INSERT INTO pet_schema.pets (owner_id, name, species)
+        VALUES ($1::uuid, $2, $3)
+        RETURNING id, name, species, created_at, updated_at
+      `, [owner.sub, name, input.species]);
+      const pet = this.toMvpPet(result.rows[0]);
+      await this.writePetAudit(client, owner.sub, pet.petId, 'pet.created', { species: pet.species });
+      await client.query(`
+        UPDATE booking_schema.idempotency_records
+        SET status = 'COMPLETED', response_status = 201,
+            response_body = jsonb_build_object('petId', $3::text), updated_at = clock_timestamp()
+        WHERE scope = $1 AND idempotency_key = $2::uuid
+      `, [scope, idempotencyKey, pet.petId]);
+      return pet;
+    });
+  }
+
   async update(owner: JwtPayload, petId: string, input: UpdateOwnerPetDto, ifMatchVersion?: number): Promise<OwnerPet> {
     const current = await this.read(owner, petId);
     if (!current) {
       throw new NotFoundException({ code: 'OWNER_PET_NOT_FOUND', message: 'Pet was not found.' });
+    }
+    if (current.isArchived) {
+      throw new BadRequestException({ code: 'OWNER_PET_ARCHIVED_READ_ONLY', message: 'Archived pet is read-only.' });
     }
     if (ifMatchVersion !== undefined && current.profileVersion !== ifMatchVersion) {
       throw new PreconditionFailedException({
@@ -454,12 +723,12 @@ export class OwnerPetService {
           insurance_policy_links = $18::jsonb,
           profile_version = profile_version + 1,
           updated_at = clock_timestamp()
-        WHERE id = $1::uuid AND owner_id = $2::uuid
+        WHERE id = $1::uuid AND owner_id = $2::uuid AND archived_at IS NULL
         RETURNING
           id, name, species, breed, birth_date, age_months, sex, gender,
           weight_kg::text, sterilized, is_sterilized, chip_number,
           allergies, chronic_conditions, vaccination_notes, photo_url,
-          insurance_policy_links, medical_history_ocr, profile_version, created_at, updated_at
+          insurance_policy_links, medical_history_ocr, profile_version, archived_at, created_at, updated_at
       `, [
         petId,
         owner.sub,
@@ -500,7 +769,7 @@ export class OwnerPetService {
       throw new BadRequestException({ code: 'INVALID_PET_DOCUMENT_TYPE', message: 'Document type is not supported.' });
     }
     this.validateUploadedFile(file, { allowPdf: true });
-    await this.ensurePetOwned(owner, petId);
+    await this.ensurePetActive(owner, petId);
     const stored = await this.storeUploadedFile(owner.sub, petId, file!);
 
     return this.database.withTransaction(async (client) => {
@@ -541,7 +810,7 @@ export class OwnerPetService {
 
   async uploadPetPhoto(owner: JwtPayload, petId: string, file: UploadedPetFile | undefined): Promise<OwnerPet> {
     this.validateUploadedFile(file, { allowPdf: false });
-    await this.ensurePetOwned(owner, petId);
+    await this.ensurePetActive(owner, petId);
     const stored = await this.storeUploadedFile(owner.sub, petId, file!);
     const photoUrl = this.documentDownloadUrl(petId, stored.documentId);
 
@@ -569,12 +838,12 @@ export class OwnerPetService {
       const result = await client.query<OwnerPetRow>(`
         UPDATE pet_schema.pets
         SET photo_url = $3, profile_version = profile_version + 1, updated_at = clock_timestamp()
-        WHERE id = $1::uuid AND owner_id = $2::uuid
+        WHERE id = $1::uuid AND owner_id = $2::uuid AND archived_at IS NULL
         RETURNING
           id, name, species, breed, birth_date, age_months, sex, gender,
           weight_kg::text, sterilized, is_sterilized, chip_number,
           allergies, chronic_conditions, vaccination_notes, photo_url,
-          insurance_policy_links, medical_history_ocr, profile_version, created_at, updated_at
+          insurance_policy_links, medical_history_ocr, profile_version, archived_at, created_at, updated_at
       `, [petId, owner.sub, photoUrl]);
 
       if (!result.rows[0]) {
@@ -592,16 +861,17 @@ export class OwnerPetService {
   }
 
   async deletePetPhoto(owner: JwtPayload, petId: string): Promise<OwnerPet> {
+    await this.ensurePetActive(owner, petId);
     return this.database.withTransaction(async (client) => {
       const result = await client.query<OwnerPetRow>(`
         UPDATE pet_schema.pets
         SET photo_url = NULL, profile_version = profile_version + 1, updated_at = clock_timestamp()
-        WHERE id = $1::uuid AND owner_id = $2::uuid
+        WHERE id = $1::uuid AND owner_id = $2::uuid AND archived_at IS NULL
         RETURNING
           id, name, species, breed, birth_date, age_months, sex, gender,
           weight_kg::text, sterilized, is_sterilized, chip_number,
           allergies, chronic_conditions, vaccination_notes, photo_url,
-          insurance_policy_links, medical_history_ocr, profile_version, created_at, updated_at
+          insurance_policy_links, medical_history_ocr, profile_version, archived_at, created_at, updated_at
       `, [petId, owner.sub]);
 
       if (!result.rows[0]) {
@@ -623,6 +893,7 @@ export class OwnerPetService {
     if (!fileStat?.isFile()) {
       throw new NotFoundException({ code: 'OWNER_PET_DOCUMENT_NOT_FOUND', message: 'Document was not found.' });
     }
+    await this.writeDocumentAccessAudit(owner.sub, petId, documentId, 'pet.document.content.read');
     return {
       stream: createReadStream(filePath),
       safeFileName: this.safeDownloadName(document.file_name ?? 'pet-document'),
@@ -632,7 +903,7 @@ export class OwnerPetService {
   }
 
   async deleteDocument(owner: JwtPayload, petId: string, documentId: string): Promise<void> {
-    await this.ensurePetOwned(owner, petId);
+    await this.ensurePetActive(owner, petId);
     const result = await this.database.query<{ id: string }>(`
       UPDATE pet_schema.pet_documents
       SET deleted_at = clock_timestamp(), updated_at = clock_timestamp()
@@ -656,6 +927,22 @@ export class OwnerPetService {
         'OWNER', $1, $2, 'pet', $3::uuid, $4::jsonb
       )
     `, [ownerId, action, petId, JSON.stringify(payload)]);
+  }
+
+  private async writeDocumentAccessAudit(
+    ownerId: string,
+    petId: string,
+    documentId: string,
+    action: string,
+  ): Promise<void> {
+    await this.database.query(`
+      INSERT INTO audit_schema.audit_log (
+        actor_type, actor_id, action, aggregate_type, aggregate_id, payload_json
+      ) VALUES (
+        'OWNER', $1::uuid, $2, 'pet_document', $3::uuid,
+        jsonb_build_object('petId', $4::text)
+      )
+    `, [ownerId, action, documentId, petId]);
   }
 
   private changedPetFields(input: UpdateOwnerPetDto): string[] {
@@ -683,11 +970,28 @@ export class OwnerPetService {
       vaccinationNotes: row.vaccination_notes,
       photoUrl: row.photo_url,
       insurancePolicyLinks: row.insurance_policy_links ?? [],
-      medicalHistoryOcr: row.medical_history_ocr,
       profileVersion: Number(row.profile_version),
+      archivedAt: row.archived_at?.toISOString() ?? null,
+      isArchived: Boolean(row.archived_at),
       createdAt: row.created_at.toISOString(),
       updatedAt: row.updated_at.toISOString(),
     };
+  }
+
+  private toMvpPet(row: Pick<OwnerPetRow, 'id' | 'name' | 'species' | 'created_at' | 'updated_at'>): OwnerPetMvp {
+    return {
+      petId: row.id,
+      name: row.name,
+      species: row.species,
+      createdAt: row.created_at.toISOString(),
+      updatedAt: row.updated_at.toISOString(),
+    };
+  }
+
+  private assertMvpSpecies(rows: Array<Pick<OwnerPetRow, 'species'>>): void {
+    if (rows.some((row) => !['DOG', 'CAT', 'OTHER'].includes(row.species))) {
+      throw new DomainException(500, 'INTERNAL_ERROR', 'Pet data is temporarily unavailable.');
+    }
   }
 
   private async ensurePetOwned(owner: JwtPayload, petId: string): Promise<void> {
@@ -699,6 +1003,19 @@ export class OwnerPetService {
     `, [petId, owner.sub]);
     if (!pet.rows[0]) {
       throw new NotFoundException({ code: 'OWNER_PET_NOT_FOUND', message: 'Pet was not found.' });
+    }
+  }
+
+  private async ensurePetActive(owner: JwtPayload, petId: string): Promise<void> {
+    const result = await this.database.query<{ id: string; archived_at: Date | null }>(`
+      SELECT id, archived_at
+      FROM pet_schema.pets
+      WHERE id = $1::uuid AND owner_id = $2::uuid
+      LIMIT 1
+    `, [petId, owner.sub]);
+    if (!result.rows[0]) throw new NotFoundException({ code: 'OWNER_PET_NOT_FOUND', message: 'Pet was not found.' });
+    if (result.rows[0].archived_at) {
+      throw new BadRequestException({ code: 'OWNER_PET_ARCHIVED_READ_ONLY', message: 'Archived pet is read-only.' });
     }
   }
 
@@ -792,6 +1109,16 @@ export class OwnerPetService {
   private documentLabel(row: PetDocumentRow): string {
     if (row.file_name) return row.file_name;
     return row.doc_type === 'PASSPORT' ? 'Документ питомца' : 'Медицинский файл';
+  }
+
+  private publicDiaryLifecycle(type: OwnerPetDiaryEntry['type'], persistedState: string): string {
+    if (type === 'DOCUMENT') return persistedState;
+    if (type === 'VISIT') return ownerAppointmentPresentation(persistedState, 'HISTORY').code;
+    const telemedStates: Record<string, string> = {
+      WAITING_FOR_DOCTOR: 'WAITING', CONNECTED: 'IN_PROGRESS', COMPLETED: 'COMPLETED',
+      CANCELLED: 'CANCELLED', EXPIRED: 'EXPIRED', NO_SHOW: 'NO_SHOW',
+    };
+    return telemedStates[persistedState] ?? 'STATUS_UPDATED';
   }
 
   private documentDownloadUrl(petId: string, documentId: string): string {

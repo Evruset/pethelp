@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsUUID } from 'class-validator';
+import { IsInt, IsOptional, IsUUID, Min, ValidateIf } from 'class-validator';
+import { mvpScope } from '../../config/mvp-scope.config';
 
 export class CreateHoldDto {
   @ApiProperty({
@@ -17,4 +18,30 @@ export class CreateHoldDto {
   })
   @IsUUID('4')
   petId!: string;
+
+  @ApiProperty({ format: 'uuid', required: mvpScope.pilot, description: 'Authoritative clinic selected in the Owner journey.' })
+  @ValidateIf(() => mvpScope.pilot)
+  @IsUUID('4')
+  clinicId?: string;
+
+  @ApiProperty({ format: 'uuid', required: mvpScope.pilot, description: 'Authoritative clinic location selected in the Owner journey.' })
+  @ValidateIf(() => mvpScope.pilot)
+  @IsUUID('4')
+  locationId?: string;
+
+  @ApiProperty({ type: 'integer', minimum: 1, required: mvpScope.pilot, example: 17, description: 'Обязательная в PILOT_V1 версия слота из authoritative availability snapshot.' })
+  @ValidateIf((_object, value) => mvpScope.pilot || value !== undefined)
+  @IsInt()
+  @Min(1)
+  expectedSlotVersion?: number;
+
+  @ApiProperty({ format: 'uuid', required: mvpScope.pilot, description: 'Выбранная услуга, повторно проверяемая сервером.' })
+  @ValidateIf(() => mvpScope.pilot)
+  @IsUUID('4')
+  serviceId?: string;
+
+  @ApiProperty({ format: 'uuid', nullable: true, required: false, description: 'Legacy doctor selection.' })
+  @ValidateIf((_object, value) => !mvpScope.pilot && value != null)
+  @IsUUID('4')
+  doctorId?: string | null;
 }

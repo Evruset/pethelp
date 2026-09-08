@@ -1,0 +1,2751 @@
+{
+  "generatedBy": "scripts/visual/capture-booking-journal-responsive.mjs",
+  "cases": [
+    {
+      "state": "pending-request",
+      "role": "reception",
+      "viewport": "320x568",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=pending-request&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "request-overdue",
+      "role": "reception",
+      "viewport": "320x568",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=request-overdue&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "manual-booking",
+      "role": "reception",
+      "viewport": "320x568",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=manual-booking&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-today",
+      "role": "reception",
+      "viewport": "320x568",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-today&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-today-overdue",
+      "role": "reception",
+      "viewport": "320x568",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-today-overdue&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-request-list",
+      "role": "reception",
+      "viewport": "320x568",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-request-list&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-request-detail",
+      "role": "reception",
+      "viewport": "320x568",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-request-detail&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-calendar-search",
+      "role": "reception",
+      "viewport": "320x568",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-calendar-search&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": false
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-calendar-search-results",
+      "role": "reception",
+      "viewport": "320x568",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-calendar-search-results&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": false
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-calendar-search-empty",
+      "role": "reception",
+      "viewport": "320x568",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-calendar-search-empty&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": false
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-filters-open",
+      "role": "reception",
+      "viewport": "320x568",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-filters-open&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": false,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-filters-active",
+      "role": "reception",
+      "viewport": "320x568",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-filters-active&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": false,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-filters-empty-result",
+      "role": "reception",
+      "viewport": "320x568",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-filters-empty-result&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": false,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-alternative-slots",
+      "role": "reception",
+      "viewport": "320x568",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-alternative-slots&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-alternative-review",
+      "role": "reception",
+      "viewport": "320x568",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-alternative-review&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-booking-step-client",
+      "role": "reception",
+      "viewport": "320x568",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-booking-step-client&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-booking-step-schedule",
+      "role": "reception",
+      "viewport": "320x568",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-booking-step-schedule&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-booking-step-review",
+      "role": "reception",
+      "viewport": "320x568",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-booking-step-review&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-client-detail",
+      "role": "reception",
+      "viewport": "320x568",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-client-detail&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-stale",
+      "role": "reception",
+      "viewport": "320x568",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-stale&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-error",
+      "role": "reception",
+      "viewport": "320x568",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-error&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-forbidden",
+      "role": "reception",
+      "viewport": "320x568",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-forbidden&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "pending-request",
+      "role": "reception",
+      "viewport": "375x812",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=pending-request&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "request-overdue",
+      "role": "reception",
+      "viewport": "375x812",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=request-overdue&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "manual-booking",
+      "role": "reception",
+      "viewport": "375x812",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=manual-booking&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-today",
+      "role": "reception",
+      "viewport": "375x812",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-today&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-today-overdue",
+      "role": "reception",
+      "viewport": "375x812",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-today-overdue&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-request-list",
+      "role": "reception",
+      "viewport": "375x812",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-request-list&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-request-detail",
+      "role": "reception",
+      "viewport": "375x812",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-request-detail&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-calendar-search",
+      "role": "reception",
+      "viewport": "375x812",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-calendar-search&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": false
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-calendar-search-results",
+      "role": "reception",
+      "viewport": "375x812",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-calendar-search-results&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": false
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-calendar-search-empty",
+      "role": "reception",
+      "viewport": "375x812",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-calendar-search-empty&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": false
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-filters-open",
+      "role": "reception",
+      "viewport": "375x812",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-filters-open&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": false,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-filters-active",
+      "role": "reception",
+      "viewport": "375x812",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-filters-active&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": false,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-filters-empty-result",
+      "role": "reception",
+      "viewport": "375x812",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-filters-empty-result&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": false,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-alternative-slots",
+      "role": "reception",
+      "viewport": "375x812",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-alternative-slots&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-alternative-review",
+      "role": "reception",
+      "viewport": "375x812",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-alternative-review&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-booking-step-client",
+      "role": "reception",
+      "viewport": "375x812",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-booking-step-client&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-booking-step-schedule",
+      "role": "reception",
+      "viewport": "375x812",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-booking-step-schedule&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-booking-step-review",
+      "role": "reception",
+      "viewport": "375x812",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-booking-step-review&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-client-detail",
+      "role": "reception",
+      "viewport": "375x812",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-client-detail&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-stale",
+      "role": "reception",
+      "viewport": "375x812",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-stale&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-error",
+      "role": "reception",
+      "viewport": "375x812",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-error&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-forbidden",
+      "role": "reception",
+      "viewport": "375x812",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-forbidden&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "pending-request",
+      "role": "reception",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=pending-request&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "request-overdue",
+      "role": "reception",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=request-overdue&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "manual-booking",
+      "role": "reception",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=manual-booking&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-today",
+      "role": "reception",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-today&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-today-overdue",
+      "role": "reception",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-today-overdue&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-request-list",
+      "role": "reception",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-request-list&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-request-detail",
+      "role": "reception",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-request-detail&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-calendar-search",
+      "role": "reception",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-calendar-search&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": false
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-calendar-search-results",
+      "role": "reception",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-calendar-search-results&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": false
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-calendar-search-empty",
+      "role": "reception",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-calendar-search-empty&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": false
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-filters-open",
+      "role": "reception",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-filters-open&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": false,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-filters-active",
+      "role": "reception",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-filters-active&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": false,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-filters-empty-result",
+      "role": "reception",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-filters-empty-result&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": false,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-alternative-slots",
+      "role": "reception",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-alternative-slots&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-alternative-review",
+      "role": "reception",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-alternative-review&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-booking-step-client",
+      "role": "reception",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-booking-step-client&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-booking-step-schedule",
+      "role": "reception",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-booking-step-schedule&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-booking-step-review",
+      "role": "reception",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-booking-step-review&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-client-detail",
+      "role": "reception",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-client-detail&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-stale",
+      "role": "reception",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-stale&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-error",
+      "role": "reception",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-error&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-forbidden",
+      "role": "reception",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-forbidden&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-today",
+      "role": "admin",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-today&role=admin&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-request-detail",
+      "role": "admin",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-request-detail&role=admin&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-today",
+      "role": "veterinarian",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-today&role=veterinarian&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": false
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-request-detail",
+      "role": "veterinarian",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-request-detail&role=veterinarian&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": false
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-today",
+      "role": "multi-role",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-today&role=multi-role&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-request-detail",
+      "role": "multi-role",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-request-detail&role=multi-role&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "pending-request",
+      "role": "reception",
+      "viewport": "430x932",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=pending-request&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "request-overdue",
+      "role": "reception",
+      "viewport": "430x932",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=request-overdue&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "manual-booking",
+      "role": "reception",
+      "viewport": "430x932",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=manual-booking&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-today",
+      "role": "reception",
+      "viewport": "430x932",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-today&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-today-overdue",
+      "role": "reception",
+      "viewport": "430x932",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-today-overdue&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-request-list",
+      "role": "reception",
+      "viewport": "430x932",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-request-list&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-request-detail",
+      "role": "reception",
+      "viewport": "430x932",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-request-detail&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-calendar-search",
+      "role": "reception",
+      "viewport": "430x932",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-calendar-search&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": false
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-calendar-search-results",
+      "role": "reception",
+      "viewport": "430x932",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-calendar-search-results&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": false
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-calendar-search-empty",
+      "role": "reception",
+      "viewport": "430x932",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-calendar-search-empty&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": false
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-filters-open",
+      "role": "reception",
+      "viewport": "430x932",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-filters-open&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": false,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-filters-active",
+      "role": "reception",
+      "viewport": "430x932",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-filters-active&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": false,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-filters-empty-result",
+      "role": "reception",
+      "viewport": "430x932",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-filters-empty-result&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": false,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-alternative-slots",
+      "role": "reception",
+      "viewport": "430x932",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-alternative-slots&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-alternative-review",
+      "role": "reception",
+      "viewport": "430x932",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-alternative-review&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-booking-step-client",
+      "role": "reception",
+      "viewport": "430x932",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-booking-step-client&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-booking-step-schedule",
+      "role": "reception",
+      "viewport": "430x932",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-booking-step-schedule&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-booking-step-review",
+      "role": "reception",
+      "viewport": "430x932",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-booking-step-review&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-client-detail",
+      "role": "reception",
+      "viewport": "430x932",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-client-detail&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-stale",
+      "role": "reception",
+      "viewport": "430x932",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-stale&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-error",
+      "role": "reception",
+      "viewport": "430x932",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-error&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "mobile-forbidden",
+      "role": "reception",
+      "viewport": "430x932",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-forbidden&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "pending-request",
+      "role": "reception",
+      "viewport": "768x1024",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=pending-request&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "request-overdue",
+      "role": "reception",
+      "viewport": "768x1024",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=request-overdue&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "manual-booking",
+      "role": "reception",
+      "viewport": "768x1024",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=manual-booking&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": false,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "tablet-calendar",
+      "role": "reception",
+      "viewport": "768x1024",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=tablet-calendar&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "tablet-calendar-search",
+      "role": "reception",
+      "viewport": "768x1024",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=tablet-calendar-search&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "tablet-filters-open",
+      "role": "reception",
+      "viewport": "768x1024",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=tablet-filters-open&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "tablet-filters-active",
+      "role": "reception",
+      "viewport": "768x1024",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=tablet-filters-active&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "tablet-detail",
+      "role": "reception",
+      "viewport": "768x1024",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=tablet-detail&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "reception-ready",
+      "role": "admin",
+      "viewport": "768x1024",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=reception-ready&role=admin&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "pending-request",
+      "role": "admin",
+      "viewport": "768x1024",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=pending-request&role=admin&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "reception-ready",
+      "role": "veterinarian",
+      "viewport": "768x1024",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=reception-ready&role=veterinarian&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": false
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "pending-request",
+      "role": "veterinarian",
+      "viewport": "768x1024",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=pending-request&role=veterinarian&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": false
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "reception-ready",
+      "role": "multi-role",
+      "viewport": "768x1024",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=reception-ready&role=multi-role&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "pending-request",
+      "role": "multi-role",
+      "viewport": "768x1024",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=pending-request&role=multi-role&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "pending-request",
+      "role": "reception",
+      "viewport": "820x1180",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=pending-request&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "request-overdue",
+      "role": "reception",
+      "viewport": "820x1180",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=request-overdue&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "manual-booking",
+      "role": "reception",
+      "viewport": "820x1180",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=manual-booking&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": false,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "tablet-calendar",
+      "role": "reception",
+      "viewport": "820x1180",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=tablet-calendar&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "tablet-calendar-search",
+      "role": "reception",
+      "viewport": "820x1180",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=tablet-calendar-search&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "tablet-filters-open",
+      "role": "reception",
+      "viewport": "820x1180",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=tablet-filters-open&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "tablet-filters-active",
+      "role": "reception",
+      "viewport": "820x1180",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=tablet-filters-active&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "tablet-detail",
+      "role": "reception",
+      "viewport": "820x1180",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=tablet-detail&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "pending-request",
+      "role": "reception",
+      "viewport": "960x720",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=pending-request&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "request-overdue",
+      "role": "reception",
+      "viewport": "960x720",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=request-overdue&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "manual-booking",
+      "role": "reception",
+      "viewport": "960x720",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=manual-booking&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": false,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "compact-calendar",
+      "role": "reception",
+      "viewport": "960x720",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=compact-calendar&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "compact-filters-open",
+      "role": "reception",
+      "viewport": "960x720",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=compact-filters-open&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "compact-detail-open",
+      "role": "reception",
+      "viewport": "960x720",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=compact-detail-open&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "pending-request",
+      "role": "reception",
+      "viewport": "1024x768",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=pending-request&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "request-overdue",
+      "role": "reception",
+      "viewport": "1024x768",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=request-overdue&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "manual-booking",
+      "role": "reception",
+      "viewport": "1024x768",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=manual-booking&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": false,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "compact-calendar",
+      "role": "reception",
+      "viewport": "1024x768",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=compact-calendar&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "compact-filters-open",
+      "role": "reception",
+      "viewport": "1024x768",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=compact-filters-open&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "compact-detail-open",
+      "role": "reception",
+      "viewport": "1024x768",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=compact-detail-open&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "reception-ready",
+      "role": "admin",
+      "viewport": "1024x768",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=reception-ready&role=admin&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "pending-request",
+      "role": "admin",
+      "viewport": "1024x768",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=pending-request&role=admin&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "reception-ready",
+      "role": "veterinarian",
+      "viewport": "1024x768",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=reception-ready&role=veterinarian&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": false
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "pending-request",
+      "role": "veterinarian",
+      "viewport": "1024x768",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=pending-request&role=veterinarian&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": false
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "reception-ready",
+      "role": "multi-role",
+      "viewport": "1024x768",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=reception-ready&role=multi-role&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "pending-request",
+      "role": "multi-role",
+      "viewport": "1024x768",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=pending-request&role=multi-role&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "pending-request",
+      "role": "reception",
+      "viewport": "1280x800",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=pending-request&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "request-overdue",
+      "role": "reception",
+      "viewport": "1280x800",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=request-overdue&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "manual-booking",
+      "role": "reception",
+      "viewport": "1280x800",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=manual-booking&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "reception-ready",
+      "role": "reception",
+      "viewport": "1280x800",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=reception-ready&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "week-view",
+      "role": "reception",
+      "viewport": "1280x800",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=week-view&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "week-alternative-selection",
+      "role": "reception",
+      "viewport": "1280x800",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=week-alternative-selection&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "desktop-calendar-search-results",
+      "role": "reception",
+      "viewport": "1280x800",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=desktop-calendar-search-results&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "desktop-filters-active",
+      "role": "reception",
+      "viewport": "1280x800",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=desktop-filters-active&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "desktop-filters-collapsed",
+      "role": "reception",
+      "viewport": "1280x800",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=desktop-filters-collapsed&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "pending-request",
+      "role": "reception",
+      "viewport": "1440x900",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=pending-request&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "request-overdue",
+      "role": "reception",
+      "viewport": "1440x900",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=request-overdue&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "manual-booking",
+      "role": "reception",
+      "viewport": "1440x900",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=manual-booking&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "reception-ready",
+      "role": "reception",
+      "viewport": "1440x900",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=reception-ready&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "week-view",
+      "role": "reception",
+      "viewport": "1440x900",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=week-view&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "week-alternative-selection",
+      "role": "reception",
+      "viewport": "1440x900",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=week-alternative-selection&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "desktop-calendar-search-results",
+      "role": "reception",
+      "viewport": "1440x900",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=desktop-calendar-search-results&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "desktop-filters-active",
+      "role": "reception",
+      "viewport": "1440x900",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=desktop-filters-active&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "desktop-filters-collapsed",
+      "role": "reception",
+      "viewport": "1440x900",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=desktop-filters-collapsed&role=reception&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "reception-ready",
+      "role": "admin",
+      "viewport": "1440x900",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=reception-ready&role=admin&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "pending-request",
+      "role": "admin",
+      "viewport": "1440x900",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=pending-request&role=admin&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "reception-ready",
+      "role": "veterinarian",
+      "viewport": "1440x900",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=reception-ready&role=veterinarian&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": false
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "pending-request",
+      "role": "veterinarian",
+      "viewport": "1440x900",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=pending-request&role=veterinarian&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": false
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "reception-ready",
+      "role": "multi-role",
+      "viewport": "1440x900",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=reception-ready&role=multi-role&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "pending-request",
+      "role": "multi-role",
+      "viewport": "1440x900",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=pending-request&role=multi-role&date=2026-08-01&capture=1",
+      "assertions": {
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0,
+        "pageOverflow": false,
+        "correctComposition": true,
+        "searchVisible": true,
+        "filtersVisible": true
+      },
+      "status": "PASS",
+      "durationMs": 0
+    },
+    {
+      "state": "compact-calendar",
+      "role": "reception",
+      "viewport": "1440x900",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=compact-calendar&role=reception&date=2026-08-01&capture=1",
+      "status": "PASS",
+      "durationMs": 0,
+      "assertions": {
+        "searchFlow": true,
+        "filterFlow": true,
+        "queryRestored": true,
+        "filterCount": 2,
+        "chipRemoved": true
+      }
+    },
+    {
+      "state": "compact-calendar",
+      "role": "reception",
+      "viewport": "1024x768",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=compact-calendar&role=reception&date=2026-08-01&capture=1",
+      "status": "PASS",
+      "durationMs": 0,
+      "assertions": {
+        "searchFlow": true,
+        "filterFlow": true,
+        "queryRestored": true,
+        "filterCount": 2,
+        "chipRemoved": true
+      }
+    },
+    {
+      "state": "compact-calendar",
+      "role": "reception",
+      "viewport": "768x1024",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=compact-calendar&role=reception&date=2026-08-01&capture=1",
+      "status": "PASS",
+      "durationMs": 0,
+      "assertions": {
+        "searchFlow": true,
+        "filterFlow": true,
+        "queryRestored": true,
+        "filterCount": 2,
+        "chipRemoved": true
+      }
+    },
+    {
+      "state": "mobile-today",
+      "role": "reception",
+      "viewport": "390x844",
+      "url": "../../../../prototype-v50/clinic-booking-journal/index.html?state=mobile-today&role=reception&date=2026-08-01&capture=1",
+      "status": "PASS",
+      "durationMs": 0,
+      "assertions": {
+        "searchFlow": true,
+        "filterFlow": true,
+        "queryRestored": true,
+        "filterCount": 2,
+        "chipRemoved": true
+      }
+    }
+  ]
+}

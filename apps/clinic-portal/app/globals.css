@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  /* Native adapter for docs/v51/design-tokens.json. Keep --vh-* aliases stable. */
+  /* Native adapter for docs/v50/design-tokens.json. Keep --vh-* aliases stable. */
   --vh-color-surface-canvas: #f6f8fb;
   --vh-color-surface-default: #ffffff;
   --vh-color-content-default: #182230;
   --vh-color-content-muted: #667085;
-  --vh-color-accent-default: #175cd3;
-  --vh-color-accent-soft: #eff8ff;
+  --vh-color-accent-default: #1767f7;
+  --vh-color-accent-soft: #eaf4ff;
   --vh-color-border-default: #d0d5dd;
   --vh-space-sm: 8px;
   --vh-space-md: 12px;
@@ -32,16 +32,54 @@
   --vh-text: #182230;
   --vh-muted: #667085;
   --vh-border: #d0d5dd;
-  --vh-primary: #175cd3;
-  --vh-primary-soft: #eff8ff;
-  --vh-warning: #b54708;
-  --vh-warning-bg: #fffaeb;
-  --vh-critical: #b42318;
-  --vh-critical-bg: #fef3f2;
-  --vh-success: #027a48;
+  --vh-primary: #1767f7;
+  --vh-primary-soft: #eaf4ff;
+  --vh-warning: #7a5a00;
+  --vh-warning-bg: #fff6e3;
+  --vh-critical: #b52d40;
+  --vh-critical-bg: #fff1f2;
+  --vh-success: #08753f;
   --vh-shadow: 0 18px 60px rgba(16, 24, 40, 0.10);
   --vh-sidebar-width: 264px;
   color-scheme: light;
+}
+
+/* V50 Clinic Workspace Home: bounded task-oriented composition. */
+.vh-workspace { max-width: 1180px; margin: 0 auto; color: var(--vh-text, #18231f); }
+.vh-workspace-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 20px; }
+.vh-workspace-header h2 { margin: 4px 0 6px; font-size: clamp(1.7rem, 3vw, 2.4rem); line-height: 1.15; }
+.vh-workspace-header p { margin: 0; color: #52625c; }
+.vh-workspace-eyebrow { font-size: .82rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.vh-workspace-button, .vh-workspace-action { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; border: 1px solid #176b55; padding: 10px 16px; background: #fff; color: #125744; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
+.vh-workspace-button:hover, .vh-workspace-action:hover { background: #eef8f4; }
+.vh-workspace-button:focus-visible, .vh-workspace-action:focus-visible, .vh-workspace-banner button:focus-visible { outline: 3px solid #1a73e8; outline-offset: 3px; }
+.vh-workspace-banner { margin: 0 0 20px; padding: 14px 16px; border: 2px solid #9b6816; border-radius: 14px; background: #fff8df; color: #533706; }
+.vh-workspace-banner button { min-height: 44px; margin-left: 12px; border: 0; background: transparent; color: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; }
+.vh-workspace-empty, .vh-workspace-feedback { padding: 22px; border-radius: 16px; background: #f4f8f6; border: 1px solid #d5e2dc; }
+.vh-workspace-feedback { max-width: 720px; margin: 24px auto; }
+.vh-workspace-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: stretch; }
+.vh-workspace-card { min-width: 0; padding: 20px; border-radius: 18px; border: 1px solid #d5e2dc; background: #fff; box-shadow: 0 8px 24px rgb(22 61 49 / 7%); }
+.vh-workspace-card h3 { margin: 0 0 16px; font-size: 1.2rem; }
+.vh-workspace-card--task { border-top: 5px solid #23836a; }
+.vh-workspace-card--info { background: #f7f9f8; color: #485750; }
+.vh-workspace-card--error { border-color: #b85850; background: #fff4f2; }
+.vh-workspace-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0 0 16px; }
+.vh-workspace-facts div { padding: 14px; border-radius: 12px; background: #f1f7f4; }
+.vh-workspace-facts dt { color: #52625c; font-size: .9rem; }
+.vh-workspace-facts dd { margin: 5px 0 0; font-size: 1.7rem; font-weight: 800; }
+.vh-workspace-action { margin-top: 12px; background: #176b55; color: #fff; }
+@media (max-width: 700px) {
+  .vh-workspace-header { flex-direction: column; }
+  .vh-workspace-header .vh-workspace-button { width: 100%; }
+  .vh-workspace-grid { grid-template-columns: minmax(0, 1fr); }
+  .vh-workspace-card { padding: 16px; }
+  .vh-workspace-banner button { display: block; margin: 8px 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vh-workspace *, .vh-workspace-feedback * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}
+@media (forced-colors: active) {
+  .vh-workspace-card, .vh-workspace-banner, .vh-workspace-button, .vh-workspace-action { border: 2px solid CanvasText; }
 }
 
 .vh-ds-button {
@@ -332,33 +370,51 @@ html {
   min-height: auto;
 }
 
+.vh-v50-content-compat {
+  display: contents;
+}
+
 .vh-clinic-bottom-nav {
   display: none;
 }
 
 @media (max-width: 899px) {
   .vh-clinic-shell {
-    display: block;
-    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    min-height: 0;
+    padding-bottom: 0;
   }
 
   .vh-clinic-sidebar {
     display: none;
   }
 
+  .vh-clinic-main {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+
   .vh-clinic-content {
-    height: calc(100dvh - 72px - 72px - env(safe-area-inset-bottom));
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
   }
 
   .vh-clinic-bottom-nav {
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    left: 0;
+    position: static;
     z-index: 20;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-auto-columns: minmax(82px, 1fr);
+    grid-auto-flow: column;
+    grid-template-columns: none;
     gap: 8px;
+    flex: 0 0 auto;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
     padding: 8px max(12px, env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-right));
     border-top: 1px solid var(--vh-border);
     background: var(--vh-surface-elevated);
@@ -376,6 +432,203 @@ html {
 @media (min-width: 900px) {
   .vh-clinic-content {
     scroll-padding: 24px;
+  }
+}
+
+/* V50 role-aware clinic shell. Legacy .vh-clinic-* selectors remain the rollback surface. */
+.vh-v50-clinic-shell {
+  --vh-sidebar-width: 264px;
+}
+
+.vh-v50-skip-link {
+  white-space: nowrap;
+}
+
+.vh-v50-brand-copy,
+.vh-v50-context-path,
+.vh-v50-context-path p,
+.vh-v50-context-path h1 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.vh-v50-role-label,
+.vh-v50-authority-note {
+  margin: 0;
+  color: var(--vh-muted);
+  font-size: var(--vh-type-caption-size);
+  line-height: 1.45;
+}
+
+.vh-v50-role-label {
+  padding: 0 14px;
+  font-weight: 750;
+}
+
+.vh-v50-authority-note {
+  margin-top: auto;
+  padding: 14px;
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-md);
+}
+
+.vh-v50-clinic-shell .vh-clinic-nav-item,
+.vh-v50-clinic-shell .vh-clinic-bottom-nav-item {
+  gap: 10px;
+  border: 1px solid transparent;
+  overflow-wrap: anywhere;
+}
+
+.vh-v50-clinic-shell .vh-clinic-nav-item[aria-current="page"],
+.vh-v50-clinic-shell .vh-clinic-bottom-nav-item[aria-current="page"] {
+  border-color: color-mix(in srgb, var(--vh-primary) 28%, var(--vh-border));
+  background: var(--vh-primary-soft);
+  color: var(--vh-text);
+}
+
+.vh-v50-nav-icon {
+  display: inline-flex;
+  flex: 0 0 28px;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--vh-primary) 12%, var(--vh-surface));
+  color: var(--vh-primary);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.vh-v50-nav-label {
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.vh-v50-shell-state {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--vh-border);
+  border-radius: var(--vh-radius-md);
+  color: var(--vh-muted);
+  font-size: var(--vh-type-caption-size);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.vh-v50-shell-state--error,
+.vh-v50-shell-state--forbidden {
+  border-color: color-mix(in srgb, var(--vh-critical) 44%, var(--vh-border));
+  background: var(--vh-critical-bg);
+  color: var(--vh-critical);
+}
+
+.vh-v50-shell-state button {
+  min-height: var(--vh-min-target);
+  padding: 0 12px;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+  background: var(--vh-surface);
+  color: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.vh-v50-location-badge {
+  max-width: min(42vw, 260px);
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+@media (min-width: 768px) and (max-width: 1120px) {
+  .vh-v50-clinic-shell {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr);
+    padding-bottom: 0;
+  }
+
+  .vh-v50-clinic-shell .vh-clinic-sidebar {
+    display: flex;
+    align-items: stretch;
+    gap: 18px;
+    padding: 18px 10px;
+  }
+
+  .vh-v50-clinic-shell .vh-clinic-brand {
+    justify-content: center;
+  }
+
+  .vh-v50-clinic-shell .vh-v50-brand-copy,
+  .vh-v50-clinic-shell .vh-v50-role-label,
+  .vh-v50-clinic-shell .vh-v50-authority-note,
+  .vh-v50-clinic-shell .vh-v50-nav-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .vh-v50-clinic-shell .vh-clinic-nav-item {
+    justify-content: center;
+    padding: 7px;
+  }
+
+  .vh-v50-clinic-shell .vh-clinic-bottom-nav {
+    display: none;
+  }
+
+  .vh-v50-clinic-shell .vh-clinic-content {
+    height: calc(100dvh - 72px);
+  }
+}
+
+@media (max-width: 767px) {
+  .vh-v50-clinic-shell .vh-clinic-topbar {
+    align-items: flex-start;
+    gap: 10px;
+    min-height: 80px;
+    padding: 10px 14px;
+  }
+
+  .vh-v50-clinic-shell .vh-clinic-topbar h1 {
+    font-size: 18px;
+  }
+
+  .vh-v50-clinic-shell .vh-clinic-topbar p {
+    max-width: 56vw;
+  }
+
+  .vh-v50-clinic-shell .vh-clinic-content {
+    height: auto;
+  }
+
+  .vh-v50-clinic-shell .vh-clinic-bottom-nav {
+    grid-auto-columns: minmax(82px, 1fr);
+    grid-template-columns: none;
+    gap: 4px;
+    min-height: 76px;
+  }
+
+  .vh-v50-clinic-shell .vh-clinic-bottom-nav-item {
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    padding: 5px 4px;
+    font-size: 12px;
+  }
+
+  .vh-v50-clinic-shell .vh-clinic-bottom-nav .vh-v50-shell-state {
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 6px 10px;
   }
 }
 

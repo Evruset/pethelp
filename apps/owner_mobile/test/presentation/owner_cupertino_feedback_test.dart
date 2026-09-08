@@ -198,7 +198,7 @@ Widget _harness(
   );
 }
 
-class _EmptyCatalogRepository implements PublicCatalogRepository {
+class _EmptyCatalogRepository extends PublicCatalogRepository {
   @override
   Future<List<CatalogClinic>> listClinics({
     String? query,

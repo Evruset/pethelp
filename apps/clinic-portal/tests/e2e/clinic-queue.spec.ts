@@ -16,6 +16,7 @@ const alternativeSlotB = '88888888-8888-4888-8888-888888888888';
 const alternativeSlotC = '99999999-9999-4999-8999-999999999999';
 const serverNow = '2026-06-25T12:00:00.000Z';
 const jwtSecret = 'clinic-e2e-secret-at-least-32-bytes';
+const evidenceDir = process.env.V50_SHELL_EVIDENCE_DIR;
 const mockBackendPort = 3212;
 
 type QueueItem = {
@@ -27,9 +28,10 @@ type QueueItem = {
   slot: { id: string; startsAt: string; endsAt: string };
   pet: { id: string; name: string; species: string };
   service: { displayName: string } | null;
+  latestAudit?: { action: string; occurredAt: string; actorType: string } | null;
 };
 
-type ConfirmMode = 'success' | 'slot-locked-retry';
+type ConfirmMode = 'success' | 'slot-locked-retry' | 'denied-once' | 'server-error-once';
 type AlternativeMode = 'success' | 'slot-locked-retry';
 
 let server: Server;
@@ -37,9 +39,14 @@ let items: QueueItem[] = [];
 let confirmMode: ConfirmMode = 'success';
 let alternativeMode: AlternativeMode = 'success';
 let sessionMode: 'allowed' | 'denied' | 'error' = 'allowed';
+let queueFailures = 0;
+let holdQueueResponse = false;
+let releaseQueue: (() => void) | undefined;
 let queueReads = 0;
 let confirmRequests: Array<{ holdId: string; ifMatch: string | undefined; idempotencyKey: string | undefined }> = [];
 let alternativeRequests: Array<{ holdId: string; newSlotId: string; ifMatch: string | undefined; idempotencyKey: string | undefined }> = [];
+let declineRequests: Array<{ holdId: string; declineReason: string; ifMatch: string | undefined; idempotencyKey: string | undefined }> = [];
+let notesRequests: Array<{ holdId: string; noteRequest: string; ifMatch: string | undefined; idempotencyKey: string | undefined }> = [];
 
 test.describe.configure({ mode: 'serial' });
 
@@ -97,9 +104,11 @@ test('does not flash queue navigation while session capability loading and expos
 
   await expect(page.getByText('Загрузка доступа…').first()).toBeVisible();
   await expect(page.getByRole('link', { name: 'Открыть очередь записей' })).toHaveCount(0);
+  if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-loading.png`, fullPage: true });
   releaseSession?.();
   await expect(page.getByText('Доступ к capability-разделам недоступен. Повторить').first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'Повторить' }).first()).toBeVisible();
+  if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-error-retry.png`, fullPage: true });
   expect((await new AxeBuilder({ page }).include('.vh-clinic-nav').analyze()).violations).toEqual([]);
 });
 
@@ -108,7 +117,8 @@ test('redirects unauthenticated clinic users to forbidden', async ({ page }, tes
 
   await uiStep(page, testInfo, 'Проверить запрет доступа без сессии', async () => {
     await expect(page).toHaveURL(/\/forbidden\?reason=session_required$/);
-    await expect(page.getByText('403 Access Denied')).toBeVisible();
+    await expect(page.getByText('403 Access Denied').first()).toBeVisible();
+    if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-session-missing-forbidden.png`, fullPage: true });
   });
 });
 
@@ -118,7 +128,7 @@ test('blocks clinic location URL tampering before backend queue fetch', async ({
   await uiStep(page, testInfo, 'Открыть очередь чужой локации', () => page.goto(`/clinics/${clinicId}/locations/${forbiddenLocationId}/queue`));
 
   await uiStep(page, testInfo, 'Проверить ABAC-блокировку до backend fetch', async () => {
-    await expect(page.getByText('403 Access Denied')).toBeVisible();
+    await expect(page.getByText('403 Access Denied').first()).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Нет доступа к этой локации', exact: true }).first()).toBeVisible();
     expect(queueReads).toBe(0);
   });
@@ -133,12 +143,83 @@ test('renders backend FIFO order and SLA risk state from serverNow', async ({ pa
     await expect(rowFor(page, 'Барс')).toContainText('1');
     await expect(rowFor(page, 'Шарик')).toContainText('2');
     await expect(rowFor(page, 'Марта')).toContainText('3');
-    await expect(rowFor(page, 'Барс')).toContainText('Срок подтверждения истекает.');
+    await expect(rowFor(page, 'Барс')).toContainText('SLA скоро истечёт');
+    await expect(rowFor(page, 'Барс')).toContainText('Внимание: срок подтверждения истекает.');
+    await expect(rowFor(page, 'Шарик')).toContainText('SLA в норме');
     await expect(rowFor(page, 'Шарик')).toContainText('Сначала обработайте более раннюю заявку.');
     await expect(rowFor(page, 'Марта')).toContainText('Сначала обработайте более раннюю заявку.');
     await expect(rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' })).toBeEnabled();
     await expect(rowFor(page, 'Шарик').getByRole('button', { name: 'Ожидает очередь' })).toBeDisabled();
+    if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-queue-desktop.png`, fullPage: true });
   });
+});
+
+test('keeps an expired-but-not-transitioned MANUAL_CONFIRM_PENDING fixture in authoritative position', async ({ page, context, baseURL }) => {
+  items[0] = { ...items[0], confirmationSlaExpiresAt: '2026-06-25T11:59:59.000Z' };
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+
+  await expect(rowFor(page, 'Барс')).toContainText('1');
+  await expect(rowFor(page, 'Барс')).toContainText('SLA просрочен');
+  await expect(rowFor(page, 'Барс')).toContainText('backend ещё не перевёл заявку');
+  await expect(rowFor(page, 'Барс').getByRole('button', { name: 'Недоступно' })).toBeDisabled();
+  await expect(rowFor(page, 'Шарик')).toContainText('2');
+  await expect(rowFor(page, 'Шарик').getByRole('button', { name: 'Ожидает очередь' })).toBeDisabled();
+});
+
+test('presents not-applicable and unknown SLA explicitly without relying on color', async ({ page, context, baseURL }) => {
+  items = [
+    { ...items[0], pet: { ...items[0].pet, name: 'Без SLA' }, confirmationSlaExpiresAt: null as unknown as string },
+    { ...items[1], pet: { ...items[1].pet, name: 'Неизвестный SLA' }, confirmationSlaExpiresAt: 'not-a-timestamp' },
+  ];
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+
+  await expect(rowFor(page, 'Без SLA')).toContainText('SLA не применим');
+  await expect(rowFor(page, 'Неизвестный SLA')).toContainText('SLA неизвестен');
+});
+
+test('uses one shared UI clock, preserves row order locally and accepts authoritative clock correction', async ({ page, context, baseURL }) => {
+  items[0] = { ...items[0], confirmationSlaExpiresAt: '2026-06-25T12:00:01.000Z' };
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+
+  await page.waitForTimeout(2_100);
+  await expect(rowFor(page, 'Барс')).toContainText('SLA просрочен');
+  await expect(rowFor(page, 'Барс')).toContainText('1');
+  await expect(rowFor(page, 'Шарик')).toContainText('2');
+
+  let correctedReads = 0;
+  await page.route('**/booking-queue', (route) => {
+    correctedReads += 1;
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ clinicId, locationId, serverNow: '2026-06-25T12:09:00.000Z', items }),
+    });
+  });
+  await page.getByRole('button', { name: 'Обновить' }).click();
+  await expect.poll(() => correctedReads).toBe(1);
+  await expect(rowFor(page, 'Шарик')).toContainText('SLA скоро истечёт');
+  await expect(rowFor(page, 'Барс')).toContainText('1');
+});
+
+test('recomputes SLA immediately when a hidden tab becomes visible', async ({ page, context, baseURL }) => {
+  items[0] = { ...items[0], confirmationSlaExpiresAt: '2026-06-25T12:00:01.000Z' };
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => (window as any).__queueVisibility });
+    (window as any).__queueVisibility = 'hidden';
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await page.waitForTimeout(2_100);
+  queueFailures = 1;
+  await page.evaluate(() => {
+    (window as any).__queueVisibility = 'visible';
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect(rowFor(page, 'Барс')).toContainText('SLA просрочен');
 });
 
 test('confirms the first actionable hold and refreshes authoritative queue', async ({ page, context, baseURL }, testInfo) => {
@@ -156,6 +237,186 @@ test('confirms the first actionable hold and refreshes authoritative queue', asy
   });
 });
 
+test('declines with a required reason and refreshes the authoritative queue', async ({ page, context, baseURL }) => {
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  await rowFor(page, 'Барс').getByRole('button', { name: 'Отклонить' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Отклонить заявку' });
+  const submit = dialog.getByRole('button', { name: 'Отклонить заявку' });
+  await expect(submit).toBeDisabled();
+  await dialog.getByLabel('Причина отклонения').fill('Врач недоступен в выбранное время');
+  if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-decline-dialog.png`, fullPage: true });
+  await submit.click();
+  await expect(page.getByRole('status')).toContainText('Заявка отклонена, слот освобождён. Очередь обновлена.');
+  await expect(rowFor(page, 'Барс')).toHaveCount(0);
+  expect(declineRequests).toEqual([{
+    holdId: holdA,
+    declineReason: 'Врач недоступен в выбранное время',
+    ifMatch: '1',
+    idempotencyKey: expect.any(String),
+  }]);
+});
+
+test('requests notes once and keeps the authoritative updated row', async ({ page, context, baseURL }) => {
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  await rowFor(page, 'Барс').getByRole('button', { name: 'Уточнения' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Запросить уточнения' });
+  await dialog.getByLabel('Что нужно уточнить у владельца').fill('Подтвердите дату вакцинации');
+  await dialog.getByRole('button', { name: 'Запросить' }).click();
+  await expect(page.getByRole('status')).toContainText('Запрос уточнений отправлен владельцу. Очередь обновлена.');
+  await expect(rowFor(page, 'Барс')).toContainText('Запрошены уточнения');
+  expect(notesRequests).toEqual([{
+    holdId: holdA,
+    noteRequest: 'Подтвердите дату вакцинации',
+    ifMatch: '1',
+    idempotencyKey: expect.any(String),
+  }]);
+});
+
+test('keeps the last snapshot visibly degraded and recovers without overlapping refreshes', async ({ page, context, baseURL }) => {
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  queueFailures = 1;
+  await page.getByRole('button', { name: 'Обновить' }).click();
+  await expect(page.getByText(/Нет соединения · данные на/)).toBeVisible();
+  await expect(rowFor(page, 'Барс')).toBeVisible();
+  await expect(rowFor(page, 'Барс').getByRole('button', { name: 'Ожидает очередь' })).toBeDisabled();
+  if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-queue-degraded.png`, fullPage: true });
+  await page.getByRole('button', { name: 'Обновить' }).click();
+  await expect(page.getByText('Синхронизировано')).toBeVisible();
+  await expect(rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' })).toBeEnabled();
+
+  const readsBeforePending = queueReads;
+  holdQueueResponse = true;
+  await page.getByRole('button', { name: 'Обновить' }).click();
+  await expect.poll(() => queueReads).toBe(readsBeforePending + 1);
+  await page.getByRole('button', { name: 'Обновить' }).click();
+  await page.waitForTimeout(100);
+  expect(queueReads).toBe(readsBeforePending + 1);
+  releaseQueue?.();
+  await expect(page.getByText('Синхронизировано')).toBeVisible();
+});
+
+test('queues an authoritative readback behind a stale in-flight poll after command success', async ({ page, context, baseURL }) => {
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  const readsBefore = queueReads;
+  let routeReads = 0;
+  let releaseStale: (() => void) | undefined;
+  const staleReleased = new Promise<void>((resolve) => { releaseStale = resolve; });
+  await page.route('**/api/clinic/**/booking-queue', async (route) => {
+    routeReads += 1;
+    if (routeReads === 1) {
+      await staleReleased;
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ clinicId, locationId, serverNow, items: makeQueueItems() }) });
+      return;
+    }
+    await route.continue();
+  });
+  await page.getByRole('button', { name: 'Обновить' }).click();
+  await expect.poll(() => routeReads).toBe(1);
+  await rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' }).click();
+  await expect.poll(() => confirmRequests.length).toBe(1);
+  await expect(page.getByRole('status')).toContainText('Запись подтверждена. Очередь обновлена.');
+  releaseStale?.();
+  await expect.poll(() => routeReads).toBe(2);
+  await expect.poll(() => queueReads).toBe(readsBefore + 1);
+  await expect(rowFor(page, 'Барс')).toHaveCount(0);
+});
+
+test('refreshes immediately on visibility recovery after a missed hidden-tab update', async ({ page, context, baseURL }) => {
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  const readsBefore = queueReads;
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => (window as any).__queueVisibility });
+    (window as any).__queueVisibility = 'hidden';
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await page.waitForTimeout(100);
+  expect(queueReads).toBe(readsBefore);
+  items = items.filter((item) => item.holdId !== holdA);
+  await page.evaluate(() => {
+    (window as any).__queueVisibility = 'visible';
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect.poll(() => queueReads).toBe(readsBefore + 1);
+  await expect(rowFor(page, 'Барс')).toHaveCount(0);
+});
+
+test('rejects malformed, wrong-scope and duplicate queue payloads without replacing the last snapshot', async ({ page, context, baseURL }) => {
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  const payloads = [
+    { clinicId, locationId, serverNow, items: [{ holdId: holdA }] },
+    { clinicId: forbiddenLocationId, locationId, serverNow, items: [] },
+    { clinicId, locationId, serverNow, items: [items[0], items[0]] },
+    { clinicId, locationId, serverNow, items: [{ ...items[0], confirmationSlaExpiresAt: '2026-02-30T12:00:00.000Z' }] },
+  ];
+  await page.route('**/api/clinic/**/booking-queue', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(payloads.shift()) });
+  });
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    await page.getByRole('button', { name: 'Обновить' }).click();
+    await expect(page.getByText(/Нет соединения · данные на/)).toBeVisible();
+    await expect(rowFor(page, 'Барс')).toBeVisible();
+  }
+  await page.unroute('**/api/clinic/**/booking-queue');
+  await page.getByRole('button', { name: 'Обновить' }).click();
+  await expect(page.getByText('Синхронизировано')).toBeVisible();
+});
+
+for (const [mode, reusesKey, message] of [
+  ['denied-once', false, 'Не удалось подтвердить запись.'],
+  ['server-error-once', true, 'Не удалось подтвердить запись.'],
+] as const) {
+test(`handles ${mode} safely and applies the idempotency policy on explicit retry`, async ({ page, context, baseURL }) => {
+  confirmMode = mode;
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  await rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' }).click();
+  await expect(page.getByRole('status')).toContainText(message);
+  await expect(rowFor(page, 'Барс')).toBeVisible();
+  await rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' }).click();
+  await expect(rowFor(page, 'Барс')).toHaveCount(0);
+  expect(confirmRequests).toHaveLength(2);
+  if (reusesKey) expect(confirmRequests[1].idempotencyKey).toBe(confirmRequests[0].idempotencyKey);
+  else expect(confirmRequests[1].idempotencyKey).not.toBe(confirmRequests[0].idempotencyKey);
+});
+}
+
+test('keeps critical queue actions keyboard-accessible at tablet width', async ({ page, context, baseURL }) => {
+  await page.setViewportSize({ width: 768, height: 900 });
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  const confirm = rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' });
+  await confirm.scrollIntoViewIfNeeded();
+  await confirm.focus();
+  await expect(confirm).toBeFocused();
+  if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-queue-tablet.png`, fullPage: true });
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('status')).toContainText('Запись подтверждена. Очередь обновлена.');
+  expect(confirmRequests).toHaveLength(1);
+});
+
+test('proposes an alternative with version fencing and removes the row after authoritative readback', async ({ page, context, baseURL }) => {
+  await addClinicSession(context, baseURL);
+  await page.goto(`/clinics/${clinicId}/locations/${locationId}/queue`);
+  await rowFor(page, 'Барс').getByRole('button', { name: 'Другое время' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Предложить другое время' });
+  await dialog.getByTestId(`alternative-slot-${alternativeSlotA}`).click();
+  await dialog.getByRole('button', { name: 'Предложить' }).click();
+  await expect(page.getByRole('status')).toContainText('Альтернативное время отправлено владельцу.');
+  await expect(rowFor(page, 'Барс')).toHaveCount(0);
+  expect(alternativeRequests).toEqual([{
+    holdId: holdA,
+    newSlotId: alternativeSlotA,
+    ifMatch: '1',
+    idempotencyKey: expect.any(String),
+  }]);
+});
+
 test('refreshes queue after retryable confirm conflict without fencing the row', async ({ page, context, baseURL }, testInfo) => {
   confirmMode = 'slot-locked-retry';
   await addClinicSession(context, baseURL);
@@ -168,7 +429,12 @@ test('refreshes queue after retryable confirm conflict without fencing the row',
     await expect(rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' })).toBeEnabled();
     expect(confirmRequests).toEqual([{ holdId: holdA, ifMatch: '1', idempotencyKey: expect.any(String) }]);
     expect(queueReads).toBeGreaterThanOrEqual(2);
+    if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-stale-conflict.png`, fullPage: true });
   });
+
+  await rowFor(page, 'Барс').getByRole('button', { name: 'Подтвердить' }).click();
+  await expect.poll(() => confirmRequests.length).toBe(2);
+  expect(confirmRequests[1].idempotencyKey).not.toBe(confirmRequests[0].idempotencyKey);
 });
 
 test('groups alternative slots by date and preserves selection after retryable conflict', async ({ page, context, baseURL }, testInfo) => {
@@ -242,9 +508,14 @@ function resetBackend() {
   confirmMode = 'success';
   alternativeMode = 'success';
   sessionMode = 'allowed';
+  queueFailures = 0;
+  holdQueueResponse = false;
+  releaseQueue = undefined;
   queueReads = 0;
   confirmRequests = [];
   alternativeRequests = [];
+  declineRequests = [];
+  notesRequests = [];
 }
 
 function handleBackendRequest(request: IncomingMessage, response: ServerResponse) {
@@ -266,6 +537,17 @@ function handleBackendRequest(request: IncomingMessage, response: ServerResponse
   }
   if (request.method === 'GET' && url.pathname === queuePath) {
     queueReads += 1;
+    if (queueFailures > 0) {
+      queueFailures -= 1;
+      sendJson(response, 503, { code: 'BACKEND_UNAVAILABLE' });
+      return;
+    }
+    if (holdQueueResponse) {
+      holdQueueResponse = false;
+      const snapshot = items.map((queueItem) => ({ ...queueItem }));
+      releaseQueue = () => sendJson(response, 200, { clinicId, locationId, serverNow, items: snapshot });
+      return;
+    }
     sendJson(response, 200, { clinicId, locationId, serverNow, items });
     return;
   }
@@ -285,6 +567,16 @@ function handleBackendRequest(request: IncomingMessage, response: ServerResponse
     });
     if (confirmMode === 'slot-locked-retry') {
       sendJson(response, 409, { code: 'SLOT_LOCKED_RETRY' });
+      return;
+    }
+    if (confirmMode === 'denied-once') {
+      confirmMode = 'success';
+      sendJson(response, 403, { code: 'LOCATION_SCOPE_DENIED', evaluator: 'private' });
+      return;
+    }
+    if (confirmMode === 'server-error-once') {
+      confirmMode = 'success';
+      sendJson(response, 503, { code: 'BACKEND_UNAVAILABLE', detail: 'private' });
       return;
     }
     items = items.filter((item) => item.holdId !== holdId);
@@ -308,6 +600,40 @@ function handleBackendRequest(request: IncomingMessage, response: ServerResponse
       }
       items = items.filter((item) => item.holdId !== alternativeMatch[1]);
       sendJson(response, 200, { holdId: alternativeMatch[1], state: 'ALTERNATIVE_PENDING' });
+    }).catch(() => sendJson(response, 400, { code: 'INVALID_REQUEST' }));
+    return;
+  }
+
+  const declineMatch = url.pathname.match(/^\/v1\/clinic\/booking-holds\/([^/]+)\/decline$/);
+  if (request.method === 'POST' && declineMatch) {
+    collectBody(request).then((rawBody) => {
+      const body = rawBody ? JSON.parse(rawBody) as { declineReason?: string } : {};
+      declineRequests.push({
+        holdId: declineMatch[1],
+        declineReason: body.declineReason ?? '',
+        ifMatch: headerValue(request, 'if-match'),
+        idempotencyKey: headerValue(request, 'idempotency-key'),
+      });
+      items = items.filter((item) => item.holdId !== declineMatch[1]);
+      sendJson(response, 200, { holdId: declineMatch[1], state: 'RELEASED' });
+    }).catch(() => sendJson(response, 400, { code: 'INVALID_REQUEST' }));
+    return;
+  }
+
+  const notesMatch = url.pathname.match(/^\/v1\/clinic\/booking-holds\/([^/]+)\/request-notes$/);
+  if (request.method === 'POST' && notesMatch) {
+    collectBody(request).then((rawBody) => {
+      const body = rawBody ? JSON.parse(rawBody) as { noteRequest?: string } : {};
+      notesRequests.push({
+        holdId: notesMatch[1],
+        noteRequest: body.noteRequest ?? '',
+        ifMatch: headerValue(request, 'if-match'),
+        idempotencyKey: headerValue(request, 'idempotency-key'),
+      });
+      items = items.map((queueItem) => queueItem.holdId === notesMatch[1]
+        ? { ...queueItem, version: 2, latestAudit: { action: 'booking.notes.requested', occurredAt: serverNow, actorType: 'CLINIC_EMPLOYEE' } }
+        : queueItem);
+      sendJson(response, 200, { holdId: notesMatch[1], state: 'MANUAL_CONFIRM_PENDING', version: 2 });
     }).catch(() => sendJson(response, 400, { code: 'INVALID_REQUEST' }));
     return;
   }

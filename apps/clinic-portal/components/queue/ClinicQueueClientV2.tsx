@@ -12,6 +12,17 @@ const SLA_CRITICAL_MS = 180000;
 const POLL_MS = 15000;
 const SPECIES_LABELS: Record<string, string> = { cat: 'Кошка', dog: 'Собака' };
 
+function timestampMs(value: unknown): number | null {
+  if (typeof value !== 'string') return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.exec(value);
+  if (!match) return null;
+  const [, year, month, day, hour, minute, second] = match.map(Number);
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  if (month < 1 || month > 12 || day < 1 || day > daysInMonth || hour > 23 || minute > 59 || second > 59) return null;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 const dt = (value: string) => new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 const tm = (value: string) => new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 const species = (value: string) => SPECIES_LABELS[value.toLowerCase()] ?? value;
@@ -22,7 +33,7 @@ const auditAction = (value: string): string => ({
   'booking.hold.released': 'Освобождена',
   'booking.hold.expired': 'Истекла',
   'booking.notes.requested': 'Запрошены уточнения',
-}[value] ?? value);
+}[value] ?? 'Статус обновлён');
 
 function clock(ms: number): string {
   const sec = Math.max(0, Math.ceil(ms / 1000));
@@ -44,12 +55,31 @@ function errorCode(payload: unknown): string {
     : 'BACKEND_UNAVAILABLE';
 }
 
+function isQueuePayload(payload: unknown, clinicId: string, locationId: string): payload is ManualConfirmationQueue {
+  if (!payload || typeof payload !== 'object') return false;
+  const candidate = payload as Partial<ManualConfirmationQueue>;
+  if (candidate.clinicId !== clinicId || candidate.locationId !== locationId || timestampMs(candidate.serverNow) === null || !Array.isArray(candidate.items)) return false;
+  const ids = new Set<string>();
+  return candidate.items.every((item) => {
+    if (!item || typeof item !== 'object' || typeof item.holdId !== 'string' || !Number.isInteger(item.version) || item.version < 1 || ids.has(item.holdId)) return false;
+    ids.add(item.holdId);
+    return timestampMs(item.confirmationSlaExpiresAt) !== null
+      && timestampMs(item.holdExpiresAt) !== null
+      && timestampMs(item.manualConfirmPendingAt) !== null
+      && timestampMs(item.slot?.startsAt) !== null
+      && timestampMs(item.slot?.endsAt) !== null
+      && (item.latestAudit == null || timestampMs(item.latestAudit.occurredAt) !== null)
+      && typeof item.pet?.name === 'string';
+  });
+}
+
 export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canInspectHold, canReplayHold }: Props) {
   const [queue, setQueue] = useState(initialQueue);
   const [offsetMs, setOffsetMs] = useState(() => Date.parse(initialQueue.serverNow) - Date.now());
   const [now, setNow] = useState(Date.now());
   const [notice, setNotice] = useState<string | null>(null);
   const [online, setOnline] = useState(true);
+  const [lastSyncedAt, setLastSyncedAt] = useState(Date.now());
   const [rowState, setRowState] = useState<Record<string, RowState>>({});
   const [alternativeItem, setAlternativeItem] = useState<ManualConfirmationQueueItem | null>(null);
   const [notesItem, setNotesItem] = useState<ManualConfirmationQueueItem | null>(null);
@@ -60,27 +90,75 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
   const [auditError, setAuditError] = useState<string | null>(null);
   const [holdItem, setHoldItem] = useState<ManualConfirmationQueueItem | null>(null);
   const commandKeys = useRef(new Map<string, string>());
+  const refreshRequest = useRef<AbortController | null>(null);
+  const refreshDone = useRef<Promise<void> | null>(null);
+  const refreshWaiters = useRef<Array<() => void>>([]);
+  const scopeRef = useRef(`${clinicId}:${locationId}`);
 
   const commandKey = (holdId: string, action: 'confirm' | 'decline' | 'requestNotes'): string => `${holdId}:${action}`;
 
-  const refresh = useCallback(async (quiet = false) => {
-    try {
-      const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/booking-queue`, { cache: 'no-store' });
+  const refresh = useCallback(async function refreshQueue(quiet = false, authoritative = false): Promise<void> {
+    if (quiet && !authoritative && document.visibilityState === 'hidden') return;
+    if (refreshDone.current) {
+      if (!authoritative) return;
+      return new Promise<void>((resolve) => refreshWaiters.current.push(resolve));
+    }
+    const scope = `${clinicId}:${locationId}`;
+    const controller = new AbortController();
+    refreshRequest.current = controller;
+    const work = (async () => { try {
+      const response = await fetch(`/api/clinic/${clinicId}/locations/${locationId}/booking-queue`, { cache: 'no-store', signal: controller.signal });
+      if (controller.signal.aborted || scopeRef.current !== scope) return;
       if (response.status === 403) {
         window.location.assign('/forbidden');
         return;
       }
-      const payload = await response.json().catch(() => null) as ManualConfirmationQueue | null;
-      if (!response.ok || !payload) throw new Error('queue');
+      const payload: unknown = await response.json().catch(() => null);
+      if (!response.ok || !isQueuePayload(payload, clinicId, locationId)) throw new Error('queue');
       setQueue(payload);
-      setOffsetMs(Date.parse(payload.serverNow) - Date.now());
+      setOffsetMs(timestampMs(payload.serverNow)! - Date.now());
       setOnline(true);
+      setLastSyncedAt(Date.now());
       if (!quiet) setNotice(null);
     } catch {
+      if (controller.signal.aborted || scopeRef.current !== scope) return;
       setOnline(false);
       if (!quiet) setNotice('Нет связи с VetHelp. Показаны последние полученные данные.');
+    } finally {
+      if (refreshRequest.current === controller) refreshRequest.current = null;
+    } })();
+    refreshDone.current = work;
+    try {
+      await work;
+    } finally {
+      if (refreshDone.current === work) refreshDone.current = null;
+      if (refreshWaiters.current.length > 0 && scopeRef.current === scope) {
+        const waiters = refreshWaiters.current.splice(0);
+        await refreshQueue(true, true);
+        waiters.forEach((resolve) => resolve());
+      }
     }
   }, [clinicId, locationId]);
+
+  useEffect(() => {
+    scopeRef.current = `${clinicId}:${locationId}`;
+    refreshRequest.current?.abort();
+    refreshRequest.current = null;
+    refreshDone.current = null;
+    refreshWaiters.current.splice(0).forEach((resolve) => resolve());
+    setQueue(initialQueue);
+    setOffsetMs((timestampMs(initialQueue.serverNow) ?? Date.now()) - Date.now());
+    setOnline(true);
+    setLastSyncedAt(Date.now());
+    setRowState({});
+    commandKeys.current.clear();
+    return () => {
+      refreshRequest.current?.abort();
+      refreshRequest.current = null;
+      refreshDone.current = null;
+      refreshWaiters.current.splice(0).forEach((resolve) => resolve());
+    };
+  }, [clinicId, locationId, initialQueue]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -89,7 +167,17 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
 
   useEffect(() => {
     const poller = window.setInterval(() => void refresh(true), POLL_MS);
-    return () => window.clearInterval(poller);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        setNow(Date.now());
+        void refresh(true);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.clearInterval(poller);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [refresh]);
 
   const confirm = useCallback(async (item: ManualConfirmationQueueItem) => {
@@ -111,28 +199,31 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
         commandKeys.current.delete(mapKey);
         setRowState((state) => ({ ...state, [holdId]: 'idle' }));
         setNotice('Запись подтверждена. Очередь обновлена.');
-        await refresh(true);
+        await refresh(true, true);
         return;
       }
       if (response.status === 409 && code === 'SLOT_LOCKED_RETRY') {
+        commandKeys.current.delete(mapKey);
         setRowState((state) => ({ ...state, [holdId]: 'idle' }));
         setNotice('Обновляем состояние заявки.');
-        await refresh(true);
+        await refresh(true, true);
         return;
       }
       if (response.status === 409 && code === 'QUEUE_FIFO_VIOLATION') {
         commandKeys.current.delete(mapKey);
         setRowState((state) => ({ ...state, [holdId]: 'idle' }));
         setNotice('Сначала обработайте более раннюю заявку. Очередь обновлена.');
-        await refresh(true);
+        await refresh(true, true);
         return;
       }
       if ([409, 422, 423].includes(response.status)) {
+        commandKeys.current.delete(mapKey);
         setRowState((state) => ({ ...state, [holdId]: 'fenced' }));
         setNotice('Заявка изменилась или срок действия истёк. Очередь обновлена.');
-        await refresh(true);
+        await refresh(true, true);
         return;
       }
+      if (response.status < 500) commandKeys.current.delete(mapKey);
       setRowState((state) => ({ ...state, [holdId]: 'idle' }));
       setNotice('Не удалось подтвердить запись.');
     } catch {
@@ -141,10 +232,9 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
     }
   }, [refresh, rowState]);
 
-  const decline = useCallback(async (item: ManualConfirmationQueueItem) => {
+  const decline = useCallback(async (item: ManualConfirmationQueueItem, declineReason: string) => {
     const holdId = item.holdId;
     if ((rowState[holdId] ?? 'idle') !== 'idle') return;
-    setDeclineItem(null);
 
     const mapKey = commandKey(holdId, 'decline');
     const key = commandKeys.current.get(mapKey) ?? crypto.randomUUID();
@@ -160,28 +250,29 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
           'If-Match': String(item.version),
           'X-Correlation-ID': correlationId(),
         },
-        body: JSON.stringify({ declineReason: 'Клиника отклонила заявку в очереди подтверждения' }),
+        body: JSON.stringify({ declineReason }),
       });
       const payload = await response.json().catch(() => null);
       const code = errorCode(payload);
       if (response.ok) {
         commandKeys.current.delete(mapKey);
         setRowState((state) => ({ ...state, [holdId]: 'idle' }));
+        setDeclineItem(null);
         setNotice('Заявка отклонена, слот освобождён. Очередь обновлена.');
-        await refresh(true);
+        await refresh(true, true);
         return;
       }
       if (response.status === 409 && code === 'QUEUE_FIFO_VIOLATION') {
         commandKeys.current.delete(mapKey);
         setRowState((state) => ({ ...state, [holdId]: 'idle' }));
         setNotice('Сначала обработайте более раннюю заявку. Очередь обновлена.');
-        await refresh(true);
+        await refresh(true, true);
         return;
       }
       if ([409, 422, 423].includes(response.status)) {
         setRowState((state) => ({ ...state, [holdId]: 'fenced' }));
         setNotice('Заявка изменилась или срок действия истёк. Очередь обновлена.');
-        await refresh(true);
+        await refresh(true, true);
         return;
       }
       setRowState((state) => ({ ...state, [holdId]: 'idle' }));
@@ -242,20 +333,20 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
         setRowState((state) => ({ ...state, [holdId]: 'idle' }));
         setNotesItem(null);
         setNotice('Запрос уточнений отправлен владельцу. Очередь обновлена.');
-        await refresh(true);
+        await refresh(true, true);
         return;
       }
       if (response.status === 409 && code === 'QUEUE_FIFO_VIOLATION') {
         commandKeys.current.delete(mapKey);
         setRowState((state) => ({ ...state, [holdId]: 'idle' }));
         setNotice('Сначала обработайте более раннюю заявку. Очередь обновлена.');
-        await refresh(true);
+        await refresh(true, true);
         return;
       }
       if ([409, 422, 423].includes(response.status)) {
         setRowState((state) => ({ ...state, [holdId]: 'fenced' }));
         setNotice('Заявка изменилась или срок действия истёк. Очередь обновлена.');
-        await refresh(true);
+        await refresh(true, true);
         return;
       }
       setRowState((state) => ({ ...state, [holdId]: 'idle' }));
@@ -267,7 +358,8 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
   }, [refresh, rowState]);
 
   const serverNowMs = now + offsetMs;
-  const firstActionableIndex = queue.items.findIndex((item) => Date.parse(item.confirmationSlaExpiresAt) > serverNowMs);
+  const firstSlaMs = queue.items.length > 0 ? timestampMs(queue.items[0].confirmationSlaExpiresAt) : null;
+  const firstActionableIndex = firstSlaMs !== null && firstSlaMs > serverNowMs ? 0 : -1;
 
   return (
     <main className="min-h-screen px-4 py-6 sm:px-8 lg:px-12">
@@ -280,7 +372,7 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
           </div>
           <div className="flex items-center gap-3">
             <span className={`rounded-full px-3 py-1 text-xs font-semibold ${online ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`} aria-live="polite">
-              {online ? 'Синхронизировано' : 'Нет соединения'}
+              {online ? 'Синхронизировано' : `Нет соединения · данные на ${tm(new Date(lastSyncedAt).toISOString())}`}
             </span>
             <button type="button" onClick={() => void refresh(false)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Обновить</button>
           </div>
@@ -301,14 +393,14 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
                   </tr>
                 </thead>
                 <tbody>
-                  {queue.items.map((item, index) => <QueueRow key={item.holdId} item={item} position={index + 1} serverNowMs={serverNowMs} state={rowState[item.holdId] ?? 'idle'} canAct={firstActionableIndex === index} onConfirm={confirm} onDecline={setDeclineItem} onAlternative={setAlternativeItem} onNotes={setNotesItem} onAudit={openAudit} onHold={canInspectHold ? setHoldItem : undefined} />)}
+                  {queue.items.map((item, index) => <QueueRow key={item.holdId} item={item} position={index + 1} serverNowMs={serverNowMs} state={rowState[item.holdId] ?? 'idle'} canAct={online && firstActionableIndex === index} onConfirm={confirm} onDecline={setDeclineItem} onAlternative={setAlternativeItem} onNotes={setNotesItem} onAudit={openAudit} onHold={canInspectHold ? setHoldItem : undefined} />)}
                 </tbody>
               </table>
             </div>
           )}
         </div>
       </section>
-      <AlternativeSlotDrawer locationId={locationId} item={alternativeItem} onClose={() => setAlternativeItem(null)} onProposed={async () => { setNotice('Альтернативное время отправлено владельцу.'); await refresh(true); }} />
+      <AlternativeSlotDrawer locationId={locationId} item={alternativeItem} onClose={() => setAlternativeItem(null)} onProposed={async () => { setNotice('Альтернативное время отправлено владельцу.'); await refresh(true, true); }} />
       <RequestNotesDrawer item={notesItem} submitting={notesItem ? rowState[notesItem.holdId] === 'requestingNotes' : false} onClose={() => setNotesItem(null)} onSubmit={requestNotes} />
       <DeclineDialog item={declineItem} submitting={declineItem ? rowState[declineItem.holdId] === 'declining' : false} onClose={() => setDeclineItem(null)} onConfirm={decline} />
       <AuditTrailDrawer item={auditItem} trail={auditTrail} loading={auditLoading} error={auditError} onClose={() => { setAuditItem(null); setAuditTrail(null); setAuditError(null); }} />
@@ -322,10 +414,22 @@ function Empty() {
 }
 
 function QueueRow({ item, position, serverNowMs, state, canAct, onConfirm, onDecline, onAlternative, onNotes, onAudit, onHold }: { item: ManualConfirmationQueueItem; position: number; serverNowMs: number; state: RowState; canAct: boolean; onConfirm: (item: ManualConfirmationQueueItem) => void; onDecline: (item: ManualConfirmationQueueItem) => void; onAlternative: (item: ManualConfirmationQueueItem) => void; onNotes: (item: ManualConfirmationQueueItem) => void; onAudit: (item: ManualConfirmationQueueItem) => void; onHold?: (item: ManualConfirmationQueueItem) => void }) {
-  const remainingMs = Date.parse(item.confirmationSlaExpiresAt) - serverNowMs;
-  const breached = remainingMs <= 0;
-  const critical = !breached && remainingMs <= SLA_CRITICAL_MS;
-  const blocked = breached || state === 'fenced' || !canAct;
+  const expiresAtMs = timestampMs(item.confirmationSlaExpiresAt);
+  const remainingMs = expiresAtMs === null ? null : expiresAtMs - serverNowMs;
+  const breached = remainingMs !== null && remainingMs <= 0;
+  const critical = remainingMs !== null && remainingMs > 0 && remainingMs <= SLA_CRITICAL_MS;
+  const normal = remainingMs !== null && remainingMs > SLA_CRITICAL_MS;
+  const notApplicable = item.confirmationSlaExpiresAt == null;
+  const blocked = !normal && !critical || state === 'fenced' || !canAct;
+  const slaLabel = breached
+    ? 'SLA просрочен'
+    : critical
+      ? `SLA скоро истечёт · ${clock(remainingMs!)}`
+      : normal
+        ? `SLA в норме · ${clock(remainingMs!)}`
+        : notApplicable
+          ? 'SLA не применим'
+          : 'SLA неизвестен';
   const actionLabel = state === 'confirming'
     ? 'Подтверждаем...'
     : state === 'declining'
@@ -344,7 +448,7 @@ function QueueRow({ item, position, serverNowMs, state, canAct, onConfirm, onDec
       <td className="px-4 py-4 align-top"><p className="text-sm font-semibold">{item.pet.name}</p><p className="mt-1 text-xs text-slate-600">{species(item.pet.species)}</p></td>
       <td className="px-4 py-4 align-top text-sm text-slate-700"><p>{item.service?.displayName ?? 'Услуга не указана'}</p>{item.latestAudit ? <p className="mt-2 text-xs text-slate-500">Последнее: {auditAction(item.latestAudit.action)} · {dt(item.latestAudit.occurredAt)}</p> : null}</td>
       <td className="px-4 py-4 align-top"><p className="text-sm font-medium text-slate-800">{dt(item.slot.startsAt)}</p><p className="mt-1 text-xs text-slate-600">{tm(item.slot.startsAt)}-{tm(item.slot.endsAt)}</p></td>
-      <td className="px-4 py-4 align-top"><span className={`inline-flex rounded-full px-2.5 py-1 text-sm font-semibold ${(critical || breached) ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'}`} aria-live={critical || breached ? 'polite' : undefined}>{breached ? 'SLA истёк' : `Осталось ${clock(remainingMs)}`}</span>{(critical || breached) ? <p className="mt-2 text-xs font-medium text-red-800">{breached ? 'Заявка передана в автоматическую обработку.' : 'Срок подтверждения истекает.'}</p> : !canAct ? <p className="mt-2 text-xs text-slate-600">Сначала обработайте более раннюю заявку.</p> : null}</td>
+      <td className="px-4 py-4 align-top"><span className={`inline-flex rounded-full px-2.5 py-1 text-sm font-semibold ${(critical || breached) ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'}`} aria-live={critical || breached ? 'polite' : undefined}>{slaLabel}</span>{(critical || breached) ? <p className="mt-2 text-xs font-medium text-red-800">{breached ? 'Требуется авторитетное обновление: backend ещё не перевёл заявку.' : 'Внимание: срок подтверждения истекает.'}</p> : !canAct ? <p className="mt-2 text-xs text-slate-600">Сначала обработайте более раннюю заявку.</p> : null}</td>
       <td className="px-4 py-4 align-top"><div className="flex flex-col gap-2"><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onConfirm(item)} className="w-full rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">{actionLabel}</button><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onAlternative(item)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Другое время</button><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onNotes(item)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Уточнения</button><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onDecline(item)} className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Отклонить</button>{onHold ? <button type="button" onClick={() => onHold(item)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Состояние удержания</button> : null}<button type="button" onClick={() => onAudit(item)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">История</button></div></td>
     </tr>
   );
@@ -392,8 +496,15 @@ function RequestNotesDrawer({ item, submitting, onClose, onSubmit }: { item: Man
   );
 }
 
-function DeclineDialog({ item, submitting, onClose, onConfirm }: { item: ManualConfirmationQueueItem | null; submitting: boolean; onClose: () => void; onConfirm: (item: ManualConfirmationQueueItem) => void }) {
+function DeclineDialog({ item, submitting, onClose, onConfirm }: { item: ManualConfirmationQueueItem | null; submitting: boolean; onClose: () => void; onConfirm: (item: ManualConfirmationQueueItem, declineReason: string) => void }) {
+  const [declineReason, setDeclineReason] = useState('');
+
+  useEffect(() => {
+    setDeclineReason('');
+  }, [item?.holdId]);
+
   if (!item) return null;
+  const normalized = declineReason.trim();
 
   return (
     <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="decline-title">
@@ -405,11 +516,21 @@ function DeclineDialog({ item, submitting, onClose, onConfirm }: { item: ManualC
           <p className="mt-2 text-sm text-slate-600">{item.pet.name} · {item.service?.displayName ?? 'Услуга не указана'}</p>
         </header>
         <div className="px-6 py-5 text-sm text-slate-700">
-          Слот будет освобождён, а владелец увидит актуальный статус заявки.
+          <p>Слот будет освобождён, а владелец увидит актуальный статус заявки.</p>
+          <label htmlFor="decline-reason" className="mt-4 block font-semibold text-slate-900">Причина отклонения</label>
+          <textarea
+            id="decline-reason"
+            value={declineReason}
+            onChange={(event) => setDeclineReason(event.target.value.slice(0, 1000))}
+            rows={4}
+            aria-describedby="decline-reason-hint"
+            className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-red-600 focus:ring-2 focus:ring-red-600/20"
+          />
+          <p id="decline-reason-hint" className="mt-2 text-xs text-slate-500">Минимум 3 символа. Текст сохранится, если связь прервётся.</p>
         </div>
         <footer className="flex gap-3 border-t border-slate-200 px-6 py-4">
           <button type="button" onClick={onClose} disabled={submitting} className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Отмена</button>
-          <button type="button" onClick={() => onConfirm(item)} disabled={submitting} className="flex-1 rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
+          <button type="button" onClick={() => onConfirm(item, normalized)} disabled={submitting || normalized.length < 3} className="flex-1 rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
             {submitting ? 'Отклоняем...' : 'Отклонить заявку'}
           </button>
         </footer>

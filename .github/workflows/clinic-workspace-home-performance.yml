@@ -1,0 +1,48 @@
+name: Clinic Workspace Home Performance
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'backend/src/booking-core/**'
+      - 'backend/src/database/**'
+      - 'backend/test/clinic-workspace-home-performance.integration-spec.ts'
+      - 'backend/test/clinic-workspace-home.fixtures.ts'
+      - '.github/workflows/clinic-workspace-home-performance.yml'
+jobs:
+  relevant-pr-10k:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: vethelp, POSTGRES_PASSWORD: vethelp, POSTGRES_DB: vethelp }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U vethelp -d vethelp"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    defaults: { run: { working-directory: backend } }
+    env:
+      DATABASE_URL: postgres://vethelp:vethelp@localhost:5432/vethelp
+      JWT_SECRET: workspace-home-ci-jwt-secret-at-least-32-bytes
+      AUTH_OTP_PEPPER: ci-test-otp-pepper-domain-key-v1-0123456789
+      OWNER_PET_IDEMPOTENCY_HMAC_KEY: ci-test-owner-pet-idempotency-hmac-key-v1-0123456789
+      AUTH_OTP_ANTI_FRAUD_PEPPER: ci-test-otp-anti-fraud-domain-key-v1-0123456789
+      JWT_ISSUER: vethelp-ci-auth
+      JWT_AUDIENCE: vethelp-ci-api
+      WORKER_SERVICE_TOKEN: workspace-home-ci-worker-service-token
+      WORKERS_ENABLED: 'false'
+      WORKSPACE_HOME_PERF_ROWS: '10000'
+      WORKSPACE_HOME_PERF_EVIDENCE_PATH: /tmp/clinic-workspace-home-10k.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: backend/package-lock.json }
+      - run: npm ci
+      - run: npm run migrate:up
+      - run: npm test -- test/clinic-workspace-home-performance.integration-spec.ts --runInBand
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clinic-workspace-home-10k-evidence
+          path: /tmp/clinic-workspace-home-10k.json
+          if-no-files-found: error
+          retention-days: 14

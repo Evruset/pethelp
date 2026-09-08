@@ -14,16 +14,57 @@ import { featureFlags } from '../config/feature-flags.config';
 @Injectable()
 export class ClinicEmployeeAccessService {
   constructor(private readonly capabilities: CapabilityEvaluatorService = new CapabilityEvaluatorService()) {}
+
+  /**
+   * Common Workspace Home authority gate. JWT scopes are early rejects; one
+   * database statement remains authoritative for membership and exact tenant
+   * scope. Section capability checks run only after this gate succeeds.
+   */
+  async assertExactClinicLocationMembership(
+    client: PoolClient,
+    employee: JwtPayload,
+    clinicId: string,
+    locationId: string,
+  ): Promise<{ serverNow: Date; timezone: string }> {
+    if (!employee.clinicIds?.includes(clinicId) || !employee.locationIds?.includes(locationId)) {
+      throw DomainErrors.clinicScopeMismatch();
+    }
+    const authority = await client.query<{ server_now: Date; timezone: string }>(`
+      SELECT transaction_timestamp() AS server_now, clinic.timezone
+      FROM clinic_schema.employee_location_memberships membership
+      JOIN clinic_schema.clinic_locations location
+        ON location.id = membership.clinic_location_id
+       AND location.id = $2::uuid
+       AND location.clinic_id = $3::uuid
+       AND location.status = 'ACTIVE'
+      JOIN clinic_schema.clinics clinic
+        ON clinic.id = location.clinic_id
+       AND clinic.status = 'ACTIVE'
+      WHERE membership.employee_id = $1::uuid
+        AND membership.active = true
+        AND membership.revoked_at IS NULL
+    `, [employee.sub, locationId, clinicId]);
+    if (!authority.rows[0]) throw DomainErrors.clinicScopeMismatch();
+    return { serverNow: authority.rows[0].server_now, timezone: authority.rows[0].timezone };
+  }
   async assertLocationAccess(client: PoolClient, employee: JwtPayload, clinicLocationId: string): Promise<void> {
     if (!employee.roles.includes(Role.CLINIC_RECEPTIONIST) && !employee.roles.includes(Role.CLINIC_ADMIN)) {
       throw DomainErrors.clinicScopeMismatch();
     }
     if (!employee.locationIds?.includes(clinicLocationId)) throw DomainErrors.clinicScopeMismatch();
-    const membership = await client.query<{ employee_id: string }>(`
-      SELECT employee_id FROM clinic_schema.employee_location_memberships
-      WHERE employee_id = $1::uuid AND clinic_location_id = $2::uuid AND active = true FOR SHARE
+    const membership = await client.query<{ employee_id: string; clinic_id: string }>(`
+      SELECT membership.employee_id, location.clinic_id::text
+      FROM clinic_schema.employee_location_memberships membership
+      JOIN clinic_schema.clinic_locations location ON location.id = membership.clinic_location_id
+      WHERE membership.employee_id = $1::uuid
+        AND membership.clinic_location_id = $2::uuid
+        AND membership.active = true
+        AND membership.revoked_at IS NULL
+      FOR SHARE OF membership, location
     `, [employee.sub, clinicLocationId]);
-    if (!membership.rows[0]) throw DomainErrors.clinicScopeMismatch();
+    if (!membership.rows[0] || !employee.clinicIds?.includes(membership.rows[0].clinic_id)) {
+      throw DomainErrors.clinicScopeMismatch();
+    }
   }
 
   async assertBookingQueueReadAccess(client: PoolClient, employee: JwtPayload, clinicId: string, clinicLocationId: string): Promise<void> {
@@ -31,6 +72,22 @@ export class ClinicEmployeeAccessService {
       return this.assertLocationAccess(client, employee, clinicLocationId);
     }
     await this.capabilities.assertAllowed(client, { actor: employee, capability: Capability.BOOKING_QUEUE_READ, resource: { aggregateType: 'booking.queue', clinicId, locationId: clinicLocationId } });
+  }
+
+  async assertAppointmentRegistryReadAccess(client: PoolClient, employee: JwtPayload, clinicId: string, clinicLocationId: string): Promise<void> {
+    await this.capabilities.assertAllowed(client, { actor: employee, capability: Capability.APPOINTMENT_REGISTRY_READ, resource: { aggregateType: 'appointment.registry', clinicId, locationId: clinicLocationId } });
+  }
+
+  async assertPatientRegistryReadAccess(client: PoolClient, employee: JwtPayload, clinicId: string, clinicLocationId: string): Promise<void> {
+    await this.capabilities.assertAllowed(client, { actor: employee, capability: Capability.PATIENT_ADMIN_READ, resource: { aggregateType: 'patient.registry', clinicId, locationId: clinicLocationId } });
+  }
+
+  async assertPatientLocalProfileUpdateAccess(client: PoolClient, employee: JwtPayload, clinicId: string, clinicLocationId: string): Promise<void> {
+    await this.capabilities.assertAllowed(client, {
+      actor: employee,
+      capability: Capability.PATIENT_ADMIN_LOCAL_PROFILE_UPDATE,
+      resource: { aggregateType: 'patient.local-profile', clinicId, locationId: clinicLocationId },
+    });
   }
 
   async assertQualityReadAccess(client: PoolClient, employee: JwtPayload, clinicId: string, clinicLocationId: string): Promise<void> {

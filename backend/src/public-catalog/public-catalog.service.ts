@@ -22,6 +22,9 @@ type PublicClinicRow = {
   distance_km: string | null;
   telemed_available: boolean;
   emergency_available: boolean;
+  doctor_count: string;
+  price_from: string | null;
+  availability_source_updated_at: Date | null;
   server_now: Date;
 };
 
@@ -34,6 +37,33 @@ type PublicServiceRow = {
   currency: string;
 };
 
+type OwnerClinicServiceRow = {
+  clinic_id: string;
+  clinic_name: string;
+  location_id: string;
+  address: string;
+  phone: string | null;
+  service_id: string | null;
+  service_name: string | null;
+  price_amount: string | null;
+  currency: string | null;
+  server_now: Date;
+};
+
+type OwnerAvailabilityRow = {
+  clinic_name: string;
+  service_name: string;
+  timezone: string;
+  server_now: Date;
+  horizon_ends_at: Date;
+  slot_id: string | null;
+  starts_at: Date | null;
+  ends_at: Date | null;
+  local_date: string | null;
+  local_time: string | null;
+  version: number | null;
+};
+
 type PublicAvailabilityRow = {
   id: string;
   starts_at: Date;
@@ -41,8 +71,46 @@ type PublicAvailabilityRow = {
   remaining_capacity: string;
   service_id: string | null;
   service_name: string | null;
+  source_updated_at: Date;
+  confirmation_mode: PublicConfirmationMode;
   server_now: Date;
 };
+
+type BookingSelectionLocationRow = {
+  clinic_id: string;
+  clinic_name: string;
+  location_id: string;
+  address: string;
+  timezone: string;
+  server_now: Date;
+};
+
+type BookingSelectionSlotRow = {
+  id: string;
+  service_id: string;
+  starts_at: Date;
+  ends_at: Date;
+  version: number;
+  source_updated_at: Date;
+  confirmation_mode: PublicConfirmationMode;
+  available_date: string;
+  local_time: string;
+};
+
+type PublicDoctorRow = {
+  doctor_id: string;
+  display_name: string;
+  clinic_id: string;
+  clinic_name: string;
+  location_id: string;
+  address: string;
+  next_available_at: Date | null;
+  source_updated_at: Date | null;
+  server_now: Date;
+};
+
+export type PublicAvailabilityFreshness = 'CURRENT' | 'AGING' | 'STALE' | 'UNAVAILABLE';
+export type PublicConfirmationMode = 'INSTANT' | 'CLINIC_CONFIRMATION' | 'ALTERNATIVE_POSSIBLE';
 
 export type PublicCatalogFilters = {
   query?: string;
@@ -57,6 +125,7 @@ export type PublicCatalogFilters = {
   emergencyCapability?: string;
   sort?: 'soonest' | 'name' | 'distance';
   limit: number;
+  petContextApplied?: boolean;
 };
 
 export type PublicCatalogResponse = {
@@ -87,11 +156,21 @@ export type PublicClinicSummary = {
   distanceKm: number | null;
   telemedAvailable: boolean;
   emergencyAvailable: boolean;
+  doctorCount: number;
+  priceFrom: string | null;
+  availability: {
+    sourceUpdatedAt: string | null;
+    serverNow: string;
+    freshness: PublicAvailabilityFreshness;
+    confirmationMode: PublicConfirmationMode;
+  };
+  fitReasons: string[];
 };
 
 export type PublicClinicsResponse = {
   observedAt: string;
   clinics: PublicClinicSummary[];
+  personalization: { applied: boolean };
 };
 
 export type PublicClinicDetail = PublicClinicSummary & {
@@ -113,6 +192,9 @@ export type PublicLocationServicesResponse = {
 export type PublicAvailabilityResponse = {
   locationId: string;
   observedAt: string;
+  sourceUpdatedAt: string | null;
+  freshness: PublicAvailabilityFreshness;
+  confirmationMode: PublicConfirmationMode;
   slots: Array<{
     id: string;
     startsAt: string;
@@ -120,6 +202,69 @@ export type PublicAvailabilityResponse = {
     remainingCapacity: number;
     service: { id: string | null; name: string | null };
   }>;
+};
+
+export type PublicBookingSelectionResponse = {
+  location: { id: string; clinicId: string; clinicName: string; address: string; timezone: string };
+  window: {
+    serverNow: string;
+    from: string;
+    to: string;
+    availableDates: string[];
+    sourceUpdatedAt: string | null;
+    freshness: PublicAvailabilityFreshness;
+  };
+  personalization: { applied: boolean; compatibility: 'NOT_EVALUATED' };
+  services: Array<{
+    id: string;
+    code: string;
+    displayName: string;
+    durationMinutes: number;
+    price: {
+      kind: 'BASE';
+      amount: string;
+      currency: string;
+      additionalCostsPossible: true;
+      finalPriceStatus: 'CLINIC_AGREEMENT_REQUIRED';
+    };
+    doctorRequired: false;
+  }>;
+  slots: Array<{
+    id: string;
+    serviceId: string;
+    startsAt: string;
+    endsAt: string;
+    localDate: string;
+    localTime: string;
+    timezone: string;
+    availabilityState: 'AVAILABLE' | 'REQUEST_ONLY' | 'STALE';
+    expectedVersion: number;
+    freshness: PublicAvailabilityFreshness;
+    confirmationMode: PublicConfirmationMode;
+    sourceUpdatedAt: string;
+    priceReference: string;
+  }>;
+};
+
+export type PublicDoctorSummary = {
+  id: string;
+  displayName: string;
+  title: 'Ветеринарный врач';
+  clinic: { id: string; name: string };
+  location: { id: string; address: string };
+  nextAvailableAt: string | null;
+  availability: {
+    sourceUpdatedAt: string | null;
+    serverNow: string;
+    freshness: PublicAvailabilityFreshness;
+    confirmationMode: PublicConfirmationMode;
+  };
+};
+
+export type PublicDoctorsResponse = {
+  observedAt: string;
+  doctors: PublicDoctorSummary[];
+  personalization: { applied: boolean };
 };
 
 @Injectable()
@@ -166,6 +311,9 @@ export class PublicCatalogService {
             AND emergency_profile.verification_status = 'VERIFIED'
             AND emergency_profile.valid_until > server_time.value
         )) AS emergency_available,
+        COUNT(DISTINCT staff.id)::text AS doctor_count,
+        MIN(service.price_amount)::text AS price_from,
+        MAX(slot.updated_at) FILTER (WHERE slot.state = 'OPEN') AS availability_source_updated_at,
         MIN(slot.starts_at) FILTER (
           WHERE slot.state = 'OPEN'
             AND slot.starts_at >= GREATEST(COALESCE($4::timestamptz, server_time.value), server_time.value)
@@ -178,6 +326,8 @@ export class PublicCatalogService {
       JOIN clinic_schema.clinic_services service ON service.clinic_location_id = location.id AND service.active = true
       LEFT JOIN clinic_schema.appointment_slots slot ON slot.clinic_location_id = location.id
         AND slot.service_id = service.id
+      LEFT JOIN clinic_schema.clinic_staff staff ON staff.clinic_location_id = location.id
+        AND staff.active = true AND staff.role = 'VETERINARIAN'
       CROSS JOIN server_time
       WHERE clinic.status = 'ACTIVE'
         AND (
@@ -266,7 +416,8 @@ export class PublicCatalogService {
 
     return {
       observedAt: result.rows[0]?.server_now.toISOString() ?? new Date().toISOString(),
-      clinics: result.rows.map(this.toClinicSummary),
+      clinics: result.rows.map((row) => this.toClinicSummary(row)),
+      personalization: { applied: input.petContextApplied === true },
     };
   }
 
@@ -288,6 +439,9 @@ export class PublicCatalogService {
             AND emergency_profile.verification_status = 'VERIFIED'
             AND emergency_profile.valid_until > server_time.value
         )) AS emergency_available,
+        COUNT(DISTINCT staff.id)::text AS doctor_count,
+        MIN(service.price_amount)::text AS price_from,
+        MAX(slot.updated_at) FILTER (WHERE slot.state = 'OPEN') AS availability_source_updated_at,
         MIN(slot.starts_at) FILTER (
           WHERE slot.state = 'OPEN'
             AND slot.starts_at > server_time.value
@@ -298,6 +452,8 @@ export class PublicCatalogService {
       JOIN clinic_schema.clinic_locations location ON location.clinic_id = clinic.id AND location.status = 'ACTIVE'
       JOIN clinic_schema.clinic_services service ON service.clinic_location_id = location.id AND service.active = true
       LEFT JOIN clinic_schema.appointment_slots slot ON slot.clinic_location_id = location.id
+      LEFT JOIN clinic_schema.clinic_staff staff ON staff.clinic_location_id = location.id
+        AND staff.active = true AND staff.role = 'VETERINARIAN'
       CROSS JOIN server_time
       WHERE clinic.id = $1::uuid AND clinic.status = 'ACTIVE'
       GROUP BY clinic.id, clinic.public_name, server_time.value
@@ -418,6 +574,80 @@ export class PublicCatalogService {
     };
   }
 
+  async readOwnerClinicServices(clinicId: string, locationId: string) {
+    const result = await this.database.query<OwnerClinicServiceRow>(`
+      WITH server_time AS (SELECT clock_timestamp() AS value)
+      SELECT clinic.id AS clinic_id, clinic.public_name AS clinic_name,
+        location.id AS location_id, location.address, location.phone,
+        service.id AS service_id, service.display_name AS service_name,
+        service.price_amount::text AS price_amount, service.currency,
+        server_time.value AS server_now
+      FROM clinic_schema.clinics clinic
+      JOIN clinic_schema.clinic_locations location
+        ON location.clinic_id = clinic.id AND location.status = 'ACTIVE'
+      CROSS JOIN server_time
+      LEFT JOIN clinic_schema.clinic_services service
+        ON service.clinic_location_id = location.id AND service.active = true
+      WHERE clinic.id = $1::uuid AND location.id = $2::uuid
+        AND clinic.status = 'ACTIVE'
+      ORDER BY service.display_name ASC, service.id ASC
+    `, [clinicId, locationId]);
+    const first = result.rows[0];
+    if (!first) return undefined;
+    return {
+      observedAt: first.server_now.toISOString(), clinicId: first.clinic_id,
+      locationId: first.location_id, name: first.clinic_name,
+      address: first.address, phone: first.phone,
+      services: result.rows.flatMap((row) => row.service_id && row.service_name && row.price_amount && row.currency
+        ? [{ serviceId: row.service_id, name: row.service_name, price: { kind: 'INFORMATIONAL' as const, amount: row.price_amount, currency: row.currency.trim() } }]
+        : []),
+    };
+  }
+
+  async readOwnerAvailability(clinicId: string, locationId: string, serviceId: string) {
+    const result = await this.database.query<OwnerAvailabilityRow>(`
+      WITH server_time AS (
+        SELECT clock_timestamp() AS value
+      )
+      SELECT clinic.public_name AS clinic_name, service.display_name AS service_name,
+        clinic.timezone, server_time.value AS server_now,
+        server_time.value + interval '14 days' AS horizon_ends_at,
+        slot.id AS slot_id, slot.starts_at, slot.ends_at,
+        to_char(slot.starts_at AT TIME ZONE clinic.timezone, 'YYYY-MM-DD') AS local_date,
+        to_char(slot.starts_at AT TIME ZONE clinic.timezone, 'HH24:MI') AS local_time,
+        slot.version
+      FROM clinic_schema.clinics clinic
+      JOIN clinic_schema.clinic_locations location
+        ON location.clinic_id = clinic.id AND location.status = 'ACTIVE'
+      JOIN clinic_schema.clinic_services service
+        ON service.clinic_location_id = location.id AND service.active = true
+      CROSS JOIN server_time
+      LEFT JOIN clinic_schema.appointment_slots slot
+        ON slot.clinic_location_id = location.id
+       AND slot.service_id = service.id
+       AND slot.state = 'OPEN'
+       AND slot.starts_at >= server_time.value
+       AND slot.starts_at < server_time.value + interval '14 days'
+       AND slot.capacity - slot.booked_count - slot.held_count > 0
+      WHERE clinic.id = $1::uuid AND location.id = $2::uuid
+        AND service.id = $3::uuid AND clinic.status = 'ACTIVE'
+      ORDER BY slot.starts_at ASC, slot.id ASC
+      LIMIT 50
+    `, [clinicId, locationId, serviceId]);
+    const first = result.rows[0];
+    if (!first) return undefined;
+    return {
+      observedAt: first.server_now.toISOString(),
+      clinicName: first.clinic_name,
+      serviceName: first.service_name,
+      timezone: first.timezone,
+      horizonEndsAt: first.horizon_ends_at.toISOString(),
+      slots: result.rows.flatMap((row) => row.slot_id && row.starts_at && row.ends_at && row.local_date && row.local_time && row.version
+        ? [{ slotId: row.slot_id, startsAt: row.starts_at.toISOString(), endsAt: row.ends_at.toISOString(), localDate: row.local_date, localTime: row.local_time, expectedVersion: row.version }]
+        : []),
+    };
+  }
+
   async readLocationAvailability(input: { locationId: string; from: Date; to: Date; limit: number }): Promise<PublicAvailabilityResponse> {
     const result = await this.database.query<PublicAvailabilityRow>(`
       WITH server_time AS (SELECT clock_timestamp() AS value)
@@ -428,6 +658,8 @@ export class PublicCatalogService {
         (slot.capacity - slot.booked_count - slot.held_count)::text AS remaining_capacity,
         service.id AS service_id,
         service.display_name AS service_name,
+        slot.updated_at AS source_updated_at,
+        CASE WHEN slot.source = 'MANUAL' THEN 'CLINIC_CONFIRMATION' ELSE 'ALTERNATIVE_POSSIBLE' END AS confirmation_mode,
         server_time.value AS server_now
       FROM clinic_schema.appointment_slots slot
       LEFT JOIN clinic_schema.clinic_services service ON service.id = slot.service_id
@@ -444,9 +676,15 @@ export class PublicCatalogService {
       ORDER BY slot.starts_at ASC, slot.id ASC
       LIMIT $4
     `, [input.locationId, input.from, input.to, input.limit]);
+    const sourceUpdatedAt = result.rows.reduce<Date | null>((latest, row) =>
+      latest === null || row.source_updated_at > latest ? row.source_updated_at : latest, null);
+    const serverNow = result.rows[0]?.server_now ?? new Date();
     return {
       locationId: input.locationId,
-      observedAt: result.rows[0]?.server_now.toISOString() ?? new Date().toISOString(),
+      observedAt: serverNow.toISOString(),
+      sourceUpdatedAt: sourceUpdatedAt?.toISOString() ?? null,
+      freshness: this.freshness(sourceUpdatedAt, serverNow, result.rows.length > 0),
+      confirmationMode: result.rows[0]?.confirmation_mode ?? 'CLINIC_CONFIRMATION',
       slots: result.rows.map((row) => ({
         id: row.id,
         startsAt: row.starts_at.toISOString(),
@@ -457,16 +695,272 @@ export class PublicCatalogService {
     };
   }
 
+  async readBookingSelection(input: {
+    locationId: string;
+    from: Date;
+    to: Date;
+    limit: number;
+    serviceId?: string;
+    doctorId?: string;
+    petContextApplied: boolean;
+  }): Promise<PublicBookingSelectionResponse | undefined> {
+    const locationResult = await this.database.query<BookingSelectionLocationRow>(`
+      SELECT clinic.id AS clinic_id, clinic.public_name AS clinic_name,
+             location.id AS location_id, location.address, clinic.timezone,
+             clock_timestamp() AS server_now
+      FROM clinic_schema.clinic_locations location
+      JOIN clinic_schema.clinics clinic ON clinic.id = location.clinic_id
+      WHERE location.id = $1::uuid
+        AND location.status = 'ACTIVE'
+        AND clinic.status = 'ACTIVE'
+      LIMIT 1
+    `, [input.locationId]);
+    const location = locationResult.rows[0];
+    if (!location) return undefined;
+
+    const serviceResult = await this.database.query<PublicServiceRow>(`
+      SELECT id, code, display_name, duration_minutes,
+             price_amount::text AS price_amount, currency
+      FROM clinic_schema.clinic_services
+      WHERE clinic_location_id = $1::uuid
+        AND active = true
+        AND ($2::uuid IS NULL OR id = $2::uuid)
+      ORDER BY display_name ASC, code ASC, id ASC
+    `, [input.locationId, input.serviceId ?? null]);
+
+    const slotResult = await this.database.query<BookingSelectionSlotRow>(`
+      SELECT slot.id, slot.service_id, slot.starts_at, slot.ends_at,
+             slot.version, slot.updated_at AS source_updated_at,
+             CASE WHEN slot.source = 'MANUAL'
+               THEN 'CLINIC_CONFIRMATION'
+               ELSE 'ALTERNATIVE_POSSIBLE'
+             END AS confirmation_mode,
+             to_char(slot.starts_at AT TIME ZONE $6::text, 'YYYY-MM-DD') AS available_date,
+             to_char(slot.starts_at AT TIME ZONE $6::text, 'HH24:MI') AS local_time
+      FROM clinic_schema.appointment_slots slot
+      JOIN clinic_schema.clinic_services service
+        ON service.id = slot.service_id
+       AND service.clinic_location_id = slot.clinic_location_id
+       AND service.active = true
+      LEFT JOIN clinic_schema.clinic_staff staff ON staff.id = slot.staff_id
+      WHERE slot.clinic_location_id = $1::uuid
+        AND slot.state = 'OPEN'
+        AND slot.starts_at >= GREATEST($2::timestamptz, $7::timestamptz)
+        AND slot.starts_at < $3::timestamptz
+        AND slot.capacity - slot.booked_count - slot.held_count > 0
+        AND ($4::uuid IS NULL OR slot.service_id = $4::uuid)
+        AND ($5::uuid IS NULL OR (
+          slot.staff_id = $5::uuid
+          AND staff.active = true
+          AND staff.role = 'VETERINARIAN'
+        ))
+      ORDER BY slot.starts_at ASC, slot.id ASC
+      LIMIT $8
+    `, [input.locationId, input.from, input.to, input.serviceId ?? null,
+      input.doctorId ?? null, location.timezone, location.server_now, input.limit]);
+
+    const sourceUpdatedAt = slotResult.rows.reduce<Date | null>((latest, row) =>
+      latest === null || row.source_updated_at > latest ? row.source_updated_at : latest, null);
+    const envelopeFreshness = this.freshness(sourceUpdatedAt, location.server_now, slotResult.rows.length > 0);
+    return {
+      location: {
+        id: location.location_id,
+        clinicId: location.clinic_id,
+        clinicName: location.clinic_name,
+        address: location.address,
+        timezone: location.timezone,
+      },
+      window: {
+        serverNow: location.server_now.toISOString(),
+        from: input.from.toISOString(),
+        to: input.to.toISOString(),
+        availableDates: [...new Set(slotResult.rows.map((row) => row.available_date))],
+        sourceUpdatedAt: sourceUpdatedAt?.toISOString() ?? null,
+        freshness: envelopeFreshness,
+      },
+      personalization: {
+        applied: input.petContextApplied,
+        compatibility: 'NOT_EVALUATED',
+      },
+      services: serviceResult.rows.map((row) => ({
+        id: row.id,
+        code: row.code,
+        displayName: row.display_name,
+        durationMinutes: row.duration_minutes,
+        price: {
+          kind: 'BASE',
+          amount: row.price_amount,
+          currency: row.currency,
+          additionalCostsPossible: true,
+          finalPriceStatus: 'CLINIC_AGREEMENT_REQUIRED',
+        },
+        doctorRequired: false,
+      })),
+      slots: slotResult.rows.map((row) => {
+        const freshness = this.freshness(row.source_updated_at, location.server_now, true);
+        return {
+          id: row.id,
+          serviceId: row.service_id,
+          startsAt: row.starts_at.toISOString(),
+          endsAt: row.ends_at.toISOString(),
+          localDate: row.available_date,
+          localTime: row.local_time,
+          timezone: location.timezone,
+          availabilityState: freshness === 'STALE'
+            ? 'STALE'
+            : row.confirmation_mode === 'ALTERNATIVE_POSSIBLE' ? 'REQUEST_ONLY' : 'AVAILABLE',
+          expectedVersion: row.version,
+          freshness,
+          confirmationMode: row.confirmation_mode,
+          sourceUpdatedAt: row.source_updated_at.toISOString(),
+          priceReference: `service:${row.service_id}`,
+        };
+      }),
+    };
+  }
+
+  async listDoctors(input: {
+    clinicId: string;
+    locationId?: string;
+    serviceCode?: string;
+    doctorId?: string;
+    limit: number;
+    petContextApplied?: boolean;
+  }): Promise<PublicDoctorsResponse> {
+    const result = await this.database.query<PublicDoctorRow>(`
+      WITH server_time AS (SELECT clock_timestamp() AS value)
+      SELECT
+        staff.id AS doctor_id,
+        staff.display_name,
+        clinic.id AS clinic_id,
+        clinic.public_name AS clinic_name,
+        location.id AS location_id,
+        location.address,
+        MIN(slot.starts_at) FILTER (
+          WHERE slot.state = 'OPEN'
+            AND slot.starts_at > server_time.value
+            AND slot.capacity - slot.booked_count - slot.held_count > 0
+        ) AS next_available_at,
+        MAX(slot.updated_at) FILTER (WHERE slot.state = 'OPEN') AS source_updated_at,
+        server_time.value AS server_now
+      FROM clinic_schema.clinic_staff staff
+      JOIN clinic_schema.clinic_locations location
+        ON location.id = staff.clinic_location_id AND location.status = 'ACTIVE'
+      JOIN clinic_schema.clinics clinic
+        ON clinic.id = location.clinic_id AND clinic.status = 'ACTIVE'
+      LEFT JOIN clinic_schema.appointment_slots slot
+        ON slot.staff_id = staff.id
+      LEFT JOIN clinic_schema.clinic_services service
+        ON service.id = slot.service_id AND service.active = true
+      CROSS JOIN server_time
+      WHERE staff.active = true
+        AND staff.role = 'VETERINARIAN'
+        AND clinic.id = $1::uuid
+        AND ($2::uuid IS NULL OR location.id = $2::uuid)
+        AND ($3::text IS NULL OR service.code = $3::text)
+        AND ($4::uuid IS NULL OR staff.id = $4::uuid)
+      GROUP BY staff.id, staff.display_name, clinic.id, clinic.public_name,
+               location.id, location.address, server_time.value
+      ORDER BY next_available_at ASC NULLS LAST, staff.display_name ASC, staff.id ASC
+      LIMIT $5
+    `, [
+      input.clinicId,
+      input.locationId ?? null,
+      input.serviceCode?.trim().toUpperCase() || null,
+      input.doctorId ?? null,
+      input.limit,
+    ]);
+    return {
+      observedAt: result.rows[0]?.server_now.toISOString() ?? new Date().toISOString(),
+      doctors: result.rows.map((row) => this.toDoctor(row)),
+      personalization: { applied: input.petContextApplied === true },
+    };
+  }
+
+  async readDoctor(doctorId: string): Promise<PublicDoctorSummary | undefined> {
+    const result = await this.database.query<PublicDoctorRow>(`
+      WITH server_time AS (SELECT clock_timestamp() AS value)
+      SELECT
+        staff.id AS doctor_id, staff.display_name,
+        clinic.id AS clinic_id, clinic.public_name AS clinic_name,
+        location.id AS location_id, location.address,
+        MIN(slot.starts_at) FILTER (
+          WHERE slot.state = 'OPEN' AND slot.starts_at > server_time.value
+            AND slot.capacity - slot.booked_count - slot.held_count > 0
+        ) AS next_available_at,
+        MAX(slot.updated_at) FILTER (WHERE slot.state = 'OPEN') AS source_updated_at,
+        server_time.value AS server_now
+      FROM clinic_schema.clinic_staff staff
+      JOIN clinic_schema.clinic_locations location
+        ON location.id = staff.clinic_location_id AND location.status = 'ACTIVE'
+      JOIN clinic_schema.clinics clinic
+        ON clinic.id = location.clinic_id AND clinic.status = 'ACTIVE'
+      LEFT JOIN clinic_schema.appointment_slots slot ON slot.staff_id = staff.id
+      CROSS JOIN server_time
+      WHERE staff.id = $1::uuid AND staff.active = true AND staff.role = 'VETERINARIAN'
+      GROUP BY staff.id, staff.display_name, clinic.id, clinic.public_name,
+               location.id, location.address, server_time.value
+      LIMIT 1
+    `, [doctorId]);
+    return result.rows[0] ? this.toDoctor(result.rows[0]) : undefined;
+  }
+
   private toClinicSummary(row: PublicClinicRow): PublicClinicSummary {
+    const serviceCount = Number(row.service_count);
+    const doctorCount = Number(row.doctor_count ?? 0);
+    const freshness = this.freshness(
+      row.availability_source_updated_at ?? null,
+      row.server_now,
+      row.next_available_at !== null,
+    );
+    const fitReasons: string[] = [];
+    if (row.next_available_at) fitReasons.push('Есть ближайшее подтверждаемое окно');
+    if (serviceCount > 0) fitReasons.push('Доступны подтверждённые услуги');
+    if (doctorCount > 0) fitReasons.push('Есть ветеринарные специалисты');
+    if (row.emergency_available) fitReasons.push('Экстренная возможность проверена');
     return {
       id: row.clinic_id,
       name: row.clinic_name,
       locationCount: Number(row.location_count),
-      serviceCount: Number(row.service_count),
+      serviceCount,
       nextAvailableAt: row.next_available_at?.toISOString() ?? null,
       distanceKm: row.distance_km === null ? null : Number(Number(row.distance_km).toFixed(1)),
       telemedAvailable: row.telemed_available,
       emergencyAvailable: row.emergency_available,
+      doctorCount,
+      priceFrom: row.price_from ?? null,
+      availability: {
+        sourceUpdatedAt: row.availability_source_updated_at?.toISOString() ?? null,
+        serverNow: row.server_now.toISOString(),
+        freshness,
+        confirmationMode: 'CLINIC_CONFIRMATION',
+      },
+      fitReasons: fitReasons.slice(0, 4),
     };
+  }
+
+  private toDoctor(row: PublicDoctorRow): PublicDoctorSummary {
+    return {
+      id: row.doctor_id,
+      displayName: row.display_name,
+      title: 'Ветеринарный врач',
+      clinic: { id: row.clinic_id, name: row.clinic_name },
+      location: { id: row.location_id, address: row.address },
+      nextAvailableAt: row.next_available_at?.toISOString() ?? null,
+      availability: {
+        sourceUpdatedAt: row.source_updated_at?.toISOString() ?? null,
+        serverNow: row.server_now.toISOString(),
+        freshness: this.freshness(row.source_updated_at, row.server_now, row.next_available_at !== null),
+        confirmationMode: 'CLINIC_CONFIRMATION',
+      },
+    };
+  }
+
+  private freshness(sourceUpdatedAt: Date | null, serverNow: Date, available: boolean): PublicAvailabilityFreshness {
+    if (!available || sourceUpdatedAt === null) return 'UNAVAILABLE';
+    const ageMinutes = Math.max(0, serverNow.getTime() - sourceUpdatedAt.getTime()) / 60000;
+    if (ageMinutes <= 15) return 'CURRENT';
+    if (ageMinutes <= 60) return 'AGING';
+    return 'STALE';
   }
 }

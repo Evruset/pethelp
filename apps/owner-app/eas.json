@@ -1,0 +1,41 @@
+{
+  "cli": {
+    "version": "21.7.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "environment": "development",
+      "env": {
+        "VETHELP_ENV": "local"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "test": {
+      "autoIncrement": true,
+      "distribution": "internal",
+      "environment": "preview",
+      "env": {
+        "VETHELP_ENV": "test"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "pilot": {
+      "autoIncrement": true,
+      "distribution": "internal",
+      "environment": "production",
+      "env": {
+        "VETHELP_ENV": "pilot"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    }
+  }
+}

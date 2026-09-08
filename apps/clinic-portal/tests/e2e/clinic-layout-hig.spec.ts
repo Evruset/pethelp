@@ -13,6 +13,7 @@ const occupiedSlotId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const blackoutSlotId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const mockBackendPort = 3212;
 const jwtSecret = 'clinic-e2e-secret-at-least-32-bytes';
+const evidenceDir = process.env.V50_SHELL_EVIDENCE_DIR;
 
 let server: Server;
 type CapturedSlotRequest = {
@@ -34,30 +35,55 @@ test.afterAll(async () => {
   });
 });
 
-test('adapts clinic portal shell between desktop and iPad portrait', async ({ page, context, baseURL }) => {
+test('adapts V50 clinic portal shell between desktop, tablet rail, and mobile navigation', async ({ page, context, baseURL }) => {
   await addAdminSession(context, baseURL);
 
-  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(route());
 
   await expect(page.getByTestId('clinic-portal-shell')).toBeVisible();
+  await expect(page.getByTestId('clinic-portal-shell')).toHaveAttribute('data-shell-version', 'v50');
+  await expect(page.getByTestId('clinic-portal-shell')).toHaveAttribute('data-shell-role', 'reception');
   const sidebar = page.getByRole('complementary', { name: 'Навигация портала клиники' });
   const bottomNav = page.getByRole('navigation', { name: 'Быстрая навигация портала клиники' });
 
   await expect(sidebar).toBeVisible();
   await expect(bottomNav).toBeHidden();
   await expect(page.getByRole('link', { name: 'Открыть расписание' }).first()).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Открыть расписание' }).first()).toHaveAttribute('aria-current', 'page');
 
   const desktopTarget = await page.getByRole('link', { name: 'Открыть расписание' }).first().boundingBox();
   expect(desktopTarget?.height).toBeGreaterThanOrEqual(44);
+  if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-1440x900-selected.png`, fullPage: true });
 
   await page.setViewportSize({ width: 768, height: 1024 });
+
+  await expect(sidebar).toBeVisible();
+  await expect(bottomNav).toBeHidden();
+
+  const tabletTarget = await page.getByRole('link', { name: 'Открыть расписание' }).first().boundingBox();
+  expect(tabletTarget?.height).toBeGreaterThanOrEqual(44);
+  if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-768x1024-selected.png`, fullPage: true });
+
+  await page.setViewportSize({ width: 375, height: 812 });
 
   await expect(sidebar).toBeHidden();
   await expect(bottomNav).toBeVisible();
 
-  const portraitTarget = await page.getByRole('link', { name: 'Открыть расписание' }).last().boundingBox();
-  expect(portraitTarget?.height).toBeGreaterThanOrEqual(44);
+  const mobileTarget = await page.getByRole('link', { name: 'Открыть расписание' }).last().boundingBox();
+  expect(mobileTarget?.height).toBeGreaterThanOrEqual(44);
+  if (evidenceDir) {
+    await page.screenshot({ path: `${evidenceDir}/portal-375x812-selected.png`, fullPage: true });
+    await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
+    await page.screenshot({ path: `${evidenceDir}/portal-375x812-text-scale.png`, fullPage: true });
+    await page.evaluate(() => { document.documentElement.style.fontSize = ''; });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.screenshot({ path: `${evidenceDir}/portal-1440x900-reduced-motion.png`, fullPage: true });
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await page.screenshot({ path: `${evidenceDir}/portal-1920x1080-selected.png`, fullPage: true });
+  }
 });
 
 test('keeps correlation id stable and rotates idempotency key on slot retry', async ({ page, context, baseURL }) => {
@@ -82,7 +108,7 @@ test('keeps correlation id stable and rotates idempotency key on slot retry', as
   });
 
   await page.goto(route());
-  await page.getByRole('button', { name: 'Blackout' }).click();
+  await page.getByTestId(`schedule-slot-${slotId}`).getByRole('button', { name: 'Blackout' }).click();
   await page.getByRole('dialog', { name: 'Закрыть окно' }).getByRole('button', { name: 'Закрыть окно' }).click();
   await expect(page.getByRole('status')).toContainText('Окно закрыто');
 
@@ -108,7 +134,7 @@ test('retries SLOT_LOCKED_RETRY three times with exponential backoff', async ({ 
   });
 
   await page.goto(route());
-  await page.getByRole('button', { name: 'Blackout' }).click();
+  await page.getByTestId(`schedule-slot-${slotId}`).getByRole('button', { name: 'Blackout' }).click();
   await page.getByRole('dialog', { name: 'Закрыть окно' }).getByRole('button', { name: 'Закрыть окно' }).click();
   await expect(page.getByRole('dialog', { name: 'Слот недоступен' })).toBeVisible({ timeout: 12_000 });
 
@@ -131,7 +157,7 @@ test('shows accessible slide-over when slot retry is exhausted', async ({ page, 
   });
 
   await page.goto(route());
-  await page.getByRole('button', { name: 'Blackout' }).click();
+  await page.getByTestId(`schedule-slot-${slotId}`).getByRole('button', { name: 'Blackout' }).click();
   await page.getByRole('dialog', { name: 'Закрыть окно' }).getByRole('button', { name: 'Закрыть окно' }).click();
 
   const dialog = page.getByRole('dialog', { name: 'Слот недоступен' });
@@ -197,6 +223,16 @@ function handleBackendRequest(request: IncomingMessage, response: ServerResponse
 
   if (request.method === 'GET' && url.pathname === schedulePath) {
     sendJson(response, 200, makeSchedule());
+    return;
+  }
+
+  if (request.method === 'GET' && url.pathname === '/v1/auth/session') {
+    sendJson(response, 200, {
+      subjectId: 'clinic-layout-hig-e2e',
+      roles: ['CLINIC_ADMIN'],
+      effectiveCapabilities: ['booking.queue.read', 'schedule.read', 'quality.read'],
+      clinicScopes: [{ clinicId, locationId }],
+    });
     return;
   }
 

@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import type { PoolClient } from 'pg';
 import { DatabaseService } from '../../database/database.service';
 import { AcquiringClient } from './acquiring-client.service';
+import { mvpScope } from '../../config/mvp-scope.config';
 
 interface ReconciliationCandidate {
   id: string;
@@ -22,7 +23,7 @@ export class PaymentReconciliationWorker {
 
   @Cron(CronExpression.EVERY_MINUTE)
   async reconcile(): Promise<void> {
-    if ((process.env.WORKERS_ENABLED ?? 'true').toLowerCase() !== 'true' || this.running) return;
+    if (!mvpScope.capabilities.onlinePayments || (process.env.WORKERS_ENABLED ?? 'true').toLowerCase() !== 'true' || this.running) return;
     this.running = true;
 
     try {

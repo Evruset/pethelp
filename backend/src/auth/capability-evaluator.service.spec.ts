@@ -36,6 +36,89 @@ describe('CapabilityEvaluatorService booking.queue.read ABAC matrix', () => {
   });
 });
 
+describe('CapabilityEvaluatorService appointment.registry.read ABAC matrix', () => {
+  const evaluator = new CapabilityEvaluatorService();
+  const resource = { aggregateType: 'appointment.registry' as const, clinicId: CLINIC, locationId: LOCATION };
+
+  it('allows scoped reception with active membership', async () => {
+    await expect(evaluator.assertAllowed(client() as PoolClient, {
+      actor: { sub: ACTOR, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [CLINIC], locationIds: [LOCATION] },
+      capability: Capability.APPOINTMENT_REGISTRY_READ,
+      resource,
+    })).resolves.toBeUndefined();
+  });
+
+  it.each([Role.CLINIC_VETERINARIAN, Role.OWNER])('denies role %s before membership query', async (role) => {
+    const db = client();
+    await expect(evaluator.assertAllowed(db as PoolClient, {
+      actor: { sub: ACTOR, roles: [role], clinicIds: [CLINIC], locationIds: [LOCATION] },
+      capability: Capability.APPOINTMENT_REGISTRY_READ,
+      resource,
+    })).rejects.toBeInstanceOf(DomainException);
+    expect(db.query).not.toHaveBeenCalled();
+  });
+});
+
+describe('CapabilityEvaluatorService patient.admin.read ABAC matrix', () => {
+  const evaluator = new CapabilityEvaluatorService();
+  const resource = { aggregateType: 'patient.registry' as const, clinicId: CLINIC, locationId: LOCATION };
+
+  it('requires exact scopes and active membership', async () => {
+    const actor = { sub: ACTOR, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [CLINIC], locationIds: [LOCATION] };
+    await expect(evaluator.assertAllowed(client() as PoolClient, {
+      actor, capability: Capability.PATIENT_ADMIN_READ, resource,
+    })).resolves.toBeUndefined();
+    await expect(evaluator.assertAllowed(client(false) as PoolClient, {
+      actor, capability: Capability.PATIENT_ADMIN_READ, resource,
+    })).rejects.toBeInstanceOf(DomainException);
+    await expect(evaluator.assertAllowed(client() as PoolClient, {
+      actor: { ...actor, locationIds: [] }, capability: Capability.PATIENT_ADMIN_READ, resource,
+    })).rejects.toBeInstanceOf(DomainException);
+  });
+
+  it('does not infer administrative patient access for veterinarians', async () => {
+    await expect(evaluator.assertAllowed(client() as PoolClient, {
+      actor: { sub: ACTOR, roles: [Role.CLINIC_VETERINARIAN], clinicIds: [CLINIC], locationIds: [LOCATION] },
+      capability: Capability.PATIENT_ADMIN_READ, resource,
+    })).rejects.toBeInstanceOf(DomainException);
+  });
+});
+
+describe('CapabilityEvaluatorService patient.admin.local-profile.update ABAC matrix', () => {
+  const evaluator = new CapabilityEvaluatorService();
+  const resource = { aggregateType: 'patient.local-profile' as const, clinicId: CLINIC, locationId: LOCATION };
+
+  it('allows exact-scope reception/admin with active membership', async () => {
+    for (const role of [Role.CLINIC_RECEPTIONIST, Role.CLINIC_ADMIN]) {
+      await expect(evaluator.assertAllowed(client() as PoolClient, {
+        actor: { sub: ACTOR, roles: [role], clinicIds: [CLINIC], locationIds: [LOCATION] },
+        capability: Capability.PATIENT_ADMIN_LOCAL_PROFILE_UPDATE,
+        resource,
+      })).resolves.toBeUndefined();
+    }
+  });
+
+  it.each([
+    ['veterinarian', { sub: ACTOR, roles: [Role.CLINIC_VETERINARIAN], clinicIds: [CLINIC], locationIds: [LOCATION] }],
+    ['foreign clinic', { sub: ACTOR, roles: [Role.CLINIC_ADMIN], clinicIds: [OTHER_LOCATION], locationIds: [LOCATION] }],
+    ['foreign location', { sub: ACTOR, roles: [Role.CLINIC_ADMIN], clinicIds: [CLINIC], locationIds: [OTHER_LOCATION] }],
+  ])('denies %s without membership leakage', async (_name, actor) => {
+    const db = client();
+    await expect(evaluator.assertAllowed(db as PoolClient, {
+      actor, capability: Capability.PATIENT_ADMIN_LOCAL_PROFILE_UPDATE, resource,
+    })).rejects.toBeInstanceOf(DomainException);
+    expect(db.query).not.toHaveBeenCalled();
+  });
+
+  it('denies inactive membership', async () => {
+    await expect(evaluator.assertAllowed(client(false) as PoolClient, {
+      actor: { sub: ACTOR, roles: [Role.CLINIC_ADMIN], clinicIds: [CLINIC], locationIds: [LOCATION] },
+      capability: Capability.PATIENT_ADMIN_LOCAL_PROFILE_UPDATE,
+      resource,
+    })).rejects.toBeInstanceOf(DomainException);
+  });
+});
+
 describe('CapabilityEvaluatorService clinical.visit.workspace.read ABAC matrix', () => {
   const evaluator = new CapabilityEvaluatorService();
   const resource = { aggregateType: 'clinical.visit.workspace' as const, clinicId: CLINIC, locationId: LOCATION };

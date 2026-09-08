@@ -4,19 +4,31 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter/services.dart';
 
 import 'core/e2e/owner_e2e_hooks.dart';
 import 'core/offline/outbox_repository.dart';
 import 'features/appointments/owner_appointments_page.dart';
 import 'features/appointments/owner_appointments_repository.dart';
+import 'features/appointments/owner_bookings_v50_feature_flags.dart';
+import 'features/appointments/owner_bookings_v50_page.dart';
+import 'features/appointments/owner_bookings_v50_repository.dart';
 import 'features/auth/owner_auth_repository.dart';
 import 'features/auth/owner_session.dart';
 import 'features/booking/alternative_slot/alternative_slot_repository.dart';
+import 'features/booking/alternative_slot/alternative_slot_v50_feature_flags.dart';
 import 'features/booking/marketplace/booking_marketplace_page.dart';
 import 'features/booking/marketplace/booking_marketplace_repository.dart';
+import 'features/booking/marketplace/booking_selection_feature_flags.dart';
+import 'features/booking/marketplace/booking_selection_models.dart';
+import 'features/booking/marketplace/booking_selection_repository.dart';
+import 'features/booking/marketplace/owner_booking_selection_v50_page.dart';
 import 'features/care/owner_pet_care_page.dart';
 import 'features/care/owner_pet_care_repository.dart';
+import 'features/care/owner_pet_diary_v50_page.dart';
 import 'features/catalog/catalog_models.dart';
+import 'features/catalog/owner_catalog_v50_feature_flags.dart';
+import 'features/catalog/owner_catalog_v50_page.dart';
 import 'features/catalog/public_catalog_page.dart';
 import 'features/catalog/public_catalog_repository.dart';
 import 'features/emergency/emergency_repository.dart';
@@ -24,16 +36,24 @@ import 'features/emergency/emergency_triage_page.dart';
 import 'features/insurance/coverage_check_page.dart';
 import 'features/insurance/coverage_check_repository.dart';
 import 'features/owner_journey/owner_journey_page.dart';
+import 'features/owner_journey/owner_home_feature_flag.dart';
+import 'features/owner_journey/owner_home_repository.dart';
+import 'features/owner_journey/owner_home_v50_page.dart';
+import 'features/owner_journey/owner_selected_pet_preference.dart';
 import 'features/owner_journey/phone_entry_page.dart';
 import 'features/pets/owner_pet.dart';
+import 'features/pets/owner_pet_deep_link.dart';
 import 'features/pets/owner_pet_repository.dart';
+import 'features/pets/owner_pet_profile_v50_page.dart';
 import 'features/pets/owner_pets_page.dart';
+import 'features/pets/owner_pets_v50_feature_flags.dart';
 import 'features/telemed/owner_telemed_page.dart';
 import 'features/telemed/owner_telemed_repository.dart';
 import 'features/telemed/waiting_room/telemed_room_access_repository.dart';
 import 'features/telemed/waiting_room/telemed_waiting_room_repository.dart';
 import 'presentation/pages/owner_adaptive_shell.dart';
 import 'presentation/platform/owner_platform.dart';
+import 'presentation/shell/owner_shell_feature_flag.dart';
 import 'ui/vethelp_ios_theme.dart';
 
 void main() => runApp(const VetHelpOwnerJourneyApp());
@@ -48,6 +68,7 @@ class VetHelpOwnerJourneyApp extends StatelessWidget {
     if (ownerUsesCupertino(platform: platformOverride)) {
       return CupertinoApp(
         title: 'VetHelp',
+        restorationScopeId: 'vethelp-owner',
         locale: const Locale('ru'),
         supportedLocales: const [Locale('ru'), Locale('en')],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -69,6 +90,7 @@ class VetHelpOwnerJourneyApp extends StatelessWidget {
 
     return MaterialApp(
       title: 'VetHelp',
+      restorationScopeId: 'vethelp-owner',
       theme: VetHelpTheme.light(),
       builder: VetHelpTheme.frameBuilder,
       locale: const Locale('ru'),
@@ -103,12 +125,17 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   OwnerSession? _session;
   OwnerPet? _selectedPet;
   CatalogBookingSelection? _pendingBooking;
+  BookingSelectionSeed? _pendingBookingSeed;
+  BookingSelectionContext? _pendingBookingIntent;
   late final OutboxRepository _ownerOutbox;
+  late final OwnerHomeRepository _ownerHomeRepository;
+  late final OwnerSelectedPetPreference _selectedPetPreference;
   late final String _ownerDeviceId;
   int _ownerDeviceSequence = 0;
   int _iosSelectedTab = 0;
   bool _petBootstrapInFlight = false;
   bool _petBootstrapCompleted = false;
+  int _ownerSessionGeneration = 0;
 
   String get _apiBaseUrl => _configuredApiBaseUrl.isNotEmpty
       ? _configuredApiBaseUrl
@@ -124,6 +151,8 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   void initState() {
     super.initState();
     _ownerOutbox = OutboxRepository(InMemoryOfflineCommandStore());
+    _ownerHomeRepository = _createOwnerHomeRepository();
+    _selectedPetPreference = SharedPreferencesOwnerSelectedPetPreference();
     _ownerDeviceId = 'owner-mobile-${DateTime.now().microsecondsSinceEpoch}';
     _registerE2EHooks();
     if (_bootstrapOwnerJwt.isNotEmpty) {
@@ -159,6 +188,11 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   }
 
   Future<void> _selectExistingPet() async {
+    if (isOwnerV50HomeEnabled(
+      shellEnabled: isOwnerV50ShellEnabled(),
+    )) {
+      return;
+    }
     if (!_hasOwnerSession ||
         _selectedPet != null ||
         _petBootstrapInFlight ||
@@ -189,10 +223,27 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
         nextDeviceSequence: () => ++_ownerDeviceSequence,
       );
 
+  OwnerHomeRepository _createOwnerHomeRepository() => HttpOwnerHomeRepository(
+        baseUrl: Uri.parse(_apiBaseUrl),
+        accessToken: _token,
+      );
+
   @override
   Widget build(BuildContext context) {
     if (_hasOwnerSession) {
+      final shellEnabled = isOwnerV50ShellEnabled();
+      final homeEnabled = isOwnerV50HomeEnabled(shellEnabled: shellEnabled);
+      final catalogFlags = ownerCatalogV50Flags(shellEnabled: shellEnabled);
+      final petsV50Flags = ownerPetsV50Flags(shellEnabled: shellEnabled);
+      final preferenceOwnerId =
+          _session?.ownerId ?? safeOwnerSubjectFromJwt(_accessToken);
       final appointmentsRepository = HttpOwnerAppointmentsRepository(
+        baseUrl: Uri.parse(_apiBaseUrl),
+        accessToken: _token,
+      );
+      final bookingsV50Flags =
+          ownerBookingsV50Flags(shellEnabled: shellEnabled);
+      final bookingsV50Repository = HttpOwnerBookingsV50Repository(
         baseUrl: Uri.parse(_apiBaseUrl),
         accessToken: _token,
       );
@@ -201,6 +252,40 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
         accessTokenProvider: _token,
       );
       final petsRepository = _petsRepository();
+
+      if (shellEnabled) {
+        return _OwnerV50AuthenticatedShell(
+          platformOverride: widget.platformOverride,
+          onBrowseClinics: _openCatalogForOwner,
+          onCatalogSelection: _openBooking,
+          onRequestTelemed: _openTelemedIntake,
+          onRequestInsurance: _openInsuranceCheck,
+          onRequestEmergency: _openEmergency,
+          onOpenCare: _openCare,
+          petsRepository: petsRepository,
+          appointmentsRepository: appointmentsRepository,
+          bookingsV50Repository: bookingsV50Repository,
+          bookingsV50Flags: bookingsV50Flags,
+          alternativeSlotRepository: alternativeSlotRepository,
+          catalogRepository: HttpPublicCatalogRepository(
+            baseUrl: Uri.parse(_apiBaseUrl),
+            selectedPetId: _selectedPet?.id,
+            accessTokenProvider: _token,
+          ),
+          catalogV50Flags: catalogFlags,
+          selectedPet: _selectedPet,
+          onPetSelected: _selectPet,
+          ownerHomeRepository: _ownerHomeRepository,
+          selectedPetPreference: _selectedPetPreference,
+          preferenceOwnerId: preferenceOwnerId,
+          v50HomeEnabled: homeEnabled && preferenceOwnerId != null,
+          onSignIn: _openPhoneEntry,
+          sessionGeneration: _ownerSessionGeneration,
+          petsV50Flags: petsV50Flags,
+          onOpenPetProfile: _openV50PetProfile,
+          onOpenPetDeepLink: _openV50PetDeepLink,
+        );
+      }
 
       if (_usesCupertino) {
         return _OwnerIosAuthenticatedShell(
@@ -257,9 +342,11 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
       );
 
   void _completeAuthentication(OwnerSession session) {
-    final hasPendingBooking = _pendingBooking != null;
+    final hasPendingBooking =
+        _pendingBooking != null || _pendingBookingSeed != null;
     setState(() {
       _session = session;
+      _ownerSessionGeneration++;
       _selectedPet = null;
       _petBootstrapCompleted = false;
     });
@@ -276,12 +363,33 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
 
   void _selectPet(OwnerPet pet) {
     final pending = _pendingBooking;
+    final pendingSeed = _pendingBookingSeed;
+    final pendingIntent = _pendingBookingIntent;
     setState(() {
       _selectedPet = pet;
       _petBootstrapCompleted = true;
       _pendingBooking = null;
+      _pendingBookingSeed = null;
+      _pendingBookingIntent = null;
     });
-    if (pending != null) {
+    if (pendingSeed != null) {
+      final restoredSeed = BookingSelectionSeed(
+        clinicId: pendingSeed.clinicId,
+        clinicName: pendingSeed.clinicName,
+        locationId: pendingSeed.locationId,
+        locationAddress: pendingSeed.locationAddress,
+        serviceId: pendingSeed.serviceId,
+        serviceName: pendingSeed.serviceName,
+        doctorId: pendingSeed.doctorId,
+        petId: pet.id,
+        petName: pet.name,
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _openBookingSelection(restoredSeed, initialIntent: pendingIntent);
+        }
+      });
+    } else if (pending != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _openBooking(pending);
       });
@@ -289,6 +397,11 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
   }
 
   void _openCatalogForGuest() => _openCatalog(onSelected: (selection) {
+        if (isOwnerBookingSelectionV50Enabled()) {
+          Navigator.of(context).pop();
+          _openBooking(selection);
+          return;
+        }
         setState(() {
           _pendingBooking = selection;
         });
@@ -320,26 +433,58 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
         ownerPageRoute<void>(
           context: context,
           platform: widget.platformOverride,
-          builder: (_) => PublicCatalogPage(
-            repository:
-                HttpPublicCatalogRepository(baseUrl: Uri.parse(_apiBaseUrl)),
-            onSelected: onSelected,
-            platformOverride: widget.platformOverride,
-            bookingPetName: _selectedPet?.name,
-            bookingContextNote: contextNote,
-            onChangePet: _selectedPet == null
-                ? null
-                : () {
-                    Navigator.of(context).maybePop();
-                    _showMessage(
-                      'Вы можете изменить питомца во вкладке «Питомцы», затем вернуться к записи.',
-                    );
-                  },
-          ),
+          builder: (_) {
+            final flags = ownerCatalogV50Flags(
+              shellEnabled: isOwnerV50ShellEnabled(),
+            );
+            final repository = HttpPublicCatalogRepository(
+              baseUrl: Uri.parse(_apiBaseUrl),
+              selectedPetId: _selectedPet?.id,
+              accessTokenProvider: _session == null ? null : _token,
+            );
+            if (flags.catalog) {
+              return OwnerCatalogV50Page(
+                repository: repository,
+                flags: flags,
+                onSelected: onSelected,
+                selectedPetId: _selectedPet?.id,
+                selectedPetName: _selectedPet?.name,
+                initialLocation:
+                    WidgetsBinding.instance.platformDispatcher.defaultRouteName,
+                onChangePet: _selectedPet == null
+                    ? null
+                    : () {
+                        Navigator.of(context).maybePop();
+                        _showMessage(
+                          'Измените питомца во вкладке «Питомцы», затем вернитесь в каталог.',
+                        );
+                      },
+              );
+            }
+            return PublicCatalogPage(
+              repository: repository,
+              onSelected: onSelected,
+              platformOverride: widget.platformOverride,
+              bookingPetName: _selectedPet?.name,
+              bookingContextNote: contextNote,
+              onChangePet: _selectedPet == null
+                  ? null
+                  : () {
+                      Navigator.of(context).maybePop();
+                      _showMessage(
+                        'Вы можете изменить питомца во вкладке «Питомцы», затем вернуться к записи.',
+                      );
+                    },
+            );
+          },
         ),
       );
 
   void _openBooking(CatalogBookingSelection selection) {
+    if (isOwnerBookingSelectionV50Enabled()) {
+      _openBookingSelection(_bookingSeed(selection));
+      return;
+    }
     final pet = _selectedPet;
     if (pet == null) {
       _showMessage('Для записи нужно выбрать питомца.');
@@ -364,6 +509,68 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
           ),
           platformOverride: widget.platformOverride,
           onOpenAppointments: _openAppointmentsTab,
+        ),
+      ),
+    );
+  }
+
+  BookingSelectionSeed _bookingSeed(CatalogBookingSelection selection) {
+    final pet = _selectedPet;
+    return BookingSelectionSeed(
+      clinicId: selection.location.clinicId,
+      clinicName: selection.location.clinicName,
+      locationId: selection.location.locationId,
+      locationAddress: selection.location.address,
+      serviceId: selection.service.id,
+      serviceName: selection.service.displayName,
+      doctorId: selection.doctorId,
+      petId: pet?.id,
+      petName: pet?.name,
+    );
+  }
+
+  void _openBookingSelection(
+    BookingSelectionSeed seed, {
+    BookingSelectionContext? initialIntent,
+  }) {
+    final shellEnabled = isOwnerV50ShellEnabled();
+    final catalogFlags = ownerCatalogV50Flags(shellEnabled: shellEnabled);
+    final bookingFlags = ownerBookingSelectionV50Flags(
+      shellEnabled: shellEnabled,
+      clinicDetailEnabled: catalogFlags.clinicDetail,
+    );
+    Navigator.of(context).push(
+      ownerPageRoute<void>(
+        context: context,
+        platform: widget.platformOverride,
+        settings: const RouteSettings(name: '/owner/booking'),
+        builder: (_) => OwnerBookingSelectionV50Page(
+          seed: seed,
+          initialIntent: initialIntent,
+          repository: HttpBookingSelectionRepository(
+            baseUrl: Uri.parse(_apiBaseUrl),
+            accessTokenProvider: _hasOwnerSession ? _token : null,
+          ),
+          holdRepository: _hasOwnerSession
+              ? HttpBookingMarketplaceRepository(
+                  baseUrl: Uri.parse(_apiBaseUrl),
+                  accessTokenProvider: _token,
+                )
+              : null,
+          createHoldEnabled: bookingFlags.createHold,
+          bookingStatusEnabled: bookingFlags.bookingStatus,
+          onRequireAuthentication: (intent) {
+            setState(() {
+              _pendingBookingSeed = seed;
+              _pendingBookingIntent = intent;
+            });
+            _openPhoneEntry();
+          },
+          onContinue: (_) {
+            _showMessage(
+              'Выбор проверен. Создание удержания будет доступно на следующем этапе.',
+            );
+          },
         ),
       ),
     );
@@ -482,6 +689,83 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
     );
   }
 
+  void _openV50PetProfile(OwnerPet pet) {
+    final repository = _petsRepository();
+    final flags = ownerPetsV50Flags(shellEnabled: isOwnerV50ShellEnabled());
+    final diaryRepository = HttpOwnerPetCareRepository(
+      baseUrl: Uri.parse(_apiBaseUrl),
+      accessTokenProvider: _token,
+    );
+    Navigator.of(context).push(ownerPageRoute<void>(
+      context: context,
+      platform: widget.platformOverride,
+      builder: (_) => OwnerPetProfileV50Page(
+        pet: pet,
+        repository: repository,
+        onPetChanged: _selectPet,
+        onOpenDiary: flags.diary
+            ? () => Navigator.of(context).push(ownerPageRoute<void>(
+                  context: context,
+                  platform: widget.platformOverride,
+                  builder: (_) => OwnerPetDiaryV50Page(
+                    pet: pet,
+                    repository: diaryRepository,
+                  ),
+                ))
+            : null,
+        onArchiveResolved: _resolveSelectionAfterLifecycle,
+      ),
+    ));
+  }
+
+  void _openV50PetDeepLink(OwnerPetDeepLink link) {
+    final flags = ownerPetsV50Flags(shellEnabled: isOwnerV50ShellEnabled());
+    if (!flags.profile ||
+        (link.kind != OwnerPetDeepLinkKind.profile && !flags.diary)) {
+      return;
+    }
+    final pets = _petsRepository();
+    final diary = HttpOwnerPetCareRepository(
+      baseUrl: Uri.parse(_apiBaseUrl),
+      accessTokenProvider: _token,
+    );
+    Navigator.of(context).push(ownerPageRoute<void>(
+      context: context,
+      platform: widget.platformOverride,
+      builder: (_) => OwnerPetDeepLinkDestination(
+        link: link,
+        resolver: OwnerPetDeepLinkResolver(pets: pets, diary: diary),
+        sessionGeneration: _ownerSessionGeneration,
+        petRepository: pets,
+        diaryRepository: diary,
+        safeSnapshot: _selectedPet?.id == link.petId ? _selectedPet : null,
+        onPetChanged: _selectPet,
+        onArchiveResolved: _resolveSelectionAfterLifecycle,
+      ),
+    ));
+  }
+
+  Future<void> _resolveSelectionAfterLifecycle(OwnerPet changed) async {
+    final ownerId = _session?.ownerId ?? safeOwnerSubjectFromJwt(_accessToken);
+    final active = (await _petsRepository().list())
+        .where((pet) => !pet.isArchived)
+        .toList(growable: false);
+    if (!mounted) return;
+    final selected =
+        changed.isArchived ? (active.isEmpty ? null : active.first) : changed;
+    setState(() {
+      _selectedPet = selected;
+      _petBootstrapCompleted = true;
+    });
+    if (ownerId != null) {
+      if (selected == null) {
+        await _selectedPetPreference.clear(ownerId);
+      } else {
+        await _selectedPetPreference.write(ownerId, selected.id);
+      }
+    }
+  }
+
   void _openRepeatBookingFromCare(OwnerPetCareRebookIntent intent) {
     setState(() {
       _selectedPet = intent.pet;
@@ -519,6 +803,269 @@ class _OwnerJourneyEntryState extends State<OwnerJourneyEntry> {
         context,
         text,
         platform: widget.platformOverride,
+      ),
+    );
+  }
+}
+
+class _OwnerV50AuthenticatedShell extends StatefulWidget {
+  const _OwnerV50AuthenticatedShell({
+    required this.onBrowseClinics,
+    required this.onCatalogSelection,
+    required this.onRequestTelemed,
+    required this.onRequestInsurance,
+    required this.onRequestEmergency,
+    required this.onOpenCare,
+    required this.petsRepository,
+    required this.appointmentsRepository,
+    required this.bookingsV50Repository,
+    required this.bookingsV50Flags,
+    required this.alternativeSlotRepository,
+    required this.catalogRepository,
+    required this.catalogV50Flags,
+    required this.selectedPet,
+    required this.onPetSelected,
+    required this.ownerHomeRepository,
+    required this.selectedPetPreference,
+    required this.preferenceOwnerId,
+    required this.v50HomeEnabled,
+    required this.onSignIn,
+    required this.sessionGeneration,
+    required this.petsV50Flags,
+    required this.onOpenPetProfile,
+    required this.onOpenPetDeepLink,
+    this.platformOverride,
+  });
+
+  final VoidCallback onBrowseClinics;
+  final ValueChanged<CatalogBookingSelection> onCatalogSelection;
+  final VoidCallback onRequestTelemed;
+  final VoidCallback onRequestInsurance;
+  final VoidCallback onRequestEmergency;
+  final VoidCallback onOpenCare;
+  final OwnerPetRepository petsRepository;
+  final OwnerAppointmentsRepository appointmentsRepository;
+  final OwnerBookingsV50Repository bookingsV50Repository;
+  final OwnerBookingsV50Flags bookingsV50Flags;
+  final AlternativeSlotRepository alternativeSlotRepository;
+  final PublicCatalogRepository catalogRepository;
+  final OwnerCatalogV50Flags catalogV50Flags;
+  final OwnerPet? selectedPet;
+  final ValueChanged<OwnerPet> onPetSelected;
+  final OwnerHomeRepository ownerHomeRepository;
+  final OwnerSelectedPetPreference selectedPetPreference;
+  final String? preferenceOwnerId;
+  final bool v50HomeEnabled;
+  final VoidCallback onSignIn;
+  final int sessionGeneration;
+  final OwnerPetsV50Flags petsV50Flags;
+  final ValueChanged<OwnerPet> onOpenPetProfile;
+  final ValueChanged<OwnerPetDeepLink> onOpenPetDeepLink;
+  final TargetPlatform? platformOverride;
+
+  @override
+  State<_OwnerV50AuthenticatedShell> createState() =>
+      _OwnerV50AuthenticatedShellState();
+}
+
+class _OwnerV50AuthenticatedShellState
+    extends State<_OwnerV50AuthenticatedShell> with RestorationMixin {
+  late final RestorableInt _selectedIndex;
+  bool _sessionExpired = false;
+  int _handledDeepLinkGeneration = -1;
+
+  @override
+  String? get restorationId => 'owner-v50-authenticated-shell';
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = RestorableInt(
+      OwnerV50AdaptiveShell.indexForLocation(
+        WidgetsBinding.instance.platformDispatcher.defaultRouteName,
+      ),
+    );
+    registerOwnerE2EHook('openHome', () => _selectDestination(0));
+    registerOwnerE2EHook('openAppointments', () => _selectDestination(2));
+    registerOwnerE2EHook('openPet', () => _selectDestination(3));
+    WidgetsBinding.instance.addPostFrameCallback((_) => _openInitialDeepLink());
+  }
+
+  @override
+  void restoreState(RestorationBucket? oldBucket, bool initialRestore) {
+    registerForRestoration(_selectedIndex, 'selected-destination');
+  }
+
+  @override
+  void didUpdateWidget(covariant _OwnerV50AuthenticatedShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.preferenceOwnerId != widget.preferenceOwnerId ||
+        oldWidget.sessionGeneration != widget.sessionGeneration) {
+      _sessionExpired = false;
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _openInitialDeepLink());
+    }
+  }
+
+  void _openInitialDeepLink() {
+    if (!mounted || _handledDeepLinkGeneration == widget.sessionGeneration) {
+      return;
+    }
+    _handledDeepLinkGeneration = widget.sessionGeneration;
+    final link = OwnerPetDeepLink.tryParse(
+      WidgetsBinding.instance.platformDispatcher.defaultRouteName,
+    );
+    if (link != null) widget.onOpenPetDeepLink(link);
+  }
+
+  @override
+  void dispose() {
+    unregisterOwnerE2EHook('openHome');
+    unregisterOwnerE2EHook('openAppointments');
+    unregisterOwnerE2EHook('openPet');
+    _selectedIndex.dispose();
+    super.dispose();
+  }
+
+  void _selectDestination(int index) {
+    if (!mounted || index == _selectedIndex.value) return;
+    setState(() => _selectedIndex.value = index);
+    if (kIsWeb) {
+      SystemNavigator.routeInformationUpdated(
+        uri: Uri.parse(OwnerV50AdaptiveShell.locationForIndex(index)),
+        replace: true,
+      );
+    }
+  }
+
+  void _showNotifications() {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger != null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Новых уведомлений пока нет.')),
+      );
+      return;
+    }
+    unawaited(
+      showCupertinoDialog<void>(
+        context: context,
+        builder: (dialogContext) => CupertinoAlertDialog(
+          title: const Text('Уведомления'),
+          content: const Text('Новых уведомлений пока нет.'),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Понятно'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return OwnerV50AdaptiveShell(
+      viewState: _sessionExpired
+          ? OwnerShellViewState.sessionExpired
+          : OwnerShellViewState.content,
+      onSignIn: widget.onSignIn,
+      selectedIndex: _selectedIndex.value,
+      onDestinationSelected: _sessionExpired ? (_) {} : _selectDestination,
+      selectedPetName: _sessionExpired ? null : widget.selectedPet?.name,
+      onPetContextPressed: _sessionExpired ? null : () => _selectDestination(3),
+      onNotifications: _sessionExpired ? null : _showNotifications,
+      onEmergency: widget.onRequestEmergency,
+      home: widget.v50HomeEnabled
+          ? OwnerHomeV50Page(
+              repository: widget.ownerHomeRepository,
+              preference: widget.selectedPetPreference,
+              ownerId: widget.preferenceOwnerId!,
+              sessionGeneration: widget.sessionGeneration,
+              onPetSelected: (pet) => widget.onPetSelected(
+                OwnerPet(
+                  id: pet.id,
+                  name: pet.name,
+                  species: pet.species,
+                  breed: pet.breed,
+                  photoUrl: pet.photoUrl,
+                ),
+              ),
+              onBrowseClinics: () => _selectDestination(1),
+              onManagePets: () => _selectDestination(3),
+              onOpenAppointments: () => _selectDestination(2),
+              onOpenCare: widget.onOpenCare,
+              onRequestTelemed: widget.onRequestTelemed,
+              onRequestInsurance: widget.onRequestInsurance,
+              onRequestEmergency: widget.onRequestEmergency,
+              onSessionExpired: () {
+                if (mounted && !_sessionExpired) {
+                  setState(() => _sessionExpired = true);
+                }
+              },
+            )
+          : OwnerHomePage(
+              selectedPet: widget.selectedPet,
+              appointmentsRepository: widget.appointmentsRepository,
+              petsRepository: widget.petsRepository,
+              onBrowseClinics: () => _selectDestination(1),
+              onManagePets: () => _selectDestination(3),
+              onPetSelected: widget.onPetSelected,
+              onOpenAppointments: () => _selectDestination(2),
+              onOpenCare: widget.onOpenCare,
+              onRequestTelemed: widget.onRequestTelemed,
+              onRequestInsurance: widget.onRequestInsurance,
+              onRequestEmergency: widget.onRequestEmergency,
+            ),
+      clinics: widget.catalogV50Flags.catalog
+          ? OwnerCatalogV50Page(
+              repository: widget.catalogRepository,
+              flags: widget.catalogV50Flags,
+              onSelected: widget.onCatalogSelection,
+              selectedPetId: widget.selectedPet?.id,
+              selectedPetName: widget.selectedPet?.name,
+              initialLocation:
+                  WidgetsBinding.instance.platformDispatcher.defaultRouteName,
+              onChangePet: () => _selectDestination(3),
+            )
+          : PublicCatalogPage(
+              platformOverride: widget.platformOverride,
+              repository: widget.catalogRepository,
+              onSelected: widget.onCatalogSelection,
+              bookingPetName: widget.selectedPet?.name,
+              onChangePet: () => _selectDestination(3),
+            ),
+      appointments: widget.bookingsV50Flags.myBookings
+          ? OwnerBookingsV50Page(
+              repository: widget.bookingsV50Repository,
+              detailEnabled: widget.bookingsV50Flags.detail,
+              cancellationEnabled: widget.bookingsV50Flags.cancellation,
+              alternativeResolutionEnabled:
+                  AlternativeSlotV50FeatureFlags.enabled,
+              alternativeRepository: widget.alternativeSlotRepository,
+            )
+          : OwnerAppointmentsPage(
+              repository: widget.appointmentsRepository,
+              alternativeSlotRepository: widget.alternativeSlotRepository,
+              platformOverride: widget.platformOverride,
+              onRebookAppointment: () => _selectDestination(1),
+              onOpenPetDiary:
+                  widget.selectedPet == null ? null : widget.onOpenCare,
+            ),
+      pets: OwnerPetsPage(
+        repository: widget.petsRepository,
+        platformOverride: widget.platformOverride,
+        selectedPetId: widget.petsV50Flags.pets ? widget.selectedPet?.id : null,
+        onOpenPetProfile:
+            widget.petsV50Flags.profile ? widget.onOpenPetProfile : null,
+        onPetSelected: (pet) {
+          widget.onPetSelected(pet);
+          _selectDestination(0);
+        },
+        onOpenPetCare: (pet) {
+          widget.onPetSelected(pet);
+          widget.onOpenCare();
+        },
       ),
     );
   }

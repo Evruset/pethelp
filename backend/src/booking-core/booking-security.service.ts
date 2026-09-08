@@ -1,12 +1,15 @@
-import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger, Optional } from '@nestjs/common';
+import { createHash } from 'crypto';
 import type { PoolClient } from 'pg';
 import { JwtPayload, Role } from '../auth/auth.types';
 import { DomainErrors, DomainException } from '../common/domain-error';
 import { DatabaseService } from '../database/database.service';
 import { TraceContext } from '../observability/trace-context.context';
+import { mvpScope } from '../config/mvp-scope.config';
 import { canTransition } from './booking-state-machine';
 import { ClinicEmployeeAccessService } from './clinic-employee-access.service';
-import { ConfirmHoldResult, HoldRow, ReleaseHoldResult, RequestNotesResult, SlotRow } from './booking.types';
+import { ClinicPatientAssociationLifecycleService } from './clinic-patient-association-lifecycle.service';
+import { ConfirmHoldResult, HoldRow, ReleaseHoldResult, RequestCancellationResult, RequestNotesResult, SlotRow } from './booking.types';
 
 interface LockedHoldAndSlot {
   hold_id: string;
@@ -44,6 +47,7 @@ interface IdempotencyRow {
   status: 'PROCESSING' | 'COMPLETED';
   response_status: number | null;
   response_body: Record<string, unknown> | null;
+  request_fingerprint?: string | null;
 }
 
 @Injectable()
@@ -54,6 +58,7 @@ export class BookingSecurityService {
   constructor(
     private readonly database: DatabaseService,
     private readonly clinicAccess: ClinicEmployeeAccessService,
+    @Optional() private readonly patientAssociation?: ClinicPatientAssociationLifecycleService,
   ) {}
 
   async confirmManualHold(input: { holdId: string; employee: JwtPayload; idempotencyKey: string; correlationId: string; expectedVersion: number }): Promise<ConfirmHoldResult> {
@@ -116,18 +121,54 @@ export class BookingSecurityService {
             AND held_count > 0
             AND booked_count < capacity
         `, [slot.id]);
-        const appointment = await client.query<{ id: string }>(`
+        const appointment = await client.query<{ id: string; version: number }>(`
           INSERT INTO booking_schema.appointments (hold_id, owner_id, pet_id, clinic_location_id, slot_id)
           VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid)
-          RETURNING id
+          RETURNING id, version
         `, [hold.id, hold.owner_id, hold.pet_id, slot.clinic_location_id, slot.id]);
         const result: ConfirmHoldResult = { holdId: hold.id, appointmentId: appointment.rows[0].id, state: 'CONFIRMED', slotId: slot.id, correlationId: input.correlationId };
 
-        await client.query(`
+        const appointmentEvent = await client.query<{ id: string }>(`
           INSERT INTO booking_schema.appointment_events (appointment_id, hold_id, event_type, actor_type, actor_id, correlation_id, payload_json)
           VALUES ($1::uuid, $2::uuid, 'CONFIRMED', 'CLINIC_EMPLOYEE', $3::uuid, $4::uuid, $5::jsonb)
+          RETURNING id
         `, [result.appointmentId, hold.id, input.employee.sub, input.correlationId, JSON.stringify({ slotId: slot.id, clinicLocationId: slot.clinic_location_id })]);
         await this.writeOutbox(client, 'booking.confirmed.v1', input.correlationId, hold.id, updatedHold.rows[0].version, { ...result, employeeId: input.employee.sub, clinicLocationId: slot.clinic_location_id });
+        if (this.patientAssociation) {
+          const scope = await client.query<{ clinic_id: string; consent_id: string | null }>(`
+            SELECT location.clinic_id::text,
+                   consent.id::text AS consent_id
+            FROM clinic_schema.clinic_locations location
+            LEFT JOIN LATERAL (
+              SELECT candidate.id
+              FROM clinic_schema.clinic_patient_consents candidate
+              WHERE candidate.clinic_id = location.clinic_id
+                AND candidate.clinic_location_id = location.id
+                AND candidate.pet_id = $2::uuid
+                AND candidate.purpose = 'PATIENT_ADMIN_REGISTRY'
+                AND candidate.granted_at <= clock_timestamp()
+                AND (candidate.expires_at IS NULL OR candidate.expires_at > clock_timestamp())
+                AND candidate.revoked_at IS NULL
+              ORDER BY candidate.granted_at DESC, candidate.id DESC
+              LIMIT 1
+            ) consent ON true
+            WHERE location.id = $1::uuid
+          `, [slot.clinic_location_id, hold.pet_id]);
+          const producerScope = scope.rows[0];
+          if (producerScope?.consent_id) {
+            await this.patientAssociation.applyQualifyingAppointmentEvidenceInTransaction(client, {
+              sourceEventId: appointmentEvent.rows[0].id,
+              sourceAppointmentId: appointment.rows[0].id,
+              sourceAggregateVersion: appointment.rows[0].version,
+              tenantId: producerScope.clinic_id,
+              clinicId: producerScope.clinic_id,
+              locationId: slot.clinic_location_id,
+              petId: hold.pet_id,
+              consentId: producerScope.consent_id,
+              correlationId: input.correlationId,
+            });
+          }
+        }
         await this.writeAudit(client, 'CLINIC_EMPLOYEE', input.employee.sub, 'booking.confirmed', hold.id, input.correlationId, { appointmentId: result.appointmentId, clinicLocationId: slot.clinic_location_id });
         await this.completeIdempotency(client, scope, input.idempotencyKey, result, HttpStatus.OK);
         return result;
@@ -278,7 +319,7 @@ export class BookingSecurityService {
     }
   }
 
-  async releaseHold(input: { holdId: string; actor: JwtPayload; idempotencyKey: string; correlationId: string }): Promise<ReleaseHoldResult> {
+  async releaseHold(input: { holdId: string; actor: JwtPayload; idempotencyKey: string; correlationId: string; expectedVersion?: number; reasonCode?: string; normalizeOwnerNotFound?: boolean }): Promise<ReleaseHoldResult | RequestCancellationResult> {
     try {
       return await this.database.withTransaction(async (client) => {
         await this.setInteractiveTransactionLimits(client);
@@ -286,10 +327,93 @@ export class BookingSecurityService {
         if (!hold) throw DomainErrors.holdNotFound();
 
         const systemWorker = input.actor.roles.includes(Role.SYSTEM_WORKER);
-        if (!systemWorker && hold.owner_id !== input.actor.sub) throw DomainErrors.holdOwnerMismatch();
-        const scope = `booking.release-hold:${input.actor.sub}`;
-        const replay = await this.acquireIdempotency(client, scope, input.idempotencyKey);
+        if (!systemWorker && hold.owner_id !== input.actor.sub) {
+          if (input.normalizeOwnerNotFound) throw DomainErrors.holdNotFound();
+          throw DomainErrors.holdOwnerMismatch();
+        }
+        const scope = `booking.owner-cancel:${input.actor.sub}:${hold.id}`;
+        const fingerprint = createHash('sha256').update(JSON.stringify({ expectedVersion: input.expectedVersion ?? null, holdId: hold.id, reasonCode: input.reasonCode ?? null })).digest('hex');
+        const replay = await this.acquireIdempotency(client, scope, input.idempotencyKey, fingerprint);
         if (replay) return replay as unknown as ReleaseHoldResult;
+
+        if (input.expectedVersion !== undefined && hold.version !== input.expectedVersion) {
+          throw DomainErrors.bookingVersionStale();
+        }
+
+        const pilotConfirmedCancellation = mvpScope.pilot && hold.state === 'CONFIRMED';
+        const externallyCancelled = ['CONFIRMED', 'MIS_HELD', 'MIS_RESERVATION_PENDING', 'MIS_RECONCILIATION_PENDING'].includes(hold.state);
+        const locallyReleasable = ['MANUAL_CONFIRM_PENDING', 'ALTERNATIVE_PENDING'].includes(hold.state);
+        if (!externallyCancelled && !locallyReleasable) {
+          throw DomainErrors.invalidTransition();
+        }
+
+        // Legacy confirmed or externally-held bookings remain capacity-accounted
+        // until the clinic/external workflow confirms cancellation.
+        if (externallyCancelled && !pilotConfirmedCancellation) {
+          const updated = await client.query<{ version: number }>(`
+            UPDATE booking_schema.booking_holds
+            SET state = 'CANCELLATION_REQUESTED', state_changed_at = clock_timestamp(),
+                version = version + 1, updated_at = clock_timestamp()
+            WHERE id = $1::uuid
+            RETURNING version
+          `, [hold.id]);
+          const result: RequestCancellationResult = { holdId: hold.id, state: 'CANCELLATION_REQUESTED', slotId: hold.slot_id, correlationId: input.correlationId };
+          await this.writeOutbox(client, 'booking.cancellation.requested.v1', input.correlationId, hold.id, updated.rows[0].version, { ...result, reasonCode: input.reasonCode ?? null });
+          await this.writeAudit(client, 'OWNER', input.actor.sub, 'booking.cancellation_requested', hold.id, input.correlationId, { slotId: hold.slot_id, reasonCode: input.reasonCode ?? null });
+          await this.completeIdempotency(client, scope, input.idempotencyKey, result, HttpStatus.OK);
+          return result;
+        }
+
+        if (pilotConfirmedCancellation) {
+          if (!canTransition('CONFIRMED', 'CANCELLATION_REQUESTED') || !canTransition('CANCELLATION_REQUESTED', 'RELEASED')) {
+            throw DomainErrors.invalidTransition();
+          }
+          const appointment = await client.query<{ id: string; version: number }>(`
+            UPDATE booking_schema.appointments
+            SET status = 'CANCELLED', version = version + 1, updated_at = clock_timestamp()
+            WHERE hold_id = $1::uuid AND status NOT IN ('CANCELLED', 'CLINIC_CANCELLED')
+            RETURNING id, version
+          `, [hold.id]);
+          if (!appointment.rows[0]) throw DomainErrors.invalidTransition();
+
+          const released = await client.query<{ id: string }>(`
+            UPDATE clinic_schema.appointment_slots
+            SET booked_count = booked_count - 1,
+                status = CASE
+                  WHEN booked_count - 1 >= capacity THEN 'BOOKED'
+                  WHEN held_count > 0 THEN 'LOCKED_BY_HOLD'
+                  ELSE 'AVAILABLE'
+                END,
+                version = version + 1,
+                updated_at = clock_timestamp()
+            WHERE id = $1::uuid AND booked_count > 0
+            RETURNING id
+          `, [hold.slot_id]);
+          if (!released.rows[0]) throw DomainErrors.bookingUnavailable();
+
+          const updated = await client.query<{ version: number }>(`
+            UPDATE booking_schema.booking_holds
+            SET state = 'RELEASED', confirmation_sla_expires_at = NULL,
+                state_changed_at = clock_timestamp(), version = version + 1,
+                updated_at = clock_timestamp()
+            WHERE id = $1::uuid
+            RETURNING version
+          `, [hold.id]);
+          const result: ReleaseHoldResult = { holdId: hold.id, state: 'RELEASED', slotId: hold.slot_id, correlationId: input.correlationId };
+          await client.query(`
+            INSERT INTO booking_schema.appointment_events
+              (appointment_id, hold_id, event_type, actor_type, actor_id, correlation_id, payload_json)
+            VALUES ($1::uuid, $2::uuid, 'CANCELLED', 'OWNER', $3::uuid, $4::uuid, $5::jsonb)
+          `, [appointment.rows[0].id, hold.id, input.actor.sub, input.correlationId, JSON.stringify({ reasonCode: input.reasonCode ?? null })]);
+          await this.writeOutbox(client, 'booking.hold.released.v1', input.correlationId, hold.id, updated.rows[0].version, {
+            ...result, appointmentId: appointment.rows[0].id, reason: 'OWNER_CANCELLED', actorId: input.actor.sub,
+          });
+          await this.writeAudit(client, 'OWNER', input.actor.sub, 'booking.hold.released', hold.id, input.correlationId, {
+            appointmentId: appointment.rows[0].id, slotId: hold.slot_id, reason: 'OWNER_CANCELLED', reasonCode: input.reasonCode ?? null,
+          });
+          await this.completeIdempotency(client, scope, input.idempotencyKey, result, HttpStatus.OK);
+          return result;
+        }
 
         const slotIds = [...new Set([hold.slot_id, hold.alternative_slot_id].filter(Boolean) as string[])].sort();
         const slots = await client.query<{ id: string; held_count: number; booked_count: number; capacity: number }>(`
@@ -463,18 +587,19 @@ export class BookingSecurityService {
     await client.query("SET LOCAL statement_timeout = '250ms'");
   }
 
-  private async acquireIdempotency(client: PoolClient, scope: string, key: string): Promise<Record<string, unknown> | undefined> {
+  private async acquireIdempotency(client: PoolClient, scope: string, key: string, requestFingerprint?: string): Promise<Record<string, unknown> | undefined> {
     const inserted = await client.query(`
-      INSERT INTO booking_schema.idempotency_records (scope, idempotency_key, status)
-      VALUES ($1, $2::uuid, 'PROCESSING') ON CONFLICT (scope, idempotency_key) DO NOTHING
+      INSERT INTO booking_schema.idempotency_records (scope, idempotency_key, status, request_fingerprint)
+      VALUES ($1, $2::uuid, 'PROCESSING', $3) ON CONFLICT (scope, idempotency_key) DO NOTHING
       RETURNING id
-    `, [scope, key]);
+    `, [scope, key, requestFingerprint ?? null]);
     if (inserted.rows[0]) return undefined;
     const existing = await client.query<IdempotencyRow>(`
-      SELECT status, response_status, response_body FROM booking_schema.idempotency_records
+      SELECT status, response_status, response_body, request_fingerprint FROM booking_schema.idempotency_records
       WHERE scope = $1 AND idempotency_key = $2::uuid FOR UPDATE
     `, [scope, key]);
     if (!existing.rows[0]) throw DomainErrors.bookingUnavailable();
+    if (requestFingerprint && existing.rows[0].request_fingerprint && existing.rows[0].request_fingerprint !== requestFingerprint) throw DomainErrors.idempotencyPayloadConflict();
     if (existing.rows[0].status !== 'COMPLETED' || !existing.rows[0].response_body) throw DomainErrors.idempotencyInProgress();
     if ((existing.rows[0].response_status ?? 200) >= 400) {
       const body = existing.rows[0].response_body as { code?: string; message?: string };

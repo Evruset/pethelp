@@ -56,9 +56,9 @@ describe('LiveKit telemedicine webhooks', () => {
       .find((line) => line.message === 'LiveKit room finished and session completed');
     expect(completionLog).toMatchObject({
       correlationId: fixture.correlationId,
-      telemedSessionId: fixture.sessionId,
-      roomName: fixture.roomName,
     });
+    expect(completionLog).not.toHaveProperty('telemedSessionId');
+    expect(completionLog).not.toHaveProperty('roomName');
     consoleSpy.mockRestore();
   });
 

@@ -1,9 +1,11 @@
 import { randomUUID } from 'node:crypto';
+import { resetBookingPersistence } from './helpers/booking-test-reset';
 import { ClinicSlaMonitorWorker } from '../src/booking-core/clinic-sla-monitor.worker';
 import { DatabaseService } from '../src/database/database.service';
 import { ContextLoggerService } from '../src/observability/context-logger.service';
 import { ObservabilityMetricsService } from '../src/observability/observability.metrics';
 import { TraceContext } from '../src/observability/trace-context.context';
+import { mvpScope } from '../src/config/mvp-scope.config';
 
 jest.setTimeout(30_000);
 
@@ -27,6 +29,18 @@ describe('ClinicSlaMonitorWorker', () => {
     try {
       await worker.monitorManualConfirmationSla();
 
+      if (mvpScope.pilot) {
+        const untouched = await database.query<{ state: string; held_count: number; effects: string }>(`
+          SELECT h.state, s.held_count,
+            (SELECT count(*)::text FROM booking_schema.outbox_events WHERE aggregate_id=h.id) effects
+          FROM booking_schema.booking_holds h JOIN clinic_schema.appointment_slots s ON s.id=h.slot_id
+          WHERE h.id=$1::uuid
+        `, [fixture.holdId]);
+        expect(untouched.rows[0]).toEqual({ state: 'MANUAL_CONFIRM_PENDING', held_count: 1, effects: '0' });
+        expect(alertSpy).not.toHaveBeenCalled();
+        return;
+      }
+
       const result = await database.query<{ state: string; held_count: number; status: string; breached_events: string }>(`
         SELECT
           (SELECT state FROM booking_schema.booking_holds WHERE id = $1::uuid) AS state,
@@ -40,6 +54,60 @@ describe('ClinicSlaMonitorWorker', () => {
         held_count: 0,
         status: 'AVAILABLE',
         breached_events: '1',
+      });
+
+      const evidence = await database.query<{
+        hold_version: number;
+        aggregate_id: string;
+        aggregate_version: number;
+        payload_json: {
+          holdId: string;
+          slotId: string;
+          sla: string;
+        };
+        deduplication_key: string;
+        audit_action: string;
+        audit_aggregate_id: string;
+        audit_payload_json: {
+          slotId: string;
+          confirmationSlaBreached: boolean;
+        };
+      }>(`
+        SELECT
+          h.version AS hold_version,
+          e.aggregate_id::text AS aggregate_id,
+          e.aggregate_version,
+          e.payload_json,
+          e.deduplication_key,
+          a.action AS audit_action,
+          a.aggregate_id::text AS audit_aggregate_id,
+          a.payload_json AS audit_payload_json
+        FROM booking_schema.booking_holds h
+        JOIN booking_schema.outbox_events e
+          ON e.aggregate_id = h.id
+         AND e.event_type = 'clinic.sla.breached.v1'
+        JOIN audit_schema.audit_log a
+          ON a.aggregate_id = h.id
+         AND a.action = 'CLINIC_MANUAL_CONFIRMATION_SLA_BREACHED'
+        WHERE h.id = $1::uuid
+      `, [fixture.holdId]);
+
+      expect(evidence.rows[0]).toMatchObject({
+        aggregate_id: fixture.holdId,
+        aggregate_version: evidence.rows[0].hold_version,
+        payload_json: {
+          holdId: fixture.holdId,
+          slotId: fixture.slotId,
+          sla: 'MANUAL_CONFIRMATION',
+        },
+        deduplication_key:
+          `clinic.sla.breached.v1:${fixture.holdId}:${evidence.rows[0].hold_version}`,
+        audit_action: 'CLINIC_MANUAL_CONFIRMATION_SLA_BREACHED',
+        audit_aggregate_id: fixture.holdId,
+        audit_payload_json: {
+          slotId: fixture.slotId,
+          confirmationSlaBreached: true,
+        },
       });
       expect(alertSpy).toHaveBeenCalledWith(
         'CLINIC_SLA_BREACHED',
@@ -61,7 +129,7 @@ async function createSlaFixture(database: DatabaseService): Promise<{ holdId: st
 
   await database.query('TRUNCATE clinic_schema.clinics CASCADE');
   await database.query('TRUNCATE pet_schema.pets, identity_schema.users CASCADE');
-  await database.query('TRUNCATE booking_schema.outbox_events, booking_schema.idempotency_records, audit_schema.audit_log');
+  await resetBookingPersistence(database);
 
   await database.query('INSERT INTO identity_schema.users (id) VALUES ($1::uuid)', [ownerId]);
   await database.query(`INSERT INTO pet_schema.pets (id, owner_id, name, species) VALUES ($1::uuid, $2::uuid, 'SLA pet', 'DOG')`, [petId, ownerId]);

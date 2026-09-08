@@ -1,6 +1,6 @@
-import { Body, Controller, Delete, Get, Headers, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Res, StreamableFile, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Headers, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Query, Res, StreamableFile, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiCreatedResponse, ApiHeader, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { CurrentUser } from './current-user.decorator';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -9,9 +9,10 @@ import { Roles } from './roles.decorator';
 import { RolesGuard } from './roles.guard';
 import { CreateOwnerPetDto, UpdateOwnerPetDto } from './dto/owner-pet.dto';
 import { OwnerPetService, PET_DOCUMENT_MAX_BYTES, type UploadedPetFile } from './owner-pet.service';
+import { SWAGGER_BEARER_AUTH } from '../openapi/openapi';
 
 @ApiTags('Owner pets')
-@ApiBearerAuth('bearer')
+@ApiBearerAuth(SWAGGER_BEARER_AUTH)
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.OWNER)
 @Controller('v1/owner/pets')
@@ -21,8 +22,29 @@ export class OwnerPetController {
   @Get()
   @ApiOperation({ summary: 'Список питомцев текущего владельца' })
   @ApiOkResponse({ description: 'Питомцы доступны только владельцу из JWT.' })
-  async list(@CurrentUser() owner: JwtPayload) {
-    return this.pets.list(owner);
+  async list(@CurrentUser() owner: JwtPayload, @Query('includeArchived') includeArchived?: string) {
+    return this.pets.list(owner, includeArchived === 'true');
+  }
+
+  @Get(':petId/diary')
+  @ApiOperation({ summary: 'Единая owner-scoped хронология питомца' })
+  async diary(
+    @CurrentUser() owner: JwtPayload,
+    @Param('petId', new ParseUUIDPipe()) petId: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    return this.pets.diary(owner, petId, this.boundedInteger(limit, 20, 1, 100), this.boundedInteger(offset, 0, 0, 10000));
+  }
+
+  @Get(':petId/documents/:documentId')
+  @ApiOperation({ summary: 'Безопасные метаданные документа питомца' })
+  async documentMetadata(
+    @CurrentUser() owner: JwtPayload,
+    @Param('petId', new ParseUUIDPipe()) petId: string,
+    @Param('documentId', new ParseUUIDPipe()) documentId: string,
+  ) {
+    return this.pets.documentMetadata(owner, petId, documentId);
   }
 
   @Get(':petId/care-summary')
@@ -137,10 +159,36 @@ export class OwnerPetController {
     return this.pets.update(owner, petId, dto, this.parseIfMatch(ifMatch));
   }
 
+  @Post(':petId/archive')
+  @ApiOperation({ summary: 'Архивировать питомца без отмены записей и телемедицины' })
+  async archive(
+    @CurrentUser() owner: JwtPayload,
+    @Param('petId', new ParseUUIDPipe()) petId: string,
+    @Headers('if-match') ifMatch?: string,
+  ) {
+    return this.pets.setArchived(owner, petId, true, this.parseIfMatch(ifMatch));
+  }
+
+  @Post(':petId/restore')
+  @ApiOperation({ summary: 'Восстановить питомца из архива' })
+  async restore(
+    @CurrentUser() owner: JwtPayload,
+    @Param('petId', new ParseUUIDPipe()) petId: string,
+    @Headers('if-match') ifMatch?: string,
+  ) {
+    return this.pets.setArchived(owner, petId, false, this.parseIfMatch(ifMatch));
+  }
+
   private parseIfMatch(value?: string): number | undefined {
     if (!value) return undefined;
     const normalized = value.trim().replace(/^W\//, '').replace(/^"|"$/g, '');
     if (!/^\d+$/.test(normalized)) return undefined;
     return Number.parseInt(normalized, 10);
+  }
+
+  private boundedInteger(value: string | undefined, fallback: number, minimum: number, maximum: number): number {
+    if (value === undefined) return fallback;
+    if (!/^\d+$/.test(value)) return fallback;
+    return Math.min(maximum, Math.max(minimum, Number.parseInt(value, 10)));
   }
 }

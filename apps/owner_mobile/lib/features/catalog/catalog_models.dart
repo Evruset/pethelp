@@ -8,6 +8,10 @@ class CatalogClinic {
     required this.distanceKm,
     required this.telemedAvailable,
     required this.emergencyAvailable,
+    this.doctorCount = 0,
+    this.priceFrom,
+    this.availability = const CatalogAvailabilitySummary.unavailable(),
+    this.fitReasons = const [],
   });
 
   final String id;
@@ -18,6 +22,38 @@ class CatalogClinic {
   final double? distanceKm;
   final bool telemedAvailable;
   final bool emergencyAvailable;
+  final int doctorCount;
+  final String? priceFrom;
+  final CatalogAvailabilitySummary availability;
+  final List<String> fitReasons;
+}
+
+enum CatalogAvailabilityFreshness { current, aging, stale, unavailable }
+
+enum CatalogConfirmationMode {
+  instant,
+  clinicConfirmation,
+  alternativePossible,
+}
+
+class CatalogAvailabilitySummary {
+  const CatalogAvailabilitySummary({
+    required this.sourceUpdatedAt,
+    required this.serverNow,
+    required this.freshness,
+    required this.confirmationMode,
+  });
+
+  const CatalogAvailabilitySummary.unavailable()
+      : sourceUpdatedAt = null,
+        serverNow = null,
+        freshness = CatalogAvailabilityFreshness.unavailable,
+        confirmationMode = CatalogConfirmationMode.clinicConfirmation;
+
+  final DateTime? sourceUpdatedAt;
+  final DateTime? serverNow;
+  final CatalogAvailabilityFreshness freshness;
+  final CatalogConfirmationMode confirmationMode;
 }
 
 class CatalogClinicFilters {
@@ -94,6 +130,10 @@ class CatalogClinicDetail extends CatalogClinic {
     required super.distanceKm,
     required super.telemedAvailable,
     required super.emergencyAvailable,
+    super.doctorCount,
+    super.priceFrom,
+    super.availability,
+    super.fitReasons,
     required this.locations,
   });
 
@@ -164,8 +204,34 @@ class CatalogBookingSelection {
   const CatalogBookingSelection({
     required this.location,
     required this.service,
+    this.doctorId,
   });
 
   final CatalogLocation location;
   final CatalogService service;
+  final String? doctorId;
+}
+
+class CatalogDoctor {
+  const CatalogDoctor({
+    required this.id,
+    required this.displayName,
+    required this.title,
+    required this.clinicId,
+    required this.clinicName,
+    required this.locationId,
+    required this.locationAddress,
+    required this.nextAvailableAt,
+    required this.availability,
+  });
+
+  final String id;
+  final String displayName;
+  final String title;
+  final String clinicId;
+  final String clinicName;
+  final String locationId;
+  final String locationAddress;
+  final DateTime? nextAvailableAt;
+  final CatalogAvailabilitySummary availability;
 }

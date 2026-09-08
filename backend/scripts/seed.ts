@@ -49,11 +49,14 @@ async function main(): Promise<void> {
 }
 
 async function upsertClinic(client: Client): Promise<{ id: string }> {
-  const existing = await client.query<{ id: string }>(
-    'SELECT id FROM clinic_schema.clinics WHERE public_name = $1 ORDER BY created_at ASC, id ASC LIMIT 1 FOR UPDATE',
+  const existing = await client.query<{ id: string; legal_name: string }>(
+    'SELECT id, legal_name FROM clinic_schema.clinics WHERE public_name = $1 ORDER BY created_at ASC, id ASC LIMIT 1 FOR UPDATE',
     [clinicName],
   );
   if (existing.rows[0]) {
+    if (existing.rows[0].legal_name !== clinicLegalName) {
+      throw new Error('LOCAL_BASE_SEED ownership collision: VetHelp Pilot public name is foreign.');
+    }
     await client.query(`
       UPDATE clinic_schema.clinics
       SET legal_name = $2,
@@ -204,6 +207,15 @@ async function upsertEmergencyCapabilityFixture(
   locationId: string,
 ): Promise<{ profileId: string; capabilities: string[] }> {
   await client.query("SELECT set_config('vethelp.emergency_review_actor', 'PLATFORM_ADMIN', true)");
+  const existing = await client.query<{ capability_version: string | null }>(`
+    SELECT capability_version
+    FROM clinic_schema.emergency_capability_profiles
+    WHERE clinic_location_id = $1::uuid
+    FOR UPDATE
+  `, [locationId]);
+  if (existing.rows[0] && existing.rows[0].capability_version !== 'local-dev-v1') {
+    throw new Error('LOCAL_BASE_SEED ownership collision: emergency profile is foreign.');
+  }
   const profile = await client.query<{ id: string }>(`
     INSERT INTO clinic_schema.emergency_capability_profiles (
       clinic_location_id,

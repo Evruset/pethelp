@@ -1,14 +1,14 @@
 # ЕДИНЫЙ ГЕНЕРАЛЬНЫЙ ПЛАН ДОРАБОТКИ VETHELP
 ## От текущей реализации и Prototype V50 до Presale & First Installation MVP
 
-**Документ:** Integrated MVP Delivery Master Plan  
-**Версия:** 1.0  
-**Дата:** 20 июля 2026 года  
-**Горизонт:** 18 недель при полной минимальной команде  
-**Целевой результат:** крепкий B2B2C MVP для пресейла, демонстраций, подключения первых 1–5 клиник и контролируемого пилота  
-**Базовый UX-эталон:** Prototype V50  
-**Архитектурный подход:** Modular Monolith, PostgreSQL Source of Truth, Integration Adapters, Transactional Outbox  
-**Формат эксплуатации:** облачный multi-tenant SaaS  
+**Документ:** Integrated MVP Delivery Master Plan
+**Версия:** 1.0
+**Дата:** 20 июля 2026 года
+**Горизонт:** 18 недель при полной минимальной команде
+**Целевой результат:** крепкий B2B2C MVP для пресейла, демонстраций, подключения первых 1–5 клиник и контролируемого пилота
+**Базовый UX-эталон:** Prototype V50
+**Архитектурный подход:** Modular Monolith, PostgreSQL Source of Truth, Integration Adapters, Transactional Outbox
+**Формат эксплуатации:** облачный multi-tenant SaaS
 **Статус документа:** обязательная программа работ и ограничений
 
 ---

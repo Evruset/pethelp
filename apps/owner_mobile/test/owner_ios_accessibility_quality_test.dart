@@ -347,7 +347,7 @@ BookingSlot _slot(String id, DateTime startsAt) {
   );
 }
 
-class _FakeCatalogRepository implements PublicCatalogRepository {
+class _FakeCatalogRepository extends PublicCatalogRepository {
   @override
   Future<List<CatalogClinic>> listClinics({
     String? query,

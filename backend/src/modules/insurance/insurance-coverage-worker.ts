@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { DatabaseService } from '../../database/database.service';
 import { ContextLoggerService } from '../../observability/context-logger.service';
 import { TraceContext } from '../../observability/trace-context.context';
+import { mvpScope } from '../../config/mvp-scope.config';
 import { InsuranceService } from './insurance.service';
 
 interface CoverageOutboxEvent {
@@ -26,7 +27,7 @@ export class InsuranceCoverageWorker {
 
   @Cron(CronExpression.EVERY_5_SECONDS)
   async relayCoverageRequests(): Promise<void> {
-    if ((process.env.WORKERS_ENABLED ?? 'true').toLowerCase() !== 'true' || this.running) return;
+    if (!mvpScope.capabilities.insurance || (process.env.WORKERS_ENABLED ?? 'true').toLowerCase() !== 'true' || this.running) return;
     this.running = true;
     try {
       const events = await this.claimBatch(10);

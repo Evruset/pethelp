@@ -1,0 +1,571 @@
+{
+  "schemaVersion": 1,
+  "slice": "V50-OWNER-05",
+  "status": "CERTIFIED_VISUAL_PASS",
+  "runtimeCommit": "cc6ba06",
+  "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+  "artifactPackageId": "v50-owner-05-cc6ba06",
+  "artifactPackageSha256": "d7e36a6b7071b8e607b8beeabd6941ec9185128e50911b80c10c5cef9300339a",
+  "viewports": [
+    "375x812",
+    "412x915",
+    "768x1024",
+    "1440x900"
+  ],
+  "states": [
+    "REVIEW_READY",
+    "CREATE_HOLD_SUBMITTING",
+    "CREATE_HOLD_SOFT_RETRY",
+    "CREATE_HOLD_FINAL_CONFLICT",
+    "BOOKING_LOCAL_HOLD",
+    "BOOKING_MANUAL_PENDING",
+    "BOOKING_MIS_PENDING",
+    "BOOKING_CONFIRMED",
+    "BOOKING_FAILED",
+    "BOOKING_EXPIRED",
+    "BOOKING_RELEASED",
+    "BOOKING_OFFLINE_STALE"
+  ],
+  "v50Ids": [
+    "OWN-006",
+    "OWN-008"
+  ],
+  "prototypeAnchors": [
+    "#booking-review",
+    "#appointment-detail"
+  ],
+  "representativeGate": "8/8 PASS",
+  "runtimeArtifacts": [
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/booking/review",
+      "viewport": "375x812",
+      "state": "REVIEW_READY",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/375x812/REVIEW_READY.bmp",
+      "sha256": "e35cd4a9ff811c7229545b3596c6a39b43b4eab0f0d35d16184a28e22169ec28"
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/booking/review",
+      "viewport": "375x812",
+      "state": "CREATE_HOLD_SUBMITTING",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/375x812/CREATE_HOLD_SUBMITTING.bmp",
+      "sha256": "a9721d93274c67cdf9cb9c86843f91520e5bcb2c2eba488f22ebc189943ad403"
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/booking/review",
+      "viewport": "375x812",
+      "state": "CREATE_HOLD_SOFT_RETRY",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/375x812/CREATE_HOLD_SOFT_RETRY.bmp",
+      "sha256": "8640beb424519bb7a8e5c615b747b868522dec574841202586c6df8e5263ba12"
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeState": "slot-taken",
+      "runtimeRoute": "/owner/booking/review",
+      "viewport": "375x812",
+      "state": "CREATE_HOLD_FINAL_CONFLICT",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/375x812/CREATE_HOLD_FINAL_CONFLICT.bmp",
+      "sha256": "d47815ea9ee60fbc30669a64908cfd3e9e07ab48abd55edd7bc56c01a52d42fd"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "375x812",
+      "state": "BOOKING_LOCAL_HOLD",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/375x812/BOOKING_LOCAL_HOLD.bmp",
+      "sha256": "cb6a8cfd585ced0a5f659c378fcbf9e726a2d86701296988bddca5dc221f92ff"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "375x812",
+      "state": "BOOKING_MANUAL_PENDING",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/375x812/BOOKING_MANUAL_PENDING.bmp",
+      "sha256": "cb6a8cfd585ced0a5f659c378fcbf9e726a2d86701296988bddca5dc221f92ff"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "375x812",
+      "state": "BOOKING_MIS_PENDING",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/375x812/BOOKING_MIS_PENDING.bmp",
+      "sha256": "02395875f47eccbcc43d4734ba98c5caca85efeb8dfc6932170fcd9c45f92aa9"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": "confirmed",
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "375x812",
+      "state": "BOOKING_CONFIRMED",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/375x812/BOOKING_CONFIRMED.bmp",
+      "sha256": "f57f7394a76f4e038e375eb0ae2600310750fc476e921f0f8bdc556ef9078123"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "375x812",
+      "state": "BOOKING_FAILED",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/375x812/BOOKING_FAILED.bmp",
+      "sha256": "aaf79a08472ae2cbfcd123896752e99285ffdc7a38cf9947bf5ea7fb8a0a09b6"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "375x812",
+      "state": "BOOKING_EXPIRED",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/375x812/BOOKING_EXPIRED.bmp",
+      "sha256": "91c4fe30cb872417498e018f9ae0b3fc00645469162953be6224ac5b6f47329d"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "375x812",
+      "state": "BOOKING_RELEASED",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/375x812/BOOKING_RELEASED.bmp",
+      "sha256": "ce0d9b2bf9fdc1c76802d7ec055238aa2d07801943653478f93cdfa050c7c777"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "375x812",
+      "state": "BOOKING_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/375x812/BOOKING_OFFLINE_STALE.bmp",
+      "sha256": "33c76bb13faf71efc89ceac32e94c6095fc96494979f61b4d21bb9edf552c06b"
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/booking/review",
+      "viewport": "412x915",
+      "state": "REVIEW_READY",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/412x915/REVIEW_READY.bmp",
+      "sha256": "e48d6202278f2876c167d72fd9e9f6a8d3d961deca4f84fe2c094d878bee55e8"
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/booking/review",
+      "viewport": "412x915",
+      "state": "CREATE_HOLD_SUBMITTING",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/412x915/CREATE_HOLD_SUBMITTING.bmp",
+      "sha256": "6cea998b9cf9d64f52eab6c8d7d9d746da8f9a81ea627af7d90afba062993cd0"
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/booking/review",
+      "viewport": "412x915",
+      "state": "CREATE_HOLD_SOFT_RETRY",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/412x915/CREATE_HOLD_SOFT_RETRY.bmp",
+      "sha256": "424fb52c9a8150f2a8b5277db93ece3f72223a6f5278dd24d6e48f3bd7f7a393"
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeState": "slot-taken",
+      "runtimeRoute": "/owner/booking/review",
+      "viewport": "412x915",
+      "state": "CREATE_HOLD_FINAL_CONFLICT",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/412x915/CREATE_HOLD_FINAL_CONFLICT.bmp",
+      "sha256": "c6521fd374495bd2e97caacc93ca6fd2de2f1f2d75e5fc79ae3869464a5d5a87"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "412x915",
+      "state": "BOOKING_LOCAL_HOLD",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/412x915/BOOKING_LOCAL_HOLD.bmp",
+      "sha256": "2e7e2507aa1f96e378148de2a7ad014637a186523a70b154d0325d58fd9da017"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "412x915",
+      "state": "BOOKING_MANUAL_PENDING",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/412x915/BOOKING_MANUAL_PENDING.bmp",
+      "sha256": "2e7e2507aa1f96e378148de2a7ad014637a186523a70b154d0325d58fd9da017"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "412x915",
+      "state": "BOOKING_MIS_PENDING",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/412x915/BOOKING_MIS_PENDING.bmp",
+      "sha256": "a6779cb2d57b2abc4ed2f4ccf9a7a355b3b6ce9b4480deb7ef3172eeebb39006"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": "confirmed",
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "412x915",
+      "state": "BOOKING_CONFIRMED",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/412x915/BOOKING_CONFIRMED.bmp",
+      "sha256": "7dafabe2452681308312a357afa07e40dd26cfb446d51d27faf7ee4f969bcd0e"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "412x915",
+      "state": "BOOKING_FAILED",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/412x915/BOOKING_FAILED.bmp",
+      "sha256": "0f9729987c6d6388b9582b630078e117849417a215ce786ee1fed526ffa2c53a"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "412x915",
+      "state": "BOOKING_EXPIRED",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/412x915/BOOKING_EXPIRED.bmp",
+      "sha256": "08f4cf77c33d00e4cd466d5627da508c6e688d5b5cbe76784a17188b99f71422"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "412x915",
+      "state": "BOOKING_RELEASED",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/412x915/BOOKING_RELEASED.bmp",
+      "sha256": "b0a877ff6d2cf4443cd22513c50cac515a3ec3006fdf9e15c58c39544018049a"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "412x915",
+      "state": "BOOKING_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/412x915/BOOKING_OFFLINE_STALE.bmp",
+      "sha256": "3dccc50411d80f650c77687d91d9c9eb12f09ef5c902cc031e66af3c5a855e4d"
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/booking/review",
+      "viewport": "768x1024",
+      "state": "REVIEW_READY",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/768x1024/REVIEW_READY.bmp",
+      "sha256": "2380ab023142168e55a2a39515b6e444694b08e147e94879f2f27efd0426b83c"
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/booking/review",
+      "viewport": "768x1024",
+      "state": "CREATE_HOLD_SUBMITTING",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/768x1024/CREATE_HOLD_SUBMITTING.bmp",
+      "sha256": "7200e916179d277d6dcc6eb7a7f1345cef9d9fbeda8b0e48676251101c823976"
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/booking/review",
+      "viewport": "768x1024",
+      "state": "CREATE_HOLD_SOFT_RETRY",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/768x1024/CREATE_HOLD_SOFT_RETRY.bmp",
+      "sha256": "edbcef3fc85181d3683fe0246bc0b3b72487d9ac2a2f949a046a25c18c380722"
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeState": "slot-taken",
+      "runtimeRoute": "/owner/booking/review",
+      "viewport": "768x1024",
+      "state": "CREATE_HOLD_FINAL_CONFLICT",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/768x1024/CREATE_HOLD_FINAL_CONFLICT.bmp",
+      "sha256": "ae6abf80bf33563941d06101c07398cd5752622f5fa5f97104be4214b9c16010"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "768x1024",
+      "state": "BOOKING_LOCAL_HOLD",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/768x1024/BOOKING_LOCAL_HOLD.bmp",
+      "sha256": "95781ddeed6cabf3e7e348868c5887fa6d4e48cf2562d2145c6553fdaba97188"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "768x1024",
+      "state": "BOOKING_MANUAL_PENDING",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/768x1024/BOOKING_MANUAL_PENDING.bmp",
+      "sha256": "95781ddeed6cabf3e7e348868c5887fa6d4e48cf2562d2145c6553fdaba97188"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "768x1024",
+      "state": "BOOKING_MIS_PENDING",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/768x1024/BOOKING_MIS_PENDING.bmp",
+      "sha256": "fa2b7918965a23bb5578a914cd073671f7474842b99bca3d834965f33c4f42d0"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": "confirmed",
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "768x1024",
+      "state": "BOOKING_CONFIRMED",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/768x1024/BOOKING_CONFIRMED.bmp",
+      "sha256": "d31e08d4a7d9da39a414660c8927378ba8abd0ff22ab0bf0a0352f7cd8341232"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "768x1024",
+      "state": "BOOKING_FAILED",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/768x1024/BOOKING_FAILED.bmp",
+      "sha256": "0638dc551f896440c1027a46652c4a5b4969a2110a862d41ba64d35d7969e8c8"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "768x1024",
+      "state": "BOOKING_EXPIRED",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/768x1024/BOOKING_EXPIRED.bmp",
+      "sha256": "d4401f35bc448f34c005b116fdf417d6b588e90aed38106bb211d8d5e82501fb"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "768x1024",
+      "state": "BOOKING_RELEASED",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/768x1024/BOOKING_RELEASED.bmp",
+      "sha256": "5a4ee2e4a95a2764615f1c71f8ff06732dea5258730aa63fb96d52068b492710"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "768x1024",
+      "state": "BOOKING_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/768x1024/BOOKING_OFFLINE_STALE.bmp",
+      "sha256": "b5423d532c66096e06b9aeacf1cfd27562361ae420d74812d793700e7cc7105f"
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/booking/review",
+      "viewport": "1440x900",
+      "state": "REVIEW_READY",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/1440x900/REVIEW_READY.bmp",
+      "sha256": "2ac6527af1646e6b8f1e5b715d14759cf4c1614479bc0eab0388a7e5f9ee8e36"
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/booking/review",
+      "viewport": "1440x900",
+      "state": "CREATE_HOLD_SUBMITTING",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/1440x900/CREATE_HOLD_SUBMITTING.bmp",
+      "sha256": "75265d5d04a84d0e0a3976380317ed2974a56ee1a58d133e7c016defc95e9c8f"
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/booking/review",
+      "viewport": "1440x900",
+      "state": "CREATE_HOLD_SOFT_RETRY",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/1440x900/CREATE_HOLD_SOFT_RETRY.bmp",
+      "sha256": "3932e88e391eeb2298651fd8e875130ba8e150802a3acf5f91c945df98e7ef3c"
+    },
+    {
+      "v50Id": "OWN-006",
+      "prototypeAnchor": "#booking-review",
+      "prototypeState": "slot-taken",
+      "runtimeRoute": "/owner/booking/review",
+      "viewport": "1440x900",
+      "state": "CREATE_HOLD_FINAL_CONFLICT",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/1440x900/CREATE_HOLD_FINAL_CONFLICT.bmp",
+      "sha256": "6d176b1a1bb4a21ad5d2d057b2b8bc6e2ae98d94c71d7d73fc7c930097da9ba2"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "1440x900",
+      "state": "BOOKING_LOCAL_HOLD",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/1440x900/BOOKING_LOCAL_HOLD.bmp",
+      "sha256": "d1db9a8749ba9ec5d8d583b0ca41307603832f097f4d4a220869cb3aa32b4dff"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "1440x900",
+      "state": "BOOKING_MANUAL_PENDING",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/1440x900/BOOKING_MANUAL_PENDING.bmp",
+      "sha256": "d1db9a8749ba9ec5d8d583b0ca41307603832f097f4d4a220869cb3aa32b4dff"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "1440x900",
+      "state": "BOOKING_MIS_PENDING",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/1440x900/BOOKING_MIS_PENDING.bmp",
+      "sha256": "2068beab9b401acb96a93c9386b6656cb9a2e4cb86feb39b230e74af63ea5ad4"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": "confirmed",
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "1440x900",
+      "state": "BOOKING_CONFIRMED",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/1440x900/BOOKING_CONFIRMED.bmp",
+      "sha256": "22e072b8eb51e557ea028ef891114c7935ff7e7573f47d6f26b7cdbe8a115b95"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "1440x900",
+      "state": "BOOKING_FAILED",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/1440x900/BOOKING_FAILED.bmp",
+      "sha256": "b6bc569d7609d933d5b4855ca33a52645a8f4c6c75db0603731e8a0f77652978"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "1440x900",
+      "state": "BOOKING_EXPIRED",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/1440x900/BOOKING_EXPIRED.bmp",
+      "sha256": "2c29ea4a536153eddaacd2bc8d6f08dd60664adf72bf18994abf52ac88168105"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "1440x900",
+      "state": "BOOKING_RELEASED",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/1440x900/BOOKING_RELEASED.bmp",
+      "sha256": "11d81c7c84ad29d1cf72424b8ef92b3b1bc83dff79fb58113b83c9910c939748"
+    },
+    {
+      "v50Id": "OWN-008",
+      "prototypeAnchor": "#appointment-detail",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId",
+      "viewport": "1440x900",
+      "state": "BOOKING_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-05/runtime/1440x900/BOOKING_OFFLINE_STALE.bmp",
+      "sha256": "9d961513cfc3116577eb62730d1c7dfdb32bdf7e1b1237470b3f52a61beefa00"
+    }
+  ],
+  "prototypeArtifacts": [
+    {
+      "prototypeAnchor": "#booking-review",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-05/prototype/booking-review/375x812.png",
+      "sha256": "8f3619ab3739963f9050d61866dea8eba90563db667e3955d409913d1049ba00"
+    },
+    {
+      "prototypeAnchor": "#appointment-detail",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-05/prototype/appointment-detail/375x812.png",
+      "sha256": "1c01d4178fcdf6b94132503d1b833b6c577a9287794a8aa652f2e1ebfb10414e"
+    },
+    {
+      "prototypeAnchor": "#booking-review",
+      "viewport": "412x915",
+      "artifactLogicalPath": "V50-OWNER-05/prototype/booking-review/412x915.png",
+      "sha256": "7b7cf6b664a63e3b6b60de28cc235ec95937f692a7ca0aeaf51284e9e0978bf6"
+    },
+    {
+      "prototypeAnchor": "#appointment-detail",
+      "viewport": "412x915",
+      "artifactLogicalPath": "V50-OWNER-05/prototype/appointment-detail/412x915.png",
+      "sha256": "bc1776261dada5d8c101904e098d5dfe6ba6d56e4a1c38ad55d382e8b9612579"
+    },
+    {
+      "prototypeAnchor": "#booking-review",
+      "viewport": "768x1024",
+      "artifactLogicalPath": "V50-OWNER-05/prototype/booking-review/768x1024.png",
+      "sha256": "629bed027a2e5c99fc63c26f11966e8f5114d12e3e02e6743772300dc66c3a92"
+    },
+    {
+      "prototypeAnchor": "#appointment-detail",
+      "viewport": "768x1024",
+      "artifactLogicalPath": "V50-OWNER-05/prototype/appointment-detail/768x1024.png",
+      "sha256": "e8cd3349b1921e5cf153b99e08c2af8db940cd5f031919fd5b6b4f7a7227805a"
+    },
+    {
+      "prototypeAnchor": "#booking-review",
+      "viewport": "1440x900",
+      "artifactLogicalPath": "V50-OWNER-05/prototype/booking-review/1440x900.png",
+      "sha256": "1fbc2a8a1546016ac5c12f92644fcdadd9078a94649b8e566749fb63b37d80ae"
+    },
+    {
+      "prototypeAnchor": "#appointment-detail",
+      "viewport": "1440x900",
+      "artifactLogicalPath": "V50-OWNER-05/prototype/appointment-detail/1440x900.png",
+      "sha256": "1a1e7c4fe5b1bec50cd1b462130db819a825e21fcf6dc465b3a01b9aeec2cab3"
+    }
+  ],
+  "supplementalArtifacts": []
+}

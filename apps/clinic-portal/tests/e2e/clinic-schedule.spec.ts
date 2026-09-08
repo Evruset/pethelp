@@ -28,6 +28,7 @@ let scheduleReads = 0;
 let completionMode: CompletionMode = 'success';
 let completionRequests: CompletionRequest[] = [];
 let schedule = makeSchedule('CONFIRMED');
+let effectiveRoles: string[] = [];
 
 test.describe.configure({ mode: 'serial' });
 
@@ -135,6 +136,7 @@ async function addClinicSession(
   roles: string[],
 ) {
   if (!baseURL) throw new Error('baseURL is required');
+  effectiveRoles = roles;
   const token = await new SignJWT({
     roles,
     clinicIds: [clinicId],
@@ -159,6 +161,16 @@ function handleBackendRequest(request: IncomingMessage, response: ServerResponse
   const url = new URL(request.url ?? '/', `http://${request.headers.host ?? `127.0.0.1:${mockBackendPort}`}`);
   const schedulePath = `/v1/clinic/${clinicId}/locations/${locationId}/schedule/slots`;
   const completePath = `/v1/clinic/booking-holds/${holdId}/complete`;
+
+  if (request.method === 'GET' && url.pathname === '/v1/auth/session') {
+    sendJson(response, 200, {
+      subjectId: 'clinic-schedule-e2e',
+      roles: effectiveRoles,
+      effectiveCapabilities: ['schedule.read'],
+      clinicScopes: [{ clinicId, locationId }],
+    });
+    return;
+  }
 
   if (request.method === 'GET' && url.pathname === schedulePath) {
     scheduleReads += 1;

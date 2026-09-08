@@ -28,10 +28,19 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
       const events = await this.outbox.claimBatch(config.outboxBatchSize);
       for (const event of events) {
         try {
-          this.logger.log(JSON.stringify({ outbox: 'published', eventType: event.event_type, eventId: event.id, correlationId: event.correlation_id }));
-          await this.outbox.markPublished(event.id);
+          await this.publish(event);
+          await this.outbox.markPublished(event.id, event.lease_token);
         } catch (error) {
-          await this.outbox.releaseForRetry(event.id, error instanceof Error ? error.message : 'relay error');
+          const retry = await this.outbox.releaseForRetry(event.id, event.lease_token, 'outbox delivery failed');
+          if (retry?.terminal) {
+            this.logger.error(JSON.stringify({
+              outbox: 'terminal_failure',
+              eventType: event.event_type,
+              eventId: event.id,
+              correlationId: event.correlation_id,
+              attempts: retry.attempts,
+            }));
+          }
         }
       }
     } catch (error) {
@@ -39,5 +48,14 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
     } finally {
       this.running = false;
     }
+  }
+
+  private async publish(event: { event_type: string; id: string; correlation_id: string | null }): Promise<void> {
+    this.logger.log(JSON.stringify({
+      outbox: 'published',
+      eventType: event.event_type,
+      eventId: event.id,
+      correlationId: event.correlation_id,
+    }));
   }
 }

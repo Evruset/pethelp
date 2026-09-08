@@ -1,0 +1,545 @@
+{
+  "schemaVersion": 1,
+  "slice": "V50-OWNER-07",
+  "status": "VALIDATED",
+  "runtimeCommit": "670bc32",
+  "prototypeChecksum": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
+  "artifactPackageId": "v50-owner-07-670bc32",
+  "artifactPackageSha256": "a945970478939453d58d6014eb307e68d252f58fd7938545189f604f3414601a",
+  "viewports": [
+    "375x812",
+    "412x915",
+    "768x1024",
+    "1440x900"
+  ],
+  "states": [
+    "ALTERNATIVE_READY",
+    "ALTERNATIVE_PRICE_CHANGED",
+    "ALTERNATIVE_EXPIRING",
+    "ALTERNATIVE_EXPIRED",
+    "ALTERNATIVE_SUPERSEDED",
+    "ALTERNATIVE_SLOT_UNAVAILABLE",
+    "ALTERNATIVE_ACCEPT_SUBMITTING",
+    "ALTERNATIVE_ACCEPTED",
+    "ALTERNATIVE_DECLINE_CONFIRMATION",
+    "ALTERNATIVE_DECLINED",
+    "ALTERNATIVE_OFFLINE_STALE",
+    "ALTERNATIVE_NETWORK_AMBIGUOUS"
+  ],
+  "v50Ids": [
+    "OWN-020"
+  ],
+  "prototypeAnchors": [
+    "#alternative-slot"
+  ],
+  "representativeGate": "PASS_8_OF_8",
+  "runtimeArtifacts": [
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "375x812",
+      "state": "ALTERNATIVE_READY",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/375x812/ALTERNATIVE_READY.bmp",
+      "sha256": "8a5ad2296e73e93ed7e8cfc4a0a455717c932b66e00647165aa3e481dfbe21e1"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "375x812",
+      "state": "ALTERNATIVE_PRICE_CHANGED",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/375x812/ALTERNATIVE_PRICE_CHANGED.bmp",
+      "sha256": "3bda76ed073c9c08fd13555a0c6bdaae0b05185bd1130d1b1e6bd72b1c28f08a"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "375x812",
+      "state": "ALTERNATIVE_EXPIRING",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/375x812/ALTERNATIVE_EXPIRING.bmp",
+      "sha256": "270dd7e1152f644aa9ea5722c7f6427351246ab4f815c3372dd36eceb060e784"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "375x812",
+      "state": "ALTERNATIVE_EXPIRED",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/375x812/ALTERNATIVE_EXPIRED.bmp",
+      "sha256": "b5d89005d587feba548cd1e81b97ca357e7213ab57497f089c464f3821e6cbe1"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "375x812",
+      "state": "ALTERNATIVE_SUPERSEDED",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/375x812/ALTERNATIVE_SUPERSEDED.bmp",
+      "sha256": "2ca48d6c3873e78087b21650ba3d66358efc2eed7a1e2ad1872c3578f52183db"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "375x812",
+      "state": "ALTERNATIVE_SLOT_UNAVAILABLE",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/375x812/ALTERNATIVE_SLOT_UNAVAILABLE.bmp",
+      "sha256": "e8e17a25e88519d737d9d1baaa6412e9c319512623aa9a7788fb37e47918a72e"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "375x812",
+      "state": "ALTERNATIVE_ACCEPT_SUBMITTING",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/375x812/ALTERNATIVE_ACCEPT_SUBMITTING.bmp",
+      "sha256": "f8c3d910a0e437ea1778aed146fc1d4cd34cd370492cb22e7706542f0db8f24e"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "375x812",
+      "state": "ALTERNATIVE_ACCEPTED",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/375x812/ALTERNATIVE_ACCEPTED.bmp",
+      "sha256": "e36797fbeeb7d2ab33eada599d6ade99613e9ecea1ec88b64814ffa59158999d"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "375x812",
+      "state": "ALTERNATIVE_DECLINE_CONFIRMATION",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/375x812/ALTERNATIVE_DECLINE_CONFIRMATION.bmp",
+      "sha256": "75aa217a23c57076344614fe28912124e95930d118f4e4be35e346f9bbcf7819"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "375x812",
+      "state": "ALTERNATIVE_DECLINED",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/375x812/ALTERNATIVE_DECLINED.bmp",
+      "sha256": "7139588a60875d62e430e10d31b2736c4ff27950634d34a3dfaa3394865b401a"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "375x812",
+      "state": "ALTERNATIVE_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/375x812/ALTERNATIVE_OFFLINE_STALE.bmp",
+      "sha256": "d8cacd32bbd79c981a34e5b0d4a1f75cbe42c60da92b7e0c03575b72befebbc9"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "375x812",
+      "state": "ALTERNATIVE_NETWORK_AMBIGUOUS",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/375x812/ALTERNATIVE_NETWORK_AMBIGUOUS.bmp",
+      "sha256": "c44d09ea89030a1e1688c9809c25009a504eb13c87936c8de9543d60895ee144"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "412x915",
+      "state": "ALTERNATIVE_READY",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/412x915/ALTERNATIVE_READY.bmp",
+      "sha256": "631a05d3d79f5538a966ab6cd737e67c721ad90ef6e4380684ab3cc0f8dcc7aa"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "412x915",
+      "state": "ALTERNATIVE_PRICE_CHANGED",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/412x915/ALTERNATIVE_PRICE_CHANGED.bmp",
+      "sha256": "593e079f5548e0410c51bca6f1b6f581ca7f8e6313975a64116ee8f6e3d61733"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "412x915",
+      "state": "ALTERNATIVE_EXPIRING",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/412x915/ALTERNATIVE_EXPIRING.bmp",
+      "sha256": "d289eca6c00fd271c46432e03a01fbb45b0f686e6a250ff08f5a61142d6d72d3"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "412x915",
+      "state": "ALTERNATIVE_EXPIRED",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/412x915/ALTERNATIVE_EXPIRED.bmp",
+      "sha256": "aa6308ffab1a098099e5d62cd04ec28001a782d7cfa801912b65f85d33aeee2f"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "412x915",
+      "state": "ALTERNATIVE_SUPERSEDED",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/412x915/ALTERNATIVE_SUPERSEDED.bmp",
+      "sha256": "6ba1f046acdd13a8d415f895e727efb35f69499613e7c0a02ac71c63d0f16be5"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "412x915",
+      "state": "ALTERNATIVE_SLOT_UNAVAILABLE",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/412x915/ALTERNATIVE_SLOT_UNAVAILABLE.bmp",
+      "sha256": "1f57c770a4471c717c80af53f2babd849df39498420a8a3b5dbc5e5249b9c05f"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "412x915",
+      "state": "ALTERNATIVE_ACCEPT_SUBMITTING",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/412x915/ALTERNATIVE_ACCEPT_SUBMITTING.bmp",
+      "sha256": "f2ff8d52f9c69e43a2f50ad7033180f72b3b5bc3cfda90ef9f3884eefce4805d"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "412x915",
+      "state": "ALTERNATIVE_ACCEPTED",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/412x915/ALTERNATIVE_ACCEPTED.bmp",
+      "sha256": "c759c74420c204dd5d4f6a68583bae744c76997ccc771c34472fd9050b276d94"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "412x915",
+      "state": "ALTERNATIVE_DECLINE_CONFIRMATION",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/412x915/ALTERNATIVE_DECLINE_CONFIRMATION.bmp",
+      "sha256": "480b24b91eb2b24deea01c9ceaf9cdc079840ddf7f2e24340b4f5a2463384400"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "412x915",
+      "state": "ALTERNATIVE_DECLINED",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/412x915/ALTERNATIVE_DECLINED.bmp",
+      "sha256": "1f32906ae0ed6f54492419fd32eb0a9c69aa84fadf9cc4b13d31420dd99a8751"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "412x915",
+      "state": "ALTERNATIVE_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/412x915/ALTERNATIVE_OFFLINE_STALE.bmp",
+      "sha256": "5d5d4ec1f6eb82edfd2aafec3daad37b13549196ec7827bf9e247364d5c5487b"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "412x915",
+      "state": "ALTERNATIVE_NETWORK_AMBIGUOUS",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/412x915/ALTERNATIVE_NETWORK_AMBIGUOUS.bmp",
+      "sha256": "2235991234524b4955a2e584901634fe079e8085295ccbaeeab62f9b9b531094"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "768x1024",
+      "state": "ALTERNATIVE_READY",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/768x1024/ALTERNATIVE_READY.bmp",
+      "sha256": "29ae99ae9ac43e5d05efc91f03d2737760444fb6183b163288262475113c2dd3"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "768x1024",
+      "state": "ALTERNATIVE_PRICE_CHANGED",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/768x1024/ALTERNATIVE_PRICE_CHANGED.bmp",
+      "sha256": "cbcd39d3f8df232d5fc28d7bef4fdbbd5ad227fd6b98b17bea657fd5b137bcd2"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "768x1024",
+      "state": "ALTERNATIVE_EXPIRING",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/768x1024/ALTERNATIVE_EXPIRING.bmp",
+      "sha256": "66a3a780b0700c0f4d0fdf0631f6cb993102a5e5e46aa4f0e047b8b6ec7f916e"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "768x1024",
+      "state": "ALTERNATIVE_EXPIRED",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/768x1024/ALTERNATIVE_EXPIRED.bmp",
+      "sha256": "032cb0d40ca2576dc858c2b32b36e8ad6ad5a1437eadf11f1e9b5dca477ac37c"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "768x1024",
+      "state": "ALTERNATIVE_SUPERSEDED",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/768x1024/ALTERNATIVE_SUPERSEDED.bmp",
+      "sha256": "d91cf212efd8b02097f519cea1aea9f0cb620cca1d526bb0685b5cf19b48590f"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "768x1024",
+      "state": "ALTERNATIVE_SLOT_UNAVAILABLE",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/768x1024/ALTERNATIVE_SLOT_UNAVAILABLE.bmp",
+      "sha256": "2c6d7e84431a43385de3971ab2d7c741eb3a6d408f444e20722f567e27b0df10"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "768x1024",
+      "state": "ALTERNATIVE_ACCEPT_SUBMITTING",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/768x1024/ALTERNATIVE_ACCEPT_SUBMITTING.bmp",
+      "sha256": "f75ca98d76815c6fbefe93e7491adfd3a58e8165023c720cb2b3ef40d92961d7"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "768x1024",
+      "state": "ALTERNATIVE_ACCEPTED",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/768x1024/ALTERNATIVE_ACCEPTED.bmp",
+      "sha256": "7d0d71f29f5cd78a459c05012ee931171708586ce4616b7f93e57235cd93a870"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "768x1024",
+      "state": "ALTERNATIVE_DECLINE_CONFIRMATION",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/768x1024/ALTERNATIVE_DECLINE_CONFIRMATION.bmp",
+      "sha256": "87266721dac739ac8523ca993cc585949c04a6a50f0034c840ec101414d809ed"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "768x1024",
+      "state": "ALTERNATIVE_DECLINED",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/768x1024/ALTERNATIVE_DECLINED.bmp",
+      "sha256": "b8bf0d064c098424754900d21474f77b3a6e9bc77090819dff50d6338ed7d95c"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "768x1024",
+      "state": "ALTERNATIVE_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/768x1024/ALTERNATIVE_OFFLINE_STALE.bmp",
+      "sha256": "7d9e80fd588cfca8ebe5adeb13e998973b83e872b145e650da4282aeaf92c93e"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "768x1024",
+      "state": "ALTERNATIVE_NETWORK_AMBIGUOUS",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/768x1024/ALTERNATIVE_NETWORK_AMBIGUOUS.bmp",
+      "sha256": "5a38b53e9c24a80b641a8ce6c8eb2c1dcdd550ecc945458326e9140b3fd9a203"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "1440x900",
+      "state": "ALTERNATIVE_READY",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/1440x900/ALTERNATIVE_READY.bmp",
+      "sha256": "b0d9e7c9fcd99971dcef65175f1ca4902f3231cc73bfba20e36806c4d550d707"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "1440x900",
+      "state": "ALTERNATIVE_PRICE_CHANGED",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/1440x900/ALTERNATIVE_PRICE_CHANGED.bmp",
+      "sha256": "c9451ce108646337b05059e0ed1f805d60c5d23f387db6bc5a14760247853316"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "1440x900",
+      "state": "ALTERNATIVE_EXPIRING",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/1440x900/ALTERNATIVE_EXPIRING.bmp",
+      "sha256": "597117bb52631139447c08721bcb8b0f35e17c9c802ac2281c1b3aef03051a23"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "1440x900",
+      "state": "ALTERNATIVE_EXPIRED",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/1440x900/ALTERNATIVE_EXPIRED.bmp",
+      "sha256": "8333e921f91c5b77e44baa9fe59fe3d72035828866d53713975871aa8a3f6a12"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "1440x900",
+      "state": "ALTERNATIVE_SUPERSEDED",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/1440x900/ALTERNATIVE_SUPERSEDED.bmp",
+      "sha256": "58edc4f176b08c8546dd1a3dcdd72b830b7c65019b9bfedb9f9c4370ef8e0b31"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "1440x900",
+      "state": "ALTERNATIVE_SLOT_UNAVAILABLE",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/1440x900/ALTERNATIVE_SLOT_UNAVAILABLE.bmp",
+      "sha256": "aa7f1243a208c74fe71500e8df6a9dccdd33dc112ba7c3398df866d5af8bf3b4"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "1440x900",
+      "state": "ALTERNATIVE_ACCEPT_SUBMITTING",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/1440x900/ALTERNATIVE_ACCEPT_SUBMITTING.bmp",
+      "sha256": "d8a4a1b05601759a9d1b940293b3e81ac2f093bbc65a60d2835142a3ad60c692"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "1440x900",
+      "state": "ALTERNATIVE_ACCEPTED",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/1440x900/ALTERNATIVE_ACCEPTED.bmp",
+      "sha256": "32b4db07adecac7adbd8b0ea360284482507b504fb6ae211d734574d3c57c354"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "1440x900",
+      "state": "ALTERNATIVE_DECLINE_CONFIRMATION",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/1440x900/ALTERNATIVE_DECLINE_CONFIRMATION.bmp",
+      "sha256": "71bbad60c435fa5aea8425556ded7136111ebd07de7042e1e1a00ac5cbc3fa52"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "1440x900",
+      "state": "ALTERNATIVE_DECLINED",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/1440x900/ALTERNATIVE_DECLINED.bmp",
+      "sha256": "4df1b726c0debc40dc631a6ce8a8c54820e559833690b00b8f52e789d37d0481"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "1440x900",
+      "state": "ALTERNATIVE_OFFLINE_STALE",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/1440x900/ALTERNATIVE_OFFLINE_STALE.bmp",
+      "sha256": "8ac6426ea655398d9565a7b4d452f0030553585a4bffff4581a1b5b621aaa90e"
+    },
+    {
+      "v50Id": "OWN-020",
+      "prototypeAnchor": "#alternative-slot",
+      "prototypeState": null,
+      "runtimeRoute": "/owner/bookings/:holdId/alternative",
+      "viewport": "1440x900",
+      "state": "ALTERNATIVE_NETWORK_AMBIGUOUS",
+      "artifactLogicalPath": "V50-OWNER-07/runtime/1440x900/ALTERNATIVE_NETWORK_AMBIGUOUS.bmp",
+      "sha256": "e0ff63987790f05740c7a563a014ebfc8ec29b9253b749a373b8eecbad48de57"
+    }
+  ],
+  "prototypeArtifacts": [
+    {
+      "prototypeAnchor": "#alternative-slot",
+      "viewport": "375x812",
+      "artifactLogicalPath": "V50-OWNER-07/prototype/alternative-slot/375x812.png",
+      "sha256": "1c01d4178fcdf6b94132503d1b833b6c577a9287794a8aa652f2e1ebfb10414e"
+    },
+    {
+      "prototypeAnchor": "#alternative-slot",
+      "viewport": "412x915",
+      "artifactLogicalPath": "V50-OWNER-07/prototype/alternative-slot/412x915.png",
+      "sha256": "bc1776261dada5d8c101904e098d5dfe6ba6d56e4a1c38ad55d382e8b9612579"
+    },
+    {
+      "prototypeAnchor": "#alternative-slot",
+      "viewport": "768x1024",
+      "artifactLogicalPath": "V50-OWNER-07/prototype/alternative-slot/768x1024.png",
+      "sha256": "e8cd3349b1921e5cf153b99e08c2af8db940cd5f031919fd5b6b4f7a7227805a"
+    },
+    {
+      "prototypeAnchor": "#alternative-slot",
+      "viewport": "1440x900",
+      "artifactLogicalPath": "V50-OWNER-07/prototype/alternative-slot/1440x900.png",
+      "sha256": "6a36c742e5c0ee90382121e3123f69b19364fa0783d806e597135ca07a61056f"
+    }
+  ],
+  "supplementalArtifacts": []
+}
