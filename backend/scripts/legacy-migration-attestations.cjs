@@ -1,0 +1,133 @@
+const LEGACY_REASON = 'LEGACY_PROVENANCE_UNRECOVERABLE';
+
+const clinicalColumns = {
+  diary_entries: [
+    ['id', 'uuid', true, 'gen_random_uuid()'], ['owner_id', 'uuid', true, ''],
+    ['pet_id', 'uuid', true, ''], ['visit_id', 'uuid', true, ''],
+    ['source_result_id', 'uuid', false, ''], ['source_amendment_id', 'uuid', false, ''],
+    ['occurred_at', 'timestamp with time zone', true, ''],
+    ['created_at', 'timestamp with time zone', true, 'clock_timestamp()'],
+  ],
+  visit_result_amendments: [
+    ['id', 'uuid', true, 'gen_random_uuid()'], ['result_id', 'uuid', true, ''],
+    ['visit_id', 'uuid', true, ''], ['owner_id', 'uuid', true, ''],
+    ['pet_id', 'uuid', true, ''], ['clinic_id', 'uuid', true, ''],
+    ['location_id', 'uuid', true, ''], ['author_id', 'uuid', true, ''],
+    ['amendment_content', 'text', true, ''], ['idempotency_key', 'uuid', true, ''],
+    ['created_at', 'timestamp with time zone', true, 'clock_timestamp()'],
+    ['published_at', 'timestamp with time zone', true, 'clock_timestamp()'],
+  ],
+  visit_results: [
+    ['id', 'uuid', true, 'gen_random_uuid()'], ['visit_id', 'uuid', true, ''],
+    ['owner_id', 'uuid', true, ''], ['pet_id', 'uuid', true, ''],
+    ['clinic_id', 'uuid', true, ''], ['location_id', 'uuid', true, ''],
+    ['author_id', 'uuid', true, ''], ['status', 'text', true, "'DRAFT'::text"],
+    ['clinical_summary', 'text', true, ''], ['idempotency_key', 'uuid', true, ''],
+    ['version', 'integer', true, '1'],
+    ['created_at', 'timestamp with time zone', true, 'clock_timestamp()'],
+    ['updated_at', 'timestamp with time zone', true, 'clock_timestamp()'],
+    ['published_at', 'timestamp with time zone', false, ''],
+  ],
+  visits: [
+    ['id', 'uuid', true, 'gen_random_uuid()'], ['appointment_id', 'uuid', true, ''],
+    ['booking_hold_id', 'uuid', true, ''], ['owner_id', 'uuid', true, ''],
+    ['pet_id', 'uuid', true, ''], ['clinic_id', 'uuid', true, ''],
+    ['location_id', 'uuid', true, ''], ['slot_id', 'uuid', true, ''],
+    ['completed_by', 'uuid', true, ''], ['status', 'text', true, "'COMPLETED'::text"],
+    ['created_at', 'timestamp with time zone', true, 'clock_timestamp()'],
+    ['completed_at', 'timestamp with time zone', true, 'clock_timestamp()'],
+  ],
+};
+
+const constraints171961 = [
+  ['pet_schema', 'pets', 'pets_clinical_owner_context_key', 'UNIQUE (id, owner_id)'],
+  ['clinical_schema', 'visits', 'visits_pkey', 'PRIMARY KEY (id)'],
+  ['clinical_schema', 'visits', 'visits_status_check', "CHECK (status = 'COMPLETED'::text)"],
+  ['clinical_schema', 'visits', 'visits_time_check', 'CHECK (completed_at >= created_at)'],
+  ['clinical_schema', 'visits', 'visits_appointment_key', 'UNIQUE (appointment_id)'],
+  ['clinical_schema', 'visits', 'visits_booking_hold_key', 'UNIQUE (booking_hold_id)'],
+  ['clinical_schema', 'visits', 'visits_owner_pet_context_key', 'UNIQUE (id, owner_id, pet_id)'],
+  ['clinical_schema', 'visits', 'visits_context_key', 'UNIQUE (id, owner_id, pet_id, clinic_id, location_id)'],
+  ['clinical_schema', 'visits', 'visits_appointment_context_fkey', 'FOREIGN KEY (appointment_id, booking_hold_id, owner_id, location_id, slot_id) REFERENCES booking_schema.appointments(id, hold_id, owner_id, clinic_location_id, slot_id) ON DELETE RESTRICT'],
+  ['clinical_schema', 'visits', 'visits_hold_context_fkey', 'FOREIGN KEY (booking_hold_id, owner_id, slot_id) REFERENCES booking_schema.booking_holds(id, owner_id, slot_id) ON DELETE RESTRICT'],
+  ['clinical_schema', 'visits', 'visits_pet_owner_fkey', 'FOREIGN KEY (pet_id, owner_id) REFERENCES pet_schema.pets(id, owner_id) ON DELETE RESTRICT'],
+  ['clinical_schema', 'visits', 'visits_slot_location_fkey', 'FOREIGN KEY (slot_id, location_id) REFERENCES clinic_schema.appointment_slots(id, clinic_location_id) ON DELETE RESTRICT'],
+  ['clinical_schema', 'visits', 'visits_location_clinic_fkey', 'FOREIGN KEY (location_id, clinic_id) REFERENCES clinic_schema.clinic_locations(id, clinic_id) ON DELETE RESTRICT'],
+  ['clinical_schema', 'visits', 'visits_completed_by_fkey', 'FOREIGN KEY (completed_by) REFERENCES identity_schema.users(id) ON DELETE RESTRICT'],
+  ['clinical_schema', 'visit_results', 'visit_results_pkey', 'PRIMARY KEY (id)'],
+  ['clinical_schema', 'visit_results', 'visit_results_status_check', "CHECK (status = ANY (ARRAY['DRAFT'::text, 'PUBLISHED'::text]))"],
+  ['clinical_schema', 'visit_results', 'visit_results_content_check', 'CHECK (char_length(btrim(clinical_summary)) >= 3 AND char_length(btrim(clinical_summary)) <= 8000)'],
+  ['clinical_schema', 'visit_results', 'visit_results_version_check', 'CHECK (version > 0)'],
+  ['clinical_schema', 'visit_results', 'visit_results_time_check', "CHECK (updated_at >= created_at AND (status = 'DRAFT'::text AND published_at IS NULL OR status = 'PUBLISHED'::text AND published_at IS NOT NULL AND published_at >= created_at))"],
+  ['clinical_schema', 'visit_results', 'visit_results_context_fkey', 'FOREIGN KEY (visit_id, owner_id, pet_id, clinic_id, location_id) REFERENCES clinical_schema.visits(id, owner_id, pet_id, clinic_id, location_id) ON DELETE RESTRICT'],
+  ['clinical_schema', 'visit_results', 'visit_results_idempotency_key', 'UNIQUE (visit_id, idempotency_key)'],
+  ['clinical_schema', 'visit_results', 'visit_results_context_key', 'UNIQUE (id, visit_id, owner_id, pet_id, clinic_id, location_id)'],
+  ['clinical_schema', 'visit_results', 'visit_results_author_id_fkey', 'FOREIGN KEY (author_id) REFERENCES identity_schema.users(id) ON DELETE RESTRICT'],
+  ['clinical_schema', 'visit_result_amendments', 'visit_result_amendments_pkey', 'PRIMARY KEY (id)'],
+  ['clinical_schema', 'visit_result_amendments', 'visit_result_amendments_content_check', 'CHECK (char_length(btrim(amendment_content)) >= 3 AND char_length(btrim(amendment_content)) <= 8000)'],
+  ['clinical_schema', 'visit_result_amendments', 'visit_result_amendments_time_check', 'CHECK (published_at >= created_at)'],
+  ['clinical_schema', 'visit_result_amendments', 'visit_result_amendments_result_context_fkey', 'FOREIGN KEY (result_id, visit_id, owner_id, pet_id, clinic_id, location_id) REFERENCES clinical_schema.visit_results(id, visit_id, owner_id, pet_id, clinic_id, location_id) ON DELETE RESTRICT'],
+  ['clinical_schema', 'visit_result_amendments', 'visit_result_amendments_idempotency_key', 'UNIQUE (result_id, idempotency_key)'],
+  ['clinical_schema', 'visit_result_amendments', 'visit_result_amendments_context_key', 'UNIQUE (id, result_id, visit_id, owner_id, pet_id, clinic_id, location_id)'],
+  ['clinical_schema', 'visit_result_amendments', 'visit_result_amendments_author_id_fkey', 'FOREIGN KEY (author_id) REFERENCES identity_schema.users(id) ON DELETE RESTRICT'],
+  ['clinical_schema', 'diary_entries', 'diary_entries_pkey', 'PRIMARY KEY (id)'],
+  ['clinical_schema', 'diary_entries', 'diary_entries_one_source_check', 'CHECK (((source_result_id IS NOT NULL)::integer + (source_amendment_id IS NOT NULL)::integer) = 1)'],
+  ['clinical_schema', 'diary_entries', 'diary_entries_time_check', 'CHECK (occurred_at <= created_at)'],
+  ['clinical_schema', 'diary_entries', 'diary_entries_visit_context_fkey', 'FOREIGN KEY (visit_id, owner_id, pet_id) REFERENCES clinical_schema.visits(id, owner_id, pet_id) ON DELETE RESTRICT'],
+];
+
+const indexes171961 = [
+  ['clinical_schema', 'visits_clinic_location_time_idx', 'CREATE INDEX visits_clinic_location_time_idx ON clinical_schema.visits USING btree (clinic_id, location_id, completed_at DESC, id DESC)'],
+  ['clinical_schema', 'visit_results_visit_status_idx', 'CREATE INDEX visit_results_visit_status_idx ON clinical_schema.visit_results USING btree (visit_id, status, created_at DESC, id DESC)'],
+  ['clinical_schema', 'visit_result_amendments_result_time_idx', 'CREATE INDEX visit_result_amendments_result_time_idx ON clinical_schema.visit_result_amendments USING btree (result_id, published_at, id)'],
+  ['clinical_schema', 'diary_entries_result_source_key', 'CREATE UNIQUE INDEX diary_entries_result_source_key ON clinical_schema.diary_entries USING btree (source_result_id) WHERE (source_result_id IS NOT NULL)'],
+  ['clinical_schema', 'diary_entries_amendment_source_key', 'CREATE UNIQUE INDEX diary_entries_amendment_source_key ON clinical_schema.diary_entries USING btree (source_amendment_id) WHERE (source_amendment_id IS NOT NULL)'],
+  ['clinical_schema', 'diary_entries_owner_pet_time_idx', 'CREATE INDEX diary_entries_owner_pet_time_idx ON clinical_schema.diary_entries USING btree (owner_id, pet_id, occurred_at DESC, id DESC)'],
+  ['clinical_schema', 'diary_entries_pet_time_idx', 'CREATE INDEX diary_entries_pet_time_idx ON clinical_schema.diary_entries USING btree (pet_id, occurred_at, id)'],
+];
+
+const attestations = Object.freeze([
+  Object.freeze({
+    shortId: '171961',
+    migrationName: '1719610000000_add_clinical_visit_result_foundation',
+    fileName: '1719610000000_add_clinical_visit_result_foundation.js',
+    currentSha256: '8f82894f6528f6d194ffde9975cbe3297971f4b631e06ba9368ca1dd73d95acd',
+    legacyChecksumState: Object.freeze({ kind: 'MISMATCH', sha256: 'ecb597aa248f97418f17d05d807c452409a46868f15ae758f0a0fb41b309a7a3' }),
+    executionOrder: Object.freeze({ immediatelyAfter: '1719600000000_allow_terminal_reallocation_acceptance_lineage', immediatelyBefore: '1719620000000_enforce_one_clinical_result_per_visit' }),
+    reason: LEGACY_REASON,
+    governance: 'Product Owner-authorized repository attestation, 2026-09-07; applied artifact provenance remains UNKNOWN.',
+    schema: Object.freeze({
+      columns: clinicalColumns,
+      constraints: constraints171961,
+      indexes: indexes171961,
+      functions: [
+        ['protect_published_clinical_data', '674cb89be31a3905e533af7f46ca0d5e0bf45a05c85a3a0f44532a24f5b4d4a0'],
+        ['enforce_publication_diary_coherence', '9b4b27c628c3725eaf28a0d2371d19b72ee82637fc3c3778bcfb8baa9fa2206f'],
+      ],
+      triggers: [
+        ['visit_results', 'visit_results_immutability_trigger', 'CREATE TRIGGER visit_results_immutability_trigger BEFORE DELETE OR UPDATE ON clinical_schema.visit_results FOR EACH ROW EXECUTE FUNCTION clinical_schema.protect_published_clinical_data()', 'O'],
+        ['visit_result_amendments', 'visit_result_amendments_immutability_trigger', 'CREATE TRIGGER visit_result_amendments_immutability_trigger BEFORE DELETE OR UPDATE ON clinical_schema.visit_result_amendments FOR EACH ROW EXECUTE FUNCTION clinical_schema.protect_published_clinical_data()', 'O'],
+        ['diary_entries', 'diary_entries_immutability_trigger', 'CREATE TRIGGER diary_entries_immutability_trigger BEFORE DELETE OR UPDATE ON clinical_schema.diary_entries FOR EACH ROW EXECUTE FUNCTION clinical_schema.protect_published_clinical_data()', 'O'],
+        ['visit_results', 'visit_results_diary_coherence_trigger', 'CREATE CONSTRAINT TRIGGER visit_results_diary_coherence_trigger AFTER INSERT OR UPDATE OF status, published_at ON clinical_schema.visit_results DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION clinical_schema.enforce_publication_diary_coherence()', 'O'],
+        ['visit_result_amendments', 'visit_result_amendments_diary_coherence_trigger', 'CREATE CONSTRAINT TRIGGER visit_result_amendments_diary_coherence_trigger AFTER INSERT ON clinical_schema.visit_result_amendments DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION clinical_schema.enforce_publication_diary_coherence()', 'O'],
+        ['diary_entries', 'diary_entries_source_coherence_trigger', 'CREATE CONSTRAINT TRIGGER diary_entries_source_coherence_trigger AFTER INSERT ON clinical_schema.diary_entries DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION clinical_schema.enforce_publication_diary_coherence()', 'O'],
+      ],
+    }),
+  }),
+  Object.freeze({
+    shortId: '171962',
+    migrationName: '1719620000000_enforce_one_clinical_result_per_visit',
+    fileName: '1719620000000_enforce_one_clinical_result_per_visit.js',
+    currentSha256: '9bb7457b911c16ccc115e0aa37f0cd356968879fdd69962185324b82cd24ccf2',
+    legacyChecksumState: Object.freeze({ kind: 'MISSING' }),
+    requiresAttestation: '171961',
+    executionOrder: Object.freeze({ immediatelyAfter: '1719610000000_add_clinical_visit_result_foundation' }),
+    reason: LEGACY_REASON,
+    governance: 'Product Owner-authorized repository attestation, 2026-09-07; applied artifact provenance remains UNKNOWN.',
+    schema: Object.freeze({
+      constraints: [['clinical_schema', 'visit_results', 'visit_results_visit_key', 'UNIQUE (visit_id)']],
+    }),
+  }),
+]);
+
+module.exports = { LEGACY_REASON, attestations };

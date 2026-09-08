@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Pressable, Text, View } from "react-native";
 import { Button, StateMessage } from "@/ui/primitives";
@@ -6,8 +5,10 @@ import { uiTokens as t } from "@/ui/tokens";
 import { useSession } from "@/session/SessionProvider";
 import {
   clinicCatalogApi,
+  type ClinicCatalogItem,
   type ClinicCatalogHandoff,
 } from "./clinic-catalog-api";
+import { formatInformationalPrice } from "./ClinicServiceScreen";
 import {
   ClinicDecisionLayout,
   DecisionHeading,
@@ -17,6 +18,36 @@ import {
   decisionColors,
 } from "./ClinicDecisionLayout";
 
+const clinicCalendarDate = (observedAt: string, timezone: string) => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(observedAt));
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${value.year}-${value.month}-${value.day}`;
+};
+
+export function formatNextAvailability(
+  next: NonNullable<ClinicCatalogItem["decisionSummary"]["nextAvailability"]>,
+  observedAt: string,
+) {
+  const today = clinicCalendarDate(observedAt, next.timezone);
+  const todayDate = new Date(`${today}T00:00:00Z`);
+  const targetDate = new Date(`${next.localDate}T00:00:00Z`);
+  const days = Math.round((targetDate.getTime() - todayDate.getTime()) / 86_400_000);
+  if (days === 0) return `Сегодня, ${next.localTime}`;
+  if (days === 1) return `Завтра, ${next.localTime}`;
+  const [year, month, day] = next.localDate.split("-").map(Number);
+  const label = new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(year, month - 1, day)));
+  return `${label}, ${next.localTime}`;
+}
+
 export function ClinicCatalogScreen({
   onClose,
   onOpenClinic,
@@ -25,9 +56,6 @@ export function ClinicCatalogScreen({
   onOpenClinic(clinic: ClinicCatalogHandoff): void;
 }) {
   const { session } = useSession();
-  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(
-    null,
-  );
   const query = useQuery({
     queryKey: ["owner", session?.cacheScope, "clinic-catalog"],
     enabled: Boolean(session),
@@ -38,19 +66,18 @@ export function ClinicCatalogScreen({
     <ClinicDecisionLayout
       eyebrow="Подбор клиники"
       title="Выберите клинику"
-      subtitle="Сравните только подтверждённые сведения. Услуги, цены и свободное время появятся на следующих шагах."
+      subtitle="Показываем клиники, доступные для онлайн-записи в VetHelp."
       onBack={onClose}
     >
       <DecisionPanel>
         <DecisionHeading
-          kicker="Решение без лишнего"
-          title="Клиники для онлайн-записи"
-          detail="Название, адрес и контакт берём из актуального каталога VetHelp."
+          kicker="Клиники для записи"
+          title="Куда записать питомца?"
+          detail="Нажмите на клинику, чтобы посмотреть её услуги и стоимость."
         />
         <FactRow>
-          <Fact tone="positive">Данные клиники</Fact>
-          <Fact>Без выдуманных рейтингов</Fact>
-          <Fact>Без неподтверждённого расстояния</Fact>
+          <Fact tone="positive">Онлайн-запись</Fact>
+          <Fact>Адрес и контакты</Fact>
         </FactRow>
       </DecisionPanel>
       {query.isPending ? (
@@ -79,123 +106,122 @@ export function ClinicCatalogScreen({
       ) : null}
       {!query.isError && query.data?.clinics.length ? (
         <View
-          accessibilityRole="radiogroup"
-          accessibilityLabel="Выбор клиники"
+          accessibilityLabel="Клиники для онлайн-записи"
           style={{ gap: 12 }}
         >
-          {query.data.clinics.map((clinic) => {
-            const selected = selectedLocationId === clinic.locationId;
-            return (
-              <Pressable
-                key={clinic.locationId}
-                accessibilityRole="radio"
-                accessibilityState={{ selected }}
-                onPress={() => setSelectedLocationId(clinic.locationId)}
-                style={({ pressed }) => ({
-                  minHeight: 148,
-                  padding: 18,
+          {query.data.clinics.map((clinic) => (
+            <Pressable
+              key={clinic.locationId}
+              accessibilityRole="button"
+              accessibilityLabel={`${clinic.name}. ${clinic.address}. Открыть клинику`}
+              onPress={() =>
+                onOpenClinic({
+                  clinicId: clinic.clinicId,
+                  locationId: clinic.locationId,
+                })
+              }
+              style={({ pressed }) => ({
+                minHeight: 132,
+                padding: 18,
+                gap: 14,
+                borderWidth: 1,
+                borderColor: pressed
+                  ? decisionColors.blue
+                  : decisionColors.border,
+                borderRadius: 20,
+                backgroundColor: pressed
+                  ? decisionColors.blueSoft
+                  : decisionColors.surface,
+                opacity: pressed ? 0.82 : 1,
+                ...t.shadow.card,
+              })}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "flex-start",
                   gap: 14,
-                  borderWidth: selected ? 2 : 1,
-                  borderColor: selected
-                    ? decisionColors.blue
-                    : decisionColors.border,
-                  borderRadius: 20,
-                  backgroundColor: selected
-                    ? decisionColors.blueSoft
-                    : decisionColors.surface,
-                  opacity: pressed ? 0.78 : 1,
-                  ...t.shadow.card,
-                })}
+                }}
               >
                 <View
+                  accessibilityElementsHidden
                   style={{
-                    flexDirection: "row",
-                    alignItems: "flex-start",
-                    gap: 14,
+                    width: 48,
+                    height: 48,
+                    borderRadius: 15,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: decisionColors.blueSoft,
                   }}
                 >
-                  <View
-                    accessibilityElementsHidden
+                  <Text style={{ fontSize: 22, color: decisionColors.blue }}>
+                    ✦
+                  </Text>
+                </View>
+                <View style={{ flex: 1, minWidth: 0, gap: 5 }}>
+                  <Text
                     style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: 15,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: decisionColors.blueSoft,
+                      fontSize: 20,
+                      lineHeight: 25,
+                      fontWeight: "800",
+                      color: decisionColors.ink,
                     }}
                   >
-                    <Text style={{ fontSize: 22, color: decisionColors.blue }}>
-                      ✦
-                    </Text>
-                  </View>
-                  <View style={{ flex: 1, minWidth: 0, gap: 5 }}>
+                    {clinic.name}
+                  </Text>
+                  <Text
+                    style={{
+                      ...t.typography.secondaryBody,
+                      color: decisionColors.muted,
+                    }}
+                  >
+                    {clinic.address}
+                  </Text>
+                  {clinic.phone ? (
                     <Text
                       style={{
-                        fontSize: 20,
-                        lineHeight: 25,
-                        fontWeight: "800",
-                        color: decisionColors.ink,
-                      }}
-                    >
-                      {clinic.name}
-                    </Text>
-                    <Text
-                      style={{
-                        ...t.typography.secondaryBody,
+                        ...t.typography.caption,
                         color: decisionColors.muted,
                       }}
                     >
-                      {clinic.address}
+                      {clinic.phone}
                     </Text>
-                    {clinic.phone ? (
-                      <Text
-                        style={{
-                          ...t.typography.caption,
-                          color: decisionColors.muted,
-                        }}
-                      >
-                        {clinic.phone}
-                      </Text>
-                    ) : null}
-                  </View>
-                  <Fact tone="positive">Онлайн-запись</Fact>
+                  ) : null}
                 </View>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 12,
-                    flexWrap: "wrap",
-                  }}
+                <Text
+                  accessibilityElementsHidden
+                  style={{ fontSize: 24, color: decisionColors.blue }}
                 >
-                  <Text
-                    style={{
-                      ...t.typography.caption,
-                      color: decisionColors.muted,
-                      flex: 1,
-                      minWidth: 180,
-                    }}
-                  >
-                    Откройте клинику, чтобы выбрать услугу и увидеть
-                    авторитетную цену.
-                  </Text>
-                  <View style={{ minWidth: 190 }}>
-                    <Button
-                      label="Открыть клинику"
-                      onPress={() =>
-                        onOpenClinic({
-                          clinicId: clinic.clinicId,
-                          locationId: clinic.locationId,
-                        })
-                      }
-                    />
+                  ›
+                </Text>
+              </View>
+              <View style={{ gap: 10 }}>
+                {clinic.decisionSummary.nextAvailability ? (
+                  <View style={{ gap: 2 }}>
+                    <Text style={{ ...t.typography.caption, color: decisionColors.muted }}>Ближайшее время</Text>
+                    <Text style={{ ...t.typography.body, fontWeight: "800", color: decisionColors.ink }}>
+                      {formatNextAvailability(clinic.decisionSummary.nextAvailability, query.data.observedAt)}
+                    </Text>
                   </View>
-                </View>
-              </Pressable>
-            );
-          })}
+                ) : null}
+                <FactRow>
+                  {clinic.decisionSummary.informationalPrice ? (
+                    <Fact tone="positive">
+                      от {formatInformationalPrice(clinic.decisionSummary.informationalPrice.amount, clinic.decisionSummary.informationalPrice.currency)}
+                    </Fact>
+                  ) : null}
+                  {clinic.decisionSummary.confirmation.mode === "MANUAL" ? (
+                    <Fact>Подтверждение клиникой</Fact>
+                  ) : null}
+                </FactRow>
+                {clinic.decisionSummary.confirmation.mode === "MANUAL" ? (
+                  <Text style={{ ...t.typography.caption, color: decisionColors.muted }}>
+                    После отправки клиника подтвердит запись.
+                  </Text>
+                ) : null}
+              </View>
+            </Pressable>
+          ))}
         </View>
       ) : null}
     </ClinicDecisionLayout>
