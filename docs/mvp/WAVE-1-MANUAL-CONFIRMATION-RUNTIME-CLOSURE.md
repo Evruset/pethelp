@@ -1,7 +1,7 @@
 # Wave 1 — Manual Confirmation 15-Minute Runtime Closure
 
-Status: `IMPLEMENTED / MACHINE_COMPLETE`  
-Scope profile: explicit `PILOT_V1`  
+Status: `IMPLEMENTED / MACHINE_COMPLETE`
+Scope profile: explicit `PILOT_V1`
 Scope: Booking Core, Owner Mobile (`apps/owner-app`) and the existing Clinic Portal Queue only.
 
 ## Canonical contract

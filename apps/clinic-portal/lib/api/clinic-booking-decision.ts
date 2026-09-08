@@ -81,4 +81,3 @@ export function safeBookingDecisionError(payload: unknown): string {
   const code = (payload as Record<string, unknown>).code;
   return typeof code === 'string' && SAFE_ERROR_CODES.has(code) ? code : 'BACKEND_UNAVAILABLE';
 }
-

@@ -37,4 +37,3 @@ describe('OwnerHome V50 navigation', () => {
     expect(onDiary).toHaveBeenCalledTimes(1);
   });
 });
-

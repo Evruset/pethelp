@@ -1,7 +1,7 @@
 # Wave 3 DoctorShift inventory closure
 
-Status: `WAVE3_MACHINE_COMPLETE`  
-Baseline: `agent/v51-stage-01-architecture` at `e9b7b2fb8a9208fb76e0ba2003246a741f3a1c8b`  
+Status: `WAVE3_MACHINE_COMPLETE`
+Baseline: `agent/v51-stage-01-architecture` at `e9b7b2fb8a9208fb76e0ba2003246a741f3a1c8b`
 Date: 2026-08-28
 
 ## Migration correction

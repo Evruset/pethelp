@@ -1,7 +1,7 @@
 # VetHelp Owner MVP visual baseline candidate
 
-Baseline ID: `OWNER-MVP-VISUAL-V1`  
-Machine state: `READY_FOR_HUMAN_VISUAL_ACCEPTANCE`  
+Baseline ID: `OWNER-MVP-VISUAL-V1`
+Machine state: `READY_FOR_HUMAN_VISUAL_ACCEPTANCE`
 Authority: candidate implementation evidence only; Product Owner visual acceptance is not inferred.
 
 The current Owner journey now shares a semantic token layer and reusable RN primitives for frame, large titles, inset sections, entity rows/cards, state messages, status pills, skeletons, bottom actions and destructive confirmation. Phone layouts remain edge-to-edge; web uses a centered, bounded Owner canvas.

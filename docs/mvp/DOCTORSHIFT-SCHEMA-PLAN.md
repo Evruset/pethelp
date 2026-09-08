@@ -1,7 +1,7 @@
 # DOCTORSHIFT_SCHEMA_PLAN
 
-Status: `APPROVED_AND_IMPLEMENTED`  
-Original migration: `backend/migrations/node-pg/1719540000000_add_doctor_shift_generated_inventory.js`  
+Status: `APPROVED_AND_IMPLEMENTED`
+Original migration: `backend/migrations/node-pg/1719540000000_add_doctor_shift_generated_inventory.js`
 Corrective migration: `backend/migrations/node-pg/1719550000000_tighten_doctor_shift_publication_timestamp_constraint.js`
 
 Implemented schema identity (SHA-256): original
