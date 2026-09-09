@@ -59,7 +59,7 @@ async function expectEvidence(db:DatabaseService,visitId:string,count:number){ex
 async function seed(db:DatabaseService){await db.query(`
  INSERT INTO identity_schema.users(id) VALUES('${I.owner}'),('${I.vet}'),('${I.foreignVet}'),('${I.admin}');
  INSERT INTO clinic_schema.clinics(id,legal_name,public_name) VALUES('${I.clinic}','Clinic','Clinic'),('${I.foreignClinic}','Foreign','Foreign');
- INSERT INTO clinic_schema.clinic_locations(id,clinic_id,address,timezone) VALUES('${I.location}','${I.clinic}','A','Europe/Moscow'),('${I.foreignLocation}','${I.foreignClinic}','B','Europe/Moscow');
+ INSERT INTO clinic_schema.clinic_locations(id,clinic_id,address) VALUES('${I.location}','${I.clinic}','A'),('${I.foreignLocation}','${I.foreignClinic}','B');
  INSERT INTO clinic_schema.employee_location_memberships(employee_id,clinic_location_id,role) VALUES('${I.vet}','${I.location}','CLINIC_VETERINARIAN'),('${I.admin}','${I.location}','CLINIC_ADMIN'),('${I.foreignVet}','${I.foreignLocation}','CLINIC_VETERINARIAN');
  INSERT INTO clinic_schema.clinic_services(id,clinic_location_id,code,display_name,duration_minutes) VALUES('${I.service}','${I.location}','S','Service',30),('${I.invalidService}','${I.location}','I','Invalid',30);
  INSERT INTO clinic_schema.appointment_slots(id,clinic_location_id,service_id,starts_at,ends_at) VALUES('${I.slot}','${I.location}','${I.service}',clock_timestamp()-interval '1 hour',clock_timestamp()),('${I.invalidSlot}','${I.location}','${I.invalidService}',clock_timestamp()+interval '1 hour',clock_timestamp()+interval '2 hour');

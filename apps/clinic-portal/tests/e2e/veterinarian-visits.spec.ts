@@ -8,8 +8,6 @@ const clinicId = '11111111-1111-4111-8111-111111111111';
 const locationId = '22222222-2222-4222-8222-222222222222';
 const otherClinicId = '33333333-3333-4333-8333-333333333333';
 const holdId = '44444444-4444-4444-8444-444444444444';
-const appointmentId = '55555555-5555-4555-8555-555555555555';
-const petId = '66666666-6666-4666-8666-666666666666';
 const visitId = '77777777-7777-4777-8777-777777777777';
 const port = 3212; const secret = 'clinic-e2e-secret-at-least-32-bytes';
 let server: Server; let mode: 'allowed' | 'denied' | 'wrong-scope' | 'backend-deny' = 'allowed'; let reads = 0; let listReads = 0; let detailReads = 0; let resultReads = 0; let detailVisitId: string | null = null; let payloadOverride: unknown;
@@ -63,7 +61,7 @@ test('detail reload retains exact identities and reads the canonical result only
   await expect(page.getByRole('heading', { name: 'Milo' })).toBeVisible();
   expect(resultReads).toBe(1);
   const detailResponse = await page.request.get(`/api/clinic/${clinicId}/locations/${locationId}/vet/visits/${holdId}`);
-  expect(await detailResponse.json()).toMatchObject({ appointmentId, petId, visitId });
+  expect(await detailResponse.json()).toMatchObject({ visitId });
   await page.reload(); await expect(page.getByRole('heading', { name: 'Milo' })).toBeVisible();
   expect(resultReads).toBe(2);
 
@@ -106,5 +104,5 @@ function handle(request: import('node:http').IncomingMessage, response: import('
   return json(response, 404, { code: 'NOT_FOUND' });
 }
 function visit(overrides: Record<string, unknown> = {}) { return { holdId, clinicId, locationId, scheduledStart: '2026-07-12T10:00:00.000Z', scheduledEnd: '2026-07-12T10:30:00.000Z', status: 'CONFIRMED', petDisplayName: 'Milo', species: 'CAT', ...overrides }; }
-function detailVisit(overrides: Record<string, unknown> = {}) { return { ...visit(), appointmentId, petId, visitId: detailVisitId, ...overrides }; }
+function detailVisit(overrides: Record<string, unknown> = {}) { return { ...visit(), visitId: detailVisitId, ...overrides }; }
 function json(response: import('node:http').ServerResponse, status: number, body: unknown) { response.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); response.end(JSON.stringify(body)); }

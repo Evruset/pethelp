@@ -9,6 +9,22 @@ exports.up = (pgm) => {
     ALTER TABLE pet_schema.pets
       ADD CONSTRAINT pets_clinical_owner_context_key UNIQUE (id, owner_id);
 
+    ALTER TABLE booking_schema.appointments
+      ADD CONSTRAINT appointments_clinical_context_key
+      UNIQUE (id, hold_id, owner_id, clinic_location_id, slot_id);
+
+    ALTER TABLE booking_schema.booking_holds
+      ADD CONSTRAINT booking_holds_clinical_context_key
+      UNIQUE (id, owner_id, slot_id);
+
+    ALTER TABLE clinic_schema.appointment_slots
+      ADD CONSTRAINT appointment_slots_clinical_location_key
+      UNIQUE (id, clinic_location_id);
+
+    ALTER TABLE clinic_schema.clinic_locations
+      ADD CONSTRAINT clinic_locations_clinical_context_key
+      UNIQUE (id, clinic_id);
+
     CREATE TABLE clinical_schema.visits (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       appointment_id uuid NOT NULL,
@@ -262,6 +278,14 @@ exports.down = (pgm) => {
     DROP TABLE clinical_schema.visit_result_amendments;
     DROP TABLE clinical_schema.visit_results;
     DROP TABLE clinical_schema.visits;
+    ALTER TABLE clinic_schema.clinic_locations
+      DROP CONSTRAINT clinic_locations_clinical_context_key;
+    ALTER TABLE clinic_schema.appointment_slots
+      DROP CONSTRAINT appointment_slots_clinical_location_key;
+    ALTER TABLE booking_schema.booking_holds
+      DROP CONSTRAINT booking_holds_clinical_context_key;
+    ALTER TABLE booking_schema.appointments
+      DROP CONSTRAINT appointments_clinical_context_key;
     DROP FUNCTION clinical_schema.enforce_publication_diary_coherence();
     DROP FUNCTION clinical_schema.protect_published_clinical_data();
     ALTER TABLE pet_schema.pets DROP CONSTRAINT pets_clinical_owner_context_key;

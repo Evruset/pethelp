@@ -1,6 +1,6 @@
 # V50 program current state
 
-Updated: 2026-07-31
+Updated: 2026-09-09
 
 ## Program status
 
@@ -2906,3 +2906,25 @@ Batch stop: exactly three checkpoints were processed (T085 continuation, T140, T
   `ACCESSIBILITY_DOCUMENT_TITLE_BLOCKER_REPAIRED=YES`. Recommended next slice
   is only W7-D-R5R — resume remaining final visual/accessibility/Product-UX
   closure.
+
+## W7 clinical visit/result repair — 2026-09-09
+
+- Veterinarian LIST remains the bounded eight-field projection. DETAIL adds
+  only nullable `visitId`, which is required to address the durable clinical
+  Visit and Result readback after completion. `appointmentId` and `petId` are
+  intentionally not part of the public veterinarian detail DTO.
+- `PILOT_V1` permits the veterinarian visit workspace and its Result/completion
+  routes. Capability-scoped veterinarian navigation now remains visible in
+  PILOT while the Quality surface remains excluded.
+- Concurrent appointment completion no longer leaks PostgreSQL lock/deadlock
+  failures as HTTP 500; retryable database contention is translated to the
+  existing conflict contract.
+- Clinical migration foundation and one-result-per-Visit cardinality tests
+  PASS 2/2. Veterinarian HTTP read matrix PASS 21/21. Focused backend unit
+  gates PASS 33/33.
+- Real PostgreSQL HTTP gates for Owner Diary, Result readback, completion
+  evidence/concurrency and immutable Amendment replay PASS.
+- Clinic Portal clean production build and TypeScript PASS. Focused W7
+  Chromium regression suite PASS 23/23, including PILOT navigation,
+  veterinarian list/detail, completion, Result lifecycle, immutable Amendment
+  workflow and publish-dialog keyboard containment.

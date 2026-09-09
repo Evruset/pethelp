@@ -170,7 +170,11 @@ workspace shell, server authorization and focused read matrix.
 #### Stage 5.1A1b — DETAIL endpoint and HTTP matrix — COMPLETED
 
 - `GET /v1/clinic/:clinicId/locations/:locationId/vet/visits/:holdId` uses the
-  same server-derived capability and eight-field allow-list as LIST.
+  same server-derived capability and the LIST eight-field projection plus
+  nullable `visitId`.
+- `visitId` is exposed only as the durable clinical Visit identity required for
+  Result readback after completion. `appointmentId` and `petId` are not exposed
+  by the veterinarian detail DTO.
 - Its bounded query resolves hold clinic/location through the slot relation.
   Missing, cross-resource and disallowed-state rows return normalized denial,
   without exposing whether the hold exists or why it was denied.
@@ -237,7 +241,10 @@ surface while existing completion endpoint behavior remains unchanged.
 
 - Product must approve veterinarian list/detail route, navigation owner and
   minimal pet/owner display fields.
-- Backend must decide whether the new read is list-only or list-plus-detail,
-  and prove lock-timeout translation for the documented completion conflict.
+- The bounded read is list-plus-detail. DETAIL adds only nullable `visitId`
+  to the LIST projection.
+- Completion lock timeout/deadlock conditions are translated to the documented
+  retryable conflict instead of escaping as HTTP 500; the real PostgreSQL
+  concurrency regression is closed.
 - Existing domain model does not prove assigned in-person veterinarian; do not
   invent assignment until a domain decision is approved.

@@ -7,8 +7,6 @@ export type VeterinarianVisit = {
 };
 
 export type VeterinarianVisitDetail = VeterinarianVisit & {
-  appointmentId: string;
-  petId: string;
   visitId: string | null;
 };
 
@@ -37,7 +35,7 @@ export type VeterinarianVisitClinicalReadback = {
 };
 
 const keys = ['clinicId', 'holdId', 'locationId', 'petDisplayName', 'scheduledEnd', 'scheduledStart', 'species', 'status'];
-const detailKeys = [...keys, 'appointmentId', 'petId', 'visitId'].sort();
+const detailKeys = [...keys, 'visitId'].sort();
 const readbackKeys = ['amendments', 'result', 'visitId'];
 const resultKeys = ['clinicalSummary', 'createdAt', 'id', 'publishedAt', 'status', 'updatedAt', 'version', 'visitId'];
 const amendmentKeys = ['amendmentId', 'content', 'publishedAt', 'resultId'];
@@ -78,9 +76,9 @@ export function parseVeterinarianVisitDetail(value: unknown): VeterinarianVisitD
   const row = value as Record<string, unknown>;
   if (Object.keys(row).sort().join('|') !== detailKeys.join('|')) return null;
   const base = parseVeterinarianVisit(Object.fromEntries(keys.map((key) => [key, row[key]])));
-  if (!base || typeof row.appointmentId !== 'string' || !UUID.test(row.appointmentId) || typeof row.petId !== 'string' || !UUID.test(row.petId)) return null;
+  if (!base) return null;
   if (row.visitId !== null && (typeof row.visitId !== 'string' || !UUID.test(row.visitId))) return null;
-  return { ...base, appointmentId: row.appointmentId, petId: row.petId, visitId: row.visitId };
+  return { ...base, visitId: row.visitId };
 }
 
 export async function loadVeterinarianVisitClinicalReadback(

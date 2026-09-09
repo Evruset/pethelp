@@ -86,7 +86,7 @@ export class ClinicPortalService {
       throw new DomainException(HttpStatus.BAD_REQUEST, 'INVALID_CLINICAL_SUMMARY', 'Clinical summary must be between 3 and 8000 characters');
     }
 
-    return this.database.withTransaction(async (client) => {
+    return this.database.withTransaction<CompleteAppointmentResult>(async (client) => {
       await this.setShortTransactionLimits(client);
       const locked = await client.query<{
         id: string;
@@ -226,6 +226,12 @@ export class ClinicPortalService {
         correlationId: input.correlationId,
         clinicalSummary,
       };
+    }).catch((error: unknown) => {
+      const code = (error as { code?: string })?.code;
+      if (code === '55P03' || code === '57014' || code === '40P01') {
+        throw DomainErrors.slotLockedRetry();
+      }
+      throw error;
     });
   }
 

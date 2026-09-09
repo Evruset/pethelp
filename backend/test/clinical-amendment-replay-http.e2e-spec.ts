@@ -41,7 +41,7 @@ describe('W7-A6 immutable Amendment idempotent replay (real PostgreSQL HTTP)',()
 async function seed(db:DatabaseService){await db.query(`
  INSERT INTO identity_schema.users(id) VALUES('${I.owner}'),('${I.vet}');
  INSERT INTO clinic_schema.clinics(id,legal_name,public_name) VALUES('${I.clinic}','Clinic','Clinic');
- INSERT INTO clinic_schema.clinic_locations(id,clinic_id,address,timezone) VALUES('${I.location}','${I.clinic}','A','Europe/Moscow');
+ INSERT INTO clinic_schema.clinic_locations(id,clinic_id,address) VALUES('${I.location}','${I.clinic}','A');
  INSERT INTO clinic_schema.employee_location_memberships(employee_id,clinic_location_id,role) VALUES('${I.vet}','${I.location}','CLINIC_VETERINARIAN');
  INSERT INTO clinic_schema.clinic_services(id,clinic_location_id,code,display_name,duration_minutes) VALUES('${I.service}','${I.location}','S','Service',30);
  INSERT INTO clinic_schema.appointment_slots(id,clinic_location_id,service_id,starts_at,ends_at) VALUES('${I.slot}','${I.location}','${I.service}',clock_timestamp()-interval '1 hour',clock_timestamp());

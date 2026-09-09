@@ -1,4 +1,4 @@
-import { createElement, useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent, type PropsWithChildren, type ReactElement, type ReactNode } from 'react';
+import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent, type PropsWithChildren, type ReactNode } from 'react';
 import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions, type TextInputProps, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { uiTokens as t } from './tokens';
@@ -48,7 +48,68 @@ export function StateMessage({ kind, title, body, action }: { kind: 'loading' | 
 export function BottomActionBar({ children }: PropsWithChildren) { return <View style={{ gap: t.spacing.sm, paddingTop: t.spacing.sm }}>{children}</View>; }
 type ConfirmationModalProps={visible:boolean;title:string;body:string;confirmLabel:string;cancelLabel?:string;busy?:boolean;onConfirm():void;onCancel():void};
 const confirmationContent=(props:ConfirmationModalProps)=><View style={{ position: 'relative', zIndex: 10000, width: '100%', maxWidth: t.layout.phoneMaxWidth, alignSelf: 'center', gap: t.spacing.lg, padding: t.spacing.xl, borderRadius: t.radius.section, backgroundColor: '#FFFFFF', ...t.shadow.card }}><Header title={props.title} /><BodyText secondary>{props.body}</BodyText><DestructiveButton label={props.confirmLabel} disabled={props.busy} onPress={props.onConfirm} /><GhostButton label={props.cancelLabel??'Не сейчас'} disabled={props.busy} onPress={props.onCancel} /></View>;
-function WebConfirmationModal(props:ConfirmationModalProps){const root=useRef<HTMLDivElement|null>(null);useEffect(()=>{const previous=document.activeElement as HTMLElement|null;root.current?.querySelector<HTMLElement>('button:not([disabled])')?.focus();return()=>previous?.focus();},[]);const trap=(event:ReactKeyboardEvent<HTMLDivElement>)=>{if(event.key==='Escape'){event.preventDefault();props.onCancel();return;}if(event.key!=='Tab')return;const focusable=[...(root.current?.querySelectorAll<HTMLElement>('button:not([disabled])')??[])];if(!focusable.length)return;const first=focusable[0],last=focusable[focusable.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}};return createElement('div',{ref:root,role:'dialog','aria-modal':true,'aria-label':props.title,onKeyDown:trap,style:{position:'fixed',inset:0,zIndex:9999,display:'flex',justifyContent:'flex-end',padding:t.spacing.md,backgroundColor:t.color.overlay}},confirmationContent(props) as ReactElement);}
+function WebConfirmationModal(props: ConfirmationModalProps) {
+  const root = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    root.current
+      ?.querySelector<HTMLElement>('button:not([disabled])')
+      ?.focus();
+
+    return () => previous?.focus();
+  }, []);
+
+  const trap = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      props.onCancel();
+      return;
+    }
+
+    if (event.key !== 'Tab') return;
+
+    const focusable = [
+      ...event.currentTarget.querySelectorAll<HTMLElement>(
+        'button:not([disabled])',
+      ),
+    ];
+
+    if (!focusable.length) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
+  return (
+    <div
+      ref={root}
+      role="dialog"
+      aria-modal={true}
+      aria-label={props.title}
+      onKeyDown={trap}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        display: 'flex',
+        justifyContent: 'flex-end',
+        padding: t.spacing.md,
+        backgroundColor: t.color.overlay,
+      }}
+    >
+      {confirmationContent(props)}
+    </div>
+  );
+}
 export function ConfirmationModal({ visible, title, body, confirmLabel, cancelLabel = 'Не сейчас', busy = false, onConfirm, onCancel }: ConfirmationModalProps) {if(!visible)return null;const props={visible,title,body,confirmLabel,cancelLabel,busy,onConfirm,onCancel};if(Platform.OS==='web')return <WebConfirmationModal {...props}/>;return <Modal visible transparent animationType="fade" onRequestClose={onCancel}><View accessibilityViewIsModal accessibilityLabel={title} style={{ flex: 1, justifyContent: 'flex-end', padding: t.spacing.md, backgroundColor: t.color.overlay, zIndex: 9999 }}>{confirmationContent(props)}</View></Modal>; }
 export function NotificationBadge({ count }: { count: number }) { const bounded = Math.max(0, Math.min(99, Math.trunc(count))); return <View style={{ minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: 10, backgroundColor: t.color.critical, justifyContent: 'center' }}><Text accessibilityLabel={`${bounded} непрочитанных уведомлений`} style={{ ...t.typography.caption, color: t.color.onAccent, textAlign: 'center' }}>{bounded > 0 ? bounded : ''}</Text></View>; }
 export { Modal };
