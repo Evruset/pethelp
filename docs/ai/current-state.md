@@ -2906,6 +2906,277 @@ Batch stop: exactly three checkpoints were processed (T085 continuation, T140, T
   `ACCESSIBILITY_DOCUMENT_TITLE_BLOCKER_REPAIRED=YES`. Recommended next slice
   is only W7-D-R5R — resume remaining final visual/accessibility/Product-UX
   closure.
+## 2026-09-02 — UX-V50-REF-01 canonical V50 reference bootstrap
+
+- Installed the exact approved Owner and Clinic V50 archives, their extracted
+  usable trees, authority contract, and deterministic extracted-file inventory
+  under `docs/ux/v50-reference/`. No production application, backend, runtime
+  configuration, dependency, or lockfile was changed.
+- Source identity passes: Owner
+  `cbef69d764cfe420f58bf84e83cf94a37aa23c89d7466271434bbe3d717633b6`;
+  Clinic
+  `c634654040c572fab6e6e962d722c8bc6ed140dda02b0277f42952742b78c688`.
+  Both archives contain 77 safe relative entries; the extracted inventory
+  covers 141 files with matching SHA-256 hashes.
+- Canonical entrypoints are `docs/ux/v50-reference/owner/index.html` and
+  `docs/ux/v50-reference/clinic/index.html`. Final flags:
+  `OWNER_V50_ARCHIVE_SHA=PASS`, `CLINIC_V50_ARCHIVE_SHA=PASS`,
+  `OWNER_V50_ENTRYPOINT=PASS`, `CLINIC_V50_ENTRYPOINT=PASS`,
+  `OWNER_V50_GUIDELINE=PASS`, `CLINIC_V50_GUIDELINE=PASS`,
+  `V50_REFERENCE_MANIFEST=PASS`, `V50_REFERENCE_FILE_HASHES=PASS`,
+  `V50_AUTHORITY_CONTRACT=PASS`, `V50_REFERENCE_BOOTSTRAP=PASS`.
+  Recommended next slice is only `OWNER-V50-R1` — current production Owner
+  screen map plus first bounded parity implementation.
+
+## 2026-09-02 — OWNER-V50-R1 Owner shell and Home parity
+
+- Verified the canonical V50 manifest and opened Owner `index.html#home` in
+  Chromium at `390x844` and `1440x900`. The production map is recorded in
+  `docs/ux/OWNER-V50-SCREEN-MAP.md`; excluded prototype telemedicine,
+  insurance, and emergency surfaces remain reference-only.
+- The authenticated Owner root now uses one responsive shell: compact mobile
+  navigation and a bounded full-width desktop workspace with active state,
+  consistent typography, spacing, surfaces, cards, and 44px-class controls.
+  Existing booking, Diary, resumed-booking, and logout transitions are
+  preserved.
+- Home now follows Care Normal hierarchy: immediate care heading, truthful
+  booking action, published clinical-history entry, and Pet context. It does
+  not invent appointment, clinic, or Pet facts absent from authoritative APIs.
+- Clean-source Chromium passed public entry and controlled authenticated Home
+  at both viewports with zero horizontal overflow. Focused Home test passes
+  `1/1`; Owner typecheck, targeted ESLint, Expo Web export, and
+  `git diff --check` pass. Development comparison finds hierarchy,
+  composition, responsive navigation, density, and CTA placement suitable for
+  this bounded R1; richer authoritative Pet/appointment content remains a
+  later mapped gap.
+- Final flags: `OWNER_FRONTEND_STARTUP=PASS`, `OWNER_AUTH_ENTRY=PASS`,
+  `OWNER_V50_SCREEN_MAP=PASS`, `OWNER_HOME_MOBILE_STRUCTURE=PASS`,
+  `OWNER_HOME_DESKTOP_STRUCTURE=PASS`, `OWNER_FRONTEND_FUNCTIONAL=YES`,
+  `OWNER_V50_SHELL=PASS`, `OWNER_V50_HOME=PASS`. Recommended next slice is only
+  `OWNER-V50-R2` — Discovery + Service + Availability parity.
+
+## 2026-09-02 — OWNER-V50-R1-R1 Shell/Home visual-gap repair
+
+- Reopened the exact canonical Owner V50 `#home` at `390x844` and `1440x900`
+  after Product comparison found the first R1 too restrained. The repaired
+  production shell now uses a V50-weighted desktop navigation rail, useful wide
+  canvas, dedicated mobile header and bottom product navigation, blue active
+  state, layered surfaces, and compact Care Normal spacing instead of the prior
+  sparse top-navigation layout.
+- Authenticated Home now loads the existing owner-scoped Pet list on entry and
+  makes the authoritative current Pet name/species dominant. The current Pet
+  contract has no image field, so Home uses a bounded initial-avatar fallback
+  and does not invent breed, age, weight, or photography. Opening the existing
+  Pet journey preserves the sole authoritative Pet selection.
+- No Owner appointment-list contract exists in this app. Home therefore renders
+  the V50-like unavailable-data placeholder `Запись появится здесь`, explicitly
+  says that Home does not receive the list yet, and explains which confirmed
+  clinic facts will appear when that authority exists; it does not infer zero
+  appointments or fabricate one. Existing booking, resumed-booking, Diary, logout,
+  session, clinic/service and backend-authority flows remain unchanged.
+- Real authenticated Chromium at both required viewports shows the `W7D Рекс`
+  Pet context, appointment unavailable-data context, primary booking action, clinic/service
+  entry and history action with zero horizontal overflow. Compared with the
+  first R1, the desktop empty canvas and generic repeated-card composition are
+  closed; mobile now has V50 product navigation and denser first-viewport care
+  context. Remaining differences are authoritative Pet photography and a real
+  upcoming appointment when those fields/routes become available.
+- Focused auth/Home/Pet tests PASS `18/18`; Owner typecheck and targeted ESLint PASS;
+  Expo Web export PASS; `git diff --check` PASS. Final flags:
+  `OWNER_FRONTEND_STARTUP=PASS`, `OWNER_AUTH_ENTRY=PASS`,
+  `OWNER_HOME_FUNCTIONAL=PASS`, `OWNER_V50_SHELL=PASS`,
+  `OWNER_V50_HOME=PASS`, `OWNER_V50_PET_CONTEXT=PASS`,
+  `OWNER_V50_APPOINTMENT_CONTEXT=PASS`,
+  `OWNER_HOME_MOBILE_PARITY=PASS`, `OWNER_HOME_DESKTOP_PARITY=PASS`,
+  `PRODUCT_OWNER_VISUAL_REVIEW_REQUIRED=YES`. R2 was not started.
+
+## 2026-09-05 — OWNER-V50-R1-RESET exact V50 Shell/Home rebuild
+
+- Product Owner veto supersedes and invalidates the visual/parity PASS flags
+  recorded by the two earlier OWNER-V50-R1 entries. Current product verdict is
+  `PRODUCT_OWNER_VISUAL_ACCEPTANCE=VETO`; no agent visual PASS is asserted by
+  this reset.
+- Reverified the canonical Owner archive SHA-256 as
+  `cbef69d764cfe420f58bf84e83cf94a37aa23c89d7466271434bbe3d717633b6`
+  against `docs/ux/v50-reference/MANIFEST.json`, then rendered the exact
+  `owner/index.html#home` at `390x844` and `1440x900`. Concrete geometry and the
+  KEEP/MODIFY/REPLACE/REMOVE audit are recorded in
+  `docs/ux/OWNER-V50-HOME-GEOMETRY.md`.
+- Rebuilt Home around the rendered V50 composition: responsive horizontal
+  product shell/mobile bottom navigation, greeting, search-and-booking hero,
+  compact action stack, immediate-value strip, dominant selected-Pet surface,
+  next-action surface, Pilot services, and care-history continuation. Existing
+  session, navigation, booking, resumed-booking, Pet Diary, logout, and
+  owner-scoped Pet authority remain intact.
+- Out-of-Pilot emergency, telemedicine, insurance, and nearby-map capabilities
+  were not implemented. The Pet API has no image field, so the selected Pet uses
+  a deterministic code-native illustration rather than a fabricated photo. Home
+  has no authoritative appointment-list contract, so the next-action surface is
+  a purposeful unavailable-data state without invented clinic, date, status,
+  or price. `HOME_APPOINTMENT_DATA_AUTHORITY_GAP=YES`.
+- Focused auth/Home/Pet tests pass `18/18`; Owner typecheck, targeted ESLint,
+  Node 22 Expo Web export, and `git diff --check` pass. Deterministic authenticated
+  Chromium fixtures at both required viewports report zero horizontal overflow
+  and zero console errors. The live BFF startup endpoint is reachable through
+  Expo, but its real upstream session request currently returns `503` because
+  the local backend on port 3000 is not running; no real authenticated browser
+  result is claimed from that environment.
+- Implementation flags only:
+  `OWNER_V50_HOME_IMPLEMENTATION_READY=YES`,
+  `OWNER_V50_SHELL_IMPLEMENTATION_READY=YES`,
+  `PRODUCT_OWNER_VISUAL_REVIEW_REQUIRED=YES`. R2 was not started. Stop for direct
+  Product Owner inspection.
+
+## 2026-09-05 — OWNER-WEB-RUNTIME-R1 styled live-runtime repair
+
+- Product Owner live evidence invalidated the prior implementation-ready claim
+  for runtime presentation. Exact Chromium reproduction on `127.0.0.1:8182`
+  proved that the correct worktree and Expo Router bundle were served and React
+  Native Web injected 18 style elements without hydration or page errors. The
+  root cause was the `(public)` route itself: it rendered unstyled base
+  `View`, `Text`, `TextInput`, and `Pressable` components with no production
+  layout or control styles. It was not a missing JS bundle or CSS resource.
+- The public and OTP entry now use the existing Owner V50 tokens for the page
+  canvas, VetHelp identity, responsive care hero, bounded auth card, typography,
+  inputs, buttons, disabled/error states, and mobile composition. Authentication
+  state transitions, validation, OTP commands, session storage, and resumed
+  booking behavior are unchanged.
+- Real backend/browser verification exposed a second runtime-only contract seam:
+  the current backend Pet list returns the identifier as `id`, while the Expo
+  parser accepted only `petId`. The parser now safely normalizes either validated
+  UUID field to internal `petId`; malformed identifiers remain rejected.
+- A real development OTP login completed through the live BFF/backend, and a
+  separately existing HttpOnly Owner session was revalidated by the same live
+  backend for final stable Home captures with authoritative `W7D Рекс`. No
+  browser API route was intercepted or mocked. At `1440x900` and `390x844`,
+  required JS loaded with HTTP 200, React Native Web styles were present,
+  relevant console errors, page errors, failed required resources, and
+  horizontal overflow were all zero.
+- Focused public/auth/Home/Pet tests pass `26/26`; Owner typecheck, targeted
+  ESLint, Node 22 Expo Web export, and `git diff --check` pass. The canonical
+  Compose migration command remains blocked on repository migration history:
+  the retained database reports an out-of-order migration, while a clean
+  additive database reaches PostgreSQL `42830` because a clinical foreign key
+  lacks a referenced unique constraint. Runtime proof therefore used the exact
+  current backend on the retained seeded database with `migrate:up` skipped;
+  no backend or schema file was changed.
+- Runtime flags only: `OWNER_LIVE_FRONTEND_RENDER=PASS`,
+  `OWNER_LIVE_STYLES=PASS`, `OWNER_PUBLIC_AUTH_STYLED=PASS`,
+  `OWNER_AUTHENTICATED_HOME_STYLED=PASS`. V50 parity is not asserted. R2 was not
+  started; stop for direct Product Owner inspection.
+
+## 2026-09-06 — OWNER-V50-R1-R2 real Home composition repair
+
+- Product Owner veto remains authoritative: live rendering and styles are
+  restored, but no V50 Home or visual-acceptance PASS is asserted. Reopened the
+  exact canonical `owner/index.html#home` and the real current Owner runtime
+  side-by-side at `390x844` and `1440x900` before changing composition.
+- Mobile bottom navigation no longer overlays the Home ScrollView. It now owns
+  a stable bottom safe-area row outside scrolling content, while Home retains
+  explicit bottom padding. Real Chromium at the bottom of the page reports the
+  nav as `position: relative`, the final history heading ending 97 px above the
+  nav, and zero horizontal overflow. `OWNER_MOBILE_NAV_NO_CONTENT_OVERLAP=PASS`.
+- Removed implementation-facing copy about unavailable Home APIs, fabricated
+  data, confirmed profiles, and profile illustrations. The appointment surface
+  now says `Ближайших записей пока нет` and offers `Записаться в клинику`.
+  Pet identity remains authoritative, while the missing photo is represented by
+  a warm code-native animal avatar with no technical label or fabricated image.
+- Home hierarchy now gives the white search/booking hero primary weight, uses a
+  lighter unboxed next-step continuation, pairs a warm Pet surface with a blue
+  appointment empty state, and reduces repeated equal-weight dashboard cards.
+  Desktop retains the bounded V50 product shell and fills the first viewport
+  with an intentional hero → care step → Pet/appointment sequence. Public auth
+  keeps the same corrected Owner shell and tokens without auth redesign.
+- A fresh real OTP login passed through the current Chromium bundle, BFF, and
+  backend. Final authenticated captures used a backend-revalidated HttpOnly
+  session and authoritative `W7D Рекс`; no API route was intercepted or mocked.
+  Both required viewports report zero relevant console errors, page errors,
+  failed requests, and horizontal overflow.
+- Focused public/auth/Home/Pet tests pass `26/26`; Owner typecheck, targeted
+  ESLint, Node 22 Expo Web export, and `git diff --check` pass. Implementation
+  flags only: `OWNER_V50_HOME_IMPLEMENTATION_READY=YES`,
+  `PRODUCT_OWNER_VISUAL_REVIEW_REQUIRED=YES`. Product Owner visual acceptance
+  remains vetoed. Discovery/R2 was not started; stop for direct inspection.
+
+## 2026-09-06 — OWNER-V50-R1-R3 Home decision-architecture repair
+
+- Product Owner classified the shell as partial-pass and Home as partial, with
+  visual acceptance still vetoed. Exact canonical/runtime comparison was scoped
+  to the hero action rail, the section immediately following it, and the
+  transition into the already-accepted Pet/appointment composition; Shell,
+  public auth, Pet card, appointment card, and downstream booking screens were
+  not redesigned.
+- Removed the generic Home process continuation (`Питомец → Клиника → Время` and
+  `Начать выбор`). The post-hero section now restores the canonical `Польза
+  сразу` role: `Подберём подходящую клинику`, a concise online-selection value
+  proposition, three non-numeric Pilot capability indicators, and `Показать
+  клиники`. The rendered sequence is now search/decision → immediate value →
+  Pet/next-care context at both required viewports.
+- Replaced the hero shortcuts `Дневник` and selected Pet with direct booking
+  decisions: `Записаться`, `Выбрать клинику`, and `Найти время`. Diary and Pet
+  identity remain available in their dedicated Home surfaces and navigation.
+  Emergency, telemedicine, insurance, and other out-of-Pilot actions remain
+  absent.
+- `HOME_IMMEDIATE_VALUE_DATA_GAP=clinic_count,current_city_or_area,service_count,next_available_slot`.
+  Home does not fetch an authoritative discovery/availability summary, so no
+  counts, location, price, distance, date, or availability promise is shown.
+  Existing catalog/service/availability data continues to load only inside the
+  established booking journey.
+- A fresh real OTP login passed through Chromium, the current bundle, BFF, and
+  backend. Final authenticated comparison used a backend-revalidated HttpOnly
+  session with authoritative `W7D Рекс`; no route was intercepted or mocked.
+  At `390x844` and `1440x900`, relevant console errors, page errors, failed
+  requests, and horizontal overflow are zero; mobile content/nav separation
+  remains 97 px at the final history heading.
+- Focused public/auth/Home/Pet tests pass `26/26`; Owner typecheck, targeted
+  ESLint, Node 22 Expo Web export, and `git diff --check` pass. Implementation
+  flags only: `OWNER_V50_HOME_IMPLEMENTATION_READY=YES`,
+  `PRODUCT_OWNER_VISUAL_REVIEW_REQUIRED=YES`. V50 Home PASS and Product Owner
+  visual acceptance are not asserted. Discovery/R2 was not started; stop for
+  direct inspection.
+
+## 2026-09-06 — OWNER-V50-R2 Discovery, service and availability implementation
+
+- Exact canonical Chromium states are `#catalog`, `#clinic`, and `#booking`.
+  They map to the in-app Owner journey components `ClinicCatalogScreen`,
+  `ClinicServiceScreen`, and `AvailabilityScreen` respectively. The prototype
+  `#decision-comparison` state is excluded because the Pilot catalog projection
+  does not authoritatively expose cross-clinic service, price, distance, rating,
+  or availability comparison data.
+- Discovery now uses compact decision cards with explicit selection, clinic
+  identity, address/contact when returned, and one clear next action. Clinic and
+  Service preserve the selected clinic IDs, expose readable single-selection
+  services and informational server-authored prices, and refresh authority
+  before handoff. Availability keeps clinic/service context, uses actual
+  clinic-local dates and DoctorShift-derived slots, shows a selected summary,
+  and revalidates the slot/version before continuation.
+- Loading, empty, error, stale-selection and retry states remain deterministic.
+  No ratings, reviews, distance, urgency, scarcity, availability, or prices are
+  fabricated. `DATA_AUTHORITY_GAP` remains: catalog-level service context,
+  catalog-level price, catalog-level next availability, distance/travel time,
+  ratings/reviews, service grouping metadata, and doctor identity. Supplying
+  those fields would require an additive backend projection outside R2.
+- Approved Home and Shell composition is unchanged. Its existing `Записаться`,
+  `Выбрать клинику`, and `Найти время` actions already enter the same real Pet →
+  Catalog journey. `HOME_IMMEDIATE_VALUE_DATA_GAP` remains open because the Home
+  read path has no bounded clinic/service/availability summary projection.
+- Real Chromium/BFF/backend/auth execution completed Catalog → Service →
+  Availability against production API responses. At `390x844` and `1440x900`,
+  post-auth relevant console/page errors, failed required requests, and
+  horizontal overflow are zero; visible interactive targets below 44 px are
+  zero on mobile. Development comparisons were captured only; no final visual
+  package or Product/UX review was performed.
+- Focused Clinic journey tests pass `20/20`; typecheck, targeted ESLint, Node 22
+  Expo Web export, and `git diff --check` pass. The canonical local seed wrapper
+  remains blocked by a pre-existing migration checksum mismatch; its bounded
+  base seed ran directly and supplied the real catalog/slot inventory. The
+  optional fixed local identity seed then stopped safely on an ownership
+  collision and made no identity change.
+- Implementation-only flags:
+  `OWNER_V50_DISCOVERY_IMPLEMENTATION_READY=YES`,
+  `OWNER_V50_SERVICE_IMPLEMENTATION_READY=YES`, and
+  `OWNER_V50_AVAILABILITY_IMPLEMENTATION_READY=YES`. Product Owner visual review
+  is required. No R3 work was started.
 
 ## W7 clinical visit/result repair — 2026-09-09
 

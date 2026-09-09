@@ -31,7 +31,7 @@ export function PetJourneyProvider({ children, api = petApi }: PropsWithChildren
   const active = status === 'authenticated' && activeScope !== null && activeScope === session?.cacheScope;
   const continuedPetId = continuedPetForScope(continuedSelection,status,session?.cacheScope);
   const key = useMemo(() => ['owner', session?.cacheScope, 'pets'] as const, [session?.cacheScope]);
-  const query = useQuery({ queryKey: key, enabled: active && status === 'authenticated' && session !== null, queryFn: async ({ signal }) => {
+  const query = useQuery({ queryKey: key, enabled: status === 'authenticated' && session !== null, queryFn: async ({ signal }) => {
     const items = await api.list(session!.opaqueCredential, signal);
     if (selectionRef.current && !items.some((item) => item.petId === selectionRef.current)) { selectionRef.current=null; setSelected(null); setSelectionStale(true); }
     else if (!selectionRef.current && items.length === 1) { selectionRef.current=items[0].petId; setSelected(items[0].petId); setSelectionStale(false); }
@@ -40,7 +40,7 @@ export function PetJourneyProvider({ children, api = petApi }: PropsWithChildren
   const pets = useMemo(() => query.data ?? [], [query.data]);
   const selectedPetId = pets.some((item) => item.petId === storedSelection) ? storedSelection : pets.length === 1 ? pets[0].petId : null;
   const select = useCallback((petId:string) => { selectionRef.current=petId; setSelected(petId); setSelectionStale(false); }, []);
-  const start = useCallback(() => { selectionRef.current=null; setSelected(null); setSelectionStale(false); setContinuedSelection(null); pendingCreate.current = null; setCreateError(false); setActiveScope(session?.cacheScope ?? null); }, [session?.cacheScope]);
+  const start = useCallback(() => { const solePetId=pets.length===1?pets[0].petId:null; selectionRef.current=solePetId; setSelected(solePetId); setSelectionStale(false); setContinuedSelection(null); pendingCreate.current = null; setCreateError(false); setActiveScope(session?.cacheScope ?? null); }, [pets, session?.cacheScope]);
   const cancel = useCallback(() => { selectionRef.current=null; setSelected(null); setSelectionStale(false); setContinuedSelection(null); pendingCreate.current = null; setCreateError(false); setActiveScope(null); }, []);
   const create = useCallback(async (input: { name: string; species: PetSpecies }) => {
     if (!session || creating) return;

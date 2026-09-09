@@ -1,54 +1,89 @@
-import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { useState, type ReactNode } from 'react';
+import { Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions, type ViewStyle } from 'react-native';
 
-import { useSession } from '@/session/SessionProvider';
 import { useAuthJourney } from '@/auth/AuthJourneyProvider';
-import { usePetJourney } from '@/pets/PetJourneyProvider';
-import { PetJourneyScreen } from '@/pets/PetJourneyScreen';
-import { PetDiaryScreen } from '@/pets/PetDiaryScreen';
+import { BookingReviewScreen } from '@/booking/BookingReviewScreen';
+import { AvailabilityScreen } from '@/clinics/AvailabilityScreen';
+import type { AvailabilityHandoff } from '@/clinics/availability-api';
 import { ClinicCatalogScreen } from '@/clinics/ClinicCatalogScreen';
 import type { ClinicCatalogHandoff } from '@/clinics/clinic-catalog-api';
 import { ClinicServiceScreen } from '@/clinics/ClinicServiceScreen';
 import type { ClinicServiceHandoff } from '@/clinics/clinic-service-api';
-import { AvailabilityScreen } from '@/clinics/AvailabilityScreen';
-import type { AvailabilityHandoff } from '@/clinics/availability-api';
-import { BookingReviewScreen } from '@/booking/BookingReviewScreen';
+import { PetDiaryScreen } from '@/pets/PetDiaryScreen';
+import { usePetJourney } from '@/pets/PetJourneyProvider';
+import { PetJourneyScreen } from '@/pets/PetJourneyScreen';
+import type { Pet } from '@/pets/pet-api';
+import { useSession } from '@/session/SessionProvider';
+import { Button, OwnerAppFrame, StatusBadge } from '@/ui/primitives';
+import { uiTokens as t } from '@/ui/tokens';
 
-export default function AuthenticatedHomeScreen() {
-  const {session}=useSession();
-  return <AuthorityScopedHome key={`${session?.cacheScope}:${session?.opaqueCredential}`}/>;
-}
+const h=t.ownerHome;
+const speciesLabel=(species:Pet['species'])=>species==='DOG'?'Собака':species==='CAT'?'Кошка':'Питомец';
 
-function AuthorityScopedHome() {
+export default function AuthenticatedHomeScreen(){const {session}=useSession();return <AuthorityScopedHome key={`${session?.cacheScope}:${session?.opaqueCredential}`}/>}
+
+function AuthorityScopedHome(){
   const [authorityGeneration]=useState(()=>`${Date.now()}-${Math.random()}`);
   const [openedClinic,setOpenedClinic]=useState<ClinicCatalogHandoff|null>(null);
   const [selectedService,setSelectedService]=useState<ClinicServiceHandoff|null>(null);
   const [selectedAvailability,setSelectedAvailability]=useState<AvailabilityHandoff|null>(null);
-  const { error, logout, session } = useSession();
-  const { resumedIntent, consumeResumedIntent } = useAuthJourney();
-  const pets = usePetJourney();
-  const [petIntent, setPetIntent] = useState<'booking' | 'diary' | null>(null);
-  if(selectedAvailability&&pets.continuedPetId)return <BookingReviewScreen petId={pets.continuedPetId} context={selectedAvailability} authorityGeneration={authorityGeneration} onBack={()=>setSelectedAvailability(null)} onConflict={()=>{setSelectedAvailability(null);setSelectedService(null);}}/>;
+  const {error,logout,session}=useSession(); const {resumedIntent,consumeResumedIntent}=useAuthJourney(); const pets=usePetJourney();
+  const [petIntent,setPetIntent]=useState<'booking'|'diary'|null>(null);
+  if(selectedAvailability&&pets.continuedPetId)return <BookingReviewScreen petId={pets.continuedPetId} context={selectedAvailability} authorityGeneration={authorityGeneration} onBack={()=>setSelectedAvailability(null)} onConflict={()=>{setSelectedAvailability(null);setSelectedService(null)}}/>;
   if(selectedService)return <AvailabilityScreen key={`${authorityGeneration}:${selectedService.clinicId}:${selectedService.locationId}:${selectedService.serviceId}`} authorityGeneration={authorityGeneration} context={selectedService} onBack={()=>setSelectedService(null)} onContinue={setSelectedAvailability}/>;
   if(openedClinic)return <ClinicServiceScreen key={`${session?.opaqueCredential}:${openedClinic.clinicId}:${openedClinic.locationId}`} clinic={openedClinic} onBack={()=>setOpenedClinic(null)} onContinue={setSelectedService}/>;
-  if(pets.continuedPetId && petIntent === 'diary') return <PetDiaryScreen petId={pets.continuedPetId} petName={pets.pets.find((pet) => pet.petId === pets.continuedPetId)?.name ?? 'Питомец'} onBack={() => { pets.cancel(); setPetIntent(null); }} onSwitchPet={pets.start} />;
-  if(pets.continuedPetId)return <ClinicCatalogScreen onClose={() => { pets.cancel(); setPetIntent(null); }} onOpenClinic={setOpenedClinic}/>;
-  if (pets.active) return <PetJourneyScreen />;
-  return (
-    <View accessibilityLabel="Личный кабинет">
-      <Text>VetHelp</Text>
-      {resumedIntent?.kind === 'START_BOOKING' ? (
-        <View accessibilityLabel="Восстановленный сценарий записи">
-          <Text>Вход выполнен. Продолжите запись.</Text>
-          <Pressable accessibilityRole="button" onPress={() => { consumeResumedIntent(); pets.start(); }}><Text>Продолжить запись</Text></Pressable>
-        </View>
-      ) : null}
-      {error === 'SESSION_CLEANUP_FAILED' ? <Text accessibilityRole="alert">Не удалось завершить выход. Повторите попытку.</Text> : null}
-      <Pressable accessibilityRole="button" onPress={() => { setPetIntent('booking'); pets.start(); }}><Text>Начать запись</Text></Pressable>
-      <Pressable accessibilityRole="button" onPress={() => { setPetIntent('diary'); pets.start(); }}><Text>Открыть дневник</Text></Pressable>
-      <Pressable accessibilityRole="button" onPress={() => { void logout(); }}>
-        <Text>Выйти</Text>
-      </Pressable>
-    </View>
-  );
+  if(pets.continuedPetId&&petIntent==='diary')return <PetDiaryScreen petId={pets.continuedPetId} petName={pets.pets.find(p=>p.petId===pets.continuedPetId)?.name??'Питомец'} onBack={()=>{pets.cancel();setPetIntent(null)}} onSwitchPet={pets.start}/>;
+  if(pets.continuedPetId)return <ClinicCatalogScreen onClose={()=>{pets.cancel();setPetIntent(null)}} onOpenClinic={setOpenedClinic}/>;
+  if(pets.active)return <PetJourneyScreen/>;
+  const beginBooking=()=>{setPetIntent('booking');pets.start()}; const openDiary=()=>{setPetIntent('diary');pets.start()};
+  return <OwnerHome onBook={beginBooking} onDiary={openDiary} onLogout={()=>{void logout()}} resumed={resumedIntent?.kind==='START_BOOKING'} onResume={()=>{consumeResumedIntent();pets.start()}} cleanupError={error==='SESSION_CLEANUP_FAILED'} currentPet={pets.pets.length===1?pets.pets[0]:null} petCount={pets.pets.length} petLoading={pets.loading} petError={pets.error} onRetryPet={pets.retry}/>;
 }
+
+type HomeProps={onBook():void;onDiary():void;onLogout():void;resumed?:boolean;onResume?():void;cleanupError?:boolean;currentPet?:Pet|null;petCount?:number;petLoading?:boolean;petError?:boolean;onRetryPet?():void};
+
+export function OwnerHome({onBook,onDiary,onLogout,resumed=false,onResume,cleanupError=false,currentPet=null,petCount=0,petLoading=false,petError=false,onRetryPet}:HomeProps){
+  const {width}=useWindowDimensions(); const desktop=Platform.OS==='web'&&width>=900; const petName=currentPet?.name;
+  const nav=[['Главная','⌂',undefined,true],['Клиники','▥',onBook,false],['Дневник','▤',onDiary,false]] as const;
+  return <OwnerAppFrame wide><View style={{flex:1,width:'100%',maxWidth:h.desktopMaxWidth,alignSelf:'center',backgroundColor:h.canvas}}>
+    {desktop?<DesktopShell nav={nav} petCount={petCount} onLogout={onLogout}/>:<MobileHeader onLogout={onLogout}/>}
+    <ScrollView style={{flex:1}} contentContainerStyle={{paddingHorizontal:desktop?24:12,paddingTop:desktop?14:12,paddingBottom:desktop?42:24,gap:desktop?16:12}} showsVerticalScrollIndicator={false}>
+      <HomeHeader petName={petName} desktop={desktop}/>
+      {resumed?<Surface style={{padding:16}}><StatusBadge label="Запись не потеряна" tone="info"/><Text style={styles.sectionTitle}>Продолжите выбор клиники</Text><Text style={styles.muted}>Вход выполнен. Продолжите запись.</Text><HomeButton label="Продолжить запись" onPress={onResume??onBook}/></Surface>:null}
+      {cleanupError?<Text accessibilityRole="alert" style={{color:t.color.critical}}>Не удалось завершить выход. Повторите попытку.</Text>:null}
+      <SearchHero petName={petName} desktop={desktop} onBook={onBook}/>
+      <ImmediateValue petName={petName} desktop={desktop} onBook={onBook}/>
+      <View style={{flexDirection:desktop?'row':'column',gap:16,alignItems:'stretch'}}><View style={{flex:desktop?1.05:undefined}}><PetHero pet={currentPet} petCount={petCount} loading={petLoading} error={petError} onBook={onBook} onDiary={onDiary} onRetry={onRetryPet} desktop={desktop}/></View><View style={{flex:desktop?0.95:undefined}}><NextAction onBook={onBook}/></View></View>
+      <CoreServices desktop={desktop} onBook={onBook} onDiary={onDiary}/>
+      <CareHistory petName={petName} onDiary={onDiary}/>
+    </ScrollView>
+    {!desktop?<MobileNav nav={nav}/>:null}
+  </View></OwnerAppFrame>;
+}
+
+const styles={sectionTitle:{...t.typography.sectionTitle,color:h.ink},muted:{...t.typography.secondaryBody,color:h.muted}};
+
+function Brand(){return <View style={{flexDirection:'row',alignItems:'center',gap:10}}><View style={{width:40,height:40,borderRadius:13,backgroundColor:h.blue,alignItems:'center',justifyContent:'center'}}><Text style={{fontSize:21,color:'#fff'}}>✦</Text></View><Text style={{...t.typography.sectionTitle,color:h.ink}}>VetHelp</Text></View>}
+type NavTuple=readonly[string,string,(()=>void)|undefined,boolean];
+function DesktopShell({nav,petCount,onLogout}:{nav:readonly NavTuple[];petCount:number;onLogout():void}){return <View accessibilityLabel="Основная навигация" style={{height:66,marginHorizontal:24,marginTop:14,paddingHorizontal:16,borderWidth:1,borderColor:h.border,borderRadius:20,backgroundColor:'rgba(255,255,255,.96)',flexDirection:'row',alignItems:'center',...t.shadow.card}}><Brand/><View style={{flex:1,flexDirection:'row',justifyContent:'center',gap:5}}>{nav.map(([label,icon,action,active])=><NavButton key={label} label={label} icon={icon} onPress={action} active={active}/>)}</View><View style={{flexDirection:'row',alignItems:'center',gap:10}}><View style={{paddingHorizontal:12,paddingVertical:8,borderRadius:14,backgroundColor:h.blueSoft}}><Text style={{...t.typography.caption,color:h.muted}}>Питомцы</Text><Text style={{...t.typography.label,color:h.ink}}>{petCount}</Text></View><Pressable accessibilityRole="button" onPress={onLogout} style={{minHeight:44,justifyContent:'center',paddingHorizontal:8}}><Text style={{...t.typography.label,color:h.muted}}>Выйти</Text></Pressable></View></View>}
+function MobileHeader({onLogout}:{onLogout():void}){return <View style={{height:58,paddingHorizontal:14,backgroundColor:'rgba(255,255,255,.96)',borderBottomWidth:1,borderBottomColor:h.border,flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}><Brand/><Pressable accessibilityRole="button" onPress={onLogout} style={{minHeight:44,justifyContent:'center',paddingHorizontal:6}}><Text style={{...t.typography.caption,color:h.muted}}>Выйти</Text></Pressable></View>}
+function NavButton({label,icon,onPress,active,compact=false}:{label:string;icon:string;onPress:(()=>void)|undefined;active:boolean;compact?:boolean}){return <Pressable accessibilityRole="button" accessibilityState={{selected:active}} onPress={onPress} style={({pressed})=>({minHeight:compact?52:44,minWidth:compact?68:undefined,paddingHorizontal:compact?7:14,paddingVertical:6,borderRadius:14,backgroundColor:active?h.blueSoft:'transparent',alignItems:'center',justifyContent:'center',flexDirection:compact?'column':'row',gap:compact?1:7,opacity:pressed?0.65:1})}><Text style={{fontSize:compact?18:16,color:active?h.blue:h.muted}}>{icon}</Text><Text style={{...t.typography.caption,fontSize:compact?10:13,color:active?h.blue:h.muted,fontWeight:active?'700':'600'}}>{label}</Text></Pressable>}
+function MobileNav({nav}:{nav:readonly NavTuple[]}){return <View style={{paddingHorizontal:8,paddingTop:6,paddingBottom:8,backgroundColor:h.canvas}}><View accessibilityLabel="Основная навигация" style={{minHeight:68,paddingHorizontal:8,borderWidth:1,borderColor:h.border,borderRadius:22,backgroundColor:'rgba(255,255,255,.98)',flexDirection:'row',alignItems:'center',justifyContent:'space-around',...t.shadow.card}}>{nav.map(([label,icon,action,active])=><NavButton compact key={label} label={label} icon={icon} onPress={action} active={active}/>)}</View></View>}
+
+function HomeHeader({petName,desktop}:{petName?:string;desktop:boolean}){return <View accessibilityLabel="Личный кабинет" style={{minHeight:desktop?72:82,flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:12}}><View style={{flex:1,gap:3}}>{!desktop?<Text style={{...t.typography.caption,color:h.blue,fontWeight:'700'}}>● Личный кабинет владельца</Text>:null}<Text accessibilityRole="header" style={{fontSize:desktop?36:29,lineHeight:desktop?41:34,fontWeight:'800',color:h.ink}}>Доброе утро{petName?'!':''}</Text><Text style={{...t.typography.secondaryBody,color:h.muted}}>Всё важное для заботы{petName?` о ${petName}`:' о питомце'} — в одном месте.</Text></View><View style={{width:44,height:44,borderRadius:15,backgroundColor:h.surface,alignItems:'center',justifyContent:'center',borderWidth:1,borderColor:h.border}}><Text style={{fontSize:20,color:h.blue}}>♢</Text></View></View>}
+
+function Surface({children,style}:{children:ReactNode;style?:ViewStyle}){return <View style={[{padding:20,gap:10,borderWidth:1,borderColor:h.border,borderRadius:22,backgroundColor:'rgba(255,255,255,.94)',shadowColor:'#26508C',shadowOpacity:.08,shadowRadius:24,shadowOffset:{width:0,height:10},elevation:2},style]}>{children}</View>}
+function HomeButton({label,onPress,secondary=false}:{label:string;onPress():void;secondary?:boolean}){return <Pressable accessibilityRole="button" onPress={onPress} style={({pressed})=>({minHeight:48,paddingHorizontal:18,paddingVertical:13,borderWidth:secondary?1:0,borderColor:h.border,borderRadius:13,backgroundColor:secondary?h.surface:pressed?h.bluePressed:h.blue,justifyContent:'center'})}><Text style={{...t.typography.button,color:secondary?h.blue:'#fff',textAlign:'center'}}>{label}</Text></Pressable>}
+
+function SearchHero({petName,desktop,onBook}:{petName?:string;desktop:boolean;onBook():void}){const [query,setQuery]=useState('');return <Surface style={{padding:desktop?20:16,flexDirection:desktop?'row':'column',gap:desktop?16:14,backgroundColor:'#FFFFFF'}}><View style={{flex:1.25,gap:10}}><Text style={{...t.typography.label,color:'#4D6588',textTransform:'uppercase',letterSpacing:.7}}>Быстрый выбор помощи</Text><Text style={{fontSize:desktop?40:30,lineHeight:desktop?45:35,fontWeight:'800',color:h.ink}}>Найти клинику{petName?` для ${petName}`:''}</Text><Text style={{...t.typography.secondaryBody,color:h.muted}}>Выберите клинику, услугу и удобное время.</Text><View accessibilityLabel="Поиск клиники или услуги" style={{flexDirection:desktop?'row':'column',gap:9}}><TextInput accessibilityLabel="Клиника или услуга" value={query} onChangeText={setQuery} onSubmitEditing={onBook} placeholder="Клиника или услуга" placeholderTextColor="#7B879A" style={{flex:1,minHeight:48,paddingHorizontal:16,borderWidth:1,borderColor:'#AFC9EE',borderRadius:14,backgroundColor:'#fff',...t.typography.body,color:h.ink}}/><View style={{minWidth:desktop?156:undefined}}><HomeButton label="Найти клинику" onPress={onBook}/></View></View></View><View accessibilityLabel="Главные действия" style={{flex:.75,gap:8}}><HeroAction compact={!desktop} icon="▥" title="Записаться" subtitle="Клиники, услуги, время" primary onPress={onBook}/><HeroAction compact={!desktop} icon="⌖" title="Выбрать клинику" subtitle="Адреса и услуги" onPress={onBook}/><HeroAction compact={!desktop} icon="◷" title="Найти время" subtitle="Доступные слоты" onPress={onBook}/></View></Surface>}
+function HeroAction({icon,title,subtitle,onPress,primary=false,compact=false}:{icon:string;title:string;subtitle:string;onPress():void;primary?:boolean;compact?:boolean}){return <Pressable accessibilityRole="button" onPress={onPress} style={({pressed})=>({minHeight:compact?64:72,paddingHorizontal:14,paddingVertical:compact?8:11,borderWidth:1,borderColor:primary?'#9BC0FF':h.border,borderRadius:16,backgroundColor:primary?h.blueSoft:h.surface,flexDirection:'row',alignItems:'center',gap:11,opacity:pressed?0.65:1})}><View style={{width:compact?36:40,height:compact?36:40,borderRadius:12,backgroundColor:primary?'#D6E6FF':h.surfaceSoft,alignItems:'center',justifyContent:'center'}}><Text style={{fontSize:compact?18:20,color:h.blue}}>{icon}</Text></View><View><Text style={{...t.typography.label,color:h.ink}}>{title}</Text><Text style={{...t.typography.caption,color:h.muted,marginTop:2}}>{subtitle}</Text></View></Pressable>}
+
+function ImmediateValue({petName,desktop,onBook}:{petName?:string;desktop:boolean;onBook():void}){const facts=[['Клиники','адреса и услуги'],['Удобное время','доступные слоты'],['Без звонка','заявка онлайн']] as const;return <Surface style={{padding:desktop?16:14,flexDirection:desktop?'row':'column',alignItems:desktop?'center':'stretch',gap:desktop?14:12,backgroundColor:'rgba(255,255,255,.82)'}}><View style={{flex:1.2,gap:3}}><Text style={{...t.typography.caption,color:h.blue,fontWeight:'800',textTransform:'uppercase'}}>Польза сразу</Text><Text style={{...t.typography.sectionTitle,color:h.ink}}>Подберём подходящую клинику{petName?` для ${petName}`:''}</Text><Text style={{...t.typography.caption,color:h.muted}}>Выберите услугу и удобное время онлайн.</Text></View><View accessibilityLabel="Возможности записи" style={{flex:1.15,flexDirection:'row',gap:7}}>{facts.map(([value,label])=><View key={value} style={{flex:1,minHeight:58,paddingHorizontal:9,paddingVertical:8,borderRadius:12,backgroundColor:h.blueSoft,justifyContent:'center'}}><Text style={{...t.typography.label,fontSize:desktop?13:12,color:h.ink}}>{value}</Text><Text style={{...t.typography.caption,fontSize:10,color:h.muted,marginTop:2}}>{label}</Text></View>)}</View><HomeButton label="Показать клиники" secondary onPress={onBook}/></Surface>}
+
+function PetIllustration({pet}:{pet:Pet}){const cat=pet.species==='CAT';return <View accessibilityLabel={`Фото ${pet.name} пока не добавлено`} style={{minHeight:190,flex:1,borderRadius:20,backgroundColor:'#FFF1E2',overflow:'hidden',alignItems:'center',justifyContent:'center'}}><View style={{position:'absolute',width:142,height:142,borderRadius:71,backgroundColor:'#FFF9F2'}}/><View style={{width:94,height:86,borderRadius:44,backgroundColor:'#E6B77F',alignItems:'center',justifyContent:'center'}}><View style={{position:'absolute',left:-10,top:-14,width:38,height:48,borderRadius:cat?6:20,backgroundColor:'#D49A61',transform:[{rotate:cat?'-18deg':'-28deg'}]}}/><View style={{position:'absolute',right:-10,top:-14,width:38,height:48,borderRadius:cat?6:20,backgroundColor:'#D49A61',transform:[{rotate:cat?'18deg':'28deg'}]}}/><View style={{flexDirection:'row',gap:22,marginTop:5}}><View style={{width:7,height:9,borderRadius:5,backgroundColor:'#59483A'}}/><View style={{width:7,height:9,borderRadius:5,backgroundColor:'#59483A'}}/></View><View style={{width:12,height:9,borderRadius:6,backgroundColor:'#59483A',marginTop:11}}/></View></View>}
+function PetHero({pet,petCount,loading,error,onBook,onDiary,onRetry,desktop}:{pet:Pet|null;petCount:number;loading:boolean;error:boolean;onBook():void;onDiary():void;onRetry?():void;desktop:boolean}){return <Surface style={{minHeight:desktop?276:238,flexDirection:pet?'row':'column',padding:desktop?18:14,gap:desktop?18:14,backgroundColor:'#FFFDFC',borderColor:'#F0D9BE'}}>{loading?<Text style={styles.muted}>Загружаем питомца…</Text>:error?<View style={{gap:10}}><Text style={styles.sectionTitle}>Не удалось загрузить питомца</Text><Text style={styles.muted}>Проверьте соединение и повторите.</Text>{onRetry?<Button label="Повторить" variant="secondary" onPress={onRetry}/>:null}</View>:pet?<><View style={{width:desktop?190:108}}><PetIllustration pet={pet}/></View><View style={{flex:1,gap:5}}><Text style={{...t.typography.caption,color:'#A4662E',fontWeight:'800',textTransform:'uppercase'}}>Мой питомец</Text><Text style={{fontSize:desktop?38:28,lineHeight:desktop?43:33,fontWeight:'800',color:h.ink}}>{pet.name}</Text><Text style={styles.muted}>{speciesLabel(pet.species)}</Text><Text style={{...t.typography.caption,color:h.muted}}>Запись и дневник всегда рядом.</Text><View style={{marginTop:'auto',gap:8}}><HomeButton label="Записаться" onPress={onBook}/><HomeButton label="Дневник" secondary onPress={onDiary}/></View></View></>:<View style={{flex:1,gap:10}}><Text style={{...t.typography.caption,color:h.blue,fontWeight:'800',textTransform:'uppercase'}}>Питомцы</Text><View style={{width:84,height:84,borderRadius:28,backgroundColor:'#FFF1E2',alignItems:'center',justifyContent:'center'}}><Text style={{fontSize:34,color:'#A4662E',fontWeight:'800'}}>{petCount>1?petCount:'＋'}</Text></View><Text style={{fontSize:28,lineHeight:34,fontWeight:'800',color:h.ink}}>{petCount>1?'Выберите питомца':'Добавьте питомца'}</Text><Text style={styles.muted}>{petCount>1?'Укажите, для кого открыть запись или дневник.':'Профиль нужен для записи и истории здоровья.'}</Text><View style={{marginTop:'auto'}}><HomeButton label={petCount>1?'Выбрать питомца':'Добавить питомца'} onPress={onBook}/></View></View>}</Surface>}
+
+function NextAction({onBook}:{onBook():void}){return <Surface style={{minHeight:276,backgroundColor:h.blueSoft,borderColor:'#AFCBFA'}}><View style={{flexDirection:'row',justifyContent:'space-between',gap:10}}><View style={{flex:1,gap:5}}><Text style={{...t.typography.caption,color:h.blue,fontWeight:'800',textTransform:'uppercase'}}>Ближайшая запись</Text><Text style={{fontSize:28,lineHeight:34,fontWeight:'800',color:h.ink}}>Ближайших записей пока нет</Text></View><View style={{width:48,height:48,borderRadius:16,backgroundColor:'#FFFFFF',alignItems:'center',justifyContent:'center'}}><Text style={{fontSize:23,color:h.blue}}>◷</Text></View></View><Text style={styles.muted}>Выберите клинику и удобное время — запись появится здесь.</Text><View style={{marginTop:'auto'}}><HomeButton label="Записаться в клинику" onPress={onBook}/></View></Surface>}
+
+function CoreServices({desktop,onBook,onDiary}:{desktop:boolean;onBook():void;onDiary():void}){return <View style={{gap:10}}><View style={{flexDirection:'row',justifyContent:'space-between'}}><Text style={styles.sectionTitle}>Сервисы</Text><Text style={{...t.typography.caption,color:h.muted}}>Главное для заботы</Text></View><View style={{flexDirection:desktop?'row':'column',gap:10}}><ServiceCard icon="▥" title="Клиники и услуги" subtitle="Выбрать помощь и время" onPress={onBook}/><ServiceCard icon="▤" title="Дневник питомца" subtitle="Результаты и рекомендации" onPress={onDiary}/><ServiceCard icon="●" title="Мои питомцы" subtitle="Профили питомцев" onPress={onBook}/></View></View>}
+function ServiceCard({icon,title,subtitle,onPress}:{icon:string;title:string;subtitle:string;onPress():void}){return <Pressable accessibilityRole="button" onPress={onPress} style={({pressed})=>({flex:1,minHeight:104,padding:15,borderWidth:1,borderColor:h.border,borderRadius:18,backgroundColor:h.surface,gap:7,opacity:pressed?0.65:1})}><View style={{width:40,height:40,borderRadius:13,backgroundColor:h.blueSoft,alignItems:'center',justifyContent:'center'}}><Text style={{fontSize:19,color:h.blue}}>{icon}</Text></View><Text style={styles.sectionTitle}>{title}</Text><Text style={{...t.typography.caption,color:h.muted}}>{subtitle}</Text></Pressable>}
+function CareHistory({petName,onDiary}:{petName?:string;onDiary():void}){return <View style={{paddingHorizontal:4,paddingVertical:14,flexDirection:'row',alignItems:'center',gap:12,borderTopWidth:1,borderTopColor:h.border}}><View style={{width:44,height:44,borderRadius:14,backgroundColor:h.blueSoft,alignItems:'center',justifyContent:'center'}}><Text style={{fontSize:21,color:h.blue}}>▤</Text></View><View style={{flex:1}}><Text style={styles.sectionTitle}>История заботы{petName?` о ${petName}`:''}</Text><Text style={{...t.typography.caption,color:h.muted,marginTop:2}}>Результаты приёмов и рекомендации хранятся в дневнике.</Text></View><Pressable accessibilityRole="button" onPress={onDiary} style={{minHeight:44,justifyContent:'center',paddingHorizontal:6}}><Text style={{...t.typography.label,color:h.blue}}>Открыть ›</Text></Pressable></View>}

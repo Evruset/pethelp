@@ -1,0 +1,583 @@
+{
+  "version": "V50",
+  "owner": {
+    "archive": "source/VetHelp_Owner_V50_Behavioral_Unified.zip",
+    "sha256": "cbef69d764cfe420f58bf84e83cf94a37aa23c89d7466271434bbe3d717633b6",
+    "entrypoint": "owner/index.html",
+    "uxGuideline": "owner/UX_UI_GUIDELINE.md",
+    "behavioralNotes": "owner/BEHAVIORAL_NOTES.md"
+  },
+  "clinic": {
+    "archive": "source/VetHelp_Clinic_V50_Behavioral_Dense.zip",
+    "sha256": "c634654040c572fab6e6e962d722c8bc6ed140dda02b0277f42952742b78c688",
+    "entrypoint": "clinic/index.html",
+    "uxGuideline": "clinic/UX_UI_GUIDELINE.md",
+    "behavioralNotes": "clinic/BEHAVIORAL_NOTES.md"
+  },
+  "files": [
+    {
+      "path": "clinic/BEHAVIORAL_NOTES.md",
+      "sha256": "c1e8cf74a14b5f2f01865f16b932d13e241cef812767f5b4ebc362e28325b9a7"
+    },
+    {
+      "path": "clinic/QA_DENSITY_REPORT.json",
+      "sha256": "90be933849d7c56b89c2d321cf8ffe326afb427be389a113493fb47eda4df368"
+    },
+    {
+      "path": "clinic/QA_REPORT.json",
+      "sha256": "9f80176c81a7a3d5d4284558ec7841cca81158ccf8932777cac5940a952b94a0"
+    },
+    {
+      "path": "clinic/UX_UI_GUIDELINE.md",
+      "sha256": "ad5611e4b94bb6ae6977a04cc5fbbb769fbf9ddeb8e0558e6cfb8c26f2094fb4"
+    },
+    {
+      "path": "clinic/assets/css/app.css",
+      "sha256": "87d79308e23d255cc1346127d663dfffa2438ec8e00d05c00345e566d0cba4f6"
+    },
+    {
+      "path": "clinic/assets/css/behavioral-layer.css",
+      "sha256": "798af5a2da99d3bd5f9e732823d1391f2f7821afda0f895f6501b163201ec9b3"
+    },
+    {
+      "path": "clinic/assets/css/clinic-only.css",
+      "sha256": "61a9b08f58ebff956f109a1262c0f36f92559c6a39144232dbc8ee67949170ec"
+    },
+    {
+      "path": "clinic/assets/css/clinic-polish.css",
+      "sha256": "5aa2599b778201d5b4691f524598fd961845a0fbcf0f77805238368abc543fbf"
+    },
+    {
+      "path": "clinic/assets/css/clinic-simple.css",
+      "sha256": "3ec49728ca279233340e14a5db594893f322850618c11927ca884a819b4f63ee"
+    },
+    {
+      "path": "clinic/assets/css/clinic-ux-guideline.css",
+      "sha256": "73704d28b568f7e31d4d642fed52c6f579423ee8a97580ff5e0a3058cd478178"
+    },
+    {
+      "path": "clinic/assets/icons/allergy-alert-marker.png",
+      "sha256": "00c09e46e7fdce41d96b218ae74a78d978808464118b1b599c507bcf85e91b35"
+    },
+    {
+      "path": "clinic/assets/icons/booking-confirmation.png",
+      "sha256": "56e1c4a1466f7c7de196b8e62d778cb23f56bc73cfa622c418f626f215106b35"
+    },
+    {
+      "path": "clinic/assets/icons/clinic-location-pin.png",
+      "sha256": "dd9a4c82980c44d10f4a3bda30a0dc0160742f6238bdeb7f2004187779c31198"
+    },
+    {
+      "path": "clinic/assets/icons/consultation-history.png",
+      "sha256": "8d664af725dd2d9f2ad1f81a609dab1e46a5ff317bb648088477866960f4758c"
+    },
+    {
+      "path": "clinic/assets/icons/emergency-heart-pulse.png",
+      "sha256": "b32361640050be088822c79d700747b54fe9a4063d11230bf66efbea0b5fc1f9"
+    },
+    {
+      "path": "clinic/assets/icons/empty-history-records.png",
+      "sha256": "d2f8d4fee7e46007d0f7c95279980964d2ceafff7b5e59dd50b49bd9aa6aae9c"
+    },
+    {
+      "path": "clinic/assets/icons/find-veterinary-clinic.png",
+      "sha256": "744f08586a7f9912b968ec1d4f1e15c352843f97d3a34461e3e6eb9a48b0a290"
+    },
+    {
+      "path": "clinic/assets/icons/home-vet-clinic.png",
+      "sha256": "61e48dccaf51879924f5bb827bf8f4c5dd1f4e27c0160ec56e3259e40acfc9e5"
+    },
+    {
+      "path": "clinic/assets/icons/insurance-policy.png",
+      "sha256": "1785ff48aae16011ac6d792d2fef8923dc4ed5f848d062188afdccc531332f64"
+    },
+    {
+      "path": "clinic/assets/icons/lab-results-ready.png",
+      "sha256": "4401cb6fcdf36e8c4a127203b56722d0c98be6d7fdfb143f6a79248769ef8abd"
+    },
+    {
+      "path": "clinic/assets/icons/languages-translation.png",
+      "sha256": "b81539612c538531ef42c90fda7052af1db12e47333ea40a776ad1671221c4f0"
+    },
+    {
+      "path": "clinic/assets/icons/logout-signout.png",
+      "sha256": "32bb697890ee4ba712bbc0457d4799dd2aca400f62413d9b023781315365669c"
+    },
+    {
+      "path": "clinic/assets/icons/medical-history-card.png",
+      "sha256": "f334bbe33dff3c2132a9204f99c354f47eedd521dcd859d8859130a75920057b"
+    },
+    {
+      "path": "clinic/assets/icons/medical-specialization.png",
+      "sha256": "f70a0611ce549701639065f336ba0ec73e4f64e44848a6a30aac2e292ec797de"
+    },
+    {
+      "path": "clinic/assets/icons/microphone-active.png",
+      "sha256": "3991aaf790aede6a7162916166ff341aa36d0a796e678dc1774a73c2882a9a56"
+    },
+    {
+      "path": "clinic/assets/icons/pet-profile-avatar.png",
+      "sha256": "1f8017876b9eb36da2592e973306f70ba04bdbd5b074b3e246e4f49fee01fb3d"
+    },
+    {
+      "path": "clinic/assets/icons/phone-receiver.png",
+      "sha256": "f42c12a084c4149879823c8f52606780d4fccdf3a8e3f5a1900b555d9862fa06"
+    },
+    {
+      "path": "clinic/assets/icons/price-range-filter.png",
+      "sha256": "50753ee1ee976c0854ec49a6ab00809e3bd7227db9a784fd0f8398e3b0341d7f"
+    },
+    {
+      "path": "clinic/assets/icons/request-sent.png",
+      "sha256": "e507224eec0bd8529b808a9d3c78daa95bbffc62b57d8b05919c2f1ac27d3bec"
+    },
+    {
+      "path": "clinic/assets/icons/schedule-clock.png",
+      "sha256": "1dcb0c69ecb6895bc866cc8bf5634b921c0488b9d5e681e02dd04f18444ae868"
+    },
+    {
+      "path": "clinic/assets/icons/slot-transfer-arrow.png",
+      "sha256": "ab582ef8ec0d39b7738d501d4a2624bcccd0f25a70ce982e7866b5fa7ff0dac2"
+    },
+    {
+      "path": "clinic/assets/icons/status-24-7.png",
+      "sha256": "73b4db4c8f6e28fb9d924a64f0539d9a0c4195498dfb2589c72bdb0b169b65fc"
+    },
+    {
+      "path": "clinic/assets/icons/surgery-scalpel.png",
+      "sha256": "2dd5d134a5eec0f4ff27514bb563f393ba538e23fce8c7937923dea24fc9f762"
+    },
+    {
+      "path": "clinic/assets/icons/telemed-stethoscope.png",
+      "sha256": "d2f9cd3141882ad410348379b68f26c587e7956e2e798d89f5bacda2b9a55a1c"
+    },
+    {
+      "path": "clinic/assets/icons/ultrasound-diagnostics.png",
+      "sha256": "8315785bd674ee3d3d9a0afd70c60a4b4e394601f2a24c15f5c6501b34572181"
+    },
+    {
+      "path": "clinic/assets/icons/vaccination-syringe.png",
+      "sha256": "63594988b70a4f2f4010534896195bf298ced53d41bd61d6443755d6250ca6d7"
+    },
+    {
+      "path": "clinic/assets/icons/verified-trust-badge.png",
+      "sha256": "a10a6210ce5d25b2147a8ec84a8f4797c56ca8296a509eeac5377f52f4454157"
+    },
+    {
+      "path": "clinic/assets/icons/veterinary-hospital.png",
+      "sha256": "61e48dccaf51879924f5bb827bf8f4c5dd1f4e27c0160ec56e3259e40acfc9e5"
+    },
+    {
+      "path": "clinic/assets/icons/video-stream-active.png",
+      "sha256": "a4714cb0ffafac2927284ff50ac32178d93cca878f9c0bf6c839202e7bc8dc9c"
+    },
+    {
+      "path": "clinic/assets/icons/wifi-network-quality.png",
+      "sha256": "da76c16383e21c5a353470e5f2ac22a24e1667aa09d8a95a3657151bb6ac9777"
+    },
+    {
+      "path": "clinic/assets/images/banner-clinic-walk.webp",
+      "sha256": "161b654e22db04445187d4d10259ea294f0d5e53ec35aecb4b777e74ee0fbabd"
+    },
+    {
+      "path": "clinic/assets/images/banner-owner-clinic.webp",
+      "sha256": "161b654e22db04445187d4d10259ea294f0d5e53ec35aecb4b777e74ee0fbabd"
+    },
+    {
+      "path": "clinic/assets/images/banner-telemed.webp",
+      "sha256": "f5f430007b0eea6a07aaae85bcca335e4854c640545579202fb0121a59543801"
+    },
+    {
+      "path": "clinic/assets/images/banner-vet-exam.webp",
+      "sha256": "6e0adee648b2c5fb176d6874c24ff4f1282ac5ff667f7c85d1d361ab02f43716"
+    },
+    {
+      "path": "clinic/assets/images/client-ekaterina.webp",
+      "sha256": "47a3560946a2346d81bd0c3b81eefd5fcbd7c7a23b86f910017d93a6bb743a75"
+    },
+    {
+      "path": "clinic/assets/images/clinic-diagnostic.png",
+      "sha256": "c8e280f2e12abcad36f8eeabc6d6173781183b9976d10eeb2596421cf14f8dae"
+    },
+    {
+      "path": "clinic/assets/images/clinic-equipment.webp",
+      "sha256": "539f98c7050563b158f2c3f8a40451b0780b46d1cc321a54b051fd613a470789"
+    },
+    {
+      "path": "clinic/assets/images/clinic-exam.webp",
+      "sha256": "7fed5bad379dde6ca17c7e91eef60f9e1bf8b53cd70dd4a304db75393b6feab4"
+    },
+    {
+      "path": "clinic/assets/images/clinic-facade-premium.png",
+      "sha256": "797ba0473209545efe4dc59a1c58b9c978a1f5ffe8a895b68f2e11028a15a4b9"
+    },
+    {
+      "path": "clinic/assets/images/clinic-reception-premium.png",
+      "sha256": "766e78933d5d28b3af4b139cbc02736ca008d89cbdae58bc1c924e4ee5d0a7cc"
+    },
+    {
+      "path": "clinic/assets/images/clinic-reception.webp",
+      "sha256": "6a92937b18aa6f54637d4174fd35d042699fa5efaf534cfd90c0468041ca2dd6"
+    },
+    {
+      "path": "clinic/assets/images/clinic-vetplus.webp",
+      "sha256": "a5ffb4b7b7d8e487b185d3499b68cfbb1c740e95f43116145778e46fd817e84d"
+    },
+    {
+      "path": "clinic/assets/images/clinic-vetprofi.webp",
+      "sha256": "aa9b039716ff694e08dafcc7294a8a370ed5c3045d42750a937589ec0f007275"
+    },
+    {
+      "path": "clinic/assets/images/clinic-zdorovy.webp",
+      "sha256": "31edcd76ec9a1132a6cfd4d01e85bfadd9e3c9e25322359c252c2d31e96dbdb9"
+    },
+    {
+      "path": "clinic/assets/images/doc-conclusion.webp",
+      "sha256": "e21649fa7522c038d8c7f84bf9d3515fe1e7ff65ef27c2cb1480d322bc571563"
+    },
+    {
+      "path": "clinic/assets/images/doc-passport.webp",
+      "sha256": "b4eab0748d599266dd9e922f33b5fba520f6eaa842cdea43061aeb3f97dc391d"
+    },
+    {
+      "path": "clinic/assets/images/doc-xray.webp",
+      "sha256": "c10e3f41dff169565b144ac628409aafd63d1104437fe794dd792c21119450b0"
+    },
+    {
+      "path": "clinic/assets/images/doctor-anna.webp",
+      "sha256": "3df7738e4594123af706201063c4b50897c2e8344a8fad9b47812e129f7bfcc9"
+    },
+    {
+      "path": "clinic/assets/images/doctor-dmitry.webp",
+      "sha256": "45d1f942b53f8d5e4202cca3eef59e946fe9d2df644559ab30c49ccb9a4cddc4"
+    },
+    {
+      "path": "clinic/assets/images/doctor-igor.webp",
+      "sha256": "e9a12b39eb77c8df0fbc5a70e6b57d119be01cffe411c382846f2c196822700b"
+    },
+    {
+      "path": "clinic/assets/images/doctor-katya.webp",
+      "sha256": "61e24851502b3a1472a72f34c59b03f6be6720032bea2b7ce12ef31a2868b8dd"
+    },
+    {
+      "path": "clinic/assets/images/pet-barney.webp",
+      "sha256": "e53e432bf3197ee23c1a15c0f668cf21bec921520eb202ab8e410d081d22c312"
+    },
+    {
+      "path": "clinic/assets/images/pet-lucky.webp",
+      "sha256": "d8ea020d780f19c1cfee4cf0c0c63eaa58069cdce67b260438db317af292db2a"
+    },
+    {
+      "path": "clinic/assets/images/pet-murka.webp",
+      "sha256": "8976ead397dce528f8eb0096328cf46eb5ca0cf9db5f86fb8285b5db27487a3b"
+    },
+    {
+      "path": "clinic/assets/images/telemed-doctor-front.webp",
+      "sha256": "00d9a3bc63f869c3f2c21df331cf60ec2c49b8bc36759fba4e78604f856f8c7d"
+    },
+    {
+      "path": "clinic/assets/js/accessibility-runtime.js",
+      "sha256": "571f44ddc5d4c3a903ec3d0b2dc34ad2bd54ed8b72ce0309bcf17074a877d366"
+    },
+    {
+      "path": "clinic/assets/js/clinic-extra.js",
+      "sha256": "343ec13b53455ee73badac2c2d54c6a49c5d978b709278b26ec161cc9fdb79b7"
+    },
+    {
+      "path": "clinic/assets/js/clinic-polish.js",
+      "sha256": "ce518e83a3d702d5a47b254eeaa464b9acb45a14d711e99e2f39f0e7c73dcf0b"
+    },
+    {
+      "path": "clinic/assets/js/clinic-workspace.js",
+      "sha256": "f22ac6939b198b1c20609dc05663fdc3d2dd3a2ba3132470269c0130375f5b61"
+    },
+    {
+      "path": "clinic/index.html",
+      "sha256": "28bfec0dfe7d7e53786d34f6c79e72f6bdb5a942ef3e525f01a0eef99b0b6e45"
+    },
+    {
+      "path": "owner/BEHAVIORAL_NOTES.md",
+      "sha256": "ab7599cb81715a4ad49e6d0d74c577df249be2088507199eff88b4775609aa75"
+    },
+    {
+      "path": "owner/UX_UI_GUIDELINE.md",
+      "sha256": "6e3a2ef6579be2328a1c33269f3fbd6f2c358f4f12255601daff836903157c3a"
+    },
+    {
+      "path": "owner/assets/css/app.css",
+      "sha256": "87d79308e23d255cc1346127d663dfffa2438ec8e00d05c00345e566d0cba4f6"
+    },
+    {
+      "path": "owner/assets/css/behavioral-layer.css",
+      "sha256": "d55d0c053c8b30127a50e485e4170242861b5a8fbf479cb321c541a9804f71bf"
+    },
+    {
+      "path": "owner/assets/css/owner-ux-ui.css",
+      "sha256": "6192d0be6567edd608544eea939ea39d4be0fe85f59080cb5e21e4b74044ea22"
+    },
+    {
+      "path": "owner/assets/icons/allergy-alert-marker.png",
+      "sha256": "00c09e46e7fdce41d96b218ae74a78d978808464118b1b599c507bcf85e91b35"
+    },
+    {
+      "path": "owner/assets/icons/booking-confirmation.png",
+      "sha256": "56e1c4a1466f7c7de196b8e62d778cb23f56bc73cfa622c418f626f215106b35"
+    },
+    {
+      "path": "owner/assets/icons/clinic-location-pin.png",
+      "sha256": "dd9a4c82980c44d10f4a3bda30a0dc0160742f6238bdeb7f2004187779c31198"
+    },
+    {
+      "path": "owner/assets/icons/consultation-history.png",
+      "sha256": "8d664af725dd2d9f2ad1f81a609dab1e46a5ff317bb648088477866960f4758c"
+    },
+    {
+      "path": "owner/assets/icons/emergency-heart-pulse.png",
+      "sha256": "b32361640050be088822c79d700747b54fe9a4063d11230bf66efbea0b5fc1f9"
+    },
+    {
+      "path": "owner/assets/icons/empty-history-records.png",
+      "sha256": "d2f8d4fee7e46007d0f7c95279980964d2ceafff7b5e59dd50b49bd9aa6aae9c"
+    },
+    {
+      "path": "owner/assets/icons/find-veterinary-clinic.png",
+      "sha256": "744f08586a7f9912b968ec1d4f1e15c352843f97d3a34461e3e6eb9a48b0a290"
+    },
+    {
+      "path": "owner/assets/icons/home-vet-clinic.png",
+      "sha256": "61e48dccaf51879924f5bb827bf8f4c5dd1f4e27c0160ec56e3259e40acfc9e5"
+    },
+    {
+      "path": "owner/assets/icons/insurance-policy.png",
+      "sha256": "1785ff48aae16011ac6d792d2fef8923dc4ed5f848d062188afdccc531332f64"
+    },
+    {
+      "path": "owner/assets/icons/lab-results-ready.png",
+      "sha256": "4401cb6fcdf36e8c4a127203b56722d0c98be6d7fdfb143f6a79248769ef8abd"
+    },
+    {
+      "path": "owner/assets/icons/languages-translation.png",
+      "sha256": "b81539612c538531ef42c90fda7052af1db12e47333ea40a776ad1671221c4f0"
+    },
+    {
+      "path": "owner/assets/icons/logout-signout.png",
+      "sha256": "32bb697890ee4ba712bbc0457d4799dd2aca400f62413d9b023781315365669c"
+    },
+    {
+      "path": "owner/assets/icons/medical-history-card.png",
+      "sha256": "f334bbe33dff3c2132a9204f99c354f47eedd521dcd859d8859130a75920057b"
+    },
+    {
+      "path": "owner/assets/icons/medical-specialization.png",
+      "sha256": "f70a0611ce549701639065f336ba0ec73e4f64e44848a6a30aac2e292ec797de"
+    },
+    {
+      "path": "owner/assets/icons/microphone-active.png",
+      "sha256": "3991aaf790aede6a7162916166ff341aa36d0a796e678dc1774a73c2882a9a56"
+    },
+    {
+      "path": "owner/assets/icons/pet-profile-avatar.png",
+      "sha256": "1f8017876b9eb36da2592e973306f70ba04bdbd5b074b3e246e4f49fee01fb3d"
+    },
+    {
+      "path": "owner/assets/icons/phone-receiver.png",
+      "sha256": "f42c12a084c4149879823c8f52606780d4fccdf3a8e3f5a1900b555d9862fa06"
+    },
+    {
+      "path": "owner/assets/icons/price-range-filter.png",
+      "sha256": "50753ee1ee976c0854ec49a6ab00809e3bd7227db9a784fd0f8398e3b0341d7f"
+    },
+    {
+      "path": "owner/assets/icons/request-sent.png",
+      "sha256": "e507224eec0bd8529b808a9d3c78daa95bbffc62b57d8b05919c2f1ac27d3bec"
+    },
+    {
+      "path": "owner/assets/icons/schedule-clock.png",
+      "sha256": "1dcb0c69ecb6895bc866cc8bf5634b921c0488b9d5e681e02dd04f18444ae868"
+    },
+    {
+      "path": "owner/assets/icons/slot-transfer-arrow.png",
+      "sha256": "ab582ef8ec0d39b7738d501d4a2624bcccd0f25a70ce982e7866b5fa7ff0dac2"
+    },
+    {
+      "path": "owner/assets/icons/status-24-7.png",
+      "sha256": "73b4db4c8f6e28fb9d924a64f0539d9a0c4195498dfb2589c72bdb0b169b65fc"
+    },
+    {
+      "path": "owner/assets/icons/surgery-scalpel.png",
+      "sha256": "2dd5d134a5eec0f4ff27514bb563f393ba538e23fce8c7937923dea24fc9f762"
+    },
+    {
+      "path": "owner/assets/icons/telemed-stethoscope.png",
+      "sha256": "d2f9cd3141882ad410348379b68f26c587e7956e2e798d89f5bacda2b9a55a1c"
+    },
+    {
+      "path": "owner/assets/icons/ultrasound-diagnostics.png",
+      "sha256": "8315785bd674ee3d3d9a0afd70c60a4b4e394601f2a24c15f5c6501b34572181"
+    },
+    {
+      "path": "owner/assets/icons/vaccination-syringe.png",
+      "sha256": "63594988b70a4f2f4010534896195bf298ced53d41bd61d6443755d6250ca6d7"
+    },
+    {
+      "path": "owner/assets/icons/verified-trust-badge.png",
+      "sha256": "a10a6210ce5d25b2147a8ec84a8f4797c56ca8296a509eeac5377f52f4454157"
+    },
+    {
+      "path": "owner/assets/icons/veterinary-hospital.png",
+      "sha256": "61e48dccaf51879924f5bb827bf8f4c5dd1f4e27c0160ec56e3259e40acfc9e5"
+    },
+    {
+      "path": "owner/assets/icons/video-stream-active.png",
+      "sha256": "a4714cb0ffafac2927284ff50ac32178d93cca878f9c0bf6c839202e7bc8dc9c"
+    },
+    {
+      "path": "owner/assets/icons/wifi-network-quality.png",
+      "sha256": "da76c16383e21c5a353470e5f2ac22a24e1667aa09d8a95a3657151bb6ac9777"
+    },
+    {
+      "path": "owner/assets/images/banner-clinic-walk.webp",
+      "sha256": "171fed9128f97b7de060f86d6a9fe3ee88d72ffee80804e10389b432f04188a8"
+    },
+    {
+      "path": "owner/assets/images/banner-owner-clinic.webp",
+      "sha256": "161b654e22db04445187d4d10259ea294f0d5e53ec35aecb4b777e74ee0fbabd"
+    },
+    {
+      "path": "owner/assets/images/banner-telemed.webp",
+      "sha256": "f5f430007b0eea6a07aaae85bcca335e4854c640545579202fb0121a59543801"
+    },
+    {
+      "path": "owner/assets/images/banner-vet-exam.webp",
+      "sha256": "6e0adee648b2c5fb176d6874c24ff4f1282ac5ff667f7c85d1d361ab02f43716"
+    },
+    {
+      "path": "owner/assets/images/client-ekaterina.webp",
+      "sha256": "47a3560946a2346d81bd0c3b81eefd5fcbd7c7a23b86f910017d93a6bb743a75"
+    },
+    {
+      "path": "owner/assets/images/clinic-diagnostic.png",
+      "sha256": "c8e280f2e12abcad36f8eeabc6d6173781183b9976d10eeb2596421cf14f8dae"
+    },
+    {
+      "path": "owner/assets/images/clinic-equipment.webp",
+      "sha256": "539f98c7050563b158f2c3f8a40451b0780b46d1cc321a54b051fd613a470789"
+    },
+    {
+      "path": "owner/assets/images/clinic-exam.webp",
+      "sha256": "7fed5bad379dde6ca17c7e91eef60f9e1bf8b53cd70dd4a304db75393b6feab4"
+    },
+    {
+      "path": "owner/assets/images/clinic-facade-premium.png",
+      "sha256": "797ba0473209545efe4dc59a1c58b9c978a1f5ffe8a895b68f2e11028a15a4b9"
+    },
+    {
+      "path": "owner/assets/images/clinic-reception-premium.png",
+      "sha256": "766e78933d5d28b3af4b139cbc02736ca008d89cbdae58bc1c924e4ee5d0a7cc"
+    },
+    {
+      "path": "owner/assets/images/clinic-reception.webp",
+      "sha256": "6a92937b18aa6f54637d4174fd35d042699fa5efaf534cfd90c0468041ca2dd6"
+    },
+    {
+      "path": "owner/assets/images/clinic-vetplus.webp",
+      "sha256": "a5ffb4b7b7d8e487b185d3499b68cfbb1c740e95f43116145778e46fd817e84d"
+    },
+    {
+      "path": "owner/assets/images/clinic-vetprofi.webp",
+      "sha256": "aa9b039716ff694e08dafcc7294a8a370ed5c3045d42750a937589ec0f007275"
+    },
+    {
+      "path": "owner/assets/images/clinic-zdorovy.webp",
+      "sha256": "31edcd76ec9a1132a6cfd4d01e85bfadd9e3c9e25322359c252c2d31e96dbdb9"
+    },
+    {
+      "path": "owner/assets/images/doc-conclusion.webp",
+      "sha256": "e21649fa7522c038d8c7f84bf9d3515fe1e7ff65ef27c2cb1480d322bc571563"
+    },
+    {
+      "path": "owner/assets/images/doc-passport.webp",
+      "sha256": "b4eab0748d599266dd9e922f33b5fba520f6eaa842cdea43061aeb3f97dc391d"
+    },
+    {
+      "path": "owner/assets/images/doc-xray.webp",
+      "sha256": "c10e3f41dff169565b144ac628409aafd63d1104437fe794dd792c21119450b0"
+    },
+    {
+      "path": "owner/assets/images/doctor-anna.webp",
+      "sha256": "3df7738e4594123af706201063c4b50897c2e8344a8fad9b47812e129f7bfcc9"
+    },
+    {
+      "path": "owner/assets/images/doctor-dmitry.webp",
+      "sha256": "45d1f942b53f8d5e4202cca3eef59e946fe9d2df644559ab30c49ccb9a4cddc4"
+    },
+    {
+      "path": "owner/assets/images/doctor-igor.webp",
+      "sha256": "e9a12b39eb77c8df0fbc5a70e6b57d119be01cffe411c382846f2c196822700b"
+    },
+    {
+      "path": "owner/assets/images/doctor-katya.webp",
+      "sha256": "61e24851502b3a1472a72f34c59b03f6be6720032bea2b7ce12ef31a2868b8dd"
+    },
+    {
+      "path": "owner/assets/images/pet-barney.webp",
+      "sha256": "e53e432bf3197ee23c1a15c0f668cf21bec921520eb202ab8e410d081d22c312"
+    },
+    {
+      "path": "owner/assets/images/pet-lucky.webp",
+      "sha256": "d8ea020d780f19c1cfee4cf0c0c63eaa58069cdce67b260438db317af292db2a"
+    },
+    {
+      "path": "owner/assets/images/pet-murka.webp",
+      "sha256": "8976ead397dce528f8eb0096328cf46eb5ca0cf9db5f86fb8285b5db27487a3b"
+    },
+    {
+      "path": "owner/assets/images/telemed-doctor-front.webp",
+      "sha256": "00d9a3bc63f869c3f2c21df331cf60ec2c49b8bc36759fba4e78604f856f8c7d"
+    },
+    {
+      "path": "owner/assets/js/accessibility-runtime.js",
+      "sha256": "aef4931f700be22a717db7ba1eb3986056d1b0f8ab8e86e6484c7c557275c6ae"
+    },
+    {
+      "path": "owner/assets/js/behavioral-layer.js",
+      "sha256": "b2652e65150ab957363d11033f7372419de23a5f03e952168730cdd27cf90fce"
+    },
+    {
+      "path": "owner/assets/js/clinic-workspace.js",
+      "sha256": "bcacca7be5787283fa8c5413e9838dd3d7a15a714c7ad65b33953771eb5c383e"
+    },
+    {
+      "path": "owner/assets/js/emergency-header.js",
+      "sha256": "20b7b1da6ce4c30ac05b04338e2c38cf87c192f5f9e139ad1e9d987e97bee5e2"
+    },
+    {
+      "path": "owner/assets/js/interaction-core.js",
+      "sha256": "3feaf2e1cfc9eefc3072966e2637020fbe114a0c17850cabc66d74289b923b23"
+    },
+    {
+      "path": "owner/assets/js/pet-policy.js",
+      "sha256": "6cec89e9cc91299bec6084497a737646102d4b3d956eb6566154b73554fef979"
+    },
+    {
+      "path": "owner/assets/js/state-runtime.js",
+      "sha256": "c096f718b6553b34fed583ec742c21968662504b9fd8ce581f9814145a5ed422"
+    },
+    {
+      "path": "owner/assets/js/uat-safety.js",
+      "sha256": "e7826e1a7ea27d382537c6a10200162293c7cabee5894c31fc5d27b242c22ba3"
+    },
+    {
+      "path": "owner/assets/js/ui-hardening.js",
+      "sha256": "bcfe1552e5819443c2b5624e332c9c177261fa2701c636fda7ee63b49b37344e"
+    },
+    {
+      "path": "owner/assets/js/workflow-runtime.js",
+      "sha256": "3ae56ca65211fda51e7044987b7858295e5cc6ea3e5dec1019bbc322b1c531f0"
+    },
+    {
+      "path": "owner/index.html",
+      "sha256": "c898edc7b0545e58a2c485691189a7f474cf9a230df459d05006c36492b69072"
+    }
+  ]
+}

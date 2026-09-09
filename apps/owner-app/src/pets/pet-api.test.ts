@@ -62,7 +62,7 @@ it('rejects malformed backend petId', async () => {
   );
 });
 
-it('does not accept legacy id as a wire-contract substitute', async () => {
+it('normalizes the current backend id field for Owner runtime compatibility', async () => {
   const api = createPetApi({
     request: jest.fn().mockResolvedValue([
       {
@@ -75,9 +75,7 @@ it('does not accept legacy id as a wire-contract substitute', async () => {
     ]),
   });
 
-  await expect(api.list('vh_secret')).rejects.toThrow(
-    'INVALID_PET_RESPONSE',
-  );
+  await expect(api.list('vh_secret')).resolves.toEqual([PET]);
 });
 
 it('accepts the exact grouped published Result and oldest-first Amendment contract', async () => {

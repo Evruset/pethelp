@@ -8,5 +8,6 @@ export const uiTokens = Object.freeze({
   radius: Object.freeze({ control: 12, card: 16, section: 20, pill: 999 }),
   typography: Object.freeze({ largeTitle: font(34, 40, '700'), title: font(26, 32, '700'), sectionTitle: font(17, 22, '700'), body: font(16, 22, '400'), secondaryBody: font(15, 21, '400'), label: font(14, 18, '600'), caption: font(13, 17, '500'), button: font(16, 20, '700') }),
   shadow: Object.freeze({ card: Object.freeze({ shadowColor: '#14231F', shadowOpacity: 0.08, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 2 } satisfies ViewStyle) }),
-  layout: Object.freeze({ phoneMaxWidth: 500, contentMaxWidth: 460, minTouch: 48 }),
+  layout: Object.freeze({ phoneMaxWidth: 500, contentMaxWidth: 720, desktopMaxWidth: 1440, minTouch: 48 }),
+  ownerHome: Object.freeze({ canvas: '#EDF5FF', canvasStrong: '#DCE9FF', surface: '#FFFFFF', surfaceSoft: '#F7FAFF', ink: '#182541', muted: '#667793', blue: '#1767F7', bluePressed: '#0D55D8', blueSoft: '#E8F1FF', red: '#D82F3E', redSoft: '#FFF0F0', border: '#C8DAF3', desktopMaxWidth: 1440 }),
 });
