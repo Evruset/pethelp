@@ -26,15 +26,6 @@ import {
 } from "./ClinicDecisionLayout";
 
 export type ClinicCatalogMode = "browse" | "booking" | "time";
-type ReadingPriority = "today" | "price" | "near" | "confidence";
-
-const priorities: readonly [ReadingPriority, string][] = [
-  ["today", "Сегодня"],
-  ["price", "Цена"],
-  ["near", "Ближе"],
-  ["confidence", "Уверенность"],
-];
-
 const modeCopy: Record<
   ClinicCatalogMode,
   { eyebrow: string; title: string; subtitle: string; kicker: string; detail: string }
@@ -85,9 +76,6 @@ export function ClinicCatalogScreen({
   const desktop = Platform.OS === "web" && width >= 900;
   const copy = modeCopy[mode];
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
-  const [priority, setPriority] = useState<ReadingPriority>(
-    mode === "time" ? "today" : "confidence",
-  );
   const query = useQuery({
     queryKey: ["owner", session?.cacheScope, "clinic-catalog"],
     enabled: Boolean(session),
@@ -108,41 +96,8 @@ export function ClinicCatalogScreen({
           title="Что проверить первым"
           detail={copy.detail}
         />
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-          {priorities.map(([value, label]) => {
-            const active = priority === value;
-            return (
-              <Pressable
-                key={value}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                onPress={() => setPriority(value)}
-                style={({ pressed }) => ({
-                  minHeight: 44,
-                  justifyContent: "center",
-                  paddingHorizontal: 12,
-                  borderRadius: 14,
-                  borderWidth: 1,
-                  borderColor: active ? decisionColors.blue : decisionColors.border,
-                  backgroundColor: active ? decisionColors.blueSoft : decisionColors.surface,
-                  opacity: pressed ? 0.72 : 1,
-                })}
-              >
-                <Text
-                  style={{
-                    ...t.typography.caption,
-                    fontWeight: active ? "800" : "600",
-                    color: active ? decisionColors.blue : decisionColors.muted,
-                  }}
-                >
-                  {label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
         <Text style={{ ...t.typography.caption, color: decisionColors.muted }}>
-          Это приоритет чтения карточки. Порядок клиник не меняем, пока для сортировки нет подтверждённых времени, цены и расстояния.
+          Адрес и контакт доступны в каталоге. Информационная цена и точное свободное время появятся после выбора услуги.
         </Text>
       </DecisionPanel>
 
