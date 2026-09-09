@@ -31,9 +31,9 @@ describe('PetDiaryScreen',()=>{
   it('keeps backend result order and uses the visit date instead of publication date',async()=>{
     mockQueryState={...mockQueryState,data:{petId:PET_A,clinicalEntries:[entry(),entry({visit:{...entry().visit,visitId:'66666666-6666-4666-8666-666666666666',occurredAt:'2026-05-01T08:00:00.000Z'},result:{resultId:RESULT_B,publishedAt:'2026-09-01T08:00:00.000Z',content:'Второй результат.'}})]}};
     const view=await render(<PetDiaryScreen petId={PET_A} petName="Рекс" onBack={jest.fn()} onSwitchPet={jest.fn()}/>);
-    const text=view.getAllByRole('button').map((node)=>node.props.accessibilityLabel).filter(Boolean);
-    expect(text[1]).toContain('10 июня 2026');
-    expect(text[2]).toContain('1 мая 2026');
+    const text=view.getAllByRole('button').map((node)=>node.props.accessibilityLabel).filter((label):label is string=>typeof label==='string'&&label.startsWith('Открыть результат приёма'));
+    expect(text[0]).toContain('10 июня 2026');
+    expect(text[1]).toContain('1 мая 2026');
     expect(view.queryByText(/20 августа|1 сентября/)).toBeNull();
   });
 

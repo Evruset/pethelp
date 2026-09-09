@@ -21,6 +21,7 @@ export const decisionColors = Object.freeze({
   green: "#167A55",
   greenSoft: "#E7F6EF",
 });
+
 export function ClinicDecisionLayout({
   eyebrow,
   title,
@@ -31,7 +32,7 @@ export function ClinicDecisionLayout({
   eyebrow: string;
   title: string;
   subtitle: string;
-  onBack(): void;
+  onBack?(): void;
 }>) {
   const { width } = useWindowDimensions();
   const desktop = Platform.OS === "web" && width >= 900;
@@ -41,24 +42,25 @@ export function ClinicDecisionLayout({
         style={{ flex: 1, backgroundColor: decisionColors.canvas }}
         contentContainerStyle={{
           width: "100%",
-          maxWidth: 1180,
+          maxWidth: 1440,
           alignSelf: "center",
-          paddingHorizontal: desktop ? 28 : 14,
-          paddingTop: desktop ? 24 : 14,
-          paddingBottom: desktop ? 42 : 96,
-          gap: desktop ? 20 : 14,
+          paddingHorizontal: desktop ? 24 : 12,
+          paddingTop: desktop ? 14 : 10,
+          paddingBottom: desktop ? 48 : 92,
+          gap: desktop ? 12 : 10,
         }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <BackAction onPress={onBack} />
-        <View style={{ gap: 6 }}>
+        {onBack ? <BackAction onPress={onBack} /> : null}
+        <View style={{ gap: 4, marginBottom: desktop ? 2 : 4 }}>
           <Text
             style={{
-              ...t.typography.label,
+              ...t.typography.caption,
               color: decisionColors.blue,
+              fontWeight: "800",
               textTransform: "uppercase",
-              letterSpacing: 0.8,
+              letterSpacing: 0.7,
             }}
           >
             {eyebrow}
@@ -66,8 +68,8 @@ export function ClinicDecisionLayout({
           <Text
             accessibilityRole="header"
             style={{
-              fontSize: desktop ? 38 : 30,
-              lineHeight: desktop ? 44 : 36,
+              fontSize: desktop ? 30 : 27,
+              lineHeight: desktop ? 34 : 32,
               fontWeight: "800",
               color: decisionColors.ink,
             }}
@@ -78,7 +80,7 @@ export function ClinicDecisionLayout({
             style={{
               ...t.typography.secondaryBody,
               color: decisionColors.muted,
-              maxWidth: 760,
+              maxWidth: 720,
             }}
           >
             {subtitle}
@@ -89,16 +91,17 @@ export function ClinicDecisionLayout({
     </OwnerAppFrame>
   );
 }
+
 export function DecisionPanel({ children }: PropsWithChildren) {
   return (
     <View
       style={{
         minWidth: 0,
-        gap: 14,
-        padding: 18,
+        gap: 10,
+        padding: 14,
         borderWidth: 1,
         borderColor: decisionColors.border,
-        borderRadius: 20,
+        borderRadius: 16,
         backgroundColor: decisionColors.surface,
         ...t.shadow.card,
       }}
@@ -107,6 +110,7 @@ export function DecisionPanel({ children }: PropsWithChildren) {
     </View>
   );
 }
+
 export function DecisionHeading({
   kicker,
   title,
@@ -117,7 +121,7 @@ export function DecisionHeading({
   detail?: string;
 }) {
   return (
-    <View style={{ gap: 4 }}>
+    <View style={{ gap: 3 }}>
       <Text
         style={{
           ...t.typography.caption,
@@ -130,8 +134,8 @@ export function DecisionHeading({
       <Text
         style={{
           ...t.typography.sectionTitle,
-          fontSize: 19,
-          lineHeight: 24,
+          fontSize: 18,
+          lineHeight: 22,
           color: decisionColors.ink,
         }}
       >
@@ -145,13 +149,15 @@ export function DecisionHeading({
     </View>
   );
 }
+
 export function FactRow({ children }: PropsWithChildren) {
   return (
-    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
       {children}
     </View>
   );
 }
+
 export function Fact({
   children,
   tone = "neutral",
@@ -159,11 +165,11 @@ export function Fact({
   return (
     <View
       style={{
-        minHeight: 32,
+        minHeight: 28,
         justifyContent: "center",
-        paddingHorizontal: 11,
-        paddingVertical: 6,
-        borderRadius: 999,
+        paddingHorizontal: 9,
+        paddingVertical: 5,
+        borderRadius: 12,
         backgroundColor:
           tone === "positive"
             ? decisionColors.greenSoft
@@ -173,6 +179,7 @@ export function Fact({
       <Text
         style={{
           ...t.typography.caption,
+          fontSize: 11,
           color:
             tone === "positive" ? decisionColors.green : decisionColors.ink,
         }}
@@ -182,6 +189,7 @@ export function Fact({
     </View>
   );
 }
+
 export function ResponsiveColumns({
   primary,
   secondary,
@@ -196,12 +204,12 @@ export function ResponsiveColumns({
       style={{
         flexDirection: desktop ? "row" : "column",
         alignItems: "flex-start",
-        gap: desktop ? 20 : 14,
+        gap: desktop ? 12 : 10,
       }}
     >
       <View
         style={{
-          flex: desktop ? 1.55 : undefined,
+          flex: desktop ? 1.25 : undefined,
           width: desktop ? undefined : "100%",
           minWidth: 0,
         }}
@@ -210,7 +218,7 @@ export function ResponsiveColumns({
       </View>
       <View
         style={{
-          flex: desktop ? 0.85 : undefined,
+          flex: desktop ? 0.75 : undefined,
           width: desktop ? undefined : "100%",
           minWidth: 0,
         }}

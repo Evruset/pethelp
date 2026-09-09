@@ -16,6 +16,14 @@ it('renders a true empty state', async () => {
   const empty=await render(<PetJourneyScreen />); expect(empty.getByText('У вас пока нет питомцев')).toBeTruthy();
 });
 
+it.each([
+  ['booking','Кого записываем?'],
+  ['time','Для кого ищем ближайшее время?'],
+  ['diary','Чей дневник открыть?'],
+] as const)('renders distinct %s purpose',async(purpose,title)=>{
+  const screen=await render(<PetJourneyScreen purpose={purpose}/>); expect(screen.getByText(title)).toBeTruthy();
+});
+
 it('creates from the zero state and leaves selection authoritative to the provider', async () => {
   const screen=await render(<PetJourneyScreen />); await act(async()=>fireEvent.press(screen.getByText('Добавить питомца')));
   await act(async()=>fireEvent.changeText(screen.getByLabelText('Имя питомца'),'  Мурка  ')); await act(async()=>fireEvent.press(screen.getByText('CAT'))); await act(async()=>fireEvent.press(screen.getByText('Сохранить питомца')));
@@ -34,4 +42,8 @@ it('announces stale selection and hands exactly one selected pet to continuation
   mockJourney.selectionStale=true; const stale=await render(<PetJourneyScreen />); expect(stale.getByText(/больше недоступен/)).toBeTruthy(); await stale.unmount();
   mockJourney.selectionStale=false; mockJourney.selectedPetId='11111111-1111-4111-8111-111111111111'; mockJourney.pets=[{petId:mockJourney.selectedPetId,name:'Ася',species:'CAT',createdAt:'2026-01-01',updatedAt:'2026-01-01'}];
   const selected=await render(<PetJourneyScreen />); await act(async()=>fireEvent.press(selected.getByText('Продолжить'))); expect(mockJourney.continueSelection).toHaveBeenCalledTimes(1);
+});
+
+it('cancels provider state and requested journey together',async()=>{
+  const onCancel=jest.fn(); const screen=await render(<PetJourneyScreen purpose="diary" onCancel={onCancel}/>); await act(async()=>fireEvent.press(screen.getByText('Вернуться на главную'))); expect(mockJourney.cancel).toHaveBeenCalledTimes(1); expect(onCancel).toHaveBeenCalledTimes(1);
 });

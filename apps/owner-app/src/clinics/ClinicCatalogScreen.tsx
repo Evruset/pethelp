@@ -1,8 +1,16 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Pressable, Text, View } from "react-native";
+import {
+  Image,
+  Platform,
+  Pressable,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { Button, StateMessage } from "@/ui/primitives";
 import { uiTokens as t } from "@/ui/tokens";
+import { v50ReferenceAssets } from "@/ui/v50-reference-assets";
 import { useSession } from "@/session/SessionProvider";
 import {
   clinicCatalogApi,
@@ -17,16 +25,68 @@ import {
   decisionColors,
 } from "./ClinicDecisionLayout";
 
+export type ClinicCatalogMode = "browse" | "booking" | "time";
+type ReadingPriority = "today" | "price" | "near" | "confidence";
+
+const priorities: readonly [ReadingPriority, string][] = [
+  ["today", "Сегодня"],
+  ["price", "Цена"],
+  ["near", "Ближе"],
+  ["confidence", "Уверенность"],
+];
+
+const modeCopy: Record<
+  ClinicCatalogMode,
+  { eyebrow: string; title: string; subtitle: string; kicker: string; detail: string }
+> = {
+  browse: {
+    eyebrow: "Клиники",
+    title: "Клиники VetHelp",
+    subtitle:
+      "Сначала сравните клиники и услуги. Питомца попросим выбрать только когда вы действительно перейдёте к записи.",
+    kicker: "Сравнить перед записью",
+    detail: "Название, адрес и контакт берём из актуального каталога VetHelp.",
+  },
+  booking: {
+    eyebrow: "Подбор клиники",
+    title: "Выберите клинику",
+    subtitle: "Сравните подтверждённые сведения и продолжите к услуге и времени.",
+    kicker: "Следующий шаг записи",
+    detail: "После клиники выберите услугу, затем увидите опубликованные свободные слоты.",
+  },
+  time: {
+    eyebrow: "Поиск времени",
+    title: "Где искать ближайшее время",
+    subtitle:
+      "Выберите клинику и услугу — на следующем шаге покажем только опубликованные доступные слоты.",
+    kicker: "Фокус на доступности",
+    detail:
+      "Не показываем выдуманное «свободно сегодня»: точное время приходит из авторитетного inventory после выбора услуги.",
+  },
+};
+
+const referenceClinicImages = [
+  v50ReferenceAssets.clinicFacade,
+  v50ReferenceAssets.clinicReception,
+  v50ReferenceAssets.clinicExam,
+] as const;
+
 export function ClinicCatalogScreen({
   onClose,
   onOpenClinic,
+  mode = "booking",
 }: {
   onClose(): void;
   onOpenClinic(clinic: ClinicCatalogHandoff): void;
+  mode?: ClinicCatalogMode;
 }) {
   const { session } = useSession();
-  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(
-    null,
+  const { width } = useWindowDimensions();
+  const desktop = Platform.OS === "web" && width >= 900;
+  const copy = modeCopy[mode];
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+  const [priority, setPriority] = useState<ReadingPriority>(
+    mode === "time" ? "today" : "confidence",
   );
   const query = useQuery({
     queryKey: ["owner", session?.cacheScope, "clinic-catalog"],
@@ -34,28 +94,59 @@ export function ClinicCatalogScreen({
     queryFn: ({ signal }) =>
       clinicCatalogApi.list(session!.opaqueCredential, signal),
   });
+
   return (
     <ClinicDecisionLayout
-      eyebrow="Подбор клиники"
-      title="Выберите клинику"
-      subtitle="Сравните только подтверждённые сведения. Услуги, цены и свободное время появятся на следующих шагах."
+      eyebrow={copy.eyebrow}
+      title={copy.title}
+      subtitle={copy.subtitle}
       onBack={onClose}
     >
       <DecisionPanel>
         <DecisionHeading
-          kicker="Решение без лишнего"
-          title="Клиники для онлайн-записи"
-          detail="Название, адрес и контакт берём из актуального каталога VetHelp."
+          kicker={copy.kicker}
+          title="Что проверить первым"
+          detail={copy.detail}
         />
-        <FactRow>
-          <Fact tone="positive">Данные клиники</Fact>
-          <Fact>Без выдуманных рейтингов</Fact>
-          <Fact>Без неподтверждённого расстояния</Fact>
-        </FactRow>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+          {priorities.map(([value, label]) => {
+            const active = priority === value;
+            return (
+              <Pressable
+                key={value}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                onPress={() => setPriority(value)}
+                style={({ pressed }) => ({
+                  minHeight: 44,
+                  justifyContent: "center",
+                  paddingHorizontal: 12,
+                  borderRadius: 14,
+                  borderWidth: 1,
+                  borderColor: active ? decisionColors.blue : decisionColors.border,
+                  backgroundColor: active ? decisionColors.blueSoft : decisionColors.surface,
+                  opacity: pressed ? 0.72 : 1,
+                })}
+              >
+                <Text
+                  style={{
+                    ...t.typography.caption,
+                    fontWeight: active ? "800" : "600",
+                    color: active ? decisionColors.blue : decisionColors.muted,
+                  }}
+                >
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Text style={{ ...t.typography.caption, color: decisionColors.muted }}>
+          Это приоритет чтения карточки. Порядок клиник не меняем, пока для сортировки нет подтверждённых времени, цены и расстояния.
+        </Text>
       </DecisionPanel>
-      {query.isPending ? (
-        <StateMessage kind="loading" title="Загружаем клиники" />
-      ) : null}
+
+      {query.isPending ? <StateMessage kind="loading" title="Загружаем клиники" /> : null}
       {query.isError ? (
         <StateMessage
           kind="error"
@@ -77,14 +168,16 @@ export function ClinicCatalogScreen({
           body="Попробуйте обновить список позже."
         />
       ) : null}
+
       {!query.isError && query.data?.clinics.length ? (
         <View
           accessibilityRole="radiogroup"
           accessibilityLabel="Выбор клиники"
-          style={{ gap: 12 }}
+          style={{ gap: 10 }}
         >
-          {query.data.clinics.map((clinic) => {
+          {query.data.clinics.map((clinic, index) => {
             const selected = selectedLocationId === clinic.locationId;
+            const image = referenceClinicImages[index % referenceClinicImages.length];
             return (
               <Pressable
                 key={clinic.locationId}
@@ -92,48 +185,63 @@ export function ClinicCatalogScreen({
                 accessibilityState={{ selected }}
                 onPress={() => setSelectedLocationId(clinic.locationId)}
                 style={({ pressed }) => ({
-                  minHeight: 148,
-                  padding: 18,
+                  padding: 14,
                   gap: 14,
                   borderWidth: selected ? 2 : 1,
-                  borderColor: selected
-                    ? decisionColors.blue
-                    : decisionColors.border,
+                  borderColor: selected ? decisionColors.blue : decisionColors.border,
                   borderRadius: 20,
-                  backgroundColor: selected
-                    ? decisionColors.blueSoft
-                    : decisionColors.surface,
-                  opacity: pressed ? 0.78 : 1,
+                  backgroundColor: selected ? decisionColors.blueSoft : decisionColors.surface,
+                  opacity: pressed ? 0.8 : 1,
+                  flexDirection: desktop ? "row" : "column",
+                  alignItems: "stretch",
                   ...t.shadow.card,
                 })}
               >
                 <View
                   style={{
-                    flexDirection: "row",
-                    alignItems: "flex-start",
-                    gap: 14,
+                    width: desktop ? 124 : "100%",
+                    height: desktop ? 126 : 156,
+                    borderRadius: 16,
+                    overflow: "hidden",
+                    backgroundColor: decisionColors.blueSoft,
                   }}
                 >
+                  <Image
+                    accessibilityLabel="Визуальный референс VetHelp"
+                    source={image}
+                    resizeMode="cover"
+                    style={{ width: "100%", height: "100%" }}
+                  />
                   <View
-                    accessibilityElementsHidden
                     style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: 15,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: decisionColors.blueSoft,
+                      position: "absolute",
+                      left: 6,
+                      bottom: 6,
+                      paddingHorizontal: 7,
+                      paddingVertical: 4,
+                      borderRadius: 9,
+                      backgroundColor: "rgba(24,37,65,.82)",
                     }}
                   >
-                    <Text style={{ fontSize: 22, color: decisionColors.blue }}>
-                      ✦
+                    <Text style={{ fontSize: 9, color: "#fff", fontWeight: "700" }}>
+                      V50 референс
                     </Text>
                   </View>
-                  <View style={{ flex: 1, minWidth: 0, gap: 5 }}>
+                </View>
+
+                <View
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    justifyContent: "center",
+                    gap: 7,
+                  }}
+                >
+                  <View style={{ gap: 3 }}>
                     <Text
                       style={{
-                        fontSize: 20,
-                        lineHeight: 25,
+                        fontSize: 18,
+                        lineHeight: 22,
                         fontWeight: "800",
                         color: decisionColors.ink,
                       }}
@@ -142,7 +250,7 @@ export function ClinicCatalogScreen({
                     </Text>
                     <Text
                       style={{
-                        ...t.typography.secondaryBody,
+                        ...t.typography.caption,
                         color: decisionColors.muted,
                       }}
                     >
@@ -159,39 +267,66 @@ export function ClinicCatalogScreen({
                       </Text>
                     ) : null}
                   </View>
-                  <Fact tone="positive">Онлайн-запись</Fact>
-                </View>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 12,
-                    flexWrap: "wrap",
-                  }}
-                >
+
+                  <FactRow>
+                    <Fact tone="positive">Онлайн-запись</Fact>
+                    <Fact>Время · после услуги</Fact>
+                    <Fact>Цена · после услуги</Fact>
+                  </FactRow>
+
                   <Text
                     style={{
                       ...t.typography.caption,
                       color: decisionColors.muted,
-                      flex: 1,
-                      minWidth: 180,
                     }}
                   >
-                    Откройте клинику, чтобы выбрать услугу и увидеть
-                    авторитетную цену.
+                    Адрес и контакт — из каталога. Фото — визуальный V50-референс, не фактическое фото этой клиники.
                   </Text>
-                  <View style={{ minWidth: 190 }}>
-                    <Button
-                      label="Открыть клинику"
-                      onPress={() =>
-                        onOpenClinic({
-                          clinicId: clinic.clinicId,
-                          locationId: clinic.locationId,
-                        })
-                      }
-                    />
+                </View>
+
+                <View
+                  style={{
+                    width: desktop ? 224 : "100%",
+                    minHeight: 126,
+                    padding: 12,
+                    borderRadius: 16,
+                    backgroundColor: decisionColors.greenSoft,
+                    justifyContent: "space-between",
+                    gap: 10,
+                  }}
+                >
+                  <View style={{ gap: 4 }}>
+                    <Text
+                      style={{
+                        ...t.typography.caption,
+                        color: decisionColors.green,
+                        fontWeight: "800",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Почему открыть
+                    </Text>
+                    <Text
+                      style={{
+                        ...t.typography.secondaryBody,
+                        color: decisionColors.ink,
+                        fontWeight: "700",
+                      }}
+                    >
+                      {mode === "time"
+                        ? "Увидеть услуги и перейти к реальным свободным слотам"
+                        : "Проверить услуги, цену и доступное время без звонка"}
+                    </Text>
                   </View>
+                  <Button
+                    label={mode === "browse" ? "Посмотреть услуги" : "Открыть клинику"}
+                    onPress={() =>
+                      onOpenClinic({
+                        clinicId: clinic.clinicId,
+                        locationId: clinic.locationId,
+                      })
+                    }
+                  />
                 </View>
               </Pressable>
             );
