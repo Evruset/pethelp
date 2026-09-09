@@ -10,6 +10,7 @@ import {
 import { Button, Field, OwnerAppFrame, StateMessage } from '@/ui/primitives';
 import { uiTokens as t } from '@/ui/tokens';
 import { v50ReferenceAssets } from '@/ui/v50-reference-assets';
+import { BookingProgress } from '@/booking/BookingProgress';
 import { usePetJourney } from './PetJourneyProvider';
 import type { PetSpecies } from './pet-api';
 
@@ -75,6 +76,7 @@ export function PetJourneyScreen({
         }}
         showsVerticalScrollIndicator={false}
       >
+        {purpose !== 'diary' ? <BookingProgress current={1} /> : null}
         <View
           style={{
             minHeight: desktop ? 154 : undefined,

@@ -25,6 +25,7 @@ import {
   type OwnerHomeIntent,
 } from '@/home/owner-home-intent';
 import { PetDiaryScreen } from '@/pets/PetDiaryScreen';
+import { OwnerPetsScreen } from '@/pets/OwnerPetsScreen';
 import { usePetJourney } from '@/pets/PetJourneyProvider';
 import { PetJourneyScreen } from '@/pets/PetJourneyScreen';
 import type { Pet } from '@/pets/pet-api';
@@ -48,6 +49,8 @@ function AuthorityScopedHome() {
   const [openedClinic, setOpenedClinic] = useState<ClinicCatalogHandoff | null>(null);
   const [selectedService, setSelectedService] = useState<ClinicServiceHandoff | null>(null);
   const [selectedAvailability, setSelectedAvailability] = useState<AvailabilityHandoff | null>(null);
+  const [globalArea, setGlobalArea] = useState<'HOME' | 'PETS'>('HOME');
+  const [globalDiaryPet, setGlobalDiaryPet] = useState<Pet | null>(null);
   const { error, logout, session } = useSession();
   const { resumedIntent, consumeResumedIntent } = useAuthJourney();
   const pets = usePetJourney();
@@ -70,6 +73,14 @@ function AuthorityScopedHome() {
     clearDownstream();
     setIntent(null);
   };
+
+  const openHome = () => { closeJourney(); setGlobalDiaryPet(null); setGlobalArea('HOME'); };
+  const openPets = () => { closeJourney(); setGlobalDiaryPet(null); setGlobalArea('PETS'); };
+  const openClinics = () => { setGlobalArea('HOME'); setGlobalDiaryPet(null); startIntent('CLINICS'); };
+
+  if (globalDiaryPet) return <PetDiaryScreen petId={globalDiaryPet.petId} petName={globalDiaryPet.name} onBack={() => setGlobalDiaryPet(null)} onSwitchPet={() => setGlobalDiaryPet(null)} />;
+
+  if (globalArea === 'PETS' && !intent) return <OwnerPetsScreen pets={pets.pets} loading={pets.loading} error={pets.error} onHome={openHome} onClinics={openClinics} onRetry={pets.retry} onDiary={setGlobalDiaryPet} />;
 
   if (selectedAvailability) {
     if (pets.continuedPetId) {
@@ -97,6 +108,7 @@ function AuthorityScopedHome() {
         key={`${authorityGeneration}:${selectedService.clinicId}:${selectedService.locationId}:${selectedService.serviceId}`}
         authorityGeneration={authorityGeneration}
         context={selectedService}
+        petName={pets.pets.find((pet) => pet.petId === pets.continuedPetId)?.name}
         onBack={() => setSelectedService(null)}
         onContinue={(availability) => {
           setSelectedAvailability(availability);
@@ -114,6 +126,7 @@ function AuthorityScopedHome() {
       <ClinicServiceScreen
         key={`${session?.opaqueCredential}:${openedClinic.clinicId}:${openedClinic.locationId}`}
         clinic={openedClinic}
+        petName={pets.pets.find((pet) => pet.petId === pets.continuedPetId)?.name}
         onBack={() => setOpenedClinic(null)}
         onContinue={setSelectedService}
       />
@@ -140,6 +153,8 @@ function AuthorityScopedHome() {
       <ClinicCatalogScreen
         mode={ownerIntentCatalogMode(intent)}
         onClose={closeJourney}
+        onHome={openHome}
+        onPets={openPets}
         onOpenClinic={setOpenedClinic}
       />
     );
@@ -154,6 +169,7 @@ function AuthorityScopedHome() {
     <OwnerHome
       onBook={() => startIntent('BOOKING')}
       onClinics={() => startIntent('CLINICS')}
+      onPets={openPets}
       onFindTime={() => startIntent('TIME')}
       onDiary={() => startIntent('DIARY')}
       onLogout={() => {
@@ -174,6 +190,7 @@ function AuthorityScopedHome() {
 type HomeProps = {
   onBook(): void;
   onClinics(): void;
+  onPets(): void;
   onFindTime(): void;
   onDiary(): void;
   onLogout(): void;
@@ -190,6 +207,7 @@ type HomeProps = {
 export function OwnerHome({
   onBook,
   onClinics,
+  onPets,
   onFindTime,
   onDiary,
   onLogout,
@@ -208,7 +226,7 @@ export function OwnerHome({
   const nav = [
     ['Главная', '⌂', undefined, true],
     ['Клиники', '▥', onClinics, false],
-    ['Дневник', '▤', onDiary, false],
+    ['Питомцы', '●', onPets, false],
   ] as const;
 
   return (
@@ -256,20 +274,18 @@ export function OwnerHome({
                 petCount={petCount}
                 loading={petLoading}
                 error={petError}
-                onBook={onBook}
                 onDiary={onDiary}
                 onRetry={onRetryPet}
                 desktop={desktop}
               />
             </View>
             <View style={{ flex: desktop ? 0.95 : undefined }}>
-              <NextAction onBook={onBook} desktop={desktop} />
+              <NextAction desktop={desktop} />
             </View>
           </View>
 
           <CoreServices
             desktop={desktop}
-            onBook={onBook}
             onClinics={onClinics}
             onFindTime={onFindTime}
             onDiary={onDiary}
@@ -497,7 +513,7 @@ function ImmediateValue({ petName, desktop, onClinics }: { petName?: string; des
   );
 }
 
-function PetHero({ pet, petCount, loading, error, onBook, onDiary, onRetry, desktop }: { pet: Pet | null; petCount: number; loading: boolean; error: boolean; onBook(): void; onDiary(): void; onRetry?(): void; desktop: boolean }) {
+function PetHero({ pet, petCount, loading, error, onDiary, onRetry, desktop }: { pet: Pet | null; petCount: number; loading: boolean; error: boolean; onDiary(): void; onRetry?(): void; desktop: boolean }) {
   return (
     <Surface style={{ minHeight: desktop ? 276 : 238, padding: desktop ? 18 : 14, gap: 14, backgroundColor: '#FFFDFC', borderColor: '#F0D9BE' }}>
       {loading ? <Text style={styles.muted}>Загружаем питомца…</Text> : error ? (
@@ -520,7 +536,6 @@ function PetHero({ pet, petCount, loading, error, onBook, onDiary, onRetry, desk
           </View>
           <Text style={{ ...t.typography.caption, color: h.muted }}>Фото питомца пока не хранится в текущем authoritative профиле — не подменяем его референсной картинкой.</Text>
           <View style={{ marginTop: 'auto', gap: 8 }}>
-            <HomeButton label="Записаться" onPress={onBook} />
             <HomeButton label="Открыть дневник" secondary onPress={onDiary} />
           </View>
         </>
@@ -532,16 +547,16 @@ function PetHero({ pet, petCount, loading, error, onBook, onDiary, onRetry, desk
           </View>
           <Text style={{ fontSize: 28, lineHeight: 34, fontWeight: '800', color: h.ink }}>{petCount > 1 ? 'Выберите питомца' : 'Добавьте питомца'}</Text>
           <Text style={styles.muted}>{petCount > 1 ? 'Укажите, для кого открыть запись или дневник.' : 'Профиль нужен для записи и истории здоровья.'}</Text>
-          <View style={{ marginTop: 'auto' }}>
-            <HomeButton label={petCount > 1 ? 'Выбрать для записи' : 'Добавить и записаться'} onPress={onBook} />
-          </View>
+          <Text style={{ ...t.typography.caption, color: h.blue, fontWeight: '700', marginTop: 'auto' }}>
+            Для новой записи используйте основную кнопку «Записаться».
+          </Text>
         </View>
       )}
     </Surface>
   );
 }
 
-function NextAction({ onBook, desktop }: { onBook(): void; desktop: boolean }) {
+function NextAction({ desktop }: { desktop: boolean }) {
   return (
     <Surface style={{ minHeight: 276, padding: 0, overflow: 'hidden', backgroundColor: h.blueSoft, borderColor: '#AFCBFA' }}>
       <Image
@@ -554,15 +569,13 @@ function NextAction({ onBook, desktop }: { onBook(): void; desktop: boolean }) {
         <Text style={{ ...t.typography.caption, color: h.blue, fontWeight: '800', textTransform: 'uppercase' }}>Запись в клинику</Text>
         <Text style={{ fontSize: 24, lineHeight: 30, fontWeight: '800', color: h.ink }}>Нужна новая запись?</Text>
         <Text style={styles.muted}>Выберите питомца, клинику, услугу и реальное свободное время.</Text>
-        <View style={{ marginTop: 'auto' }}>
-          <HomeButton label="Начать запись" onPress={onBook} />
-        </View>
+        <Text style={{ ...t.typography.caption, color: h.blue, fontWeight: '700', marginTop: 'auto' }}>Начните с основной кнопки «Записаться» выше.</Text>
       </View>
     </Surface>
   );
 }
 
-function CoreServices({ desktop, onBook, onClinics, onFindTime, onDiary }: { desktop: boolean; onBook(): void; onClinics(): void; onFindTime(): void; onDiary(): void }) {
+function CoreServices({ desktop, onClinics, onFindTime, onDiary }: { desktop: boolean; onClinics(): void; onFindTime(): void; onDiary(): void }) {
   return (
     <View style={{ gap: 10 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -570,7 +583,6 @@ function CoreServices({ desktop, onBook, onClinics, onFindTime, onDiary }: { des
         <Text style={{ ...t.typography.caption, color: h.muted }}>Каждый — свой маршрут</Text>
       </View>
       <View style={{ flexDirection: desktop ? 'row' : 'column', gap: 10 }}>
-        <ServiceCard icon="＋" title="Запись" subtitle="Питомец → клиника → время" onPress={onBook} />
         <ServiceCard icon="⌖" title="Клиники" subtitle="Каталог без обязательного выбора питомца" onPress={onClinics} />
         <ServiceCard icon="◷" title="Свободное время" subtitle="Поиск опубликованных слотов" onPress={onFindTime} />
         <ServiceCard icon="▤" title="Дневник" subtitle="Результаты и рекомендации" onPress={onDiary} />

@@ -7,11 +7,13 @@ describe('OwnerHome V50 navigation', () => {
     const onClinics = jest.fn();
     const onFindTime = jest.fn();
     const onDiary = jest.fn();
+    const onPets = jest.fn();
 
     const screen = await render(
       <OwnerHome
         onBook={onBook}
         onClinics={onClinics}
+        onPets={onPets}
         onFindTime={onFindTime}
         onDiary={onDiary}
         onLogout={jest.fn()}
@@ -33,6 +35,8 @@ describe('OwnerHome V50 navigation', () => {
     expect(onBook).toHaveBeenCalledTimes(1);
     expect(onClinics).toHaveBeenCalledTimes(1);
 
+    fireEvent.press(screen.getByRole('button', { name: /Питомцы/ }));
+    expect(onPets).toHaveBeenCalledTimes(1);
     fireEvent.press(screen.getAllByText('Дневник')[0]);
     expect(onDiary).toHaveBeenCalledTimes(1);
   });

@@ -11,6 +11,7 @@ import {
 import { Button, StateMessage } from "@/ui/primitives";
 import { uiTokens as t } from "@/ui/tokens";
 import { v50ReferenceAssets } from "@/ui/v50-reference-assets";
+import { BookingProgress } from "@/booking/BookingProgress";
 import { useSession } from "@/session/SessionProvider";
 import {
   clinicServiceApi,
@@ -29,10 +30,12 @@ import {
 
 export function ClinicServiceScreen({
   clinic,
+  petName,
   onBack,
   onContinue,
 }: {
   clinic: ClinicCatalogHandoff;
+  petName?: string;
   onBack(): void;
   onContinue(value: ClinicServiceHandoff): void;
 }) {
@@ -103,6 +106,7 @@ export function ClinicServiceScreen({
       subtitle="Клиника уже выбрана. Теперь выберите услугу — затем покажем доступное время."
       onBack={onBack}
     >
+      <BookingProgress current={2} facts={petName ? [`Питомец: ${petName}`] : []} />
       {query.isPending ? <StateMessage kind="loading" title="Загружаем услуги" /> : null}
       {query.isError ? (
         <StateMessage
@@ -175,7 +179,7 @@ export function ClinicServiceScreen({
               <FactRow>
                 <Fact tone="positive">Онлайн-запись</Fact>
                 <Fact>{query.data.services.length} услуг</Fact>
-                <Fact>Время · следующим шагом</Fact>
+                <Fact>Время — следующим шагом</Fact>
               </FactRow>
               {query.data.phone ? (
                 <Text style={{ ...t.typography.caption, color: decisionColors.muted }}>

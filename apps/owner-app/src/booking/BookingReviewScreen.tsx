@@ -18,6 +18,7 @@ import { useSession } from '@/session/SessionProvider';
 import { Button, StateMessage } from '@/ui/primitives';
 import { uiTokens as t } from '@/ui/tokens';
 import { bookingApi, type BookingHoldSnapshot, type BookingResult } from './booking-api';
+import { BookingProgress } from './BookingProgress';
 
 const randomKey = () => {
   const value = globalThis.crypto?.randomUUID?.();
@@ -106,6 +107,7 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
           onBack();
         }}
       >
+        <BookingProgress current={4} facts={[snapshot?.statusTitle ?? 'Заявка отправлена']} />
         <View
           style={{
             padding: 16,
@@ -138,7 +140,7 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
             {snapshot?.status === 'PENDING_CONFIRMATION' || (!snapshot && result.status === 'PENDING_CONFIRMATION') ? 'Это ещё не подтверждённая запись.' : snapshot?.safeDescription}
           </Text>
           {refreshFailed ? <StateMessage kind="error" title="Не удалось обновить статус. Последний полученный статус сохранён." /> : null}
-          <Button label={refreshing ? 'Обновляем…' : 'Обновить статус'} disabled={refreshing} onPress={() => { void refreshStatus(); }} />
+          <Button label={refreshing ? 'Обновляем…' : 'Обновить статус'} variant="secondary" disabled={refreshing} onPress={() => { void refreshStatus(); }} />
         </DecisionPanel>
       </ClinicDecisionLayout>
     );
@@ -154,6 +156,7 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
         onBack();
       }}
     >
+      <BookingProgress current={4} facts={pet && clinic && service ? [`Питомец: ${pet.name}`, `Клиника: ${clinic.name}`, `Услуга: ${service.name}`] : []} />
       {!complete ? (
         <StateMessage
           kind="error"

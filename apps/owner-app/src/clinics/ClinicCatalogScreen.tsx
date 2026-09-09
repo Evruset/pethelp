@@ -12,6 +12,7 @@ import { Button, StateMessage } from "@/ui/primitives";
 import { uiTokens as t } from "@/ui/tokens";
 import { v50ReferenceAssets } from "@/ui/v50-reference-assets";
 import { useSession } from "@/session/SessionProvider";
+import { OwnerGlobalNav } from "@/navigation/OwnerGlobalNav";
 import {
   clinicCatalogApi,
   type ClinicCatalogHandoff,
@@ -66,10 +67,14 @@ export function ClinicCatalogScreen({
   onClose,
   onOpenClinic,
   mode = "booking",
+  onHome,
+  onPets,
 }: {
   onClose(): void;
   onOpenClinic(clinic: ClinicCatalogHandoff): void;
   mode?: ClinicCatalogMode;
+  onHome?(): void;
+  onPets?(): void;
 }) {
   const { session } = useSession();
   const { width } = useWindowDimensions();
@@ -89,6 +94,7 @@ export function ClinicCatalogScreen({
       title={copy.title}
       subtitle={copy.subtitle}
       onBack={onClose}
+      globalNavigation={onHome && onPets ? (wide) => <OwnerGlobalNav desktop={wide} active="CLINICS" onHome={onHome} onPets={onPets} onClinics={() => {}} /> : undefined}
     >
       <DecisionPanel>
         <DecisionHeading

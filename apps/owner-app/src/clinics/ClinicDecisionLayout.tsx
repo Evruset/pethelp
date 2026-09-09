@@ -28,16 +28,20 @@ export function ClinicDecisionLayout({
   subtitle,
   onBack,
   children,
+  globalNavigation,
 }: PropsWithChildren<{
   eyebrow: string;
   title: string;
   subtitle: string;
   onBack?(): void;
+  globalNavigation?: (desktop: boolean) => ReactNode;
 }>) {
   const { width } = useWindowDimensions();
   const desktop = Platform.OS === "web" && width >= 900;
   return (
     <OwnerAppFrame wide>
+      <View style={{ flex: 1, backgroundColor: decisionColors.canvas }}>
+      {desktop && globalNavigation ? globalNavigation(true) : null}
       <ScrollView
         style={{ flex: 1, backgroundColor: decisionColors.canvas }}
         contentContainerStyle={{
@@ -88,6 +92,8 @@ export function ClinicDecisionLayout({
         </View>
         {children}
       </ScrollView>
+      {!desktop && globalNavigation ? globalNavigation(false) : null}
+      </View>
     </OwnerAppFrame>
   );
 }

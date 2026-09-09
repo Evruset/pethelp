@@ -10,6 +10,7 @@ import {
 import { Button, StateMessage } from "@/ui/primitives";
 import { uiTokens as t } from "@/ui/tokens";
 import { useSession } from "@/session/SessionProvider";
+import { BookingProgress } from "@/booking/BookingProgress";
 import {
   availabilityApi,
   type AvailabilityHandoff,
@@ -46,11 +47,13 @@ const shortDate = (iso: string) => {
 
 export function AvailabilityScreen({
   context,
+  petName,
   authorityGeneration = "component-session",
   onBack,
   onContinue,
 }: {
   context: ClinicServiceHandoff;
+  petName?: string;
   authorityGeneration?: string;
   onBack(): void;
   onContinue(value: AvailabilityHandoff): void;
@@ -177,6 +180,7 @@ export function AvailabilityScreen({
         onBack();
       }}
     >
+      <BookingProgress current={3} facts={petName ? [`Питомец: ${petName}`] : []} />
       {query.isPending ? <StateMessage kind="loading" title="Загружаем доступное время" /> : null}
       {query.isError ? (
         <StateMessage
