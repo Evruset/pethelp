@@ -113,9 +113,10 @@ export class ClinicEmployeeAccessService {
   async assertClinicalVisitCompletionAccess(
     client: PoolClient,
     employee: JwtPayload,
+    clinicId: string,
     clinicLocationId: string,
   ): Promise<void> {
-    await this.capabilities.assertAllowed(client, { actor: employee, capability: Capability.CLINICAL_VISIT_COMPLETE, resource: { aggregateType: 'clinical.visit', locationId: clinicLocationId } });
+    await this.capabilities.assertAllowed(client, { actor: employee, capability: Capability.CLINICAL_VISIT_COMPLETE, resource: { aggregateType: 'clinical.visit', clinicId, locationId: clinicLocationId } });
   }
 
   async assertClinicalVisitWorkspaceReadAccess(client: PoolClient, employee: JwtPayload, clinicId: string, clinicLocationId: string): Promise<void> {

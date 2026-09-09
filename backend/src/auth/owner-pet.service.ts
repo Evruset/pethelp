@@ -137,7 +137,7 @@ export type OwnerPetCareSummary = {
 };
 
 export type OwnerPetDiaryEntry = {
-  type: 'DOCUMENT' | 'VISIT' | 'TELEMED';
+  type: 'DOCUMENT' | 'VISIT' | 'TELEMED' | 'RESULT' | 'RESULT_AMENDMENT';
   sourceId: string;
   occurredAt: string;
   endsAt: string | null;
@@ -150,7 +150,21 @@ export type OwnerPetDiaryEntry = {
 export type OwnerPetDiaryPage = {
   petId: string;
   entries: OwnerPetDiaryEntry[];
+  clinicalEntries: OwnerPetClinicalDiaryEntry[];
   page: { limit: number; offset: number; nextOffset: number | null; total: number };
+};
+
+export type OwnerPetClinicalDiaryEntry = {
+  visit: {
+    visitId: string;
+    occurredAt: string;
+    clinic: { name: string };
+    location: { address: string } | null;
+    service: { name: string } | null;
+    doctor: { name: string } | null;
+  };
+  result: { resultId: string; publishedAt: string; content: string };
+  amendments: { amendmentId: string; publishedAt: string; content: string }[];
 };
 
 type OwnerPetRow = {
@@ -458,16 +472,29 @@ export class OwnerPetService {
           AND document.deleted_at IS NULL AND document.doc_type IN ('PASSPORT', 'HISTORY')
         UNION ALL
         SELECT 'VISIT', hold.id::text, slot.starts_at, slot.ends_at,
-          COALESCE(service.display_name, 'Визит в клинику'), hold.clinical_summary,
+          COALESCE(service.display_name, 'Визит в клинику'), NULL::text,
           hold.state, NULL::text, 2
         FROM booking_schema.booking_holds hold
         JOIN clinic_schema.appointment_slots slot ON slot.id = hold.slot_id
         LEFT JOIN clinic_schema.clinic_services service ON service.id = slot.service_id
         WHERE hold.owner_id = $1::uuid AND hold.pet_id = $2::uuid
         UNION ALL
+        SELECT CASE WHEN diary.source_result_id IS NOT NULL THEN 'RESULT' ELSE 'RESULT_AMENDMENT' END,
+          COALESCE(diary.source_result_id, diary.source_amendment_id)::text,
+          diary.occurred_at, NULL::timestamptz,
+          CASE WHEN diary.source_result_id IS NOT NULL THEN 'Заключение врача' ELSE 'Дополнение к заключению' END,
+          COALESCE(result.clinical_summary, amendment.amendment_content),
+          'PUBLISHED', NULL::text, 3
+        FROM clinical_schema.diary_entries diary
+        LEFT JOIN clinical_schema.visit_results result ON result.id = diary.source_result_id AND result.status = 'PUBLISHED'
+        LEFT JOIN clinical_schema.visit_result_amendments amendment ON amendment.id = diary.source_amendment_id
+        WHERE diary.owner_id = $1::uuid AND diary.pet_id = $2::uuid
+          AND ((diary.source_result_id IS NOT NULL AND result.id IS NOT NULL)
+            OR (diary.source_amendment_id IS NOT NULL AND amendment.id IS NOT NULL))
+        UNION ALL
         SELECT 'TELEMED', session.id::text, COALESCE(slot.starts_at, session.created_at), slot.ends_at,
           COALESCE(service.display_name, 'Онлайн-консультация'), NULL::text,
-          session.state, NULL::text, 3
+          session.state, NULL::text, 4
         FROM telemed_schema.telemed_sessions session
         LEFT JOIN booking_schema.booking_holds hold ON hold.id = session.booking_hold_id
         LEFT JOIN telemed_schema.telemed_cases telemed_case ON telemed_case.id = session.telemed_case_id
@@ -478,6 +505,66 @@ export class OwnerPetService {
       SELECT diary.*, count(*) OVER ()::text AS total_count
       FROM diary
       ORDER BY occurred_at DESC, type_rank ASC, source_id ASC
+      LIMIT $3::integer OFFSET $4::integer
+    `, [owner.sub, petId, limit, offset]);
+    const clinical = await this.database.query<{
+      visit_id: string; occurred_at: Date; clinic_name: string; location_address: string | null;
+      service_name: string | null; result_id: string; result_published_at: Date; result_content: string;
+      amendments: { amendmentId: string; publishedAt: string; content: string }[];
+    }>(`
+      SELECT visit.id::text AS visit_id, visit.completed_at AS occurred_at,
+        clinic.public_name AS clinic_name, location.address AS location_address,
+        service.display_name AS service_name,
+        result.id::text AS result_id, result.published_at AS result_published_at,
+        result.clinical_summary AS result_content,
+        COALESCE(
+          jsonb_agg(jsonb_build_object(
+            'amendmentId', amendment.id::text,
+            'publishedAt', amendment.published_at,
+            'content', amendment.amendment_content
+          ) ORDER BY amendment.created_at ASC, amendment.id ASC)
+          FILTER (WHERE amendment.id IS NOT NULL AND amendment_diary.id IS NOT NULL),
+          '[]'::jsonb
+        ) AS amendments
+      FROM clinical_schema.visit_results result
+      JOIN clinical_schema.visits visit
+        ON visit.id = result.visit_id
+       AND visit.owner_id = result.owner_id
+       AND visit.pet_id = result.pet_id
+       AND visit.clinic_id = result.clinic_id
+       AND visit.location_id = result.location_id
+      JOIN clinical_schema.diary_entries result_diary
+        ON result_diary.source_result_id = result.id
+       AND result_diary.source_amendment_id IS NULL
+       AND result_diary.visit_id = visit.id
+       AND result_diary.owner_id = result.owner_id
+       AND result_diary.pet_id = result.pet_id
+      JOIN clinic_schema.clinics clinic ON clinic.id = visit.clinic_id
+      JOIN clinic_schema.clinic_locations location
+        ON location.id = visit.location_id AND location.clinic_id = visit.clinic_id
+      JOIN clinic_schema.appointment_slots slot
+        ON slot.id = visit.slot_id AND slot.clinic_location_id = visit.location_id
+      LEFT JOIN clinic_schema.clinic_services service
+        ON service.id = slot.service_id AND service.clinic_location_id = visit.location_id
+      LEFT JOIN clinical_schema.visit_result_amendments amendment
+        ON amendment.result_id = result.id
+       AND amendment.visit_id = result.visit_id
+       AND amendment.owner_id = result.owner_id
+       AND amendment.pet_id = result.pet_id
+       AND amendment.clinic_id = result.clinic_id
+       AND amendment.location_id = result.location_id
+      LEFT JOIN clinical_schema.diary_entries amendment_diary
+        ON amendment_diary.source_amendment_id = amendment.id
+       AND amendment_diary.source_result_id IS NULL
+       AND amendment_diary.visit_id = visit.id
+       AND amendment_diary.owner_id = result.owner_id
+       AND amendment_diary.pet_id = result.pet_id
+      WHERE result.owner_id = $1::uuid
+        AND result.pet_id = $2::uuid
+        AND result.status = 'PUBLISHED'
+      GROUP BY visit.id, visit.completed_at, clinic.public_name, location.address,
+        service.display_name, result.id, result.published_at, result.clinical_summary
+      ORDER BY visit.completed_at DESC, result.id ASC
       LIMIT $3::integer OFFSET $4::integer
     `, [owner.sub, petId, limit, offset]);
     const total = Number(result.rows[0]?.total_count ?? 0);
@@ -492,6 +579,25 @@ export class OwnerPetService {
         summary: row.summary,
         lifecycleStatus: this.publicDiaryLifecycle(row.entry_type, row.lifecycle_status),
         downloadUrl: row.download_url,
+      })),
+      clinicalEntries: clinical.rows.map((row) => ({
+        visit: {
+          visitId: row.visit_id,
+          occurredAt: row.occurred_at.toISOString(),
+          clinic: { name: row.clinic_name },
+          location: row.location_address === null ? null : { address: row.location_address },
+          service: row.service_name === null ? null : { name: row.service_name },
+          doctor: null,
+        },
+        result: {
+          resultId: row.result_id,
+          publishedAt: row.result_published_at.toISOString(),
+          content: row.result_content,
+        },
+        amendments: row.amendments.map((amendment) => ({
+          ...amendment,
+          publishedAt: new Date(amendment.publishedAt).toISOString(),
+        })),
       })),
       page: { limit, offset, nextOffset: offset + result.rows.length < total ? offset + result.rows.length : null, total },
     };
@@ -1114,6 +1220,7 @@ export class OwnerPetService {
   private publicDiaryLifecycle(type: OwnerPetDiaryEntry['type'], persistedState: string): string {
     if (type === 'DOCUMENT') return persistedState;
     if (type === 'VISIT') return ownerAppointmentPresentation(persistedState, 'HISTORY').code;
+    if (type === 'RESULT' || type === 'RESULT_AMENDMENT') return 'PUBLISHED';
     const telemedStates: Record<string, string> = {
       WAITING_FOR_DOCTOR: 'WAITING', CONNECTED: 'IN_PROGRESS', COMPLETED: 'COMPLETED',
       CANCELLED: 'CANCELLED', EXPIRED: 'EXPIRED', NO_SHOW: 'NO_SHOW',

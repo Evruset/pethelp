@@ -138,13 +138,18 @@ async function main() {
   const ownerPetList = document.paths?.['/v1/owner/pets']?.get;
   const ownerPetCreate = document.paths?.['/v1/owner/pets']?.post;
   const ownerPetRead = document.paths?.['/v1/owner/pets/{petId}']?.get;
+  const ownerPetDiary = document.paths?.['/v1/owner/pets/{petId}/diary']?.get;
   required(ownerPetList && ownerPetCreate && ownerPetRead, 'Owner Pet MVP routes are incomplete');
+  required(ownerPetDiary, 'Owner pet diary route is missing');
   for (const [path, method] of [
     ['/v1/owner/pets/{petId}', 'patch'], ['/v1/owner/pets/{petId}/archive', 'post'], ['/v1/owner/pets/{petId}/restore', 'post'],
-    ['/v1/owner/pets/{petId}/diary', 'get'], ['/v1/owner/pets/{petId}/care-summary', 'get'], ['/v1/owner/pets/{petId}/documents', 'post'],
+    ['/v1/owner/pets/{petId}/care-summary', 'get'], ['/v1/owner/pets/{petId}/documents', 'post'],
     ['/v1/owner/pets/{petId}/photo', 'post'], ['/v1/owner/pets/{petId}/photo', 'delete'],
   ]) required(!document.paths?.[path]?.[method], `PILOT_V1 must not advertise ${method.toUpperCase()} ${path}`);
   for (const [operation, label] of [[ownerPetList, 'Owner pet list'], [ownerPetCreate, 'Owner pet create'], [ownerPetRead, 'Owner pet read']]) requireBearerAuth(operation, label);
+  requireBearerAuth(ownerPetDiary, 'Owner pet diary');
+  requireStatuses(ownerPetDiary, ['200', '400', '401', '404', '500'], 'Owner pet diary');
+  requireErrorSchemas(ownerPetDiary, ['400', '401', '404', '500'], 'Owner pet diary');
   requireStatuses(ownerPetList, ['200', '401', '500'], 'Owner pet list');
   requireStatuses(ownerPetCreate, ['201', '400', '401', '409', '500'], 'Owner pet create');
   requireStatuses(ownerPetRead, ['200', '400', '401', '404', '500'], 'Owner pet read');

@@ -1,203 +1,115 @@
-import type { PropsWithChildren, ReactNode } from "react";
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-  type TextInputProps,
-} from "react-native";
-import { uiTokens } from "./tokens";
+import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent, type PropsWithChildren, type ReactNode } from 'react';
+import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions, type TextInputProps, type ViewStyle } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { uiTokens as t } from './tokens';
 
-export function Screen({
-  children,
-  title,
-}: PropsWithChildren<{ title: string }>) {
+export function OwnerAppFrame({ children }: PropsWithChildren) {
+  const { width } = useWindowDimensions();
+  const webWide = Platform.OS === 'web' && width >= 768;
+  return <View style={{ flex: 1, backgroundColor: t.color.background, alignItems: webWide ? 'center' : 'stretch' }}><SafeAreaView style={{ flex: 1, width: '100%', maxWidth: webWide ? t.layout.phoneMaxWidth : undefined, backgroundColor: t.color.surface, ...(webWide ? t.shadow.card : {}) }}>{children}</SafeAreaView></View>;
+}
+
+export function Screen({ children, title, subtitle, accessibilityLabel = title, backAction, scroll = true }: PropsWithChildren<{ title: string; subtitle?: string; accessibilityLabel?: string; backAction?: () => void; scroll?: boolean }>) {
+  const body = <View accessibilityLabel={accessibilityLabel} style={{ width: '100%', maxWidth: t.layout.contentMaxWidth, alignSelf: 'center', paddingHorizontal: t.spacing.lg, paddingTop: t.spacing.lg, paddingBottom: t.spacing.xxl, gap: t.spacing.lg }}>{backAction ? <BackAction onPress={backAction} /> : null}<LargeTitleHeader title={title} subtitle={subtitle} />{children}</View>;
+  return <OwnerAppFrame>{scroll ? <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>{body}</ScrollView> : body}</OwnerAppFrame>;
+}
+export function LargeTitleHeader({ title, subtitle, eyebrow }: { title: string; subtitle?: string; eyebrow?: string }) { return <View style={{ gap: t.spacing.xs }}>{eyebrow ? <Text style={{ ...t.typography.label, color: t.color.accent, textTransform: 'uppercase', letterSpacing: 0.8 }}>{eyebrow}</Text> : null}<Text accessibilityRole="header" style={{ ...t.typography.largeTitle, color: t.color.textPrimary }}>{title}</Text>{subtitle ? <Text style={{ ...t.typography.secondaryBody, color: t.color.textSecondary }}>{subtitle}</Text> : null}</View>; }
+export function Header({ title }: { title: string }) { return <Text accessibilityRole="header" style={{ ...t.typography.title, color: t.color.textPrimary }}>{title}</Text>; }
+export function SectionTitle({ children }: PropsWithChildren) { return <Text style={{ ...t.typography.sectionTitle, color: t.color.textPrimary }}>{children}</Text>; }
+export function BodyText({ children, secondary = false }: PropsWithChildren<{ secondary?: boolean }>) { return <Text style={{ ...(secondary ? t.typography.secondaryBody : t.typography.body), color: secondary ? t.color.textSecondary : t.color.textPrimary }}>{children}</Text>; }
+export function BackAction({ onPress, label = 'Назад' }: { onPress(): void; label?: string }) { return <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => ({ minHeight: 44, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: t.spacing.sm, opacity: pressed ? 0.55 : 1 })}><View accessibilityElementsHidden style={{ width: 11, height: 11, borderLeftWidth: 2, borderBottomWidth: 2, borderColor: t.color.accent, transform: [{ rotate: '45deg' }] }} /><Text style={{ ...t.typography.body, color: t.color.accent }}>{label}</Text></Pressable>; }
+
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive';
+export function Button({ label, onPress, disabled = false, variant = 'primary' }: { label: string; onPress(): void; disabled?: boolean; variant?: ButtonVariant }) {
+  const primary = variant === 'primary'; const destructive = variant === 'destructive'; const outlined = variant === 'secondary' || destructive;
+  return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => ({ minHeight: t.layout.minTouch, justifyContent: 'center', paddingHorizontal: t.spacing.lg, paddingVertical: 13, borderWidth: outlined ? 1 : 0, borderColor: destructive ? t.color.critical : t.color.separator, borderRadius: t.radius.control, backgroundColor: disabled ? t.color.disabledSurface : primary ? (pressed ? t.color.accentPressed : t.color.accent) : destructive ? t.color.criticalSoft : variant === 'secondary' ? t.color.surface : 'transparent', opacity: pressed && !primary ? 0.62 : 1 })}><Text style={{ ...t.typography.button, color: disabled ? t.color.disabled : primary ? t.color.onAccent : destructive ? t.color.critical : t.color.accent, textAlign: 'center' }}>{label}</Text></Pressable>;
+}
+export const PrimaryButton = Button;
+export function SecondaryButton(props: Omit<Parameters<typeof Button>[0], 'variant'>) { return <Button {...props} variant="secondary" />; }
+export function GhostButton(props: Omit<Parameters<typeof Button>[0], 'variant'>) { return <Button {...props} variant="ghost" />; }
+export function DestructiveButton(props: Omit<Parameters<typeof Button>[0], 'variant'>) { return <Button {...props} variant="destructive" />; }
+
+export function Field({ label, error, hint, ...props }: TextInputProps & { label: string; error?: string; hint?: string }) { return <View style={{ gap: t.spacing.xs }}><Text style={{ ...t.typography.label, color: t.color.textPrimary }}>{label}</Text><TextInput accessibilityLabel={label} placeholderTextColor={t.color.textSecondary} {...props} style={[{ minHeight: t.layout.minTouch, backgroundColor: t.color.surface, borderWidth: 1, borderColor: error ? t.color.critical : t.color.separator, borderRadius: t.radius.control, paddingHorizontal: t.spacing.md, paddingVertical: 12, ...t.typography.body, color: t.color.textPrimary }, props.style]} />{error ? <Text accessibilityRole="alert" style={{ ...t.typography.caption, color: t.color.critical }}>{error}</Text> : hint ? <Text style={{ ...t.typography.caption, color: t.color.textSecondary }}>{hint}</Text> : null}</View>; }
+
+export function InsetSection({ children, title, footer }: PropsWithChildren<{ title?: string; footer?: string }>) { return <View style={{ gap: t.spacing.sm }}>{title ? <SectionTitle>{title}</SectionTitle> : null}<View style={{ backgroundColor: t.color.surface, borderRadius: t.radius.section, overflow: 'hidden', borderWidth: 1, borderColor: t.color.separator }}>{children}</View>{footer ? <Text style={{ ...t.typography.caption, color: t.color.textSecondary, paddingHorizontal: t.spacing.xs }}>{footer}</Text> : null}</View>; }
+export function Card({ children, selected = false, disabled = false, onPress, accessibilityLabel }: PropsWithChildren<{ selected?: boolean; disabled?: boolean; onPress?: () => void; accessibilityLabel?: string }>) { const style: ViewStyle = { padding: t.spacing.lg, gap: t.spacing.xs, opacity: disabled ? 0.5 : 1, borderWidth: selected ? 2 : 1, borderColor: selected ? t.color.accent : t.color.separator, borderRadius: t.radius.card, backgroundColor: selected ? t.color.accentSoft : t.color.surface }; return onPress ? <Pressable accessibilityRole="radio" aria-checked={selected} accessibilityLabel={accessibilityLabel} accessibilityState={{ selected,disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => [style, { opacity: disabled ? 0.5 : pressed ? 0.7 : 1 }]}>{children}</Pressable> : <View style={style}>{children}</View>; }
+export function ListRow({ title, subtitle, detail, selected = false, disabled = false, onPress }: { title: string; subtitle?: string; detail?: string; selected?: boolean; disabled?: boolean; onPress(): void }) { return <Pressable accessibilityRole="radio" aria-checked={selected} accessibilityState={{ selected,disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => ({ minHeight: 62, paddingHorizontal: t.spacing.lg, paddingVertical: t.spacing.md, flexDirection: 'row', alignItems: 'center', gap: t.spacing.md, backgroundColor: selected ? t.color.accentSoft : pressed ? t.color.background : t.color.surface })}><View style={{ flex: 1, gap: 3 }}><Text style={{ ...t.typography.body, fontWeight: '600', color: t.color.textPrimary }}>{title}</Text>{subtitle ? <Text style={{ ...t.typography.caption, color: t.color.textSecondary }}>{subtitle}</Text> : null}</View>{detail ? <Text style={{ ...t.typography.label, color: t.color.textSecondary }}>{detail}</Text> : null}<SelectionMark selected={selected} /></Pressable>; }
+export function Divider() { return <View style={{ height: 1, backgroundColor: t.color.separator, marginLeft: t.spacing.lg }} />; }
+function SelectionMark({ selected }: { selected: boolean }) { return <View accessibilityElementsHidden style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: selected ? t.color.accent : t.color.disabled, alignItems: 'center', justifyContent: 'center' }}>{selected ? <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: t.color.accent }} /> : null}</View>; }
+
+type Tone = 'success' | 'warning' | 'critical' | 'info' | 'neutral';
+const tone = (value: Tone) => value === 'success' ? [t.color.success, t.color.successSoft] : value === 'warning' ? [t.color.warning, t.color.warningSoft] : value === 'critical' ? [t.color.critical, t.color.criticalSoft] : value === 'info' ? [t.color.info, t.color.infoSoft] : [t.color.textSecondary, t.color.background];
+export function StatusBadge({ label, tone: value = 'neutral' }: { label: string; tone?: Tone }) { const [fg, bg] = tone(value); return <View style={{ alignSelf: 'flex-start', borderRadius: t.radius.pill, paddingHorizontal: 11, paddingVertical: 6, backgroundColor: bg }}><Text accessibilityRole="text" style={{ ...t.typography.caption, color: fg }}>{label}</Text></View>; }
+export const StatusPill = StatusBadge;
+export function InlineBanner({ title, body, tone: value = 'info', action }: { title: string; body?: string; tone?: Tone; action?: ReactNode }) { const [fg, bg] = tone(value); const isAlert = value === 'critical'; const label=[title,body].filter(Boolean).join(' '); return <View accessible={false} style={{ gap: t.spacing.xs, padding: t.spacing.md, borderRadius: t.radius.card, backgroundColor: bg, borderLeftWidth: 4, borderLeftColor: fg }}><Text accessible={isAlert ? true : undefined} accessibilityRole={isAlert ? 'alert' : undefined} accessibilityLabel={isAlert ? label : undefined} style={{ ...t.typography.label, color: fg }}>{title}</Text>{body ? <Text style={{ ...t.typography.secondaryBody, color: t.color.textPrimary }}>{body}</Text> : null}{action}</View>; }
+export function Skeleton({ height = 18, width = '100%' }: { height?: number; width?: number | `${number}%` }) { return <View accessibilityElementsHidden style={{ height, width, borderRadius: Math.min(10, height / 2), backgroundColor: t.color.disabledSurface }} />; }
+export function SkeletonCard() { return <Card><Skeleton width="64%" height={20} /><Skeleton width="88%" /><Skeleton width="42%" /></Card>; }
+export function StateMessage({ kind, title, body, action }: { kind: 'loading' | 'empty' | 'error' | 'submitting' | 'conflict' | 'forbidden'; title: string; body?: string; action?: ReactNode }) { const isAlert = kind === 'error' || kind === 'conflict' || kind === 'forbidden'; const color = isAlert ? t.color.critical : kind === 'empty' ? t.color.info : t.color.accent; return <View accessible={false} style={{ minHeight: kind === 'loading' ? 130 : undefined, justifyContent: 'center', gap: t.spacing.sm, padding: t.spacing.lg, borderRadius: t.radius.section, backgroundColor: t.color.surface, borderWidth: 1, borderColor: t.color.separator }}>{kind === 'loading' || kind === 'submitting' ? <ActivityIndicator accessibilityLabel={title} color={t.color.accent} /> : <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: color, opacity: 0.16 }} />}<Text accessible={isAlert ? true : undefined} accessibilityRole={isAlert ? 'alert' : undefined} accessibilityLabel={isAlert ? title : undefined} style={{ ...t.typography.sectionTitle, color: t.color.textPrimary }}>{title}</Text>{body ? <Text style={{ ...t.typography.secondaryBody, color: t.color.textSecondary }}>{body}</Text> : null}{action}</View>; }
+export function BottomActionBar({ children }: PropsWithChildren) { return <View style={{ gap: t.spacing.sm, paddingTop: t.spacing.sm }}>{children}</View>; }
+type ConfirmationModalProps={visible:boolean;title:string;body:string;confirmLabel:string;cancelLabel?:string;busy?:boolean;onConfirm():void;onCancel():void};
+const confirmationContent=(props:ConfirmationModalProps)=><View style={{ position: 'relative', zIndex: 10000, width: '100%', maxWidth: t.layout.phoneMaxWidth, alignSelf: 'center', gap: t.spacing.lg, padding: t.spacing.xl, borderRadius: t.radius.section, backgroundColor: '#FFFFFF', ...t.shadow.card }}><Header title={props.title} /><BodyText secondary>{props.body}</BodyText><DestructiveButton label={props.confirmLabel} disabled={props.busy} onPress={props.onConfirm} /><GhostButton label={props.cancelLabel??'Не сейчас'} disabled={props.busy} onPress={props.onCancel} /></View>;
+function WebConfirmationModal(props: ConfirmationModalProps) {
+  const root = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    root.current
+      ?.querySelector<HTMLElement>('button:not([disabled])')
+      ?.focus();
+
+    return () => previous?.focus();
+  }, []);
+
+  const trap = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      props.onCancel();
+      return;
+    }
+
+    if (event.key !== 'Tab') return;
+
+    const focusable = [
+      ...event.currentTarget.querySelectorAll<HTMLElement>(
+        'button:not([disabled])',
+      ),
+    ];
+
+    if (!focusable.length) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
   return (
-    <View
-      accessibilityLabel={title}
+    <div
+      ref={root}
+      role="dialog"
+      aria-modal={true}
+      aria-label={props.title}
+      onKeyDown={trap}
       style={{
-        width: "100%",
-        maxWidth: 720,
-        alignSelf: "center",
-        padding: uiTokens.spacing.xl,
-        gap: uiTokens.spacing.lg,
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        display: 'flex',
+        justifyContent: 'flex-end',
+        padding: t.spacing.md,
+        backgroundColor: t.color.overlay,
       }}
     >
-      <Header title={title} />
-      {children}
-    </View>
+      {confirmationContent(props)}
+    </div>
   );
 }
-export function Button({
-  label,
-  onPress,
-  disabled = false,
-  variant = "primary",
-}: {
-  label: string;
-  onPress(): void;
-  disabled?: boolean;
-  variant?: "primary" | "secondary" | "ghost";
-}) {
-  const quiet = variant !== "primary";
-  const outlined = variant === "secondary";
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ disabled }}
-      disabled={disabled}
-      onPress={onPress}
-      style={{
-        minHeight: 48,
-        justifyContent: "center",
-        padding: 14,
-        borderWidth: outlined ? 1 : 0,
-        borderColor: outlined ? uiTokens.color.primary : "transparent",
-        borderRadius: uiTokens.radius.card,
-        backgroundColor: disabled
-          ? uiTokens.color.disabled
-          : quiet
-            ? "transparent"
-            : uiTokens.color.primary,
-      }}
-    >
-      <Text
-        style={{
-          color:
-            disabled || !quiet
-              ? uiTokens.color.onPrimary
-              : uiTokens.color.primary,
-          textAlign: "center",
-          ...uiTokens.typography.action,
-        }}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-export function Field({
-  label,
-  error,
-  ...props
-}: TextInputProps & { label: string; error?: string }) {
-  return (
-    <View style={{ gap: uiTokens.spacing.xs }}>
-      <Text>{label}</Text>
-      <TextInput
-        accessibilityLabel={label}
-        {...props}
-        style={{
-          borderWidth: 1,
-          borderColor: error ? uiTokens.color.critical : uiTokens.color.border,
-          borderRadius: uiTokens.radius.control,
-          padding: uiTokens.spacing.md,
-        }}
-      />
-      {error ? <Text accessibilityRole="alert">{error}</Text> : null}
-    </View>
-  );
-}
-export function Card({
-  children,
-  selected = false,
-  disabled = false,
-  onPress,
-}: PropsWithChildren<{
-  selected?: boolean;
-  disabled?: boolean;
-  onPress?: () => void;
-}>) {
-  const body = (
-    <View
-      style={{
-        padding: 14,
-        opacity: disabled ? 0.55 : 1,
-        borderWidth: 2,
-        borderColor: selected
-          ? uiTokens.color.primary
-          : uiTokens.color.subtleBorder,
-        borderRadius: uiTokens.radius.card,
-      }}
-    >
-      {children}
-    </View>
-  );
-  return onPress ? (
-    <Pressable
-      accessibilityRole="radio"
-      accessibilityState={{ selected, disabled }}
-      disabled={disabled}
-      onPress={onPress}
-    >
-      {body}
-    </Pressable>
-  ) : (
-    body
-  );
-}
-export function StatusBadge({ label }: { label: string }) {
-  return <Text accessibilityRole="text">{label}</Text>;
-}
-export function Header({ title }: { title: string }) {
-  return (
-    <Text accessibilityRole="header" style={uiTokens.typography.heading}>
-      {title}
-    </Text>
-  );
-}
-export function ListRow({
-  title,
-  subtitle,
-  selected = false,
-  onPress,
-}: {
-  title: string;
-  subtitle?: string;
-  selected?: boolean;
-  onPress(): void;
-}) {
-  return (
-    <Card selected={selected} onPress={onPress}>
-      <Text style={{ fontWeight: "600" }}>{title}</Text>
-      {subtitle ? <Text>{subtitle}</Text> : null}
-    </Card>
-  );
-}
-export function NotificationBadge({ count }: { count: number }) {
-  const bounded = Math.max(0, Math.min(99, Math.trunc(count)));
-  return (
-    <Text accessibilityLabel={`${bounded} непрочитанных уведомлений`}>
-      {bounded > 0 ? bounded : ""}
-    </Text>
-  );
-}
-export function StateMessage({
-  kind,
-  title,
-  action,
-}: {
-  kind: "loading" | "empty" | "error" | "submitting" | "conflict" | "forbidden";
-  title: string;
-  action?: ReactNode;
-}) {
-  return (
-    <View
-      accessibilityRole={
-        kind === "error" || kind === "conflict" || kind === "forbidden"
-          ? "alert"
-          : undefined
-      }
-      style={{ gap: uiTokens.spacing.sm }}
-    >
-      {kind === "loading" || kind === "submitting" ? (
-        <ActivityIndicator />
-      ) : null}
-      <Text>{title}</Text>
-      {action}
-    </View>
-  );
-}
+export function ConfirmationModal({ visible, title, body, confirmLabel, cancelLabel = 'Не сейчас', busy = false, onConfirm, onCancel }: ConfirmationModalProps) {if(!visible)return null;const props={visible,title,body,confirmLabel,cancelLabel,busy,onConfirm,onCancel};if(Platform.OS==='web')return <WebConfirmationModal {...props}/>;return <Modal visible transparent animationType="fade" onRequestClose={onCancel}><View accessibilityViewIsModal accessibilityLabel={title} style={{ flex: 1, justifyContent: 'flex-end', padding: t.spacing.md, backgroundColor: t.color.overlay, zIndex: 9999 }}>{confirmationContent(props)}</View></Modal>; }
+export function NotificationBadge({ count }: { count: number }) { const bounded = Math.max(0, Math.min(99, Math.trunc(count))); return <View style={{ minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: 10, backgroundColor: t.color.critical, justifyContent: 'center' }}><Text accessibilityLabel={`${bounded} непрочитанных уведомлений`} style={{ ...t.typography.caption, color: t.color.onAccent, textAlign: 'center' }}>{bounded > 0 ? bounded : ''}</Text></View>; }
 export { Modal };

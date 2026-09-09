@@ -7,14 +7,14 @@ test.describe('PILOT_V1 product route containment', () => {
     '/telemed/vet',
     '/clinics/clinic-1/locations/location-1/telemed',
     '/clinics/clinic-1/locations/location-1/quality',
-    '/clinics/clinic-1/locations/location-1/vet/visits',
+    '/clinics/clinic-1/locations/location-1/vet/visits/visit-1/legacy-summary',
     '/api/telemed/vet/queue',
     '/api/clinic/clinic-1/locations/location-1/quality-dashboard',
     '/api/clinic/booking-holds/hold-1/alternative-slot?profile=LEGACY_COMPAT',
-    '/api/clinic/booking-holds/hold-1/complete',
+    '/api/clinic/visits/visit-1/results/result-1/delete',
   ]) {
     test(`returns 404 for ${path}`, async ({ request }) => {
-      const response = await request.fetch(path, { method: path.endsWith('complete') ? 'POST' : 'GET' });
+      const response = await request.fetch(path);
       expect(response.status()).toBe(404);
       expect(await response.text()).not.toContain('MVP_SCOPE_PROFILE');
     });
@@ -30,5 +30,32 @@ test.describe('PILOT_V1 product route containment', () => {
         headers: { cookie: 'vethelp_clinic_session=invalid-but-present' },
       })).status()).not.toBe(404);
     }
+  });
+
+  test('admits only the canonical Visit page and W7 Visit/Result BFF families', async ({ request }) => {
+    const cookie = { cookie: 'vethelp_clinic_session=invalid-but-present' };
+    for (const path of [
+      '/clinics/clinic-1/locations/location-1/vet/visits',
+      '/clinics/clinic-1/locations/location-1/vet/visits/hold-1',
+      '/api/clinic/clinic-1/locations/location-1/vet/visits',
+      '/api/clinic/clinic-1/locations/location-1/vet/visits/hold-1',
+      '/api/clinic/booking-holds/hold-1/complete',
+      '/api/clinic/visits/visit-1/results',
+      '/api/clinic/visits/visit-1/results/result-1',
+      '/api/clinic/visits/visit-1/results/result-1/publish',
+      '/api/clinic/visits/visit-1/results/result-1/amendments',
+    ]) {
+      expect((await request.get(path, { headers: cookie })).status(), path).not.toBe(404);
+    }
+  });
+
+  test('keeps missing and invalid sessions fail closed', async ({ request }) => {
+    const page = await request.get('/clinics/clinic-1/locations/location-1/vet/visits', { maxRedirects: 0 });
+    expect(page.status()).toBeGreaterThanOrEqual(300);
+    expect(page.status()).toBeLessThan(400);
+    const bff = await request.get('/api/clinic/clinic-1/locations/location-1/vet/visits', {
+      headers: { cookie: 'vethelp_clinic_session=invalid-but-present' },
+    });
+    expect(bff.status()).toBe(403);
   });
 });

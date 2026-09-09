@@ -53,7 +53,7 @@ export function resolveClinicShellNavigation(
   const permitted = new Map<string, ClinicShellNavigationItem>();
   if (workspaceHomeEnabled && workspaceCapabilities.some(hasCapability)) permitted.set('', homeNavigation);
   for (const item of candidates) {
-    if (pilot && (item.href === 'quality' || item.href === 'vet/visits')) continue;
+    if (pilot && item.href === 'quality') continue;
     if (item.href === 'patients' && !patientsEnabled) continue;
     if (hasCapability(item.capability) && !permitted.has(item.href)) {
       permitted.set(item.href, item);

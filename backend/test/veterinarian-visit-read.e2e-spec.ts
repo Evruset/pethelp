@@ -17,6 +17,7 @@ const IDS = {
   confirmed: '70000000-0000-4000-8000-000000000001', completed: '70000000-0000-4000-8000-000000000002', cancelled: '70000000-0000-4000-8000-000000000003', expired: '70000000-0000-4000-8000-000000000004', otherLocationHold: '70000000-0000-4000-8000-000000000005', otherClinicHold: '70000000-0000-4000-8000-000000000006', missing: '70000000-0000-4000-8000-000000000007',
 };
 const fields = ['clinicId', 'holdId', 'locationId', 'petDisplayName', 'scheduledEnd', 'scheduledStart', 'species', 'status'];
+const detailFields = [...fields, 'visitId'].sort();
 
 describe('veterinarian visit read HTTP matrix', () => {
   let app: INestApplication;
@@ -65,10 +66,16 @@ describe('veterinarian visit read HTTP matrix', () => {
     expectNoLeak(response.body);
   });
 
-  it('returns allowed detail with the same projection', async () => {
+  it('returns allowed detail with bounded projection plus Visit identity', async () => {
     const response = await detail(vetToken, IDS.confirmed).expect(200);
-    expect(Object.keys(response.body).sort()).toEqual(fields);
-    expect(response.body).toMatchObject({ holdId: IDS.confirmed, status: 'CONFIRMED', clinicId: IDS.clinic, locationId: IDS.location });
+    expect(Object.keys(response.body).sort()).toEqual(detailFields);
+    expect(response.body).toMatchObject({
+      holdId: IDS.confirmed,
+      status: 'CONFIRMED',
+      clinicId: IDS.clinic,
+      locationId: IDS.location,
+      visitId: null,
+    });
   });
 
   it.each([IDS.otherClinicHold, IDS.otherLocationHold, IDS.missing, IDS.cancelled, IDS.expired])('normalizes non-readable detail %s', async (holdId) => {

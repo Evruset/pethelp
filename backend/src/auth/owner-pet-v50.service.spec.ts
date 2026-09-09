@@ -110,6 +110,35 @@ describe('OwnerPetService V50 archive and diary contract', () => {
     expect(database.diaryValues).toEqual([OWNER_ID, PET_ID, 3, 0]);
   });
 
+  it('returns published Results grouped by exact Visit with authoritative oldest-first Amendments', async () => {
+    const database = new V50Database({
+      pet: petRow(),
+      clinical: [{
+        visit_id: '33333333-3333-4333-8333-333333333331', occurred_at: new Date('2026-07-13T12:00:00.000Z'),
+        clinic_name: 'Добрый ветеринар', location_address: null, service_name: null,
+        result_id: '44444444-4444-4444-8444-444444444441', result_published_at: new Date('2026-07-13T13:00:00.000Z'),
+        result_content: 'Исходный результат', amendments: [
+          { amendmentId: '55555555-5555-4555-8555-555555555551', publishedAt: '2026-07-13T14:00:00.000Z', content: 'Первое уточнение' },
+          { amendmentId: '55555555-5555-4555-8555-555555555552', publishedAt: '2026-07-13T15:00:00.000Z', content: 'Второе уточнение' },
+        ],
+      }],
+    });
+    const page = await new OwnerPetService(database.asDatabase()).diary(owner(), PET_ID, 20, 0);
+    expect(page.clinicalEntries).toEqual([{
+      visit: { visitId: '33333333-3333-4333-8333-333333333331', occurredAt: '2026-07-13T12:00:00.000Z', clinic: { name: 'Добрый ветеринар' }, location: null, service: null, doctor: null },
+      result: { resultId: '44444444-4444-4444-8444-444444444441', publishedAt: '2026-07-13T13:00:00.000Z', content: 'Исходный результат' },
+      amendments: [
+        { amendmentId: '55555555-5555-4555-8555-555555555551', publishedAt: '2026-07-13T14:00:00.000Z', content: 'Первое уточнение' },
+        { amendmentId: '55555555-5555-4555-8555-555555555552', publishedAt: '2026-07-13T15:00:00.000Z', content: 'Второе уточнение' },
+      ],
+    }]);
+    expect(database.clinicalSql).toContain("result.status = 'PUBLISHED'");
+    expect(database.clinicalSql).toContain('amendment.result_id = result.id');
+    expect(database.clinicalSql).toContain('ORDER BY amendment.created_at ASC, amendment.id ASC');
+    expect(database.clinicalSql).toContain('ORDER BY visit.completed_at DESC, result.id ASC');
+    expect(database.clinicalSql).not.toMatch(/INSERT|UPDATE|DELETE/);
+  });
+
   it('returns allowlisted document metadata and normalizes foreign documents to 404', async () => {
     const owned = new V50Database({ pet: petRow(), document: documentRow() });
     const metadata = await new OwnerPetService(owned.asDatabase()).documentMetadata(owner(), PET_ID, DOCUMENT_ID);
@@ -149,7 +178,8 @@ class V50Database {
   lastPetSql = '';
   lastPetValues: readonly unknown[] = [];
   documentAuditActions: string[] = [];
-  constructor(private readonly fixture: { pet: any | null; diary?: any[]; document?: any | null }) {}
+  clinicalSql = '';
+  constructor(private readonly fixture: { pet: any | null; diary?: any[]; clinical?: any[]; document?: any | null }) {}
 
   asDatabase(): DatabaseService {
     return {
@@ -168,6 +198,10 @@ class V50Database {
     if (sql.includes('WITH diary AS')) {
       this.diarySql = sql; this.diaryValues = values;
       return result<T>(this.fixture.diary ?? []);
+    }
+    if (sql.includes('FROM clinical_schema.visit_results result')) {
+      this.clinicalSql = sql;
+      return result<T>(this.fixture.clinical ?? []);
     }
     if (sql.includes('FROM pet_schema.pet_documents')) return result<T>(this.fixture.document ? [this.fixture.document] : []);
     if (sql.includes('FROM pet_schema.pets')) {

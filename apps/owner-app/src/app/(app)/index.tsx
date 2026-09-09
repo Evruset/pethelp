@@ -5,6 +5,7 @@ import { useSession } from '@/session/SessionProvider';
 import { useAuthJourney } from '@/auth/AuthJourneyProvider';
 import { usePetJourney } from '@/pets/PetJourneyProvider';
 import { PetJourneyScreen } from '@/pets/PetJourneyScreen';
+import { PetDiaryScreen } from '@/pets/PetDiaryScreen';
 import { ClinicCatalogScreen } from '@/clinics/ClinicCatalogScreen';
 import type { ClinicCatalogHandoff } from '@/clinics/clinic-catalog-api';
 import { ClinicServiceScreen } from '@/clinics/ClinicServiceScreen';
@@ -26,10 +27,12 @@ function AuthorityScopedHome() {
   const { error, logout, session } = useSession();
   const { resumedIntent, consumeResumedIntent } = useAuthJourney();
   const pets = usePetJourney();
+  const [petIntent, setPetIntent] = useState<'booking' | 'diary' | null>(null);
   if(selectedAvailability&&pets.continuedPetId)return <BookingReviewScreen petId={pets.continuedPetId} context={selectedAvailability} authorityGeneration={authorityGeneration} onBack={()=>setSelectedAvailability(null)} onConflict={()=>{setSelectedAvailability(null);setSelectedService(null);}}/>;
   if(selectedService)return <AvailabilityScreen key={`${authorityGeneration}:${selectedService.clinicId}:${selectedService.locationId}:${selectedService.serviceId}`} authorityGeneration={authorityGeneration} context={selectedService} onBack={()=>setSelectedService(null)} onContinue={setSelectedAvailability}/>;
   if(openedClinic)return <ClinicServiceScreen key={`${session?.opaqueCredential}:${openedClinic.clinicId}:${openedClinic.locationId}`} clinic={openedClinic} onBack={()=>setOpenedClinic(null)} onContinue={setSelectedService}/>;
-  if(pets.continuedPetId)return <ClinicCatalogScreen onClose={pets.start} onOpenClinic={setOpenedClinic}/>;
+  if(pets.continuedPetId && petIntent === 'diary') return <PetDiaryScreen petId={pets.continuedPetId} petName={pets.pets.find((pet) => pet.petId === pets.continuedPetId)?.name ?? 'Питомец'} onBack={() => { pets.cancel(); setPetIntent(null); }} onSwitchPet={pets.start} />;
+  if(pets.continuedPetId)return <ClinicCatalogScreen onClose={() => { pets.cancel(); setPetIntent(null); }} onOpenClinic={setOpenedClinic}/>;
   if (pets.active) return <PetJourneyScreen />;
   return (
     <View accessibilityLabel="Личный кабинет">
@@ -41,7 +44,8 @@ function AuthorityScopedHome() {
         </View>
       ) : null}
       {error === 'SESSION_CLEANUP_FAILED' ? <Text accessibilityRole="alert">Не удалось завершить выход. Повторите попытку.</Text> : null}
-      <Pressable accessibilityRole="button" onPress={pets.start}><Text>Начать запись</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={() => { setPetIntent('booking'); pets.start(); }}><Text>Начать запись</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={() => { setPetIntent('diary'); pets.start(); }}><Text>Открыть дневник</Text></Pressable>
       <Pressable accessibilityRole="button" onPress={() => { void logout(); }}>
         <Text>Выйти</Text>
       </Pressable>

@@ -86,7 +86,7 @@ export class ClinicPortalService {
       throw new DomainException(HttpStatus.BAD_REQUEST, 'INVALID_CLINICAL_SUMMARY', 'Clinical summary must be between 3 and 8000 characters');
     }
 
-    return this.database.withTransaction(async (client) => {
+    return this.database.withTransaction<CompleteAppointmentResult>(async (client) => {
       await this.setShortTransactionLimits(client);
       const locked = await client.query<{
         id: string;
@@ -96,13 +96,18 @@ export class ClinicPortalService {
         state: string;
         version: number;
         clinic_location_id: string;
+        clinic_id: string;
+        appointment_id: string;
         clinical_summary: string | null;
       }>(`
         SELECT
           h.id, h.slot_id, h.owner_id, h.pet_id, h.state, h.version,
-          h.clinical_summary, s.clinic_location_id
+          h.clinical_summary, s.clinic_location_id, location.clinic_id,
+          appointment.id AS appointment_id
         FROM booking_schema.booking_holds h
         JOIN clinic_schema.appointment_slots s ON s.id = h.slot_id
+        JOIN clinic_schema.clinic_locations location ON location.id = s.clinic_location_id
+        JOIN booking_schema.appointments appointment ON appointment.hold_id = h.id
         WHERE h.id = $1::uuid
         FOR UPDATE OF h, s
       `, [input.holdId]);
@@ -111,11 +116,43 @@ export class ClinicPortalService {
       await this.clinicAccess.assertClinicalVisitCompletionAccess(
         client,
         input.employee,
+        hold.clinic_id,
         hold.clinic_location_id,
       );
 
+      const ensureVisit = async (): Promise<{ id: string; completed_at: Date }> => {
+        const visit = await client.query<{ id: string; completed_at: Date }>(`
+          INSERT INTO clinical_schema.visits (
+            appointment_id, booking_hold_id, owner_id, pet_id, clinic_id,
+            location_id, slot_id, completed_by
+          ) VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid, $7::uuid, $8::uuid)
+          ON CONFLICT (appointment_id) DO NOTHING
+          RETURNING id, completed_at
+        `, [hold.appointment_id, hold.id, hold.owner_id, hold.pet_id, hold.clinic_id,
+          hold.clinic_location_id, hold.slot_id, input.employee.sub]);
+        if (visit.rows[0]) return visit.rows[0];
+        const existing = await client.query<{ id: string; completed_at: Date }>(`
+          SELECT id, completed_at FROM clinical_schema.visits
+          WHERE appointment_id = $1::uuid AND booking_hold_id = $2::uuid
+        `, [hold.appointment_id, hold.id]);
+        if (!existing.rows[0]) throw DomainErrors.invalidTransition();
+        return existing.rows[0];
+      };
+
       if (hold.state === 'COMPLETED') {
+        const visit = await ensureVisit();
+        await this.writeClinicalVisitCompletedEvidence(client, {
+          visitId: visit.id,
+          appointmentId: hold.appointment_id,
+          bookingHoldId: hold.id,
+          clinicId: hold.clinic_id,
+          locationId: hold.clinic_location_id,
+          completedAt: visit.completed_at,
+          actorId: input.employee.sub,
+          correlationId: input.correlationId,
+        });
         return {
+          visitId: visit.id,
           holdId: hold.id,
           state: 'COMPLETED',
           slotId: hold.slot_id,
@@ -142,6 +179,18 @@ export class ClinicPortalService {
             updated_at = clock_timestamp()
         WHERE hold_id = $1::uuid
       `, [hold.id]);
+
+      const visit = await ensureVisit();
+      await this.writeClinicalVisitCompletedEvidence(client, {
+        visitId: visit.id,
+        appointmentId: hold.appointment_id,
+        bookingHoldId: hold.id,
+        clinicId: hold.clinic_id,
+        locationId: hold.clinic_location_id,
+        completedAt: visit.completed_at,
+        actorId: input.employee.sub,
+        correlationId: input.correlationId,
+      });
 
       await this.writeOutbox(
         client,
@@ -170,18 +219,77 @@ export class ClinicPortalService {
       ]);
 
       return {
+        visitId: visit.id,
         holdId: hold.id,
         state: 'COMPLETED',
         slotId: hold.slot_id,
         correlationId: input.correlationId,
         clinicalSummary,
       };
+    }).catch((error: unknown) => {
+      const code = (error as { code?: string })?.code;
+      if (code === '55P03' || code === '57014' || code === '40P01') {
+        throw DomainErrors.slotLockedRetry();
+      }
+      throw error;
     });
   }
 
   private async setShortTransactionLimits(client: PoolClient): Promise<void> {
     await client.query("SET LOCAL lock_timeout = '50ms'");
     await client.query("SET LOCAL statement_timeout = '50ms'");
+  }
+
+  private async writeClinicalVisitCompletedEvidence(
+    client: PoolClient,
+    input: {
+      visitId: string;
+      appointmentId: string;
+      bookingHoldId: string;
+      clinicId: string;
+      locationId: string;
+      completedAt: Date;
+      actorId: string;
+      correlationId: string;
+    },
+  ): Promise<void> {
+    const payload = {
+      visitId: input.visitId,
+      appointmentId: input.appointmentId,
+      bookingHoldId: input.bookingHoldId,
+      clinicId: input.clinicId,
+      locationId: input.locationId,
+      completedAt: input.completedAt.toISOString(),
+    };
+    const inserted = await client.query<{ id: string }>(`
+      INSERT INTO booking_schema.outbox_events (
+        event_type, correlation_id, causation_id, traceparent, aggregate_type,
+        aggregate_id, aggregate_version, payload_json, deduplication_key
+      ) VALUES (
+        'clinical.visit.completed', $1::uuid, $2::uuid, $3, 'clinical_visit',
+        $4::uuid, 1, $5::jsonb, $6
+      )
+      ON CONFLICT (deduplication_key) DO NOTHING
+      RETURNING id
+    `, [
+      input.correlationId,
+      this.traceContext.getCausationId() ?? null,
+      this.traceContext.getTraceparent() ?? null,
+      input.visitId,
+      JSON.stringify(payload),
+      `clinical.visit.completed:${input.visitId}:1`,
+    ]);
+    if (!inserted.rows[0]) return;
+
+    await client.query(`
+      INSERT INTO audit_schema.audit_log (
+        actor_type, actor_id, action, aggregate_type,
+        aggregate_id, correlation_id, payload_json
+      ) VALUES (
+        'CLINIC_EMPLOYEE', $1, 'clinical.visit.completed', 'clinical_visit',
+        $2::uuid, $3::uuid, $4::jsonb
+      )
+    `, [input.actorId, input.visitId, input.correlationId, JSON.stringify(payload)]);
   }
 
   private async writeOutbox(

@@ -47,4 +47,14 @@ test("V50 shell combines capability-filtered navigation for multi-role staff", a
   expect(items.map((item) => item.href)).toEqual(["queue", "schedule", "quality", "vet/visits"]);
   expect(items.filter((item) => item.href === "schedule")).toHaveLength(1);
   expect(resolveClinicShellNavigation([], () => true)).toEqual([]);
+
+  const pilotVeterinarianItems = resolveClinicShellNavigation(
+    ["CLINIC_VETERINARIAN"],
+    (capability) => capability === "clinical.visit.workspace.read",
+    false,
+    false,
+    true,
+  );
+
+  expect(pilotVeterinarianItems.map((item) => item.href)).toEqual(["vet/visits"]);
 });

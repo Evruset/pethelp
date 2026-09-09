@@ -1,6 +1,12 @@
+import type { TextStyle, ViewStyle } from 'react-native';
+
+const font = (fontSize: number, lineHeight: number, fontWeight: TextStyle['fontWeight']): TextStyle => ({ fontSize, lineHeight, fontWeight });
+
 export const uiTokens = Object.freeze({
-  spacing: Object.freeze({ xs: 6, sm: 8, md: 12, lg: 16, xl: 20 }),
-  radius: Object.freeze({ control: 8, card: 10 }),
-  typography: Object.freeze({ heading: Object.freeze({ fontSize: 24, fontWeight: '700' as const }), action: Object.freeze({ fontWeight: '600' as const }) }),
-  color: Object.freeze({ primary: '#126b5b', disabled: '#bcc4cc', border: '#7b8794', subtleBorder: '#d8dde3', critical: '#a61b1b', onPrimary: '#ffffff' }),
+  color: Object.freeze({ background: '#F3F5F7', surface: '#FFFFFF', surfaceElevated: '#FFFFFF', textPrimary: '#17201E', textSecondary: '#46504D', separator: '#E1E6E4', accent: '#075C4B', accentPressed: '#0E6655', accentSoft: '#E7F4F0', success: '#247A4A', successSoft: '#E8F4EC', warning: '#9A6412', warningSoft: '#FFF4D9', critical: '#8F2020', criticalSoft: '#FCEAEA', info: '#316D9E', infoSoft: '#EAF2F9', disabled: '#A9B2AF', disabledSurface: '#E9ECEB', overlay: 'rgba(13, 23, 21, 0.48)', onAccent: '#FFFFFF' }),
+  spacing: Object.freeze({ xs: 6, sm: 10, md: 14, lg: 18, xl: 24, xxl: 32 }),
+  radius: Object.freeze({ control: 12, card: 16, section: 20, pill: 999 }),
+  typography: Object.freeze({ largeTitle: font(34, 40, '700'), title: font(26, 32, '700'), sectionTitle: font(17, 22, '700'), body: font(16, 22, '400'), secondaryBody: font(15, 21, '400'), label: font(14, 18, '600'), caption: font(13, 17, '500'), button: font(16, 20, '700') }),
+  shadow: Object.freeze({ card: Object.freeze({ shadowColor: '#14231F', shadowOpacity: 0.08, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 2 } satisfies ViewStyle) }),
+  layout: Object.freeze({ phoneMaxWidth: 500, contentMaxWidth: 460, minTouch: 48 }),
 });

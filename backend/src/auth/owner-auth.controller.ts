@@ -10,6 +10,7 @@ import { AuthErrorDto, OwnerOtpChallengeDto, OwnerSessionDto, RequestOwnerOtpDto
 import { OwnerAppointmentsService } from './owner-appointments.service';
 import { OwnerAuthService } from './owner-auth.service';
 import { SWAGGER_BEARER_AUTH } from '../openapi/openapi';
+import { ownerOtpClientIp } from './owner-web-client-ip';
 
 @ApiTags('Owner authentication')
 @Controller('v1/auth')
@@ -25,7 +26,7 @@ export class OwnerAuthController {
   @ApiResponse({ status: 503, description: 'OTP provider failure or fail-closed anti-fraud infrastructure failure', type: AuthErrorDto })
   @ApiResponse({ status: 500, description: 'INTERNAL_ERROR', type: AuthErrorDto })
   async requestOtp(@Body() dto: RequestOwnerOtpDto, @Req() request: Request) {
-    return this.ownerAuth.requestOtp({ ...dto, clientIp: request.ip ?? '' });
+    return this.ownerAuth.requestOtp({ ...dto, clientIp: ownerOtpClientIp(request) });
   }
 
   @Post('otp/resend')
@@ -38,7 +39,7 @@ export class OwnerAuthController {
   @ApiResponse({ status: 503, description: 'Safe provider or fail-closed anti-fraud infrastructure failure', type: AuthErrorDto })
   @ApiResponse({ status: 500, description: 'INTERNAL_ERROR', type: AuthErrorDto })
   async resendOtp(@Body() dto: ResendOwnerOtpDto, @Req() request: Request) {
-    return this.ownerAuth.resendOtp({ ...dto, clientIp: request.ip ?? '' });
+    return this.ownerAuth.resendOtp({ ...dto, clientIp: ownerOtpClientIp(request) });
   }
 
   @Post('otp/verify')
