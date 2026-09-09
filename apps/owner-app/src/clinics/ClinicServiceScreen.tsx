@@ -12,6 +12,7 @@ import { Button, StateMessage } from "@/ui/primitives";
 import { uiTokens as t } from "@/ui/tokens";
 import { v50ReferenceAssets } from "@/ui/v50-reference-assets";
 import { BookingProgress } from "@/booking/BookingProgress";
+import { formatMoney } from "@/ui/formatters";
 import { useSession } from "@/session/SessionProvider";
 import {
   clinicServiceApi,
@@ -31,18 +32,20 @@ import {
 export function ClinicServiceScreen({
   clinic,
   petName,
+  initialServiceId,
   onBack,
   onContinue,
 }: {
   clinic: ClinicCatalogHandoff;
   petName?: string;
+  initialServiceId?: string;
   onBack(): void;
   onContinue(value: ClinicServiceHandoff): void;
 }) {
   const { session } = useSession();
   const { width } = useWindowDimensions();
   const desktop = Platform.OS === "web" && width >= 900;
-  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(initialServiceId ?? null);
   const [stale, setStale] = useState(false);
   const [refreshFailed, setRefreshFailed] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -148,7 +151,7 @@ export function ClinicServiceScreen({
               }}
             >
               <Image
-                accessibilityLabel="Визуальный референс VetHelp: интерьер клиники"
+                accessibilityLabel="Интерьер ветеринарной клиники"
                 source={v50ReferenceAssets.clinicReception}
                 resizeMode="cover"
                 style={{ width: "100%", height: "100%" }}
@@ -165,7 +168,7 @@ export function ClinicServiceScreen({
                 }}
               >
                 <Text style={{ fontSize: 9, color: "#fff", fontWeight: "700" }}>
-                  V50 референс
+                  Интерьер клиники
                 </Text>
               </View>
             </View>
@@ -187,7 +190,7 @@ export function ClinicServiceScreen({
                 </Text>
               ) : null}
               <Text style={{ ...t.typography.caption, color: decisionColors.muted }}>
-                Изображение — визуальный V50-референс, не фактическое фото этой клиники.
+                Изображение помогает сориентироваться и может отличаться от интерьера клиники.
               </Text>
             </View>
           </View>
@@ -249,7 +252,7 @@ export function ClinicServiceScreen({
                                 color: decisionColors.muted,
                               }}
                             >
-                              Информационная цена: {service.price.amount} {service.price.currency}
+                              Ориентировочная стоимость: {formatMoney(service.price.amount, service.price.currency)}
                             </Text>
                           </View>
                           <View
@@ -289,7 +292,7 @@ export function ClinicServiceScreen({
                   title={selectedService?.name ?? "Услуга не выбрана"}
                   detail={
                     selectedService
-                      ? `${selectedService.price.amount} ${selectedService.price.currency} · информационная цена`
+                      ? `${formatMoney(selectedService.price.amount, selectedService.price.currency)} · ориентировочная стоимость`
                       : "Выберите одну услугу слева."
                   }
                 />

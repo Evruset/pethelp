@@ -53,7 +53,7 @@ const modeCopy: Record<
       "Выберите клинику и услугу — на следующем шаге покажем только опубликованные доступные слоты.",
     kicker: "Фокус на доступности",
     detail:
-      "Не показываем выдуманное «свободно сегодня»: точное время приходит из авторитетного inventory после выбора услуги.",
+      "Точное свободное время появится после выбора клиники и услуги.",
   },
 };
 
@@ -69,18 +69,20 @@ export function ClinicCatalogScreen({
   mode = "booking",
   onHome,
   onPets,
+  initialSelectedLocationId,
 }: {
   onClose(): void;
   onOpenClinic(clinic: ClinicCatalogHandoff): void;
   mode?: ClinicCatalogMode;
   onHome?(): void;
   onPets?(): void;
+  initialSelectedLocationId?: string;
 }) {
   const { session } = useSession();
   const { width } = useWindowDimensions();
   const desktop = Platform.OS === "web" && width >= 900;
   const copy = modeCopy[mode];
-  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(initialSelectedLocationId ?? null);
   const query = useQuery({
     queryKey: ["owner", session?.cacheScope, "clinic-catalog"],
     enabled: Boolean(session),
@@ -168,7 +170,7 @@ export function ClinicCatalogScreen({
                   }}
                 >
                   <Image
-                    accessibilityLabel="Визуальный референс VetHelp"
+                    accessibilityLabel="Интерьер ветеринарной клиники"
                     source={image}
                     resizeMode="cover"
                     style={{ width: "100%", height: "100%" }}
@@ -185,7 +187,7 @@ export function ClinicCatalogScreen({
                     }}
                   >
                     <Text style={{ fontSize: 9, color: "#fff", fontWeight: "700" }}>
-                      V50 референс
+                      Интерьер клиники
                     </Text>
                   </View>
                 </View>
@@ -241,7 +243,7 @@ export function ClinicCatalogScreen({
                       color: decisionColors.muted,
                     }}
                   >
-                    Адрес и контакт — из каталога. Фото — визуальный V50-референс, не фактическое фото этой клиники.
+                    Адрес и контакт предоставлены клиникой. Изображение помогает сориентироваться и может отличаться от интерьера.
                   </Text>
                 </View>
 

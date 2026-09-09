@@ -20,6 +20,7 @@ it('renders the V50 Home composition and keeps authoritative workflow actions', 
   expect(view.getByText('Нужна новая запись?')).toBeTruthy();
   expect(view.queryByText(/Home пока/)).toBeNull();
   expect(view.queryByText(/подтверждённый профиль/)).toBeNull();
+  expect(view.queryByText(/API|backend|authoritative|V50 референс/)).toBeNull();
   fireEvent.press(view.getAllByText('Записаться')[0]);
   fireEvent.press(view.getAllByText('Выбрать клинику')[0]);
   fireEvent.press(view.getAllByText('Найти время')[0]);

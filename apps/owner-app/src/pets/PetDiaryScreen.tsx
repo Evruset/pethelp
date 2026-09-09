@@ -113,7 +113,7 @@ export function PetDiaryScreen({ petId, petName, onBack, onSwitchPet, api = petD
             </Text>
           </View>
           <Image
-            accessibilityLabel="Визуальный референс VetHelp: ветеринарный приём"
+            accessibilityLabel="Ветеринарный приём питомца"
             source={v50ReferenceAssets.clinicDiagnostic}
             resizeMode="cover"
             style={{ width: desktop ? 340 : '100%', height: desktop ? 210 : 124 }}
@@ -143,9 +143,13 @@ export function PetDiaryScreen({ petId, petName, onBack, onSwitchPet, api = petD
 
         {data?.clinicalEntries.length ? (
           <View style={{ gap: 10 }}>
+            <View style={{ flexDirection: desktop ? 'row' : 'column', gap: 10 }}>
+              <DiarySurface><Text style={{ ...t.typography.caption, color: t.ownerHome.muted }}>Опубликовано приёмов</Text><Text style={{ fontSize: 28, fontWeight: '800', color: t.ownerHome.ink }}>{data.clinicalEntries.length}</Text></DiarySurface>
+              <DiarySurface><Text style={{ ...t.typography.caption, color: t.ownerHome.muted }}>История питомца</Text><Text style={{ ...t.typography.body, fontWeight: '700', color: t.ownerHome.ink }}>Результаты и уточнения в одном месте</Text></DiarySurface>
+            </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
               <Text style={{ ...t.typography.sectionTitle, color: t.ownerHome.ink }}>Приёмы</Text>
-              <Text style={{ ...t.typography.caption, color: t.ownerHome.muted }}>Сначала новые по порядку backend</Text>
+              <Text style={{ ...t.typography.caption, color: t.ownerHome.muted }}>История публикаций клиники</Text>
             </View>
             {data.clinicalEntries.map((entry) => (
               <Pressable

@@ -49,6 +49,9 @@ function AuthorityScopedHome() {
   const [openedClinic, setOpenedClinic] = useState<ClinicCatalogHandoff | null>(null);
   const [selectedService, setSelectedService] = useState<ClinicServiceHandoff | null>(null);
   const [selectedAvailability, setSelectedAvailability] = useState<AvailabilityHandoff | null>(null);
+  const [lastClinic, setLastClinic] = useState<ClinicCatalogHandoff | null>(null);
+  const [lastService, setLastService] = useState<ClinicServiceHandoff | null>(null);
+  const [lastAvailability, setLastAvailability] = useState<AvailabilityHandoff | null>(null);
   const [globalArea, setGlobalArea] = useState<'HOME' | 'PETS'>('HOME');
   const [globalDiaryPet, setGlobalDiaryPet] = useState<Pet | null>(null);
   const { error, logout, session } = useSession();
@@ -59,6 +62,9 @@ function AuthorityScopedHome() {
     setOpenedClinic(null);
     setSelectedService(null);
     setSelectedAvailability(null);
+    setLastClinic(null);
+    setLastService(null);
+    setLastAvailability(null);
   };
 
   const startIntent = (next: OwnerHomeIntent) => {
@@ -108,10 +114,12 @@ function AuthorityScopedHome() {
         key={`${authorityGeneration}:${selectedService.clinicId}:${selectedService.locationId}:${selectedService.serviceId}`}
         authorityGeneration={authorityGeneration}
         context={selectedService}
+        initialSelection={lastAvailability}
         petName={pets.pets.find((pet) => pet.petId === pets.continuedPetId)?.name}
         onBack={() => setSelectedService(null)}
         onContinue={(availability) => {
           setSelectedAvailability(availability);
+          setLastAvailability(availability);
           if (!pets.continuedPetId) {
             setIntent('BOOKING');
             pets.start();
@@ -126,9 +134,14 @@ function AuthorityScopedHome() {
       <ClinicServiceScreen
         key={`${session?.opaqueCredential}:${openedClinic.clinicId}:${openedClinic.locationId}`}
         clinic={openedClinic}
+        initialServiceId={lastService?.serviceId}
         petName={pets.pets.find((pet) => pet.petId === pets.continuedPetId)?.name}
         onBack={() => setOpenedClinic(null)}
-        onContinue={setSelectedService}
+        onContinue={(service) => {
+          if (lastService?.serviceId !== service.serviceId) setLastAvailability(null);
+          setSelectedService(service);
+          setLastService(service);
+        }}
       />
     );
   }
@@ -155,7 +168,15 @@ function AuthorityScopedHome() {
         onClose={closeJourney}
         onHome={openHome}
         onPets={openPets}
-        onOpenClinic={setOpenedClinic}
+        initialSelectedLocationId={lastClinic?.locationId}
+        onOpenClinic={(clinic) => {
+          if (lastClinic?.locationId !== clinic.locationId) {
+            setLastService(null);
+            setLastAvailability(null);
+          }
+          setOpenedClinic(clinic);
+          setLastClinic(clinic);
+        }}
       />
     );
   }
@@ -225,8 +246,8 @@ export function OwnerHome({
   const petName = currentPet?.name;
   const nav = [
     ['Главная', '⌂', undefined, true],
-    ['Клиники', '▥', onClinics, false],
     ['Питомцы', '●', onPets, false],
+    ['Клиники', '▥', onClinics, false],
   ] as const;
 
   return (
@@ -462,7 +483,7 @@ function SearchHero({ petName, desktop, onBook, onClinics, onFindTime }: { petNa
         </View>
         <View style={{ width: desktop ? 420 : '100%', minHeight: desktop ? 300 : 190, backgroundColor: h.blueSoft }}>
           <Image
-            accessibilityLabel="Визуальный референс VetHelp: владелец в ветеринарной клинике"
+            accessibilityLabel="Владелец с питомцем в ветеринарной клинике"
             source={v50ReferenceAssets.ownerClinic}
             resizeMode="cover"
             style={{ width: '100%', height: '100%', minHeight: desktop ? 300 : 190 }}
@@ -490,7 +511,7 @@ function HeroAction({ icon, title, subtitle, onPress, primary = false }: { icon:
 function ImmediateValue({ petName, desktop, onClinics }: { petName?: string; desktop: boolean; onClinics(): void }) {
   const facts = [
     ['Клиники', 'адреса и услуги'],
-    ['Цена', 'только из API'],
+    ['Стоимость', 'после выбора услуги'],
     ['Время', 'только опубликованные слоты'],
   ] as const;
   return (
@@ -534,7 +555,7 @@ function PetHero({ pet, petCount, loading, error, onDiary, onRetry, desktop }: {
               <Text style={styles.muted}>{speciesLabel(pet.species)}</Text>
             </View>
           </View>
-          <Text style={{ ...t.typography.caption, color: h.muted }}>Фото питомца пока не хранится в текущем authoritative профиле — не подменяем его референсной картинкой.</Text>
+          <Text style={{ ...t.typography.caption, color: h.muted }}>Все записи и результаты собраны в профиле питомца.</Text>
           <View style={{ marginTop: 'auto', gap: 8 }}>
             <HomeButton label="Открыть дневник" secondary onPress={onDiary} />
           </View>
@@ -560,7 +581,7 @@ function NextAction({ desktop }: { desktop: boolean }) {
   return (
     <Surface style={{ minHeight: 276, padding: 0, overflow: 'hidden', backgroundColor: h.blueSoft, borderColor: '#AFCBFA' }}>
       <Image
-        accessibilityLabel="Визуальный референс VetHelp: осмотр в клинике"
+        accessibilityLabel="Осмотр питомца в клинике"
         source={v50ReferenceAssets.clinicExam}
         resizeMode="cover"
         style={{ width: '100%', height: desktop ? 132 : 116 }}

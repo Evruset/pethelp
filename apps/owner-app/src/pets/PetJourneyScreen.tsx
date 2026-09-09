@@ -100,13 +100,13 @@ export function PetJourneyScreen({
           </View>
           <View style={{ width: desktop ? 280 : '100%', height: desktop ? 154 : 132, backgroundColor: t.ownerHome.blueSoft }}>
             <Image
-              accessibilityLabel="Визуальный референс VetHelp: визит к ветеринару"
+              accessibilityLabel="Питомец на приёме у ветеринара"
               source={v50ReferenceAssets.vetExam}
               resizeMode="cover"
               style={{ width: '100%', height: '100%' }}
             />
             <View style={{ position: 'absolute', left: 7, bottom: 7, paddingHorizontal: 7, paddingVertical: 4, borderRadius: 9, backgroundColor: 'rgba(24,37,65,.82)' }}>
-              <Text style={{ fontSize: 9, color: '#fff', fontWeight: '700' }}>V50 референс</Text>
+              <Text style={{ fontSize: 9, color: '#fff', fontWeight: '700' }}>Забота о питомце</Text>
             </View>
           </View>
         </View>

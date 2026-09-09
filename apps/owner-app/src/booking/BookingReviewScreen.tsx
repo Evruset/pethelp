@@ -19,6 +19,7 @@ import { Button, StateMessage } from '@/ui/primitives';
 import { uiTokens as t } from '@/ui/tokens';
 import { bookingApi, type BookingHoldSnapshot, type BookingResult } from './booking-api';
 import { BookingProgress } from './BookingProgress';
+import { formatMoney } from '@/ui/formatters';
 
 const randomKey = () => {
   const value = globalThis.crypto?.randomUUID?.();
@@ -176,7 +177,7 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
                 <ReviewRow label="Питомец" text={`Питомец: ${pet!.name}`} />
                 <ReviewRow label="Клиника" text={`Клиника: ${clinic!.name}`} />
                 <ReviewRow label="Услуга" text={`Услуга: ${service!.name}`} />
-                <ReviewRow label="Информационная цена" text={`Информационная цена: ${service!.price.amount} ${service!.price.currency}`} />
+                <ReviewRow label="Ориентировочная стоимость" text={`Ориентировочная стоимость: ${formatMoney(service!.price.amount, service!.price.currency)}`} />
                 <ReviewRow label="Дата и время" text={`Дата и время: ${slot!.localDate} · ${slot!.localTime}`} />
               </View>
               <View

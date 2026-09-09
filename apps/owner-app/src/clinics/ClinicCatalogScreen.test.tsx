@@ -26,11 +26,18 @@ describe('ClinicCatalogScreen',()=>{
     expect(screen.getByText(/питомца попросим выбрать только когда/i)).toBeTruthy();
   });
 
+  it('restores a retained clinic selection after Back',async()=>{
+    const locationId='22222222-2222-4222-8222-222222222222';
+    mockUseQuery.mockReturnValue({isPending:false,isError:false,data:{clinics:[{clinicId:'11111111-1111-4111-8111-111111111111',locationId,name:'Clinic',address:'Address',phone:null}]}});
+    const screen=await render(<ClinicCatalogScreen initialSelectedLocationId={locationId} onClose={jest.fn()} onOpenClinic={jest.fn()}/>);
+    expect(screen.getByRole('radio').props.accessibilityState.selected).toBe(true);
+  });
+
   it('keeps nearest-time entry truthful until service inventory is known',async()=>{
     mockUseQuery.mockReturnValue({isPending:false,isError:false,data:{clinics:[]}});
     const screen=await render(<ClinicCatalogScreen mode="time" onClose={jest.fn()} onOpenClinic={jest.fn()}/>);
     expect(screen.getByText('Где искать ближайшее время')).toBeTruthy();
-    expect(screen.getByText(/точное время приходит из авторитетного inventory/)).toBeTruthy();
+    expect(screen.getByText('Точное свободное время появится после выбора клиники и услуги.')).toBeTruthy();
   });
 
   it.each([

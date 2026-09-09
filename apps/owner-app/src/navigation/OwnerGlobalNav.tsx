@@ -8,8 +8,8 @@ export function OwnerGlobalNav({ desktop, active, onHome, onPets, onClinics }: {
 }) {
   const items = [
     { area: 'HOME' as const, label: 'Главная', icon: '⌂', action: onHome },
-    { area: 'CLINICS' as const, label: 'Клиники', icon: '▥', action: onClinics },
     { area: 'PETS' as const, label: 'Питомцы', icon: '●', action: onPets },
+    { area: 'CLINICS' as const, label: 'Клиники', icon: '▥', action: onClinics },
   ];
   return (
     <View accessibilityLabel="Основная навигация" style={{ minHeight: desktop ? 66 : 68, marginHorizontal: desktop ? 24 : 8, marginTop: desktop ? 14 : 6, marginBottom: desktop ? 0 : 8, paddingHorizontal: 8, borderWidth: 1, borderColor: t.ownerHome.border, borderRadius: desktop ? 20 : 22, backgroundColor: 'rgba(255,255,255,.98)', flexDirection: 'row', alignItems: 'center', justifyContent: desktop ? 'center' : 'space-around', gap: desktop ? 5 : 0, ...t.shadow.card }}>
