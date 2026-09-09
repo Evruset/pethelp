@@ -10,6 +10,11 @@ describe('ClinicCatalogScreen',()=>{
     const onOpenClinic=jest.fn();
     mockUseQuery.mockReturnValue({isPending:false,isError:false,data:{clinics:[{clinicId:'11111111-1111-4111-8111-111111111111',locationId:'22222222-2222-4222-8222-222222222222',name:'Clinic',address:'Address',phone:'+7000'}]}});
     const screen=await render(<ClinicCatalogScreen onClose={jest.fn()} onOpenClinic={onOpenClinic}/>);
+    expect(screen.queryByRole('button',{name:'Сегодня'})).toBeNull();
+    expect(screen.queryByRole('button',{name:'Цена'})).toBeNull();
+    expect(screen.queryByRole('button',{name:'Ближе'})).toBeNull();
+    expect(screen.queryByRole('button',{name:'Уверенность'})).toBeNull();
+    expect(screen.getByText('Clinic')).toBeTruthy();expect(screen.getByText('Address')).toBeTruthy();expect(screen.getByText('+7000')).toBeTruthy();
     fireEvent.press(screen.getByText('Открыть клинику'));
     expect(onOpenClinic).toHaveBeenCalledWith({clinicId:'11111111-1111-4111-8111-111111111111',locationId:'22222222-2222-4222-8222-222222222222'});
   });

@@ -17,7 +17,7 @@ import type { Pet } from '@/pets/pet-api';
 import { useSession } from '@/session/SessionProvider';
 import { Button, StateMessage } from '@/ui/primitives';
 import { uiTokens as t } from '@/ui/tokens';
-import { bookingApi, type BookingResult } from './booking-api';
+import { bookingApi, type BookingHoldSnapshot, type BookingResult } from './booking-api';
 
 const randomKey = () => {
   const value = globalThis.crypto?.randomUUID?.();
@@ -31,6 +31,9 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
   const { session } = useSession();
   const queryClient = useQueryClient();
   const [result, setResult] = useState<BookingResult | null>(null);
+  const [snapshot, setSnapshot] = useState<BookingHoldSnapshot | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshFailed, setRefreshFailed] = useState(false);
   const [sending, setSending] = useState(false);
   const [failure, setFailure] = useState<'conflict'|'identity'|'technical'|'uncertain'|null>(null);
   const idempotencyKey = useRef(randomKey());
@@ -53,7 +56,18 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
     const request = ++generation.current;
     try {
       const created = await bookingApi.create(session.opaqueCredential, command, idempotencyKey.current);
-      if (generation.current === request) setResult(created);
+      if (generation.current === request) {
+        setResult(created);
+        setRefreshing(true);
+        try {
+          const current = await bookingApi.read(session.opaqueCredential, created.holdId);
+          if (generation.current === request) setSnapshot(current);
+        } catch {
+          if (generation.current === request) setRefreshFailed(true);
+        } finally {
+          if (generation.current === request) setRefreshing(false);
+        }
+      }
     } catch (error) {
       if (generation.current !== request) return;
       if (error instanceof ApiError && error.safeCode === 'BOOKING_STATE_CONFLICT') setFailure('conflict');
@@ -64,6 +78,20 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
     } finally {
       if (generation.current === request) setSending(false);
       inFlight.current = false;
+    }
+  };
+
+  const refreshStatus = async () => {
+    if (!session || !result || refreshing) return;
+    const request = ++generation.current;
+    setRefreshing(true); setRefreshFailed(false);
+    try {
+      const current = await bookingApi.read(session.opaqueCredential, result.holdId);
+      if (generation.current === request) setSnapshot(current);
+    } catch {
+      if (generation.current === request) setRefreshFailed(true);
+    } finally {
+      if (generation.current === request) setRefreshing(false);
     }
   };
 
@@ -91,26 +119,26 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
           <Text style={{ ...t.typography.caption, color: decisionColors.green, fontWeight: '800', textTransform: 'uppercase' }}>
             Что дальше
           </Text>
-          <Text style={{ ...t.typography.sectionTitle, color: decisionColors.ink }}>
-            Ожидает подтверждения клиникой
-          </Text>
+          <Text style={{ ...t.typography.sectionTitle, color: decisionColors.ink }}>{snapshot?.statusTitle ?? 'Ожидает подтверждения клиникой'}</Text>
           <Text style={{ ...t.typography.secondaryBody, color: decisionColors.muted }}>
-            Как только клиника подтвердит или изменит статус, он обновится в VetHelp. Звонить и уточнять вручную не нужно.
+            {snapshot?.safeDescription ?? 'Клиника ещё не подтвердила выбранное время.'}
           </Text>
         </View>
         <DecisionPanel>
           <DecisionHeading
             kicker="Текущий статус"
-            title="Заявка принята сервером"
-            detail="Это ещё не подтверждённая запись. Финальный статус приходит от клиники."
+            title={snapshot?.statusTitle ?? 'Заявка принята сервером'}
+            detail={snapshot?.safeDescription ?? 'Это ещё не подтверждённая запись. Финальный статус приходит от клиники.'}
           />
           <FactRow>
             <Fact tone="positive">Заявка сохранена</Fact>
-            <Fact>Ждём ответ клиники</Fact>
+            <Fact>{snapshot?.status ?? result.status}</Fact>
           </FactRow>
           <Text style={{ ...t.typography.secondaryBody, color: decisionColors.muted }}>
-            Это ещё не подтверждённая запись.
+            {snapshot?.status === 'PENDING_CONFIRMATION' || (!snapshot && result.status === 'PENDING_CONFIRMATION') ? 'Это ещё не подтверждённая запись.' : snapshot?.safeDescription}
           </Text>
+          {refreshFailed ? <StateMessage kind="error" title="Не удалось обновить статус. Последний полученный статус сохранён." /> : null}
+          <Button label={refreshing ? 'Обновляем…' : 'Обновить статус'} disabled={refreshing} onPress={() => { void refreshStatus(); }} />
         </DecisionPanel>
       </ClinicDecisionLayout>
     );

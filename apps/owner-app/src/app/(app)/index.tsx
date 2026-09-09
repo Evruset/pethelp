@@ -394,7 +394,7 @@ function HomeHeader({ petName, desktop }: { petName?: string; desktop: boolean }
       <View style={{ flex: 1, gap: 3 }}>
         {!desktop ? <Text style={{ ...t.typography.caption, color: h.blue, fontWeight: '700' }}>● Личный кабинет владельца</Text> : null}
         <Text accessibilityRole="header" style={{ fontSize: desktop ? 36 : 29, lineHeight: desktop ? 41 : 34, fontWeight: '800', color: h.ink }}>
-          Доброе утро{petName ? '!' : ''}
+          Здравствуйте!
         </Text>
         <Text style={{ ...t.typography.secondaryBody, color: h.muted }}>
           Всё важное для заботы{petName ? ` о ${petName}` : ' о питомце'} — в одном месте.
@@ -551,9 +551,9 @@ function NextAction({ onBook, desktop }: { onBook(): void; desktop: boolean }) {
         style={{ width: '100%', height: desktop ? 132 : 116 }}
       />
       <View style={{ padding: 16, gap: 8, flex: 1 }}>
-        <Text style={{ ...t.typography.caption, color: h.blue, fontWeight: '800', textTransform: 'uppercase' }}>Ближайшая запись</Text>
-        <Text style={{ fontSize: 24, lineHeight: 30, fontWeight: '800', color: h.ink }}>Ближайших записей пока нет</Text>
-        <Text style={styles.muted}>Выберите питомца, клинику и реальное свободное время.</Text>
+        <Text style={{ ...t.typography.caption, color: h.blue, fontWeight: '800', textTransform: 'uppercase' }}>Запись в клинику</Text>
+        <Text style={{ fontSize: 24, lineHeight: 30, fontWeight: '800', color: h.ink }}>Нужна новая запись?</Text>
+        <Text style={styles.muted}>Выберите питомца, клинику, услугу и реальное свободное время.</Text>
         <View style={{ marginTop: 'auto' }}>
           <HomeButton label="Начать запись" onPress={onBook} />
         </View>
