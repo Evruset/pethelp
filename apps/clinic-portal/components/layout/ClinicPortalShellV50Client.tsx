@@ -6,10 +6,6 @@ import type { ReactNode } from 'react';
 import { EffectiveSessionProvider, useEffectiveSession } from '@/components/auth/EffectiveSessionProvider';
 import { clinicShellPersona, resolveClinicShellNavigation } from './clinicPortalShellNavigation';
 
-function shortIdentifier(value: string): string {
-  return value.length > 12 ? `${value.slice(0, 8)}…` : value;
-}
-
 function ShellNavigation({ clinicId, locationId, patientsEnabled, workspaceHomeEnabled, pilot, compact = false }: { clinicId: string; locationId: string; patientsEnabled: boolean; workspaceHomeEnabled: boolean; pilot: boolean; compact?: boolean }) {
   const pathname = usePathname();
   const { session, loading, error, hasCapability, hasClinicScope, refresh } = useEffectiveSession();
@@ -26,7 +22,7 @@ function ShellNavigation({ clinicId, locationId, patientsEnabled, workspaceHomeE
   if (error) {
     return (
       <div className="vh-v50-shell-state vh-v50-shell-state--error" role="alert">
-        Доступ к capability-разделам недоступен.{' '}
+        Разделы сейчас недоступны.{' '}
         <button type="button" onClick={() => void refresh()}>Повторить</button>
       </div>
     );
@@ -96,17 +92,17 @@ function ShellFrame({ clinicId, locationId, patientsEnabled, workspaceHomeEnable
         <nav className="vh-clinic-nav" aria-label={`Разделы локации для роли ${roleLabel}`}>
           <ShellNavigation clinicId={clinicId} locationId={locationId} patientsEnabled={patientsEnabled} workspaceHomeEnabled={workspaceHomeEnabled} pilot={pilot} />
         </nav>
-        <p className="vh-v50-authority-note">Доступ и действия подтверждает сервер.</p>
+        <p className="vh-v50-authority-note">Доступные разделы зависят от вашей роли.</p>
       </aside>
 
       <div className="vh-clinic-main">
         <header className="vh-clinic-topbar" aria-label="Контекст клиники и локации">
           <div className="vh-v50-context-path">
-            <p>Клиника {shortIdentifier(clinicId)} / локация {shortIdentifier(locationId)}</p>
-            <h1>{roleLabel}</h1>
+            <p>Портал клиники</p>
+            <strong className="vh-v50-context-title">{roleLabel}</strong>
           </div>
-          <span className="vh-v50-location-badge" aria-label={`Clinic ${clinicId}, location ${locationId}`}>
-            {shortIdentifier(locationId)}
+          <span className="vh-v50-location-badge" aria-label={`Рабочее место: ${roleLabel}`}>
+            Рабочее место
           </span>
         </header>
         <div id="clinic-v50-content" className="vh-clinic-content" tabIndex={-1}>

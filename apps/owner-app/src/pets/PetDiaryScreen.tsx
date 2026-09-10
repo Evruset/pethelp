@@ -44,9 +44,9 @@ function ResultDetail({ petName, entry, onBack }: { petName: string; entry: PetC
         contentContainerStyle={{ width: '100%', maxWidth: 980, alignSelf: 'center', paddingHorizontal: desktop ? 28 : 14, paddingVertical: desktop ? 28 : 16, gap: 14 }}
       >
         <View style={{ gap: 6 }}>
-          <Text style={{ ...t.typography.caption, color: t.ownerHome.blue, fontWeight: '800', textTransform: 'uppercase' }}>Дневник · опубликованный результат</Text>
+          <Text style={{ ...t.typography.caption, color: t.ownerHome.bluePressed, fontWeight: '800', textTransform: 'uppercase' }}>Дневник · опубликованный результат</Text>
           <Text accessibilityRole="header" style={{ fontSize: desktop ? 34 : 28, lineHeight: desktop ? 40 : 34, fontWeight: '800', color: t.ownerHome.ink }}>Результат приёма</Text>
-          <Text style={{ ...t.typography.secondaryBody, color: t.ownerHome.muted }}>{petName} · {visitDate(entry.visit.occurredAt)}</Text>
+          <Text style={{ ...t.typography.secondaryBody, color: t.ownerHome.ink }}>{petName} · {visitDate(entry.visit.occurredAt)}</Text>
         </View>
 
         <DiarySurface>
@@ -62,12 +62,15 @@ function ResultDetail({ petName, entry, onBack }: { petName: string; entry: PetC
         {entry.amendments.length > 0 ? (
           <View style={{ gap: 10 }}>
             <Text style={{ ...t.typography.sectionTitle, color: t.ownerHome.ink }}>Уточнения к результату</Text>
-            <Text style={{ ...t.typography.secondaryBody, color: t.ownerHome.muted }}>
+            <Text style={{ ...t.typography.secondaryBody, color: t.ownerHome.ink }}>
               Исходный результат остаётся частью истории приёма. Уточнения опубликованы позже и не являются отдельными приёмами.
             </Text>
             {entry.amendments.map((amendment) => (
               <DiarySurface key={amendment.amendmentId}>
-                <Text style={{ ...t.typography.caption, color: t.ownerHome.blue, fontWeight: '800' }}>Уточнение к результату</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8 }}>
+                  <Text style={{ ...t.typography.caption, color: t.ownerHome.blue, fontWeight: '800' }}>Уточнение к результату</Text>
+                  <Text style={{ ...t.typography.caption, color: t.ownerHome.muted }}>Опубликовано {visitDate(amendment.publishedAt)}</Text>
+                </View>
                 <Text style={{ ...t.typography.body, color: t.ownerHome.ink }}>{amendment.content}</Text>
               </DiarySurface>
             ))}
@@ -103,12 +106,12 @@ export function PetDiaryScreen({ petId, petName, onBack, onSwitchPet, api = petD
       >
         <View style={{ minHeight: desktop ? 210 : 172, borderRadius: 24, overflow: 'hidden', backgroundColor: '#EAF2FF', flexDirection: desktop ? 'row' : 'column' }}>
           <View style={{ flex: 1.05, padding: desktop ? 26 : 18, justifyContent: 'center', gap: 7 }}>
-            <Text style={{ ...t.typography.caption, color: t.ownerHome.blue, fontWeight: '800', textTransform: 'uppercase' }}>История заботы</Text>
+            <Text style={{ ...t.typography.caption, color: t.ownerHome.bluePressed, fontWeight: '800', textTransform: 'uppercase' }}>История заботы</Text>
             <Text accessibilityRole="header" style={{ fontSize: desktop ? 34 : 28, lineHeight: desktop ? 40 : 34, fontWeight: '800', color: t.ownerHome.ink }}>Дневник: {petName}</Text>
-            <Text style={{ ...t.typography.secondaryBody, color: t.ownerHome.muted }}>
+            <Text style={{ ...t.typography.secondaryBody, color: t.ownerHome.ink }}>
               Опубликованные клиникой результаты приёмов. Один результат сохраняется как исходный, поздние уточнения идут отдельно.
             </Text>
-            <Text style={{ ...t.typography.caption, color: t.ownerHome.muted }}>
+            <Text style={{ ...t.typography.caption, color: t.ownerHome.ink }}>
               Документы и результаты остаются с питомцем — их не нужно искать заново перед следующим визитом.
             </Text>
           </View>
@@ -149,7 +152,7 @@ export function PetDiaryScreen({ petId, petName, onBack, onSwitchPet, api = petD
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
               <Text style={{ ...t.typography.sectionTitle, color: t.ownerHome.ink }}>Приёмы</Text>
-              <Text style={{ ...t.typography.caption, color: t.ownerHome.muted }}>История публикаций клиники</Text>
+              <Text style={{ ...t.typography.caption, color: t.ownerHome.ink }}>История публикаций клиники</Text>
             </View>
             {data.clinicalEntries.map((entry) => (
               <Pressable
