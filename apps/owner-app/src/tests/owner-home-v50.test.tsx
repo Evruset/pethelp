@@ -1,11 +1,13 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import { OwnerHome } from '@/app/(app)';
+import type { OwnerHomeSnapshot } from '@/home/owner-home-api';
 
-const PET={petId:'22222222-2222-4222-8222-222222222222',name:'Барни',species:'DOG' as const,createdAt:'2026-01-01T00:00:00Z',updatedAt:'2026-01-01T00:00:00Z'};
+const PET={id:'22222222-2222-4222-8222-222222222222',name:'Барни',species:'DOG' as const,breed:null,photoUrl:null};
+const SNAPSHOT:OwnerHomeSnapshot={schemaVersion:1,serverNow:'2026-09-10T08:00:00.000Z',pets:[PET],selectedPet:PET,selectionSource:'DEFAULT',nextAction:{type:'START_PLANNED_CARE',priority:'LOW',sourceType:'PET',sourceId:PET.id,title:'Спланируйте заботу о питомце',description:'Выберите клинику или услугу в каталоге VetHelp.',deadlineAt:null,actionCode:'OPEN_CATALOG'},activeCare:null};
 
 it('renders the V50 Home composition and keeps authoritative workflow actions', async () => {
   const onBook=jest.fn(),onClinics=jest.fn(),onPets=jest.fn(),onFindTime=jest.fn(),onDiary=jest.fn(),onLogout=jest.fn();
-  const view=await render(<OwnerHome onBook={onBook} onClinics={onClinics} onPets={onPets} onFindTime={onFindTime} onDiary={onDiary} onLogout={onLogout} currentPet={PET} petCount={1}/>);
+  const view=await render(<OwnerHome onBook={onBook} onClinics={onClinics} onPets={onPets} onFindTime={onFindTime} onDiary={onDiary} onLogout={onLogout} snapshot={SNAPSHOT} onHomeAction={()=>undefined}/>);
   expect(view.getByLabelText('Основная навигация')).toBeTruthy();
   expect(view.getByRole('header',{name:'Здравствуйте!'})).toBeTruthy();
   expect(view.queryByText(/Доброе утро/)).toBeNull();
@@ -14,10 +16,11 @@ it('renders the V50 Home composition and keeps authoritative workflow actions', 
   expect(view.getByText('Сравните варианты для Барни без звонка')).toBeTruthy();
   expect(view.getByText('Выбрать клинику')).toBeTruthy();
   expect(view.getByText('Найти время')).toBeTruthy();
-  expect(view.queryByText('Следующий шаг')).toBeNull();
+  expect(view.getByText('Следующий шаг')).toBeTruthy();
   expect(view.getAllByText('Барни').length).toBeGreaterThan(0);
   expect(view.queryByText('Ближайших записей пока нет')).toBeNull();
-  expect(view.getByText('Нужна новая запись?')).toBeTruthy();
+  expect(view.getByText('Спланируйте заботу о питомце')).toBeTruthy();
+  expect(view.getByText('Плановый шаг')).toBeTruthy();
   expect(view.queryByText(/Home пока/)).toBeNull();
   expect(view.queryByText(/подтверждённый профиль/)).toBeNull();
   expect(view.queryByText(/API|backend|authoritative|V50 референс/)).toBeNull();
@@ -33,4 +36,10 @@ it('renders the V50 Home composition and keeps authoritative workflow actions', 
   expect(onFindTime).toHaveBeenCalledTimes(1);
   expect(onDiary).toHaveBeenCalledTimes(1);
   expect(onLogout).toHaveBeenCalledTimes(1);
+  const confirmed={...SNAPSHOT,nextAction:{...SNAPSHOT.nextAction,type:'UPCOMING_CONFIRMED_VISIT' as const,sourceType:'BOOKING_HOLD' as const,sourceId:'33333333-3333-4333-8333-333333333333',title:'Ближайший визит подтверждён',description:'12 сентября, 11:00',deadlineAt:'2026-09-12T08:00:00.000Z',actionCode:'OPEN_APPOINTMENT' as const},activeCare:{sourceType:'BOOKING_HOLD' as const,sourceId:'33333333-3333-4333-8333-333333333333',statusCode:'CONFIRMED' as const,title:'Добрый ветеринар',description:'Запись подтверждена',startsAt:'2026-09-12T08:00:00.000Z',deadlineAt:'2026-09-12T08:00:00.000Z',clinicName:'Добрый ветеринар',petId:PET.id,actionCode:'OPEN_APPOINTMENT' as const}};
+  await view.rerender(<OwnerHome onBook={onBook} onClinics={onClinics} onPets={onPets} onFindTime={onFindTime} onDiary={onDiary} onLogout={onLogout} snapshot={confirmed}/>);
+  expect(view.getByText('Ближайший визит подтверждён')).toBeTruthy();
+  expect(view.getByText('Добрый ветеринар')).toBeTruthy();
+  expect(view.queryByText('Нужна новая запись?')).toBeNull();
+  await view.unmount();
 });

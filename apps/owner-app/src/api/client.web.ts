@@ -5,6 +5,7 @@ type RequestOptions<TBody> = Readonly<{ method?: Method; body?: TBody; headers?:
 export type ApiClient = { request<TResponse, TBody = never>(path: string, options?: RequestOptions<TBody>): Promise<TResponse> };
 
 const ALLOWED = [
+  /^v1\/owner\/home(?:\?selectedPetId=[0-9a-f-]{36})?$/,
   /^v1\/owner\/pets$/,
   /^v1\/owner\/pets\/[0-9a-f-]{36}\/diary\?limit=100&offset=0$/,
   /^v1\/owner\/clinic-catalog$/,

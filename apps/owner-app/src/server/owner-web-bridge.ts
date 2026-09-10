@@ -10,6 +10,7 @@ const ROUTES = [
   { pattern: /^v1\/auth\/otp\/(request|resend|verify)$/, methods: ['POST'], public: true },
   { pattern: /^v1\/auth\/session$/, methods: ['GET'] },
   { pattern: /^v1\/auth\/logout$/, methods: ['POST'] },
+  { pattern: /^v1\/owner\/home$/, methods: ['GET'] },
   { pattern: /^v1\/owner\/pets$/, methods: ['GET', 'POST'] },
   { pattern: new RegExp(`^v1/owner/pets/${UUID}/diary$`), methods: ['GET'] },
   { pattern: /^v1\/owner\/clinic-catalog$/, methods: ['GET'] },
