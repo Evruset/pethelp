@@ -6,9 +6,10 @@ const PET={id:'22222222-2222-4222-8222-222222222222',name:'Барни',species:'
 const SNAPSHOT:OwnerHomeSnapshot={schemaVersion:1,serverNow:'2026-09-10T08:00:00.000Z',pets:[PET],selectedPet:PET,selectionSource:'DEFAULT',nextAction:{type:'START_PLANNED_CARE',priority:'LOW',sourceType:'PET',sourceId:PET.id,title:'Спланируйте заботу о питомце',description:'Выберите клинику.',deadlineAt:null,actionCode:'OPEN_CATALOG'},activeCare:null};
 
 describe('OwnerHome V50 navigation', () => {
-  it('keeps booking, clinic browsing, nearest time and diary as different actions', async () => {
+  it('keeps booking, clinics, bookings, nearest time, pets and diary as different actions', async () => {
     const onBook = jest.fn();
     const onClinics = jest.fn();
+    const onBookings = jest.fn();
     const onFindTime = jest.fn();
     const onDiary = jest.fn();
     const onPets = jest.fn();
@@ -17,6 +18,7 @@ describe('OwnerHome V50 navigation', () => {
       <OwnerHome
         onBook={onBook}
         onClinics={onClinics}
+        onBookings={onBookings}
         onPets={onPets}
         onFindTime={onFindTime}
         onDiary={onDiary}
@@ -37,8 +39,9 @@ describe('OwnerHome V50 navigation', () => {
 
     fireEvent.press(screen.getAllByText('Найти время')[0]);
     expect(onFindTime).toHaveBeenCalledTimes(1);
-    expect(onBook).toHaveBeenCalledTimes(1);
-    expect(onClinics).toHaveBeenCalledTimes(1);
+
+    fireEvent.press(screen.getByRole('button', { name: 'Записи' }));
+    expect(onBookings).toHaveBeenCalledTimes(1);
 
     fireEvent.press(screen.getByRole('button', { name: /Питомцы/ }));
     expect(onPets).toHaveBeenCalledTimes(1);
