@@ -12,6 +12,7 @@ const ALLOWED = [
   /^v1\/owner\/clinic-catalog\/[0-9a-f-]{36}\/locations\/[0-9a-f-]{36}$/,
   /^v1\/owner\/clinic-catalog\/[0-9a-f-]{36}\/locations\/[0-9a-f-]{36}\/services\/[0-9a-f-]{36}\/availability$/,
   /^v1\/clinics\/[0-9a-f-]{36}\/doctors\?locationId=[0-9a-f-]{36}$/,
+  /^v1\/owner\/bookings\?limit=20(?:&cursor=[A-Za-z0-9_-]+)?$/,
   /^v1\/booking-holds$/,
   /^v1\/booking-holds\/[0-9a-f-]{36}$/,
   /^v1\/owner\/bookings\/[0-9a-f-]{36}\/cancel$/,
