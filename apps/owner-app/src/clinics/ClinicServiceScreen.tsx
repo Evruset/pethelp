@@ -19,6 +19,7 @@ import {
   type ClinicServiceHandoff,
 } from "./clinic-service-api";
 import type { ClinicCatalogHandoff } from "./clinic-catalog-api";
+import { doctorApi } from "./doctor-api";
 import {
   ClinicDecisionLayout,
   DecisionHeading,
@@ -65,6 +66,11 @@ export function ClinicServiceScreen({
         clinic.locationId,
         signal,
       ),
+  });
+  const doctorsQuery = useQuery({
+    queryKey: ["owner", session?.cacheScope, "clinic-doctors", clinic.clinicId, clinic.locationId],
+    enabled: Boolean(session),
+    queryFn: ({ signal }) => doctorApi.list(session!.opaqueCredential, clinic.clinicId, clinic.locationId, signal),
   });
   const selectedService = query.data?.services.find(
     (service) => service.serviceId === selectedServiceId,
@@ -124,6 +130,22 @@ export function ClinicServiceScreen({
             />
           }
         />
+      ) : null}
+      {!query.isError && query.data ? (
+        <DecisionPanel>
+          <DecisionHeading kicker="Карточка филиала" title={query.data.name} detail={query.data.address} />
+          {query.data.phone ? <Text style={{ ...t.typography.secondaryBody, color: decisionColors.muted }}>{query.data.phone}</Text> : null}
+          <Text style={{ ...t.typography.caption, color: decisionColors.muted, fontWeight: "800" }}>Ветеринарные врачи</Text>
+          {doctorsQuery.isPending ? <Text style={{ ...t.typography.secondaryBody, color: decisionColors.muted }}>Загружаем специалистов…</Text> : null}
+          {doctorsQuery.data?.doctors?.map((doctor) => (
+            <View key={doctor.id} style={{ padding: 12, gap: 3, borderRadius: 14, backgroundColor: decisionColors.blueSoft }}>
+              <Text style={{ ...t.typography.body, color: decisionColors.ink, fontWeight: "800" }}>{doctor.displayName}</Text>
+              <Text style={{ ...t.typography.caption, color: decisionColors.muted }}>{doctor.title}</Text>
+              {doctor.nextAvailableAt && doctor.freshness === "CURRENT" ? <Text style={{ ...t.typography.caption, color: decisionColors.blue }}>Есть актуальное опубликованное время</Text> : null}
+            </View>
+          ))}
+          {doctorsQuery.isError ? <Text style={{ ...t.typography.caption, color: decisionColors.muted }}>Список специалистов сейчас недоступен. Услуги филиала можно выбрать ниже.</Text> : null}
+        </DecisionPanel>
       ) : null}
 
       {!query.isError && query.data ? (
@@ -218,6 +240,7 @@ export function ClinicServiceScreen({
                           key={service.serviceId}
                           accessibilityRole="radio"
                           accessibilityState={{ selected }}
+                          aria-checked={selected}
                           onPress={() => {
                             setSelectedServiceId(service.serviceId);
                             setStale(false);

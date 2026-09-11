@@ -111,6 +111,7 @@ function AuthorityScopedHome() {
             setSelectedAvailability(null);
             setSelectedService(null);
           }}
+          onHome={openHome}
         />
       );
     }

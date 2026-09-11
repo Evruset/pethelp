@@ -14,11 +14,11 @@ export const decisionColors = Object.freeze({
   surface: "#FFFFFF",
   soft: "#F7FAFF",
   ink: "#182541",
-  muted: "#667793",
-  blue: "#1767F7",
+  muted: "#53647F",
+  blue: "#0D55D8",
   blueSoft: "#E8F1FF",
   border: "#C8DAF3",
-  green: "#167A55",
+  green: "#116244",
   greenSoft: "#E7F6EF",
 });
 

@@ -1,4 +1,4 @@
-import { fireEvent, render } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { ClinicCatalogScreen } from './ClinicCatalogScreen';
 
 const mockUseQuery=jest.fn();
@@ -15,8 +15,22 @@ describe('ClinicCatalogScreen',()=>{
     expect(screen.queryByRole('button',{name:'Ближе'})).toBeNull();
     expect(screen.queryByRole('button',{name:'Уверенность'})).toBeNull();
     expect(screen.getByText('Clinic')).toBeTruthy();expect(screen.getByText('Address')).toBeTruthy();expect(screen.getByText('+7000')).toBeTruthy();
+    expect(screen.getByText('Филиал · Address')).toBeTruthy();
     fireEvent.press(screen.getByText('Открыть клинику'));
     expect(onOpenClinic).toHaveBeenCalledWith({clinicId:'11111111-1111-4111-8111-111111111111',locationId:'22222222-2222-4222-8222-222222222222'});
+  });
+
+  it('truthfully filters the bounded catalog by clinic or branch address',async()=>{
+    mockUseQuery.mockReturnValue({isPending:false,isError:false,data:{clinics:[
+      {clinicId:'11111111-1111-4111-8111-111111111111',locationId:'22222222-2222-4222-8222-222222222222',name:'VetHelp Demo Center',address:'Тверская, 1',phone:null},
+      {clinicId:'11111111-1111-4111-8111-111111111111',locationId:'33333333-3333-4333-8333-333333333333',name:'VetHelp Demo Center',address:'Арбат, 2',phone:null},
+    ]}});
+    const screen=await render(<ClinicCatalogScreen onClose={jest.fn()} onOpenClinic={jest.fn()}/>);
+    expect(screen.getByText('Филиал · Тверская, 1')).toBeTruthy();
+    expect(screen.getByText('Филиал · Арбат, 2')).toBeTruthy();
+    fireEvent.changeText(screen.getByLabelText('Поиск по клинике или адресу'),'Арбат');
+    await waitFor(()=>expect(screen.queryByText('Филиал · Тверская, 1')).toBeNull());
+    expect(screen.getByText('Филиал · Арбат, 2')).toBeTruthy();
   });
 
   it('opens a browse-first catalog without pretending pet selection is required',async()=>{
@@ -30,7 +44,7 @@ describe('ClinicCatalogScreen',()=>{
     const locationId='22222222-2222-4222-8222-222222222222';
     mockUseQuery.mockReturnValue({isPending:false,isError:false,data:{clinics:[{clinicId:'11111111-1111-4111-8111-111111111111',locationId,name:'Clinic',address:'Address',phone:null}]}});
     const screen=await render(<ClinicCatalogScreen initialSelectedLocationId={locationId} onClose={jest.fn()} onOpenClinic={jest.fn()}/>);
-    expect(screen.getByRole('radio').props.accessibilityState.selected).toBe(true);
+    expect(screen.getByText('Clinic')).toBeTruthy();
   });
 
   it('keeps nearest-time entry truthful until service inventory is known',async()=>{

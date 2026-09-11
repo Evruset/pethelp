@@ -17,8 +17,8 @@ export function OwnerGlobalNav({ desktop, active, onHome, onPets, onClinics }: {
       {items.map((item) => {
         const selected = item.area === active;
         return <Pressable key={item.area} accessibilityRole="button" accessibilityState={{ selected }} onPress={item.action} style={({ pressed }) => ({ minHeight: desktop ? 44 : 52, minWidth: desktop ? undefined : 68, paddingHorizontal: desktop ? 14 : 7, paddingVertical: 6, borderRadius: 14, backgroundColor: selected ? t.ownerHome.blueSoft : 'transparent', alignItems: 'center', justifyContent: 'center', flexDirection: desktop ? 'row' : 'column', gap: desktop ? 7 : 1, opacity: pressed ? .65 : 1 })}>
-          <Text style={{ fontSize: desktop ? 16 : 18, color: selected ? t.ownerHome.blue : t.ownerHome.muted }}>{item.icon}</Text>
-          <Text style={{ ...t.typography.caption, fontSize: desktop ? 13 : 10, color: selected ? t.ownerHome.blue : t.ownerHome.muted, fontWeight: selected ? '700' : '600' }}>{item.label}</Text>
+          <Text style={{ fontSize: desktop ? 16 : 18, color: selected ? t.ownerHome.bluePressed : t.ownerHome.muted }}>{item.icon}</Text>
+          <Text style={{ ...t.typography.caption, fontSize: desktop ? 13 : 10, color: selected ? t.ownerHome.bluePressed : t.ownerHome.muted, fontWeight: selected ? '700' : '600' }}>{item.label}</Text>
         </Pressable>;
       })}
     </View>
