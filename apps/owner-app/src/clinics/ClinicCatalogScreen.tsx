@@ -101,7 +101,7 @@ export function ClinicCatalogScreen({
       title={copy.title}
       subtitle={copy.subtitle}
       onBack={onClose}
-      globalNavigation={onHome && onBookings && onPets ? (wide) => <OwnerGlobalNav desktop={wide} active="CLINICS" onHome={onHome} onBookings={onBookings} onPets={onPets} onClinics={() => {}} /> : undefined}
+      globalNavigation={onHome && onPets ? (wide) => <OwnerGlobalNav desktop={wide} active="CLINICS" onHome={onHome} onBookings={onBookings} onPets={onPets} onClinics={() => {}} /> : undefined}
     >
       <DecisionPanel>
         <DecisionHeading
