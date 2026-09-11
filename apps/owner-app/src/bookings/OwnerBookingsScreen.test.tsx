@@ -39,6 +39,14 @@ const firstPage: OwnerBookingsPage = {
   nextCursor: null,
 };
 
+const emptyPage: OwnerBookingsPage = {
+  serverNow: '2026-09-11T10:00:00.000Z',
+  requiresAction: [],
+  active: [],
+  history: [],
+  nextCursor: null,
+};
+
 function harness() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   function QueryHarness({ children }: { children: React.ReactNode }) {
@@ -55,12 +63,9 @@ describe('OwnerBookingsScreen', () => {
     const screen = await render(<OwnerBookingsScreen onHome={jest.fn()} onClinics={jest.fn()} onPets={jest.fn()} />, { wrapper: harness() });
 
     await screen.findByText('Нужно выбрать время');
-    const action = screen.getByText('Требуют внимания');
-    const active = screen.getByText('Предстоящие');
-    const history = screen.getByText('История');
-    expect(action).toBeTruthy();
-    expect(active).toBeTruthy();
-    expect(history).toBeTruthy();
+    expect(screen.getByText('Требуют внимания')).toBeTruthy();
+    expect(screen.getByText('Предстоящие')).toBeTruthy();
+    expect(screen.getByText('История')).toBeTruthy();
     expect(screen.queryByText('ALTERNATIVE_PENDING')).toBeNull();
     expect(screen.queryByText(HOLD_ACTION)).toBeNull();
     await screen.unmount();
@@ -92,6 +97,32 @@ describe('OwnerBookingsScreen', () => {
     fireEvent.press(screen.getByText('Обновить'));
     await screen.findByText('Не удалось обновить записи');
     expect(screen.getByText('Подтверждена')).toBeTruthy();
+    await screen.unmount();
+  });
+
+  it('shows one compact empty state and opens the existing clinic journey', async () => {
+    const onClinics = jest.fn();
+    jest.spyOn(ownerBookingsApi, 'list').mockResolvedValue(emptyPage);
+    const screen = await render(<OwnerBookingsScreen onHome={jest.fn()} onClinics={onClinics} onPets={jest.fn()} />, { wrapper: harness() });
+
+    await screen.findByText('Записей пока нет');
+    expect(screen.queryByText('Требуют внимания')).toBeNull();
+    expect(screen.queryByText('Предстоящие')).toBeNull();
+    expect(screen.queryByText('История')).toBeNull();
+    fireEvent.press(screen.getByText('Найти клинику'));
+    expect(onClinics).toHaveBeenCalledTimes(1);
+    await screen.unmount();
+  });
+
+  it('shows a bounded retry on initial failure without rendering stale sections', async () => {
+    const list = jest.spyOn(ownerBookingsApi, 'list').mockRejectedValueOnce(new Error('network')).mockResolvedValueOnce(emptyPage);
+    const screen = await render(<OwnerBookingsScreen onHome={jest.fn()} onClinics={jest.fn()} onPets={jest.fn()} />, { wrapper: harness() });
+
+    await screen.findByText('Не удалось загрузить записи');
+    expect(screen.queryByText('Требуют внимания')).toBeNull();
+    fireEvent.press(screen.getByText('Повторить'));
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
+    await screen.findByText('Записей пока нет');
     await screen.unmount();
   });
 });
