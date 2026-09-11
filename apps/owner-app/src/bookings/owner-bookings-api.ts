@@ -1,7 +1,6 @@
 import { apiClient, type ApiClient } from '@/api/client';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const BUCKETS = ['REQUIRES_ACTION', 'ACTIVE', 'HISTORY'] as const;
 const PRESENTATION_CODES = [
   'WAITING_FOR_CLINIC',
   'CHECKING_AVAILABILITY',
@@ -16,7 +15,7 @@ const PRESENTATION_CODES = [
 const TONES = ['info', 'success', 'warning', 'danger', 'neutral'] as const;
 const SPECIES = ['DOG', 'CAT', 'OTHER'] as const;
 
-export type OwnerBookingBucket = typeof BUCKETS[number];
+export type OwnerBookingBucket = 'REQUIRES_ACTION' | 'ACTIVE' | 'HISTORY';
 export type OwnerBookingTone = typeof TONES[number];
 export type OwnerBookingSummary = Readonly<{
   holdId: string;
