@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Image,
   Platform,
@@ -24,7 +25,9 @@ import {
   ownerIntentRequiresPet,
   type OwnerHomeIntent,
 } from '@/home/owner-home-intent';
+import { ownerHomeApi, ownerHomeQueryKey, type OwnerHomeActionCode, type OwnerHomeActiveCare, type OwnerHomeNextAction, type OwnerHomePet, type OwnerHomeSnapshot } from '@/home/owner-home-api';
 import { PetDiaryScreen } from '@/pets/PetDiaryScreen';
+import { OwnerPetsScreen } from '@/pets/OwnerPetsScreen';
 import { usePetJourney } from '@/pets/PetJourneyProvider';
 import { PetJourneyScreen } from '@/pets/PetJourneyScreen';
 import type { Pet } from '@/pets/pet-api';
@@ -34,7 +37,7 @@ import { uiTokens as t } from '@/ui/tokens';
 import { v50ReferenceAssets } from '@/ui/v50-reference-assets';
 
 const h = t.ownerHome;
-const speciesLabel = (species: Pet['species']) =>
+const speciesLabel = (species: Pet['species'] | OwnerHomePet['species']) =>
   species === 'DOG' ? 'Собака' : species === 'CAT' ? 'Кошка' : 'Питомец';
 
 export default function AuthenticatedHomeScreen() {
@@ -48,14 +51,27 @@ function AuthorityScopedHome() {
   const [openedClinic, setOpenedClinic] = useState<ClinicCatalogHandoff | null>(null);
   const [selectedService, setSelectedService] = useState<ClinicServiceHandoff | null>(null);
   const [selectedAvailability, setSelectedAvailability] = useState<AvailabilityHandoff | null>(null);
+  const [lastClinic, setLastClinic] = useState<ClinicCatalogHandoff | null>(null);
+  const [lastService, setLastService] = useState<ClinicServiceHandoff | null>(null);
+  const [lastAvailability, setLastAvailability] = useState<AvailabilityHandoff | null>(null);
+  const [globalArea, setGlobalArea] = useState<'HOME' | 'PETS'>('HOME');
+  const [globalDiaryPet, setGlobalDiaryPet] = useState<Pet | null>(null);
   const { error, logout, session } = useSession();
   const { resumedIntent, consumeResumedIntent } = useAuthJourney();
   const pets = usePetJourney();
+  const homeQuery = useQuery({
+    queryKey: ownerHomeQueryKey(session?.cacheScope ?? 'no-session', pets.selectedPetId),
+    enabled: session !== null,
+    queryFn: ({ signal }) => ownerHomeApi.read(session!.opaqueCredential, pets.selectedPetId, signal),
+  });
 
   const clearDownstream = () => {
     setOpenedClinic(null);
     setSelectedService(null);
     setSelectedAvailability(null);
+    setLastClinic(null);
+    setLastService(null);
+    setLastAvailability(null);
   };
 
   const startIntent = (next: OwnerHomeIntent) => {
@@ -71,6 +87,18 @@ function AuthorityScopedHome() {
     setIntent(null);
   };
 
+  const openHome = () => { closeJourney(); setGlobalDiaryPet(null); setGlobalArea('HOME'); };
+  const openPets = () => { closeJourney(); setGlobalDiaryPet(null); setGlobalArea('PETS'); };
+  const openClinics = () => { setGlobalArea('HOME'); setGlobalDiaryPet(null); startIntent('CLINICS'); };
+  const openHomeAction = (actionCode: OwnerHomeActionCode) => {
+    if (actionCode === 'OPEN_CATALOG') startIntent('CLINICS');
+    if (actionCode === 'ADD_PET') startIntent('BOOKING');
+  };
+
+  if (globalDiaryPet) return <PetDiaryScreen petId={globalDiaryPet.petId} petName={globalDiaryPet.name} onBack={() => setGlobalDiaryPet(null)} onSwitchPet={() => setGlobalDiaryPet(null)} />;
+
+  if (globalArea === 'PETS' && !intent) return <OwnerPetsScreen pets={pets.pets} loading={pets.loading} error={pets.error} onHome={openHome} onClinics={openClinics} onRetry={pets.retry} onDiary={setGlobalDiaryPet} />;
+
   if (selectedAvailability) {
     if (pets.continuedPetId) {
       return (
@@ -83,6 +111,7 @@ function AuthorityScopedHome() {
             setSelectedAvailability(null);
             setSelectedService(null);
           }}
+          onHome={openHome}
         />
       );
     }
@@ -97,9 +126,12 @@ function AuthorityScopedHome() {
         key={`${authorityGeneration}:${selectedService.clinicId}:${selectedService.locationId}:${selectedService.serviceId}`}
         authorityGeneration={authorityGeneration}
         context={selectedService}
+        initialSelection={lastAvailability}
+        petName={pets.pets.find((pet) => pet.petId === pets.continuedPetId)?.name}
         onBack={() => setSelectedService(null)}
         onContinue={(availability) => {
           setSelectedAvailability(availability);
+          setLastAvailability(availability);
           if (!pets.continuedPetId) {
             setIntent('BOOKING');
             pets.start();
@@ -114,8 +146,14 @@ function AuthorityScopedHome() {
       <ClinicServiceScreen
         key={`${session?.opaqueCredential}:${openedClinic.clinicId}:${openedClinic.locationId}`}
         clinic={openedClinic}
+        initialServiceId={lastService?.serviceId}
+        petName={pets.pets.find((pet) => pet.petId === pets.continuedPetId)?.name}
         onBack={() => setOpenedClinic(null)}
-        onContinue={setSelectedService}
+        onContinue={(service) => {
+          if (lastService?.serviceId !== service.serviceId) setLastAvailability(null);
+          setSelectedService(service);
+          setLastService(service);
+        }}
       />
     );
   }
@@ -140,7 +178,17 @@ function AuthorityScopedHome() {
       <ClinicCatalogScreen
         mode={ownerIntentCatalogMode(intent)}
         onClose={closeJourney}
-        onOpenClinic={setOpenedClinic}
+        onHome={openHome}
+        onPets={openPets}
+        initialSelectedLocationId={lastClinic?.locationId}
+        onOpenClinic={(clinic) => {
+          if (lastClinic?.locationId !== clinic.locationId) {
+            setLastService(null);
+            setLastAvailability(null);
+          }
+          setOpenedClinic(clinic);
+          setLastClinic(clinic);
+        }}
       />
     );
   }
@@ -154,6 +202,7 @@ function AuthorityScopedHome() {
     <OwnerHome
       onBook={() => startIntent('BOOKING')}
       onClinics={() => startIntent('CLINICS')}
+      onPets={openPets}
       onFindTime={() => startIntent('TIME')}
       onDiary={() => startIntent('DIARY')}
       onLogout={() => {
@@ -162,11 +211,11 @@ function AuthorityScopedHome() {
       resumed={resumedIntent?.kind === 'START_BOOKING'}
       onResume={resumeBooking}
       cleanupError={error === 'SESSION_CLEANUP_FAILED'}
-      currentPet={pets.pets.length === 1 ? pets.pets[0] : null}
-      petCount={pets.pets.length}
-      petLoading={pets.loading}
-      petError={pets.error}
-      onRetryPet={pets.retry}
+      snapshot={homeQuery.data}
+      homeLoading={homeQuery.isPending}
+      homeError={homeQuery.isError}
+      onRetryHome={() => { void homeQuery.refetch(); }}
+      onHomeAction={openHomeAction}
     />
   );
 }
@@ -174,41 +223,45 @@ function AuthorityScopedHome() {
 type HomeProps = {
   onBook(): void;
   onClinics(): void;
+  onPets(): void;
   onFindTime(): void;
   onDiary(): void;
   onLogout(): void;
   resumed?: boolean;
   onResume?(): void;
   cleanupError?: boolean;
-  currentPet?: Pet | null;
-  petCount?: number;
-  petLoading?: boolean;
-  petError?: boolean;
-  onRetryPet?(): void;
+  snapshot?: OwnerHomeSnapshot;
+  homeLoading?: boolean;
+  homeError?: boolean;
+  onRetryHome?(): void;
+  onHomeAction?(actionCode: OwnerHomeActionCode): void;
 };
 
 export function OwnerHome({
   onBook,
   onClinics,
+  onPets,
   onFindTime,
   onDiary,
   onLogout,
   resumed = false,
   onResume,
   cleanupError = false,
-  currentPet = null,
-  petCount = 0,
-  petLoading = false,
-  petError = false,
-  onRetryPet,
+  snapshot,
+  homeLoading = false,
+  homeError = false,
+  onRetryHome,
+  onHomeAction,
 }: HomeProps) {
   const { width } = useWindowDimensions();
   const desktop = Platform.OS === 'web' && width >= 900;
+  const currentPet = snapshot?.selectedPet ?? null;
   const petName = currentPet?.name;
+  const petCount = snapshot?.pets.length ?? 0;
   const nav = [
     ['Главная', '⌂', undefined, true],
+    ['Питомцы', '●', onPets, false],
     ['Клиники', '▥', onClinics, false],
-    ['Дневник', '▤', onDiary, false],
   ] as const;
 
   return (
@@ -254,22 +307,29 @@ export function OwnerHome({
               <PetHero
                 pet={currentPet}
                 petCount={petCount}
-                loading={petLoading}
-                error={petError}
-                onBook={onBook}
+                loading={homeLoading}
+                error={homeError && !snapshot}
                 onDiary={onDiary}
-                onRetry={onRetryPet}
+                onRetry={onRetryHome}
                 desktop={desktop}
               />
             </View>
             <View style={{ flex: desktop ? 0.95 : undefined }}>
-              <NextAction onBook={onBook} desktop={desktop} />
+              <NextAction
+                desktop={desktop}
+                action={snapshot?.nextAction}
+                activeCare={snapshot?.activeCare}
+                loading={homeLoading}
+                refreshFailed={homeError && Boolean(snapshot)}
+                hardError={homeError && !snapshot}
+                onRetry={onRetryHome}
+                onAction={onHomeAction}
+              />
             </View>
           </View>
 
           <CoreServices
             desktop={desktop}
-            onBook={onBook}
             onClinics={onClinics}
             onFindTime={onFindTime}
             onDiary={onDiary}
@@ -284,7 +344,7 @@ export function OwnerHome({
 
 const styles = {
   sectionTitle: { ...t.typography.sectionTitle, color: h.ink },
-  muted: { ...t.typography.secondaryBody, color: h.muted },
+  muted: { ...t.typography.secondaryBody, color: t.color.textSecondary },
 };
 
 function Brand() {
@@ -326,11 +386,11 @@ function DesktopShell({ nav, petCount, onLogout }: { nav: readonly NavTuple[]; p
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         <View style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14, backgroundColor: h.blueSoft }}>
-          <Text style={{ ...t.typography.caption, color: h.muted }}>Питомцы</Text>
+          <Text style={{ ...t.typography.caption, color: t.color.textSecondary }}>Питомцы</Text>
           <Text style={{ ...t.typography.label, color: h.ink }}>{petCount}</Text>
         </View>
         <Pressable accessibilityRole="button" onPress={onLogout} style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 }}>
-          <Text style={{ ...t.typography.label, color: h.muted }}>Выйти</Text>
+          <Text style={{ ...t.typography.label, color: t.color.textSecondary }}>Выйти</Text>
         </Pressable>
       </View>
     </View>
@@ -342,7 +402,7 @@ function MobileHeader({ onLogout }: { onLogout(): void }) {
     <View style={{ height: 58, paddingHorizontal: 14, backgroundColor: 'rgba(255,255,255,.96)', borderBottomWidth: 1, borderBottomColor: h.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
       <Brand />
       <Pressable accessibilityRole="button" onPress={onLogout} style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: 6 }}>
-        <Text style={{ ...t.typography.caption, color: h.muted }}>Выйти</Text>
+        <Text style={{ ...t.typography.caption, color: t.color.textSecondary }}>Выйти</Text>
       </Pressable>
     </View>
   );
@@ -368,8 +428,8 @@ function NavButton({ label, icon, onPress, active, compact = false }: { label: s
         opacity: pressed ? 0.65 : 1,
       })}
     >
-      <Text style={{ fontSize: compact ? 18 : 16, color: active ? h.blue : h.muted }}>{icon}</Text>
-      <Text style={{ ...t.typography.caption, fontSize: compact ? 10 : 13, color: active ? h.blue : h.muted, fontWeight: active ? '700' : '600' }}>
+      <Text style={{ fontSize: compact ? 18 : 16, color: active ? h.bluePressed : t.color.textSecondary }}>{icon}</Text>
+      <Text style={{ ...t.typography.caption, fontSize: compact ? 10 : 13, color: active ? h.bluePressed : t.color.textSecondary, fontWeight: active ? '700' : '600' }}>
         {label}
       </Text>
     </Pressable>
@@ -392,11 +452,11 @@ function HomeHeader({ petName, desktop }: { petName?: string; desktop: boolean }
   return (
     <View accessibilityLabel="Личный кабинет" style={{ minHeight: desktop ? 72 : 82, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
       <View style={{ flex: 1, gap: 3 }}>
-        {!desktop ? <Text style={{ ...t.typography.caption, color: h.blue, fontWeight: '700' }}>● Личный кабинет владельца</Text> : null}
+        {!desktop ? <Text style={{ ...t.typography.caption, color: h.bluePressed, fontWeight: '700' }}>● Личный кабинет владельца</Text> : null}
         <Text accessibilityRole="header" style={{ fontSize: desktop ? 36 : 29, lineHeight: desktop ? 41 : 34, fontWeight: '800', color: h.ink }}>
           Здравствуйте!
         </Text>
-        <Text style={{ ...t.typography.secondaryBody, color: h.muted }}>
+        <Text style={{ ...t.typography.secondaryBody, color: t.color.textSecondary }}>
           Всё важное для заботы{petName ? ` о ${petName}` : ' о питомце'} — в одном месте.
         </Text>
       </View>
@@ -429,7 +489,7 @@ function SearchHero({ petName, desktop, onBook, onClinics, onFindTime }: { petNa
           <Text style={{ fontSize: desktop ? 40 : 30, lineHeight: desktop ? 45 : 35, fontWeight: '800', color: h.ink }}>
             Что нужно{petName ? ` ${petName}` : ' питомцу'} сейчас?
           </Text>
-          <Text style={{ ...t.typography.secondaryBody, color: h.muted }}>
+          <Text style={{ ...t.typography.secondaryBody, color: t.color.textSecondary }}>
             Каждый путь ведёт к своему следующему шагу — без возврата в один и тот же старый экран.
           </Text>
           <View accessibilityLabel="Главные действия" style={{ gap: 8 }}>
@@ -446,7 +506,7 @@ function SearchHero({ petName, desktop, onBook, onClinics, onFindTime }: { petNa
         </View>
         <View style={{ width: desktop ? 420 : '100%', minHeight: desktop ? 300 : 190, backgroundColor: h.blueSoft }}>
           <Image
-            accessibilityLabel="Визуальный референс VetHelp: владелец в ветеринарной клинике"
+            accessibilityLabel="Владелец с питомцем в ветеринарной клинике"
             source={v50ReferenceAssets.ownerClinic}
             resizeMode="cover"
             style={{ width: '100%', height: '100%', minHeight: desktop ? 300 : 190 }}
@@ -461,11 +521,11 @@ function HeroAction({ icon, title, subtitle, onPress, primary = false }: { icon:
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => ({ minHeight: 72, paddingHorizontal: 14, paddingVertical: 11, borderWidth: 1, borderColor: primary ? '#9BC0FF' : h.border, borderRadius: 16, backgroundColor: primary ? h.blueSoft : h.surface, flexDirection: 'row', alignItems: 'center', gap: 11, opacity: pressed ? 0.65 : 1 })}>
       <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: primary ? '#D6E6FF' : h.surfaceSoft, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontSize: 20, color: h.blue }}>{icon}</Text>
+        <Text style={{ fontSize: 20, color: h.bluePressed }}>{icon}</Text>
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ ...t.typography.label, color: h.ink }}>{title}</Text>
-        <Text style={{ ...t.typography.caption, color: h.muted, marginTop: 2 }}>{subtitle}</Text>
+        <Text style={{ ...t.typography.caption, color: t.color.textSecondary, marginTop: 2 }}>{subtitle}</Text>
       </View>
     </Pressable>
   );
@@ -474,21 +534,21 @@ function HeroAction({ icon, title, subtitle, onPress, primary = false }: { icon:
 function ImmediateValue({ petName, desktop, onClinics }: { petName?: string; desktop: boolean; onClinics(): void }) {
   const facts = [
     ['Клиники', 'адреса и услуги'],
-    ['Цена', 'только из API'],
+    ['Стоимость', 'после выбора услуги'],
     ['Время', 'только опубликованные слоты'],
   ] as const;
   return (
     <Surface style={{ padding: desktop ? 16 : 14, flexDirection: desktop ? 'row' : 'column', alignItems: desktop ? 'center' : 'stretch', gap: desktop ? 14 : 12, backgroundColor: 'rgba(255,255,255,.82)' }}>
       <View style={{ flex: 1.2, gap: 3 }}>
-        <Text style={{ ...t.typography.caption, color: h.blue, fontWeight: '800', textTransform: 'uppercase' }}>Польза сразу</Text>
+        <Text style={{ ...t.typography.caption, color: h.bluePressed, fontWeight: '800', textTransform: 'uppercase' }}>Польза сразу</Text>
         <Text style={{ ...t.typography.sectionTitle, color: h.ink }}>Сравните варианты{petName ? ` для ${petName}` : ''} без звонка</Text>
-        <Text style={{ ...t.typography.caption, color: h.muted }}>Показываем только то, что есть в текущих данных.</Text>
+        <Text style={{ ...t.typography.caption, color: t.color.textSecondary }}>Показываем только то, что есть в текущих данных.</Text>
       </View>
       <View accessibilityLabel="Возможности записи" style={{ flex: 1.15, flexDirection: 'row', gap: 7 }}>
         {facts.map(([value, label]) => (
           <View key={value} style={{ flex: 1, minHeight: 58, paddingHorizontal: 9, paddingVertical: 8, borderRadius: 12, backgroundColor: h.blueSoft, justifyContent: 'center' }}>
             <Text style={{ ...t.typography.label, fontSize: desktop ? 13 : 12, color: h.ink }}>{value}</Text>
-            <Text style={{ ...t.typography.caption, fontSize: 10, color: h.muted, marginTop: 2 }}>{label}</Text>
+            <Text style={{ ...t.typography.caption, fontSize: 10, color: t.color.textSecondary, marginTop: 2 }}>{label}</Text>
           </View>
         ))}
       </View>
@@ -497,7 +557,7 @@ function ImmediateValue({ petName, desktop, onClinics }: { petName?: string; des
   );
 }
 
-function PetHero({ pet, petCount, loading, error, onBook, onDiary, onRetry, desktop }: { pet: Pet | null; petCount: number; loading: boolean; error: boolean; onBook(): void; onDiary(): void; onRetry?(): void; desktop: boolean }) {
+function PetHero({ pet, petCount, loading, error, onDiary, onRetry, desktop }: { pet: OwnerHomePet | null; petCount: number; loading: boolean; error: boolean; onDiary(): void; onRetry?(): void; desktop: boolean }) {
   return (
     <Surface style={{ minHeight: desktop ? 276 : 238, padding: desktop ? 18 : 14, gap: 14, backgroundColor: '#FFFDFC', borderColor: '#F0D9BE' }}>
       {loading ? <Text style={styles.muted}>Загружаем питомца…</Text> : error ? (
@@ -509,68 +569,100 @@ function PetHero({ pet, petCount, loading, error, onBook, onDiary, onRetry, desk
       ) : pet ? (
         <>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-            <View style={{ width: 64, height: 64, borderRadius: 22, backgroundColor: '#FFF1E2', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 28, fontWeight: '800', color: '#9A622F' }}>{pet.name.slice(0, 1).toUpperCase()}</Text>
-            </View>
+            {pet.photoUrl ? <Image accessibilityLabel={`Фото питомца ${pet.name}`} source={{ uri: pet.photoUrl }} resizeMode="cover" style={{ width: 64, height: 64, borderRadius: 22 }} /> : (
+              <View style={{ width: 64, height: 64, borderRadius: 22, backgroundColor: '#FFF1E2', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 28, fontWeight: '800', color: '#9A622F' }}>{pet.name.slice(0, 1).toUpperCase()}</Text>
+              </View>
+            )}
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={{ ...t.typography.caption, color: '#A4662E', fontWeight: '800', textTransform: 'uppercase' }}>Мой питомец</Text>
               <Text style={{ fontSize: desktop ? 30 : 27, lineHeight: 35, fontWeight: '800', color: h.ink }}>{pet.name}</Text>
-              <Text style={styles.muted}>{speciesLabel(pet.species)}</Text>
+              <Text style={styles.muted}>{[speciesLabel(pet.species), pet.breed].filter(Boolean).join(' · ')}</Text>
             </View>
           </View>
-          <Text style={{ ...t.typography.caption, color: h.muted }}>Фото питомца пока не хранится в текущем authoritative профиле — не подменяем его референсной картинкой.</Text>
+          <Text style={{ ...t.typography.caption, color: t.color.textSecondary }}>Все записи и результаты собраны в профиле питомца.</Text>
           <View style={{ marginTop: 'auto', gap: 8 }}>
-            <HomeButton label="Записаться" onPress={onBook} />
             <HomeButton label="Открыть дневник" secondary onPress={onDiary} />
           </View>
         </>
       ) : (
         <View style={{ flex: 1, gap: 10 }}>
-          <Text style={{ ...t.typography.caption, color: h.blue, fontWeight: '800', textTransform: 'uppercase' }}>Питомцы</Text>
+          <Text style={{ ...t.typography.caption, color: h.bluePressed, fontWeight: '800', textTransform: 'uppercase' }}>Питомцы</Text>
           <View style={{ width: 84, height: 84, borderRadius: 28, backgroundColor: '#FFF1E2', alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{ fontSize: 34, color: '#A4662E', fontWeight: '800' }}>{petCount > 1 ? petCount : '＋'}</Text>
           </View>
           <Text style={{ fontSize: 28, lineHeight: 34, fontWeight: '800', color: h.ink }}>{petCount > 1 ? 'Выберите питомца' : 'Добавьте питомца'}</Text>
           <Text style={styles.muted}>{petCount > 1 ? 'Укажите, для кого открыть запись или дневник.' : 'Профиль нужен для записи и истории здоровья.'}</Text>
-          <View style={{ marginTop: 'auto' }}>
-            <HomeButton label={petCount > 1 ? 'Выбрать для записи' : 'Добавить и записаться'} onPress={onBook} />
-          </View>
+          <Text style={{ ...t.typography.caption, color: h.bluePressed, fontWeight: '700', marginTop: 'auto' }}>
+            Для новой записи используйте основную кнопку «Записаться».
+          </Text>
         </View>
       )}
     </Surface>
   );
 }
 
-function NextAction({ onBook, desktop }: { onBook(): void; desktop: boolean }) {
+function NextAction({ desktop, action, activeCare, loading, refreshFailed, hardError, onRetry, onAction }: {
+  desktop: boolean; action?: OwnerHomeNextAction; activeCare?: OwnerHomeActiveCare | null; loading: boolean; refreshFailed: boolean; hardError: boolean;
+  onRetry?(): void; onAction?(actionCode: OwnerHomeActionCode): void;
+}) {
+  const supported = action?.actionCode === 'OPEN_CATALOG' || action?.actionCode === 'ADD_PET';
+  const actionLabel = action?.actionCode === 'ADD_PET' ? 'Добавить питомца' : 'Открыть каталог';
+  const relevantAt = activeCare?.startsAt ?? action?.deadlineAt;
   return (
     <Surface style={{ minHeight: 276, padding: 0, overflow: 'hidden', backgroundColor: h.blueSoft, borderColor: '#AFCBFA' }}>
       <Image
-        accessibilityLabel="Визуальный референс VetHelp: осмотр в клинике"
+        accessibilityLabel="Осмотр питомца в клинике"
         source={v50ReferenceAssets.clinicExam}
         resizeMode="cover"
         style={{ width: '100%', height: desktop ? 132 : 116 }}
       />
       <View style={{ padding: 16, gap: 8, flex: 1 }}>
-        <Text style={{ ...t.typography.caption, color: h.blue, fontWeight: '800', textTransform: 'uppercase' }}>Запись в клинику</Text>
-        <Text style={{ fontSize: 24, lineHeight: 30, fontWeight: '800', color: h.ink }}>Нужна новая запись?</Text>
-        <Text style={styles.muted}>Выберите питомца, клинику, услугу и реальное свободное время.</Text>
-        <View style={{ marginTop: 'auto' }}>
-          <HomeButton label="Начать запись" onPress={onBook} />
-        </View>
+        <Text style={{ ...t.typography.caption, color: h.bluePressed, fontWeight: '800', textTransform: 'uppercase' }}>{activeCare ? 'Активная забота' : 'Следующий шаг'}</Text>
+        {loading && !action ? <Text style={styles.muted}>Загружаем следующий шаг…</Text> : null}
+        {hardError ? (
+          <>
+            <Text style={{ fontSize: 24, lineHeight: 30, fontWeight: '800', color: h.ink }}>Не удалось загрузить следующий шаг</Text>
+            <Text style={styles.muted}>Проверьте соединение и повторите попытку.</Text>
+            {onRetry ? <Button label="Повторить" variant="secondary" onPress={onRetry} /> : null}
+          </>
+        ) : action ? (
+          <>
+            <StatusBadge label={priorityLabel(action.priority)} tone={action.priority === 'CRITICAL' ? 'critical' : action.priority === 'HIGH' ? 'warning' : 'info'} />
+            <Text style={{ fontSize: 24, lineHeight: 30, fontWeight: '800', color: h.ink }}>{action.title}</Text>
+            <Text style={styles.muted}>{action.description}</Text>
+            {activeCare?.clinicName ? <Text style={{ ...t.typography.label, color: h.ink }}>{activeCare.clinicName}</Text> : null}
+            {relevantAt ? <Text style={{ ...t.typography.caption, color: t.color.textSecondary }}>{formatHomeDate(relevantAt)}</Text> : null}
+            {refreshFailed ? (
+              <View accessibilityRole="alert" style={{ gap: 6 }}>
+                <Text style={{ ...t.typography.caption, color: t.color.critical }}>Не удалось обновить данные. Показана последняя сохранённая информация.</Text>
+                {onRetry ? <Button label="Повторить обновление" variant="secondary" onPress={onRetry} /> : null}
+              </View>
+            ) : null}
+            {supported && onAction ? <HomeButton label={actionLabel} secondary onPress={() => onAction(action.actionCode)} /> : null}
+          </>
+        ) : null}
       </View>
     </Surface>
   );
 }
 
-function CoreServices({ desktop, onBook, onClinics, onFindTime, onDiary }: { desktop: boolean; onBook(): void; onClinics(): void; onFindTime(): void; onDiary(): void }) {
+function formatHomeDate(value: string) {
+  return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
+}
+
+function priorityLabel(priority: OwnerHomeNextAction['priority']) {
+  return priority === 'CRITICAL' ? 'Срочно' : priority === 'HIGH' ? 'Требует внимания' : priority === 'NORMAL' ? 'Важно' : 'Плановый шаг';
+}
+
+function CoreServices({ desktop, onClinics, onFindTime, onDiary }: { desktop: boolean; onClinics(): void; onFindTime(): void; onDiary(): void }) {
   return (
     <View style={{ gap: 10 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
         <Text style={styles.sectionTitle}>Сервисы</Text>
-        <Text style={{ ...t.typography.caption, color: h.muted }}>Каждый — свой маршрут</Text>
+        <Text style={{ ...t.typography.caption, color: t.color.textSecondary }}>Каждый — свой маршрут</Text>
       </View>
       <View style={{ flexDirection: desktop ? 'row' : 'column', gap: 10 }}>
-        <ServiceCard icon="＋" title="Запись" subtitle="Питомец → клиника → время" onPress={onBook} />
         <ServiceCard icon="⌖" title="Клиники" subtitle="Каталог без обязательного выбора питомца" onPress={onClinics} />
         <ServiceCard icon="◷" title="Свободное время" subtitle="Поиск опубликованных слотов" onPress={onFindTime} />
         <ServiceCard icon="▤" title="Дневник" subtitle="Результаты и рекомендации" onPress={onDiary} />
@@ -583,10 +675,10 @@ function ServiceCard({ icon, title, subtitle, onPress }: { icon: string; title: 
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => ({ flex: 1, minHeight: 112, padding: 15, borderWidth: 1, borderColor: h.border, borderRadius: 18, backgroundColor: h.surface, gap: 7, opacity: pressed ? 0.65 : 1 })}>
       <View style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: h.blueSoft, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontSize: 19, color: h.blue }}>{icon}</Text>
+        <Text style={{ fontSize: 19, color: h.bluePressed }}>{icon}</Text>
       </View>
       <Text style={styles.sectionTitle}>{title}</Text>
-      <Text style={{ ...t.typography.caption, color: h.muted }}>{subtitle}</Text>
+      <Text style={{ ...t.typography.caption, color: t.color.textSecondary }}>{subtitle}</Text>
     </Pressable>
   );
 }
@@ -595,14 +687,14 @@ function CareHistory({ petName, onDiary }: { petName?: string; onDiary(): void }
   return (
     <View style={{ paddingHorizontal: 4, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 12, borderTopWidth: 1, borderTopColor: h.border }}>
       <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: h.blueSoft, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontSize: 21, color: h.blue }}>▤</Text>
+        <Text style={{ fontSize: 21, color: h.bluePressed }}>▤</Text>
       </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.sectionTitle}>История заботы{petName ? ` о ${petName}` : ''}</Text>
-        <Text style={{ ...t.typography.caption, color: h.muted, marginTop: 2 }}>Результаты приёмов и рекомендации хранятся в дневнике.</Text>
+        <Text style={{ ...t.typography.caption, color: t.color.textSecondary, marginTop: 2 }}>Результаты приёмов и рекомендации хранятся в дневнике.</Text>
       </View>
       <Pressable accessibilityRole="button" onPress={onDiary} style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: 6 }}>
-        <Text style={{ ...t.typography.label, color: h.blue }}>Открыть ›</Text>
+        <Text style={{ ...t.typography.label, color: h.bluePressed }}>Открыть ›</Text>
       </Pressable>
     </View>
   );

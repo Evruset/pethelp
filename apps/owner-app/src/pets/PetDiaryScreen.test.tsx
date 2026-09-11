@@ -45,6 +45,8 @@ describe('PetDiaryScreen',()=>{
     const all=view.toJSON(); const serialized=JSON.stringify(all);
     expect(serialized.indexOf('Состояние стабильное.')).toBeLessThan(serialized.indexOf('Первое уточнение.'));
     expect(serialized.indexOf('Первое уточнение.')).toBeLessThan(serialized.indexOf('Второе уточнение.'));
+    expect(serialized).toContain('11 июня 2026 г.');
+    expect(serialized).toContain('12 июня 2026 г.');
     expect(view.getByText('Исходный результат остаётся частью истории приёма. Уточнения опубликованы позже и не являются отдельными приёмами.')).toBeTruthy();
   });
 

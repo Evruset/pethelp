@@ -10,6 +10,7 @@ import {
 import { Button, StateMessage } from "@/ui/primitives";
 import { uiTokens as t } from "@/ui/tokens";
 import { useSession } from "@/session/SessionProvider";
+import { BookingProgress } from "@/booking/BookingProgress";
 import {
   availabilityApi,
   type AvailabilityHandoff,
@@ -46,11 +47,15 @@ const shortDate = (iso: string) => {
 
 export function AvailabilityScreen({
   context,
+  petName,
+  initialSelection,
   authorityGeneration = "component-session",
   onBack,
   onContinue,
 }: {
   context: ClinicServiceHandoff;
+  petName?: string;
+  initialSelection?: AvailabilityHandoff | null;
   authorityGeneration?: string;
   onBack(): void;
   onContinue(value: AvailabilityHandoff): void;
@@ -59,6 +64,7 @@ export function AvailabilityScreen({
   const { width } = useWindowDimensions();
   const desktop = Platform.OS === "web" && width >= 900;
   const [selected, setSelected] = useState<AvailabilitySlot | null>(null);
+  const [useInitialSelection, setUseInitialSelection] = useState(Boolean(initialSelection));
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [stale, setStale] = useState(false);
@@ -97,24 +103,29 @@ export function AvailabilityScreen({
     () => [...new Set(query.data?.slots.map((slot) => slot.localDate) ?? [])],
     [query.data?.slots],
   );
+  const restoredSelection = useInitialSelection && initialSelection
+    ? query.data?.slots.find((slot) => slot.slotId === initialSelection.slotId && slot.expectedVersion === initialSelection.expectedSlotVersion) ?? null
+    : null;
+  const effectiveSelected = selected ?? restoredSelection;
+  const restoredSelectionMissing = Boolean(useInitialSelection && initialSelection && query.data && !restoredSelection);
   const activeDate =
     selectedDate && dates.includes(selectedDate)
       ? selectedDate
-      : (dates[0] ?? null);
+      : (effectiveSelected?.localDate ?? dates[0] ?? null);
   const visibleSlots =
     query.data?.slots.filter((slot) => slot.localDate === activeDate) ?? [];
   const current =
-    selected &&
+    effectiveSelected &&
     query.data?.slots.find(
       (slot) =>
-        slot.slotId === selected.slotId &&
-        slot.expectedVersion === selected.expectedVersion,
+        slot.slotId === effectiveSelected.slotId &&
+        slot.expectedVersion === effectiveSelected.expectedVersion,
     );
   const refresh = async (forward: boolean) => {
     if (refreshInFlight.current) return;
     refreshInFlight.current = true;
     const request = ++operation.current;
-    const selectedAtStart = selected;
+    const selectedAtStart = effectiveSelected;
     const selectedGeneration = selectionGeneration.current;
     setRefreshing(true);
     setRefreshFailed(false);
@@ -138,6 +149,7 @@ export function AvailabilityScreen({
         );
         if (!authoritative) {
           setSelected(null);
+          setUseInitialSelection(false);
           setStale(true);
           return;
         }
@@ -162,6 +174,7 @@ export function AvailabilityScreen({
     if (refreshInFlight.current) return;
     selectionGeneration.current += 1;
     setSelected(slot);
+    setUseInitialSelection(false);
     setSelectedDate(slot.localDate);
     setStale(false);
     setRefreshFailed(false);
@@ -177,6 +190,7 @@ export function AvailabilityScreen({
         onBack();
       }}
     >
+      <BookingProgress current={3} facts={petName ? [`Питомец: ${petName}`] : []} />
       {query.isPending ? <StateMessage kind="loading" title="Загружаем доступное время" /> : null}
       {query.isError ? (
         <StateMessage
@@ -210,7 +224,7 @@ export function AvailabilityScreen({
               />
               <FactRow>
                 <Fact tone="positive">Свободные слоты</Fact>
-                <Fact>Время клиники · {query.data.timezone}</Fact>
+                <Fact>Местное время клиники</Fact>
               </FactRow>
             </View>
           </DecisionPanel>
@@ -244,7 +258,10 @@ export function AvailabilityScreen({
                           accessibilityState={{ selected: active }}
                           onPress={() => {
                             setSelectedDate(date);
-                            if (selected?.localDate !== date) setSelected(null);
+                            if (effectiveSelected?.localDate !== date) {
+                              setSelected(null);
+                              setUseInitialSelection(false);
+                            }
                           }}
                           style={({ pressed }) => ({
                             minWidth: 62,
@@ -289,8 +306,8 @@ export function AvailabilityScreen({
                   >
                     {visibleSlots.map((slot) => {
                       const active =
-                        slot.slotId === selected?.slotId &&
-                        slot.expectedVersion === selected.expectedVersion;
+                        slot.slotId === effectiveSelected?.slotId &&
+                        slot.expectedVersion === effectiveSelected.expectedVersion;
                       return (
                         <Pressable
                           key={slot.slotId}
@@ -333,17 +350,17 @@ export function AvailabilityScreen({
                   <DecisionHeading
                     kicker="Ваш выбор"
                     title={
-                      selected && current
-                        ? `${dateLabel(selected.localDate)} · ${selected.localTime}`
+                      effectiveSelected && current
+                        ? `${dateLabel(effectiveSelected.localDate)} · ${effectiveSelected.localTime}`
                         : "Время не выбрано"
                     }
                     detail={
-                      selected && current
+                      effectiveSelected && current
                         ? "Перед переходом ещё раз проверим, что слот свободен."
                         : "Выберите доступный интервал слева."
                     }
                   />
-                  {selected && current ? (
+                  {effectiveSelected && current ? (
                     <Text
                       accessibilityRole="text"
                       style={{
@@ -352,7 +369,7 @@ export function AvailabilityScreen({
                         color: decisionColors.ink,
                       }}
                     >
-                      Выбрано: {dateLabel(selected.localDate)} в {selected.localTime}
+                      Выбрано: {dateLabel(effectiveSelected.localDate)} в {effectiveSelected.localTime}
                     </Text>
                   ) : null}
                   <Button
@@ -365,7 +382,7 @@ export function AvailabilityScreen({
                   />
                   <Button
                     label="Продолжить"
-                    disabled={!selected || !current || refreshing || query.isError}
+                    disabled={!effectiveSelected || !current || refreshing || query.isError}
                     onPress={() => {
                       void refresh(true);
                     }}
@@ -386,7 +403,7 @@ export function AvailabilityScreen({
           )}
         </>
       ) : null}
-      {stale || (selected && !current) ? (
+      {stale || restoredSelectionMissing || (selected && !current) ? (
         <StateMessage
           kind="error"
           title="Выбранное время больше недоступно. Выберите другое."

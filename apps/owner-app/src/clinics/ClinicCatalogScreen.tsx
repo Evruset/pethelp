@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Image,
   Platform,
-  Pressable,
+  TextInput,
   Text,
   View,
   useWindowDimensions,
@@ -12,6 +12,7 @@ import { Button, StateMessage } from "@/ui/primitives";
 import { uiTokens as t } from "@/ui/tokens";
 import { v50ReferenceAssets } from "@/ui/v50-reference-assets";
 import { useSession } from "@/session/SessionProvider";
+import { OwnerGlobalNav } from "@/navigation/OwnerGlobalNav";
 import {
   clinicCatalogApi,
   type ClinicCatalogHandoff,
@@ -52,7 +53,7 @@ const modeCopy: Record<
       "Выберите клинику и услугу — на следующем шаге покажем только опубликованные доступные слоты.",
     kicker: "Фокус на доступности",
     detail:
-      "Не показываем выдуманное «свободно сегодня»: точное время приходит из авторитетного inventory после выбора услуги.",
+      "Точное свободное время появится после выбора клиники и услуги.",
   },
 };
 
@@ -66,22 +67,31 @@ export function ClinicCatalogScreen({
   onClose,
   onOpenClinic,
   mode = "booking",
+  onHome,
+  onPets,
+  initialSelectedLocationId,
 }: {
   onClose(): void;
   onOpenClinic(clinic: ClinicCatalogHandoff): void;
   mode?: ClinicCatalogMode;
+  onHome?(): void;
+  onPets?(): void;
+  initialSelectedLocationId?: string;
 }) {
   const { session } = useSession();
   const { width } = useWindowDimensions();
   const desktop = Platform.OS === "web" && width >= 900;
   const copy = modeCopy[mode];
-  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(initialSelectedLocationId ?? null);
+  const [search, setSearch] = useState("");
   const query = useQuery({
     queryKey: ["owner", session?.cacheScope, "clinic-catalog"],
     enabled: Boolean(session),
     queryFn: ({ signal }) =>
       clinicCatalogApi.list(session!.opaqueCredential, signal),
   });
+  const normalizedSearch = search.trim().toLocaleLowerCase("ru-RU");
+  const clinics = query.data?.clinics.filter((clinic) => !normalizedSearch || `${clinic.name} ${clinic.address}`.toLocaleLowerCase("ru-RU").includes(normalizedSearch)) ?? [];
 
   return (
     <ClinicDecisionLayout
@@ -89,6 +99,7 @@ export function ClinicCatalogScreen({
       title={copy.title}
       subtitle={copy.subtitle}
       onBack={onClose}
+      globalNavigation={onHome && onPets ? (wide) => <OwnerGlobalNav desktop={wide} active="CLINICS" onHome={onHome} onPets={onPets} onClinics={() => {}} /> : undefined}
     >
       <DecisionPanel>
         <DecisionHeading
@@ -100,6 +111,14 @@ export function ClinicCatalogScreen({
           Адрес и контакт доступны в каталоге. Информационная цена и точное свободное время появятся после выбора услуги.
         </Text>
       </DecisionPanel>
+
+      <TextInput
+        accessibilityLabel="Поиск по клинике или адресу"
+        placeholder="Клиника или адрес"
+        value={search}
+        onChangeText={setSearch}
+        style={{ minHeight: 44, borderWidth: 1, borderColor: decisionColors.border, borderRadius: 14, paddingHorizontal: 14, color: decisionColors.ink, backgroundColor: decisionColors.surface }}
+      />
 
       {query.isPending ? <StateMessage kind="loading" title="Загружаем клиники" /> : null}
       {query.isError ? (
@@ -123,34 +142,27 @@ export function ClinicCatalogScreen({
           body="Попробуйте обновить список позже."
         />
       ) : null}
+      {!query.isError && query.data?.clinics.length && clinics.length === 0 ? <StateMessage kind="empty" title="По вашему запросу ничего не найдено" body="Проверьте название клиники или адрес." /> : null}
 
-      {!query.isError && query.data?.clinics.length ? (
-        <View
-          accessibilityRole="radiogroup"
-          accessibilityLabel="Выбор клиники"
-          style={{ gap: 10 }}
-        >
-          {query.data.clinics.map((clinic, index) => {
+      {!query.isError && clinics.length ? (
+        <View style={{ gap: 10 }}>
+          {clinics.map((clinic, index) => {
             const selected = selectedLocationId === clinic.locationId;
             const image = referenceClinicImages[index % referenceClinicImages.length];
             return (
-              <Pressable
+              <View
                 key={clinic.locationId}
-                accessibilityRole="radio"
-                accessibilityState={{ selected }}
-                onPress={() => setSelectedLocationId(clinic.locationId)}
-                style={({ pressed }) => ({
+                style={{
                   padding: 14,
                   gap: 14,
                   borderWidth: selected ? 2 : 1,
                   borderColor: selected ? decisionColors.blue : decisionColors.border,
                   borderRadius: 20,
                   backgroundColor: selected ? decisionColors.blueSoft : decisionColors.surface,
-                  opacity: pressed ? 0.8 : 1,
                   flexDirection: desktop ? "row" : "column",
                   alignItems: "stretch",
                   ...t.shadow.card,
-                })}
+                }}
               >
                 <View
                   style={{
@@ -162,7 +174,7 @@ export function ClinicCatalogScreen({
                   }}
                 >
                   <Image
-                    accessibilityLabel="Визуальный референс VetHelp"
+                    accessibilityLabel="Интерьер ветеринарной клиники"
                     source={image}
                     resizeMode="cover"
                     style={{ width: "100%", height: "100%" }}
@@ -179,7 +191,7 @@ export function ClinicCatalogScreen({
                     }}
                   >
                     <Text style={{ fontSize: 9, color: "#fff", fontWeight: "700" }}>
-                      V50 референс
+                      Интерьер клиники
                     </Text>
                   </View>
                 </View>
@@ -203,6 +215,7 @@ export function ClinicCatalogScreen({
                     >
                       {clinic.name}
                     </Text>
+                    <Text style={{ ...t.typography.caption, color: decisionColors.blue, fontWeight: "800" }}>Филиал · {clinic.address}</Text>
                     <Text
                       style={{
                         ...t.typography.caption,
@@ -235,7 +248,7 @@ export function ClinicCatalogScreen({
                       color: decisionColors.muted,
                     }}
                   >
-                    Адрес и контакт — из каталога. Фото — визуальный V50-референс, не фактическое фото этой клиники.
+                    Адрес и контакт предоставлены клиникой. Изображение помогает сориентироваться и может отличаться от интерьера.
                   </Text>
                 </View>
 
@@ -275,15 +288,16 @@ export function ClinicCatalogScreen({
                   </View>
                   <Button
                     label={mode === "browse" ? "Посмотреть услуги" : "Открыть клинику"}
-                    onPress={() =>
+                    onPress={() => {
+                      setSelectedLocationId(clinic.locationId);
                       onOpenClinic({
                         clinicId: clinic.clinicId,
                         locationId: clinic.locationId,
                       })
-                    }
+                    }}
                   />
                 </View>
-              </Pressable>
+              </View>
             );
           })}
         </View>

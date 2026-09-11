@@ -18,6 +18,8 @@ import { useSession } from '@/session/SessionProvider';
 import { Button, StateMessage } from '@/ui/primitives';
 import { uiTokens as t } from '@/ui/tokens';
 import { bookingApi, type BookingHoldSnapshot, type BookingResult } from './booking-api';
+import { BookingProgress } from './BookingProgress';
+import { formatMoney } from '@/ui/formatters';
 
 const randomKey = () => {
   const value = globalThis.crypto?.randomUUID?.();
@@ -25,8 +27,8 @@ const randomKey = () => {
   return value;
 };
 
-export function BookingReviewScreen({ petId, context, authorityGeneration, onBack, onConflict }: {
-  petId: string; context: AvailabilityHandoff; authorityGeneration: string; onBack(): void; onConflict(): void;
+export function BookingReviewScreen({ petId, context, authorityGeneration, onBack, onConflict, onHome }: {
+  petId: string; context: AvailabilityHandoff; authorityGeneration: string; onBack(): void; onConflict(): void; onHome(): void;
 }) {
   const { session } = useSession();
   const queryClient = useQueryClient();
@@ -41,12 +43,13 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
   const inFlight = useRef(false);
   useEffect(() => () => { generation.current += 1; inFlight.current = false; }, [authorityGeneration]);
 
-  const pets = queryClient.getQueryData<Pet[]>(['owner', session?.cacheScope, 'pets']) ?? [];
-  const clinic = queryClient.getQueryData<ClinicServiceSnapshot>(['owner', session?.cacheScope, 'clinic-services', context.clinicId, context.locationId]);
-  const availability = queryClient.getQueryData<AvailabilitySnapshot>(['owner', session?.cacheScope, 'session', authorityGeneration, 'availability', context.clinicId, context.locationId, context.serviceId]);
-  const pet = pets.find((item) => item.petId === petId);
-  const service = clinic?.services.find((item) => item.serviceId === context.serviceId);
-  const slot = availability?.slots.find((item) => item.slotId === context.slotId && item.expectedVersion === context.expectedSlotVersion);
+  const [bookingContext] = useState(() => {
+    const pets = queryClient.getQueryData<Pet[]>(['owner', session?.cacheScope, 'pets']) ?? [];
+    const clinic = queryClient.getQueryData<ClinicServiceSnapshot>(['owner', session?.cacheScope, 'clinic-services', context.clinicId, context.locationId]);
+    const availability = queryClient.getQueryData<AvailabilitySnapshot>(['owner', session?.cacheScope, 'session', authorityGeneration, 'availability', context.clinicId, context.locationId, context.serviceId]);
+    return { pet: pets.find((item) => item.petId === petId), clinic, service: clinic?.services.find((item) => item.serviceId === context.serviceId), slot: availability?.slots.find((item) => item.slotId === context.slotId && item.expectedVersion === context.expectedSlotVersion), availability };
+  });
+  const { pet, clinic, service, slot, availability } = bookingContext;
   const complete = Boolean(session && pet && clinic && service && availability && slot);
   const command = useMemo(() => ({ petId, ...context }), [context, petId]);
 
@@ -96,6 +99,7 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
   };
 
   if (result) {
+    const pendingConfirmation = (snapshot?.status ?? result.status) === 'PENDING_CONFIRMATION';
     return (
       <ClinicDecisionLayout
         eyebrow="Заявка отправлена"
@@ -106,6 +110,7 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
           onBack();
         }}
       >
+        <BookingProgress current={4} facts={[snapshot?.statusTitle ?? 'Заявка отправлена']} />
         <View
           style={{
             padding: 16,
@@ -123,22 +128,31 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
           <Text style={{ ...t.typography.secondaryBody, color: decisionColors.muted }}>
             {snapshot?.safeDescription ?? 'Клиника ещё не подтвердила выбранное время.'}
           </Text>
+          {pendingConfirmation ? <Text style={{ ...t.typography.body, color: decisionColors.ink, fontWeight: '800' }}>Ехать пока не нужно.</Text> : null}
         </View>
         <DecisionPanel>
           <DecisionHeading
             kicker="Текущий статус"
-            title={snapshot?.statusTitle ?? 'Заявка принята сервером'}
+            title={snapshot?.statusTitle ?? 'Заявка отправлена'}
             detail={snapshot?.safeDescription ?? 'Это ещё не подтверждённая запись. Финальный статус приходит от клиники.'}
           />
           <FactRow>
             <Fact tone="positive">Заявка сохранена</Fact>
-            <Fact>{snapshot?.status ?? result.status}</Fact>
+            <Fact>{pendingConfirmation ? 'Ожидает ответа клиники' : snapshot?.statusTitle ?? 'Статус обновлён'}</Fact>
           </FactRow>
           <Text style={{ ...t.typography.secondaryBody, color: decisionColors.muted }}>
             {snapshot?.status === 'PENDING_CONFIRMATION' || (!snapshot && result.status === 'PENDING_CONFIRMATION') ? 'Это ещё не подтверждённая запись.' : snapshot?.safeDescription}
           </Text>
+          {pet && clinic && service && slot ? <View style={{ gap: 7 }}>
+            <ReviewRow label="Питомец" text={`Питомец: ${pet.name}`} />
+            <ReviewRow label="Клиника" text={`Клиника: ${clinic.name} · ${clinic.address}`} />
+            <ReviewRow label="Услуга" text={`Услуга: ${service.name}`} />
+            <ReviewRow label="Дата и время" text={`Дата и время: ${slot.localDate} · ${slot.localTime}`} />
+            <ReviewRow label="Ориентировочная стоимость" text={`Ориентировочная стоимость: ${formatMoney(service.price.amount, service.price.currency)}`} />
+          </View> : null}
           {refreshFailed ? <StateMessage kind="error" title="Не удалось обновить статус. Последний полученный статус сохранён." /> : null}
-          <Button label={refreshing ? 'Обновляем…' : 'Обновить статус'} disabled={refreshing} onPress={() => { void refreshStatus(); }} />
+          <Button label={refreshing ? 'Обновляем…' : 'Обновить статус'} variant="secondary" disabled={refreshing} onPress={() => { void refreshStatus(); }} />
+          <Button label="На главную" onPress={onHome} />
         </DecisionPanel>
       </ClinicDecisionLayout>
     );
@@ -154,6 +168,7 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
         onBack();
       }}
     >
+      <BookingProgress current={4} facts={pet && clinic && service ? [`Питомец: ${pet.name}`, `Клиника: ${clinic.name}`, `Услуга: ${service.name}`] : []} />
       {!complete ? (
         <StateMessage
           kind="error"
@@ -173,7 +188,7 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
                 <ReviewRow label="Питомец" text={`Питомец: ${pet!.name}`} />
                 <ReviewRow label="Клиника" text={`Клиника: ${clinic!.name}`} />
                 <ReviewRow label="Услуга" text={`Услуга: ${service!.name}`} />
-                <ReviewRow label="Информационная цена" text={`Информационная цена: ${service!.price.amount} ${service!.price.currency}`} />
+                <ReviewRow label="Ориентировочная стоимость" text={`Ориентировочная стоимость: ${formatMoney(service!.price.amount, service!.price.currency)}`} />
                 <ReviewRow label="Дата и время" text={`Дата и время: ${slot!.localDate} · ${slot!.localTime}`} />
               </View>
               <View
@@ -206,7 +221,7 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
               {failure === 'identity' ? (
                 <StateMessage kind="error" title="Данные заявки изменились. Вернитесь к выбору и начните отправку заново." action={<Button label="Вернуться к выбору" onPress={onBack} />} />
               ) : null}
-              {failure === 'uncertain' ? <StateMessage kind="error" title="Не удалось получить ответ сервера. Безопасно проверьте заявку повторно." /> : null}
+              {failure === 'uncertain' ? <StateMessage kind="error" title="Не удалось получить ответ. Безопасно проверьте заявку повторно." /> : null}
               {failure === 'technical' ? <StateMessage kind="error" title="Не удалось отправить заявку. Повторите попытку." /> : null}
               <Button
                 label={sending ? 'Отправляем…' : failure === 'uncertain' ? 'Проверить заявку' : 'Отправить заявку'}

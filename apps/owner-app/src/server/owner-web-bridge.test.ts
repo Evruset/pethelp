@@ -97,4 +97,14 @@ describe('Expo Owner Web session bridge', () => {
     expect(String(url)).toBe(`http://backend.test/v1/owner/pets/${OWNER_ID}/diary?limit=100&offset=0`);
     expect(init.method).toBe('GET'); expect(init.headers.authorization).toBe(`Bearer ${TOKEN}`);
   });
+
+  it('allowlists the exact Owner Home GET and preserves a selected pet query', async () => {
+    jest.spyOn(global, 'fetch').mockResolvedValue(new Response(JSON.stringify({ schemaVersion: 1 }), { status: 200 }));
+    const cookie = Buffer.from(JSON.stringify({ credential: TOKEN, expiresAt: EXPIRES_AT }), 'utf8').toString('base64url');
+    const response = await ownerWebBridge(request(`v1/owner/home?selectedPetId=${OWNER_ID}`, { headers: { cookie: `__Host-vethelp_owner_session=${cookie}` } }), ['v1', 'owner', 'home']);
+    expect(response.status).toBe(200);
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(String(url)).toBe(`http://backend.test/v1/owner/home?selectedPetId=${OWNER_ID}`);
+    expect(init.method).toBe('GET'); expect(init.headers.authorization).toBe(`Bearer ${TOKEN}`);
+  });
 });

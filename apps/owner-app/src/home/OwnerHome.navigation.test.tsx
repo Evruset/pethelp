@@ -1,5 +1,9 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import { OwnerHome } from '@/app/(app)/index';
+import type { OwnerHomeSnapshot } from './owner-home-api';
+
+const PET={id:'22222222-2222-4222-8222-222222222222',name:'Барни',species:'DOG' as const,breed:null,photoUrl:null};
+const SNAPSHOT:OwnerHomeSnapshot={schemaVersion:1,serverNow:'2026-09-10T08:00:00.000Z',pets:[PET],selectedPet:PET,selectionSource:'DEFAULT',nextAction:{type:'START_PLANNED_CARE',priority:'LOW',sourceType:'PET',sourceId:PET.id,title:'Спланируйте заботу о питомце',description:'Выберите клинику.',deadlineAt:null,actionCode:'OPEN_CATALOG'},activeCare:null};
 
 describe('OwnerHome V50 navigation', () => {
   it('keeps booking, clinic browsing, nearest time and diary as different actions', async () => {
@@ -7,14 +11,17 @@ describe('OwnerHome V50 navigation', () => {
     const onClinics = jest.fn();
     const onFindTime = jest.fn();
     const onDiary = jest.fn();
+    const onPets = jest.fn();
 
     const screen = await render(
       <OwnerHome
         onBook={onBook}
         onClinics={onClinics}
+        onPets={onPets}
         onFindTime={onFindTime}
         onDiary={onDiary}
         onLogout={jest.fn()}
+        snapshot={SNAPSHOT}
       />,
     );
 
@@ -33,7 +40,10 @@ describe('OwnerHome V50 navigation', () => {
     expect(onBook).toHaveBeenCalledTimes(1);
     expect(onClinics).toHaveBeenCalledTimes(1);
 
+    fireEvent.press(screen.getByRole('button', { name: /Питомцы/ }));
+    expect(onPets).toHaveBeenCalledTimes(1);
     fireEvent.press(screen.getAllByText('Дневник')[0]);
     expect(onDiary).toHaveBeenCalledTimes(1);
+    await screen.unmount();
   });
 });
