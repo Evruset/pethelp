@@ -4,7 +4,7 @@ import { uiTokens as t } from '@/ui/tokens';
 type Area = 'HOME' | 'CLINICS' | 'BOOKINGS' | 'PETS';
 
 export function OwnerGlobalNav({ desktop, active, onHome, onClinics, onBookings, onPets }: {
-  desktop: boolean; active: Area; onHome(): void; onClinics(): void; onBookings(): void; onPets(): void;
+  desktop: boolean; active: Area; onHome(): void; onClinics(): void; onBookings?: () => void; onPets(): void;
 }) {
   const items = [
     { area: 'HOME' as const, label: 'Главная', icon: '⌂', action: onHome },
@@ -17,7 +17,7 @@ export function OwnerGlobalNav({ desktop, active, onHome, onClinics, onBookings,
       {desktop ? <Text style={{ ...t.typography.sectionTitle, color: t.ownerHome.ink, position: 'absolute', left: 16 }}>✦ VetHelp</Text> : null}
       {items.map((item) => {
         const selected = item.area === active;
-        return <Pressable key={item.area} accessibilityRole="button" accessibilityLabel={item.label} accessibilityState={{ selected }} onPress={item.action} style={({ pressed }) => ({ minHeight: desktop ? 44 : 52, minWidth: desktop ? undefined : 68, paddingHorizontal: desktop ? 14 : 7, paddingVertical: 6, borderRadius: 14, backgroundColor: selected ? t.ownerHome.blueSoft : 'transparent', alignItems: 'center', justifyContent: 'center', flexDirection: desktop ? 'row' : 'column', gap: desktop ? 7 : 1, opacity: pressed ? .65 : 1 })}>
+        return <Pressable key={item.area} accessibilityRole="button" accessibilityLabel={item.label} accessibilityState={{ selected, disabled: !item.action }} disabled={!item.action} onPress={item.action} style={({ pressed }) => ({ minHeight: desktop ? 44 : 52, minWidth: desktop ? undefined : 68, paddingHorizontal: desktop ? 14 : 7, paddingVertical: 6, borderRadius: 14, backgroundColor: selected ? t.ownerHome.blueSoft : 'transparent', alignItems: 'center', justifyContent: 'center', flexDirection: desktop ? 'row' : 'column', gap: desktop ? 7 : 1, opacity: !item.action ? .45 : pressed ? .65 : 1 })}>
           <Text accessibilityElementsHidden style={{ fontSize: desktop ? 16 : 18, color: selected ? t.ownerHome.bluePressed : t.ownerHome.muted }}>{item.icon}</Text>
           <Text style={{ ...t.typography.caption, fontSize: desktop ? 13 : 10, color: selected ? t.ownerHome.bluePressed : t.ownerHome.muted, fontWeight: selected ? '700' : '600' }}>{item.label}</Text>
         </Pressable>;
