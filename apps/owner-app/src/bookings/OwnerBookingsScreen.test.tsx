@@ -41,7 +41,10 @@ const firstPage: OwnerBookingsPage = {
 
 function harness() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return ({ children }: { children: React.ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  function QueryHarness({ children }: { children: React.ReactNode }) {
+    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  }
+  return QueryHarness;
 }
 
 describe('OwnerBookingsScreen', () => {
