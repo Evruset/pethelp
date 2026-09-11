@@ -8,7 +8,7 @@ import { OwnerGlobalNav } from '@/navigation/OwnerGlobalNav';
 const species = (value: Pet['species']) => value === 'DOG' ? 'Собака' : value === 'CAT' ? 'Кошка' : 'Питомец';
 
 export function OwnerPetsScreen({ pets, loading, error, onHome, onClinics, onBookings, onDiary, onRetry }: {
-  pets: Pet[]; loading: boolean; error: boolean; onHome(): void; onClinics(): void; onBookings(): void;
+  pets: Pet[]; loading: boolean; error: boolean; onHome(): void; onClinics(): void; onBookings?: () => void;
   onDiary(pet: Pet): void; onRetry(): void;
 }) {
   const { width } = useWindowDimensions();
