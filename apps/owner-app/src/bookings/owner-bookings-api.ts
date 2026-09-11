@@ -108,23 +108,23 @@ export function parseOwnerBookingsPage(value: unknown): OwnerBookingsPage {
 }
 
 export function mergeOwnerBookingsPages(pages: readonly OwnerBookingsPage[]): OwnerBookingsMerged {
+  const merged: { requiresAction: OwnerBookingSummary[]; active: OwnerBookingSummary[]; history: OwnerBookingSummary[] } = {
+    requiresAction: [],
+    active: [],
+    history: [],
+  };
   const seen = new Set<string>();
-  const merge = (bucket: keyof OwnerBookingsMerged) => {
-    const rows: OwnerBookingSummary[] = [];
-    for (const page of pages) {
+  const orderedBuckets = ['requiresAction', 'active', 'history'] as const;
+  for (const page of pages) {
+    for (const bucket of orderedBuckets) {
       for (const row of page[bucket]) {
         if (seen.has(row.holdId)) continue;
         seen.add(row.holdId);
-        rows.push(row);
+        merged[bucket].push(row);
       }
     }
-    return rows;
-  };
-  return {
-    requiresAction: merge('requiresAction'),
-    active: merge('active'),
-    history: merge('history'),
-  };
+  }
+  return merged;
 }
 
 export function createOwnerBookingsApi(client: ApiClient = apiClient) {
