@@ -40,7 +40,7 @@ const firstPage: OwnerBookingsPage = {
 };
 
 function harness() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   function QueryHarness({ children }: { children: React.ReactNode }) {
     return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
   }
