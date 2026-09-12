@@ -2,7 +2,12 @@ import { createApiClient } from './client.web';
 
 describe('Owner Web bookings allowlist', () => {
   it('allows only the bounded My Bookings list query used by R2J', async () => {
-    const transport = jest.fn().mockResolvedValue(new Response('{}', { status: 200 }));
+    const transport = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      text: async () => '{}',
+    } as unknown as Response);
     const client = createApiClient(undefined, transport as typeof fetch);
 
     await client.request('v1/owner/bookings?limit=20');
