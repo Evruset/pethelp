@@ -7,8 +7,8 @@ import { OwnerGlobalNav } from '@/navigation/OwnerGlobalNav';
 
 const species = (value: Pet['species']) => value === 'DOG' ? 'Собака' : value === 'CAT' ? 'Кошка' : 'Питомец';
 
-export function OwnerPetsScreen({ pets, loading, error, onHome, onClinics, onDiary, onRetry }: {
-  pets: Pet[]; loading: boolean; error: boolean; onHome(): void; onClinics(): void;
+export function OwnerPetsScreen({ pets, loading, error, onHome, onClinics, onBookings, onDiary, onRetry }: {
+  pets: Pet[]; loading: boolean; error: boolean; onHome(): void; onClinics(): void; onBookings?: () => void;
   onDiary(pet: Pet): void; onRetry(): void;
 }) {
   const { width } = useWindowDimensions();
@@ -18,7 +18,7 @@ export function OwnerPetsScreen({ pets, loading, error, onHome, onClinics, onDia
   return (
     <OwnerAppFrame wide>
       <View style={{ flex: 1, backgroundColor: t.ownerHome.canvas }}>
-        {desktop ? <OwnerGlobalNav desktop active="PETS" onHome={onHome} onPets={() => {}} onClinics={onClinics} /> : null}
+        {desktop ? <OwnerGlobalNav desktop active="PETS" onHome={onHome} onPets={() => {}} onClinics={onClinics} onBookings={onBookings} /> : null}
         <ScrollView contentContainerStyle={{ width: '100%', maxWidth: 1120, alignSelf: 'center', paddingHorizontal: desktop ? 28 : 14, paddingBottom: 48, gap: 14 }}>
           <View style={{ gap: 5 }}>
             <Text style={{ ...t.typography.caption, color: t.ownerHome.blue, fontWeight: '800', textTransform: 'uppercase' }}>Мои питомцы</Text>
@@ -39,7 +39,7 @@ export function OwnerPetsScreen({ pets, loading, error, onHome, onClinics, onDia
           </View>
           {selected ? <View style={{ padding: 18, gap: 10, borderRadius: 20, borderWidth: 1, borderColor: t.ownerHome.border, backgroundColor: '#fff' }}><Text style={{ ...t.typography.caption, color: t.ownerHome.blue, fontWeight: '800', textTransform: 'uppercase' }}>Здоровье питомца</Text><Text style={{ ...t.typography.sectionTitle, color: t.ownerHome.ink }}>{selected.name}</Text><View style={{ padding: 12, borderRadius: 14, backgroundColor: t.ownerHome.blueSoft }}><Text style={{ ...t.typography.label, color: t.ownerHome.ink }}>История приёмов</Text><Text style={{ ...t.typography.caption, color: t.ownerHome.muted }}>Опубликованные результаты и уточнения клиники</Text></View><Button label="Открыть дневник" onPress={() => onDiary(selected)} /></View> : null}
         </ScrollView>
-        {!desktop ? <OwnerGlobalNav desktop={false} active="PETS" onHome={onHome} onPets={() => {}} onClinics={onClinics} /> : null}
+        {!desktop ? <OwnerGlobalNav desktop={false} active="PETS" onHome={onHome} onPets={() => {}} onClinics={onClinics} onBookings={onBookings} /> : null}
       </View>
     </OwnerAppFrame>
   );
