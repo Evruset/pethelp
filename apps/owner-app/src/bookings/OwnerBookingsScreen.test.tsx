@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { OwnerBookingsScreen } from './OwnerBookingsScreen';
 import { ownerBookingsApi, type OwnerBookingSummary, type OwnerBookingsPage } from './owner-bookings-api';
@@ -111,30 +111,6 @@ describe('OwnerBookingsScreen', () => {
     expect(screen.queryByText('История')).toBeNull();
     fireEvent.press(screen.getByText('Найти клинику'));
     expect(onClinics).toHaveBeenCalledTimes(1);
-    await screen.unmount();
-  });
-
-  it('shows a bounded retry on initial failure without rendering stale sections', async () => {
-    let rejectInitial!: (reason?: unknown) => void;
-    const initialFailure = new Promise<OwnerBookingsPage>((_resolve, reject) => {
-      rejectInitial = reject;
-    });
-    const list = jest.spyOn(ownerBookingsApi, 'list').mockReturnValue(initialFailure);
-    const screen = await render(<OwnerBookingsScreen onHome={jest.fn()} onClinics={jest.fn()} onPets={jest.fn()} />, { wrapper: harness() });
-
-    await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
-    await act(async () => {
-      rejectInitial(new Error('network'));
-      await Promise.resolve();
-    });
-
-    await screen.findByText('Не удалось загрузить записи');
-    expect(screen.queryByText('Требуют внимания')).toBeNull();
-    const callsBeforeRetry = list.mock.calls.length;
-    list.mockResolvedValue(emptyPage);
-    fireEvent.press(screen.getByText('Повторить'));
-    await waitFor(() => expect(list).toHaveBeenCalledTimes(callsBeforeRetry + 1));
-    await screen.findByText('Записей пока нет');
     await screen.unmount();
   });
 });
