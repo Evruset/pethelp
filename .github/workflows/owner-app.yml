@@ -51,7 +51,7 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - name: Diagnose Jest open handles
-        run: npm test -- --ci --detectOpenHandles
+        run: npm test -- --ci --detectOpenHandles --forceExit
       - name: Validate test and pilot public config
         run: |
           VETHELP_ENV=test EXPO_PUBLIC_API_BASE_URL=https://test.invalid npx expo config --type public --json > /tmp/owner-app-test-config.json
