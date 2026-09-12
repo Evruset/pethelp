@@ -40,7 +40,7 @@ describe('OwnerHome V50 navigation', () => {
     fireEvent.press(screen.getAllByText('Найти время')[0]);
     expect(onFindTime).toHaveBeenCalledTimes(1);
 
-    fireEvent.press(screen.getByRole('button', { name: 'Записи' }));
+    fireEvent.press(screen.getByRole('button', { name: /Записи/ }));
     expect(onBookings).toHaveBeenCalledTimes(1);
 
     fireEvent.press(screen.getByRole('button', { name: /Питомцы/ }));
