@@ -26,8 +26,8 @@ jest.mock('@/session/SessionProvider', () => ({
 describe('OwnerBookingsScreen initial error', () => {
   beforeEach(() => mockRefetch.mockClear());
 
-  it('shows a bounded retry without stale sections and retries explicitly', () => {
-    const screen = render(<OwnerBookingsScreen onHome={jest.fn()} onClinics={jest.fn()} onPets={jest.fn()} />);
+  it('shows a bounded retry without stale sections and retries explicitly', async () => {
+    const screen = await render(<OwnerBookingsScreen onHome={jest.fn()} onClinics={jest.fn()} onPets={jest.fn()} />);
 
     expect(screen.getByText('Не удалось загрузить записи')).toBeTruthy();
     expect(screen.queryByText('Требуют внимания')).toBeNull();
@@ -37,6 +37,6 @@ describe('OwnerBookingsScreen initial error', () => {
     fireEvent.press(screen.getByText('Повторить'));
     expect(mockRefetch).toHaveBeenCalledTimes(1);
 
-    screen.unmount();
+    await screen.unmount();
   });
 });
