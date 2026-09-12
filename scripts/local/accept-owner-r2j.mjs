@@ -45,6 +45,7 @@ try {
 
   const homeBefore = await getJson(page, '/api/owner/v1/owner/home');
   const selectedBefore = homeBefore?.selectedPet?.id ?? null;
+  if (!selectedBefore) throw new Error('Authenticated Owner has no selected pet for preservation proof');
 
   await page.getByRole('button', { name: /Записи/ }).first().click();
   await page.getByText('Мои записи', { exact: true }).waitFor({ state: 'visible', timeout: 15000 });
@@ -53,6 +54,9 @@ try {
   validateBookings(bookings);
   const counts = Object.fromEntries(sections.map(([key]) => [key, bookings[key].length]));
   manifest.bookings = { counts, hasNextCursor: bookings.nextCursor !== null };
+  for (const [key] of sections) {
+    if (counts[key] < 1) throw new Error(`Representative live data missing bucket ${key}: ${JSON.stringify(counts)}`);
+  }
 
   for (const [key, heading] of sections) {
     const headingCount = await page.getByText(heading, { exact: true }).count();
