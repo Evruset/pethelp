@@ -39,7 +39,11 @@ page.on('requestfailed', r => {
 const manifest = { schemaVersion: 1, goal: 'OWNER-V50-R2J', startedAt: new Date().toISOString(), bookings: null, selectedPetPreserved: null, viewports: [], runtime: null };
 
 try {
-  await page.goto(baseUrl, { waitUntil: 'networkidle' });
+  await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await Promise.race([
+    page.getByRole('button', { name: 'Войти' }).first().waitFor({ state: 'visible', timeout: 30000 }),
+    page.getByText('Здравствуйте!', { exact: true }).first().waitFor({ state: 'visible', timeout: 30000 }),
+  ]);
   await login(page);
   collectErrors = true;
 
