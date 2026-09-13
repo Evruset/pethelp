@@ -81,7 +81,20 @@ try {
     const seriousCritical = axe.violations.filter(v => v.impact === 'serious' || v.impact === 'critical');
     const screenshot = join(evidenceRoot, `bookings-${viewport.width}x${viewport.height}.png`);
     await page.screenshot({ path: screenshot, fullPage: true });
-    manifest.viewports.push({ ...viewport, screenshot, ...metrics, axeSeriousCritical: seriousCritical.map(v => ({ id: v.id, impact: v.impact, nodes: v.nodes.length })) });
+    manifest.viewports.push({
+      ...viewport,
+      screenshot,
+      ...metrics,
+      axeSeriousCritical: seriousCritical.map(v => ({
+        id: v.id,
+        impact: v.impact,
+        nodes: v.nodes.map(node => ({
+          target: node.target,
+          html: node.html,
+          failureSummary: node.failureSummary,
+        })),
+      })),
+    });
     if (metrics.horizontalOverflow !== 0) throw new Error(`${viewport.width}x${viewport.height}: overflow=${metrics.horizontalOverflow}`);
     if (metrics.targetsBelow44.length !== 0) throw new Error(`${viewport.width}x${viewport.height}: targetsBelow44=${metrics.targetsBelow44.length}`);
     if (metrics.rawUuidCount !== 0 || metrics.rawEnumCount !== 0) throw new Error(`${viewport.width}x${viewport.height}: raw identifiers rendered`);
