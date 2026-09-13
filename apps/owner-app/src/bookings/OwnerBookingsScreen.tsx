@@ -80,11 +80,11 @@ export function OwnerBookingsScreen({
         >
           <View style={{ flexDirection: desktop ? 'row' : 'column', alignItems: desktop ? 'center' : 'stretch', justifyContent: 'space-between', gap: 12 }}>
             <View style={{ flex: 1, gap: 5 }}>
-              <Text style={{ ...t.typography.caption, color: h.blue, fontWeight: '800', textTransform: 'uppercase' }}>Записи</Text>
+              <Text style={{ ...t.typography.caption, color: h.bluePressed, fontWeight: '800', textTransform: 'uppercase' }}>Записи</Text>
               <Text accessibilityRole="header" style={{ fontSize: desktop ? 36 : 30, lineHeight: desktop ? 42 : 36, fontWeight: '800', color: h.ink }}>
                 Мои записи
               </Text>
-              <Text style={{ ...t.typography.secondaryBody, color: h.muted }}>
+              <Text style={{ ...t.typography.secondaryBody, color: h.ink }}>
                 Актуальные статусы приходят от VetHelp и клиники. Разделы и порядок определяет сервер.
               </Text>
             </View>
