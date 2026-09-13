@@ -13,6 +13,7 @@ import {
 
 import { useAuthJourney } from '@/auth/AuthJourneyProvider';
 import { BookingReviewScreen } from '@/booking/BookingReviewScreen';
+import { OwnerBookingsScreen } from '@/bookings/OwnerBookingsScreen';
 import { AvailabilityScreen } from '@/clinics/AvailabilityScreen';
 import type { AvailabilityHandoff } from '@/clinics/availability-api';
 import { ClinicCatalogScreen } from '@/clinics/ClinicCatalogScreen';
@@ -54,7 +55,7 @@ function AuthorityScopedHome() {
   const [lastClinic, setLastClinic] = useState<ClinicCatalogHandoff | null>(null);
   const [lastService, setLastService] = useState<ClinicServiceHandoff | null>(null);
   const [lastAvailability, setLastAvailability] = useState<AvailabilityHandoff | null>(null);
-  const [globalArea, setGlobalArea] = useState<'HOME' | 'PETS'>('HOME');
+  const [globalArea, setGlobalArea] = useState<'HOME' | 'PETS' | 'BOOKINGS'>('HOME');
   const [globalDiaryPet, setGlobalDiaryPet] = useState<Pet | null>(null);
   const { error, logout, session } = useSession();
   const { resumedIntent, consumeResumedIntent } = useAuthJourney();
@@ -89,6 +90,7 @@ function AuthorityScopedHome() {
 
   const openHome = () => { closeJourney(); setGlobalDiaryPet(null); setGlobalArea('HOME'); };
   const openPets = () => { closeJourney(); setGlobalDiaryPet(null); setGlobalArea('PETS'); };
+  const openBookings = () => { closeJourney(); setGlobalDiaryPet(null); setGlobalArea('BOOKINGS'); };
   const openClinics = () => { setGlobalArea('HOME'); setGlobalDiaryPet(null); startIntent('CLINICS'); };
   const openHomeAction = (actionCode: OwnerHomeActionCode) => {
     if (actionCode === 'OPEN_CATALOG') startIntent('CLINICS');
@@ -97,7 +99,8 @@ function AuthorityScopedHome() {
 
   if (globalDiaryPet) return <PetDiaryScreen petId={globalDiaryPet.petId} petName={globalDiaryPet.name} onBack={() => setGlobalDiaryPet(null)} onSwitchPet={() => setGlobalDiaryPet(null)} />;
 
-  if (globalArea === 'PETS' && !intent) return <OwnerPetsScreen pets={pets.pets} loading={pets.loading} error={pets.error} onHome={openHome} onClinics={openClinics} onRetry={pets.retry} onDiary={setGlobalDiaryPet} />;
+  if (globalArea === 'PETS' && !intent) return <OwnerPetsScreen pets={pets.pets} loading={pets.loading} error={pets.error} onHome={openHome} onClinics={openClinics} onBookings={openBookings} onRetry={pets.retry} onDiary={setGlobalDiaryPet} />;
+  if (globalArea === 'BOOKINGS' && !intent) return <OwnerBookingsScreen onHome={openHome} onClinics={openClinics} onPets={openPets} />;
 
   if (selectedAvailability) {
     if (pets.continuedPetId) {
@@ -179,6 +182,7 @@ function AuthorityScopedHome() {
         mode={ownerIntentCatalogMode(intent)}
         onClose={closeJourney}
         onHome={openHome}
+        onBookings={openBookings}
         onPets={openPets}
         initialSelectedLocationId={lastClinic?.locationId}
         onOpenClinic={(clinic) => {
@@ -202,6 +206,7 @@ function AuthorityScopedHome() {
     <OwnerHome
       onBook={() => startIntent('BOOKING')}
       onClinics={() => startIntent('CLINICS')}
+      onBookings={openBookings}
       onPets={openPets}
       onFindTime={() => startIntent('TIME')}
       onDiary={() => startIntent('DIARY')}
@@ -223,6 +228,7 @@ function AuthorityScopedHome() {
 type HomeProps = {
   onBook(): void;
   onClinics(): void;
+  onBookings?(): void;
   onPets(): void;
   onFindTime(): void;
   onDiary(): void;
@@ -240,6 +246,7 @@ type HomeProps = {
 export function OwnerHome({
   onBook,
   onClinics,
+  onBookings = () => {},
   onPets,
   onFindTime,
   onDiary,
@@ -260,8 +267,9 @@ export function OwnerHome({
   const petCount = snapshot?.pets.length ?? 0;
   const nav = [
     ['Главная', '⌂', undefined, true],
-    ['Питомцы', '●', onPets, false],
     ['Клиники', '▥', onClinics, false],
+    ['Записи', '◫', onBookings, false],
+    ['Питомцы', '●', onPets, false],
   ] as const;
 
   return (
