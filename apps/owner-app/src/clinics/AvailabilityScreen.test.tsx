@@ -64,6 +64,37 @@ describe("AvailabilityScreen", () => {
     );
     expect(refetch).toHaveBeenCalledTimes(1);
   });
+  it("restores the exact retained slot after Back and still revalidates it", async () => {
+    const onContinue = jest.fn();
+    const refetch = jest.fn().mockResolvedValue({ isError: false, data });
+    mockUseQuery.mockReturnValue({ isPending: false, isError: false, data, refetch });
+    const screen = await render(
+      <AvailabilityScreen
+        context={context}
+        initialSelection={{ ...context, slotId: T, expectedSlotVersion: 2 }}
+        onBack={jest.fn()}
+        onContinue={onContinue}
+      />,
+    );
+    expect(screen.getByText("Выбрано: 14.08.2026 в 11:00")).toBeTruthy();
+    expect(screen.getByRole("radio").props.accessibilityState.selected).toBe(true);
+    fireEvent.press(screen.getByText("Продолжить"));
+    await waitFor(() => expect(refetch).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(onContinue).toHaveBeenCalledWith({ ...context, slotId: T, expectedSlotVersion: 2 }));
+  });
+  it("does not restore a retained slot with a changed version", async () => {
+    mockUseQuery.mockReturnValue({ isPending: false, isError: false, data, refetch: jest.fn() });
+    const screen = await render(
+      <AvailabilityScreen
+        context={context}
+        initialSelection={{ ...context, slotId: T, expectedSlotVersion: 1 }}
+        onBack={jest.fn()}
+        onContinue={jest.fn()}
+      />,
+    );
+    expect(screen.getByText("Выбранное время больше недоступно. Выберите другое.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Продолжить" }).props.accessibilityState.disabled).toBe(true);
+  });
   it("clears a slot that became unavailable", async () => {
     const onContinue = jest.fn(),
       refetch = jest

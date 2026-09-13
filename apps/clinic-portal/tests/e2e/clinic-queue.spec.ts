@@ -106,7 +106,7 @@ test('does not flash queue navigation while session capability loading and expos
   await expect(page.getByRole('link', { name: 'Открыть очередь записей' })).toHaveCount(0);
   if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-loading.png`, fullPage: true });
   releaseSession?.();
-  await expect(page.getByText('Доступ к capability-разделам недоступен. Повторить').first()).toBeVisible();
+  await expect(page.getByText('Разделы сейчас недоступны. Повторить').first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'Повторить' }).first()).toBeVisible();
   if (evidenceDir) await page.screenshot({ path: `${evidenceDir}/portal-error-retry.png`, fullPage: true });
   expect((await new AxeBuilder({ page }).include('.vh-clinic-nav').analyze()).violations).toEqual([]);

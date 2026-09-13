@@ -4,6 +4,24 @@ const ownerId = '11111111-1111-4111-8111-111111111111';
 const petId = '22222222-2222-4222-8222-222222222222';
 const fixtureSource = 'LOCAL_DEV_QUEUE_FIXTURE';
 
+const unappointedFixtureHoldIds = `
+  SELECT hold.id
+  FROM booking_schema.booking_holds hold
+  JOIN clinic_schema.appointment_slots slot ON slot.id = hold.slot_id
+  WHERE slot.source = $1
+    AND NOT EXISTS (
+      SELECT 1
+      FROM booking_schema.appointments appointment
+      WHERE appointment.hold_id = hold.id
+    )
+`;
+
+const fixturePaymentIntentIds = `
+  SELECT intent.id
+  FROM payment_schema.payment_intents intent
+  WHERE intent.hold_id IN (${unappointedFixtureHoldIds})
+`;
+
 type FixtureItem = {
   holdId: string;
   slotId: string;
@@ -69,16 +87,78 @@ async function main(): Promise<void> {
       ORDER BY slot.id, hold.id, appointment.id
     `, [fixtureSource]);
 
+    // Background notification projection can attach durable rows to a queue
+    // fixture hold after the seed run. Fence the owned unappointed aggregate
+    // before cleanup, then remove only dependants of those exact holds. Old
+    // appointed generations remain intentionally retained.
+    await client.query(`
+      SELECT hold.id
+      FROM booking_schema.booking_holds hold
+      WHERE hold.id IN (${unappointedFixtureHoldIds})
+      ORDER BY hold.id
+      FOR UPDATE
+    `, [fixtureSource]);
+    await client.query(`
+      SELECT slot.id
+      FROM clinic_schema.appointment_slots slot
+      WHERE slot.source = $1
+      ORDER BY slot.id
+      FOR UPDATE
+    `, [fixtureSource]);
+    await client.query(`
+      SELECT hold.id
+      FROM booking_schema.booking_holds hold
+      WHERE hold.id IN (${unappointedFixtureHoldIds})
+      ORDER BY hold.id
+      FOR UPDATE
+    `, [fixtureSource]);
+    await client.query(`
+      SELECT event.id
+      FROM booking_schema.outbox_events event
+      WHERE event.aggregate_type = 'booking_hold'
+        AND event.aggregate_id IN (${unappointedFixtureHoldIds})
+      ORDER BY event.id
+      FOR UPDATE
+    `, [fixtureSource]);
+
+    await client.query(`
+      DELETE FROM booking_schema.owner_notification_email_deliveries delivery
+      USING booking_schema.owner_notifications notification
+      WHERE delivery.notification_id = notification.id
+        AND notification.booking_hold_id IN (${unappointedFixtureHoldIds})
+    `, [fixtureSource]);
+    await client.query(`
+      DELETE FROM booking_schema.owner_notifications notification
+      WHERE notification.booking_hold_id IN (${unappointedFixtureHoldIds})
+    `, [fixtureSource]);
+    await client.query(`
+      DELETE FROM payment_schema.ledger_entries entry
+      WHERE entry.payment_intent_id IN (${fixturePaymentIntentIds})
+    `, [fixtureSource]);
+    await client.query(`
+      DELETE FROM payment_schema.provider_webhook_events event
+      WHERE event.payment_intent_id IN (${fixturePaymentIntentIds})
+    `, [fixtureSource]);
+    await client.query(`
+      DELETE FROM payment_schema.payment_intents intent
+      WHERE intent.id IN (${fixturePaymentIntentIds})
+    `, [fixtureSource]);
+    await client.query(`
+      DELETE FROM telemed_schema.telemed_sessions session
+      WHERE session.booking_hold_id IN (${unappointedFixtureHoldIds})
+    `, [fixtureSource]);
+    await client.query(`
+      DELETE FROM booking_schema.alternative_swap_groups swap
+      WHERE swap.original_hold_id IN (${unappointedFixtureHoldIds})
+    `, [fixtureSource]);
+    await client.query(`
+      DELETE FROM booking_schema.outbox_events event
+      WHERE event.aggregate_type = 'booking_hold'
+        AND event.aggregate_id IN (${unappointedFixtureHoldIds})
+    `, [fixtureSource]);
     await client.query(`
       DELETE FROM booking_schema.booking_holds hold
-      USING clinic_schema.appointment_slots slot
-      WHERE hold.slot_id = slot.id
-        AND slot.source = $1
-        AND NOT EXISTS (
-          SELECT 1
-          FROM booking_schema.appointments appointment
-          WHERE appointment.hold_id = hold.id
-        )
+      WHERE hold.id IN (${unappointedFixtureHoldIds})
     `, [fixtureSource]);
     await client.query(`
       DELETE FROM clinic_schema.appointment_slots slot

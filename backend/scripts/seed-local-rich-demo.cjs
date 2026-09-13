@@ -84,6 +84,7 @@ async function main() {
       'clinic_schema.clinics': ['public_name'],
       'clinic_schema.clinic_locations': ['clinic_id', 'address'],
       'clinic_schema.clinic_services': ['clinic_location_id', 'code'],
+      'clinic_schema.clinic_staff': ['clinic_location_id', 'code', 'display_name'],
       'catalog_schema.doctors': ['clinic_location_id', 'full_name'],
       'pet_schema.pets': ['owner_id', 'name'],
       'clinic_schema.appointment_slots': ['source', 'external_slot_id'],
@@ -125,6 +126,8 @@ async function main() {
     await assertReservedSet('clinic_schema', 'clinic_locations', '91000000-', [ids.main, ids.branch, ids.foreign]);
     await assertReservedSet('clinic_schema', 'clinic_services', '92000000-', Array.from({ length: 10 }, (_, i) => serviceId(i + 1)));
     await assertReservedSet('catalog_schema', 'doctors', '92500000-', Array.from({ length: 8 }, (_, i) => doctorId(i + 1)));
+    await assertReservedSet('clinic_schema', 'clinic_staff', '92500000-', Array.from({ length: 8 }, (_, i) => doctorId(i + 1)));
+    await assertReservedSet('identity_schema', 'users', '92500000-', Array.from({ length: 8 }, (_, i) => doctorId(i + 1)));
     await assertReservedSet('identity_schema', 'users', '93000000-', Array.from({ length: 12 }, (_, i) => employeeId(i + 1)));
     await assertReservedSet('identity_schema', 'users', '94000000-', Array.from({ length: 10 }, (_, i) => ownerId(i + 1)));
     await assertReservedSet('pet_schema', 'pets', '95000000-', Array.from({ length: 15 }, (_, i) => petId(i + 1)));
@@ -153,6 +156,32 @@ async function main() {
     }
 
     if (RESET) {
+      // Match the worker's hold-before-slot order, then re-lock the hold set
+      // after slots are fenced to catch a creator that committed in between.
+      // With aggregate producers blocked, lock their outbox projections before
+      // deleting any child rows.
+      await client.query(resetSql.lockHolds);
+      await client.query(resetSql.lockSlots);
+      await client.query(resetSql.lockHolds);
+      await client.query(resetSql.lockAppointments);
+      await client.query(resetSql.lockOutbox);
+      await client.query(resetSql.notificationEmailDeliveries);
+      await client.query(resetSql.ownerNotifications);
+      await client.query(resetSql.outbox);
+      await client.query(resetSql.holdPriceSnapshots);
+      await client.query(resetSql.alternativeSwapGroups);
+      await client.query(resetSql.paymentLedgerEntries);
+      await client.query(resetSql.paymentWebhookEvents);
+      await client.query(resetSql.paymentIntents);
+      await client.query(resetSql.telemedSessions);
+      await client.query(resetSql.diaryEntries);
+      await client.query(resetSql.visitResultAmendments);
+      await client.query(resetSql.visitResults);
+      await client.query(resetSql.visits);
+      await client.query(resetSql.associationEventReceipts);
+      await client.query(resetSql.associationRevisions);
+      await client.query(resetSql.patientLocalProfiles);
+      await client.query(resetSql.patientAssociations);
       await client.query(resetSql.events);
       await client.query(resetSql.appointments);
       await client.query(resetSql.holds);
@@ -216,9 +245,43 @@ async function main() {
     const doctors = [];
     if (await exists('catalog_schema', 'doctors')) {
       for (const [i, [full_name, specialtyCode, locationId]] of doctorPlan.entries()) {
-        const doctor = { id: doctorId(i + 1), clinic_location_id: locationId, full_name, specialty_id: specialtyIds.get(specialtyCode) };
+        const staffId = doctorId(i + 1);
+        const doctor = { id: staffId, clinic_location_id: locationId, full_name, specialty_id: specialtyIds.get(specialtyCode) };
         await upsert('catalog_schema', 'doctors', doctor);
-        doctors.push({ id: doctor.id, fullName: full_name, specialtyCode, locationId });
+        await upsert('clinic_schema', 'clinic_staff', {
+          id: staffId,
+          clinic_location_id: locationId,
+          code: `RICH_DEMO_DOCTOR_${i + 1}`,
+          display_name: full_name,
+          role: 'VETERINARIAN',
+          active: true,
+          source: SOURCE,
+          external_staff_id: staffId,
+          updated_at: now,
+        });
+        const existingDoctorUser = await client.query(
+          'SELECT EXISTS(SELECT 1 FROM identity_schema.users WHERE id=$1::uuid) AS exists',
+          [staffId],
+        );
+        const currentMemberships = await client.query(`
+          SELECT role, clinic_location_id::text AS location_id, active, revoked_at IS NOT NULL AS revoked
+          FROM clinic_schema.employee_location_memberships
+          WHERE employee_id = $1::uuid
+          ORDER BY role, clinic_location_id
+        `, [staffId]);
+        const expectedMembership = [{
+          role: 'CLINIC_VETERINARIAN', location_id: locationId, active: true, revoked: false,
+        }];
+        if (existingDoctorUser.rows[0].exists === true && JSON.stringify(currentMemberships.rows) !== JSON.stringify(expectedMembership)) {
+          throw new Error(`${SOURCE} veterinarian membership ownership collision for ${staffId}`);
+        }
+        await client.query('INSERT INTO identity_schema.users(id) VALUES($1::uuid) ON CONFLICT(id) DO NOTHING', [staffId]);
+        await client.query(resetSql.memberships, [staffId]);
+        await client.query(`
+          INSERT INTO clinic_schema.employee_location_memberships(employee_id,clinic_location_id,role,active,revoked_at)
+          VALUES($1::uuid,$2::uuid,'CLINIC_VETERINARIAN',true,NULL)
+        `, [staffId, locationId]);
+        doctors.push({ id: doctor.id, staffId, fullName: full_name, specialtyCode, locationId });
       }
     }
 
@@ -311,7 +374,7 @@ async function main() {
     const slots=[]; let slotSeq=1;
     async function makeSlot(key,locationId,service,doctor,startsAt,capacity=1,mode='LEVEL_A',fresh=5) {
       const end = new Date(startsAt.getTime()+service.duration_minutes*60000);
-      const row = { id:slotId(slotSeq++), clinic_location_id:locationId, service_id:service.id, starts_at:startsAt, ends_at:end, capacity, booked_count:0, held_count:0, state:'OPEN', source:SOURCE, external_slot_id:key, version:1, status:'AVAILABLE', integration_mode:mode, last_freshness_sync:new Date(Date.now()-fresh*60000), doctor_id:doctor?.id||null, specialty_id:doctor?specialtyIds.get(doctor.specialtyCode):null, updated_at:now };
+      const row = { id:slotId(slotSeq++), clinic_location_id:locationId, service_id:service.id, starts_at:startsAt, ends_at:end, capacity, booked_count:0, held_count:0, state:'OPEN', source:SOURCE, external_slot_id:key, version:1, status:'AVAILABLE', integration_mode:mode, last_freshness_sync:new Date(Date.now()-fresh*60000), doctor_id:doctor?.id||null, staff_id:doctor?.staffId||null, specialty_id:doctor?specialtyIds.get(doctor.specialtyCode):null, updated_at:now };
       await upsert('clinic_schema','appointment_slots',row);
       const item={...row,key,service,doctor}; slots.push(item); return item;
     }
