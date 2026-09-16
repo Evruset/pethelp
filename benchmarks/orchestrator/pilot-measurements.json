@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "pilots": [
+    {
+      "route_id": "orch-moe-03-pilot-1",
+      "scenario_id": "minimal-no-tool-runtime-probe",
+      "policy": {"version": "ORCH-MOE-03", "fingerprint": "sha256:05d7eb19b284408ff7616232f8e064037f262249e79cda8ed0fedd9269a8dd0e"},
+      "run_id": {"value": null, "availability": "NOT_OBSERVED", "reason": "field presence verified; value not retained by capability probe"},
+      "planned_model": "gpt-5.6-luna",
+      "observed_model": {"value": null, "availability": "NOT_OBSERVED"},
+      "execution_wall_ms": {"value": null, "availability": "NOT_OBSERVED"},
+      "tool_calls": {"value": 0, "availability": "VERIFIED_SUPPORTED", "method": "no tool item IDs in sanitized event summary"},
+      "tokens": {"value": null, "availability": "NOT_OBSERVED", "reason": "usage field names observed; values intentionally not retained"},
+      "outcome": "PASS",
+      "veto": null,
+      "repair_count": {"value": null, "availability": "NOT_OBSERVED"},
+      "acceptance_evidence": ["exit_code=0", "jsonl_event_count=4"],
+      "raw_events_retained": false
+    },
+    {
+      "route_id": "orch-moe-03-pilot-2",
+      "scenario_id": "single-readonly-tool-runtime-probe",
+      "policy": {"version": "ORCH-MOE-03", "fingerprint": "sha256:05d7eb19b284408ff7616232f8e064037f262249e79cda8ed0fedd9269a8dd0e"},
+      "run_id": {"value": null, "availability": "NOT_OBSERVED", "reason": "field presence verified; value not retained by capability probe"},
+      "planned_model": "gpt-5.6-luna",
+      "observed_model": {"value": null, "availability": "NOT_OBSERVED"},
+      "execution_wall_ms": {"value": 14543.675003, "unit": "ms", "availability": "VERIFIED_SUPPORTED", "method": "monotonic process boundary"},
+      "tool_calls": {"value": 1, "availability": "VERIFIED_SUPPORTED", "method": "unique command_execution item ID"},
+      "tokens": {"value": null, "availability": "NOT_OBSERVED", "reason": "usage field names observed; values intentionally not retained"},
+      "outcome": "PASS",
+      "veto": null,
+      "repair_count": {"value": null, "availability": "NOT_OBSERVED"},
+      "acceptance_evidence": ["exit_code=0", "jsonl_event_count=7", "unique_tool_calls=1"],
+      "raw_events_retained": false
+    }
+  ]
+}
