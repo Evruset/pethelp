@@ -18,6 +18,7 @@ const ROUTES = [
   { pattern: new RegExp(`^v1/owner/clinic-catalog/${UUID}/locations/${UUID}/services/${UUID}/availability$`), methods: ['GET'] },
   { pattern: new RegExp(`^v1/clinics/${UUID}/doctors$`), methods: ['GET'] },
   { pattern: /^v1\/owner\/bookings$/, methods: ['GET'] },
+  { pattern: new RegExp(`^v1/owner/bookings/${UUID}$`), methods: ['GET'] },
   { pattern: /^v1\/booking-holds$/, methods: ['POST'] },
   { pattern: new RegExp(`^v1/booking-holds/${UUID}$`), methods: ['GET'] },
   { pattern: new RegExp(`^v1/owner/bookings/${UUID}/cancel$`), methods: ['POST'] },

@@ -34,10 +34,12 @@ export function OwnerBookingsScreen({
   onHome,
   onClinics,
   onPets,
+  onOpenBooking = () => {},
 }: {
   onHome(): void;
   onClinics(): void;
   onPets(): void;
+  onOpenBooking?(bookingId: string): void;
 }) {
   const { session } = useSession();
   const { width } = useWindowDimensions();
@@ -123,9 +125,9 @@ export function OwnerBookingsScreen({
             />
           ) : null}
 
-          <BookingSection title="Требуют внимания" rows={merged.requiresAction} />
-          <BookingSection title="Предстоящие" rows={merged.active} />
-          <BookingSection title="История" rows={merged.history} />
+          <BookingSection title="Требуют внимания" rows={merged.requiresAction} onOpenBooking={onOpenBooking} />
+          <BookingSection title="Предстоящие" rows={merged.active} onOpenBooking={onOpenBooking} />
+          <BookingSection title="История" rows={merged.history} onOpenBooking={onOpenBooking} />
 
           {query.isFetchNextPageError ? (
             <InlineBanner
@@ -158,19 +160,19 @@ export function OwnerBookingsScreen({
   );
 }
 
-function BookingSection({ title, rows }: { title: string; rows: readonly OwnerBookingSummary[] }) {
+function BookingSection({ title, rows, onOpenBooking }: { title: string; rows: readonly OwnerBookingSummary[]; onOpenBooking(bookingId: string): void }) {
   if (rows.length === 0) return null;
   return (
     <View style={{ gap: 9 }}>
       <Text accessibilityRole="header" style={{ ...t.typography.sectionTitle, color: h.ink }}>{title}</Text>
       <View style={{ gap: 10 }}>
-        {rows.map((row) => <BookingCard key={row.holdId} row={row} />)}
+        {rows.map((row) => <BookingCard key={row.holdId} row={row} onOpen={() => onOpenBooking(row.holdId)} />)}
       </View>
     </View>
   );
 }
 
-function BookingCard({ row }: { row: OwnerBookingSummary }) {
+function BookingCard({ row, onOpen }: { row: OwnerBookingSummary; onOpen(): void }) {
   const when = formatBookingStart(row.startsAt);
   return (
     <View
@@ -198,6 +200,7 @@ function BookingCard({ row }: { row: OwnerBookingSummary }) {
         <Fact text={when} />
         <Fact text={`${row.pet.name} · ${speciesLabel(row.pet.species)}`} />
       </View>
+      <Button label="Подробнее" variant="secondary" onPress={onOpen} />
     </View>
   );
 }
