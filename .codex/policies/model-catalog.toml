@@ -1,0 +1,24 @@
+# Candidate capabilities observed from the Codex runtime on 2026-09-16.
+# Configuration is not proof of availability: the router requires a current
+# runtime inventory. Order is cheapest sufficient first; Astra is C3/R3-only.
+[models."gpt-5.6-luna"]
+reasoning = ["low", "medium", "high", "xhigh", "max"]
+cost_rank = 1
+
+[models."gpt-5.6-terra"]
+reasoning = ["low", "medium", "high", "xhigh", "max", "ultra"]
+cost_rank = 2
+
+[models."gpt-5.6-sol"]
+reasoning = ["low", "medium", "high", "xhigh", "max", "ultra"]
+cost_rank = 3
+
+[models."gpt-6-astra"]
+reasoning = ["low", "medium", "high", "xhigh", "max", "ultra"]
+cost_rank = 4
+reserved_for = ["C3", "R3"]
+
+[models."gpt-5.5"]
+reasoning = ["low", "medium", "high", "xhigh"]
+cost_rank = 5
+fallback_only = true

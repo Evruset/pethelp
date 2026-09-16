@@ -96,7 +96,10 @@ A task is a continuation when one or more of the following are true:
 
 ## 4. Classify, budget, and decide whether to delegate
 
-Classify complexity C0-C3 and risk R0-R3 using `references/routing.md`.
+Classify complexity C0-C3 and risk R0-R3 using the unified contract in
+`references/routing.md`. Keep agent role, model, and reasoning effort as
+separate routing fields. Require a current runtime model inventory; configured
+model names alone do not prove availability.
 
 Load `.codex/policies/context-budgets.toml` and select `small`, `standard`, or `complex`.
 
@@ -305,7 +308,7 @@ Use `architect_sol` only for:
 - cross-system invariants;
 - unresolved architectural conflict.
 
-Default routing:
+Default sparse routing:
 
 - deterministic one-file edit: root or `implementer_luna`;
 - normal bounded implementation: root or `implementer_terra`;
@@ -315,6 +318,16 @@ Default routing:
 - difficult high-risk implementation: `complex_implementer_sol` only when justified;
 - current external documentation: `docs_researcher_terra` with MCP;
 - browser reproduction: `browser_debugger_terra` with Playwright.
+
+For genuinely hard C3/R3 architecture, prefer Astra/high or xhigh only when
+the current runtime inventory confirms it. Otherwise use the documented
+fallback without renaming the role. Use `scripts/orchestrator-route.py` when a
+reproducible decision record is required.
+
+When launching a selected role, pass the router's returned `model` and
+`reasoning_effort` as invocation overrides. Agent profile names and defaults do
+not override the decision record. If the runtime cannot honor either override,
+resolve the documented fallback and emit a new decision before execution.
 
 Parallelize only independent work.
 
@@ -535,7 +548,7 @@ Do not invoke both unless they validate genuinely different high-value risks.
 
 ### Tier C — high risk
 
-Use multi-validator quorum only for:
+Use one independent Sol reviewer by default for:
 
 - authorization architecture changes;
 - new authority models;
@@ -545,12 +558,18 @@ Use multi-validator quorum only for:
 - sensitive data exposure;
 - cross-system contracts.
 
-Sol is invoked only for:
+Use `security_reviewer_sol` for authorization, sensitive-data, or trust-boundary
+risk; otherwise use `reviewer_sol`. Add a second validator only for:
 
 - a confirmed security concern;
 - conflicting validator verdicts;
 - a veto-level issue;
 - unresolved architectural ambiguity.
+
+If a mandatory veto-domain reviewer is unavailable, preserve deterministic
+evidence and return `BLOCKED_VALIDATION`; never substitute the implementer or
+downgrade safety. `references/validation.md` is normative for verdict
+normalization and independence.
 
 Validators review the diff and Evidence Map.
 

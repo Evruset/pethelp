@@ -1,10 +1,18 @@
 # Search-first policy
 
-Before opening broad directories, use this sequence:
+Choose discovery mode before opening broad directories.
+
+Continuation mode (the active slice and harness are already named):
+
+1. `git status --short` and the relevant `docs/ai/current-state.md` section.
+2. One targeted `rg -n` only when an exact symbol/path is still unknown.
+3. Do not query the repo map unless targeted inspection fails.
+
+New-scope mode:
 
 1. `git status --short` and `git diff --name-only`.
-2. Query `.codex/cache/repo-map.sqlite3` through `./scripts/repo-map-query.sh` when available.
-3. Use `rg -n` for the exact error, route, symbol, state, label, or business term.
+2. Use `rg -n` for the exact error, route, symbol, state, label, or business term.
+3. Query `.codex/cache/repo-map.sqlite3` through `./scripts/repo-map-query.sh` only when targeted search is insufficient.
 4. Read only files returned by those searches.
 5. Expand through direct imports, calls, routes, schemas, or tests only when evidence requires it.
 

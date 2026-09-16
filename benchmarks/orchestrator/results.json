@@ -1,0 +1,1352 @@
+{
+  "baseline_commit": "065cf6df80f8b29bd4fdd6711624eba027e2c8a8",
+  "baseline_source_hashes": {
+    ".agents/skills/adaptive-orchestrator/references/routing.md": "789c889d42b4e072310c33760b41b7868994cab2d638ae0b7d044dff51b56a56",
+    ".agents/skills/adaptive-orchestrator/references/validation.md": "7163cadf98405c09bbc4135484678df6172524bcfacfb519c2f3f4d533465535"
+  },
+  "dry_run": true,
+  "rows": [
+    {
+      "acceptance_criteria": {
+        "expected_context": "small",
+        "expected_fallback": false,
+        "expected_models": [
+          "gpt-5.6-luna"
+        ],
+        "expected_phases": [
+          "implementation"
+        ],
+        "expected_preserve": [],
+        "expected_reasoning": [
+          "low"
+        ],
+        "expected_rerun": [],
+        "expected_roles": [
+          "root"
+        ],
+        "expected_status": "READY",
+        "expected_validation": "deterministic"
+      },
+      "baseline": {
+        "context": "small",
+        "context_overflow": false,
+        "critical_defects": [
+          "validation_mismatch",
+          "roles_mismatch",
+          "phases_mismatch",
+          "models_mismatch",
+          "reasoning_mismatch"
+        ],
+        "deterministic_acceptance": "FAIL",
+        "evidence_quality": "FROZEN_POLICY_ADAPTER_MODEL_EXECUTION_NOT_OBSERVED",
+        "experts": [
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "implementation",
+            "role": "root"
+          },
+          {
+            "model": "gpt-5.6-luna",
+            "phase": "validation",
+            "role": "validator_spec_luna"
+          }
+        ],
+        "input_tokens": null,
+        "median_wall_ns": 1271,
+        "missing_roles": [],
+        "models_actually_used": null,
+        "models_selected": [
+          "gpt-5.6-terra",
+          "gpt-5.6-luna"
+        ],
+        "output_tokens": null,
+        "planned_repair_cycles": 0,
+        "repair_cycles": null,
+        "repeated_reads": 0,
+        "repeated_reads_scope": "policy tables loaded once at module import; per-route reads measured as zero",
+        "repetitions": 200,
+        "route_correct": false,
+        "status": "READY",
+        "tool_calls": 0,
+        "tool_calls_scope": "measured inside pure router invocation; benchmark setup git calls excluded",
+        "unnecessary_validation": 1,
+        "vetoes": []
+      },
+      "input": {
+        "available_models": [
+          "gpt-6-astra",
+          "gpt-5.6-sol",
+          "gpt-5.6-terra",
+          "gpt-5.6-luna",
+          "gpt-5.5"
+        ],
+        "available_roles": [
+          "root",
+          "implementer_luna",
+          "implementer_terra",
+          "planner_terra",
+          "architect_sol",
+          "complex_implementer_sol",
+          "validator_spec_luna",
+          "validator_tests_terra",
+          "reviewer_sol",
+          "security_reviewer_sol",
+          "browser_debugger_terra",
+          "docs_researcher_terra",
+          "affected_tests_luna",
+          "integrator_terra"
+        ],
+        "complexity": "C0",
+        "risk": "R0"
+      },
+      "moe": {
+        "complexity": "C0",
+        "context": "small",
+        "context_overflow": false,
+        "critical_defects": [],
+        "deterministic_acceptance": "PASS",
+        "evidence_quality": "ROUTE_DECISION_COMPLETE_MODEL_EXECUTION_NOT_OBSERVED",
+        "experts": [
+          {
+            "model": "gpt-5.6-luna",
+            "phase": "implementation",
+            "reasoning_effort": "low",
+            "role": "root"
+          }
+        ],
+        "fallback_used": false,
+        "input_tokens": null,
+        "median_wall_ns": 6442,
+        "models_actually_used": null,
+        "models_selected": [
+          "gpt-5.6-luna"
+        ],
+        "output_tokens": null,
+        "planned_repair_cycles": 0,
+        "preserve_pass": [],
+        "repair_cycles": null,
+        "repeated_reads": 0,
+        "repeated_reads_scope": "policy tables loaded once at module import; per-route reads measured as zero",
+        "repetitions": 200,
+        "rerun_checks": [],
+        "risk": "R0",
+        "route_correct": true,
+        "status": "READY",
+        "tool_calls": 0,
+        "tool_calls_scope": "measured inside pure router invocation; benchmark setup git calls excluded",
+        "unnecessary_validation": 0,
+        "validation": "deterministic",
+        "vetoes": []
+      },
+      "scenario": "c0-r0-config",
+      "vethelp_fixture": "ORCH policy comment/config correction"
+    },
+    {
+      "acceptance_criteria": {
+        "expected_context": "standard",
+        "expected_fallback": false,
+        "expected_models": [
+          "gpt-5.6-terra",
+          "gpt-5.6-luna"
+        ],
+        "expected_phases": [
+          "implementation",
+          "validation"
+        ],
+        "expected_preserve": [],
+        "expected_reasoning": [
+          "medium",
+          "low"
+        ],
+        "expected_rerun": [],
+        "expected_roles": [
+          "implementer_terra",
+          "validator_spec_luna"
+        ],
+        "expected_status": "READY",
+        "expected_validation": "tier_b"
+      },
+      "baseline": {
+        "context": "standard",
+        "context_overflow": false,
+        "critical_defects": [
+          "validation_mismatch",
+          "roles_mismatch",
+          "phases_mismatch",
+          "models_mismatch",
+          "reasoning_mismatch"
+        ],
+        "deterministic_acceptance": "FAIL",
+        "evidence_quality": "FROZEN_POLICY_ADAPTER_MODEL_EXECUTION_NOT_OBSERVED",
+        "experts": [
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "implementation",
+            "role": "implementer_terra"
+          },
+          {
+            "model": "gpt-5.6-luna",
+            "phase": "validation",
+            "role": "validator_spec_luna"
+          },
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "validation",
+            "role": "validator_tests_terra"
+          }
+        ],
+        "input_tokens": null,
+        "median_wall_ns": 1669,
+        "missing_roles": [],
+        "models_actually_used": null,
+        "models_selected": [
+          "gpt-5.6-terra",
+          "gpt-5.6-luna",
+          "gpt-5.6-terra"
+        ],
+        "output_tokens": null,
+        "planned_repair_cycles": 0,
+        "repair_cycles": null,
+        "repeated_reads": 0,
+        "repeated_reads_scope": "policy tables loaded once at module import; per-route reads measured as zero",
+        "repetitions": 200,
+        "route_correct": false,
+        "status": "READY",
+        "tool_calls": 0,
+        "tool_calls_scope": "measured inside pure router invocation; benchmark setup git calls excluded",
+        "unnecessary_validation": 1,
+        "vetoes": []
+      },
+      "input": {
+        "available_models": [
+          "gpt-6-astra",
+          "gpt-5.6-sol",
+          "gpt-5.6-terra",
+          "gpt-5.6-luna",
+          "gpt-5.5"
+        ],
+        "available_roles": [
+          "root",
+          "implementer_luna",
+          "implementer_terra",
+          "planner_terra",
+          "architect_sol",
+          "complex_implementer_sol",
+          "validator_spec_luna",
+          "validator_tests_terra",
+          "reviewer_sol",
+          "security_reviewer_sol",
+          "browser_debugger_terra",
+          "docs_researcher_terra",
+          "affected_tests_luna",
+          "integrator_terra"
+        ],
+        "complexity": "C1",
+        "risk": "R1"
+      },
+      "moe": {
+        "complexity": "C1",
+        "context": "standard",
+        "context_overflow": false,
+        "critical_defects": [],
+        "deterministic_acceptance": "PASS",
+        "evidence_quality": "ROUTE_DECISION_COMPLETE_MODEL_EXECUTION_NOT_OBSERVED",
+        "experts": [
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "implementation",
+            "reasoning_effort": "medium",
+            "role": "implementer_terra"
+          },
+          {
+            "model": "gpt-5.6-luna",
+            "phase": "validation",
+            "reasoning_effort": "low",
+            "role": "validator_spec_luna"
+          }
+        ],
+        "fallback_used": false,
+        "input_tokens": null,
+        "median_wall_ns": 7731,
+        "models_actually_used": null,
+        "models_selected": [
+          "gpt-5.6-terra",
+          "gpt-5.6-luna"
+        ],
+        "output_tokens": null,
+        "planned_repair_cycles": 0,
+        "preserve_pass": [],
+        "repair_cycles": null,
+        "repeated_reads": 0,
+        "repeated_reads_scope": "policy tables loaded once at module import; per-route reads measured as zero",
+        "repetitions": 200,
+        "rerun_checks": [],
+        "risk": "R1",
+        "route_correct": true,
+        "status": "READY",
+        "tool_calls": 0,
+        "tool_calls_scope": "measured inside pure router invocation; benchmark setup git calls excluded",
+        "unnecessary_validation": 0,
+        "validation": "tier_b",
+        "vetoes": []
+      },
+      "scenario": "c1-r1-local-bug",
+      "vethelp_fixture": "OWNER-R2K local fail-closed adapter bug"
+    },
+    {
+      "acceptance_criteria": {
+        "expected_context": "standard",
+        "expected_fallback": false,
+        "expected_models": [
+          "gpt-5.6-terra",
+          "gpt-5.6-terra",
+          "gpt-5.6-terra",
+          "gpt-5.6-terra"
+        ],
+        "expected_phases": [
+          "planning",
+          "implementation",
+          "integration",
+          "validation"
+        ],
+        "expected_preserve": [],
+        "expected_reasoning": [
+          "medium",
+          "medium",
+          "medium",
+          "medium"
+        ],
+        "expected_rerun": [],
+        "expected_roles": [
+          "planner_terra",
+          "implementer_terra",
+          "integrator_terra",
+          "validator_tests_terra"
+        ],
+        "expected_status": "READY",
+        "expected_validation": "tier_b"
+      },
+      "baseline": {
+        "context": "standard",
+        "context_overflow": false,
+        "critical_defects": [
+          "wrong_status",
+          "validation_mismatch",
+          "roles_mismatch",
+          "phases_mismatch",
+          "models_mismatch",
+          "reasoning_mismatch",
+          "undeclared_roles",
+          "unavailable_model"
+        ],
+        "deterministic_acceptance": "FAIL",
+        "evidence_quality": "FROZEN_POLICY_ADAPTER_MODEL_EXECUTION_NOT_OBSERVED",
+        "experts": [
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "planning",
+            "role": "planner_terra"
+          },
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "implementation",
+            "role": "implementer_terra"
+          },
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "integration",
+            "role": "integrator_terra"
+          },
+          {
+            "model": "gpt-5.6-luna",
+            "phase": "validation",
+            "role": "validator_spec_luna"
+          },
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "validation",
+            "role": "validator_tests_terra"
+          },
+          {
+            "model": "unavailable",
+            "phase": "validation",
+            "role": "validator_risk_sol"
+          }
+        ],
+        "input_tokens": null,
+        "median_wall_ns": 2697,
+        "missing_roles": [
+          "validator_risk_sol"
+        ],
+        "models_actually_used": null,
+        "models_selected": [
+          "gpt-5.6-terra",
+          "gpt-5.6-terra",
+          "gpt-5.6-terra",
+          "gpt-5.6-luna",
+          "gpt-5.6-terra",
+          "unavailable"
+        ],
+        "output_tokens": null,
+        "planned_repair_cycles": 0,
+        "repair_cycles": null,
+        "repeated_reads": 0,
+        "repeated_reads_scope": "policy tables loaded once at module import; per-route reads measured as zero",
+        "repetitions": 200,
+        "route_correct": false,
+        "status": "BLOCKED_UNDECLARED_ROLE",
+        "tool_calls": 0,
+        "tool_calls_scope": "measured inside pure router invocation; benchmark setup git calls excluded",
+        "unnecessary_validation": 2,
+        "vetoes": []
+      },
+      "input": {
+        "available_models": [
+          "gpt-6-astra",
+          "gpt-5.6-sol",
+          "gpt-5.6-terra",
+          "gpt-5.6-luna",
+          "gpt-5.5"
+        ],
+        "available_roles": [
+          "root",
+          "implementer_luna",
+          "implementer_terra",
+          "planner_terra",
+          "architect_sol",
+          "complex_implementer_sol",
+          "validator_spec_luna",
+          "validator_tests_terra",
+          "reviewer_sol",
+          "security_reviewer_sol",
+          "browser_debugger_terra",
+          "docs_researcher_terra",
+          "affected_tests_luna",
+          "integrator_terra"
+        ],
+        "complexity": "C2",
+        "dependency_graph": true,
+        "risk": "R1",
+        "specializations": [
+          "integration"
+        ]
+      },
+      "moe": {
+        "complexity": "C2",
+        "context": "standard",
+        "context_overflow": false,
+        "critical_defects": [],
+        "deterministic_acceptance": "PASS",
+        "evidence_quality": "ROUTE_DECISION_COMPLETE_MODEL_EXECUTION_NOT_OBSERVED",
+        "experts": [
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "planning",
+            "reasoning_effort": "medium",
+            "role": "planner_terra"
+          },
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "implementation",
+            "reasoning_effort": "medium",
+            "role": "implementer_terra"
+          },
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "integration",
+            "reasoning_effort": "medium",
+            "role": "integrator_terra"
+          },
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "validation",
+            "reasoning_effort": "medium",
+            "role": "validator_tests_terra"
+          }
+        ],
+        "fallback_used": false,
+        "input_tokens": null,
+        "median_wall_ns": 9969,
+        "models_actually_used": null,
+        "models_selected": [
+          "gpt-5.6-terra",
+          "gpt-5.6-terra",
+          "gpt-5.6-terra",
+          "gpt-5.6-terra"
+        ],
+        "output_tokens": null,
+        "planned_repair_cycles": 0,
+        "preserve_pass": [],
+        "repair_cycles": null,
+        "repeated_reads": 0,
+        "repeated_reads_scope": "policy tables loaded once at module import; per-route reads measured as zero",
+        "repetitions": 200,
+        "rerun_checks": [],
+        "risk": "R1",
+        "route_correct": true,
+        "status": "READY",
+        "tool_calls": 0,
+        "tool_calls_scope": "measured inside pure router invocation; benchmark setup git calls excluded",
+        "unnecessary_validation": 0,
+        "validation": "tier_b",
+        "vetoes": []
+      },
+      "scenario": "c2-r1-ui-api",
+      "vethelp_fixture": "OWNER-R2K UI plus existing cancellation API integration"
+    },
+    {
+      "acceptance_criteria": {
+        "expected_context": "complex",
+        "expected_fallback": false,
+        "expected_models": [
+          "gpt-5.6-terra",
+          "gpt-5.6-terra",
+          "gpt-5.6-terra"
+        ],
+        "expected_phases": [
+          "planning",
+          "implementation",
+          "validation"
+        ],
+        "expected_preserve": [],
+        "expected_reasoning": [
+          "medium",
+          "medium",
+          "medium"
+        ],
+        "expected_rerun": [],
+        "expected_roles": [
+          "planner_terra",
+          "implementer_terra",
+          "validator_tests_terra"
+        ],
+        "expected_status": "READY",
+        "expected_validation": "tier_b"
+      },
+      "baseline": {
+        "context": "complex",
+        "context_overflow": false,
+        "critical_defects": [
+          "wrong_status",
+          "validation_mismatch",
+          "roles_mismatch",
+          "phases_mismatch",
+          "models_mismatch",
+          "reasoning_mismatch",
+          "undeclared_roles",
+          "unavailable_model"
+        ],
+        "deterministic_acceptance": "FAIL",
+        "evidence_quality": "FROZEN_POLICY_ADAPTER_MODEL_EXECUTION_NOT_OBSERVED",
+        "experts": [
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "planning",
+            "role": "planner_terra"
+          },
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "implementation",
+            "role": "implementer_terra"
+          },
+          {
+            "model": "gpt-5.6-luna",
+            "phase": "validation",
+            "role": "validator_spec_luna"
+          },
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "validation",
+            "role": "validator_tests_terra"
+          },
+          {
+            "model": "unavailable",
+            "phase": "validation",
+            "role": "validator_risk_sol"
+          }
+        ],
+        "input_tokens": null,
+        "median_wall_ns": 2393,
+        "missing_roles": [
+          "validator_risk_sol"
+        ],
+        "models_actually_used": null,
+        "models_selected": [
+          "gpt-5.6-terra",
+          "gpt-5.6-terra",
+          "gpt-5.6-luna",
+          "gpt-5.6-terra",
+          "unavailable"
+        ],
+        "output_tokens": null,
+        "planned_repair_cycles": 0,
+        "repair_cycles": null,
+        "repeated_reads": 0,
+        "repeated_reads_scope": "policy tables loaded once at module import; per-route reads measured as zero",
+        "repetitions": 200,
+        "route_correct": false,
+        "status": "BLOCKED_UNDECLARED_ROLE",
+        "tool_calls": 0,
+        "tool_calls_scope": "measured inside pure router invocation; benchmark setup git calls excluded",
+        "unnecessary_validation": 2,
+        "vetoes": []
+      },
+      "input": {
+        "available_models": [
+          "gpt-6-astra",
+          "gpt-5.6-sol",
+          "gpt-5.6-terra",
+          "gpt-5.6-luna",
+          "gpt-5.5"
+        ],
+        "available_roles": [
+          "root",
+          "implementer_luna",
+          "implementer_terra",
+          "planner_terra",
+          "architect_sol",
+          "complex_implementer_sol",
+          "validator_spec_luna",
+          "validator_tests_terra",
+          "reviewer_sol",
+          "security_reviewer_sol",
+          "browser_debugger_terra",
+          "docs_researcher_terra",
+          "affected_tests_luna",
+          "integrator_terra"
+        ],
+        "complexity": "C2",
+        "dependency_graph": true,
+        "risk": "R2"
+      },
+      "moe": {
+        "complexity": "C2",
+        "context": "complex",
+        "context_overflow": false,
+        "critical_defects": [],
+        "deterministic_acceptance": "PASS",
+        "evidence_quality": "ROUTE_DECISION_COMPLETE_MODEL_EXECUTION_NOT_OBSERVED",
+        "experts": [
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "planning",
+            "reasoning_effort": "medium",
+            "role": "planner_terra"
+          },
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "implementation",
+            "reasoning_effort": "medium",
+            "role": "implementer_terra"
+          },
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "validation",
+            "reasoning_effort": "medium",
+            "role": "validator_tests_terra"
+          }
+        ],
+        "fallback_used": false,
+        "input_tokens": null,
+        "median_wall_ns": 9136,
+        "models_actually_used": null,
+        "models_selected": [
+          "gpt-5.6-terra",
+          "gpt-5.6-terra",
+          "gpt-5.6-terra"
+        ],
+        "output_tokens": null,
+        "planned_repair_cycles": 0,
+        "preserve_pass": [],
+        "repair_cycles": null,
+        "repeated_reads": 0,
+        "repeated_reads_scope": "policy tables loaded once at module import; per-route reads measured as zero",
+        "repetitions": 200,
+        "rerun_checks": [],
+        "risk": "R2",
+        "route_correct": true,
+        "status": "READY",
+        "tool_calls": 0,
+        "tool_calls_scope": "measured inside pure router invocation; benchmark setup git calls excluded",
+        "unnecessary_validation": 0,
+        "validation": "tier_b",
+        "vetoes": []
+      },
+      "scenario": "c2-r2-backend-contract",
+      "vethelp_fixture": "V50-CLINIC-01B HTTP authority matrix"
+    },
+    {
+      "acceptance_criteria": {
+        "expected_context": "complex",
+        "expected_fallback": false,
+        "expected_models": [
+          "gpt-6-astra",
+          "gpt-5.6-sol",
+          "gpt-5.6-sol"
+        ],
+        "expected_phases": [
+          "architecture",
+          "implementation",
+          "validation"
+        ],
+        "expected_preserve": [],
+        "expected_reasoning": [
+          "high",
+          "high",
+          "high"
+        ],
+        "expected_rerun": [],
+        "expected_roles": [
+          "architect_sol",
+          "complex_implementer_sol",
+          "reviewer_sol"
+        ],
+        "expected_status": "READY",
+        "expected_validation": "tier_c"
+      },
+      "baseline": {
+        "context": "complex",
+        "context_overflow": false,
+        "critical_defects": [
+          "wrong_status",
+          "validation_mismatch",
+          "roles_mismatch",
+          "phases_mismatch",
+          "models_mismatch",
+          "reasoning_mismatch",
+          "undeclared_roles",
+          "unavailable_model"
+        ],
+        "deterministic_acceptance": "FAIL",
+        "evidence_quality": "FROZEN_POLICY_ADAPTER_MODEL_EXECUTION_NOT_OBSERVED",
+        "experts": [
+          {
+            "model": "gpt-5.6-sol",
+            "phase": "architecture",
+            "role": "architect_sol"
+          },
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "implementation",
+            "role": "implementer_terra"
+          },
+          {
+            "model": "gpt-5.6-luna",
+            "phase": "validation",
+            "role": "validator_spec_luna"
+          },
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "validation",
+            "role": "validator_tests_terra"
+          },
+          {
+            "model": "unavailable",
+            "phase": "validation",
+            "role": "validator_risk_sol"
+          }
+        ],
+        "input_tokens": null,
+        "median_wall_ns": 2333,
+        "missing_roles": [
+          "validator_risk_sol"
+        ],
+        "models_actually_used": null,
+        "models_selected": [
+          "gpt-5.6-sol",
+          "gpt-5.6-terra",
+          "gpt-5.6-luna",
+          "gpt-5.6-terra",
+          "unavailable"
+        ],
+        "output_tokens": null,
+        "planned_repair_cycles": 0,
+        "repair_cycles": null,
+        "repeated_reads": 0,
+        "repeated_reads_scope": "policy tables loaded once at module import; per-route reads measured as zero",
+        "repetitions": 200,
+        "route_correct": false,
+        "status": "BLOCKED_UNDECLARED_ROLE",
+        "tool_calls": 0,
+        "tool_calls_scope": "measured inside pure router invocation; benchmark setup git calls excluded",
+        "unnecessary_validation": 2,
+        "vetoes": []
+      },
+      "input": {
+        "architecture_ambiguous": true,
+        "available_models": [
+          "gpt-6-astra",
+          "gpt-5.6-sol",
+          "gpt-5.6-terra",
+          "gpt-5.6-luna",
+          "gpt-5.5"
+        ],
+        "available_roles": [
+          "root",
+          "implementer_luna",
+          "implementer_terra",
+          "planner_terra",
+          "architect_sol",
+          "complex_implementer_sol",
+          "validator_spec_luna",
+          "validator_tests_terra",
+          "reviewer_sol",
+          "security_reviewer_sol",
+          "browser_debugger_terra",
+          "docs_researcher_terra",
+          "affected_tests_luna",
+          "integrator_terra"
+        ],
+        "complexity": "C3",
+        "risk": "R2",
+        "uncertainty": 2
+      },
+      "moe": {
+        "complexity": "C3",
+        "context": "complex",
+        "context_overflow": false,
+        "critical_defects": [],
+        "deterministic_acceptance": "PASS",
+        "evidence_quality": "ROUTE_DECISION_COMPLETE_MODEL_EXECUTION_NOT_OBSERVED",
+        "experts": [
+          {
+            "model": "gpt-6-astra",
+            "phase": "architecture",
+            "reasoning_effort": "high",
+            "role": "architect_sol"
+          },
+          {
+            "model": "gpt-5.6-sol",
+            "phase": "implementation",
+            "reasoning_effort": "high",
+            "role": "complex_implementer_sol"
+          },
+          {
+            "model": "gpt-5.6-sol",
+            "phase": "validation",
+            "reasoning_effort": "high",
+            "role": "reviewer_sol"
+          }
+        ],
+        "fallback_used": false,
+        "input_tokens": null,
+        "median_wall_ns": 9017,
+        "models_actually_used": null,
+        "models_selected": [
+          "gpt-6-astra",
+          "gpt-5.6-sol",
+          "gpt-5.6-sol"
+        ],
+        "output_tokens": null,
+        "planned_repair_cycles": 0,
+        "preserve_pass": [],
+        "repair_cycles": null,
+        "repeated_reads": 0,
+        "repeated_reads_scope": "policy tables loaded once at module import; per-route reads measured as zero",
+        "repetitions": 200,
+        "rerun_checks": [],
+        "risk": "R2",
+        "route_correct": true,
+        "status": "READY",
+        "tool_calls": 0,
+        "tool_calls_scope": "measured inside pure router invocation; benchmark setup git calls excluded",
+        "unnecessary_validation": 0,
+        "validation": "tier_c",
+        "vetoes": []
+      },
+      "scenario": "c3-r2-architecture",
+      "vethelp_fixture": "Stage-3 centralized capability evaluator architecture"
+    },
+    {
+      "acceptance_criteria": {
+        "expected_context": "complex",
+        "expected_fallback": false,
+        "expected_models": [
+          "gpt-6-astra",
+          "gpt-5.6-sol",
+          "gpt-5.6-sol"
+        ],
+        "expected_phases": [
+          "architecture",
+          "implementation",
+          "validation"
+        ],
+        "expected_preserve": [],
+        "expected_reasoning": [
+          "high",
+          "high",
+          "high"
+        ],
+        "expected_rerun": [],
+        "expected_roles": [
+          "architect_sol",
+          "complex_implementer_sol",
+          "security_reviewer_sol"
+        ],
+        "expected_status": "READY",
+        "expected_validation": "tier_c"
+      },
+      "baseline": {
+        "context": "complex",
+        "context_overflow": false,
+        "critical_defects": [
+          "wrong_status",
+          "validation_mismatch",
+          "roles_mismatch",
+          "phases_mismatch",
+          "models_mismatch",
+          "reasoning_mismatch",
+          "undeclared_roles",
+          "unavailable_model"
+        ],
+        "deterministic_acceptance": "FAIL",
+        "evidence_quality": "FROZEN_POLICY_ADAPTER_MODEL_EXECUTION_NOT_OBSERVED",
+        "experts": [
+          {
+            "model": "gpt-5.6-sol",
+            "phase": "architecture",
+            "role": "architect_sol"
+          },
+          {
+            "model": "gpt-5.6-sol",
+            "phase": "implementation",
+            "role": "complex_implementer_sol"
+          },
+          {
+            "model": "gpt-5.6-luna",
+            "phase": "validation",
+            "role": "validator_spec_luna"
+          },
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "validation",
+            "role": "validator_tests_terra"
+          },
+          {
+            "model": "unavailable",
+            "phase": "validation",
+            "role": "validator_risk_sol"
+          }
+        ],
+        "input_tokens": null,
+        "median_wall_ns": 2872,
+        "missing_roles": [
+          "validator_risk_sol"
+        ],
+        "models_actually_used": null,
+        "models_selected": [
+          "gpt-5.6-sol",
+          "gpt-5.6-sol",
+          "gpt-5.6-luna",
+          "gpt-5.6-terra",
+          "unavailable"
+        ],
+        "output_tokens": null,
+        "planned_repair_cycles": 0,
+        "repair_cycles": null,
+        "repeated_reads": 0,
+        "repeated_reads_scope": "policy tables loaded once at module import; per-route reads measured as zero",
+        "repetitions": 200,
+        "route_correct": false,
+        "status": "BLOCKED_UNDECLARED_ROLE",
+        "tool_calls": 0,
+        "tool_calls_scope": "measured inside pure router invocation; benchmark setup git calls excluded",
+        "unnecessary_validation": 2,
+        "vetoes": [
+          "missing_veto_reviewer"
+        ]
+      },
+      "input": {
+        "architecture_ambiguous": true,
+        "available_models": [
+          "gpt-6-astra",
+          "gpt-5.6-sol",
+          "gpt-5.6-terra",
+          "gpt-5.6-luna",
+          "gpt-5.5"
+        ],
+        "available_roles": [
+          "root",
+          "implementer_luna",
+          "implementer_terra",
+          "planner_terra",
+          "architect_sol",
+          "complex_implementer_sol",
+          "validator_spec_luna",
+          "validator_tests_terra",
+          "reviewer_sol",
+          "security_reviewer_sol",
+          "browser_debugger_terra",
+          "docs_researcher_terra",
+          "affected_tests_luna",
+          "integrator_terra"
+        ],
+        "complexity": "C3",
+        "risk": "R3",
+        "risk_domains": [
+          "concurrency",
+          "security"
+        ],
+        "uncertainty": 3
+      },
+      "moe": {
+        "complexity": "C3",
+        "context": "complex",
+        "context_overflow": false,
+        "critical_defects": [],
+        "deterministic_acceptance": "PASS",
+        "evidence_quality": "ROUTE_DECISION_COMPLETE_MODEL_EXECUTION_NOT_OBSERVED",
+        "experts": [
+          {
+            "model": "gpt-6-astra",
+            "phase": "architecture",
+            "reasoning_effort": "high",
+            "role": "architect_sol"
+          },
+          {
+            "model": "gpt-5.6-sol",
+            "phase": "implementation",
+            "reasoning_effort": "high",
+            "role": "complex_implementer_sol"
+          },
+          {
+            "model": "gpt-5.6-sol",
+            "phase": "validation",
+            "reasoning_effort": "high",
+            "role": "security_reviewer_sol"
+          }
+        ],
+        "fallback_used": false,
+        "input_tokens": null,
+        "median_wall_ns": 9205,
+        "models_actually_used": null,
+        "models_selected": [
+          "gpt-6-astra",
+          "gpt-5.6-sol",
+          "gpt-5.6-sol"
+        ],
+        "output_tokens": null,
+        "planned_repair_cycles": 0,
+        "preserve_pass": [],
+        "repair_cycles": null,
+        "repeated_reads": 0,
+        "repeated_reads_scope": "policy tables loaded once at module import; per-route reads measured as zero",
+        "repetitions": 200,
+        "rerun_checks": [],
+        "risk": "R3",
+        "route_correct": true,
+        "status": "READY",
+        "tool_calls": 0,
+        "tool_calls_scope": "measured inside pure router invocation; benchmark setup git calls excluded",
+        "unnecessary_validation": 0,
+        "validation": "tier_c",
+        "vetoes": []
+      },
+      "scenario": "c3-r3-concurrency-security",
+      "vethelp_fixture": "V50-OWNER-05 hold idempotency/concurrency invariant dry-run"
+    },
+    {
+      "acceptance_criteria": {
+        "expected_context": "standard",
+        "expected_fallback": false,
+        "expected_models": [],
+        "expected_phases": [],
+        "expected_preserve": [],
+        "expected_reasoning": [],
+        "expected_rerun": [],
+        "expected_roles": [],
+        "expected_status": "BLOCKED_SPECIALIST",
+        "expected_validation": null
+      },
+      "baseline": {
+        "context": "standard",
+        "context_overflow": false,
+        "critical_defects": [
+          "wrong_status",
+          "roles_mismatch",
+          "phases_mismatch",
+          "models_mismatch",
+          "reasoning_mismatch"
+        ],
+        "deterministic_acceptance": "FAIL",
+        "evidence_quality": "FROZEN_POLICY_ADAPTER_MODEL_EXECUTION_NOT_OBSERVED",
+        "experts": [
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "implementation",
+            "role": "implementer_terra"
+          },
+          {
+            "model": "gpt-5.6-luna",
+            "phase": "validation",
+            "role": "validator_spec_luna"
+          },
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "validation",
+            "role": "validator_tests_terra"
+          }
+        ],
+        "input_tokens": null,
+        "median_wall_ns": 1668,
+        "missing_roles": [],
+        "models_actually_used": null,
+        "models_selected": [
+          "gpt-5.6-terra",
+          "gpt-5.6-luna",
+          "gpt-5.6-terra"
+        ],
+        "output_tokens": null,
+        "planned_repair_cycles": 0,
+        "repair_cycles": null,
+        "repeated_reads": 0,
+        "repeated_reads_scope": "policy tables loaded once at module import; per-route reads measured as zero",
+        "repetitions": 200,
+        "route_correct": false,
+        "status": "READY",
+        "tool_calls": 0,
+        "tool_calls_scope": "measured inside pure router invocation; benchmark setup git calls excluded",
+        "unnecessary_validation": 2,
+        "vetoes": []
+      },
+      "input": {
+        "available_models": [
+          "gpt-6-astra",
+          "gpt-5.6-sol",
+          "gpt-5.6-terra",
+          "gpt-5.6-luna",
+          "gpt-5.5"
+        ],
+        "available_roles": [
+          "root",
+          "implementer_luna",
+          "implementer_terra",
+          "planner_terra",
+          "architect_sol",
+          "complex_implementer_sol",
+          "validator_spec_luna",
+          "validator_tests_terra",
+          "reviewer_sol",
+          "security_reviewer_sol",
+          "docs_researcher_terra",
+          "affected_tests_luna",
+          "integrator_terra"
+        ],
+        "complexity": "C1",
+        "risk": "R1",
+        "specializations": [
+          "browser"
+        ]
+      },
+      "moe": {
+        "context": "standard",
+        "context_overflow": false,
+        "critical_defects": [],
+        "deterministic_acceptance": "PASS",
+        "evidence_quality": "ROUTE_DECISION_COMPLETE_MODEL_EXECUTION_NOT_OBSERVED",
+        "input_tokens": null,
+        "median_wall_ns": 4592,
+        "models_actually_used": null,
+        "models_selected": [],
+        "output_tokens": null,
+        "planned_repair_cycles": 0,
+        "reason": "required specialist unavailable: browser_debugger_terra",
+        "repair_cycles": null,
+        "repeated_reads": 0,
+        "repeated_reads_scope": "policy tables loaded once at module import; per-route reads measured as zero",
+        "repetitions": 200,
+        "route_correct": true,
+        "status": "BLOCKED_SPECIALIST",
+        "tool_calls": 0,
+        "tool_calls_scope": "measured inside pure router invocation; benchmark setup git calls excluded",
+        "unnecessary_validation": 0,
+        "vetoes": []
+      },
+      "scenario": "required-specialist-unavailable",
+      "vethelp_fixture": "OWNER responsive defect requiring browser reproduction"
+    },
+    {
+      "acceptance_criteria": {
+        "expected_context": "complex",
+        "expected_fallback": false,
+        "expected_models": [
+          "gpt-5.6-terra"
+        ],
+        "expected_phases": [
+          "targeted_repair"
+        ],
+        "expected_preserve": [
+          "toml"
+        ],
+        "expected_reasoning": [
+          "medium"
+        ],
+        "expected_rerun": [
+          "focused-test"
+        ],
+        "expected_roles": [
+          "implementer_terra"
+        ],
+        "expected_status": "REPAIR",
+        "expected_validation": null
+      },
+      "baseline": {
+        "context": "complex",
+        "context_overflow": false,
+        "critical_defects": [
+          "reasoning_mismatch",
+          "preserve_mismatch"
+        ],
+        "deterministic_acceptance": "FAIL",
+        "evidence_quality": "FROZEN_POLICY_ADAPTER_MODEL_EXECUTION_NOT_OBSERVED",
+        "experts": [
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "targeted_repair",
+            "role": "implementer_terra"
+          }
+        ],
+        "input_tokens": null,
+        "median_wall_ns": 872,
+        "models_actually_used": null,
+        "models_selected": [
+          "gpt-5.6-terra"
+        ],
+        "output_tokens": null,
+        "planned_repair_cycles": 1,
+        "repair_cycles": null,
+        "repeated_reads": 0,
+        "repeated_reads_scope": "policy tables loaded once at module import; per-route reads measured as zero",
+        "repetitions": 200,
+        "rerun_checks": [
+          "focused-test"
+        ],
+        "route_correct": false,
+        "status": "REPAIR",
+        "tool_calls": 0,
+        "tool_calls_scope": "measured inside pure router invocation; benchmark setup git calls excluded",
+        "unnecessary_validation": 0,
+        "vetoes": []
+      },
+      "input": {
+        "available_models": [
+          "gpt-6-astra",
+          "gpt-5.6-sol",
+          "gpt-5.6-terra",
+          "gpt-5.6-luna",
+          "gpt-5.5"
+        ],
+        "available_roles": [
+          "root",
+          "implementer_luna",
+          "implementer_terra",
+          "planner_terra",
+          "architect_sol",
+          "complex_implementer_sol",
+          "validator_spec_luna",
+          "validator_tests_terra",
+          "reviewer_sol",
+          "security_reviewer_sol",
+          "browser_debugger_terra",
+          "docs_researcher_terra",
+          "affected_tests_luna",
+          "integrator_terra"
+        ],
+        "complexity": "C2",
+        "current_fingerprints": {
+          "toml": {
+            "command_config": "tomllib-v1",
+            "environment": "python-local",
+            "scope_diff": "tree-a"
+          }
+        },
+        "failed_checks": [
+          "focused-test"
+        ],
+        "passed_evidence": {
+          "toml": {
+            "command_config": "tomllib-v1",
+            "environment": "python-local",
+            "scope_diff": "tree-a"
+          }
+        },
+        "risk": "R2"
+      },
+      "moe": {
+        "complexity": "C2",
+        "context": "complex",
+        "context_overflow": false,
+        "critical_defects": [],
+        "deterministic_acceptance": "PASS",
+        "evidence_quality": "ROUTE_DECISION_COMPLETE_MODEL_EXECUTION_NOT_OBSERVED",
+        "experts": [
+          {
+            "model": "gpt-5.6-terra",
+            "phase": "targeted_repair",
+            "reasoning_effort": "medium",
+            "role": "implementer_terra"
+          }
+        ],
+        "fallback_used": false,
+        "input_tokens": null,
+        "median_wall_ns": 10100,
+        "models_actually_used": null,
+        "models_selected": [
+          "gpt-5.6-terra"
+        ],
+        "output_tokens": null,
+        "planned_repair_cycles": 1,
+        "preserve_pass": [
+          "toml"
+        ],
+        "repair_cycles": null,
+        "repeated_reads": 0,
+        "repeated_reads_scope": "policy tables loaded once at module import; per-route reads measured as zero",
+        "repetitions": 200,
+        "rerun_checks": [
+          "focused-test"
+        ],
+        "risk": "R2",
+        "route_correct": true,
+        "status": "REPAIR",
+        "tool_calls": 0,
+        "tool_calls_scope": "measured inside pure router invocation; benchmark setup git calls excluded",
+        "unnecessary_validation": 0,
+        "vetoes": []
+      },
+      "scenario": "required-test-failure",
+      "vethelp_fixture": "Clinic Queue focused HTTP test failure"
+    }
+  ],
+  "runtime_inventory": {
+    "models": [
+      "gpt-6-astra",
+      "gpt-5.6-sol",
+      "gpt-5.6-terra",
+      "gpt-5.6-luna",
+      "gpt-5.5"
+    ],
+    "observed": "2026-09-16",
+    "source": "Codex runtime-advertised inventory"
+  },
+  "schema_version": 1,
+  "telemetry_limits": {
+    "input_tokens": null,
+    "model_wall_clock": null,
+    "output_tokens": null,
+    "reason": "No model was invoked by dry-run routing; runtime exposes no per-route token telemetry.",
+    "tool_calls_per_route": 0
+  },
+  "totals": {
+    "baseline": {
+      "accepted": 0,
+      "experts": 30,
+      "median_wall_ns_sum": 15775
+    },
+    "moe": {
+      "accepted": 8,
+      "experts": 17,
+      "median_wall_ns_sum": 66192
+    }
+  }
+}
