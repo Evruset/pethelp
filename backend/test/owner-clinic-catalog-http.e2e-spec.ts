@@ -29,6 +29,29 @@ describe('Owner clinic catalog HTTP authority',()=>{
     expect(Object.keys(response.body).sort()).toEqual(['clinics','observedAt']);
     for(const item of response.body.clinics)expect(Object.keys(item).sort()).toEqual(['address','clinicId','locationId','name','phone']);
   });
+  it('searches eligible locations and rejects an oversized query',async()=>{
+    const db=app.get(DatabaseService),clinic=randomUUID(),location=randomUUID(),service=randomUUID();
+    try{
+      await db.query("INSERT INTO clinic_schema.clinics(id,legal_name,public_name,status) VALUES($1,'Search Legal','Searchable Aurora','ACTIVE')",[clinic]);
+      await db.query("INSERT INTO clinic_schema.clinic_locations(id,clinic_id,address,status) VALUES($1,$2,'Unique Search Avenue 42','ACTIVE')",[location,clinic]);
+      await db.query("INSERT INTO clinic_schema.clinic_services(id,clinic_location_id,code,display_name,duration_minutes,active) VALUES($1,$2,$3,'Search service',30,true)",[service,location,`S_${service.replaceAll('-','')}`]);
+      await db.query("INSERT INTO clinic_schema.appointment_slots(clinic_location_id,service_id,starts_at,ends_at,capacity,state) VALUES($1,$2,clock_timestamp()+interval '1 day',clock_timestamp()+interval '1 day 30 minutes',1,'OPEN')",[location,service]);
+      const credential=await token([Role.OWNER]);
+      const byName=await request(app.getHttpServer()).get('/v1/owner/clinic-catalog').query({q:'  searchable   AURORA '}).set('Authorization',`Bearer ${credential}`).expect(200);
+      expect(byName.body.clinics).toEqual([expect.objectContaining({clinicId:clinic,locationId:location,name:'Searchable Aurora'})]);
+      const byAddress=await request(app.getHttpServer()).get('/v1/owner/clinic-catalog').query({q:'search avenue 42'}).set('Authorization',`Bearer ${credential}`).expect(200);
+      expect(byAddress.body.clinics).toEqual([expect.objectContaining({locationId:location,address:'Unique Search Avenue 42'})]);
+      const empty=await request(app.getHttpServer()).get('/v1/owner/clinic-catalog').query({q:'no matching clinic'}).set('Authorization',`Bearer ${credential}`).expect(200);
+      expect(empty.body.clinics).toEqual([]);
+      const invalid=await request(app.getHttpServer()).get('/v1/owner/clinic-catalog').query({q:'x'.repeat(121)}).set('Authorization',`Bearer ${credential}`).expect(400);
+      expect(invalid.body).toMatchObject({code:'INVALID_REQUEST'});
+    }finally{
+      await db.query('DELETE FROM clinic_schema.appointment_slots WHERE clinic_location_id=$1',[location]);
+      await db.query('DELETE FROM clinic_schema.clinic_services WHERE id=$1',[service]);
+      await db.query('DELETE FROM clinic_schema.clinic_locations WHERE id=$1',[location]);
+      await db.query('DELETE FROM clinic_schema.clinics WHERE id=$1',[clinic]);
+    }
+  });
   it('protects and validates the clinic service route with masked not-found',async()=>{
     const path='/v1/owner/clinic-catalog/11111111-1111-4111-8111-111111111111/locations/22222222-2222-4222-8222-222222222222';
     await request(app.getHttpServer()).get(path).expect(401);

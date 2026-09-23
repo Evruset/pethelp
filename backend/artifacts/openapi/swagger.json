@@ -5002,7 +5002,18 @@
     "/v1/owner/clinic-catalog": {
       "get": {
         "operationId": "OwnerClinicCatalog_list",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Case-insensitive clinic name or branch address search. Whitespace is normalized.",
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -5010,6 +5021,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/OwnerClinicCatalogDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
                 }
               }
             }

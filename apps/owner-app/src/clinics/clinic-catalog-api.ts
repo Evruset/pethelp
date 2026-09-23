@@ -17,5 +17,5 @@ function parse(value:unknown):ClinicCatalogSnapshot {
   })};
 }
 
-export function createClinicCatalogApi(client:ApiClient=apiClient){return {async list(credential:string,signal?:AbortSignal){return parse(await client.request<unknown>('v1/owner/clinic-catalog',{headers:{Authorization:`Bearer ${credential}`},signal}));}};}
+export function createClinicCatalogApi(client:ApiClient=apiClient){return {async list(credential:string,query?:string,signal?:AbortSignal){const normalized=query?.trim().replace(/\s+/g,' ');const path=normalized?`v1/owner/clinic-catalog?q=${encodeURIComponent(normalized)}`:'v1/owner/clinic-catalog';return parse(await client.request<unknown>(path,{headers:{Authorization:`Bearer ${credential}`},signal}));}};}
 export const clinicCatalogApi=createClinicCatalogApi();

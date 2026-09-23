@@ -29,6 +29,16 @@ describe('Owner clinic catalog PostgreSQL projection',()=>{
     const tieIds:string[]=[tieOne.location,tieTwo.location];const ties=result.locations.filter(row=>tieIds.includes(row.location.id));expect(ties.map(row=>row.location.id)).toEqual(tieIds.sort());
     const addressIds:string[]=[addressOne.location,addressTwo.location];const addresses=result.locations.filter(row=>addressIds.includes(row.location.id));expect(addresses.map(row=>row.location.address)).toEqual(['Адрес 1','Адрес 2']);
     expect(Object.keys(selected[0].location).sort()).toEqual(['address','id','latitude','longitude','phone']);
+    const beyondLimit=await fixture('ЯЯЯ Уникальная клиника за лимитом','Уникальный адрес за лимитом');
+    const unfilteredAfterInsert=await service.listClinicLocations({limit:50,openNow:true});
+    expect(unfilteredAfterInsert.locations.some(row=>row.location.id===beyondLimit.location)).toBe(false);
+    await expect(service.listClinicLocations({query:'яяя УНИКАЛЬНАЯ',limit:50,openNow:true})).resolves.toMatchObject({locations:[expect.objectContaining({location:expect.objectContaining({id:beyondLimit.location})})]});
+    await expect(service.listClinicLocations({query:'уникальный адрес',limit:50,openNow:true})).resolves.toMatchObject({locations:[expect.objectContaining({location:expect.objectContaining({id:beyondLimit.location})})]});
+    expect((await service.listClinicLocations({query:'нет такого совпадения',limit:50,openNow:true})).locations).toEqual([]);
+    expect((await service.listClinicLocations({query:'Неактивная клиника',limit:50,openNow:true})).locations).toEqual([]);
+    const boundedSearch=await service.listClinicLocations({query:'Я лимит',limit:50,openNow:true});
+    expect(boundedSearch.locations).toHaveLength(50);
+    expect((await service.listClinicLocations({query:'Я лимит',limit:50,openNow:true})).locations.map(row=>row.location.id)).toEqual(boundedSearch.locations.map(row=>row.location.id));
   });
 
   it('reads the exact active clinic/location service projection without availability or payment state',async()=>{

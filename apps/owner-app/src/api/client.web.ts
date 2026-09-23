@@ -8,7 +8,7 @@ const ALLOWED = [
   /^v1\/owner\/home(?:\?selectedPetId=[0-9a-f-]{36})?$/,
   /^v1\/owner\/pets$/,
   /^v1\/owner\/pets\/[0-9a-f-]{36}\/diary\?limit=100&offset=0$/,
-  /^v1\/owner\/clinic-catalog$/,
+  /^v1\/owner\/clinic-catalog(?:\?q=[^&#]{1,1080})?$/,
   /^v1\/owner\/clinic-catalog\/[0-9a-f-]{36}\/locations\/[0-9a-f-]{36}$/,
   /^v1\/owner\/clinic-catalog\/[0-9a-f-]{36}\/locations\/[0-9a-f-]{36}\/services\/[0-9a-f-]{36}\/availability$/,
   /^v1\/clinics\/[0-9a-f-]{36}\/doctors\?locationId=[0-9a-f-]{36}$/,

@@ -85,15 +85,16 @@ export function ClinicCatalogScreen({
   const desktop = Platform.OS === "web" && width >= 900;
   const copy = modeCopy[mode];
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(initialSelectedLocationId ?? null);
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [submittedSearch, setSubmittedSearch] = useState("");
+  const submitSearch = () => setSubmittedSearch(searchInput.trim().replace(/\s+/g, " "));
   const query = useQuery({
-    queryKey: ["owner", session?.cacheScope, "clinic-catalog"],
+    queryKey: ["owner", session?.cacheScope, "clinic-catalog", submittedSearch],
     enabled: Boolean(session),
     queryFn: ({ signal }) =>
-      clinicCatalogApi.list(session!.opaqueCredential, signal),
+      clinicCatalogApi.list(session!.opaqueCredential, submittedSearch, signal),
   });
-  const normalizedSearch = search.trim().toLocaleLowerCase("ru-RU");
-  const clinics = query.data?.clinics.filter((clinic) => !normalizedSearch || `${clinic.name} ${clinic.address}`.toLocaleLowerCase("ru-RU").includes(normalizedSearch)) ?? [];
+  const clinics = query.data?.clinics ?? [];
 
   return (
     <ClinicDecisionLayout
@@ -114,13 +115,22 @@ export function ClinicCatalogScreen({
         </Text>
       </DecisionPanel>
 
-      <TextInput
-        accessibilityLabel="Поиск по клинике или адресу"
-        placeholder="Клиника или адрес"
-        value={search}
-        onChangeText={setSearch}
-        style={{ minHeight: 44, borderWidth: 1, borderColor: decisionColors.border, borderRadius: 14, paddingHorizontal: 14, color: decisionColors.ink, backgroundColor: decisionColors.surface }}
-      />
+      <View accessibilityRole="search" style={{ flexDirection: desktop ? "row" : "column", gap: t.spacing.sm }}>
+        <TextInput
+          accessibilityLabel="Поиск по клинике или адресу"
+          placeholder="Клиника или адрес"
+          value={searchInput}
+          maxLength={120}
+          onChangeText={(value) => {
+            setSearchInput(value);
+            if (!value.trim()) setSubmittedSearch("");
+          }}
+          onSubmitEditing={submitSearch}
+          returnKeyType="search"
+          style={{ flex: 1, minHeight: 44, borderWidth: 1, borderColor: decisionColors.border, borderRadius: 14, paddingHorizontal: 14, color: decisionColors.ink, backgroundColor: decisionColors.surface }}
+        />
+        <Button label={query.isFetching && submittedSearch ? "Ищем…" : "Найти"} disabled={query.isFetching} onPress={submitSearch} />
+      </View>
 
       {query.isPending ? <StateMessage kind="loading" title="Загружаем клиники" /> : null}
       {query.isError ? (
@@ -140,11 +150,10 @@ export function ClinicCatalogScreen({
       {!query.isError && query.data?.clinics.length === 0 ? (
         <StateMessage
           kind="empty"
-          title="Сейчас нет клиник для онлайн-записи"
-          body="Попробуйте обновить список позже."
+          title={submittedSearch ? "Ничего не найдено" : "Сейчас нет клиник для онлайн-записи"}
+          body={submittedSearch ? "Проверьте название клиники или адрес." : "Попробуйте обновить список позже."}
         />
       ) : null}
-      {!query.isError && query.data?.clinics.length && clinics.length === 0 ? <StateMessage kind="empty" title="По вашему запросу ничего не найдено" body="Проверьте название клиники или адрес." /> : null}
 
       {!query.isError && clinics.length ? (
         <View style={{ gap: 10 }}>
