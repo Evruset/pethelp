@@ -58,16 +58,24 @@ function harness() {
 describe('OwnerBookingsScreen', () => {
   afterEach(() => jest.restoreAllMocks());
 
-  it('renders server-owned sections in priority order without raw state or ids', async () => {
+  it('maps server-owned groups into active and history tabs without raw state or ids', async () => {
     jest.spyOn(ownerBookingsApi, 'list').mockResolvedValue(firstPage);
-    const screen = await render(<OwnerBookingsScreen onHome={jest.fn()} onClinics={jest.fn()} onPets={jest.fn()} />, { wrapper: harness() });
+    const onOpenBooking = jest.fn();
+    const screen = await render(<OwnerBookingsScreen onHome={jest.fn()} onClinics={jest.fn()} onPets={jest.fn()} onOpenBooking={onOpenBooking} />, { wrapper: harness() });
 
     await screen.findByText('Нужно выбрать время');
     expect(screen.getByText('Требуют внимания')).toBeTruthy();
     expect(screen.getByText('Предстоящие')).toBeTruthy();
-    expect(screen.getByText('История')).toBeTruthy();
+    expect(screen.queryByText('Приём завершён')).toBeNull();
     expect(screen.queryByText('ALTERNATIVE_PENDING')).toBeNull();
     expect(screen.queryByText(HOLD_ACTION)).toBeNull();
+    expect(screen.queryByText('Очный визит')).toBeNull();
+    expect(screen.queryByText('Прошедшая запись')).toBeNull();
+    await fireEvent.press(screen.getAllByText('Подробнее')[0]);
+    expect(onOpenBooking).toHaveBeenCalledWith(HOLD_ACTION);
+    await fireEvent.press(screen.getByText('История'));
+    await screen.findByText('Приём завершён');
+    expect(screen.queryByText('Нужно выбрать время')).toBeNull();
     await screen.unmount();
   });
 
@@ -82,7 +90,9 @@ describe('OwnerBookingsScreen', () => {
     const screen = await render(<OwnerBookingsScreen onHome={jest.fn()} onClinics={jest.fn()} onPets={jest.fn()} />, { wrapper: harness() });
 
     const more = await screen.findByText('Показать ещё');
-    fireEvent.press(more);
+    await fireEvent.press(screen.getByText('История'));
+    expect(screen.queryByText('История пока пуста')).toBeNull();
+    await fireEvent.press(more);
     await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
     expect(list.mock.calls[1][1]).toBe('opaque_cursor_1');
     await screen.findByText('Запись завершена');
