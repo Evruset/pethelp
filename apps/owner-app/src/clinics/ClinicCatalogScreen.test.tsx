@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { ClinicCatalogScreen } from './ClinicCatalogScreen';
 
 const mockUseQuery=jest.fn();
@@ -16,11 +16,13 @@ describe('ClinicCatalogScreen',()=>{
     expect(screen.queryByRole('button',{name:'Уверенность'})).toBeNull();
     expect(screen.getByText('Clinic')).toBeTruthy();expect(screen.getByText('Address')).toBeTruthy();expect(screen.getByText('+7000')).toBeTruthy();
     expect(screen.getByText('Филиал · Address')).toBeTruthy();
+    expect(screen.getByRole('button',{name:'Найти'})).toBeTruthy();
+    expect(screen.getByLabelText('Поиск по клинике или адресу')).toBeTruthy();
     fireEvent.press(screen.getByText('Открыть клинику'));
     expect(onOpenClinic).toHaveBeenCalledWith({clinicId:'11111111-1111-4111-8111-111111111111',locationId:'22222222-2222-4222-8222-222222222222'});
   });
 
-  it('truthfully filters the bounded catalog by clinic or branch address',async()=>{
+  it('submits normalized server search from CTA and Enter and clears to the default catalog',async()=>{
     mockUseQuery.mockReturnValue({isPending:false,isError:false,data:{clinics:[
       {clinicId:'11111111-1111-4111-8111-111111111111',locationId:'22222222-2222-4222-8222-222222222222',name:'VetHelp Demo Center',address:'Тверская, 1',phone:null},
       {clinicId:'11111111-1111-4111-8111-111111111111',locationId:'33333333-3333-4333-8333-333333333333',name:'VetHelp Demo Center',address:'Арбат, 2',phone:null},
@@ -28,9 +30,27 @@ describe('ClinicCatalogScreen',()=>{
     const screen=await render(<ClinicCatalogScreen onClose={jest.fn()} onOpenClinic={jest.fn()}/>);
     expect(screen.getByText('Филиал · Тверская, 1')).toBeTruthy();
     expect(screen.getByText('Филиал · Арбат, 2')).toBeTruthy();
-    fireEvent.changeText(screen.getByLabelText('Поиск по клинике или адресу'),'Арбат');
-    await waitFor(()=>expect(screen.queryByText('Филиал · Тверская, 1')).toBeNull());
+    const input=screen.getByLabelText('Поиск по клинике или адресу');
+    await act(async()=>{fireEvent.changeText(input,'  Demo   Center  ');});
+    await act(async()=>{fireEvent.press(screen.getByRole('button',{name:'Найти'}));});
+    await waitFor(()=>expect(mockUseQuery.mock.calls.at(-1)?.[0]).toMatchObject({queryKey:['owner','owner','clinic-catalog','Demo Center']}));
+    await act(async()=>{fireEvent.changeText(input,'  Арбат  ');});
+    await act(async()=>{fireEvent(input,'submitEditing');});
+    await waitFor(()=>expect(mockUseQuery.mock.calls.at(-1)?.[0]).toMatchObject({queryKey:['owner','owner','clinic-catalog','Арбат']}));
+    await act(async()=>{fireEvent.changeText(input,'   ');});
+    await waitFor(()=>expect(mockUseQuery.mock.calls.at(-1)?.[0]).toMatchObject({queryKey:['owner','owner','clinic-catalog','']}));
+    expect(screen.getByText('Филиал · Тверская, 1')).toBeTruthy();
     expect(screen.getByText('Филиал · Арбат, 2')).toBeTruthy();
+  });
+
+  it('renders the authoritative search empty state and pending CTA',async()=>{
+    mockUseQuery.mockReturnValue({isPending:false,isFetching:true,isError:false,data:{clinics:[]}});
+    const screen=await render(<ClinicCatalogScreen onClose={jest.fn()} onOpenClinic={jest.fn()}/>);
+    const input=screen.getByLabelText('Поиск по клинике или адресу');
+    await act(async()=>{fireEvent.changeText(input,'Unknown');});
+    await act(async()=>{fireEvent(input,'submitEditing');});
+    await waitFor(()=>expect(screen.getByText('Ничего не найдено')).toBeTruthy());
+    expect(screen.getByRole('button',{name:'Ищем…'})).toBeDisabled();
   });
 
   it('opens a browse-first catalog without pretending pet selection is required',async()=>{

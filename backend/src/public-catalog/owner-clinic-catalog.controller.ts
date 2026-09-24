@@ -1,5 +1,5 @@
-import { Controller, Get, NotFoundException, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
-import { ApiBadRequestResponse, ApiBearerAuth, ApiForbiddenResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { BadRequestException, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Query, UseGuards } from '@nestjs/common';
+import { ApiBadRequestResponse, ApiBearerAuth, ApiForbiddenResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiQuery, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Role } from '../auth/auth.types';
 import { Roles } from '../auth/roles.decorator';
@@ -18,12 +18,18 @@ export class OwnerClinicCatalogController {
   constructor(private readonly catalog: PublicCatalogService) {}
 
   @Get()
+  @ApiQuery({ name: 'q', required: false, type: String, maxLength: 120, description: 'Case-insensitive clinic name or branch address search. Whitespace is normalized.' })
   @ApiOkResponse({ type: OwnerClinicCatalogDto })
+  @ApiBadRequestResponse({ type: ApiErrorDto })
   @ApiUnauthorizedResponse({ type: ApiErrorDto })
   @ApiForbiddenResponse({ type: ApiErrorDto })
   @ApiInternalServerErrorResponse({ type: ApiErrorDto })
-  async list(): Promise<OwnerClinicCatalogDto> {
-    const result = await this.catalog.listClinicLocations({ limit: 50, openNow: true });
+  async list(@Query('q') rawQuery?: string): Promise<OwnerClinicCatalogDto> {
+    const query = rawQuery?.trim().replace(/\s+/g, ' ') || undefined;
+    if (query && query.length > 120) {
+      throw new BadRequestException({ code: 'INVALID_REQUEST', message: 'Search query must not exceed 120 characters.' });
+    }
+    const result = await this.catalog.listClinicLocations({ query, limit: 50, openNow: true });
     return {
       observedAt: result.observedAt,
       clinics: result.locations.map(({ clinic, location }) => ({
