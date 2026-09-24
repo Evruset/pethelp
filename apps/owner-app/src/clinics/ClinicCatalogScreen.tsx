@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Image,
   Platform,
   TextInput,
   Text,
@@ -10,7 +9,6 @@ import {
 } from "react-native";
 import { Button, StateMessage } from "@/ui/primitives";
 import { uiTokens as t } from "@/ui/tokens";
-import { v50ReferenceAssets } from "@/ui/v50-reference-assets";
 import { useSession } from "@/session/SessionProvider";
 import { OwnerGlobalNav } from "@/navigation/OwnerGlobalNav";
 import {
@@ -57,12 +55,6 @@ const modeCopy: Record<
   },
 };
 
-const referenceClinicImages = [
-  v50ReferenceAssets.clinicFacade,
-  v50ReferenceAssets.clinicReception,
-  v50ReferenceAssets.clinicExam,
-] as const;
-
 export function ClinicCatalogScreen({
   onClose,
   onOpenClinic,
@@ -107,30 +99,33 @@ export function ClinicCatalogScreen({
       <DecisionPanel>
         <DecisionHeading
           kicker={copy.kicker}
-          title="Что проверить первым"
+          title="Выберите подходящий филиал"
           detail={copy.detail}
         />
         <Text style={{ ...t.typography.caption, color: decisionColors.muted }}>
           Адрес и контакт доступны в каталоге. Информационная цена и точное свободное время появятся после выбора услуги.
         </Text>
+        <View accessibilityLabel="Возможности каталога" style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+          <Fact tone="positive">Онлайн-запись</Fact>
+          <Fact>Название или адрес</Fact>
+        </View>
+        <View accessibilityRole="search" style={{ flexDirection: desktop ? "row" : "column", gap: t.spacing.sm }}>
+          <TextInput
+            accessibilityLabel="Поиск по клинике или адресу"
+            placeholder="Клиника или адрес"
+            value={searchInput}
+            maxLength={120}
+            onChangeText={(value) => {
+              setSearchInput(value);
+              if (!value.trim()) setSubmittedSearch("");
+            }}
+            onSubmitEditing={submitSearch}
+            returnKeyType="search"
+            style={{ flex: 1, minHeight: 48, borderWidth: 1, borderColor: decisionColors.border, borderRadius: t.radius.control, paddingHorizontal: t.spacing.md, color: decisionColors.ink, backgroundColor: decisionColors.surface, ...t.typography.body }}
+          />
+          <Button label={query.isFetching && submittedSearch ? "Ищем…" : "Найти"} disabled={query.isFetching} onPress={submitSearch} />
+        </View>
       </DecisionPanel>
-
-      <View accessibilityRole="search" style={{ flexDirection: desktop ? "row" : "column", gap: t.spacing.sm }}>
-        <TextInput
-          accessibilityLabel="Поиск по клинике или адресу"
-          placeholder="Клиника или адрес"
-          value={searchInput}
-          maxLength={120}
-          onChangeText={(value) => {
-            setSearchInput(value);
-            if (!value.trim()) setSubmittedSearch("");
-          }}
-          onSubmitEditing={submitSearch}
-          returnKeyType="search"
-          style={{ flex: 1, minHeight: 44, borderWidth: 1, borderColor: decisionColors.border, borderRadius: 14, paddingHorizontal: 14, color: decisionColors.ink, backgroundColor: decisionColors.surface }}
-        />
-        <Button label={query.isFetching && submittedSearch ? "Ищем…" : "Найти"} disabled={query.isFetching} onPress={submitSearch} />
-      </View>
 
       {query.isPending ? <StateMessage kind="loading" title="Загружаем клиники" /> : null}
       {query.isError ? (
@@ -156,16 +151,17 @@ export function ClinicCatalogScreen({
       ) : null}
 
       {!query.isError && clinics.length ? (
-        <View style={{ gap: 10 }}>
-          {clinics.map((clinic, index) => {
+        <View style={{ gap: 12 }}>
+          {clinics.map((clinic) => {
             const selected = selectedLocationId === clinic.locationId;
-            const image = referenceClinicImages[index % referenceClinicImages.length];
             return (
               <View
                 key={clinic.locationId}
                 style={{
-                  padding: 14,
-                  gap: 14,
+                  width: "100%",
+                  minWidth: 0,
+                  padding: desktop ? 18 : 14,
+                  gap: 12,
                   borderWidth: selected ? 2 : 1,
                   borderColor: selected ? decisionColors.blue : decisionColors.border,
                   borderRadius: 20,
@@ -177,45 +173,14 @@ export function ClinicCatalogScreen({
               >
                 <View
                   style={{
-                    width: desktop ? 124 : "100%",
-                    height: desktop ? 126 : 156,
-                    borderRadius: 16,
-                    overflow: "hidden",
-                    backgroundColor: decisionColors.blueSoft,
-                  }}
-                >
-                  <Image
-                    accessibilityLabel="Интерьер ветеринарной клиники"
-                    source={image}
-                    resizeMode="cover"
-                    style={{ width: "100%", height: "100%" }}
-                  />
-                  <View
-                    style={{
-                      position: "absolute",
-                      left: 6,
-                      bottom: 6,
-                      paddingHorizontal: 7,
-                      paddingVertical: 4,
-                      borderRadius: 9,
-                      backgroundColor: "rgba(24,37,65,.82)",
-                    }}
-                  >
-                    <Text style={{ fontSize: 9, color: "#fff", fontWeight: "700" }}>
-                      Интерьер клиники
-                    </Text>
-                  </View>
-                </View>
-
-                <View
-                  style={{
                     flex: 1,
                     minWidth: 0,
                     justifyContent: "center",
                     gap: 7,
                   }}
                 >
-                  <View style={{ gap: 3 }}>
+                  <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+                    <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
                     <Text
                       style={{
                         fontSize: 18,
@@ -227,14 +192,6 @@ export function ClinicCatalogScreen({
                       {clinic.name}
                     </Text>
                     <Text style={{ ...t.typography.caption, color: decisionColors.blue, fontWeight: "800" }}>Филиал · {clinic.address}</Text>
-                    <Text
-                      style={{
-                        ...t.typography.caption,
-                        color: decisionColors.muted,
-                      }}
-                    >
-                      {clinic.address}
-                    </Text>
                     {clinic.phone ? (
                       <Text
                         style={{
@@ -245,10 +202,14 @@ export function ClinicCatalogScreen({
                         {clinic.phone}
                       </Text>
                     ) : null}
+                    </View>
+                    <View style={{ paddingHorizontal: 9, paddingVertical: 6, borderRadius: t.radius.pill, backgroundColor: decisionColors.greenSoft }}>
+                      <Text style={{ ...t.typography.caption, fontSize: 11, color: decisionColors.green, fontWeight: "800" }}>Онлайн-запись</Text>
+                    </View>
                   </View>
 
                   <FactRow>
-                    <Fact tone="positive">Онлайн-запись</Fact>
+                    <Fact>Услуги · следующий шаг</Fact>
                     <Fact>Время · после услуги</Fact>
                     <Fact>Цена · после услуги</Fact>
                   </FactRow>
@@ -259,44 +220,17 @@ export function ClinicCatalogScreen({
                       color: decisionColors.muted,
                     }}
                   >
-                    Адрес и контакт предоставлены клиникой. Изображение помогает сориентироваться и может отличаться от интерьера.
+                    Рейтинг, расстояние и ближайшее время не показываются: каталог пока не получает эти данные.
                   </Text>
                 </View>
 
                 <View
                   style={{
-                    width: desktop ? 224 : "100%",
-                    minHeight: 126,
-                    padding: 12,
-                    borderRadius: 16,
-                    backgroundColor: decisionColors.greenSoft,
-                    justifyContent: "space-between",
-                    gap: 10,
+                    marginTop: "auto",
+                    width: desktop ? 190 : "100%",
+                    justifyContent: "flex-end",
                   }}
                 >
-                  <View style={{ gap: 4 }}>
-                    <Text
-                      style={{
-                        ...t.typography.caption,
-                        color: decisionColors.green,
-                        fontWeight: "800",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Почему открыть
-                    </Text>
-                    <Text
-                      style={{
-                        ...t.typography.secondaryBody,
-                        color: decisionColors.ink,
-                        fontWeight: "700",
-                      }}
-                    >
-                      {mode === "time"
-                        ? "Увидеть услуги и перейти к реальным свободным слотам"
-                        : "Проверить услуги, цену и доступное время без звонка"}
-                    </Text>
-                  </View>
                   <Button
                     label={mode === "browse" ? "Посмотреть услуги" : "Открыть клинику"}
                     onPress={() => {

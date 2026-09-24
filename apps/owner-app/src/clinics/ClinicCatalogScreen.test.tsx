@@ -14,8 +14,11 @@ describe('ClinicCatalogScreen',()=>{
     expect(screen.queryByRole('button',{name:'Цена'})).toBeNull();
     expect(screen.queryByRole('button',{name:'Ближе'})).toBeNull();
     expect(screen.queryByRole('button',{name:'Уверенность'})).toBeNull();
-    expect(screen.getByText('Clinic')).toBeTruthy();expect(screen.getByText('Address')).toBeTruthy();expect(screen.getByText('+7000')).toBeTruthy();
+    expect(screen.getByText('Clinic')).toBeTruthy();expect(screen.getByText('+7000')).toBeTruthy();
     expect(screen.getByText('Филиал · Address')).toBeTruthy();
+    expect(screen.queryByLabelText('Интерьер ветеринарной клиники')).toBeNull();
+    expect(screen.getByText(/Рейтинг, расстояние и ближайшее время не показываются/)).toBeTruthy();
+    expect(screen.getAllByText('Онлайн-запись').length).toBeGreaterThan(0);
     expect(screen.getByRole('button',{name:'Найти'})).toBeTruthy();
     expect(screen.getByLabelText('Поиск по клинике или адресу')).toBeTruthy();
     fireEvent.press(screen.getByText('Открыть клинику'));
