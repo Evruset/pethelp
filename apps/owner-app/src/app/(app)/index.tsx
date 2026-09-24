@@ -14,6 +14,7 @@ import {
 import { useAuthJourney } from '@/auth/AuthJourneyProvider';
 import { BookingReviewScreen } from '@/booking/BookingReviewScreen';
 import { OwnerBookingsScreen } from '@/bookings/OwnerBookingsScreen';
+import { OwnerBookingDetailScreen } from '@/bookings/OwnerBookingDetailScreen';
 import { AvailabilityScreen } from '@/clinics/AvailabilityScreen';
 import type { AvailabilityHandoff } from '@/clinics/availability-api';
 import { ClinicCatalogScreen } from '@/clinics/ClinicCatalogScreen';
@@ -56,6 +57,7 @@ function AuthorityScopedHome() {
   const [lastService, setLastService] = useState<ClinicServiceHandoff | null>(null);
   const [lastAvailability, setLastAvailability] = useState<AvailabilityHandoff | null>(null);
   const [globalArea, setGlobalArea] = useState<'HOME' | 'PETS' | 'BOOKINGS'>('HOME');
+  const [openedBookingId, setOpenedBookingId] = useState<string | null>(null);
   const [globalDiaryPet, setGlobalDiaryPet] = useState<Pet | null>(null);
   const { error, logout, session } = useSession();
   const { resumedIntent, consumeResumedIntent } = useAuthJourney();
@@ -90,7 +92,7 @@ function AuthorityScopedHome() {
 
   const openHome = () => { closeJourney(); setGlobalDiaryPet(null); setGlobalArea('HOME'); };
   const openPets = () => { closeJourney(); setGlobalDiaryPet(null); setGlobalArea('PETS'); };
-  const openBookings = () => { closeJourney(); setGlobalDiaryPet(null); setGlobalArea('BOOKINGS'); };
+  const openBookings = () => { closeJourney(); setGlobalDiaryPet(null); setOpenedBookingId(null); setGlobalArea('BOOKINGS'); };
   const openClinics = () => { setGlobalArea('HOME'); setGlobalDiaryPet(null); startIntent('CLINICS'); };
   const openHomeAction = (actionCode: OwnerHomeActionCode) => {
     if (actionCode === 'OPEN_CATALOG') startIntent('CLINICS');
@@ -100,7 +102,8 @@ function AuthorityScopedHome() {
   if (globalDiaryPet) return <PetDiaryScreen petId={globalDiaryPet.petId} petName={globalDiaryPet.name} onBack={() => setGlobalDiaryPet(null)} onSwitchPet={() => setGlobalDiaryPet(null)} />;
 
   if (globalArea === 'PETS' && !intent) return <OwnerPetsScreen pets={pets.pets} loading={pets.loading} error={pets.error} onHome={openHome} onClinics={openClinics} onBookings={openBookings} onRetry={pets.retry} onDiary={setGlobalDiaryPet} />;
-  if (globalArea === 'BOOKINGS' && !intent) return <OwnerBookingsScreen onHome={openHome} onClinics={openClinics} onPets={openPets} />;
+  if (globalArea === 'BOOKINGS' && openedBookingId && !intent) return <OwnerBookingDetailScreen bookingId={openedBookingId} onBack={() => setOpenedBookingId(null)} />;
+  if (globalArea === 'BOOKINGS' && !intent) return <OwnerBookingsScreen onHome={openHome} onClinics={openClinics} onPets={openPets} onOpenBooking={setOpenedBookingId} />;
 
   if (selectedAvailability) {
     if (pets.continuedPetId) {
