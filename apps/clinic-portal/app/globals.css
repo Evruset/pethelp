@@ -329,7 +329,8 @@ html {
 }
 
 .vh-clinic-topbar p,
-.vh-clinic-topbar h1 {
+.vh-clinic-topbar h1,
+.vh-v50-context-title {
   margin: 0;
 }
 
@@ -447,7 +448,8 @@ html {
 .vh-v50-brand-copy,
 .vh-v50-context-path,
 .vh-v50-context-path p,
-.vh-v50-context-path h1 {
+.vh-v50-context-path h1,
+.vh-v50-context-title {
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -597,7 +599,8 @@ html {
     padding: 10px 14px;
   }
 
-  .vh-v50-clinic-shell .vh-clinic-topbar h1 {
+  .vh-v50-clinic-shell .vh-clinic-topbar h1,
+  .vh-v50-clinic-shell .vh-v50-context-title {
     font-size: 18px;
   }
 

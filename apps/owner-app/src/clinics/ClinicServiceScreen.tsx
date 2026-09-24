@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Image,
   Platform,
   Pressable,
   Text,
@@ -10,13 +9,15 @@ import {
 } from "react-native";
 import { Button, StateMessage } from "@/ui/primitives";
 import { uiTokens as t } from "@/ui/tokens";
-import { v50ReferenceAssets } from "@/ui/v50-reference-assets";
+import { BookingProgress } from "@/booking/BookingProgress";
+import { formatMoney } from "@/ui/formatters";
 import { useSession } from "@/session/SessionProvider";
 import {
   clinicServiceApi,
   type ClinicServiceHandoff,
 } from "./clinic-service-api";
 import type { ClinicCatalogHandoff } from "./clinic-catalog-api";
+import { doctorApi } from "./doctor-api";
 import {
   ClinicDecisionLayout,
   DecisionHeading,
@@ -29,17 +30,21 @@ import {
 
 export function ClinicServiceScreen({
   clinic,
+  petName,
+  initialServiceId,
   onBack,
   onContinue,
 }: {
   clinic: ClinicCatalogHandoff;
+  petName?: string;
+  initialServiceId?: string;
   onBack(): void;
   onContinue(value: ClinicServiceHandoff): void;
 }) {
   const { session } = useSession();
   const { width } = useWindowDimensions();
   const desktop = Platform.OS === "web" && width >= 900;
-  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(initialServiceId ?? null);
   const [stale, setStale] = useState(false);
   const [refreshFailed, setRefreshFailed] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -59,6 +64,11 @@ export function ClinicServiceScreen({
         clinic.locationId,
         signal,
       ),
+  });
+  const doctorsQuery = useQuery({
+    queryKey: ["owner", session?.cacheScope, "clinic-doctors", clinic.clinicId, clinic.locationId],
+    enabled: Boolean(session),
+    queryFn: ({ signal }) => doctorApi.list(session!.opaqueCredential, clinic.clinicId, clinic.locationId, signal),
   });
   const selectedService = query.data?.services.find(
     (service) => service.serviceId === selectedServiceId,
@@ -103,6 +113,7 @@ export function ClinicServiceScreen({
       subtitle="Клиника уже выбрана. Теперь выберите услугу — затем покажем доступное время."
       onBack={onBack}
     >
+      <BookingProgress current={2} facts={petName ? [`Питомец: ${petName}`] : []} />
       {query.isPending ? <StateMessage kind="loading" title="Загружаем услуги" /> : null}
       {query.isError ? (
         <StateMessage
@@ -118,76 +129,55 @@ export function ClinicServiceScreen({
           }
         />
       ) : null}
+      {!query.isError && query.data ? (
+        <DecisionPanel>
+          <View
+            style={{
+              flexDirection: desktop ? "row" : "column",
+              justifyContent: "space-between",
+              alignItems: desktop ? "center" : "flex-start",
+              gap: 8,
+            }}
+          >
+            <DecisionHeading
+              kicker="Выбранная клиника"
+              title={query.data.name}
+              detail={query.data.address}
+            />
+            <FactRow>
+              <Fact tone="positive">Онлайн-запись</Fact>
+              <Fact>{query.data.services.length} услуг</Fact>
+              <Fact>Время — следующим шагом</Fact>
+            </FactRow>
+          </View>
+          {query.data.phone ? (
+            <Text style={{ ...t.typography.secondaryBody, color: decisionColors.muted }}>
+              {query.data.phone}
+            </Text>
+          ) : null}
+          <Text
+            style={{
+              ...t.typography.caption,
+              color: decisionColors.muted,
+              fontWeight: "800",
+            }}
+          >
+            Ветеринарные врачи
+          </Text>
+          {doctorsQuery.isPending ? <Text style={{ ...t.typography.secondaryBody, color: decisionColors.muted }}>Загружаем специалистов…</Text> : null}
+          {doctorsQuery.data?.doctors?.map((doctor) => (
+            <View key={doctor.id} style={{ padding: 12, gap: 3, borderRadius: 14, backgroundColor: decisionColors.blueSoft }}>
+              <Text style={{ ...t.typography.body, color: decisionColors.ink, fontWeight: "800" }}>{doctor.displayName}</Text>
+              <Text style={{ ...t.typography.caption, color: decisionColors.muted }}>{doctor.title}</Text>
+              {doctor.nextAvailableAt && doctor.freshness === "CURRENT" ? <Text style={{ ...t.typography.caption, color: decisionColors.blue }}>Есть актуальное опубликованное время</Text> : null}
+            </View>
+          ))}
+          {doctorsQuery.isError ? <Text style={{ ...t.typography.caption, color: decisionColors.muted }}>Список специалистов сейчас недоступен. Услуги филиала можно выбрать ниже.</Text> : null}
+        </DecisionPanel>
+      ) : null}
 
       {!query.isError && query.data ? (
         <>
-          <View
-            style={{
-              minHeight: desktop ? 154 : undefined,
-              padding: 14,
-              borderWidth: 1,
-              borderColor: "rgba(20,154,87,.20)",
-              borderRadius: 18,
-              backgroundColor: decisionColors.surface,
-              flexDirection: desktop ? "row" : "column",
-              gap: 14,
-              ...t.shadow.card,
-            }}
-          >
-            <View
-              style={{
-                width: desktop ? 260 : "100%",
-                height: desktop ? 150 : 154,
-                borderRadius: 16,
-                overflow: "hidden",
-                backgroundColor: decisionColors.blueSoft,
-              }}
-            >
-              <Image
-                accessibilityLabel="Визуальный референс VetHelp: интерьер клиники"
-                source={v50ReferenceAssets.clinicReception}
-                resizeMode="cover"
-                style={{ width: "100%", height: "100%" }}
-              />
-              <View
-                style={{
-                  position: "absolute",
-                  left: 7,
-                  bottom: 7,
-                  paddingHorizontal: 7,
-                  paddingVertical: 4,
-                  borderRadius: 9,
-                  backgroundColor: "rgba(24,37,65,.82)",
-                }}
-              >
-                <Text style={{ fontSize: 9, color: "#fff", fontWeight: "700" }}>
-                  V50 референс
-                </Text>
-              </View>
-            </View>
-
-            <View style={{ flex: 1, minWidth: 0, justifyContent: "center", gap: 8 }}>
-              <DecisionHeading
-                kicker="Выбранная клиника"
-                title={query.data.name}
-                detail={query.data.address}
-              />
-              <FactRow>
-                <Fact tone="positive">Онлайн-запись</Fact>
-                <Fact>{query.data.services.length} услуг</Fact>
-                <Fact>Время · следующим шагом</Fact>
-              </FactRow>
-              {query.data.phone ? (
-                <Text style={{ ...t.typography.caption, color: decisionColors.muted }}>
-                  {query.data.phone}
-                </Text>
-              ) : null}
-              <Text style={{ ...t.typography.caption, color: decisionColors.muted }}>
-                Изображение — визуальный V50-референс, не фактическое фото этой клиники.
-              </Text>
-            </View>
-          </View>
-
           <ResponsiveColumns
             primary={
               <DecisionPanel>
@@ -211,6 +201,7 @@ export function ClinicServiceScreen({
                           key={service.serviceId}
                           accessibilityRole="radio"
                           accessibilityState={{ selected }}
+                          aria-checked={selected}
                           onPress={() => {
                             setSelectedServiceId(service.serviceId);
                             setStale(false);
@@ -245,7 +236,7 @@ export function ClinicServiceScreen({
                                 color: decisionColors.muted,
                               }}
                             >
-                              Информационная цена: {service.price.amount} {service.price.currency}
+                              Ориентировочная стоимость: {formatMoney(service.price.amount, service.price.currency)}
                             </Text>
                           </View>
                           <View
@@ -285,7 +276,7 @@ export function ClinicServiceScreen({
                   title={selectedService?.name ?? "Услуга не выбрана"}
                   detail={
                     selectedService
-                      ? `${selectedService.price.amount} ${selectedService.price.currency} · информационная цена`
+                      ? `${formatMoney(selectedService.price.amount, selectedService.price.currency)} · ориентировочная стоимость`
                       : "Выберите одну услугу слева."
                   }
                 />

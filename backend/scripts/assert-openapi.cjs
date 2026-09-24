@@ -168,9 +168,11 @@ async function main() {
   const ownerClinicCatalog = document.paths?.['/v1/owner/clinic-catalog']?.get;
   required(ownerClinicCatalog, 'Owner clinic catalog route is missing');
   requireBearerAuth(ownerClinicCatalog, 'Owner clinic catalog');
-  requireStatuses(ownerClinicCatalog, ['200', '401', '403', '500'], 'Owner clinic catalog');
-  requireErrorSchemas(ownerClinicCatalog, ['401', '403', '500'], 'Owner clinic catalog');
+  requireStatuses(ownerClinicCatalog, ['200', '400', '401', '403', '500'], 'Owner clinic catalog');
+  requireErrorSchemas(ownerClinicCatalog, ['400', '401', '403', '500'], 'Owner clinic catalog');
   required(responseSchemaRef(ownerClinicCatalog, '200') === '#/components/schemas/OwnerClinicCatalogDto', 'Owner clinic catalog response is not typed');
+  const ownerClinicSearch = ownerClinicCatalog.parameters?.find((parameter) => parameter.in === 'query' && parameter.name === 'q');
+  required(ownerClinicSearch?.required === false && ownerClinicSearch.schema?.type === 'string' && ownerClinicSearch.schema?.maxLength === 120, 'Owner clinic catalog must expose optional q with maxLength 120');
   const ownerClinicServices = document.paths?.['/v1/owner/clinic-catalog/{clinicId}/locations/{locationId}']?.get;
   required(ownerClinicServices, 'Owner clinic service route is missing');
   requireBearerAuth(ownerClinicServices, 'Owner clinic service catalog');

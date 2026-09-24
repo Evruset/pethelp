@@ -14,11 +14,11 @@ export const decisionColors = Object.freeze({
   surface: "#FFFFFF",
   soft: "#F7FAFF",
   ink: "#182541",
-  muted: "#667793",
-  blue: "#1767F7",
+  muted: "#53647F",
+  blue: "#0D55D8",
   blueSoft: "#E8F1FF",
   border: "#C8DAF3",
-  green: "#167A55",
+  green: "#116244",
   greenSoft: "#E7F6EF",
 });
 
@@ -28,16 +28,20 @@ export function ClinicDecisionLayout({
   subtitle,
   onBack,
   children,
+  globalNavigation,
 }: PropsWithChildren<{
   eyebrow: string;
   title: string;
   subtitle: string;
   onBack?(): void;
+  globalNavigation?: (desktop: boolean) => ReactNode;
 }>) {
   const { width } = useWindowDimensions();
   const desktop = Platform.OS === "web" && width >= 900;
   return (
     <OwnerAppFrame wide>
+      <View style={{ flex: 1, backgroundColor: decisionColors.canvas }}>
+      {desktop && globalNavigation ? globalNavigation(true) : null}
       <ScrollView
         style={{ flex: 1, backgroundColor: decisionColors.canvas }}
         contentContainerStyle={{
@@ -88,6 +92,8 @@ export function ClinicDecisionLayout({
         </View>
         {children}
       </ScrollView>
+      {!desktop && globalNavigation ? globalNavigation(false) : null}
+      </View>
     </OwnerAppFrame>
   );
 }
