@@ -1,5 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import { useState } from 'react';
+import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 
 import { OwnerGlobalNav } from '@/navigation/OwnerGlobalNav';
 import { useSession } from '@/session/SessionProvider';
@@ -44,6 +45,7 @@ export function OwnerBookingsScreen({
   const { session } = useSession();
   const { width } = useWindowDimensions();
   const desktop = width >= 900;
+  const [tab, setTab] = useState<'ACTIVE' | 'HISTORY'>('ACTIVE');
   const query = useInfiniteQuery({
     queryKey: ['owner', session?.cacheScope, 'bookings'],
     enabled: Boolean(session),
@@ -125,9 +127,30 @@ export function OwnerBookingsScreen({
             />
           ) : null}
 
-          <BookingSection title="Требуют внимания" rows={merged.requiresAction} onOpenBooking={onOpenBooking} />
-          <BookingSection title="Предстоящие" rows={merged.active} onOpenBooking={onOpenBooking} />
-          <BookingSection title="История" rows={merged.history} onOpenBooking={onOpenBooking} />
+          {hasSnapshot && total > 0 ? (
+            <View style={{ flexDirection: desktop ? 'row' : 'column', alignItems: 'flex-start', gap: desktop ? 22 : 14 }}>
+              <View style={{ flex: 1, width: desktop ? undefined : '100%', minWidth: 0, gap: 14, padding: desktop ? 18 : 0, borderRadius: desktop ? t.radius.section : 0, backgroundColor: desktop ? t.color.surface : 'transparent', borderWidth: desktop ? 1 : 0, borderColor: h.border }}>
+                <View accessibilityRole="tablist" style={{ alignSelf: desktop ? 'flex-start' : 'stretch', flexDirection: 'row', padding: 4, borderRadius: t.radius.control, backgroundColor: h.blueSoft }}>
+                  <BookingTab label="Активные" selected={tab === 'ACTIVE'} onPress={() => setTab('ACTIVE')} />
+                  <BookingTab label="История" selected={tab === 'HISTORY'} onPress={() => setTab('HISTORY')} />
+                </View>
+                {tab === 'ACTIVE' ? <>
+                  <BookingSection title="Требуют внимания" rows={merged.requiresAction} desktop={desktop} onOpenBooking={onOpenBooking} />
+                  <BookingSection title="Предстоящие" rows={merged.active} desktop={desktop} onOpenBooking={onOpenBooking} />
+                  {merged.requiresAction.length + merged.active.length === 0 && !query.hasNextPage ? <StateMessage kind="empty" title="Активных записей нет" body="Завершённые и отменённые записи доступны в истории." /> : null}
+                </> : <>
+                  <BookingSection title="История" rows={merged.history} desktop={desktop} onOpenBooking={onOpenBooking} />
+                  {merged.history.length === 0 && !query.hasNextPage ? <StateMessage kind="empty" title="История пока пуста" body="Здесь появятся завершённые и отменённые записи." /> : null}
+                </>}
+              </View>
+              {desktop ? <View style={{ width: 320, gap: 12, padding: 20, borderRadius: t.radius.section, backgroundColor: t.color.surface, borderWidth: 1, borderColor: h.border }}>
+                <Text style={{ ...t.typography.caption, color: h.bluePressed, fontWeight: '800', textTransform: 'uppercase' }}>Новая запись</Text>
+                <Text accessibilityRole="header" style={{ ...t.typography.sectionTitle, color: h.ink }}>Нужна помощь питомцу?</Text>
+                <Text style={{ ...t.typography.secondaryBody, color: h.muted }}>Выберите клинику, услугу и подходящее время.</Text>
+                <Button label="Найти клинику" onPress={onClinics} />
+              </View> : null}
+            </View>
+          ) : null}
 
           {query.isFetchNextPageError ? (
             <InlineBanner
@@ -160,55 +183,52 @@ export function OwnerBookingsScreen({
   );
 }
 
-function BookingSection({ title, rows, onOpenBooking }: { title: string; rows: readonly OwnerBookingSummary[]; onOpenBooking(bookingId: string): void }) {
+function BookingTab({ label, selected, onPress }: { label: string; selected: boolean; onPress(): void }) {
+  return <Pressable accessibilityRole="tab" accessibilityState={{ selected }} onPress={onPress} style={({ pressed }) => ({ minHeight: 44, minWidth: 108, flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, borderRadius: t.radius.control, backgroundColor: selected ? t.color.surface : 'transparent', opacity: pressed ? 0.7 : 1, ...(selected ? t.shadow.card : {}) })}><Text style={{ ...t.typography.button, color: selected ? h.bluePressed : h.ink }}>{label}</Text></Pressable>;
+}
+
+function BookingSection({ title, rows, desktop, onOpenBooking }: { title: string; rows: readonly OwnerBookingSummary[]; desktop: boolean; onOpenBooking(bookingId: string): void }) {
   if (rows.length === 0) return null;
   return (
     <View style={{ gap: 9 }}>
       <Text accessibilityRole="header" style={{ ...t.typography.sectionTitle, color: h.ink }}>{title}</Text>
       <View style={{ gap: 10 }}>
-        {rows.map((row) => <BookingCard key={row.holdId} row={row} onOpen={() => onOpenBooking(row.holdId)} />)}
+        {rows.map((row) => <BookingCard key={row.holdId} row={row} desktop={desktop} onOpen={() => onOpenBooking(row.holdId)} />)}
       </View>
     </View>
   );
 }
 
-function BookingCard({ row, onOpen }: { row: OwnerBookingSummary; onOpen(): void }) {
+function BookingCard({ row, desktop, onOpen }: { row: OwnerBookingSummary; desktop: boolean; onOpen(): void }) {
   const when = formatBookingStart(row.startsAt);
   return (
     <View
       accessible
       accessibilityLabel={`${row.presentation.label}. ${row.clinic.name}. ${row.pet.name}. ${when}.`}
       style={{
-        padding: 16,
-        gap: 10,
+        padding: 14,
+        gap: desktop ? 14 : 9,
         borderWidth: 1,
         borderColor: h.border,
         borderRadius: 20,
         backgroundColor: '#fff',
+        flexDirection: desktop ? 'row' : 'column',
+        alignItems: desktop ? 'center' : 'stretch',
         ...t.shadow.card,
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-        <View style={{ flex: 1, gap: 3 }}>
-          <Text style={{ ...t.typography.sectionTitle, color: h.ink }}>{row.clinic.name}</Text>
-          <Text style={{ ...t.typography.caption, color: h.muted }}>{row.clinic.address}</Text>
+      <View style={{ flex: 1, minWidth: 0, gap: 9 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+          <Text style={{ flex: 1, ...t.typography.sectionTitle, color: h.ink }}>{when}</Text>
+          <StatusBadge label={row.presentation.label} tone={statusTone(row.presentation.tone)} />
         </View>
-        <StatusBadge label={row.presentation.label} tone={statusTone(row.presentation.tone)} />
+        <Text style={{ ...t.typography.body, color: h.ink, fontWeight: '600' }}>{row.pet.name} · {speciesLabel(row.pet.species)}</Text>
+        <Text style={{ ...t.typography.secondaryBody, color: h.muted }}>{row.clinic.name} · {row.clinic.address}</Text>
+        <Text style={{ ...t.typography.caption, color: h.muted }}>{row.presentation.description}</Text>
       </View>
-      <Text style={{ ...t.typography.secondaryBody, color: h.ink }}>{row.presentation.description}</Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
-        <Fact text={when} />
-        <Fact text={`${row.pet.name} · ${speciesLabel(row.pet.species)}`} />
+      <View style={{ width: desktop ? 184 : '100%' }}>
+        <Button label="Подробнее" variant="secondary" onPress={onOpen} />
       </View>
-      <Button label="Подробнее" variant="secondary" onPress={onOpen} />
-    </View>
-  );
-}
-
-function Fact({ text }: { text: string }) {
-  return (
-    <View style={{ minHeight: 34, justifyContent: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, backgroundColor: h.blueSoft }}>
-      <Text style={{ ...t.typography.caption, color: h.ink, fontWeight: '600' }}>{text}</Text>
     </View>
   );
 }
