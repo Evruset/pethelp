@@ -6,8 +6,8 @@ const PET={id:'22222222-2222-4222-8222-222222222222',name:'Барни',species:'
 const SNAPSHOT:OwnerHomeSnapshot={schemaVersion:1,serverNow:'2026-09-10T08:00:00.000Z',pets:[PET],selectedPet:PET,selectionSource:'DEFAULT',nextAction:{type:'START_PLANNED_CARE',priority:'LOW',sourceType:'PET',sourceId:PET.id,title:'Спланируйте заботу о питомце',description:'Выберите клинику или услугу в каталоге VetHelp.',deadlineAt:null,actionCode:'OPEN_CATALOG'},activeCare:null};
 
 it('renders the V50 Home composition and keeps authoritative workflow actions', async () => {
-  const onBook=jest.fn(),onClinics=jest.fn(),onPets=jest.fn(),onFindTime=jest.fn(),onDiary=jest.fn(),onLogout=jest.fn();
-  const view=await render(<OwnerHome onBook={onBook} onClinics={onClinics} onPets={onPets} onFindTime={onFindTime} onDiary={onDiary} onLogout={onLogout} snapshot={SNAPSHOT} onHomeAction={()=>undefined}/>);
+  const onBook=jest.fn(),onClinics=jest.fn(),onBookings=jest.fn(),onPets=jest.fn(),onFindTime=jest.fn(),onDiary=jest.fn(),onLogout=jest.fn();
+  const view=await render(<OwnerHome onBook={onBook} onClinics={onClinics} onBookings={onBookings} onPets={onPets} onFindTime={onFindTime} onDiary={onDiary} onLogout={onLogout} snapshot={SNAPSHOT} onHomeAction={()=>undefined}/>);
   expect(view.getByLabelText('Основная навигация')).toBeTruthy();
   expect(view.getByRole('header',{name:'Здравствуйте!'})).toBeTruthy();
   expect(view.queryByText(/Доброе утро/)).toBeNull();
@@ -21,12 +21,16 @@ it('renders the V50 Home composition and keeps authoritative workflow actions', 
   expect(view.queryByText('Ближайших записей пока нет')).toBeNull();
   expect(view.getByText('Спланируйте заботу о питомце')).toBeTruthy();
   expect(view.getByText('Плановый шаг')).toBeTruthy();
+  expect(view.getByLabelText('Фотография Барни отсутствует')).toBeTruthy();
+  expect(view.getByText('Фото не добавлено')).toBeTruthy();
+  expect(view.queryByLabelText('Клиника, услуга или симптом')).toBeNull();
   expect(view.queryByText(/Home пока/)).toBeNull();
   expect(view.queryByText(/подтверждённый профиль/)).toBeNull();
   expect(view.queryByText(/API|backend|authoritative|V50 референс/)).toBeNull();
   fireEvent.press(view.getAllByText('Записаться')[0]);
   fireEvent.press(view.getAllByText('Выбрать клинику')[0]);
   fireEvent.press(view.getAllByText('Найти время')[0]);
+  fireEvent.press(view.getByRole('button', { name: /Мои записи/ }));
   fireEvent.press(view.getByRole('button', { name: /Питомцы/ }));
   fireEvent.press(view.getAllByText('Дневник')[0]);
   fireEvent.press(view.getByText('Выйти'));
@@ -34,6 +38,7 @@ it('renders the V50 Home composition and keeps authoritative workflow actions', 
   expect(onPets).toHaveBeenCalledTimes(1);
   expect(onClinics).toHaveBeenCalledTimes(1);
   expect(onFindTime).toHaveBeenCalledTimes(1);
+  expect(onBookings).toHaveBeenCalledTimes(1);
   expect(onDiary).toHaveBeenCalledTimes(1);
   expect(onLogout).toHaveBeenCalledTimes(1);
   const confirmed={...SNAPSHOT,nextAction:{...SNAPSHOT.nextAction,type:'UPCOMING_CONFIRMED_VISIT' as const,sourceType:'BOOKING_HOLD' as const,sourceId:'33333333-3333-4333-8333-333333333333',title:'Ближайший визит подтверждён',description:'12 сентября, 11:00',deadlineAt:'2026-09-12T08:00:00.000Z',actionCode:'OPEN_APPOINTMENT' as const},activeCare:{sourceType:'BOOKING_HOLD' as const,sourceId:'33333333-3333-4333-8333-333333333333',statusCode:'CONFIRMED' as const,title:'Добрый ветеринар',description:'Запись подтверждена',startsAt:'2026-09-12T08:00:00.000Z',deadlineAt:'2026-09-12T08:00:00.000Z',clinicName:'Добрый ветеринар',petId:PET.id,actionCode:'OPEN_APPOINTMENT' as const}};
@@ -41,5 +46,13 @@ it('renders the V50 Home composition and keeps authoritative workflow actions', 
   expect(view.getByText('Ближайший визит подтверждён')).toBeTruthy();
   expect(view.getByText('Добрый ветеринар')).toBeTruthy();
   expect(view.queryByText('Нужна новая запись?')).toBeNull();
+  await view.unmount();
+});
+
+it('uses the photo branch only when an authoritative pet photo URL exists', async () => {
+  const petWithPhoto={...PET,photoUrl:'https://cdn.test.invalid/pets/barney.jpg'};
+  const snapshot={...SNAPSHOT,pets:[petWithPhoto],selectedPet:petWithPhoto};
+  const view=await render(<OwnerHome onBook={jest.fn()} onClinics={jest.fn()} onPets={jest.fn()} onFindTime={jest.fn()} onDiary={jest.fn()} onLogout={jest.fn()} snapshot={snapshot}/>);
+  expect(view.queryByText('Фото не добавлено')).toBeNull();
   await view.unmount();
 });

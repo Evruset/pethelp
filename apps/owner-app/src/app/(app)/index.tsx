@@ -270,15 +270,15 @@ export function OwnerHome({
   const petCount = snapshot?.pets.length ?? 0;
   const nav = [
     ['Главная', '⌂', undefined, true],
-    ['Клиники', '▥', onClinics, false],
-    ['Записи', '◫', onBookings, false],
     ['Питомцы', '●', onPets, false],
+    ['Мои записи', '◫', onBookings, false],
+    ['Клиники', '▥', onClinics, false],
   ] as const;
 
   return (
     <OwnerAppFrame wide>
       <View style={{ flex: 1, width: '100%', maxWidth: h.desktopMaxWidth, alignSelf: 'center', backgroundColor: h.canvas }}>
-        {desktop ? <DesktopShell nav={nav} petCount={petCount} onLogout={onLogout} /> : <MobileHeader onLogout={onLogout} />}
+        {desktop ? <DesktopShell nav={nav} petCount={petCount} onLogout={onLogout} /> : null}
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{
@@ -289,7 +289,7 @@ export function OwnerHome({
           }}
           showsVerticalScrollIndicator={false}
         >
-          <HomeHeader petName={petName} desktop={desktop} />
+          <HomeHeader petName={petName} desktop={desktop} onLogout={desktop ? undefined : onLogout} />
           {resumed ? (
             <Surface style={{ padding: 16 }}>
               <StatusBadge label="Запись не потеряна" tone="info" />
@@ -311,8 +311,6 @@ export function OwnerHome({
             onClinics={onClinics}
             onFindTime={onFindTime}
           />
-          <ImmediateValue petName={petName} desktop={desktop} onClinics={onClinics} />
-
           <View style={{ flexDirection: desktop ? 'row' : 'column', gap: 16, alignItems: 'stretch' }}>
             <View style={{ flex: desktop ? 1.05 : undefined }}>
               <PetHero
@@ -338,6 +336,8 @@ export function OwnerHome({
               />
             </View>
           </View>
+
+          <ImmediateValue petName={petName} desktop={desktop} onClinics={onClinics} />
 
           <CoreServices
             desktop={desktop}
@@ -377,7 +377,9 @@ function DesktopShell({ nav, petCount, onLogout }: { nav: readonly NavTuple[]; p
       accessibilityLabel="Основная навигация"
       style={{
         height: 66,
-        marginHorizontal: 24,
+        width: '100%',
+        maxWidth: 1120,
+        alignSelf: 'center',
         marginTop: 14,
         paddingHorizontal: 16,
         borderWidth: 1,
@@ -404,17 +406,6 @@ function DesktopShell({ nav, petCount, onLogout }: { nav: readonly NavTuple[]; p
           <Text style={{ ...t.typography.label, color: t.color.textSecondary }}>Выйти</Text>
         </Pressable>
       </View>
-    </View>
-  );
-}
-
-function MobileHeader({ onLogout }: { onLogout(): void }) {
-  return (
-    <View style={{ height: 58, paddingHorizontal: 14, backgroundColor: 'rgba(255,255,255,.96)', borderBottomWidth: 1, borderBottomColor: h.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-      <Brand />
-      <Pressable accessibilityRole="button" onPress={onLogout} style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: 6 }}>
-        <Text style={{ ...t.typography.caption, color: t.color.textSecondary }}>Выйти</Text>
-      </Pressable>
     </View>
   );
 }
@@ -459,18 +450,23 @@ function MobileNav({ nav }: { nav: readonly NavTuple[] }) {
   );
 }
 
-function HomeHeader({ petName, desktop }: { petName?: string; desktop: boolean }) {
+function HomeHeader({ petName, desktop, onLogout }: { petName?: string; desktop: boolean; onLogout?: () => void }) {
   return (
-    <View accessibilityLabel="Личный кабинет" style={{ minHeight: desktop ? 72 : 82, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+    <View accessibilityLabel="Личный кабинет" style={{ minHeight: desktop ? 64 : 66, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
       <View style={{ flex: 1, gap: 3 }}>
         {!desktop ? <Text style={{ ...t.typography.caption, color: h.bluePressed, fontWeight: '700' }}>● Личный кабинет владельца</Text> : null}
-        <Text accessibilityRole="header" style={{ fontSize: desktop ? 36 : 29, lineHeight: desktop ? 41 : 34, fontWeight: '800', color: h.ink }}>
+        <Text accessibilityRole="header" style={{ fontSize: desktop ? 40 : 29, lineHeight: desktop ? 45 : 34, fontWeight: '800', color: h.ink }}>
           Здравствуйте!
         </Text>
         <Text style={{ ...t.typography.secondaryBody, color: t.color.textSecondary }}>
           Всё важное для заботы{petName ? ` о ${petName}` : ' о питомце'} — в одном месте.
         </Text>
       </View>
+      {onLogout ? (
+        <Pressable accessibilityRole="button" onPress={onLogout} style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ ...t.typography.caption, color: t.color.textSecondary }}>Выйти</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -570,34 +566,35 @@ function ImmediateValue({ petName, desktop, onClinics }: { petName?: string; des
 
 function PetHero({ pet, petCount, loading, error, onDiary, onRetry, desktop }: { pet: OwnerHomePet | null; petCount: number; loading: boolean; error: boolean; onDiary(): void; onRetry?(): void; desktop: boolean }) {
   return (
-    <Surface style={{ minHeight: desktop ? 276 : 238, padding: desktop ? 18 : 14, gap: 14, backgroundColor: '#FFFDFC', borderColor: '#F0D9BE' }}>
-      {loading ? <Text style={styles.muted}>Загружаем питомца…</Text> : error ? (
-        <View style={{ gap: 10 }}>
+    <Surface style={{ minHeight: desktop ? 382 : 300, padding: 0, overflow: 'hidden', backgroundColor: '#FFFDFC', borderColor: '#F0D9BE' }}>
+      {loading ? <View style={{ padding: t.spacing.lg }}><Text style={styles.muted}>Загружаем питомца…</Text></View> : error ? (
+        <View style={{ gap: 10, padding: t.spacing.lg }}>
           <Text style={styles.sectionTitle}>Не удалось загрузить питомца</Text>
           <Text style={styles.muted}>Проверьте соединение и повторите.</Text>
           {onRetry ? <Button label="Повторить" variant="secondary" onPress={onRetry} /> : null}
         </View>
       ) : pet ? (
-        <>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-            {pet.photoUrl ? <Image accessibilityLabel={`Фото питомца ${pet.name}`} source={{ uri: pet.photoUrl }} resizeMode="cover" style={{ width: 64, height: 64, borderRadius: 22 }} /> : (
-              <View style={{ width: 64, height: 64, borderRadius: 22, backgroundColor: '#FFF1E2', alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontSize: 28, fontWeight: '800', color: '#9A622F' }}>{pet.name.slice(0, 1).toUpperCase()}</Text>
+        <View style={{ flex: 1, flexDirection: desktop ? 'row' : 'column' }}>
+          {pet.photoUrl ? <Image accessibilityLabel={`Фото питомца ${pet.name}`} source={{ uri: pet.photoUrl }} resizeMode="cover" style={{ width: desktop ? '46%' : '100%', minHeight: desktop ? 382 : 132 }} /> : (
+            <View accessibilityLabel={`Фотография ${pet.name} отсутствует`} style={{ width: desktop ? '46%' : '100%', minHeight: desktop ? 382 : 132, backgroundColor: '#FFF1E2', alignItems: 'center', justifyContent: 'center', gap: t.spacing.xs }}>
+              <View style={{ width: 88, height: 88, borderRadius: 30, backgroundColor: h.surface, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 38, fontWeight: '800', color: '#9A622F' }}>{pet.name.slice(0, 1).toUpperCase()}</Text>
               </View>
-            )}
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={{ ...t.typography.caption, color: '#A4662E', fontWeight: '800', textTransform: 'uppercase' }}>Мой питомец</Text>
-              <Text style={{ fontSize: desktop ? 30 : 27, lineHeight: 35, fontWeight: '800', color: h.ink }}>{pet.name}</Text>
-              <Text style={styles.muted}>{[speciesLabel(pet.species), pet.breed].filter(Boolean).join(' · ')}</Text>
+              <Text style={{ ...t.typography.caption, color: '#A4662E' }}>Фото не добавлено</Text>
+            </View>
+          )}
+          <View style={{ flex: 1, padding: desktop ? t.spacing.xl : t.spacing.lg, gap: t.spacing.sm }}>
+            <Text style={styles.muted}>{[speciesLabel(pet.species), pet.breed].filter(Boolean).join(' · ')}</Text>
+            <Text style={{ ...t.typography.caption, color: '#A4662E', fontWeight: '800', textTransform: 'uppercase' }}>Выбранный питомец</Text>
+            <Text style={{ fontSize: desktop ? 44 : 30, lineHeight: desktop ? 50 : 36, fontWeight: '800', color: h.ink }}>{pet.name}</Text>
+            <Text style={{ ...t.typography.caption, color: t.color.textSecondary }}>Все записи и результаты собраны в профиле питомца.</Text>
+            <View style={{ marginTop: 'auto' }}>
+              <HomeButton label="Открыть дневник" onPress={onDiary} />
             </View>
           </View>
-          <Text style={{ ...t.typography.caption, color: t.color.textSecondary }}>Все записи и результаты собраны в профиле питомца.</Text>
-          <View style={{ marginTop: 'auto', gap: 8 }}>
-            <HomeButton label="Открыть дневник" secondary onPress={onDiary} />
-          </View>
-        </>
+        </View>
       ) : (
-        <View style={{ flex: 1, gap: 10 }}>
+        <View style={{ flex: 1, gap: 10, padding: t.spacing.lg }}>
           <Text style={{ ...t.typography.caption, color: h.bluePressed, fontWeight: '800', textTransform: 'uppercase' }}>Питомцы</Text>
           <View style={{ width: 84, height: 84, borderRadius: 28, backgroundColor: '#FFF1E2', alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{ fontSize: 34, color: '#A4662E', fontWeight: '800' }}>{petCount > 1 ? petCount : '＋'}</Text>
@@ -621,14 +618,8 @@ function NextAction({ desktop, action, activeCare, loading, refreshFailed, hardE
   const actionLabel = action?.actionCode === 'ADD_PET' ? 'Добавить питомца' : 'Открыть каталог';
   const relevantAt = activeCare?.startsAt ?? action?.deadlineAt;
   return (
-    <Surface style={{ minHeight: 276, padding: 0, overflow: 'hidden', backgroundColor: h.blueSoft, borderColor: '#AFCBFA' }}>
-      <Image
-        accessibilityLabel="Осмотр питомца в клинике"
-        source={v50ReferenceAssets.clinicExam}
-        resizeMode="cover"
-        style={{ width: '100%', height: desktop ? 132 : 116 }}
-      />
-      <View style={{ padding: 16, gap: 8, flex: 1 }}>
+    <Surface style={{ minHeight: desktop ? 382 : 276, padding: 0, overflow: 'hidden', backgroundColor: h.surface, borderColor: h.border }}>
+      <View style={{ padding: desktop ? t.spacing.xl : t.spacing.lg, gap: t.spacing.sm, flex: 1 }}>
         <Text style={{ ...t.typography.caption, color: h.bluePressed, fontWeight: '800', textTransform: 'uppercase' }}>{activeCare ? 'Активная забота' : 'Следующий шаг'}</Text>
         {loading && !action ? <Text style={styles.muted}>Загружаем следующий шаг…</Text> : null}
         {hardError ? (
