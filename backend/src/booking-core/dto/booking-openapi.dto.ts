@@ -1,4 +1,4 @@
-import { ApiHideProperty, ApiProperty } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { mvpScope } from '../../config/mvp-scope.config';
 
 export const BOOKING_STATUS_VALUES = [
@@ -13,7 +13,7 @@ export class HoldDto {
   @ApiProperty({ format: 'uuid', example: '7f04cd21-642a-4c48-8a82-5650ca5ce06c' })
   holdId!: string;
 
-  @(mvpScope.pilot ? ApiHideProperty() : ApiProperty({ format: 'uuid', required: false }))
+  @ApiProperty({ format: 'uuid', required: false, description: 'Present when the authoritative booking result is CONFIRMED.' })
   appointmentId?: string;
 
   @ApiProperty({
@@ -41,7 +41,7 @@ export class HoldDto {
   @ApiProperty({ type: 'integer', minimum: 1 })
   aggregateVersion!: number;
 
-  @ApiProperty({ enum: mvpScope.pilot ? ['MANUAL'] : ['AUTOMATIC', 'MANUAL', 'MIS'] })
+  @ApiProperty({ enum: mvpScope.pilot ? ['AUTOMATIC', 'MANUAL'] : ['AUTOMATIC', 'MANUAL', 'MIS'] })
   confirmationMode!: string;
 
   @ApiProperty({ enum: ['READ_STATUS'] })

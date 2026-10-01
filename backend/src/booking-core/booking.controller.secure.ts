@@ -207,8 +207,8 @@ export class BookingController {
   @Roles(Role.OWNER)
   @ApiBearerAuth(SWAGGER_BEARER_AUTH)
   @ApiOperation({
-    summary: 'Отправить заявку владельца на выбранное время',
-    description: 'Owner authority извлекается только из Bearer credential. В PILOT_V1 сервер повторно проверяет полный clinic/location/service/slot context и создаёт заявку с ручным подтверждением клиникой.',
+    summary: 'Создать запись владельца на выбранное время',
+    description: 'Owner authority извлекается только из Bearer credential. Сервер повторно проверяет полный clinic/location/service/slot context и определяет confirmation semantics по server-authoritative clinic contract profile.',
   })
   @ApiBody({
     schema: mvpScope.pilot ? {
@@ -237,7 +237,7 @@ export class BookingController {
     schema: { type: 'string', format: 'uuid' },
     description: 'Optional valid UUID. Missing, malformed or duplicated input is replaced server-side.',
   })
-  @ApiCreatedResponse({ description: 'PILOT_V1 returns the canonical status without internal state.', type: HoldDto })
+  @ApiCreatedResponse({ description: 'Returns authoritative PENDING_CONFIRMATION or CONFIRMED according to the clinic contract profile.', type: HoldDto })
   @ApiBadRequestResponse({ description: 'Malformed DTO, UUID or Idempotency-Key.', type: ApiErrorDto })
   @ApiUnauthorizedResponse({ description: 'Bearer credential отсутствует, истёк или невалиден.', type: ApiErrorDto })
   @ApiForbiddenResponse({ description: 'Authenticated actor is not an Owner.', type: ApiErrorDto })

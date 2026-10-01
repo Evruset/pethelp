@@ -60,7 +60,7 @@ export function createOpenApiDocument(app: INestApplication) {
   if (process.env.MVP_SCOPE_PROFILE === 'PILOT_V1') {
     const hold = document.components?.schemas?.HoldDto;
     if (hold && typeof hold === 'object' && !('$ref' in hold) && hold.properties?.status && !('$ref' in hold.properties.status)) {
-      hold.properties.status = { type: 'string', enum: ['PENDING_CONFIRMATION'] };
+      hold.properties.status = { type: 'string', enum: ['PENDING_CONFIRMATION', 'CONFIRMED'] };
     }
   }
 

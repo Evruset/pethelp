@@ -260,11 +260,11 @@ async function main() {
   }
   required(schemas.BookingHoldReadDto.properties.lastUpdatedAt?.format === 'date-time', 'BookingHoldReadDto.lastUpdatedAt must be date-time');
   required(schemas.HoldDto.properties.lastUpdatedAt?.format === 'date-time', 'HoldDto.lastUpdatedAt must be date-time');
-  required(!schemas.HoldDto.properties.appointmentId, 'PILOT_V1 create hold must not imply an appointment');
-  required(schemas.HoldDto.properties.confirmationMode?.enum?.join() === 'MANUAL', 'PILOT_V1 create hold must be manual confirmation only');
+  required(schemas.HoldDto.properties.appointmentId?.format === 'uuid' && !schemas.HoldDto.required?.includes('appointmentId'), 'PILOT_V1 create hold appointmentId must be optional and authoritative');
+  required(schemas.HoldDto.properties.confirmationMode?.enum?.join() === 'AUTOMATIC,MANUAL', 'PILOT_V1 create hold must advertise both clinic contract confirmation modes');
   required(schemas.HoldDto.additionalProperties === false, 'PILOT_V1 create response must be closed');
-  required(Object.keys(schemas.HoldDto.properties).sort().join() === ['aggregateVersion','confirmationMode','correlationId','expiresAt','holdId','lastUpdatedAt','nextAction','serverNow','slotId','status'].sort().join(), 'PILOT_V1 create response keys must be exact');
-  required(schemas.HoldDto.properties.status?.enum?.join() === 'PENDING_CONFIRMATION', 'PILOT_V1 create response status must be pending confirmation');
+  required(Object.keys(schemas.HoldDto.properties).sort().join() === ['aggregateVersion','appointmentId','confirmationMode','correlationId','expiresAt','holdId','lastUpdatedAt','nextAction','serverNow','slotId','status'].sort().join(), 'PILOT_V1 create response keys must be exact');
+  required(schemas.HoldDto.properties.status?.enum?.join() === 'PENDING_CONFIRMATION,CONFIRMED', 'PILOT_V1 create response status must expose both authoritative create outcomes');
   required(schemas.HoldDto.properties.aggregateVersion?.type === 'integer' && schemas.HoldDto.properties.aggregateVersion.minimum === 1, 'HoldDto aggregateVersion must be a positive integer');
   required(schemas.BookingHistoryCursorDto?.properties?.occurredAt?.format === 'date-time', 'Booking history cursor occurredAt must be date-time');
   required(schemas.BookingHistoryCursorDto?.properties?.eventId?.format === 'uuid', 'Booking history cursor eventId must be UUID');

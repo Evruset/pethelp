@@ -810,7 +810,7 @@
     },
     "/v1/booking-holds": {
       "post": {
-        "description": "Owner authority извлекается только из Bearer credential. В PILOT_V1 сервер повторно проверяет полный clinic/location/service/slot context и создаёт заявку с ручным подтверждением клиникой.",
+        "description": "Owner authority извлекается только из Bearer credential. Сервер повторно проверяет полный clinic/location/service/slot context и определяет confirmation semantics по server-authoritative clinic contract profile.",
         "operationId": "createHold",
         "parameters": [
           {
@@ -881,7 +881,7 @@
         },
         "responses": {
           "201": {
-            "description": "PILOT_V1 returns the canonical status without internal state.",
+            "description": "Returns authoritative PENDING_CONFIRMATION or CONFIRMED according to the clinic contract profile.",
             "content": {
               "application/json": {
                 "schema": {
@@ -985,7 +985,7 @@
             "bearerAuth": []
           }
         ],
-        "summary": "Отправить заявку владельца на выбранное время",
+        "summary": "Создать запись владельца на выбранное время",
         "tags": [
           "Booking Core"
         ]
@@ -5413,10 +5413,16 @@
             "format": "uuid",
             "example": "7f04cd21-642a-4c48-8a82-5650ca5ce06c"
           },
+          "appointmentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Present when the authoritative booking result is CONFIRMED."
+          },
           "status": {
             "type": "string",
             "enum": [
-              "PENDING_CONFIRMATION"
+              "PENDING_CONFIRMATION",
+              "CONFIRMED"
             ]
           },
           "slotId": {
@@ -5449,6 +5455,7 @@
           "confirmationMode": {
             "type": "string",
             "enum": [
+              "AUTOMATIC",
               "MANUAL"
             ]
           },
