@@ -10,6 +10,8 @@ const MIGRATIONS = [
   '1719630000000_add_clinic_booking_contract_profile.js',
   '1719640000000_harden_clinic_booking_contract_profile_audit.js',
   '1719650000000_protect_clinic_booking_contract_profile_audit.js',
+  '1719660000000_add_appointment_lifecycle.js',
+  '1719670000000_default_appointment_lifecycle.js',
 ] as const;
 
 describe('v1.5 clinic contract profile migration (real PostgreSQL)', () => {
@@ -31,8 +33,9 @@ describe('v1.5 clinic contract profile migration (real PostgreSQL)', () => {
       ]);
       expect(columns.rows.find((row) => row.column_name === 'booking_contract_profile')?.column_default)
         .toContain('MVP_V1_MANUAL');
+      migrate('down', databaseUrl, migrationDir);
       expect(() => migrate('down', databaseUrl, migrationDir)).toThrow();
-      const ledger = await client.query(`SELECT name FROM public.schema_migrations WHERE name='1719650000000_protect_clinic_booking_contract_profile_audit'`);
+      const ledger = await client.query(`SELECT name FROM public.schema_migrations WHERE name='1719660000000_add_appointment_lifecycle'`);
       expect(ledger.rows).toHaveLength(1);
       const retained = await client.query(`
         SELECT COUNT(*)::int count FROM information_schema.columns
@@ -81,8 +84,9 @@ describe('v1.5 clinic contract profile migration (real PostgreSQL)', () => {
         .rejects.toThrow(/append-only/);
       await expect(client.query('TRUNCATE audit_schema.clinic_booking_contract_profile_audit'))
         .rejects.toThrow(/append-only/);
+      migrate('down', databaseUrl, migrationDir);
       expect(() => migrate('down', databaseUrl, migrationDir)).toThrow();
-      const ledger = await client.query(`SELECT name FROM public.schema_migrations WHERE name='1719650000000_protect_clinic_booking_contract_profile_audit'`);
+      const ledger = await client.query(`SELECT name FROM public.schema_migrations WHERE name='1719660000000_add_appointment_lifecycle'`);
       expect(ledger.rows).toHaveLength(1);
       const preserved = await client.query('SELECT id::text FROM clinic_schema.clinics WHERE id=$1', [clinic.rows[0].id]);
       expect(preserved.rows).toEqual([{ id: clinic.rows[0].id }]);
