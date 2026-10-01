@@ -14,7 +14,7 @@ import { ApiErrorDto } from './dto/booking-openapi.dto';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const id=(v:string|undefined,n:string)=>{if(!v||!UUID.test(v))throw new BadRequestException({code:'VALIDATION_ERROR',message:`${n} must be a UUID`});return v;};
 const version=(v:string|undefined)=>{const x=v?.replace(/^W\//,'').replace(/^"|"$/g,'');const n=Number(x);if(!Number.isSafeInteger(n)||n<1)throw new BadRequestException({code:'VALIDATION_ERROR',message:'If-Match must be a positive version'});return n;};
-const lifecycleResponse={type:'object',required:['appointmentId','lifecycle','aggregateVersion'],properties:{appointmentId:{type:'string',format:'uuid'},lifecycle:{type:'string',enum:['CANCELLED_BY_CLINIC','RESCHEDULE_PROPOSED','NO_SHOW']},aggregateVersion:{type:'integer'},proposalId:{type:'string',format:'uuid'},cancelledAt:{type:'string',format:'date-time'},noShowAt:{type:'string',format:'date-time'}}};
+const lifecycleResponse={type:'object',required:['appointmentId','lifecycle','aggregateVersion'],properties:{appointmentId:{type:'string',format:'uuid'},lifecycle:{type:'string',enum:['CANCELLED_BY_CLINIC','RESCHEDULE_PROPOSED','NO_SHOW']},aggregateVersion:{type:'integer'},proposalId:{type:'string',format:'uuid'},originalSlotId:{type:'string',format:'uuid'},targetSlotId:{type:'string',format:'uuid'},expiresAt:{type:'string',format:'date-time'},cancelledAt:{type:'string',format:'date-time'},noShowAt:{type:'string',format:'date-time'},reasonCode:{type:'string',nullable:true},reasonText:{type:'string',nullable:true},nextAction:{type:'string',enum:['SELECT_ALTERNATIVE']}}};
 
 @ApiTags('Clinic Appointments')
 @ApiBearerAuth(SWAGGER_BEARER_AUTH)

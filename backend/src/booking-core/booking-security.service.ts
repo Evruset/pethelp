@@ -380,10 +380,11 @@ export class BookingSecurityService {
             UPDATE booking_schema.appointments
             SET status = 'CANCELLED', lifecycle_state = 'CANCELLED_BY_USER',
                 cancelled_by = 'OWNER', cancelled_by_actor_id = $2::uuid,
-                cancelled_at = clock_timestamp(),
-                late_cancellation = clock_timestamp() >= $3::timestamptz - interval '2 hours',
+                cancelled_at = decision_time.value,
+                late_cancellation = decision_time.value >= $3::timestamptz - interval '2 hours',
                 cancellation_reason_code = $4,
                 version = version + 1, updated_at = clock_timestamp()
+            FROM (SELECT clock_timestamp() AS value) decision_time
             WHERE hold_id = $1::uuid AND status NOT IN ('CANCELLED', 'CLINIC_CANCELLED')
             RETURNING id, version, cancelled_at, late_cancellation
           `, [hold.id, input.actor.sub, sourceSlot.starts_at, input.reasonCode ?? null]);

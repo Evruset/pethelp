@@ -202,9 +202,9 @@ export class OwnerAlternativeAcceptanceService {
   private async resolveConfirmed(client:PoolClient,hold:HoldRow,appointment:{id:string;slot_id:string;lifecycle_state:string|null;version:number},swap:SwapRow,slots:Map<string,LockedSlot>,ownerId:string,decision:Decision,command:ResolutionCommand,scope:string,now:Date):Promise<OwnerAlternativeResolution>{
     const source=slots.get(swap.original_slot_id),target=slots.get(swap.alternative_slot_id);
     if(!source||!target||appointment.slot_id!==source.id||source.booked_count<1||target.held_count<1||target.booked_count+target.held_count>target.capacity)throw DomainErrors.alternativeSlotUnavailable();
-    if(target.state!=='OPEN'||target.status!=='LOCKED_BY_HOLD'||target.starts_at<=now||source.clinic_location_id!==target.clinic_location_id||source.service_id!==target.service_id)throw DomainErrors.alternativeSlotIncompatible();
-    if(!swap.target_slot_version||target.version!==swap.target_slot_version)throw DomainErrors.bookingStateConflict();
     if(decision==='ACCEPT'){
+      if(target.state!=='OPEN'||target.status!=='LOCKED_BY_HOLD'||target.starts_at<=now||source.clinic_location_id!==target.clinic_location_id||source.service_id!==target.service_id)throw DomainErrors.alternativeSlotIncompatible();
+      if(!swap.target_slot_version||target.version!==swap.target_slot_version)throw DomainErrors.bookingStateConflict();
       await client.query("UPDATE clinic_schema.appointment_slots SET booked_count=booked_count-1,status=CASE WHEN booked_count-1>=capacity THEN 'BOOKED' WHEN held_count>0 THEN 'LOCKED_BY_HOLD' ELSE 'AVAILABLE' END,version=version+1,updated_at=clock_timestamp() WHERE id=$1",[source.id]);
       await client.query("UPDATE clinic_schema.appointment_slots SET held_count=held_count-1,booked_count=booked_count+1,status='BOOKED',version=version+1,updated_at=clock_timestamp() WHERE id=$1",[target.id]);
     }else await this.releaseSlot(client,target.id);

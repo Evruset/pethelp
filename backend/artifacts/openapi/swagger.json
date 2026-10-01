@@ -2029,6 +2029,18 @@
                       "type": "string",
                       "format": "uuid"
                     },
+                    "originalSlotId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "targetSlotId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
                     "cancelledAt": {
                       "type": "string",
                       "format": "date-time"
@@ -2036,6 +2048,20 @@
                     "noShowAt": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "reasonCode": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "reasonText": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "nextAction": {
+                      "type": "string",
+                      "enum": [
+                        "SELECT_ALTERNATIVE"
+                      ]
                     }
                   }
                 }
@@ -2214,6 +2240,18 @@
                       "type": "string",
                       "format": "uuid"
                     },
+                    "originalSlotId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "targetSlotId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
                     "cancelledAt": {
                       "type": "string",
                       "format": "date-time"
@@ -2221,6 +2259,20 @@
                     "noShowAt": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "reasonCode": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "reasonText": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "nextAction": {
+                      "type": "string",
+                      "enum": [
+                        "SELECT_ALTERNATIVE"
+                      ]
                     }
                   }
                 }
@@ -2374,6 +2426,18 @@
                       "type": "string",
                       "format": "uuid"
                     },
+                    "originalSlotId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "targetSlotId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
                     "cancelledAt": {
                       "type": "string",
                       "format": "date-time"
@@ -2381,6 +2445,20 @@
                     "noShowAt": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "reasonCode": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "reasonText": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "nextAction": {
+                      "type": "string",
+                      "enum": [
+                        "SELECT_ALTERNATIVE"
+                      ]
                     }
                   }
                 }
