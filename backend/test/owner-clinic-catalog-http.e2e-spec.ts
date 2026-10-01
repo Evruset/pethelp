@@ -65,7 +65,7 @@ describe('Owner clinic catalog HTTP authority',()=>{
     }finally{await db.query('DELETE FROM clinic_schema.clinic_services WHERE id=$1',[service]);await db.query('DELETE FROM clinic_schema.clinic_locations WHERE id=$1',[location]);await db.query('DELETE FROM clinic_schema.clinics WHERE id=$1',[clinic]);}
   });
   it('protects and executes the closed PILOT booking request contract',async()=>{
-    const db=app.get(DatabaseService),owner='11000000-0000-4000-8000-000000000001',pet=randomUUID(),clinic=randomUUID(),location=randomUUID(),service=randomUUID(),slot=randomUUID(),key=randomUUID();
+    const db=app.get(DatabaseService),owner='11000000-0000-4000-8000-000000000001',pet=randomUUID(),clinic=randomUUID(),location=randomUUID(),service=randomUUID(),slot=randomUUID(),autoSlot=randomUUID(),key=randomUUID();
     const path='/v1/booking-holds',body={petId:pet,clinicId:clinic,locationId:location,serviceId:service,slotId:slot,expectedSlotVersion:1};
     try{
       await db.query('INSERT INTO identity_schema.users(id) VALUES($1::uuid) ON CONFLICT DO NOTHING',[owner]);
@@ -97,11 +97,30 @@ describe('Owner clinic catalog HTTP authority',()=>{
         (SELECT COUNT(*)::text FROM booking_schema.outbox_events WHERE aggregate_id=$2 AND event_type='booking.hold.created.v1') effects,
         (SELECT COUNT(*)::text FROM audit_schema.audit_log WHERE aggregate_id=$2 AND action='booking.hold.created') audits`,[slot,first.body.holdId]);
       expect(exactlyOnce.rows[0]).toEqual({holds:'1',held_count:1,effects:'1',audits:'1'});
+
+      await db.query("UPDATE clinic_schema.clinics SET booking_contract_profile='V15_AUTO_CONFIRM' WHERE id=$1",[clinic]);
+      await db.query("INSERT INTO clinic_schema.appointment_slots(id,clinic_location_id,service_id,starts_at,ends_at,capacity,integration_mode) VALUES($1,$2,$3,clock_timestamp()+interval '3 hours',clock_timestamp()+interval '210 minutes',1,'LEVEL_A')",[autoSlot,location,service]);
+      const autoBody={...body,slotId:autoSlot};
+      const auto=await request(app.getHttpServer()).post(path).set('Authorization',`Bearer ${await token([Role.OWNER])}`).set('Idempotency-Key',randomUUID()).send(autoBody).expect(201);
+      expect(Object.keys(auto.body).sort()).toEqual(['aggregateVersion','appointmentId','confirmationMode','correlationId','expiresAt','holdId','lastUpdatedAt','nextAction','serverNow','slotId','status']);
+      expect(auto.body).toMatchObject({status:'CONFIRMED',confirmationMode:'AUTOMATIC',slotId:autoSlot,nextAction:'READ_STATUS'});
+      expect(auto.body.appointmentId).toMatch(/^[0-9a-f-]{36}$/);
+      const autoEffects=await db.query<{state:string;booked_count:number;held_count:number;appointments:string;queue_items:string}>(`SELECT h.state,s.booked_count,s.held_count,
+        (SELECT COUNT(*)::text FROM booking_schema.appointments WHERE hold_id=h.id) appointments,
+        (SELECT COUNT(*)::text FROM booking_schema.booking_holds WHERE id=h.id AND state='MANUAL_CONFIRM_PENDING') queue_items
+        FROM booking_schema.booking_holds h JOIN clinic_schema.appointment_slots s ON s.id=h.slot_id WHERE h.id=$1`,[auto.body.holdId]);
+      expect(autoEffects.rows[0]).toEqual({state:'CONFIRMED',booked_count:1,held_count:0,appointments:'1',queue_items:'0'});
+      await db.query('UPDATE clinic_schema.appointment_slots SET version=version+1 WHERE id=$1',[autoSlot]);
+      const autoStale=await request(app.getHttpServer()).post(path).set('Authorization',`Bearer ${await token([Role.OWNER])}`).set('Idempotency-Key',randomUUID()).send(autoBody).expect(409);
+      expect(autoStale.body).toMatchObject({code:'BOOKING_STATE_CONFLICT'});
+      expect(JSON.stringify(autoStale.body)).not.toMatch(/SLOT_VERSION_STALE/);
     }finally{
-      await db.query('DELETE FROM booking_schema.outbox_events WHERE aggregate_id IN (SELECT id FROM booking_schema.booking_holds WHERE slot_id=$1)',[slot]);
-      await db.query('DELETE FROM booking_schema.booking_holds WHERE slot_id=$1',[slot]);
+      await db.query('DELETE FROM booking_schema.appointment_events WHERE hold_id IN (SELECT id FROM booking_schema.booking_holds WHERE slot_id=ANY($1::uuid[]))',[[slot,autoSlot]]);
+      await db.query('DELETE FROM booking_schema.appointments WHERE slot_id=ANY($1::uuid[])',[[slot,autoSlot]]);
+      await db.query('DELETE FROM booking_schema.outbox_events WHERE aggregate_id IN (SELECT id FROM booking_schema.booking_holds WHERE slot_id=ANY($1::uuid[]))',[[slot,autoSlot]]);
+      await db.query('DELETE FROM booking_schema.booking_holds WHERE slot_id=ANY($1::uuid[])',[[slot,autoSlot]]);
       await db.query("DELETE FROM booking_schema.idempotency_records WHERE scope=$1",[`booking.create-local-hold:${owner}`]);
-      await db.query('DELETE FROM clinic_schema.appointment_slots WHERE id=$1',[slot]);await db.query('DELETE FROM clinic_schema.clinic_services WHERE id=$1',[service]);await db.query('DELETE FROM clinic_schema.clinic_locations WHERE id=$1',[location]);await db.query('DELETE FROM clinic_schema.clinics WHERE id=$1',[clinic]);await db.query('DELETE FROM pet_schema.pets WHERE id=$1',[pet]);
+      await db.query('DELETE FROM clinic_schema.appointment_slots WHERE id=ANY($1::uuid[])',[[slot,autoSlot]]);await db.query('DELETE FROM clinic_schema.clinic_services WHERE id=$1',[service]);await db.query('DELETE FROM clinic_schema.clinic_locations WHERE id=$1',[location]);await db.query('DELETE FROM clinic_schema.clinics WHERE id=$1',[clinic]);await db.query('DELETE FROM pet_schema.pets WHERE id=$1',[pet]);
     }
   });
 });

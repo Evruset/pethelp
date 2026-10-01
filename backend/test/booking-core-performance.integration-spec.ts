@@ -8,6 +8,7 @@ import { readFile } from "node:fs/promises";
 import { Role } from "../src/auth/auth.types";
 import { BookingHoldCreationService } from "../src/booking-core/booking-hold-creation.service";
 import { BookingRepository } from "../src/booking-core/booking.repository";
+import { BookingPolicyResolver } from "../src/booking-core/booking-policy.resolver";
 import { BookingSecurityService } from "../src/booking-core/booking-security.service";
 import { BookingService } from "../src/booking-core/booking.service";
 import { DatabaseService } from "../src/database/database.service";
@@ -51,6 +52,7 @@ const database = new DatabaseService();
 const creation = new BookingHoldCreationService(
   database,
   new BookingRepository(),
+  new BookingPolicyResolver(),
 );
 const booking = new BookingService(database, new BookingRepository());
 const clinicAccess = {
