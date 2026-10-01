@@ -112,6 +112,23 @@ describe('V50 owner bookings and cancellation (real PostgreSQL)', () => {
     }
   });
 
+  it.each([
+    ['normal', "clock_timestamp() + interval '2 hours 1 second'", false],
+    ['exact late boundary', "clock_timestamp() + interval '2 hours'", true],
+    ['late', "clock_timestamp() + interval '90 minutes'", true],
+  ])('persists server-authoritative %s owner cancellation classification', async (_label, startsAt, expectedLate) => {
+    const fixture = await seed(database);
+    const actor = { sub: fixture.owner, roles: [Role.OWNER] };
+    await database.query(`UPDATE clinic_schema.appointment_slots SET starts_at=${startsAt}, ends_at=${startsAt}+interval '30 minutes' WHERE id=$1::uuid`, [fixture.confirmedSlot]);
+    await security.releaseHold({ holdId: fixture.confirmedHold, actor, idempotencyKey: randomUUID(), correlationId: randomUUID(), expectedVersion: 1, normalizeOwnerNotFound: true });
+    const row = await database.query<{ lifecycle_state: string; cancelled_by: string; late_cancellation: boolean; cancelled_at: Date }>(`
+      SELECT lifecycle_state,cancelled_by,late_cancellation,cancelled_at
+      FROM booking_schema.appointments WHERE hold_id=$1::uuid
+    `, [fixture.confirmedHold]);
+    expect(row.rows[0]).toMatchObject({ lifecycle_state: 'CANCELLED_BY_USER', cancelled_by: 'OWNER', late_cancellation: expectedLate });
+    expect(row.rows[0].cancelled_at).toBeInstanceOf(Date);
+  });
+
   it('reconciles pending terminal projections, queue removal and cancel races in PILOT', async () => {
     if (process.env.MVP_SCOPE_PROFILE !== 'PILOT_V1') return;
     let fixture = await seed(database);

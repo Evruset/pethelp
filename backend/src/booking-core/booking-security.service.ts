@@ -41,6 +41,7 @@ interface ReleaseHoldRow {
   alternative_slot_id: string | null;
   alternative_expires_at: Date | null;
   version: number;
+  slot_starts_at?: Date;
 }
 
 interface IdempotencyRow {
@@ -365,15 +366,21 @@ export class BookingSecurityService {
         }
 
         if (pilotConfirmedCancellation) {
+          if (!hold.slot_starts_at) throw DomainErrors.bookingUnavailable();
           if (!canTransition('CONFIRMED', 'CANCELLATION_REQUESTED') || !canTransition('CANCELLATION_REQUESTED', 'RELEASED')) {
             throw DomainErrors.invalidTransition();
           }
-          const appointment = await client.query<{ id: string; version: number }>(`
+          const appointment = await client.query<{ id: string; version: number; cancelled_at: Date; late_cancellation: boolean }>(`
             UPDATE booking_schema.appointments
-            SET status = 'CANCELLED', version = version + 1, updated_at = clock_timestamp()
+            SET status = 'CANCELLED', lifecycle_state = 'CANCELLED_BY_USER',
+                cancelled_by = 'OWNER', cancelled_by_actor_id = $2::uuid,
+                cancelled_at = clock_timestamp(),
+                late_cancellation = clock_timestamp() >= $3::timestamptz - interval '2 hours',
+                cancellation_reason_code = $4,
+                version = version + 1, updated_at = clock_timestamp()
             WHERE hold_id = $1::uuid AND status NOT IN ('CANCELLED', 'CLINIC_CANCELLED')
-            RETURNING id, version
-          `, [hold.id]);
+            RETURNING id, version, cancelled_at, late_cancellation
+          `, [hold.id, input.actor.sub, hold.slot_starts_at, input.reasonCode ?? null]);
           if (!appointment.rows[0]) throw DomainErrors.invalidTransition();
 
           const released = await client.query<{ id: string }>(`
@@ -407,9 +414,11 @@ export class BookingSecurityService {
           `, [appointment.rows[0].id, hold.id, input.actor.sub, input.correlationId, JSON.stringify({ reasonCode: input.reasonCode ?? null })]);
           await this.writeOutbox(client, 'booking.hold.released.v1', input.correlationId, hold.id, updated.rows[0].version, {
             ...result, appointmentId: appointment.rows[0].id, reason: 'OWNER_CANCELLED', actorId: input.actor.sub,
+            cancelledAt: appointment.rows[0].cancelled_at, lateCancellation: appointment.rows[0].late_cancellation,
           });
           await this.writeAudit(client, 'OWNER', input.actor.sub, 'booking.hold.released', hold.id, input.correlationId, {
             appointmentId: appointment.rows[0].id, slotId: hold.slot_id, reason: 'OWNER_CANCELLED', reasonCode: input.reasonCode ?? null,
+            cancelledAt: appointment.rows[0].cancelled_at, lateCancellation: appointment.rows[0].late_cancellation,
           });
           await this.completeIdempotency(client, scope, input.idempotencyKey, result, HttpStatus.OK);
           return result;
@@ -479,10 +488,12 @@ export class BookingSecurityService {
 
   private async lockReleaseHold(client: PoolClient, holdId: string): Promise<ReleaseHoldRow | undefined> {
     const result = await client.query<ReleaseHoldRow>(`
-      SELECT id, slot_id, owner_id, state, expires_at, alternative_slot_id, alternative_expires_at, version
-      FROM booking_schema.booking_holds
-      WHERE id = $1::uuid
-      FOR UPDATE
+      SELECT h.id, h.slot_id, h.owner_id, h.state, h.expires_at, h.alternative_slot_id,
+             h.alternative_expires_at, h.version, s.starts_at AS slot_starts_at
+      FROM booking_schema.booking_holds h
+      JOIN clinic_schema.appointment_slots s ON s.id=h.slot_id
+      WHERE h.id = $1::uuid
+      FOR UPDATE OF h, s
     `, [holdId]);
     return result.rows[0];
   }
