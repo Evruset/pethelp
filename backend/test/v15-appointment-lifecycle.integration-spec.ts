@@ -4,10 +4,11 @@ import { AppointmentLifecycleService } from '../src/booking-core/appointment-lif
 import { ClinicEmployeeAccessService } from '../src/booking-core/clinic-employee-access.service';
 import { OwnerAlternativeAcceptanceService } from '../src/booking-core/owner-alternative-acceptance.service';
 import { DatabaseService } from '../src/database/database.service';
+import { OwnerAppointmentsService } from '../src/auth/owner-appointments.service';
 
 jest.setTimeout(45_000);
 describe('v1.5 appointment lifecycle (real PostgreSQL)',()=>{
- const db=new DatabaseService(); const lifecycle=new AppointmentLifecycleService(db,new ClinicEmployeeAccessService()); const ownerResolution=new OwnerAlternativeAcceptanceService({} as never,db);
+ const db=new DatabaseService(); const lifecycle=new AppointmentLifecycleService(db,new ClinicEmployeeAccessService()); const ownerResolution=new OwnerAlternativeAcceptanceService({} as never,db); const ownerRead=new OwnerAppointmentsService(db);
  afterAll(()=>db.onModuleDestroy());
 
  it('requires and persists an auditable clinic cancellation reason with scope and replay safety',async()=>{const f=await fixture(db);const base=command(f);
@@ -17,18 +18,21 @@ describe('v1.5 appointment lifecycle (real PostgreSQL)',()=>{
   await expect(lifecycle.cancelByClinic({...base,reasonCode:'CLINIC_UNAVAILABLE',reasonText:'Doctor unavailable'})).resolves.toEqual(result);
   const row=(await db.query<any>(`SELECT status,lifecycle_state,cancelled_by,cancelled_by_actor_id::text,cancellation_reason_code,cancellation_reason_text,(SELECT booked_count FROM clinic_schema.appointment_slots WHERE id=a.slot_id) booked,(SELECT count(*)::int FROM booking_schema.appointment_events WHERE appointment_id=a.id) events FROM booking_schema.appointments a WHERE id=$1`,[f.appointment])).rows[0];
   expect(row).toMatchObject({status:'CLINIC_CANCELLED',lifecycle_state:'CANCELLED_BY_CLINIC',cancelled_by:'CLINIC',cancelled_by_actor_id:f.employee.sub,cancellation_reason_code:'CLINIC_UNAVAILABLE',cancellation_reason_text:'Doctor unavailable',booked:0,events:1});
+  await expect(ownerRead.read({sub:f.owner,roles:[Role.OWNER]},f.hold)).resolves.toMatchObject({appointmentLifecycle:{state:'CANCELLED_BY_CLINIC',cancelledBy:'CLINIC',reasonCode:'CLINIC_UNAVAILABLE',reasonText:'Doctor unavailable'}});
  });
 
  it.each(['ACCEPT','DECLINE'] as const)('keeps original authoritative until Owner %s and resolves atomically',async(decision)=>{const f=await fixture(db);const proposal=await lifecycle.propose({...command(f),targetSlotId:f.target,expectedTargetSlotVersion:1});
   let state=(await db.query<any>('SELECT slot_id::text,lifecycle_state FROM booking_schema.appointments WHERE id=$1',[f.appointment])).rows[0]; expect(state).toEqual({slot_id:f.source,lifecycle_state:'RESCHEDULE_PROPOSED'});
-  const result=await ownerResolution.resolve(proposal.proposalId as string,f.owner,decision,{expectedVersion:2,idempotencyKey:randomUUID(),correlationId:randomUUID()},f.hold);
+  const resolutionCommand={expectedVersion:2,idempotencyKey:randomUUID(),correlationId:randomUUID()};
+  const result=await ownerResolution.resolve(proposal.proposalId as string,f.owner,decision,resolutionCommand,f.hold);
+  await expect(ownerResolution.resolve(proposal.proposalId as string,f.owner,decision,resolutionCommand,f.hold)).resolves.toEqual(result);
   state=(await db.query<any>(`SELECT a.slot_id::text,a.lifecycle_state,(SELECT booked_count FROM clinic_schema.appointment_slots WHERE id=$2) source_booked,(SELECT booked_count FROM clinic_schema.appointment_slots WHERE id=$3) target_booked,(SELECT held_count FROM clinic_schema.appointment_slots WHERE id=$3) target_held FROM booking_schema.appointments a WHERE a.id=$1`,[f.appointment,f.source,f.target])).rows[0];
   expect(result.state).toBe('CONFIRMED'); expect(state.lifecycle_state).toBe('CONFIRMED'); expect(state.slot_id).toBe(decision==='ACCEPT'?f.target:f.source); expect(state.target_held).toBe(0); expect(state.source_booked).toBe(decision==='ACCEPT'?0:1); expect(state.target_booked).toBe(decision==='ACCEPT'?1:0);
  });
 
  it('serializes clinic cancel versus Owner accept without split capacity',async()=>{const f=await fixture(db);const proposal=await lifecycle.propose({...command(f),targetSlotId:f.target,expectedTargetSlotVersion:1});const settled=await Promise.allSettled([ownerResolution.resolve(proposal.proposalId as string,f.owner,'ACCEPT',{expectedVersion:2,idempotencyKey:randomUUID(),correlationId:randomUUID()},f.hold),lifecycle.cancelByClinic({...command(f),expectedVersion:2,idempotencyKey:randomUUID(),reasonCode:'CLINIC_UNAVAILABLE'})]);expect(settled.filter(x=>x.status==='fulfilled')).toHaveLength(1);const row=(await db.query<any>(`SELECT lifecycle_state,(SELECT sum(booked_count) FROM clinic_schema.appointment_slots WHERE id=ANY($2::uuid[])) booked,(SELECT sum(held_count) FROM clinic_schema.appointment_slots WHERE id=ANY($2::uuid[])) held FROM booking_schema.appointments WHERE id=$1`,[f.appointment,[f.source,f.target]])).rows[0];expect(['CONFIRMED','CANCELLED_BY_CLINIC']).toContain(row.lifecycle_state);expect(Number(row.booked)).toBe(row.lifecycle_state==='CONFIRMED'?1:0);expect(Number(row.held)).toBe(0);});
 
- it('marks no-show only after authoritative start time and replays idempotently',async()=>{let f=await fixture(db);await expect(lifecycle.markNoShow(command(f))).rejects.toMatchObject({status:422});f=await fixture(db,-1);const cmd=command(f);const result=await lifecycle.markNoShow(cmd);await expect(lifecycle.markNoShow(cmd)).resolves.toEqual(result);const row=(await db.query<any>('SELECT status,lifecycle_state,no_show_at,no_show_by_actor_id::text FROM booking_schema.appointments WHERE id=$1',[f.appointment])).rows[0];expect(row).toMatchObject({status:'NO_SHOW',lifecycle_state:'NO_SHOW',no_show_by_actor_id:f.employee.sub});});
+ it('marks no-show only after authoritative start time, exact scope and replays idempotently',async()=>{let f=await fixture(db);await expect(lifecycle.markNoShow(command(f))).rejects.toMatchObject({status:422});f=await fixture(db,-1);await expect(lifecycle.markNoShow({...command(f),employee:{...f.employee,locationIds:[randomUUID()]}})).rejects.toMatchObject({status:403});const cmd=command(f);const result=await lifecycle.markNoShow(cmd);await expect(lifecycle.markNoShow(cmd)).resolves.toEqual(result);const row=(await db.query<any>('SELECT status,lifecycle_state,no_show_at,no_show_by_actor_id::text FROM booking_schema.appointments WHERE id=$1',[f.appointment])).rows[0];expect(row).toMatchObject({status:'NO_SHOW',lifecycle_state:'NO_SHOW',no_show_by_actor_id:f.employee.sub});});
 });
 
 const command=(f:Awaited<ReturnType<typeof fixture>>)=>({appointmentId:f.appointment,clinicId:f.clinic,locationId:f.location,employee:f.employee,expectedVersion:1,idempotencyKey:randomUUID(),correlationId:randomUUID()});
