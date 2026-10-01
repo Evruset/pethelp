@@ -1,5 +1,17 @@
 # V50 program current state
 
+## Active isolated transition session — PetHelp v1.5 Wave 0/1
+
+- Working branch/worktree: `agent/v15-transition-wave-01` / `/Users/evrusetskiy/work/pethelp-v15-wave-01`.
+- Canonical base: GitHub default branch `main` at `ba85f22c2a83e844902586241e280cecf4c689bc`.
+- Draft integration reference: PR #78 at `176e7f3908e246eff6520e366bbbf2e0646d5cab`; its Clinical Result work is deferred reuse input, not a rewrite target.
+- Target sources supplied 2026-10-01: PetHelp SRS v1.5 and Business Process Map v1.5.
+- Wave 0 documentation baseline is under `docs/v15/`; it changes no runtime behavior.
+- Current booking contradiction: `PILOT_V1` selects `MANUAL_CONFIRM_PENDING`, while `[BR][BP-05/BP-06]` requires atomic `CONFIRMED` for a published slot.
+- Wave 1 is not yet accepted: migration-chain, legacy auto-confirm transaction, real PostgreSQL and runtime gates remain mandatory.
+- Product/SA blocker: SRS sketches `POST /appointments` with `SLOT_VERSION_STALE`, while the approved PILOT contract uses `POST /v1/booking-holds` and canonical `BOOKING_STATE_CONFLICT`. Preserve the PILOT contract until an explicit compatibility mapping is approved.
+- Current dirty Owner v5.0 work in `/Users/evrusetskiy/work/pethelp-alpha` is protected and untouched.
+
 Updated: 2026-07-31
 
 ## Program status
