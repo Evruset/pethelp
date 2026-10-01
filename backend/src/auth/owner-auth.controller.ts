@@ -118,7 +118,7 @@ export class OwnerProfileController {
   @Roles(Role.OWNER)
   @ApiBearerAuth('bearer')
   @ApiOperation({ summary: 'Подробный authoritative snapshot записи владельца' })
-  @ApiOkResponse({ description: 'Статус, клиника, питомец, услуга, timeline и доступные действия.' })
+  @ApiOkResponse({ description: 'Статус, клиника, питомец, услуга, timeline и доступные действия.', schema: { type: 'object', required: ['holdId','version','appointmentLifecycle'], properties: { holdId: { type:'string',format:'uuid' }, version:{type:'integer'}, appointmentLifecycle:{type:'object',required:['state','cancelledBy','cancelledAt','lateCancellation','reasonCode','reasonText','noShowAt'],properties:{state:{type:'string',nullable:true,enum:['CONFIRMED','CANCELLED_BY_USER','CANCELLED_BY_CLINIC','RESCHEDULE_PROPOSED','NO_SHOW']},cancelledBy:{type:'string',nullable:true,enum:['OWNER','CLINIC']},cancelledAt:{type:'string',format:'date-time',nullable:true},lateCancellation:{type:'boolean',nullable:true},reasonCode:{type:'string',nullable:true},reasonText:{type:'string',nullable:true},noShowAt:{type:'string',format:'date-time',nullable:true}}} } } })
   async appointmentDetail(@CurrentUser() owner: JwtPayload, @Param('holdId', new ParseUUIDPipe()) holdId: string) {
     const detail = await this.appointments.read(owner, holdId);
     if (!detail) throw new NotFoundException({ code: 'OWNER_APPOINTMENT_NOT_FOUND', message: 'Appointment was not found for owner.' });

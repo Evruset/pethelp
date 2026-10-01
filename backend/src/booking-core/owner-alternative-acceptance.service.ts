@@ -22,6 +22,7 @@ interface SwapRow {
   expires_at: Date;
   state: string;
   appointment_id: string | null;
+  target_slot_version: number | null;
 }
 
 interface HoldRow {
@@ -47,6 +48,7 @@ interface LockedSlot {
   held_count: number;
   state: string;
   status: string;
+  version: number;
 }
 
 interface IdempotencyRow {
@@ -109,7 +111,7 @@ export class OwnerAlternativeAcceptanceService {
       if ((appointment?.version ?? hold.version) !== command.expectedVersion) throw DomainErrors.bookingStateConflict();
       const now = await this.databaseNow(client);
       if (swap.expires_at <= now) throw DomainErrors.alternativeProposalExpired();
-      if (appointment) return this.resolveConfirmed(client, hold, appointment, swap, slots, ownerId, decision, command, scope);
+      if (appointment) return this.resolveConfirmed(client, hold, appointment, swap, slots, ownerId, decision, command, scope, now);
       this.assertSlotsEligible(slots, swap, now);
       const releasedSlotId = decision === 'ACCEPT' ? swap.original_slot_id : swap.alternative_slot_id;
       await this.releaseSlot(client, releasedSlotId);
@@ -168,7 +170,7 @@ export class OwnerAlternativeAcceptanceService {
   private async findProposal(client: PoolClient, proposalId: string, ownerId: string, bookingId?: string): Promise<SwapRow | undefined> {
     return (await client.query<SwapRow>(`
       SELECT id::text, original_hold_id::text, original_slot_id::text, alternative_slot_id::text,
-             owner_id::text, expires_at, state, appointment_id::text
+             owner_id::text, expires_at, state, appointment_id::text, target_slot_version
       FROM booking_schema.alternative_swap_groups
       WHERE id=$1::uuid AND owner_id=$2::uuid
         AND ($3::uuid IS NULL OR original_hold_id=$3::uuid)
@@ -178,7 +180,7 @@ export class OwnerAlternativeAcceptanceService {
   private async lockProposal(client: PoolClient, proposalId: string, ownerId: string, bookingId?: string): Promise<SwapRow | undefined> {
     return (await client.query<SwapRow>(`
       SELECT id::text, original_hold_id::text, original_slot_id::text, alternative_slot_id::text,
-             owner_id::text, expires_at, state, appointment_id::text
+             owner_id::text, expires_at, state, appointment_id::text, target_slot_version
       FROM booking_schema.alternative_swap_groups
       WHERE id=$1::uuid AND owner_id=$2::uuid
         AND ($3::uuid IS NULL OR original_hold_id=$3::uuid)
@@ -197,16 +199,18 @@ export class OwnerAlternativeAcceptanceService {
     return (await client.query<any>('SELECT id::text,slot_id::text,lifecycle_state,version FROM booking_schema.appointments WHERE id=$1::uuid FOR UPDATE',[appointmentId])).rows[0];
   }
 
-  private async resolveConfirmed(client:PoolClient,hold:HoldRow,appointment:{id:string;slot_id:string;lifecycle_state:string|null;version:number},swap:SwapRow,slots:Map<string,LockedSlot>,ownerId:string,decision:Decision,command:ResolutionCommand,scope:string):Promise<OwnerAlternativeResolution>{
+  private async resolveConfirmed(client:PoolClient,hold:HoldRow,appointment:{id:string;slot_id:string;lifecycle_state:string|null;version:number},swap:SwapRow,slots:Map<string,LockedSlot>,ownerId:string,decision:Decision,command:ResolutionCommand,scope:string,now:Date):Promise<OwnerAlternativeResolution>{
     const source=slots.get(swap.original_slot_id),target=slots.get(swap.alternative_slot_id);
     if(!source||!target||appointment.slot_id!==source.id||source.booked_count<1||target.held_count<1||target.booked_count+target.held_count>target.capacity)throw DomainErrors.alternativeSlotUnavailable();
+    if(target.state!=='OPEN'||target.status!=='LOCKED_BY_HOLD'||target.starts_at<=now||source.clinic_location_id!==target.clinic_location_id||source.service_id!==target.service_id)throw DomainErrors.alternativeSlotIncompatible();
+    if(!swap.target_slot_version||target.version!==swap.target_slot_version)throw DomainErrors.bookingStateConflict();
     if(decision==='ACCEPT'){
       await client.query("UPDATE clinic_schema.appointment_slots SET booked_count=booked_count-1,status=CASE WHEN booked_count-1>=capacity THEN 'BOOKED' WHEN held_count>0 THEN 'LOCKED_BY_HOLD' ELSE 'AVAILABLE' END,version=version+1,updated_at=clock_timestamp() WHERE id=$1",[source.id]);
       await client.query("UPDATE clinic_schema.appointment_slots SET held_count=held_count-1,booked_count=booked_count+1,status='BOOKED',version=version+1,updated_at=clock_timestamp() WHERE id=$1",[target.id]);
     }else await this.releaseSlot(client,target.id);
     const retained=decision==='ACCEPT'?target.id:source.id;
     const updated=(await client.query<{version:number}>("UPDATE booking_schema.appointments SET slot_id=$2,lifecycle_state='CONFIRMED',version=version+1,updated_at=clock_timestamp() WHERE id=$1 RETURNING version",[appointment.id,retained])).rows[0];
-    if(decision==='ACCEPT')await client.query("UPDATE booking_schema.booking_holds SET slot_id=$2,version=version+1,updated_at=clock_timestamp() WHERE id=$1",[hold.id,retained]);
+    await client.query("UPDATE booking_schema.booking_holds SET slot_id=$2,version=version+1,updated_at=clock_timestamp() WHERE id=$1",[hold.id,retained]);
     await client.query("UPDATE booking_schema.alternative_swap_groups SET state=$2,aggregate_version=aggregate_version+1,updated_at=clock_timestamp() WHERE id=$1 AND state='PENDING'",[swap.id,decision==='ACCEPT'?'ACCEPTED':'DECLINED']);
     const result:OwnerAlternativeResolution={proposalId:swap.id,bookingId:hold.id,decision,state:'CONFIRMED',slotId:retained,aggregateVersion:updated.version};
     const eventType=decision==='ACCEPT'?'booking.alternative.accepted.v1':'booking.alternative.declined.v1';
@@ -221,7 +225,7 @@ export class OwnerAlternativeAcceptanceService {
     const rows = await client.query<LockedSlot>(`
       SELECT id::text, clinic_location_id::text, service_id::text, doctor_id::text,
              staff_id::text, resource_id::text, specialty_id::text, starts_at,
-             capacity, booked_count, held_count, state, status
+             capacity, booked_count, held_count, state, status, version
       FROM clinic_schema.appointment_slots
       WHERE id=ANY($1::uuid[]) ORDER BY id FOR UPDATE
     `, [[...ids].sort()]);

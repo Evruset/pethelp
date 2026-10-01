@@ -429,7 +429,7 @@ export class OwnerAppointmentsService {
           ) THEN 'ACTIVE'
           ELSE 'HISTORY'
         END AS bucket,
-        hold.version,
+        COALESCE(appointment.version,hold.version) AS version,
         hold.expires_at,
         hold.state_changed_at,
         slot.starts_at,
@@ -472,7 +472,8 @@ export class OwnerAppointmentsService {
     if (!row) return undefined;
     const timeline = await this.timeline(row.hold_id);
     const presentation = ownerAppointmentPresentation(row.state, row.bucket);
-    const policy = cancellationPolicy(row.state, row.bucket);
+    const basePolicy = cancellationPolicy(row.state, row.bucket);
+    const policy = { ...basePolicy, canCancel: basePolicy.canCancel && (!row.lifecycle_state || ['CONFIRMED','RESCHEDULE_PROPOSED'].includes(row.lifecycle_state)) };
     return {
       holdId: row.hold_id,
       appointmentId: row.appointment_id,
@@ -512,8 +513,8 @@ export class OwnerAppointmentsService {
         canOpenRoute: Boolean(
           (row.latitude && row.longitude) || row.address?.trim(),
         ),
-        canReviewAlternative:
-            row.bucket === 'REQUIRES_ACTION' && row.state === 'ALTERNATIVE_PENDING',
+        canReviewAlternative: row.lifecycle_state === 'RESCHEDULE_PROPOSED' ||
+            (row.bucket === 'REQUIRES_ACTION' && row.state === 'ALTERNATIVE_PENDING'),
         canCancel: policy.canCancel,
       },
       cancellation: {

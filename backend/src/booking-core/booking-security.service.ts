@@ -366,7 +366,13 @@ export class BookingSecurityService {
         }
 
         if (pilotConfirmedCancellation) {
-          if (!hold.slot_starts_at) throw DomainErrors.bookingUnavailable();
+          const appointmentAuthority = (await client.query<{id:string;version:number;status:string;lifecycle_state:string|null}>(`SELECT id,version,status,lifecycle_state FROM booking_schema.appointments WHERE hold_id=$1 FOR UPDATE`,[hold.id])).rows[0];
+          if (!appointmentAuthority || appointmentAuthority.status !== 'CONFIRMED' || !['CONFIRMED','RESCHEDULE_PROPOSED'].includes(appointmentAuthority.lifecycle_state ?? '')) throw DomainErrors.bookingStateConflict();
+          const proposalCandidate=(await client.query<{id:string;alternative_slot_id:string}>(`SELECT id,alternative_slot_id FROM booking_schema.alternative_swap_groups WHERE appointment_id=$1 AND state='PENDING'`,[appointmentAuthority.id])).rows[0];
+          const slotIds=[hold.slot_id,...(proposalCandidate?[proposalCandidate.alternative_slot_id]:[])].sort();
+          const lockedSlots=await client.query<{id:string;starts_at:Date;held_count:number}>(`SELECT id,starts_at,held_count FROM clinic_schema.appointment_slots WHERE id=ANY($1::uuid[]) ORDER BY id FOR UPDATE`,[slotIds]);
+          const sourceSlot=lockedSlots.rows.find(row=>row.id===hold.slot_id);if(!sourceSlot)throw DomainErrors.bookingUnavailable();
+          if(proposalCandidate){const proposal=(await client.query<{id:string}>(`SELECT id FROM booking_schema.alternative_swap_groups WHERE id=$1 AND state='PENDING' FOR UPDATE`,[proposalCandidate.id])).rows[0];if(proposal){const releasedTarget=await client.query(`UPDATE clinic_schema.appointment_slots SET held_count=held_count-1,status=CASE WHEN booked_count>=capacity THEN 'BOOKED' WHEN held_count-1>0 THEN 'LOCKED_BY_HOLD' ELSE 'AVAILABLE' END,version=version+1,updated_at=clock_timestamp() WHERE id=$1 AND held_count>0 RETURNING id`,[proposalCandidate.alternative_slot_id]);if(!releasedTarget.rows[0])throw DomainErrors.bookingStateConflict();await client.query("UPDATE booking_schema.alternative_swap_groups SET state='DECLINED',aggregate_version=aggregate_version+1,updated_at=clock_timestamp() WHERE id=$1",[proposal.id]);}}
           if (!canTransition('CONFIRMED', 'CANCELLATION_REQUESTED') || !canTransition('CANCELLATION_REQUESTED', 'RELEASED')) {
             throw DomainErrors.invalidTransition();
           }
@@ -380,7 +386,7 @@ export class BookingSecurityService {
                 version = version + 1, updated_at = clock_timestamp()
             WHERE hold_id = $1::uuid AND status NOT IN ('CANCELLED', 'CLINIC_CANCELLED')
             RETURNING id, version, cancelled_at, late_cancellation
-          `, [hold.id, input.actor.sub, hold.slot_starts_at, input.reasonCode ?? null]);
+          `, [hold.id, input.actor.sub, sourceSlot.starts_at, input.reasonCode ?? null]);
           if (!appointment.rows[0]) throw DomainErrors.invalidTransition();
 
           const released = await client.query<{ id: string }>(`
@@ -481,7 +487,7 @@ export class BookingSecurityService {
       FROM booking_schema.booking_holds h
       JOIN clinic_schema.appointment_slots s ON s.id = h.slot_id
       WHERE h.id = $1::uuid
-      FOR UPDATE OF h, s
+      FOR UPDATE OF h
     `, [holdId]);
     return result.rows[0];
   }

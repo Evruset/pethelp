@@ -443,7 +443,83 @@
         ],
         "responses": {
           "200": {
-            "description": "Статус, клиника, питомец, услуга, timeline и доступные действия."
+            "description": "Статус, клиника, питомец, услуга, timeline и доступные действия.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "holdId",
+                    "version",
+                    "appointmentLifecycle"
+                  ],
+                  "properties": {
+                    "holdId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "appointmentLifecycle": {
+                      "type": "object",
+                      "required": [
+                        "state",
+                        "cancelledBy",
+                        "cancelledAt",
+                        "lateCancellation",
+                        "reasonCode",
+                        "reasonText",
+                        "noShowAt"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": [
+                            "CONFIRMED",
+                            "CANCELLED_BY_USER",
+                            "CANCELLED_BY_CLINIC",
+                            "RESCHEDULE_PROPOSED",
+                            "NO_SHOW"
+                          ]
+                        },
+                        "cancelledBy": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": [
+                            "OWNER",
+                            "CLINIC"
+                          ]
+                        },
+                        "cancelledAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "lateCancellation": {
+                          "type": "boolean",
+                          "nullable": true
+                        },
+                        "reasonCode": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "reasonText": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "noShowAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1923,7 +1999,98 @@
         },
         "responses": {
           "200": {
-            "description": "CANCELLED_BY_CLINIC with persisted reason."
+            "description": "CANCELLED_BY_CLINIC with persisted reason.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "appointmentId",
+                    "lifecycle",
+                    "aggregateVersion"
+                  ],
+                  "properties": {
+                    "appointmentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "lifecycle": {
+                      "type": "string",
+                      "enum": [
+                        "CANCELLED_BY_CLINIC",
+                        "RESCHEDULE_PROPOSED",
+                        "NO_SHOW"
+                      ]
+                    },
+                    "aggregateVersion": {
+                      "type": "integer"
+                    },
+                    "proposalId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "cancelledAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "noShowAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2017,7 +2184,98 @@
         },
         "responses": {
           "200": {
-            "description": "RESCHEDULE_PROPOSED; original appointment remains authoritative."
+            "description": "RESCHEDULE_PROPOSED; original appointment remains authoritative.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "appointmentId",
+                    "lifecycle",
+                    "aggregateVersion"
+                  ],
+                  "properties": {
+                    "appointmentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "lifecycle": {
+                      "type": "string",
+                      "enum": [
+                        "CANCELLED_BY_CLINIC",
+                        "RESCHEDULE_PROPOSED",
+                        "NO_SHOW"
+                      ]
+                    },
+                    "aggregateVersion": {
+                      "type": "integer"
+                    },
+                    "proposalId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "cancelledAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "noShowAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2086,7 +2344,98 @@
         ],
         "responses": {
           "200": {
-            "description": "NO_SHOW with authoritative actor and timestamp."
+            "description": "NO_SHOW with authoritative actor and timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "appointmentId",
+                    "lifecycle",
+                    "aggregateVersion"
+                  ],
+                  "properties": {
+                    "appointmentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "lifecycle": {
+                      "type": "string",
+                      "enum": [
+                        "CANCELLED_BY_CLINIC",
+                        "RESCHEDULE_PROPOSED",
+                        "NO_SHOW"
+                      ]
+                    },
+                    "aggregateVersion": {
+                      "type": "integer"
+                    },
+                    "proposalId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "cancelledAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "noShowAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
           }
         },
         "security": [

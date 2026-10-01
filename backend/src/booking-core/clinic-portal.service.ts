@@ -138,6 +138,7 @@ export class ClinicPortalService {
       await client.query(`
         UPDATE booking_schema.appointments
         SET status = 'COMPLETED',
+            lifecycle_state = NULL,
             version = version + 1,
             updated_at = clock_timestamp()
         WHERE hold_id = $1::uuid
