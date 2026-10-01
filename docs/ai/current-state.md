@@ -1,6 +1,6 @@
 # V50 program current state
 
-## Active isolated transition session — PetHelp v1.5 Wave 0/1
+## Active isolated transition session — PetHelp v1.5 Wave 0/1/2
 
 - Working branch/worktree: `agent/v15-transition-wave-01` / `/Users/evrusetskiy/work/pethelp-v15-wave-01`.
 - Canonical base: GitHub default branch `main` at `ba85f22c2a83e844902586241e280cecf4c689bc`.
@@ -8,9 +8,13 @@
 - Target sources supplied 2026-10-01: PetHelp SRS v1.5 and Business Process Map v1.5.
 - Wave 0 documentation baseline is under `docs/v15/`; it changes no runtime behavior.
 - Wave 1 implementation is `READY_FOR_HUMAN_REVIEW`: clinic-owned contract policy now selects manual or atomic automatic confirmation inside the existing booking transaction without changing the create route.
+- Wave 2 is `READY_FOR_HUMAN_REVIEW`: BP-07 through BP-10 and the minimum No_Show foundation are implemented with Appointment authoritative after confirmation, additive public lifecycle metadata and no change to the canonical booking-create route or errors.
+- Owner/clinic cancellation, proposal accept/reject/expiry and no-show use database time, exact ownership/scope checks, idempotency, audit/outbox and the global lock order `hold -> appointment -> sorted slots -> proposal`. Clinic proposal never directly changes the confirmed slot.
+- Both `MVP_V1_MANUAL` and `V15_AUTO_CONFIRM` converge on the same downstream Appointment lifecycle; final real Nest profile scenarios PASS `6/6` and independent re-review is PASS with no residual veto.
 - Runtime, migration and concurrency evidence is complete. Schema rollback is intentionally stopped by migration `171965` to preserve the append-only policy audit; operational rollback is the audited `V15_AUTO_CONFIRM` → `MVP_V1_MANUAL` profile change and affects new attempts only.
 - Product/SA compatibility decision received: both profiles reuse `POST /v1/booking-holds`, stale version remains canonical `BOOKING_STATE_CONFLICT`, no `SLOT_VERSION_STALE` public alias is added, and profile differences are successful status plus clinic queue effects. Jira/Confluence were not mutated.
-- Validation: Node 22 build/OpenAPI assertions PASS; focused unit + real PostgreSQL + real Nest acceptance PASS `33/33`; fresh/upgrade migration acceptance PASS `2/2`; audit/concurrency/rollback remediation PASS `6/6`; legacy compatibility PASS `1/1`; post-hardening migration acceptance PASS `2/2`. DB/concurrency, security and independent reviews all PASS with no residual veto.
+- Validation: Wave 1 regression PASS `10/10`; Wave 2 focused real PostgreSQL/runtime/migration matrix PASS `38/38`; post-review lifecycle/runtime PASS `17/17`; final real Nest contract-profile acceptance PASS `6/6`; fresh/upgrade migration acceptance PASS `2/2`; build and generated OpenAPI assertions PASS. DB/concurrency, security and independent reviews all PASS with no residual veto.
+- Wave 2 evidence is recorded in `docs/v15/07-wave2-evidence.md`. Jira/Confluence were not mutated and Wave 3 was not started.
 - Current dirty Owner v5.0 work in `/Users/evrusetskiy/work/pethelp-alpha` is protected and untouched.
 
 Updated: 2026-10-01
