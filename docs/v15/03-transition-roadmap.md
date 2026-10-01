@@ -18,7 +18,7 @@
 3. Add a fail-closed `BookingPolicyResolver`.
 4. Replace manual/automatic decisions in booking creation with resolved policy while retaining runtime capability gates.
 5. Prove the existing authoritative clinic-active guard covers represented suspended/terminated states, or stop Wave 1 on that missing dependency; do not implement the full lifecycle in this wave.
-6. Reconcile the SRS `/appointments` and `SLOT_VERSION_STALE` sketch with the approved PILOT `/v1/booking-holds` and `BOOKING_STATE_CONFLICT` contract. This is `BLOCKED_PRODUCT_DECISION`; preserve PILOT behavior until approved. Do not create `/v15` routes.
+6. Preserve the approved shared `POST /v1/booking-holds` route and canonical errors for both profiles; assert stale version as `BOOKING_STATE_CONFLICT`. Do not create `/appointments` or `/v15` routes.
 7. Add dual-mode, authorization, idempotency, stale-version, rollback and concurrency tests.
 8. Validate fresh and upgraded PostgreSQL, real Nest runtime, generated OpenAPI and rollback.
 9. Stop at the human approval gate.

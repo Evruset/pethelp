@@ -37,16 +37,17 @@ published available slot -> atomic owner booking -> CONFIRMED
 
 Wave 1 must introduce both contracts in one backend. It must not remove the manual path or enable payments, MIS, telemedicine, insurance or emergency routing.
 
-## Blocking public-contract conflict
+## Authoritative public-contract reconciliation
 
-`VERIFIED_CONTRACT`: SRS §4.6 describes `POST /appointments` and maps a stale slot version to `409 SLOT_VERSION_STALE`. `VERIFIED_CODE`: the approved current PILOT create contract is `POST /v1/booking-holds` and deliberately maps stale `expectedSlotVersion` or incompatible booking state to `409 BOOKING_STATE_CONFLICT`; `SLOT_VERSION_STALE` is explicitly not a public alias for that operation.
+`VERIFIED_CONTRACT`: Product/SA decision received after Wave 0 accepts the SRS `/appointments` route and `SLOT_VERSION_STALE` name as ADR-level sketches superseded by the transition compatibility contract.
 
-Classification: `BLOCKED_PRODUCT_DECISION` for any Wave 1 public create-route or error-name change. Until an approved compatibility mapping exists:
+Decision for both contract profiles:
 
-- preserve the current PILOT route and `BOOKING_STATE_CONFLICT` contract;
-- do not introduce `/appointments` merely to copy the SRS `[ADR]` shape;
-- do not expose `SLOT_VERSION_STALE` as an additional PILOT alias;
-- allow the v1.5 business semantic change only through a backward-compatible decision that names the authoritative route, response and error mapping.
+- reuse `POST /v1/booking-holds`;
+- use the same public conflict/error contract, including stale version as `409 BOOKING_STATE_CONFLICT`;
+- do not expose `SLOT_VERSION_STALE` or profile-specific aliases;
+- distinguish profiles through the successful authoritative booking status and clinic queue effects;
+- never accept a client-supplied contract profile.
 
 ## Reusable implementation baseline
 
@@ -79,4 +80,4 @@ Classification: `BLOCKED_PRODUCT_DECISION` for any Wave 1 public create-route or
 - Prove the legacy automatic path preserves the v1.5 validation, locking, idempotency, audit and outbox invariants.
 - Prove an existing authoritative clinic-active guard rejects any represented suspended/terminated state, or record that guard as a Wave 1 dependency. This does not authorize implementing the full BP-20/BP-21 lifecycle.
 - Define and independently review the additive clinic policy migration and fail-closed resolution rule.
-- Obtain Product/SA approval for the current `booking-holds`/`BOOKING_STATE_CONFLICT` versus SRS `appointments`/`SLOT_VERSION_STALE` compatibility mapping.
+- Reconcile generated OpenAPI and runtime tests with the approved shared route/error contract.

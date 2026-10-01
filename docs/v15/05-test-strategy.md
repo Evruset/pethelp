@@ -6,7 +6,7 @@ Mocks may support unit tests but cannot close database, concurrency, migration o
 
 - TypeScript build and targeted lint/type checks.
 - Migration checksum/framework validation.
-- Generated OpenAPI assertion for headers, request/response schema, exact `409` codes and error envelope. Before an approved compatibility decision, PILOT create must retain `BOOKING_STATE_CONFLICT` for stale version and must not expose `SLOT_VERSION_STALE` as its alias.
+- Generated OpenAPI assertion for headers, request/response schema, exact `409` codes and error envelope. Both profiles must return `BOOKING_STATE_CONFLICT` for stale version and must not expose `SLOT_VERSION_STALE` as a booking-create alias.
 - `git diff --check`.
 
 ## Unit
@@ -25,7 +25,7 @@ Mocks may support unit tests but cannot close database, concurrency, migration o
 - Same idempotency key and payload: one logical booking and stable replay.
 - Same key, different payload: deterministic conflict.
 - Stale expected slot version: controlled conflict with no effects.
-- Route/error compatibility: assert the approved create route and exact profile-specific code; never treat a generic `409` as sufficient evidence.
+- Route/error compatibility: assert `POST /v1/booking-holds` and the same canonical stale-version code for both profiles; profile-specific behavior is asserted through successful status and clinic queue effects. Never treat a generic `409` as sufficient evidence.
 - Injected failure after intermediate mutation: no appointment, orphan hold, counter drift or false-success outbox.
 - Policy rollback affects new attempts only; existing confirmed appointment remains confirmed.
 - Foreign owner and cross-clinic/location access produce normalized no-leak denial.
@@ -35,7 +35,8 @@ Mocks may support unit tests but cannot close database, concurrency, migration o
 
 - Fresh database: all migrations including contract profile apply successfully.
 - Upgrade fixture: current schema/data upgrades with every existing clinic defaulted to manual behavior.
-- Down/recovery strategy restores code compatibility without rewriting existing booking history.
+- Destructive schema rollback is rejected at the forward-only audit safety barrier. Operational rollback changes the clinic profile to `MVP_V1_MANUAL`, is audited, affects only new attempts and does not rewrite existing booking history.
+- Policy audit rejects row update/delete/truncate; its actor is the database session role. Caller-supplied change references are diagnostic metadata, not proof of human identity or approval.
 
 ## Runtime acceptance
 

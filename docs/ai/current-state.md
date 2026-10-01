@@ -7,12 +7,13 @@
 - Draft integration reference: PR #78 at `176e7f3908e246eff6520e366bbbf2e0646d5cab`; its Clinical Result work is deferred reuse input, not a rewrite target.
 - Target sources supplied 2026-10-01: PetHelp SRS v1.5 and Business Process Map v1.5.
 - Wave 0 documentation baseline is under `docs/v15/`; it changes no runtime behavior.
-- Current booking contradiction: `PILOT_V1` selects `MANUAL_CONFIRM_PENDING`, while `[BR][BP-05/BP-06]` requires atomic `CONFIRMED` for a published slot.
-- Wave 1 is not yet accepted: migration-chain, legacy auto-confirm transaction, real PostgreSQL and runtime gates remain mandatory.
-- Product/SA blocker: SRS sketches `POST /appointments` with `SLOT_VERSION_STALE`, while the approved PILOT contract uses `POST /v1/booking-holds` and canonical `BOOKING_STATE_CONFLICT`. Preserve the PILOT contract until an explicit compatibility mapping is approved.
+- Wave 1 implementation is `READY_FOR_HUMAN_REVIEW`: clinic-owned contract policy now selects manual or atomic automatic confirmation inside the existing booking transaction without changing the create route.
+- Runtime, migration and concurrency evidence is complete. Schema rollback is intentionally stopped by migration `171965` to preserve the append-only policy audit; operational rollback is the audited `V15_AUTO_CONFIRM` → `MVP_V1_MANUAL` profile change and affects new attempts only.
+- Product/SA compatibility decision received: both profiles reuse `POST /v1/booking-holds`, stale version remains canonical `BOOKING_STATE_CONFLICT`, no `SLOT_VERSION_STALE` public alias is added, and profile differences are successful status plus clinic queue effects. Jira/Confluence were not mutated.
+- Validation: Node 22 build/OpenAPI assertions PASS; focused unit + real PostgreSQL + real Nest acceptance PASS `33/33`; fresh/upgrade migration acceptance PASS `2/2`; audit/concurrency/rollback remediation PASS `6/6`; legacy compatibility PASS `1/1`; post-hardening migration acceptance PASS `2/2`. DB/concurrency, security and independent reviews all PASS with no residual veto.
 - Current dirty Owner v5.0 work in `/Users/evrusetskiy/work/pethelp-alpha` is protected and untouched.
 
-Updated: 2026-07-31
+Updated: 2026-10-01
 
 ## Program status
 

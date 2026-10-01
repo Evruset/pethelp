@@ -13,8 +13,10 @@
 | Automatic path skips manual-path validation | Invalid clinic/service/doctor/pet booking | Shared validation and negative matrix | Wave 1 veto |
 | Suspended/terminated clinic can still auto-confirm | Booking violates BP-06 safety precondition | Prove existing authoritative active-clinic guard for represented states or block Wave 1; full BP-20/BP-21 lifecycle remains deferred | Wave 1 veto |
 | OpenAPI differs from runtime | Client breakage | Generate/assert schema against live behavior | Wave 1 |
-| SRS and approved PILOT create contracts conflict | Client breakage or silent governance override | Preserve `/v1/booking-holds` and `BOOKING_STATE_CONFLICT`; require Product/SA-approved route/error compatibility mapping | Human decision before public API change |
+| SRS ADR sketch differs from approved transition API | Client breakage or silent alias introduction | Product/SA decision preserves `/v1/booking-holds` and `BOOKING_STATE_CONFLICT` for both profiles; exact OpenAPI/runtime assertions | Wave 1 veto |
 | Policy rollback mutates existing appointments | Historical corruption | Apply policy only to new attempts | Wave 1 |
+| Schema rollback destroys or reuses policy audit versions | Audit corruption and unsafe redeploy | Forward-only audit archive, mutation-rejection triggers and explicit migration rollback safety barrier; use audited profile rollback | DB/security veto |
+| Caller metadata is mistaken for approval identity | False governance evidence | Record only PostgreSQL `session_user` as technical actor; treat change reference as diagnostics and keep human approval in the authoritative decision record | Security veto |
 | Draft Clinical Result work duplicated | Merge conflict and split authority | Treat PR #73/#78 lineage as reuse source; defer to Wave 3 | Wave 3 |
 | Legacy payments/MIS/telemed/insurance become active | Scope and regulatory expansion | Keep runtime capability gates independent of v1.5 booking policy | Wave 1 veto |
 | Unapproved CFG values enter code | Product/financial/legal error | Keep values unset; human decision gate | All waves |
