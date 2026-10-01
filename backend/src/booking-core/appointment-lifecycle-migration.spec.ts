@@ -1,4 +1,5 @@
 const migration = require('../../migrations/node-pg/1719660000000_add_appointment_lifecycle');
+export {};
 
 describe('appointment lifecycle migration', () => {
   it('adds an additive appointment authority model without fabricating unknown history', () => {

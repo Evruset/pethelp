@@ -1,4 +1,5 @@
 const migration = require('../../migrations/node-pg/1719650000000_protect_clinic_booking_contract_profile_audit');
+export {};
 
 describe('clinic contract profile audit protection migration', () => {
   it('protects audit rows and records only the database session role as actor', () => {
