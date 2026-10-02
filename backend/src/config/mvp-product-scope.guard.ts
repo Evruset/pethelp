@@ -4,7 +4,7 @@ import { mvpScope, type MvpScopeConfig } from './mvp-scope.config';
 const pilotBlockedRoutes: Array<{ pattern: RegExp; method?: string }> = [
   { pattern: /^\/v1\/booking-holds\/[^/]+\/alternative(?:\/|$)/ },
   { pattern: /^\/v1\/booking-holds\/[^/]+\/(?:release|cancellation-requests)(?:\/|$)/ },
-  { pattern: /^\/v1\/clinic\/booking-holds\/[^/]+\/(?:alternative-slot|complete)(?:\/|$)/ },
+  { pattern: /^\/v1\/clinic\/booking-holds\/[^/]+\/alternative-slot(?:\/|$)/ },
   { pattern: /^\/v1\/clinic\/[^/]+\/locations\/[^/]+\/(?:quality-dashboard|vet\/visits)(?:\/|$)/ },
   { pattern: /^\/v1\/clinic\/[^/]+\/locations\/[^/]+\/booking-holds\/[^/]+\/audit-trail(?:\/|$)/ },
   { pattern: /^\/v1\/owner\/pets\/[^/]+$/, method: 'PATCH' },
