@@ -8,7 +8,7 @@ const pilotBlockedRoutes: Array<{ pattern: RegExp; method?: string }> = [
   { pattern: /^\/v1\/clinic\/[^/]+\/locations\/[^/]+\/(?:quality-dashboard|vet\/visits)(?:\/|$)/ },
   { pattern: /^\/v1\/clinic\/[^/]+\/locations\/[^/]+\/booking-holds\/[^/]+\/audit-trail(?:\/|$)/ },
   { pattern: /^\/v1\/owner\/pets\/[^/]+$/, method: 'PATCH' },
-  { pattern: /^\/v1\/owner\/pets\/[^/]+\/(?:archive|restore|photo|diary|care-summary|documents)(?:\/|$)/ },
+  { pattern: /^\/v1\/owner\/pets\/[^/]+\/(?:archive|restore|photo|care-summary|documents)(?:\/|$)/ },
 ];
 
 export function isPilotBackendRouteAllowed(pathname: string, method?: string): boolean {

@@ -138,12 +138,20 @@ async function main() {
   const ownerPetList = document.paths?.['/v1/owner/pets']?.get;
   const ownerPetCreate = document.paths?.['/v1/owner/pets']?.post;
   const ownerPetRead = document.paths?.['/v1/owner/pets/{petId}']?.get;
+  const ownerPetDiary = document.paths?.['/v1/owner/pets/{petId}/diary']?.get;
   required(ownerPetList && ownerPetCreate && ownerPetRead, 'Owner Pet MVP routes are incomplete');
   for (const [path, method] of [
     ['/v1/owner/pets/{petId}', 'patch'], ['/v1/owner/pets/{petId}/archive', 'post'], ['/v1/owner/pets/{petId}/restore', 'post'],
-    ['/v1/owner/pets/{petId}/diary', 'get'], ['/v1/owner/pets/{petId}/care-summary', 'get'], ['/v1/owner/pets/{petId}/documents', 'post'],
+    ['/v1/owner/pets/{petId}/care-summary', 'get'], ['/v1/owner/pets/{petId}/documents', 'post'],
     ['/v1/owner/pets/{petId}/photo', 'post'], ['/v1/owner/pets/{petId}/photo', 'delete'],
   ]) required(!document.paths?.[path]?.[method], `PILOT_V1 must not advertise ${method.toUpperCase()} ${path}`);
+  required(ownerPetDiary, 'Wave 3 Owner Pet diary route is missing');
+  requireBearerAuth(ownerPetDiary, 'Owner pet diary');
+  requireStatuses(ownerPetDiary, ['200', '400', '401', '404', '500'], 'Owner pet diary');
+  requireErrorSchemas(ownerPetDiary, ['400', '401', '404', '500'], 'Owner pet diary');
+  const diarySchema = ownerPetDiary.responses?.['200']?.content?.['application/json']?.schema;
+  required(diarySchema?.additionalProperties === false, 'Owner pet diary response must be closed');
+  required(diarySchema?.properties?.clinicalEntries?.items?.additionalProperties === false, 'Owner pet clinical diary entries must be closed');
   for (const [operation, label] of [[ownerPetList, 'Owner pet list'], [ownerPetCreate, 'Owner pet create'], [ownerPetRead, 'Owner pet read']]) requireBearerAuth(operation, label);
   requireStatuses(ownerPetList, ['200', '401', '500'], 'Owner pet list');
   requireStatuses(ownerPetCreate, ['201', '400', '401', '409', '500'], 'Owner pet create');

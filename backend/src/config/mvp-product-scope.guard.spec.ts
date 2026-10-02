@@ -21,6 +21,7 @@ describe('MVP product route containment', () => {
     '/v1/clinic/clinic-1/locations/location-1/schedule/slots',
     '/v1/clinic/clinic-1/locations/location-1/patients',
     '/v1/owner/appointments',
+    '/v1/owner/pets/pet-id/diary',
     '/v1/clinic/booking-holds/hold-1/complete',
     '/v1/catalog/clinics',
   ])('keeps %s in the pilot surface', (path) => {
@@ -44,6 +45,7 @@ describe('MVP product route containment', () => {
     expect(isPilotBackendRouteAllowed('/v1/owner/pets/pet-id', 'PATCH')).toBe(false);
     expect(isPilotBackendRouteAllowed('/v1/owner/pets/pet-id/archive', 'POST')).toBe(false);
     expect(isPilotBackendRouteAllowed('/v1/owner/pets/pet-id/documents', 'POST')).toBe(false);
+    expect(isPilotBackendRouteAllowed('/v1/owner/pets/pet-id/diary', 'GET')).toBe(true);
     expect(assertMvpProductRoute(legacy, '/v1/owner/pets/pet-id', 'PATCH')).toBe(true);
   });
 });

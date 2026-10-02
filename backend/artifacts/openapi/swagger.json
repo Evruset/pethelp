@@ -789,6 +789,335 @@
         ]
       }
     },
+    "/v1/owner/pets/{petId}/diary": {
+      "get": {
+        "operationId": "OwnerPet_readDiary",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "petId",
+                    "entries",
+                    "clinicalEntries",
+                    "page"
+                  ],
+                  "properties": {
+                    "petId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "type",
+                          "sourceId",
+                          "occurredAt",
+                          "endsAt",
+                          "title",
+                          "summary",
+                          "lifecycleStatus",
+                          "downloadUrl"
+                        ],
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "DOCUMENT",
+                              "VISIT",
+                              "TELEMED",
+                              "RESULT",
+                              "RESULT_AMENDMENT"
+                            ]
+                          },
+                          "sourceId": {
+                            "type": "string"
+                          },
+                          "occurredAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "endsAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "summary": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "lifecycleStatus": {
+                            "type": "string"
+                          },
+                          "downloadUrl": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    },
+                    "clinicalEntries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "visit",
+                          "result",
+                          "amendments"
+                        ],
+                        "properties": {
+                          "visit": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "visitId",
+                              "occurredAt",
+                              "clinic",
+                              "location",
+                              "service",
+                              "doctor"
+                            ],
+                            "properties": {
+                              "visitId": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "occurredAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "clinic": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "name"
+                                ],
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "location": {
+                                "type": "object",
+                                "nullable": true,
+                                "additionalProperties": false,
+                                "required": [
+                                  "address"
+                                ],
+                                "properties": {
+                                  "address": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "service": {
+                                "type": "object",
+                                "nullable": true,
+                                "additionalProperties": false,
+                                "required": [
+                                  "name"
+                                ],
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "doctor": {
+                                "type": "object",
+                                "nullable": true,
+                                "additionalProperties": false,
+                                "required": [
+                                  "name"
+                                ],
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "result": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "resultId",
+                              "publishedAt",
+                              "content"
+                            ],
+                            "properties": {
+                              "resultId": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "publishedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "content": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "amendments": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "amendmentId",
+                                "authorId",
+                                "createdAt",
+                                "publishedAt",
+                                "content"
+                              ],
+                              "properties": {
+                                "amendmentId": {
+                                  "type": "string",
+                                  "format": "uuid"
+                                },
+                                "authorId": {
+                                  "type": "string",
+                                  "format": "uuid"
+                                },
+                                "createdAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "publishedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "content": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "page": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "limit",
+                        "offset",
+                        "nextOffset",
+                        "total"
+                      ],
+                      "properties": {
+                        "limit": {
+                          "type": "integer"
+                        },
+                        "offset": {
+                          "type": "integer"
+                        },
+                        "nextOffset": {
+                          "type": "integer",
+                          "nullable": true
+                        },
+                        "total": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Published clinical diary for the current owner pet",
+        "tags": [
+          "Owner pets"
+        ]
+      }
+    },
     "/v1/auth/session": {
       "get": {
         "operationId": "EffectiveSession_read",
