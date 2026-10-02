@@ -197,6 +197,31 @@ async function main() {
     'Complete visit must require only clinical.visit.complete',
   );
 
+  const clinicalBase = '/v1/clinic/visits/{visitId}/results';
+  const clinicalResult = '/v1/clinic/visits/{visitId}/results/{resultId}';
+  const clinicalOperations = [
+    document.paths?.[clinicalBase]?.get,
+    document.paths?.[clinicalBase]?.post,
+    document.paths?.[clinicalResult]?.get,
+    document.paths?.[clinicalResult]?.patch,
+    document.paths?.[`${clinicalResult}/publish`]?.post,
+    document.paths?.[`${clinicalResult}/amendments`]?.post,
+  ];
+  required(clinicalOperations.every(Boolean), 'Clinical Result route matrix is incomplete');
+  required(clinicalOperations.every((operation) => operation.security?.some((item) => item.bearerAuth)), 'Every Clinical Result route must require bearerAuth');
+  required(clinicalOperations.every((operation) => operation.operationId), 'Every Clinical Result route must have an operationId');
+  const createClinical = document.paths?.[clinicalBase]?.post;
+  const editClinical = document.paths?.[clinicalResult]?.patch;
+  const publishClinical = document.paths?.[`${clinicalResult}/publish`]?.post;
+  const amendClinical = document.paths?.[`${clinicalResult}/amendments`]?.post;
+  const hasRequiredHeader = (operation, name) => operation.parameters?.some((parameter) => parameter.in === 'header' && parameter.name === name && parameter.required);
+  required(hasRequiredHeader(createClinical, 'Idempotency-Key') && hasRequiredHeader(createClinical, 'X-Correlation-ID'), 'Clinical draft create fencing headers are incomplete');
+  required(hasRequiredHeader(editClinical, 'If-Match') && hasRequiredHeader(editClinical, 'X-Correlation-ID'), 'Clinical draft edit fencing headers are incomplete');
+  required(['Idempotency-Key','If-Match','X-Correlation-ID'].every((name) => hasRequiredHeader(publishClinical, name)), 'Clinical publish fencing headers are incomplete');
+  required(['Idempotency-Key','X-Correlation-ID'].every((name) => hasRequiredHeader(amendClinical, name)), 'Clinical amendment fencing headers are incomplete');
+  required([createClinical,editClinical,amendClinical].every((operation) => operation.requestBody?.content?.['application/json']?.schema?.additionalProperties === false), 'Clinical command bodies must be closed');
+  required([createClinical,editClinical,publishClinical,amendClinical].every((operation) => ['400','401','403','404','409','500'].every((status) => operation.responses?.[status])), 'Clinical command error matrices are incomplete');
+
   const alternativeSnapshot = document.paths?.['/v1/booking-holds/{holdId}/alternative']?.get;
   required(alternativeSnapshot, 'GET owner alternative slot snapshot is missing');
   required(alternativeSnapshot.security?.some((item) => item.bearerAuth), 'Alternative snapshot must require bearerAuth');
