@@ -6,7 +6,17 @@ export type VeterinarianVisit = {
   status: VeterinarianVisitStatus; petDisplayName: string; species: string;
 };
 
+export type VeterinarianVisitDetail = VeterinarianVisit & { visitId: string | null };
+export type ClinicalResult = { id:string;visitId:string;authorId:string;status:'DRAFT'|'PUBLISHED';clinicalSummary:string;version:number;createdAt:string;updatedAt:string;publishedAt:string|null };
+export type ClinicalResultAmendment = { amendmentId:string;resultId:string;visitId:string;authorId:string;content:string;createdAt:string;publishedAt:string };
+export type VeterinarianVisitClinicalReadback = { visitId:string;result:ClinicalResult|null;amendments:ClinicalResultAmendment[] };
+
 const keys = ['clinicId', 'holdId', 'locationId', 'petDisplayName', 'scheduledEnd', 'scheduledStart', 'species', 'status'];
+const detailKeys = [...keys, 'visitId'].sort();
+const readbackKeys = ['amendments', 'result', 'visitId'];
+const resultKeys = ['authorId','clinicalSummary','createdAt','id','publishedAt','status','updatedAt','version','visitId'];
+const amendmentKeys = ['amendmentId','authorId','content','createdAt','publishedAt','resultId','visitId'];
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const RFC3339 = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-](\d{2}):(\d{2}))$/;
 
 function isStatus(value: unknown): value is VeterinarianVisitStatus {
@@ -36,4 +46,39 @@ export function parseVeterinarianVisit(value: unknown): VeterinarianVisit | null
 
 export function parseVeterinarianVisits(value: unknown): VeterinarianVisit[] | null {
   return Array.isArray(value) ? value.map(parseVeterinarianVisit).every((row): row is VeterinarianVisit => row !== null) ? value as VeterinarianVisit[] : null : null;
+}
+
+export function parseVeterinarianVisitDetail(value: unknown): VeterinarianVisitDetail | null {
+  if (!value || typeof value !== 'object') return null;
+  const row = value as Record<string, unknown>;
+  if (Object.keys(row).sort().join('|') !== detailKeys.join('|')) return null;
+  const base = parseVeterinarianVisit(Object.fromEntries(keys.map((key) => [key, row[key]])));
+  if (!base || row.visitId !== null && (typeof row.visitId !== 'string' || !UUID.test(row.visitId))) return null;
+  return { ...base, visitId: row.visitId as string | null };
+}
+
+export async function loadVeterinarianVisitClinicalReadback(visit: VeterinarianVisitDetail): Promise<VeterinarianVisitClinicalReadback | null> {
+  if (visit.visitId === null) return null;
+  const visitId = visit.visitId;
+  const response = await fetch(`/api/clinic/visits/${visitId}/results`, { cache: 'no-store' });
+  if (!response.ok) throw new Error('Clinical readback unavailable');
+  const payload: unknown = await response.json().catch(() => null);
+  if (!payload || typeof payload !== 'object') throw new Error('Malformed clinical readback');
+  const row = payload as Record<string, unknown>;
+  const result = row.result === null ? null : parseClinicalResult(row.result, visitId);
+  const amendments = Array.isArray(row.amendments) ? row.amendments.map((item) => parseAmendment(item, result?.id, visitId)) : null;
+  if (Object.keys(row).sort().join('|') !== readbackKeys.join('|') || row.visitId !== visitId || row.result !== null && result === null || !amendments || amendments.some((item) => item === null)) throw new Error('Malformed clinical readback');
+  return { visitId, result, amendments: amendments as ClinicalResultAmendment[] };
+}
+
+function parseClinicalResult(value: unknown, visitId: string): ClinicalResult | null {
+  if (!value || typeof value !== 'object') return null; const row=value as Record<string,unknown>;
+  if(Object.keys(row).sort().join('|')!==resultKeys.join('|')||typeof row.id!=='string'||!UUID.test(row.id)||row.visitId!==visitId||typeof row.authorId!=='string'||!UUID.test(row.authorId))return null;
+  if(row.status!=='DRAFT'&&row.status!=='PUBLISHED'||typeof row.clinicalSummary!=='string'||!Number.isSafeInteger(row.version)||Number(row.version)<1||!isTimestamp(row.createdAt)||!isTimestamp(row.updatedAt))return null;
+  if(row.publishedAt!==null&&!isTimestamp(row.publishedAt))return null; return row as ClinicalResult;
+}
+function parseAmendment(value:unknown,resultId:string|undefined,visitId:string):ClinicalResultAmendment|null{
+  if(!value||typeof value!=='object')return null;const row=value as Record<string,unknown>;
+  if(Object.keys(row).sort().join('|')!==amendmentKeys.join('|')||typeof row.amendmentId!=='string'||!UUID.test(row.amendmentId)||row.resultId!==resultId||row.visitId!==visitId||typeof row.authorId!=='string'||!UUID.test(row.authorId)||typeof row.content!=='string'||!isTimestamp(row.createdAt)||!isTimestamp(row.publishedAt))return null;
+  return row as ClinicalResultAmendment;
 }
