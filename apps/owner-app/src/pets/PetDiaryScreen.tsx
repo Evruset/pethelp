@@ -1,0 +1,15 @@
+import { useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
+import { useSession } from '@/session/SessionProvider';
+import { Button, Card, Screen, StateMessage } from '@/ui/primitives';
+import { petDiaryApi, type PetClinicalDiaryEntry, type PetDiaryApi } from './pet-api';
+
+const date=(value:string)=>new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'long',year:'numeric'}).format(new Date(value));
+function Context({entry}:{entry:PetClinicalDiaryEntry}){return <View><Text>{entry.visit.clinic.name}</Text>{entry.visit.service?.name?<Text>{entry.visit.service.name}</Text>:null}{entry.visit.doctor?.name?<Text>{entry.visit.doctor.name}</Text>:null}{entry.visit.location?.address?<Text>{entry.visit.location.address}</Text>:null}</View>;}
+export function PetDiaryScreen({petId,petName,onBack,onSwitchPet,api=petDiaryApi}:{petId:string;petName:string;onBack():void;onSwitchPet():void;api?:Pick<PetDiaryApi,'read'>}){
+ const {session}=useSession();const [selected,setSelected]=useState<string|null>(null);const query=useQuery({queryKey:['owner',session?.cacheScope,'pet-diary',petId],enabled:Boolean(session),queryFn:({signal})=>api.read(session!.opaqueCredential,petId,signal)});
+ const data=!query.isError&&query.data?.petId===petId?query.data:undefined;const detail=data?.clinicalEntries.find((entry)=>entry.result.resultId===selected);
+ if(detail)return <Screen title="Результат приёма"><Text>{petName} · {date(detail.visit.occurredAt)}</Text><Card><Context entry={detail}/></Card><Card><Text>Исходный результат</Text><Text>{detail.result.content}</Text></Card>{detail.amendments.length?<View><Text>Уточнения к результату</Text>{detail.amendments.map((item)=><Card key={item.amendmentId}><Text>Опубликовано {date(item.publishedAt)}</Text><Text>{item.content}</Text></Card>)}</View>:null}<Button label="Назад к дневнику" variant="secondary" onPress={()=>setSelected(null)}/></Screen>;
+ return <Screen title={`Дневник: ${petName}`}><Text>Опубликованные клиникой результаты приёмов. Исходный результат сохраняется неизменным, поздние уточнения показаны отдельно.</Text><Button label="Выбрать другого питомца" variant="secondary" onPress={onSwitchPet}/>{query.isPending?<StateMessage kind="loading" title="Загружаем дневник"/>:null}{query.isError||query.data&&query.data.petId!==petId?<StateMessage kind="error" title="Дневник недоступен" action={<Button label="Повторить" onPress={()=>{void query.refetch();}}/>}/>:null}{data?.clinicalEntries.length===0?<StateMessage kind="empty" title="В дневнике пока нет результатов"/>:null}{data?.clinicalEntries.map((entry)=><Pressable key={entry.result.resultId} accessibilityRole="button" accessibilityLabel={`Открыть результат приёма ${date(entry.visit.occurredAt)}, ${entry.visit.clinic.name}`} onPress={()=>setSelected(entry.result.resultId)}><Card><Text>{date(entry.visit.occurredAt)}</Text><Context entry={entry}/><Text numberOfLines={3}>{entry.result.content}</Text>{entry.amendments.length?<Text>Уточнений: {entry.amendments.length}</Text>:null}</Card></Pressable>)}<Button label="Назад" variant="ghost" onPress={onBack}/></Screen>;
+}
