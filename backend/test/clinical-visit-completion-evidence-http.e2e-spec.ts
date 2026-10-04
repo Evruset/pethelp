@@ -22,7 +22,7 @@ const I = {
 
 describe('Wave 3 Visit completion HTTP contract (real PostgreSQL)', () => {
   let app:INestApplication;let db:DatabaseService;let jwt:JwtService;
-  beforeAll(async()=>{if(!new URL(config.databaseUrl).pathname.startsWith('/vethelp_w7a4_'))throw new Error('Wave 3 HTTP test requires a disposable vethelp_w7a4_* database');app=await NestFactory.create(NestRoot,{logger:false});app.useGlobalFilters(new BookingErrorFilter());await app.init();db=app.get(DatabaseService);jwt=app.get(JwtService);await seed(db);});
+  beforeAll(async()=>{if(!new URL(config.databaseUrl).pathname.startsWith('/vethelp_wave3_'))throw new Error('Wave 3 HTTP test requires a disposable vethelp_wave3_* database');app=await NestFactory.create(NestRoot,{logger:false});app.useGlobalFilters(new BookingErrorFilter());await app.init();db=app.get(DatabaseService);jwt=app.get(JwtService);await seed(db);});
   afterAll(async()=>{await app?.close();});
   const token=(sub:string,roles:Role[],clinicIds:string[],locationIds:string[])=>jwt.signAsync({sub,roles,clinicIds,locationIds},{secret:config.jwtSecret,issuer:config.jwtIssuer,audience:config.jwtAudience,algorithm:'HS256'});
   const complete=async(holdId:string,sub=I.vet,roles=[Role.CLINIC_VETERINARIAN],clinics=[I.clinic],locations=[I.location])=>request(app.getHttpServer()).post(`/v1/clinic/booking-holds/${holdId}/complete`).set('Authorization',`Bearer ${await token(sub,roles,clinics,locations)}`).set('X-Correlation-ID',randomUUID()).send({summary:'Bounded clinical summary without sensitive event payload'});
