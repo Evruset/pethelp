@@ -28,6 +28,7 @@ describe('ClinicEmployeeAccessService clinical completion', () => {
       LOCATION_ID,
     )).resolves.toBeUndefined();
     expect(client.query).toHaveBeenCalledTimes(2);
+    expect((client.query as jest.Mock).mock.calls[1][0]).toContain('FOR SHARE OF membership, location, clinic');
   });
 
   it('denies a clinic administrator before querying membership', async () => {

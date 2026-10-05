@@ -43,6 +43,7 @@ export class ClinicEmployeeAccessService {
       WHERE membership.employee_id = $1::uuid
         AND membership.active = true
         AND membership.revoked_at IS NULL
+      FOR SHARE OF membership, location, clinic
     `, [employee.sub, locationId, clinicId]);
     if (!authority.rows[0]) throw DomainErrors.clinicScopeMismatch();
     return { serverNow: authority.rows[0].server_now, timezone: authority.rows[0].timezone };
