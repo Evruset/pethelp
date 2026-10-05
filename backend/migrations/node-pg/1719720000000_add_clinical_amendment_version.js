@@ -2,11 +2,13 @@
 exports.shorthands = undefined;
 exports.up = (pgm) => { pgm.sql(`
   ALTER TABLE clinical_schema.visit_result_amendments ADD COLUMN version integer;
+  ALTER TABLE clinical_schema.visit_result_amendments DISABLE TRIGGER visit_result_amendments_immutability_trigger;
   WITH ranked AS (
     SELECT id, row_number() OVER (PARTITION BY result_id ORDER BY created_at, id)::integer AS version
     FROM clinical_schema.visit_result_amendments
   )
   UPDATE clinical_schema.visit_result_amendments amendment SET version=ranked.version FROM ranked WHERE ranked.id=amendment.id;
+  ALTER TABLE clinical_schema.visit_result_amendments ENABLE TRIGGER visit_result_amendments_immutability_trigger;
   ALTER TABLE clinical_schema.visit_result_amendments ALTER COLUMN version SET NOT NULL;
   ALTER TABLE clinical_schema.visit_result_amendments ADD CONSTRAINT visit_result_amendments_version_check CHECK(version>0);
   ALTER TABLE clinical_schema.visit_result_amendments ADD CONSTRAINT visit_result_amendments_result_version_key UNIQUE(result_id,version);
