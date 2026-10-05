@@ -37,10 +37,10 @@ describe('Wave 3 published clinical result Owner diary (real PostgreSQL)', () =>
       .set('Authorization', `Bearer ${await vetToken()}`).set('Idempotency-Key', randomUUID()).set('X-Correlation-ID', randomUUID())
       .send({ clinicalSummary: 'Published owner-visible result' });
     expect(created.status).toBe(201);
-    expect((await diary(I.pet)).body.entries.filter((entry: { type: string }) => entry.type === 'RESULT')).toEqual([]);
-    expect((await db.query(`SELECT count(*)::int count FROM booking_schema.outbox_events WHERE event_type='notification.push.summary_ready.v1'`)).rows[0].count).toBe(0);
-
     const resultId = created.body.id as string;
+    expect((await diary(I.pet)).body.entries.filter((entry: { type: string }) => entry.type === 'RESULT')).toEqual([]);
+    expect((await db.query(`SELECT count(*)::int count FROM booking_schema.outbox_events WHERE event_type='notification.push.summary_ready.v1' AND aggregate_id=$1`,[resultId])).rows[0].count).toBe(0);
+
     const publishKey = randomUUID();
     const publish = async () => request(app.getHttpServer()).post(`/v1/clinic/visits/${I.visit}/results/${resultId}/publish`)
       .set('Authorization', `Bearer ${await vetToken()}`).set('If-Match', String(created.body.version)).set('Idempotency-Key', publishKey).set('X-Correlation-ID', randomUUID());
