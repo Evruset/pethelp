@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { PoolClient } from 'pg';
 import { JwtPayload } from '../auth/auth.types';
+import { DomainException } from '../common/domain-error';
 import { DatabaseService } from '../database/database.service';
 import { ClinicEmployeeAccessService } from './clinic-employee-access.service';
 
@@ -59,7 +60,7 @@ export class ClinicalResultService {
     return this.amendmentView(amendment);
   });}
 
-  private async visit(client:PoolClient,id:string,actor:JwtPayload){const visit=(await client.query<{id:string;owner_id:string;pet_id:string;clinic_id:string;location_id:string}>('SELECT id,owner_id,pet_id,clinic_id,location_id FROM clinical_schema.visits WHERE id=$1',[id])).rows[0];if(!visit)throw new NotFoundException({code:'CLINICAL_VISIT_NOT_FOUND'});await this.access.assertClinicalVisitCompletionAccess(client,actor,visit.clinic_id,visit.location_id);return visit;}
+  private async visit(client:PoolClient,id:string,actor:JwtPayload){const invisible=()=>new NotFoundException({code:'CLINICAL_VISIT_NOT_FOUND'});const visit=(await client.query<{id:string;owner_id:string;pet_id:string;clinic_id:string;location_id:string}>('SELECT id,owner_id,pet_id,clinic_id,location_id FROM clinical_schema.visits WHERE id=$1 AND clinic_id=ANY($2::uuid[]) AND location_id=ANY($3::uuid[])',[id,actor.clinicIds??[],actor.locationIds??[]])).rows[0];if(!visit)throw invisible();try{await this.access.assertClinicalVisitCompletionAccess(client,actor,visit.clinic_id,visit.location_id);}catch(error){if(error instanceof DomainException)throw invisible();throw error;}return visit;}
   private async result(client:PoolClient,visitId:string,id:string,lock:boolean){const result=(await client.query<ResultRow>(`SELECT * FROM clinical_schema.visit_results WHERE id=$1 AND visit_id=$2 ${lock?'FOR UPDATE':''}`,[id,visitId])).rows[0];if(!result)throw new NotFoundException({code:'CLINICAL_RESULT_NOT_FOUND'});return result;}
   private content(value:string){const normalized=value.trim();if(normalized.length<3||normalized.length>8000)throw new BadRequestException({code:'INVALID_CLINICAL_CONTENT'});return normalized;}
   private view(row:ResultRow){return{id:row.id,visitId:row.visit_id,authorId:row.author_id,status:row.status,clinicalSummary:row.clinical_summary,version:row.version,createdAt:row.created_at.toISOString(),updatedAt:row.updated_at.toISOString(),publishedAt:row.published_at?.toISOString()??null};}
