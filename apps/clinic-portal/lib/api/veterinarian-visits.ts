@@ -8,14 +8,14 @@ export type VeterinarianVisit = {
 
 export type VeterinarianVisitDetail = VeterinarianVisit & { visitId: string | null };
 export type ClinicalResult = { id:string;visitId:string;authorId:string;status:'DRAFT'|'PUBLISHED';clinicalSummary:string;version:number;createdAt:string;updatedAt:string;publishedAt:string|null };
-export type ClinicalResultAmendment = { amendmentId:string;resultId:string;visitId:string;authorId:string;content:string;createdAt:string;publishedAt:string };
+export type ClinicalResultAmendment = { amendmentId:string;resultId:string;visitId:string;authorId:string;version:number;content:string;createdAt:string;publishedAt:string };
 export type VeterinarianVisitClinicalReadback = { visitId:string;result:ClinicalResult|null;amendments:ClinicalResultAmendment[] };
 
 const keys = ['clinicId', 'holdId', 'locationId', 'petDisplayName', 'scheduledEnd', 'scheduledStart', 'species', 'status'];
 const detailKeys = [...keys, 'visitId'].sort();
 const readbackKeys = ['amendments', 'result', 'visitId'];
 const resultKeys = ['authorId','clinicalSummary','createdAt','id','publishedAt','status','updatedAt','version','visitId'];
-const amendmentKeys = ['amendmentId','authorId','content','createdAt','publishedAt','resultId','visitId'];
+const amendmentKeys = ['amendmentId','authorId','content','createdAt','publishedAt','resultId','version','visitId'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const RFC3339 = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-](\d{2}):(\d{2}))$/;
 
@@ -79,6 +79,6 @@ function parseClinicalResult(value: unknown, visitId: string): ClinicalResult | 
 }
 function parseAmendment(value:unknown,resultId:string|undefined,visitId:string):ClinicalResultAmendment|null{
   if(!value||typeof value!=='object')return null;const row=value as Record<string,unknown>;
-  if(Object.keys(row).sort().join('|')!==amendmentKeys.join('|')||typeof row.amendmentId!=='string'||!UUID.test(row.amendmentId)||row.resultId!==resultId||row.visitId!==visitId||typeof row.authorId!=='string'||!UUID.test(row.authorId)||typeof row.content!=='string'||!isTimestamp(row.createdAt)||!isTimestamp(row.publishedAt))return null;
+  if(Object.keys(row).sort().join('|')!==amendmentKeys.join('|')||typeof row.amendmentId!=='string'||!UUID.test(row.amendmentId)||row.resultId!==resultId||row.visitId!==visitId||typeof row.authorId!=='string'||!UUID.test(row.authorId)||!Number.isSafeInteger(row.version)||Number(row.version)<1||typeof row.content!=='string'||!isTimestamp(row.createdAt)||!isTimestamp(row.publishedAt))return null;
   return row as ClinicalResultAmendment;
 }

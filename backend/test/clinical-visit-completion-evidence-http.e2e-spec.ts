@@ -50,6 +50,13 @@ describe('Wave 3 Visit completion HTTP contract (real PostgreSQL)', () => {
       await db.query('UPDATE booking_schema.appointments SET status=$2,lifecycle_state=$3 WHERE id=$1',[I.invalidAppointment,status,lifecycle]);
       expect((await complete(I.invalidHold)).status).toBe(422);
     }
+    await db.query("UPDATE booking_schema.appointments SET status='CONFIRMED',lifecycle_state='CONFIRMED' WHERE id=$1",[I.invalidAppointment]);
+    await db.query("UPDATE clinic_schema.clinics SET status='INACTIVE' WHERE id=$1",[I.clinic]);
+    expect((await complete(I.invalidHold)).status).toBe(403);
+    await db.query("UPDATE clinic_schema.clinics SET status='ACTIVE' WHERE id=$1",[I.clinic]);
+    await db.query("UPDATE clinic_schema.clinic_locations SET status='INACTIVE' WHERE id=$1",[I.location]);
+    expect((await complete(I.invalidHold)).status).toBe(403);
+    await db.query("UPDATE clinic_schema.clinic_locations SET status='ACTIVE' WHERE id=$1",[I.location]);
     const foreign=await complete(I.hold,I.foreignVet,[Role.CLINIC_VETERINARIAN],[I.foreignClinic],[I.foreignLocation]);expect(foreign.status).toBe(403);
     const wrongClinicClaim=await complete(I.hold,I.vet,[Role.CLINIC_VETERINARIAN],[I.foreignClinic],[I.location]);expect(wrongClinicClaim.status).toBe(403);
     const insufficient=await complete(I.hold,I.admin,[Role.CLINIC_ADMIN],[I.clinic],[I.location]);expect(insufficient.status).toBe(403);

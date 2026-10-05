@@ -22,7 +22,7 @@ describe('Wave 3 immutable Amendment idempotent replay (real PostgreSQL HTTP)',(
   const amend=async(key:string,content='Authoritative correction')=>request(app.getHttpServer()).post(`/v1/clinic/visits/${I.visit}/results/${I.result}/amendments`).set('Authorization',`Bearer ${await token()}`).set('Idempotency-Key',key).set('X-Correlation-ID',randomUUID()).send({content});
 
   it('replays by immutable readback without duplicate row, projection, audit or outbox',async()=>{
-    const key=randomUUID();const first=await amend(key);expect(first.status).toBe(201);expect(first.body).toMatchObject({resultId:I.result,visitId:I.visit,content:'Authoritative correction'});
+    const key=randomUUID();const first=await amend(key);expect(first.status).toBe(201);expect(first.body).toMatchObject({resultId:I.result,visitId:I.visit,version:1,content:'Authoritative correction'});
     const amendmentId=first.body.amendmentId as string;
     const before=(await db.query(`SELECT id::text,result_id::text,visit_id::text,owner_id::text,pet_id::text,clinic_id::text,location_id::text,author_id::text,amendment_content,idempotency_key::text,created_at,published_at FROM clinical_schema.visit_result_amendments WHERE id=$1`,[amendmentId])).rows[0];
 

@@ -27,7 +27,7 @@ describe('ClinicEmployeeAccessService clinical completion', () => {
       CLINIC_ID,
       LOCATION_ID,
     )).resolves.toBeUndefined();
-    expect(client.query).toHaveBeenCalledTimes(1);
+    expect(client.query).toHaveBeenCalledTimes(2);
   });
 
   it('denies a clinic administrator before querying membership', async () => {

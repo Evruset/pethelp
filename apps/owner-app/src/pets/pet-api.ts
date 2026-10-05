@@ -12,7 +12,7 @@ export type Pet = Readonly<{
 export type PetClinicalDiaryEntry = Readonly<{
   visit: { visitId:string;occurredAt:string;clinic:{name:string};location:{address:string}|null;service:{name:string}|null;doctor:{name:string}|null };
   result: { resultId:string;publishedAt:string;content:string };
-  amendments: readonly { amendmentId:string;publishedAt:string;content:string }[];
+  amendments: readonly { amendmentId:string;version:number;publishedAt:string;content:string }[];
 }>;
 export type PetDiary = Readonly<{ petId:string;clinicalEntries:PetClinicalDiaryEntry[] }>;
 
@@ -107,7 +107,7 @@ function clinicalEntry(value:unknown):PetClinicalDiaryEntry{
   if(!visit||!result||!Array.isArray(item.amendments)||typeof visit.visitId!=='string'||!UUID.test(visit.visitId)||!timestamp(visit.occurredAt)||!named(visit.clinic,'name'))throw new Error('INVALID_PET_DIARY_RESPONSE');
   if(visit.location!==null&&!named(visit.location,'address')||visit.service!==null&&!named(visit.service,'name')||visit.doctor!==null&&!named(visit.doctor,'name'))throw new Error('INVALID_PET_DIARY_RESPONSE');
   if(typeof result.resultId!=='string'||!UUID.test(result.resultId)||!timestamp(result.publishedAt)||typeof result.content!=='string')throw new Error('INVALID_PET_DIARY_RESPONSE');
-  const amendments=item.amendments.map((raw)=>{const amendment=raw as Record<string,unknown>;if(!amendment||typeof amendment.amendmentId!=='string'||!UUID.test(amendment.amendmentId)||!timestamp(amendment.publishedAt)||typeof amendment.content!=='string')throw new Error('INVALID_PET_DIARY_RESPONSE');return {amendmentId:amendment.amendmentId,publishedAt:amendment.publishedAt,content:amendment.content};});
+  const amendments=item.amendments.map((raw)=>{const amendment=raw as Record<string,unknown>;if(!amendment||typeof amendment.amendmentId!=='string'||!UUID.test(amendment.amendmentId)||!Number.isSafeInteger(amendment.version)||Number(amendment.version)<1||!timestamp(amendment.publishedAt)||typeof amendment.content!=='string')throw new Error('INVALID_PET_DIARY_RESPONSE');return {amendmentId:amendment.amendmentId,version:Number(amendment.version),publishedAt:amendment.publishedAt,content:amendment.content};});
   return {visit:{visitId:visit.visitId,occurredAt:visit.occurredAt,clinic:visit.clinic as {name:string},location:visit.location as {address:string}|null,service:visit.service as {name:string}|null,doctor:visit.doctor as {name:string}|null},result:{resultId:result.resultId,publishedAt:result.publishedAt,content:result.content},amendments};
 }
 export type PetDiaryApi=ReturnType<typeof createPetDiaryApi>;

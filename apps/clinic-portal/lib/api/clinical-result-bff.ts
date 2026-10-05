@@ -10,4 +10,4 @@ export async function clinicalMutation(request:Request,path:string,method:'POST'
 }
 export async function boundedText(request:Request,field:string){const payload:unknown=await request.json().catch(()=>null);if(!payload||typeof payload!=='object')return null;const value=(payload as Record<string,unknown>)[field];return typeof value==='string'&&value.trim().length>=3&&value.trim().length<=8000?value:null;}
 export const invalidClinicalRequest=()=>NextResponse.json({code:'INVALID_CLINICAL_CONTENT'},{status:400,headers:{'Cache-Control':'no-store'}});
-export const idempotencyKey=(request:Request)=>{const value=request.headers.get('Idempotency-Key');return value&&CLINICAL_UUID.test(value)?value:randomUUID();};
+export const idempotencyKey=(request:Request)=>{const value=request.headers.get('Idempotency-Key');return value&&CLINICAL_UUID.test(value)?value:null;};

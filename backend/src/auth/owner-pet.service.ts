@@ -157,7 +157,7 @@ export type OwnerPetDiaryPage = {
 export type OwnerPetClinicalDiaryEntry = {
   visit: { visitId:string;occurredAt:string;clinic:{name:string};location:{address:string}|null;service:{name:string}|null;doctor:{name:string}|null };
   result: { resultId:string;publishedAt:string;content:string };
-  amendments: { amendmentId:string;authorId:string;createdAt:string;publishedAt:string;content:string }[];
+  amendments: { amendmentId:string;version:number;createdAt:string;publishedAt:string;content:string }[];
 };
 
 type OwnerPetRow = {
@@ -503,14 +503,14 @@ export class OwnerPetService {
     const clinical = await this.database.query<{
       visit_id:string;occurred_at:Date;clinic_name:string;location_address:string|null;service_name:string|null;
       result_id:string;result_published_at:Date;result_content:string;
-      amendments:{amendmentId:string;authorId:string;createdAt:string;publishedAt:string;content:string}[];
+      amendments:{amendmentId:string;version:number;createdAt:string;publishedAt:string;content:string}[];
     }>(`
       SELECT visit.id::text AS visit_id,visit.completed_at AS occurred_at,clinic.public_name AS clinic_name,
         location.address AS location_address,service.display_name AS service_name,result.id::text AS result_id,
         result.published_at AS result_published_at,result.clinical_summary AS result_content,
-        COALESCE(jsonb_agg(jsonb_build_object('amendmentId',amendment.id::text,'authorId',amendment.author_id::text,
+        COALESCE(jsonb_agg(jsonb_build_object('amendmentId',amendment.id::text,'version',amendment.version,
           'createdAt',amendment.created_at,'publishedAt',amendment.published_at,'content',amendment.amendment_content)
-          ORDER BY amendment.created_at ASC,amendment.id ASC)
+          ORDER BY amendment.version ASC)
           FILTER(WHERE amendment.id IS NOT NULL AND amendment_diary.id IS NOT NULL),'[]'::jsonb) AS amendments
       FROM clinical_schema.visit_results result
       JOIN clinical_schema.visits visit ON visit.id=result.visit_id AND visit.owner_id=result.owner_id AND visit.pet_id=result.pet_id AND visit.clinic_id=result.clinic_id AND visit.location_id=result.location_id

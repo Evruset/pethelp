@@ -49,13 +49,13 @@ describe('Wave 3 published clinical result Owner diary (real PostgreSQL)', () =>
     for (const content of ['First owner-visible correction', 'Second owner-visible correction']) {
       const response = await request(app.getHttpServer()).post(`/v1/clinic/visits/${I.visit}/results/${resultId}/amendments`)
         .set('Authorization', `Bearer ${await vetToken()}`).set('Idempotency-Key', randomUUID()).set('X-Correlation-ID', randomUUID()).send({ content });
-      expect(response.status).toBe(201); amendments.push({ id: response.body.amendmentId, content });
+      expect(response.status).toBe(201); expect(response.body.version).toBe(amendments.length+1); amendments.push({ id: response.body.amendmentId, content });
     }
 
     const owned = await diary(I.pet); expect(owned.status).toBe(200);
     expect(owned.body.clinicalEntries).toHaveLength(1);
     expect(owned.body.clinicalEntries[0].result).toEqual(expect.objectContaining({ resultId, content: 'Published owner-visible result' }));
-    expect(owned.body.clinicalEntries[0].amendments.map((item: { amendmentId: string; content: string }) => ({ id: item.amendmentId, content: item.content }))).toEqual(amendments);
+    expect(owned.body.clinicalEntries[0].amendments.map((item: { amendmentId: string; version:number;content: string }) => ({ id: item.amendmentId, version:item.version,content: item.content }))).toEqual(amendments.map((item,index)=>({...item,version:index+1})));
     expect(owned.body.entries).toEqual(expect.arrayContaining([
       expect.objectContaining({ type: 'RESULT', sourceId: resultId, summary: 'Published owner-visible result', lifecycleStatus: 'PUBLISHED' }),
       ...amendments.map((item) => expect.objectContaining({ type: 'RESULT_AMENDMENT', sourceId: item.id, summary: item.content, lifecycleStatus: 'PUBLISHED' })),

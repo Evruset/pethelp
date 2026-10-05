@@ -29,6 +29,7 @@ describe('Wave 3 clinical foundation migration', () => {
       run('down',target.toString());
       run('down',target.toString());
       run('down',target.toString());
+      run('down',target.toString());
       expect((await client.query(`SELECT to_regclass('clinical_schema.visits') value`)).rows[0].value).toBeNull();
       run('up',target.toString());
       await seed(client);
@@ -72,7 +73,7 @@ describe('Wave 3 clinical foundation migration', () => {
       expect((await client.query(`SELECT COALESCE(source_result_id,source_amendment_id)::text source FROM clinical_schema.diary_entries ORDER BY occurred_at,id`)).rows.map(r=>r.source)).toEqual([draft.id,amendmentId]);
 
       const populatedBeforeDown=(await client.query(`SELECT (SELECT count(*) FROM clinical_schema.visits)::int visits,(SELECT count(*) FROM clinical_schema.visit_results)::int results,(SELECT count(*) FROM clinical_schema.diary_entries)::int diary`)).rows[0];
-      let downError='';try{run('down',target.toString());}catch(error){downError=String((error as {stderr?:Buffer}).stderr??error);}expect(downError).toContain('WAVE3_PUBLISH_IDEMPOTENCY_ROLLBACK_APPROVAL_REQUIRED');
+      let downError='';try{run('down',target.toString());}catch(error){downError=String((error as {stderr?:Buffer}).stderr??error);}expect(downError).toContain('WAVE3_AMENDMENT_VERSION_ROLLBACK_APPROVAL_REQUIRED');
       const populatedAfterFailedDown=(await client.query(`SELECT (SELECT count(*) FROM clinical_schema.visits)::int visits,(SELECT count(*) FROM clinical_schema.visit_results)::int results,(SELECT count(*) FROM clinical_schema.diary_entries)::int diary`)).rows[0];
       expect(populatedAfterFailedDown).toEqual(populatedBeforeDown);
       expect(sha(previous)).toBe(previousChecksum);

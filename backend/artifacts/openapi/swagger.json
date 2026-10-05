@@ -1005,7 +1005,7 @@
                               "additionalProperties": false,
                               "required": [
                                 "amendmentId",
-                                "authorId",
+                                "version",
                                 "createdAt",
                                 "publishedAt",
                                 "content"
@@ -1015,9 +1015,9 @@
                                   "type": "string",
                                   "format": "uuid"
                                 },
-                                "authorId": {
-                                  "type": "string",
-                                  "format": "uuid"
+                                "version": {
+                                  "type": "integer",
+                                  "minimum": 1
                                 },
                                 "createdAt": {
                                   "type": "string",
@@ -1265,6 +1265,7 @@
                           "resultId",
                           "visitId",
                           "authorId",
+                          "version",
                           "content",
                           "createdAt",
                           "publishedAt"
@@ -1285,6 +1286,10 @@
                           "authorId": {
                             "type": "string",
                             "format": "uuid"
+                          },
+                          "version": {
+                            "type": "integer",
+                            "minimum": 1
                           },
                           "content": {
                             "type": "string",
@@ -2141,6 +2146,7 @@
                     "resultId",
                     "visitId",
                     "authorId",
+                    "version",
                     "content",
                     "createdAt",
                     "publishedAt"
@@ -2161,6 +2167,10 @@
                     "authorId": {
                       "type": "string",
                       "format": "uuid"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
                     },
                     "content": {
                       "type": "string",

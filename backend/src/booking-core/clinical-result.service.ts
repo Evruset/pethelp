@@ -5,7 +5,7 @@ import { DatabaseService } from '../database/database.service';
 import { ClinicEmployeeAccessService } from './clinic-employee-access.service';
 
 type ResultRow = { id:string;visit_id:string;owner_id:string;pet_id:string;clinic_id:string;location_id:string;author_id:string;status:'DRAFT'|'PUBLISHED';clinical_summary:string;idempotency_key:string;publish_idempotency_key:string|null;version:number;created_at:Date;updated_at:Date;published_at:Date|null };
-type AmendmentRow = { id:string;result_id:string;visit_id:string;owner_id:string;pet_id:string;clinic_id:string;location_id:string;author_id:string;amendment_content:string;created_at:Date;published_at:Date };
+type AmendmentRow = { id:string;result_id:string;visit_id:string;owner_id:string;pet_id:string;clinic_id:string;location_id:string;author_id:string;amendment_content:string;version:number;created_at:Date;published_at:Date };
 
 @Injectable()
 export class ClinicalResultService {
@@ -28,7 +28,7 @@ export class ClinicalResultService {
     await this.visit(client,visitId,actor);
     const result=(await client.query<ResultRow>('SELECT * FROM clinical_schema.visit_results WHERE visit_id=$1',[visitId])).rows[0]??null;
     if(!result)return{visitId,result:null,amendments:[]};
-    const amendments=result.status==='PUBLISHED'?(await client.query<AmendmentRow>(`SELECT id,result_id,visit_id,owner_id,pet_id,clinic_id,location_id,author_id,amendment_content,created_at,published_at FROM clinical_schema.visit_result_amendments WHERE result_id=$1 AND visit_id=$2 ORDER BY created_at ASC,id ASC`,[result.id,visitId])).rows:[];
+    const amendments=result.status==='PUBLISHED'?(await client.query<AmendmentRow>(`SELECT id,result_id,visit_id,owner_id,pet_id,clinic_id,location_id,author_id,amendment_content,version,created_at,published_at FROM clinical_schema.visit_result_amendments WHERE result_id=$1 AND visit_id=$2 ORDER BY version ASC`,[result.id,visitId])).rows:[];
     return{visitId,result:this.view(result),amendments:amendments.map(row=>this.amendmentView(row))};
   });}
 
@@ -51,11 +51,11 @@ export class ClinicalResultService {
 
   amend(visitId:string,resultId:string,content:string,key:string,actor:JwtPayload,correlationId:string){const normalized=this.content(content);return this.db.withTransaction(async client=>{
     await this.visit(client,visitId,actor);const result=await this.result(client,visitId,resultId,true);if(result.status!=='PUBLISHED')throw new ConflictException({code:'CLINICAL_RESULT_NOT_PUBLISHED'});
-    const inserted=await client.query<AmendmentRow>(`INSERT INTO clinical_schema.visit_result_amendments(result_id,visit_id,owner_id,pet_id,clinic_id,location_id,author_id,amendment_content,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(result_id,idempotency_key) DO NOTHING RETURNING id,result_id,visit_id,owner_id,pet_id,clinic_id,location_id,author_id,amendment_content,created_at,published_at`,[result.id,result.visit_id,result.owner_id,result.pet_id,result.clinic_id,result.location_id,actor.sub,normalized,key]);
-    const created=Boolean(inserted.rows[0]);const amendment=inserted.rows[0]??(await client.query<AmendmentRow>(`SELECT id,result_id,visit_id,owner_id,pet_id,clinic_id,location_id,author_id,amendment_content,created_at,published_at FROM clinical_schema.visit_result_amendments WHERE result_id=$1 AND idempotency_key=$2`,[result.id,key])).rows[0];
+    const inserted=await client.query<AmendmentRow>(`INSERT INTO clinical_schema.visit_result_amendments(result_id,visit_id,owner_id,pet_id,clinic_id,location_id,author_id,amendment_content,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(result_id,idempotency_key) DO NOTHING RETURNING id,result_id,visit_id,owner_id,pet_id,clinic_id,location_id,author_id,amendment_content,version,created_at,published_at`,[result.id,result.visit_id,result.owner_id,result.pet_id,result.clinic_id,result.location_id,actor.sub,normalized,key]);
+    const created=Boolean(inserted.rows[0]);const amendment=inserted.rows[0]??(await client.query<AmendmentRow>(`SELECT id,result_id,visit_id,owner_id,pet_id,clinic_id,location_id,author_id,amendment_content,version,created_at,published_at FROM clinical_schema.visit_result_amendments WHERE result_id=$1 AND idempotency_key=$2`,[result.id,key])).rows[0];
     if(!amendment)throw new ConflictException({code:'AMENDMENT_IDEMPOTENCY_REPLAY_UNAVAILABLE'});if(amendment.amendment_content!==normalized)throw new ConflictException({code:'IDEMPOTENCY_CONFLICT'});
     if(amendment.visit_id!==result.visit_id||amendment.owner_id!==result.owner_id||amendment.pet_id!==result.pet_id||amendment.clinic_id!==result.clinic_id||amendment.location_id!==result.location_id)throw new ConflictException({code:'AMENDMENT_REPLAY_CONTEXT_MISMATCH'});
-    if(created){await client.query(`INSERT INTO clinical_schema.diary_entries(owner_id,pet_id,visit_id,source_amendment_id,occurred_at) VALUES($1,$2,$3,$4,$5)`,[result.owner_id,result.pet_id,result.visit_id,amendment.id,amendment.published_at]);await this.evidence(client,'clinical.result.amendment.published',amendment.id,1,actor.sub,correlationId);}
+    if(created){await client.query(`INSERT INTO clinical_schema.diary_entries(owner_id,pet_id,visit_id,source_amendment_id,occurred_at) VALUES($1,$2,$3,$4,$5)`,[result.owner_id,result.pet_id,result.visit_id,amendment.id,amendment.published_at]);await this.evidence(client,'clinical.result.amendment.published',amendment.id,amendment.version,actor.sub,correlationId);}
     return this.amendmentView(amendment);
   });}
 
@@ -63,6 +63,6 @@ export class ClinicalResultService {
   private async result(client:PoolClient,visitId:string,id:string,lock:boolean){const result=(await client.query<ResultRow>(`SELECT * FROM clinical_schema.visit_results WHERE id=$1 AND visit_id=$2 ${lock?'FOR UPDATE':''}`,[id,visitId])).rows[0];if(!result)throw new NotFoundException({code:'CLINICAL_RESULT_NOT_FOUND'});return result;}
   private content(value:string){const normalized=value.trim();if(normalized.length<3||normalized.length>8000)throw new BadRequestException({code:'INVALID_CLINICAL_CONTENT'});return normalized;}
   private view(row:ResultRow){return{id:row.id,visitId:row.visit_id,authorId:row.author_id,status:row.status,clinicalSummary:row.clinical_summary,version:row.version,createdAt:row.created_at.toISOString(),updatedAt:row.updated_at.toISOString(),publishedAt:row.published_at?.toISOString()??null};}
-  private amendmentView(row:AmendmentRow){return{amendmentId:row.id,resultId:row.result_id,visitId:row.visit_id,authorId:row.author_id,content:row.amendment_content,createdAt:row.created_at.toISOString(),publishedAt:row.published_at.toISOString()};}
+  private amendmentView(row:AmendmentRow){return{amendmentId:row.id,resultId:row.result_id,visitId:row.visit_id,authorId:row.author_id,version:row.version,content:row.amendment_content,createdAt:row.created_at.toISOString(),publishedAt:row.published_at.toISOString()};}
   private async evidence(client:PoolClient,event:string,id:string,version:number,actor:string,correlation:string){await client.query(`INSERT INTO audit_schema.audit_log(actor_type,actor_id,action,aggregate_type,aggregate_id,correlation_id,payload_json) VALUES('CLINIC_EMPLOYEE',$1,$2,'clinical_result',$3,$4,'{}')`,[actor,event,id,correlation]);await client.query(`INSERT INTO booking_schema.outbox_events(event_type,correlation_id,aggregate_type,aggregate_id,aggregate_version,payload_json,deduplication_key) VALUES($1,$2,'clinical_result',$3,$4,$5,$6) ON CONFLICT(deduplication_key) DO NOTHING`,[event,correlation,id,version,JSON.stringify({id}),`${event}:${id}:${version}`]);}
 }

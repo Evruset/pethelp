@@ -227,6 +227,7 @@ async function main() {
   required(hasRequiredHeader(editClinical, 'If-Match') && hasRequiredHeader(editClinical, 'X-Correlation-ID'), 'Clinical draft edit fencing headers are incomplete');
   required(['Idempotency-Key','If-Match','X-Correlation-ID'].every((name) => hasRequiredHeader(publishClinical, name)), 'Clinical publish fencing headers are incomplete');
   required(['Idempotency-Key','X-Correlation-ID'].every((name) => hasRequiredHeader(amendClinical, name)), 'Clinical amendment fencing headers are incomplete');
+  required(amendClinical.responses?.['201']?.content?.['application/json']?.schema?.properties?.version?.minimum === 1, 'Clinical amendment response must expose a positive immutable version');
   required([createClinical,editClinical,amendClinical].every((operation) => operation.requestBody?.content?.['application/json']?.schema?.additionalProperties === false), 'Clinical command bodies must be closed');
   required([createClinical,editClinical,publishClinical,amendClinical].every((operation) => ['400','401','403','404','409','500'].every((status) => operation.responses?.[status])), 'Clinical command error matrices are incomplete');
 
