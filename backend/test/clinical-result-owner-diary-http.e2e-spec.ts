@@ -38,12 +38,14 @@ describe('Wave 3 published clinical result Owner diary (real PostgreSQL)', () =>
       .send({ clinicalSummary: 'Published owner-visible result' });
     expect(created.status).toBe(201);
     expect((await diary(I.pet)).body.entries.filter((entry: { type: string }) => entry.type === 'RESULT')).toEqual([]);
+    expect((await db.query(`SELECT count(*)::int count FROM booking_schema.outbox_events WHERE event_type='notification.push.summary_ready.v1'`)).rows[0].count).toBe(0);
 
     const resultId = created.body.id as string;
     const publishKey = randomUUID();
     const publish = async () => request(app.getHttpServer()).post(`/v1/clinic/visits/${I.visit}/results/${resultId}/publish`)
       .set('Authorization', `Bearer ${await vetToken()}`).set('If-Match', String(created.body.version)).set('Idempotency-Key', publishKey).set('X-Correlation-ID', randomUUID());
     expect((await publish()).status).toBe(200); expect((await publish()).status).toBe(200);
+    expect((await db.query(`SELECT count(*)::int count FROM booking_schema.outbox_events WHERE event_type='notification.push.summary_ready.v1' AND aggregate_id=$1`,[resultId])).rows[0].count).toBe(1);
 
     const amendments = [] as Array<{ id: string; content: string }>;
     for (const content of ['First owner-visible correction', 'Second owner-visible correction']) {
@@ -65,6 +67,7 @@ describe('Wave 3 published clinical result Owner diary (real PostgreSQL)', () =>
     expect((await db.query(`SELECT clinical_summary FROM clinical_schema.visit_results WHERE id=$1`, [resultId])).rows[0].clinical_summary).toBe('Published owner-visible result');
     expect((await db.query(`SELECT count(*)::int count FROM audit_schema.audit_log WHERE action='clinical.result.published' AND aggregate_id=$1`, [resultId])).rows[0].count).toBe(1);
     expect((await db.query(`SELECT count(*)::int count FROM booking_schema.outbox_events WHERE event_type='clinical.result.published' AND aggregate_id=$1`, [resultId])).rows[0].count).toBe(1);
+    const ready=(await db.query(`SELECT aggregate_type,aggregate_version,payload_json FROM booking_schema.outbox_events WHERE event_type='notification.push.summary_ready.v1' AND aggregate_id=$1`,[resultId])).rows;expect(ready).toHaveLength(1);expect(ready[0]).toMatchObject({aggregate_type:'clinical_result',aggregate_version:2,payload_json:{resultId,visitId:I.visit,ownerId:I.owner,petId:I.pet}});
   });
 });
 

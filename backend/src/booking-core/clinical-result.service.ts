@@ -47,6 +47,7 @@ export class ClinicalResultService {
     result=(await client.query<ResultRow>(`UPDATE clinical_schema.visit_results SET status='PUBLISHED',published_at=clock_timestamp(),updated_at=clock_timestamp(),publish_idempotency_key=$2,version=version+1 WHERE id=$1 AND status='DRAFT' AND version=$3 RETURNING *`,[resultId,key,expected])).rows[0];
     if(!result)throw new ConflictException({code:'CLINICAL_RESULT_VERSION_OR_STATE_CONFLICT'});
     await client.query(`INSERT INTO clinical_schema.diary_entries(owner_id,pet_id,visit_id,source_result_id,occurred_at) VALUES($1,$2,$3,$4,$5)`,[result.owner_id,result.pet_id,result.visit_id,result.id,result.published_at]);
+    await client.query(`INSERT INTO booking_schema.outbox_events(event_type,correlation_id,aggregate_type,aggregate_id,aggregate_version,payload_json,deduplication_key) VALUES('notification.push.summary_ready.v1',$1,'clinical_result',$2,$3,$4,$5) ON CONFLICT(deduplication_key) DO NOTHING`,[correlationId,result.id,result.version,JSON.stringify({resultId:result.id,visitId:result.visit_id,ownerId:result.owner_id,petId:result.pet_id}),`notification.push.summary_ready.v1:${result.id}:${result.version}`]);
     await this.evidence(client,'clinical.result.published',result.id,result.version,actor.sub,correlationId);return this.view(result);
   });}
 
