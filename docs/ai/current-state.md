@@ -11,6 +11,8 @@
 - Wave 2 is `READY_FOR_HUMAN_REVIEW`: BP-07 through BP-10 and the minimum No_Show foundation are implemented with Appointment authoritative after confirmation, additive public lifecycle metadata and no change to the canonical booking-create route or errors.
 - Wave 3 is `READY_FOR_HUMAN_REVIEW`: BP-13/BP-14 are reconciled from PR #73/#78 as Appointment-authoritative Visit, versioned draft Result, immutable publication, append-only Amendments and published-only Owner Diary; Clinic Portal and Expo Owner App consume the same canonical runtime.
 - Wave 3 human gate is approved at `3165bed36911f35431b748db9a1e5c8e118cdbde`. Wave 4 is `IMPLEMENTATION_IN_PROGRESS`; Product/SA has resolved medical-read roles and grant eligibility. Decisions and acceptance are recorded in `docs/v15/10-wave4-medical-authority.md`.
+- Wave 4A backend authority slice passed Docker PostgreSQL/Nest acceptance on 2026-10-06: contract 26/26, HTTP/concurrency 20/20, populated Wave3 migration 1/1, capabilities/evaluator 35/35; fresh complete migration chain/checksums, build, generated OpenAPI assertion and diff checks PASS. Independent scoped authority review PASS. Migration `171973` was preserved. Evidence: `docs/v15/11-wave4a-backend-evidence.md`.
+- Docker tooling blocker is resolved. Acceptance uses isolated Compose project `pethelp-wave4a`, worktree mount verified, PostgreSQL 16 service `postgres`, workers disabled and PILOT_V1; host PostgreSQL is not used. Wave4A remains PARTIAL: document read is metadata only, BP-11 minimum/client reconciliation, source retrieval, sharing UI, final authority race matrix/reviews and Wave4B OCR remain outstanding. Next slice starts only after accepted backend commit/push and fresh SHA equality. Wave4 is not ready for the human gate.
 - Owner/clinic cancellation, proposal accept/reject/expiry and no-show use database time, exact ownership/scope checks, idempotency, audit/outbox and the global lock order `hold -> appointment -> sorted slots -> proposal`. Clinic proposal never directly changes the confirmed slot.
 - Both `MVP_V1_MANUAL` and `V15_AUTO_CONFIRM` converge on the same downstream Appointment lifecycle; final real Nest profile scenarios PASS `6/6` and independent re-review is PASS with no residual veto.
 - Runtime, migration and concurrency evidence is complete. Schema rollback is intentionally stopped by migration `171965` to preserve the append-only policy audit; operational rollback is the audited `V15_AUTO_CONFIRM` → `MVP_V1_MANUAL` profile change and affects new attempts only.
@@ -19,7 +21,7 @@
 - Wave 2 evidence is recorded in `docs/v15/07-wave2-evidence.md`; Wave 3 evidence is recorded in `docs/v15/09-wave3-evidence.md`. Jira/Confluence were not mutated. Wave 4 proceeds under the approved medical authority contract and stops at its human gate; Wave 5 has not started.
 - Current dirty Owner v5.0 work in `/Users/evrusetskiy/work/pethelp-alpha` is protected and untouched.
 
-Updated: 2026-10-05
+Updated: 2026-10-06
 
 ## Program status
 

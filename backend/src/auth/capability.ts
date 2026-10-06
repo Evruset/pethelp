@@ -5,6 +5,7 @@ import { JwtPayload, Role } from './auth.types';
  * attributes; application services authorize capabilities plus resource scope.
  */
 export enum Capability {
+  MEDICAL_SHARED_DATA_READ = 'medical.shared-data.read',
   CLINICAL_VISIT_COMPLETE = 'clinical.visit.complete',
   CLINICAL_VISIT_WORKSPACE_READ = 'clinical.visit.workspace.read',
   BOOKING_QUEUE_READ = 'booking.queue.read',
@@ -21,7 +22,7 @@ export enum Capability {
 }
 
 const ROLE_CAPABILITIES: Readonly<Partial<Record<Role, readonly Capability[]>>> = {
-  [Role.CLINIC_VETERINARIAN]: [Capability.CLINICAL_VISIT_COMPLETE, Capability.CLINICAL_VISIT_WORKSPACE_READ],
+  [Role.CLINIC_VETERINARIAN]: [Capability.MEDICAL_SHARED_DATA_READ, Capability.CLINICAL_VISIT_COMPLETE, Capability.CLINICAL_VISIT_WORKSPACE_READ],
   [Role.CLINIC_RECEPTIONIST]: [Capability.BOOKING_QUEUE_READ, Capability.APPOINTMENT_REGISTRY_READ, Capability.PATIENT_ADMIN_READ, Capability.PATIENT_ADMIN_LOCAL_PROFILE_UPDATE, Capability.QUALITY_READ, Capability.SCHEDULE_READ, Capability.BOOKING_REPLAY_READ, Capability.BOOKING_HOLD_READ],
   [Role.CLINIC_ADMIN]: [Capability.BOOKING_QUEUE_READ, Capability.APPOINTMENT_REGISTRY_READ, Capability.PATIENT_ADMIN_READ, Capability.PATIENT_ADMIN_LOCAL_PROFILE_UPDATE, Capability.QUALITY_READ, Capability.SCHEDULE_READ, Capability.BOOKING_REPLAY_READ, Capability.BOOKING_HOLD_READ],
   [Role.TELEMED_VETERINARIAN]: [Capability.TELEMED_VET_QUEUE_READ, Capability.TELEMED_VET_AUDIT_TRAIL_READ],
@@ -30,7 +31,7 @@ const ROLE_CAPABILITIES: Readonly<Partial<Record<Role, readonly Capability[]>>> 
 };
 
 export type CapabilityResource = {
-  aggregateType: 'booking.queue' | 'appointment.registry' | 'patient.registry' | 'patient.local-profile' | 'booking.hold' | 'booking.hold.replay' | 'clinical.visit' | 'clinical.visit.workspace' | 'quality.dashboard' | 'schedule.slots';
+  aggregateType: 'medical.share' | 'booking.queue' | 'appointment.registry' | 'patient.registry' | 'patient.local-profile' | 'booking.hold' | 'booking.hold.replay' | 'clinical.visit' | 'clinical.visit.workspace' | 'quality.dashboard' | 'schedule.slots';
   clinicId?: string;
   locationId: string;
 } | {
