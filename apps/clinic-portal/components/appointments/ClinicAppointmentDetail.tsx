@@ -127,7 +127,9 @@ export function ClinicAppointmentDetail({ clinicId, locationId, appointmentId }:
                 <dl className="mt-5 grid gap-5 sm:grid-cols-2">
                   <Fact label="Питомец" value={detail.pet.displayName} />
                   <Fact label="Вид" value={detail.pet.speciesLabel} />
-                  <Fact label="Владелец" value={detail.owner?.displayName ?? 'Владелец не указан'} />
+                  <Fact label="Порода" value={detail.pet.breed ?? 'Не указана'} />
+                  <Fact label="Имя владельца" value={detail.owner?.displayName ?? 'Не указано'} />
+                  <Fact label="Телефон владельца" value={detail.owner?.phone ?? 'Не указан'} />
                   <Fact label="Статус" value={status?.label ?? 'Статус уточняется'} />
                 </dl>
               </section>

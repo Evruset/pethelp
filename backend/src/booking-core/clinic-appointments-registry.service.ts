@@ -46,6 +46,8 @@ type DetailRow = {
   pet_id: string;
   pet_name: string;
   pet_species: string;
+  pet_breed: string | null;
+  owner_phone: string | null;
   service_name: string | null;
   veterinarian_name: string | null;
   resource_name: string | null;
@@ -144,6 +146,7 @@ export class ClinicAppointmentsRegistryService {
       await this.clinicAccess.assertAppointmentRegistryReadAccess(client, input.employee, input.clinicId, input.locationId);
       await this.assertLocationBelongsToClinic(client, input.clinicId, input.locationId);
 
+      await this.clinicAccess.assertExactClinicLocationMembership(client, input.employee, input.clinicId, input.locationId);
       const [serverNow, result] = await Promise.all([
         this.dbNow(client),
         client.query<DetailRow>(`
@@ -151,7 +154,8 @@ export class ClinicAppointmentsRegistryService {
                  a.status AS appointment_status, a.created_at AS appointment_created_at,
                  s.starts_at AS slot_starts_at, s.ends_at AS slot_ends_at,
                  s.source AS slot_source, clinic.timezone,
-                 p.id AS pet_id, p.name AS pet_name, p.species AS pet_species,
+                 p.id AS pet_id, p.name AS pet_name, p.species AS pet_species, p.breed AS pet_breed,
+                 owner_identity.phone_e164 AS owner_phone,
                  service.display_name AS service_name,
                  staff.display_name AS veterinarian_name,
                  resource.display_name AS resource_name
@@ -165,6 +169,7 @@ export class ClinicAppointmentsRegistryService {
              AND location.status = 'ACTIVE'
           JOIN clinic_schema.clinics clinic ON clinic.id = location.clinic_id
           JOIN pet_schema.pets p ON p.id = a.pet_id
+          LEFT JOIN identity_schema.owner_identities owner_identity ON owner_identity.user_id = a.owner_id
           LEFT JOIN clinic_schema.clinic_services service
             ON service.id = s.service_id AND service.clinic_location_id = $2::uuid
           LEFT JOIN clinic_schema.clinic_staff staff
@@ -196,11 +201,12 @@ export class ClinicAppointmentsRegistryService {
           timezone: row.timezone,
           sourceLabel: SOURCE_LABELS[row.slot_source.toUpperCase()] ?? 'Источник не указан',
         },
-        owner: null,
+        owner: { displayName: null, phone: row.owner_phone },
         pet: {
           id: row.pet_id,
           displayName: row.pet_name,
           speciesLabel: SPECIES_LABELS[row.pet_species.toUpperCase()] ?? 'Другой вид',
+          breed: row.pet_breed,
         },
         service: row.service_name ? { displayName: row.service_name } : null,
         veterinarian: row.veterinarian_name ? { displayName: row.veterinarian_name } : null,

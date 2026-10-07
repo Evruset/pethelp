@@ -57,6 +57,10 @@ export function createOpenApiDocument(app: INestApplication) {
     const schema = document.components?.schemas?.[name];
     if (schema && typeof schema === 'object' && !('$ref' in schema)) schema.additionalProperties = false;
   }
+  for (const name of ['ClinicAppointmentDetailDto', 'ClinicAppointmentDetailAppointmentDto', 'ClinicAppointmentDetailScheduleDto', 'ClinicAppointmentDetailOwnerDto', 'ClinicAppointmentDetailPetDto', 'ClinicAppointmentDetailDisplayNameDto']) {
+    const schema = document.components?.schemas?.[name];
+    if (schema && !('$ref' in schema)) schema.additionalProperties = false;
+  }
   if (process.env.MVP_SCOPE_PROFILE === 'PILOT_V1') {
     const hold = document.components?.schemas?.HoldDto;
     if (hold && typeof hold === 'object' && !('$ref' in hold) && hold.properties?.status && !('$ref' in hold.properties.status)) {

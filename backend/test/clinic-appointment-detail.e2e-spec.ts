@@ -97,8 +97,8 @@ describe('Clinic appointment detail HTTP authority and privacy', () => {
         timezone: 'Europe/Moscow',
         sourceLabel: 'Вручную',
       },
-      owner: null,
-      pet: { id: IDS.pet, displayName: 'Барсик', speciesLabel: 'Кошка' },
+      owner: { displayName: null, phone: null },
+      pet: { id: IDS.pet, displayName: 'Барсик', speciesLabel: 'Кошка', breed: null },
       service: { displayName: 'Первичный приём' },
       veterinarian: { displayName: 'Доктор Айболит' },
       resource: { displayName: 'Кабинет 1' },
@@ -107,7 +107,7 @@ describe('Clinic appointment detail HTTP authority and privacy', () => {
     for (const timestamp of [response.body.serverNow, response.body.appointment.createdAt, response.body.schedule.startsAt, response.body.schedule.endsAt]) {
       expect(new Date(timestamp).toISOString()).toBe(timestamp);
     }
-    expect(JSON.stringify(response.body)).not.toMatch(/hold|clinical|diagnos|prescription|phone|email|price|payment|audit/i);
+    expect(JSON.stringify(response.body)).not.toMatch(/hold|clinical|diagnos|prescription|email|price|payment|audit/i);
   });
 
   it('is default-off and cannot be bypassed through the backend route', async () => {

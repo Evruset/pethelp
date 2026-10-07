@@ -13,7 +13,7 @@ const petId = '33333333-3333-4333-8333-333333333333';
 const jwtSecret = process.env.VETHELP_CLINIC_JWT_SECRET ?? 'clinic-e2e-secret-at-least-32-bytes';
 const rolloutEnabled = process.env.VETHELP_CLINIC_APPOINTMENTS_REGISTRY === 'true';
 
-type Mode = 'normal' | 'nullable' | 'unknown' | 'not-found' | 'forbidden' | 'error' | 'malformed'
+type Mode = 'normal' | 'bp11' | 'nullable' | 'unknown' | 'not-found' | 'forbidden' | 'error' | 'malformed'
   | 'impossible-date' | 'wrong-clinic' | 'wrong-location' | 'wrong-appointment' | 'actions' | 'delayed';
 
 let server: Server;
@@ -105,14 +105,23 @@ test.describe('enabled appointment detail', () => {
   test('supports direct URL and safe owner-null projection', async ({ page }) => {
     await open(page);
     await expect(page.getByText('Барни')).toBeVisible();
-    await expect(page.getByText('Владелец не указан')).toBeVisible();
+    await expect(page.getByText('Не указано', { exact: true })).toBeVisible();
+  });
+
+  test('BP-11 shows truthful phone/breed without inventing an owner name or medical context',async({page})=>{
+    mode='bp11';await open(page);
+    await expect(page.getByText('+15551234567',{exact:true})).toBeVisible();
+    await expect(page.getByText('Бигль',{exact:true})).toBeVisible();
+    await expect(page.getByText('Не указано',{exact:true})).toBeVisible();
+    await expect(page.getByText('private diagnosis')).toHaveCount(0);
+    await expect(page.getByText('+7-private')).toHaveCount(0);
   });
 
   test('renders nullable service, veterinarian and resource placeholders', async ({ page }) => {
     mode = 'nullable';
     await open(page);
-    await expect(page.getByText('Не указана', { exact: true })).toBeVisible();
-    await expect(page.getByText('Не указан', { exact: true })).toHaveCount(2);
+    await expect(page.getByText('Не указана', { exact: true })).toHaveCount(2);
+    await expect(page.getByText('Не указан', { exact: true })).toHaveCount(3);
   });
 
   test('unknown backend and unexpected status are safe and textual', async ({ page }) => {
@@ -242,7 +251,7 @@ test.describe('enabled appointment detail', () => {
     await attachScreenshot(page, testInfo, 'appointment-detail-desktop');
     await page.setViewportSize({ width: 375, height: 812 });
     await expect(page.getByRole('heading', { name: 'Карточка записи' })).toBeVisible();
-    await expect(page.getByText('Владелец не указан')).toBeVisible();
+    await expect(page.getByText('Не указано', { exact: true })).toBeVisible();
     await attachScreenshot(page, testInfo, 'appointment-detail-mobile');
   });
 });
@@ -267,8 +276,8 @@ function detailPayload(url: URL) {
       timezone: 'Europe/Moscow',
       sourceLabel: 'Вручную',
     },
-    owner: null,
-    pet: { id: petId, displayName: isOther ? 'Луна' : 'Барни', speciesLabel: 'Собака' },
+    owner: mode==='bp11'?{displayName:null,phone:'+15551234567'}:null,
+    pet: { id: petId, displayName: isOther ? 'Луна' : 'Барни', speciesLabel: 'Собака', breed: mode==='bp11'?'Бигль':null },
     service: mode === 'nullable' ? null : { displayName: 'Терапевтический приём' },
     veterinarian: mode === 'nullable' ? null : { displayName: 'Доктор Айболит' },
     resource: mode === 'nullable' ? null : { displayName: 'Кабинет 1' },

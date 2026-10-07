@@ -63,6 +63,30 @@ describe('Wave 4A medical sharing (Docker PostgreSQL and real Nest HTTP)', () =>
   afterAll(async () => { await app?.close(); });
   afterEach(async () => { await revokeAll(); });
 
+  it.each([Role.CLINIC_ADMIN,Role.CLINIC_RECEPTIONIST])('BP-11 truthful operational minimum without grant: %s',async role=>{
+    process.env.VETHELP_CLINIC_APPOINTMENTS_REGISTRY='true';
+    const phone=`+1${Math.floor(Math.random()*1e10).toString().padStart(10,'0')}`;
+    await db.query(`INSERT INTO identity_schema.owner_identities(user_id,phone_e164) VALUES($1,$2) ON CONFLICT(user_id) DO UPDATE SET phone_e164=excluded.phone_e164`,[I.owner,phone]);
+    await db.query(`UPDATE pet_schema.pets SET breed='Beagle',medical_history_ocr=$2 WHERE id=$1`,[I.pet,JSON.stringify({text:'Private medical OCR marker'})]);
+    const response=await request(app.getHttpServer()).get(`/v1/clinic/${I.clinic}/locations/${I.location}/appointments/${I.appointment}`).set('Authorization',`Bearer ${await token(role===Role.CLINIC_ADMIN?I.admin:I.reception,[role],[I.clinic],[I.location])}`);
+    expect(response.status).toBe(200);expect(response.body.owner).toEqual({displayName:null,phone});
+    expect(response.body.pet).toEqual({id:I.pet,displayName:'Pet',speciesLabel:'Собака',breed:'Beagle'});
+    expect(Object.keys(response.body).sort()).toEqual(['clinicId','locationId','serverNow','appointment','schedule','owner','pet','service','veterinarian','resource','availableActions'].sort());
+    expect(Object.keys(response.body.appointment).sort()).toEqual(['appointmentId','aggregateVersion','statusCode','statusLabel','createdAt'].sort());
+    expect(JSON.stringify(response.body)).not.toMatch(/Private medical|Owner-selected|history\.pdf|clinicalSummary|ocr|medical|diary|amendment/i);
+    expect((await list()).body.status).toBe('NOT_SHARED');expect((await read()).body).toEqual(denied);
+  });
+  it('BP-11 absent identity/breed are null; inactive clinic blocks operational contact',async()=>{
+    process.env.VETHELP_CLINIC_APPOINTMENTS_REGISTRY='true';
+    await db.query('DELETE FROM identity_schema.owner_identities WHERE user_id=$1',[I.owner]);
+    await db.query('UPDATE pet_schema.pets SET breed=NULL WHERE id=$1',[I.pet]);
+    const invoke=async()=>request(app.getHttpServer()).get(`/v1/clinic/${I.clinic}/locations/${I.location}/appointments/${I.appointment}`).set('Authorization',`Bearer ${await token(I.admin,[Role.CLINIC_ADMIN],[I.clinic],[I.location])}`);
+    const response=await invoke();expect(response.status).toBe(200);expect(response.body.owner).toEqual({displayName:null,phone:null});expect(response.body.pet.breed).toBeNull();
+    await db.query("UPDATE clinic_schema.clinics SET status='INACTIVE' WHERE id=$1",[I.clinic]);
+    try{const inactive=await invoke();expect(inactive.status).toBe(403);expect(inactive.body).not.toHaveProperty('owner');}
+    finally{await db.query("UPDATE clinic_schema.clinics SET status='ACTIVE' WHERE id=$1",[I.clinic]);}
+  });
+
   it('appointment alone exposes no history; missing and unshared return identical denials', async () => {
     expect((await list()).body).toEqual({appointmentId:I.appointment,status:'NOT_SHARED',resources:[]});
     for (const id of [result,randomUUID()]) expect((await read(id)).body).toEqual(denied);

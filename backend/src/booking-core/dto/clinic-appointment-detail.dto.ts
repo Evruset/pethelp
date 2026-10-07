@@ -19,10 +19,16 @@ export class ClinicAppointmentDetailDisplayNameDto {
   @ApiProperty() displayName!: string;
 }
 
+export class ClinicAppointmentDetailOwnerDto {
+  @ApiProperty({ type: String, nullable: true, description: 'Null when no authoritative Owner name exists.' }) displayName!: string | null;
+  @ApiProperty({ type: String, nullable: true, description: 'Authoritative Owner identity phone, if available.' }) phone!: string | null;
+}
+
 export class ClinicAppointmentDetailPetDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty() displayName!: string;
   @ApiProperty() speciesLabel!: string;
+  @ApiProperty({ type: String, nullable: true }) breed!: string | null;
 }
 
 export class ClinicAppointmentDetailDto {
@@ -31,8 +37,8 @@ export class ClinicAppointmentDetailDto {
   @ApiProperty({ format: 'date-time' }) serverNow!: string;
   @ApiProperty({ type: ClinicAppointmentDetailAppointmentDto }) appointment!: ClinicAppointmentDetailAppointmentDto;
   @ApiProperty({ type: ClinicAppointmentDetailScheduleDto }) schedule!: ClinicAppointmentDetailScheduleDto;
-  @ApiProperty({ type: ClinicAppointmentDetailDisplayNameDto, nullable: true })
-  owner!: ClinicAppointmentDetailDisplayNameDto | null;
+  @ApiProperty({ type: ClinicAppointmentDetailOwnerDto, nullable: true })
+  owner!: ClinicAppointmentDetailOwnerDto | null;
   @ApiProperty({ type: ClinicAppointmentDetailPetDto }) pet!: ClinicAppointmentDetailPetDto;
   @ApiProperty({ type: ClinicAppointmentDetailDisplayNameDto, nullable: true })
   service!: ClinicAppointmentDetailDisplayNameDto | null;

@@ -8944,7 +8944,8 @@
           "statusCode",
           "statusLabel",
           "createdAt"
-        ]
+        ],
+        "additionalProperties": false
       },
       "ClinicAppointmentDetailScheduleDto": {
         "type": "object",
@@ -8969,18 +8970,28 @@
           "endsAt",
           "timezone",
           "sourceLabel"
-        ]
+        ],
+        "additionalProperties": false
       },
-      "ClinicAppointmentDetailDisplayNameDto": {
+      "ClinicAppointmentDetailOwnerDto": {
         "type": "object",
         "properties": {
           "displayName": {
-            "type": "string"
+            "type": "string",
+            "nullable": true,
+            "description": "Null when no authoritative Owner name exists."
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true,
+            "description": "Authoritative Owner identity phone, if available."
           }
         },
         "required": [
-          "displayName"
-        ]
+          "displayName",
+          "phone"
+        ],
+        "additionalProperties": false
       },
       "ClinicAppointmentDetailPetDto": {
         "type": "object",
@@ -8994,13 +9005,31 @@
           },
           "speciesLabel": {
             "type": "string"
+          },
+          "breed": {
+            "type": "string",
+            "nullable": true
           }
         },
         "required": [
           "id",
           "displayName",
-          "speciesLabel"
-        ]
+          "speciesLabel",
+          "breed"
+        ],
+        "additionalProperties": false
+      },
+      "ClinicAppointmentDetailDisplayNameDto": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "displayName"
+        ],
+        "additionalProperties": false
       },
       "ClinicAppointmentDetailDto": {
         "type": "object",
@@ -9028,7 +9057,7 @@
             "type": "object",
             "allOf": [
               {
-                "$ref": "#/components/schemas/ClinicAppointmentDetailDisplayNameDto"
+                "$ref": "#/components/schemas/ClinicAppointmentDetailOwnerDto"
               }
             ]
           },
@@ -9082,7 +9111,8 @@
           "veterinarian",
           "resource",
           "availableActions"
-        ]
+        ],
+        "additionalProperties": false
       },
       "ClinicPatientPetDto": {
         "type": "object",
