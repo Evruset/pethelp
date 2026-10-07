@@ -26,6 +26,10 @@
 
 Updated: 2026-10-07
 
+### Wave4A final-completion continuation
+
+Precheck fresh fetch PASS: clean `agent/v15-transition-wave-01`, local/remote `0dc14fad53d80b0a896faf0f2a7522319c866297`. Owner slice is remote-backed. Clinic shared read model/UI now passes local bounded acceptance: Portal typecheck/build; parser 3/3; Chromium 6/6 including keyboard/axe; 6 real Nest/PostgreSQL HTTP checks plus 2 service unit checks across focused runs; backend build, generated canonical/Owner/Clinic OpenAPI assertions and migration checksums PASS. Canonical Appointment ID is additive on veterinarian detail; legacy closed detail projection remains accepted during rollout with medical reads disabled when ID is absent. Existing per-resource authority is unchanged. Published Result substitution and explicit separately modeled Amendments are proven; documents remain metadata-only. Independent bounded validator PASS, not final Wave4A reviews. Delivery commit `feat(clinic): expose explicitly shared medical resources` requires push/fetch and clean local/remote equality before document bytes. C2/R2, complex context budget; only root writes. No new migration/dependency/OCR. Final delivery races, fresh/upgrade migration re-acceptance, Owner regression, consolidated Wave1–4A regression and fresh Security/Independent reviews remain outstanding. Wave4A PARTIAL; Wave4B NOT STARTED. Evidence: `docs/v15/12-wave4a-completion-evidence.md`.
+
 ## Program status
 
 - `BASELINE-02`: `COMPLETE`, committed as `22da293`.

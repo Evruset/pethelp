@@ -37,14 +37,14 @@ describe('VeterinarianVisitReadService detail projection', () => {
     const query = jest.fn().mockResolvedValueOnce({ rows: [{
       hold_id: '00000000-0000-4000-8000-000000000004', clinic_id: CLINIC, location_id: LOCATION,
       starts_at: new Date('2026-01-02T10:00:00.000Z'), ends_at: new Date('2026-01-02T10:30:00.000Z'),
-      state: 'COMPLETED', pet_name: 'Milo', species: 'CAT', visit_id: '00000000-0000-4000-8000-000000000006',
+      state: 'COMPLETED', pet_name: 'Milo', species: 'CAT', visit_id: '00000000-0000-4000-8000-000000000006', appointment_id: '00000000-0000-4000-8000-000000000007',
     }] }).mockResolvedValueOnce({ rows: [] });
     const access = { assertClinicalVisitWorkspaceReadAccess: jest.fn().mockResolvedValue(undefined) };
     const database = { withTransaction: (work: (client: unknown) => Promise<unknown>) => work({ query }) };
     const service = new VeterinarianVisitReadService(database as never, access as never);
 
     await expect(service.detail(CLINIC, LOCATION, '00000000-0000-4000-8000-000000000004', ACTOR)).resolves.toMatchObject({
-      holdId: '00000000-0000-4000-8000-000000000004', status: 'COMPLETED', petDisplayName: 'Milo',
+      holdId: '00000000-0000-4000-8000-000000000004', status: 'COMPLETED', petDisplayName: 'Milo', appointmentId: '00000000-0000-4000-8000-000000000007',
     });
     await expect(service.detail(CLINIC, LOCATION, '00000000-0000-4000-8000-000000000005', ACTOR)).rejects.toMatchObject({ response: { code: 'CLINIC_SCOPE_MISMATCH' } });
     expect(query.mock.calls[0][0]).toContain("a.lifecycle_state = 'CONFIRMED'");

@@ -63,6 +63,41 @@ describe('Wave 4A medical sharing (Docker PostgreSQL and real Nest HTTP)', () =>
   afterAll(async () => { await app?.close(); });
   afterEach(async () => { await revokeAll(); });
 
+  it('Clinic workspace derives canonical Appointment without exposing shared content or Owner identifiers',async()=>{
+    const response=await request(app.getHttpServer()).get(`/v1/clinic/${I.clinic}/locations/${I.location}/vet/visits/${I.hold}`).set('Authorization',`Bearer ${await vet()}`);
+    expect(response.status).toBe(200);expect(response.body.appointmentId).toBe(I.appointment);expect(response.body.visitId).toBe(I.visit);
+    expect(Object.keys(response.body).sort()).toEqual(['holdId','clinicId','locationId','scheduledStart','scheduledEnd','status','petDisplayName','species','visitId','appointmentId'].sort());
+    expect(JSON.stringify(response.body)).not.toMatch(/ownerId|clinicalSummary|Owner-selected|history.pdf|file_url|medical_history/i);
+    expect((await list()).body).toEqual({appointmentId:I.appointment,status:'NOT_SHARED',resources:[]});
+  });
+  it('Clinic shared Result does not implicitly include separately modeled Amendments',async()=>{
+    const path=`/v1/clinic/visits/${I.visit}/results/${result}/amendments`;
+    const amendments=[];
+    for(const content of ['First explicitly shared correction','Second explicitly shared correction']){
+      const response=await request(app.getHttpServer()).post(path).set('Authorization',`Bearer ${await vet()}`).set('Idempotency-Key',randomUUID()).set('X-Correlation-ID',randomUUID()).send({content});expect(response.status).toBe(201);amendments.push(response.body);
+    }
+    const original=await grant({mode:'SELECTED',resources:[{type:'RESULT',id:result}]});expect(original.status).toBe(201);
+    expect((await read(amendments[0].amendmentId,'AMENDMENT')).body).toEqual(denied);
+    expect((await grant({mode:'SELECTED',resources:amendments.map(item=>({type:'AMENDMENT',id:item.amendmentId}))})).status).toBe(201);
+    for(const item of amendments){const response=await read(item.amendmentId,'AMENDMENT');expect(response.status).toBe(200);expect(response.body).toEqual({type:'AMENDMENT',id:item.amendmentId,content:item.content,publishedAt:item.publishedAt,version:item.version});}
+    expect((await read()).body.content).toBe('Owner-selected historical result');
+    expect((await request(app.getHttpServer()).get(ownerPath).set('Authorization',`Bearer ${await token()}`)).body.shares.find((share:{id:string})=>share.id===original.body.id).resources).toEqual([{type:'RESULT',id:result}]);
+  });
+  it('Clinic shared published Result rejects same-pet unselected future Result substitution',async()=>{
+    const created=await grant(selected());expect(created.status).toBe(201);
+    const slot=randomUUID(),hold=randomUUID(),appointment=randomUUID(),visit=randomUUID();
+    await db.query(`INSERT INTO clinic_schema.appointment_slots(id,clinic_location_id,service_id,starts_at,ends_at) VALUES($1,$2,$3,clock_timestamp()-interval '1 hour',clock_timestamp())`,[slot,I.location,I.service]);
+    await db.query(`INSERT INTO booking_schema.booking_holds(id,slot_id,owner_id,pet_id,state,expires_at) VALUES($1,$2,$3,$4,'COMPLETED',clock_timestamp()+interval '1 hour')`,[hold,slot,I.owner,I.pet]);
+    await db.query(`INSERT INTO booking_schema.appointments(id,hold_id,owner_id,pet_id,clinic_location_id,slot_id,status) VALUES($1,$2,$3,$4,$5,$6,'COMPLETED')`,[appointment,hold,I.owner,I.pet,I.location,slot]);
+    await db.query(`INSERT INTO clinical_schema.visits(id,appointment_id,booking_hold_id,owner_id,pet_id,clinic_id,location_id,slot_id,completed_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,[visit,appointment,hold,I.owner,I.pet,I.clinic,I.location,slot,I.vet]);
+    const path=`/v1/clinic/visits/${visit}/results`;
+    const draft=await request(app.getHttpServer()).post(path).set('Authorization',`Bearer ${await vet()}`).set('Idempotency-Key',randomUUID()).set('X-Correlation-ID',randomUUID()).send({clinicalSummary:'Unselected same-Pet published result'});expect(draft.status).toBe(201);
+    expect((await request(app.getHttpServer()).post(`${path}/${draft.body.id}/publish`).set('Authorization',`Bearer ${await vet()}`).set('Idempotency-Key',randomUUID()).set('If-Match','1').set('X-Correlation-ID',randomUUID())).status).toBe(200);
+    const response=await read(draft.body.id);expect(response.status).toBe(404);expect(response.body).toEqual(denied);
+    expect((await read()).body.content).toBe('Owner-selected historical result');
+    expect((await list()).body.resources).toEqual(expect.arrayContaining(selected().resources));expect((await list()).body.resources).not.toContainEqual({type:'RESULT',id:draft.body.id});
+  });
+
   it('Owner sharing presentation is scoped, closed and excludes medical content',async()=>{
     const fetchContext=async(auth?:string)=>request(app.getHttpServer()).get(ownerPath).set('Authorization',`Bearer ${auth??await token()}`);
     const response=await fetchContext();expect(response.status).toBe(200);

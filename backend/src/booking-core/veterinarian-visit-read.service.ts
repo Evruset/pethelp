@@ -5,7 +5,7 @@ import { DatabaseService } from '../database/database.service';
 import { ClinicEmployeeAccessService } from './clinic-employee-access.service';
 
 export type VeterinarianVisitView = { holdId: string; clinicId: string; locationId: string; scheduledStart: string; scheduledEnd: string; status: string; petDisplayName: string; species: string };
-export type VeterinarianVisitDetailView = VeterinarianVisitView & { visitId: string | null };
+export type VeterinarianVisitDetailView = VeterinarianVisitView & { visitId: string | null; appointmentId: string };
 @Injectable()
 export class VeterinarianVisitReadService {
   constructor(private readonly database: DatabaseService, private readonly access: ClinicEmployeeAccessService) {}
@@ -42,7 +42,7 @@ export class VeterinarianVisitReadService {
         SELECT h.id::text AS hold_id, l.clinic_id::text AS clinic_id,
                s.clinic_location_id::text AS location_id, s.starts_at, s.ends_at,
                CASE WHEN v.id IS NULL THEN 'CONFIRMED' ELSE 'COMPLETED' END AS state,
-               p.name AS pet_name, p.species, v.id::text AS visit_id
+               p.name AS pet_name, p.species, v.id::text AS visit_id, a.id::text AS appointment_id
         FROM booking_schema.booking_holds h
         JOIN booking_schema.appointments a ON a.hold_id = h.id AND a.owner_id = h.owner_id AND a.pet_id = h.pet_id AND a.slot_id = h.slot_id
         JOIN clinic_schema.appointment_slots s ON s.id = h.slot_id
@@ -58,7 +58,7 @@ export class VeterinarianVisitReadService {
             OR (h.state = 'COMPLETED' AND a.status = 'COMPLETED' AND a.lifecycle_state IS NULL AND v.id IS NOT NULL))
       `, [holdId, clinicId, locationId]);
       if (!result.rows[0]) throw DomainErrors.clinicScopeMismatch();
-      return { ...toView(result.rows[0]), visitId: result.rows[0].visit_id };
+      return { ...toView(result.rows[0]), visitId: result.rows[0].visit_id, appointmentId: result.rows[0].appointment_id };
     });
   }
 }
@@ -67,7 +67,7 @@ type VeterinarianVisitRow = {
   hold_id: string; clinic_id: string; location_id: string; starts_at: Date; ends_at: Date;
   state: 'CONFIRMED' | 'COMPLETED'; pet_name: string; species: string;
 };
-type VeterinarianVisitDetailRow = VeterinarianVisitRow & { visit_id: string | null };
+type VeterinarianVisitDetailRow = VeterinarianVisitRow & { visit_id: string | null; appointment_id: string };
 
 function toView(row: VeterinarianVisitRow): VeterinarianVisitView {
   return {

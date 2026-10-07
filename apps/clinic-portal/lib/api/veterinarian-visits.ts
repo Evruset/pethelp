@@ -6,7 +6,7 @@ export type VeterinarianVisit = {
   status: VeterinarianVisitStatus; petDisplayName: string; species: string;
 };
 
-export type VeterinarianVisitDetail = VeterinarianVisit & { visitId: string | null };
+export type VeterinarianVisitDetail = VeterinarianVisit & { visitId: string | null; appointmentId: string | null };
 export type ClinicalResult = { id:string;visitId:string;authorId:string;status:'DRAFT'|'PUBLISHED';clinicalSummary:string;version:number;createdAt:string;updatedAt:string;publishedAt:string|null };
 export type ClinicalResultAmendment = { amendmentId:string;resultId:string;visitId:string;authorId:string;version:number;content:string;createdAt:string;publishedAt:string };
 export type VeterinarianVisitClinicalReadback = { visitId:string;result:ClinicalResult|null;amendments:ClinicalResultAmendment[] };
@@ -51,10 +51,13 @@ export function parseVeterinarianVisits(value: unknown): VeterinarianVisit[] | n
 export function parseVeterinarianVisitDetail(value: unknown): VeterinarianVisitDetail | null {
   if (!value || typeof value !== 'object') return null;
   const row = value as Record<string, unknown>;
-  if (Object.keys(row).sort().join('|') !== detailKeys.join('|')) return null;
+  // Accept the previous closed projection during rollout; without a canonical ID medical reads stay disabled.
+  const receivedKeys=Object.keys(row).sort().join('|');
+  if (receivedKeys !== detailKeys.join('|') && receivedKeys !== [...detailKeys,'appointmentId'].sort().join('|')) return null;
   const base = parseVeterinarianVisit(Object.fromEntries(keys.map((key) => [key, row[key]])));
   if (!base || row.visitId !== null && (typeof row.visitId !== 'string' || !UUID.test(row.visitId))) return null;
-  return { ...base, visitId: row.visitId as string | null };
+  if ('appointmentId' in row && (typeof row.appointmentId!=='string'||!UUID.test(row.appointmentId))) return null;
+  return { ...base, visitId: row.visitId as string | null, appointmentId: typeof row.appointmentId==='string'?row.appointmentId:null };
 }
 
 export async function loadVeterinarianVisitClinicalReadback(visit: VeterinarianVisitDetail): Promise<VeterinarianVisitClinicalReadback | null> {

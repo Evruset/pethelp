@@ -18,7 +18,7 @@ const IDS = {
   confirmedAppointment:'80000000-0000-4000-8000-000000000001',completedAppointment:'80000000-0000-4000-8000-000000000002',noShowAppointment:'80000000-0000-4000-8000-000000000003',rescheduleAppointment:'80000000-0000-4000-8000-000000000004',otherLocationAppointment:'80000000-0000-4000-8000-000000000005',otherClinicAppointment:'80000000-0000-4000-8000-000000000006',visit:'90000000-0000-4000-8000-000000000001',
 };
 const fields = ['clinicId', 'holdId', 'locationId', 'petDisplayName', 'scheduledEnd', 'scheduledStart', 'species', 'status'];
-const detailFields=[...fields,'visitId'].sort();
+const detailFields=[...fields,'visitId','appointmentId'].sort();
 
 describe('veterinarian visit read HTTP matrix', () => {
   let app: INestApplication;
