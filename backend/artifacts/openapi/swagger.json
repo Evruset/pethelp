@@ -2310,6 +2310,127 @@
         ]
       }
     },
+    "/v1/clinic/appointments/{appointmentId}/medical-shares/resources/DOCUMENT/{documentId}/download": {
+      "get": {
+        "operationId": "MedicalShare_clinicDocumentDownload",
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized stored document bytes. No permanent storage URL.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            },
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Authoritative stored MIME type"
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer"
+                },
+                "description": "Verified stored file size"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Safe attachment filename"
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "private, no-store"
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Appointment medical sharing"
+        ]
+      }
+    },
     "/v1/clinic/visits/{visitId}/results": {
       "get": {
         "operationId": "ClinicalResult_readCurrent",

@@ -17,3 +17,17 @@ export async function sharedMedicalRead(appointmentId:string,resource?:SharedRef
     return NextResponse.json(payload,{headers:{'Cache-Control':'private, no-store'}});
   }catch{return NextResponse.json({code:'BACKEND_UNAVAILABLE'},{status:503,headers:{'Cache-Control':'private, no-store'}});}
 }
+export async function sharedDocumentDownload(appointmentId:string,documentId:string){
+  const session=await getClinicSession();
+  if(!session?.roles.includes('CLINIC_VETERINARIAN')||!MEDICAL_UUID.test(appointmentId)||!MEDICAL_UUID.test(documentId))return denied();
+  const base=process.env.VETHELP_API_BASE_URL?.replace(/\/$/,'');
+  try{
+    if(!base)throw new Error('UNAVAILABLE');
+    const response=await fetch(`${base}/v1/clinic/appointments/${appointmentId}/medical-shares/resources/DOCUMENT/${documentId}/download`,{headers:{Authorization:`Bearer ${session.token}`},cache:'no-store',redirect:'error'});
+    if([401,403,404].includes(response.status))return denied();
+    if(response.status!==200||!response.body)throw new Error('UNAVAILABLE');
+    const mime=response.headers.get('Content-Type'),length=response.headers.get('Content-Length'),disposition=response.headers.get('Content-Disposition');
+    if(!mime||!length||!/^[1-9]\d*$/.test(length)||!Number.isSafeInteger(Number(length))||!disposition?.startsWith('attachment; filename="'))throw new Error('UNAVAILABLE');
+    return new NextResponse(response.body,{headers:{'Content-Type':mime,'Content-Length':length,'Content-Disposition':disposition,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
+  }catch{return NextResponse.json({code:'BACKEND_UNAVAILABLE'},{status:503,headers:{'Cache-Control':'private, no-store'}});}
+}

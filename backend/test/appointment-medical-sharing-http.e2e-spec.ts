@@ -3,12 +3,16 @@ import { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { randomUUID } from 'crypto';
+import { mkdir,writeFile,rm } from 'node:fs/promises';
+import path from 'node:path';
+import * as documentStorage from '../src/common/pet-document-storage';
 import request from 'supertest';
 import { Role } from '../src/auth/auth.types';
 import { BookingErrorFilter } from '../src/common/booking-error.filter';
 import { config } from '../src/config';
 import { DatabaseService } from '../src/database/database.service';
 import { NestRoot } from '../src/nest-root-full';
+import { OwnerPetService } from '../src/auth/owner-pet.service';
 
 jest.setTimeout(90000);
 const I = Object.fromEntries(['owner','otherOwner','vet','admin','reception','clinic','otherClinic','location','otherLocation','pet','service','slot','hold','appointment','visit','document','otherDocument'].map(key => [key, randomUUID()]));
@@ -28,6 +32,10 @@ describe('Wave 4A medical sharing (Docker PostgreSQL and real Nest HTTP)', () =>
   const revoke = async (id: string, key = randomUUID(), expected = 1) => request(app.getHttpServer()).post(`${ownerPath}/${id}/revoke`)
     .set('Authorization', `Bearer ${await token()}`).set('Idempotency-Key', key).set('If-Match', `"${expected}"`).set('X-Correlation-ID', randomUUID()).send({});
   const selected = () => ({ mode: 'SELECTED', resources: [{ type: 'RESULT', id: result }, { type: 'DOCUMENT', id: I.document }] });
+  const bytes=Buffer.from('%PDF-1.4\nPrivate acceptance document\n');
+  const fixtureKey=`wave4a-test-${I.owner}/${I.document}.pdf`;
+  const fixtureDirectory=path.dirname(documentStorage.petDocumentStoragePath(fixtureKey));
+  const download=async(id=I.document,auth?:string)=>request(app.getHttpServer()).get(`${clinicPath}/resources/DOCUMENT/${id}/download`).set('Authorization',`Bearer ${auth??await vet()}`).buffer(true).parse((response,callback)=>{const chunks:Buffer[]=[];response.on('data',(chunk:Buffer)=>chunks.push(Buffer.from(chunk)));response.on('end',()=>{const buffer=Buffer.concat(chunks);callback(null,response.headers['content-type']?.includes('application/json')?JSON.parse(buffer.toString()):buffer);});});
   async function revokeAll() {
     const rows = (await db.query(`SELECT id FROM medical_schema.appointment_data_shares WHERE appointment_id=$1 AND status='ACTIVE'`, [I.appointment])).rows;
     for (const row of rows) expect((await revoke(row.id)).status).toBe(200);
@@ -59,9 +67,68 @@ describe('Wave 4A medical sharing (Docker PostgreSQL and real Nest HTTP)', () =>
     const draft = await request(app.getHttpServer()).post(clinical).set('Authorization', `Bearer ${await vet()}`).set('Idempotency-Key',randomUUID()).set('X-Correlation-ID',randomUUID()).send({clinicalSummary:'Owner-selected historical result'});
     expect(draft.status).toBe(201); result=draft.body.id;
     expect((await request(app.getHttpServer()).post(`${clinical}/${result}/publish`).set('Authorization',`Bearer ${await vet()}`).set('Idempotency-Key',randomUUID()).set('If-Match','1').set('X-Correlation-ID',randomUUID())).status).toBe(200);
+    await mkdir(fixtureDirectory,{recursive:true});await writeFile(documentStorage.petDocumentStoragePath(fixtureKey),bytes);
+    await db.query('UPDATE pet_schema.pet_documents SET storage_key=$2,file_size_bytes=$3 WHERE id=$1',[I.document,fixtureKey,bytes.length]);
   });
-  afterAll(async () => { await app?.close(); });
+  afterAll(async () => { await app?.close();await rm(fixtureDirectory,{recursive:true,force:true}); });
   afterEach(async () => { await revokeAll(); });
+
+  it('Document byte delivery returns private verified bytes and preserves Owner download',async()=>{
+    expect((await grant(selected())).status).toBe(201);const response=await download();expect(response.status).toBe(200);expect(response.body).toEqual(bytes);
+    expect(response.headers['content-type']).toBe('application/pdf');expect(response.headers['content-length']).toBe(String(bytes.length));expect(response.headers['content-disposition']).toContain('attachment; filename="history.pdf"');expect(response.headers['cache-control']).toBe('private, no-store');expect(response.headers['x-content-type-options']).toBe('nosniff');
+    // Pilot intentionally does not publish the legacy Owner download route. Verify its unchanged service authority instead.
+    const owned=await app.get(OwnerPetService).downloadDocument({sub:I.owner,roles:[Role.OWNER],clinicIds:[],locationIds:[]},I.pet,I.document);const chunks:Buffer[]=[];for await(const chunk of owned.stream)chunks.push(Buffer.from(chunk));expect(Buffer.concat(chunks)).toEqual(bytes);
+    const audit=(await db.query(`SELECT payload_json FROM audit_schema.audit_log WHERE action='medical.document.content.read' AND aggregate_id=$1`,[I.document])).rows;
+    expect(audit).toHaveLength(1);expect(JSON.stringify(audit)).not.toMatch(/Private acceptance|storage_key|wave4a-test|file_name|file_url|clinicalSummary/);
+  });
+  it('Document byte denial normalizes missing/unshared/foreign Owner/Pet/Clinic/Location before storage',async()=>{
+    expect((await grant(selected())).status).toBe(201);
+    const otherPet=randomUUID(),foreignPet=randomUUID(),sameOwnerDocument=randomUUID(),foreignDocument=randomUUID();
+    await db.query(`INSERT INTO pet_schema.pets(id,owner_id,name,species) VALUES($1,$2,'Other','DOG'),($3,$4,'Foreign','DOG')`,[otherPet,I.owner,foreignPet,I.otherOwner]);
+    await db.query(`INSERT INTO pet_schema.pet_documents(id,pet_id,owner_id,file_url,doc_type,status) VALUES($1,$2,$3,'source','HISTORY','PROCESSED'),($4,$5,$6,'source','HISTORY','PROCESSED')`,[sameOwnerDocument,otherPet,I.owner,foreignDocument,foreignPet,I.otherOwner]);
+    const open=jest.spyOn(documentStorage,'openStoredPetDocument');
+    try{
+      for(const id of [randomUUID(),I.otherDocument,sameOwnerDocument,foreignDocument]){const response=await download(id);expect(response.status).toBe(404);expect(response.body).toEqual(denied);}
+      for(const [clinics,locations] of [[[I.otherClinic],[I.otherLocation]],[[I.clinic],[I.otherLocation]]]){const response=await download(I.document,await token(I.vet,[Role.CLINIC_VETERINARIAN],clinics,locations));expect(response.status).toBe(404);expect(response.body).toEqual(denied);}
+      const owner=await download(I.document,await token(I.otherOwner));expect(owner.status).toBe(403);
+      expect(open).not.toHaveBeenCalled();
+    }finally{open.mockRestore();}
+  });
+  it.each(['membership','clinic','location'])('Document bytes require active %s',async kind=>{
+    expect((await grant(selected())).status).toBe(201);
+    const table=kind==='membership'?'employee_location_memberships':kind==='clinic'?'clinics':'clinic_locations';const predicate=kind==='membership'?'employee_id=$1':'id=$1';const id=kind==='membership'?I.vet:kind==='clinic'?I.clinic:I.location;
+    await db.query(`UPDATE clinic_schema.${table} SET ${kind==='membership'?'active=false,revoked_at=clock_timestamp()':"status='INACTIVE'"} WHERE ${predicate}`,[id]);
+    const open=jest.spyOn(documentStorage,'openStoredPetDocument');
+    try{const response=await download();expect(response.status).toBe(404);expect(response.body).toEqual(denied);expect(open).not.toHaveBeenCalled();}
+    finally{open.mockRestore();await db.query(`UPDATE clinic_schema.${table} SET ${kind==='membership'?'active=true,revoked_at=NULL':"status='ACTIVE'"} WHERE ${predicate}`,[id]);}
+  });
+  it.each([Role.CLINIC_ADMIN,Role.CLINIC_RECEPTIONIST])('Document bytes deny %s even with grant',async role=>{
+    expect((await grant(selected())).status).toBe(201);const open=jest.spyOn(documentStorage,'openStoredPetDocument');
+    try{const response=await download(I.document,await token(role===Role.CLINIC_ADMIN?I.admin:I.reception,[role],[I.clinic],[I.location]));expect(response.status).toBe(403);expect(open).not.toHaveBeenCalled();}finally{open.mockRestore();}
+  });
+  it('Document bytes deny revoked/deleted/unavailable source with no success audit',async()=>{
+    const before=(await db.query(`SELECT count(*)::int n FROM audit_schema.audit_log WHERE aggregate_id=$1 AND action='medical.document.content.read'`,[I.document])).rows[0].n;
+    const created=await grant(selected());expect(created.status).toBe(201);expect((await revoke(created.body.id)).status).toBe(200);
+    const open=jest.spyOn(documentStorage,'openStoredPetDocument');
+    try{const response=await download();expect(response.status).toBe(404);expect(response.body).toEqual(denied);expect(open).not.toHaveBeenCalled();}finally{open.mockRestore();}
+    expect((await grant(selected())).status).toBe(201);await db.query('UPDATE pet_schema.pet_documents SET deleted_at=clock_timestamp() WHERE id=$1',[I.document]);
+    try{expect((await download()).body).toEqual(denied);}finally{await db.query('UPDATE pet_schema.pet_documents SET deleted_at=NULL WHERE id=$1',[I.document]);}
+    await db.query('UPDATE pet_schema.pet_documents SET storage_key=$2 WHERE id=$1',[I.document,'missing-source.pdf']);
+    try{const response=await download();expect(response.status).toBe(404);expect(response.body).toEqual(denied);}finally{await db.query('UPDATE pet_schema.pet_documents SET storage_key=$2 WHERE id=$1',[I.document,fixtureKey]);}
+    expect((await db.query(`SELECT count(*)::int n FROM audit_schema.audit_log WHERE aggregate_id=$1 AND action='medical.document.content.read'`,[I.document])).rows[0].n).toBe(before);
+  });
+
+  it.each([false,true])('Document stream closes and audit rolls back when audit/COMMIT fails (deferred=%s)',async deferred=>{
+    expect((await grant(selected())).status).toBe(201);
+    const before=(await db.query(`SELECT count(*)::int n FROM audit_schema.audit_log WHERE action='medical.document.content.read' AND aggregate_id=$1`,[I.document])).rows[0].n;
+    const name=`w4a_fail_${randomUUID().replace(/-/g,'')}`;
+    const original=documentStorage.openStoredPetDocument;let opened:Awaited<ReturnType<typeof original>>|undefined;
+    const spy=jest.spyOn(documentStorage,'openStoredPetDocument').mockImplementation(async document=>{opened=await original(document);return opened;});
+    await db.query(`CREATE FUNCTION audit_schema.${name}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.aggregate_id='${I.document}' AND NEW.action='medical.document.content.read' THEN RAISE EXCEPTION 'fixture audit failure'; END IF; RETURN NEW; END $$`);
+    await db.query(deferred?`CREATE CONSTRAINT TRIGGER ${name} AFTER INSERT ON audit_schema.audit_log DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION audit_schema.${name}()`:`CREATE TRIGGER ${name} BEFORE INSERT ON audit_schema.audit_log FOR EACH ROW EXECUTE FUNCTION audit_schema.${name}()`);
+    try{const response=await download();expect(response.status).toBe(500);expect(opened?.stream.destroyed).toBe(true);expect(JSON.stringify(response.body)).not.toMatch(/fixture audit|storage|Private acceptance/);expect((await db.query(`SELECT count(*)::int n FROM audit_schema.audit_log WHERE action='medical.document.content.read' AND aggregate_id=$1`,[I.document])).rows[0].n).toBe(before);}
+    finally{spy.mockRestore();await db.query(`DROP TRIGGER ${name} ON audit_schema.audit_log`);await db.query(`DROP FUNCTION audit_schema.${name}()`);}
+  });
 
   it('Clinic workspace derives canonical Appointment without exposing shared content or Owner identifiers',async()=>{
     const response=await request(app.getHttpServer()).get(`/v1/clinic/${I.clinic}/locations/${I.location}/vet/visits/${I.hold}`).set('Authorization',`Bearer ${await vet()}`);
@@ -84,7 +151,9 @@ describe('Wave 4A medical sharing (Docker PostgreSQL and real Nest HTTP)', () =>
     expect((await request(app.getHttpServer()).get(ownerPath).set('Authorization',`Bearer ${await token()}`)).body.shares.find((share:{id:string})=>share.id===original.body.id).resources).toEqual([{type:'RESULT',id:result}]);
   });
   it('Clinic shared published Result rejects same-pet unselected future Result substitution',async()=>{
-    const created=await grant(selected());expect(created.status).toBe(201);
+    const amend=await request(app.getHttpServer()).post(`/v1/clinic/visits/${I.visit}/results/${result}/amendments`).set('Authorization',`Bearer ${await vet()}`).set('Idempotency-Key',randomUUID()).set('X-Correlation-ID',randomUUID()).send({content:'Explicit snapshot amendment'});expect(amend.status).toBe(201);
+    const snapshot=[...selected().resources,{type:'AMENDMENT',id:amend.body.amendmentId}];
+    const created=await grant({mode:'SELECTED',resources:snapshot});expect(created.status).toBe(201);
     const slot=randomUUID(),hold=randomUUID(),appointment=randomUUID(),visit=randomUUID();
     await db.query(`INSERT INTO clinic_schema.appointment_slots(id,clinic_location_id,service_id,starts_at,ends_at) VALUES($1,$2,$3,clock_timestamp()-interval '1 hour',clock_timestamp())`,[slot,I.location,I.service]);
     await db.query(`INSERT INTO booking_schema.booking_holds(id,slot_id,owner_id,pet_id,state,expires_at) VALUES($1,$2,$3,$4,'COMPLETED',clock_timestamp()+interval '1 hour')`,[hold,slot,I.owner,I.pet]);
@@ -93,9 +162,14 @@ describe('Wave 4A medical sharing (Docker PostgreSQL and real Nest HTTP)', () =>
     const path=`/v1/clinic/visits/${visit}/results`;
     const draft=await request(app.getHttpServer()).post(path).set('Authorization',`Bearer ${await vet()}`).set('Idempotency-Key',randomUUID()).set('X-Correlation-ID',randomUUID()).send({clinicalSummary:'Unselected same-Pet published result'});expect(draft.status).toBe(201);
     expect((await request(app.getHttpServer()).post(`${path}/${draft.body.id}/publish`).set('Authorization',`Bearer ${await vet()}`).set('Idempotency-Key',randomUUID()).set('If-Match','1').set('X-Correlation-ID',randomUUID())).status).toBe(200);
+    const futureAmend=await request(app.getHttpServer()).post(`${path}/${draft.body.id}/amendments`).set('Authorization',`Bearer ${await vet()}`).set('Idempotency-Key',randomUUID()).set('X-Correlation-ID',randomUUID()).send({content:'Future unselected amendment'});expect(futureAmend.status).toBe(201);
+    const futureDocument=randomUUID();await db.query(`INSERT INTO pet_schema.pet_documents(id,pet_id,owner_id,file_url,doc_type,status) VALUES($1,$2,$3,'source','HISTORY','PROCESSED')`,[futureDocument,I.pet,I.owner]);
+    expect((await read(futureAmend.body.amendmentId,'AMENDMENT')).body).toEqual(denied);expect((await download(futureDocument)).body).toEqual(denied);
+    expect((await read(amend.body.amendmentId,'AMENDMENT')).status).toBe(200);expect((await download()).body).toEqual(bytes);
     const response=await read(draft.body.id);expect(response.status).toBe(404);expect(response.body).toEqual(denied);
     expect((await read()).body.content).toBe('Owner-selected historical result');
-    expect((await list()).body.resources).toEqual(expect.arrayContaining(selected().resources));expect((await list()).body.resources).not.toContainEqual({type:'RESULT',id:draft.body.id});
+    expect((await list()).body.resources).toEqual(expect.arrayContaining(snapshot));expect((await list()).body.resources).toHaveLength(3);
+    const context=await request(app.getHttpServer()).get(ownerPath).set('Authorization',`Bearer ${await token()}`);expect(context.body.resources).toEqual(expect.arrayContaining([{type:'RESULT',id:draft.body.id},{type:'AMENDMENT',id:futureAmend.body.amendmentId},{type:'DOCUMENT',id:futureDocument}]));expect(context.body.shares.find((share:{id:string})=>share.id===created.body.id)).toEqual(created.body);
   });
 
   it('Owner sharing presentation is scoped, closed and excludes medical content',async()=>{
@@ -108,8 +182,8 @@ describe('Wave 4A medical sharing (Docker PostgreSQL and real Nest HTTP)', () =>
     expect(JSON.stringify(response.body)).not.toMatch(/clinicalSummary|Owner-selected historical|private-source|file_url|ocr/i);
     const other=await fetchContext(await token(I.otherOwner));expect(other.status).toBe(404);expect(other.body).toEqual(denied);
     const created=await grant({mode:'SELECTED',resources:[{type:'DOCUMENT',id:I.document}]});expect(created.status).toBe(201);
-    const readback=await fetchContext();expect(readback.body.shares).toEqual([created.body]);expect(readback.body.shares[0].resources).toEqual([{type:'DOCUMENT',id:I.document}]);
-    const cancelled=await revoke(created.body.id);expect(cancelled.status).toBe(200);expect((await fetchContext()).body.shares).toEqual([cancelled.body]);
+    const readback=await fetchContext();expect(readback.body.shares.find((share:{id:string})=>share.id===created.body.id)).toEqual(created.body);expect(created.body.resources).toEqual([{type:'DOCUMENT',id:I.document}]);
+    const cancelled=await revoke(created.body.id);expect(cancelled.status).toBe(200);expect((await fetchContext()).body.shares.find((share:{id:string})=>share.id===created.body.id)).toEqual(cancelled.body);
   });
 
   it.each([Role.CLINIC_ADMIN,Role.CLINIC_RECEPTIONIST])('BP-11 truthful operational minimum without grant: %s',async role=>{
@@ -167,8 +241,8 @@ describe('Wave 4A medical sharing (Docker PostgreSQL and real Nest HTTP)', () =>
     await db.query(`INSERT INTO pet_schema.pet_documents(id,pet_id,owner_id,file_url,doc_type,status,file_name) VALUES($1,$2,$3,'source','HISTORY','PROCESSED','later.pdf')`,[future,I.pet,I.owner]);
     const response=await request(app.getHttpServer()).get(ownerPath).set('Authorization',`Bearer ${await token()}`);expect(response.status).toBe(200);
     expect(response.body.resources).toContainEqual({type:'DOCUMENT',id:future});
-    expect(response.body.shares).toEqual([created.body]);expect(response.body.shares[0].resources).toHaveLength(2);
-    expect(response.body.shares[0].resources).toEqual(expect.arrayContaining(selected().resources));
+    const snapshot=response.body.shares.find((share:{id:string})=>share.id===created.body.id);expect(snapshot).toEqual(created.body);expect(snapshot.resources).toHaveLength(2);
+    expect(snapshot.resources).toEqual(expect.arrayContaining(selected().resources));
     expect((await read(future,'DOCUMENT')).body).toEqual(denied);
   });
   it('Owner cannot select another Owner/Pet document or a DRAFT Result',async()=>{
@@ -187,7 +261,7 @@ describe('Wave 4A medical sharing (Docker PostgreSQL and real Nest HTTP)', () =>
       const response=await grant({mode:'SELECTED',resources:[resource]});expect(response.status).toBe(404);expect(response.body).toEqual(denied);
     }
     const response=await request(app.getHttpServer()).get(ownerPath).set('Authorization',`Bearer ${await token()}`);expect(response.status).toBe(200);
-    expect(response.body.resources).not.toContainEqual({type:'RESULT',id:draft.body.id});expect(response.body.shares).toEqual([]);
+    expect(response.body.resources).not.toContainEqual({type:'RESULT',id:draft.body.id});expect(response.body.shares.filter((share:{status:string})=>share.status==='ACTIVE')).toEqual([]);
     expect(JSON.stringify(response.body)).not.toMatch(/Other Pet|Foreign Pet|Unpublished private draft/);
   });
   it('only veterinarian with exact scope can read; admin/reception cannot', async () => {

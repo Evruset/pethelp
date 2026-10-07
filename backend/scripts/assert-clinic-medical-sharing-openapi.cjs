@@ -15,4 +15,10 @@ for(const [type,fields] of [['RESULT',['type','id','content','publishedAt']],['A
 const detail=document.paths['/v1/clinic/{clinicId}/locations/{locationId}/vet/visits/{holdId}'].get;
 closed(schema(detail),['holdId','clinicId','locationId','scheduledStart','scheduledEnd','status','petDisplayName','species','visitId','appointmentId']);
 assert.equal(schema(detail).properties.appointmentId.format,'uuid');
-console.log('Clinic shared read model closed OpenAPI contract PASS (Document metadata only)');
+const download=document.paths[`${path}/resources/DOCUMENT/{documentId}/download`].get;
+assert.ok(download.security.some(value=>'bearerAuth' in value));
+assert.deepEqual(download.responses['200'].content['application/octet-stream'].schema,{type:'string',format:'binary'});
+for(const header of ['Content-Type','Content-Length','Content-Disposition','Cache-Control'])assert.ok(download.responses['200'].headers[header]);
+for(const status of ['400','401','403','404','500'])assert.equal(download.responses[status].content['application/json'].schema.$ref,'#/components/schemas/ApiErrorDto');
+assert.ok(download.parameters.some(value=>value.name==='documentId'&&value.in==='path'&&value.required));
+console.log('Clinic shared read model and binary Document OpenAPI contract PASS');

@@ -1,4 +1,6 @@
-import { BadRequestException, Body, Controller, Get, Headers, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Headers, HttpCode, Param, Post, Res, StreamableFile, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
+import { petDocumentDisposition } from '../common/pet-document-storage';
 import { ApiBadRequestResponse, ApiBearerAuth, ApiBody, ApiConflictResponse, ApiCreatedResponse, ApiForbiddenResponse, ApiHeader, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import type { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 import { ApiErrorDto } from './dto/booking-openapi.dto';
@@ -141,5 +143,17 @@ export class ClinicAppointmentMedicalSharingController {
     @Param('resourceId') id: string, @CurrentUser() actor: JwtPayload) {
     if (!['RESULT', 'AMENDMENT', 'DOCUMENT'].includes(type)) throw new BadRequestException({ code: 'INVALID_REQUEST' });
     return this.service.clinicRead(uuid(appointment), { type: type as MedicalResourceRef['type'], id: uuid(id) }, actor);
+  }
+
+  @Get('resources/DOCUMENT/:documentId/download')
+  @ApiOperation({operationId:'MedicalShare_clinicDocumentDownload'})
+  @ApiOkResponse({description:'Authorized stored document bytes. No permanent storage URL.',content:{'application/octet-stream':{schema:{type:'string',format:'binary'}}},headers:{
+    'Content-Type':{schema:{type:'string'},description:'Authoritative stored MIME type'},'Content-Length':{schema:{type:'integer'},description:'Verified stored file size'},'Content-Disposition':{schema:{type:'string'},description:'Safe attachment filename'},'Cache-Control':{schema:{type:'string'},description:'private, no-store'},
+  }})
+  async download(@Param('appointmentId') appointment:string,@Param('documentId') document:string,@CurrentUser() actor:JwtPayload,@Res({passthrough:true}) response:Response){
+    const download=await this.service.clinicDownload(uuid(appointment),uuid(document),actor);
+    response.setHeader('Content-Type',download.mimeType);response.setHeader('Content-Length',String(download.fileSizeBytes));
+    response.setHeader('Content-Disposition',petDocumentDisposition(download.safeFileName,'attachment'));response.setHeader('Cache-Control','private, no-store');response.setHeader('X-Content-Type-Options','nosniff');
+    return new StreamableFile(download.stream).setErrorLogger(()=>{}).setErrorHandler((_error,res)=>{if(!res.headersSent)res.statusCode=500;res.end();});
   }
 }

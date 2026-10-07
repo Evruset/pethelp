@@ -10,6 +10,7 @@ import { RolesGuard } from './roles.guard';
 import { CreateOwnerPetDto, UpdateOwnerPetDto } from './dto/owner-pet.dto';
 import { OwnerPetService, PET_DOCUMENT_MAX_BYTES, type UploadedPetFile } from './owner-pet.service';
 import { SWAGGER_BEARER_AUTH } from '../openapi/openapi';
+import { petDocumentDisposition } from '../common/pet-document-storage';
 
 @ApiTags('Owner pets')
 @ApiBearerAuth(SWAGGER_BEARER_AUTH)
@@ -116,7 +117,7 @@ export class OwnerPetController {
     const download = await this.pets.downloadDocument(owner, petId, documentId);
     response.setHeader('Content-Type', download.mimeType);
     response.setHeader('Content-Length', download.fileSizeBytes.toString());
-    response.setHeader('Content-Disposition', `inline; filename="${download.safeFileName}"`);
+    response.setHeader('Content-Disposition', petDocumentDisposition(download.safeFileName,'inline'));
     return new StreamableFile(download.stream);
   }
 

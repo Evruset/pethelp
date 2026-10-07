@@ -6,6 +6,7 @@ import { CapabilityEvaluatorService } from '../auth/capability-evaluator.service
 import { DomainException } from '../common/domain-error';
 import { DatabaseService } from '../database/database.service';
 import { ClinicEmployeeAccessService } from './clinic-employee-access.service';
+import { openStoredPetDocument, type PetDocumentDownload, type StoredPetDocument } from '../common/pet-document-storage';
 
 export type MedicalResourceRef = { type: 'RESULT' | 'AMENDMENT' | 'DOCUMENT'; id: string };
 export type MedicalSelection = { mode: 'SELECTED' | 'ALL_CURRENT'; resources?: MedicalResourceRef[] };
@@ -120,6 +121,26 @@ export class AppointmentMedicalSharingService {
       if (!document) throw absent();
       return { ...ref, fileName: document.file_name, mimeType: document.mime_type, createdAt: document.created_at.toISOString() };
     });
+  }
+
+  async clinicDownload(appointmentId:string,documentId:string,actor:JwtPayload){
+    let accepted:PetDocumentDownload|undefined;
+    try{return await this.db.withTransaction(async client=>{
+      const context=await this.clinicAuthority(client,appointmentId,actor);
+      const grant=(await client.query<Share>(`SELECT share.* FROM medical_schema.appointment_data_shares share
+        JOIN medical_schema.appointment_data_share_resources resource ON resource.share_id=share.id
+        WHERE share.appointment_id=$1 AND share.clinic_id=$2 AND share.location_id=$3 AND share.status='ACTIVE'
+          AND resource.resource_type='DOCUMENT' AND resource.resource_id=$4 ORDER BY share.id LIMIT 1 FOR SHARE OF share`,[appointmentId,context.clinic_id,context.location_id,documentId])).rows[0];
+      if(!grant)throw absent();
+      const document=(await client.query<StoredPetDocument>(`SELECT storage_key,file_name,mime_type,file_size_bytes FROM pet_schema.pet_documents
+        WHERE id=$1 AND owner_id=$2 AND pet_id=$3 AND deleted_at IS NULL AND doc_type IN('PASSPORT','HISTORY') FOR SHARE`,[documentId,grant.owner_id,grant.pet_id])).rows[0];
+      if(!document)throw absent();
+      try{accepted=await openStoredPetDocument(document);}catch{throw absent();}
+      // This event records committed authorization, not proof of complete client delivery.
+      await client.query(`INSERT INTO audit_schema.audit_log(actor_type,actor_id,action,aggregate_type,aggregate_id,payload_json)
+        VALUES('CLINIC_EMPLOYEE',$1,'medical.document.content.read','pet_document',$2,$3)`,[actor.sub,documentId,JSON.stringify({appointmentId,grantId:grant.id,clinicId:context.clinic_id,locationId:context.location_id,resourceType:'DOCUMENT'})]);
+      return accepted;
+    });}catch(error){accepted?.stream.destroy();throw error;}
   }
 
   private async clinicAuthority(client: PoolClient, id: string, actor: JwtPayload) {

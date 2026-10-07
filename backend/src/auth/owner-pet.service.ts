@@ -1,12 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException, PreconditionFailedException } from '@nestjs/common';
 import { createHmac, randomUUID } from 'node:crypto';
-import { createReadStream } from 'node:fs';
-import { mkdir, stat, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { ReadStream } from 'node:fs';
 import type { PoolClient } from 'pg';
 import { DatabaseService } from '../database/database.service';
 import { config } from '../config';
+import { openStoredPetDocument, petDocumentStoragePath, safePetDocumentName } from '../common/pet-document-storage';
 import { DomainException } from '../common/domain-error';
 import { JwtPayload } from './auth.types';
 import { CreateOwnerPetDto, UpdateOwnerPetDto } from './dto/owner-pet.dto';
@@ -931,21 +931,11 @@ export class OwnerPetService {
 
   async downloadDocument(owner: JwtPayload, petId: string, documentId: string): Promise<OwnerPetDocumentDownload> {
     const document = await this.readOwnedDocument(owner, petId, documentId);
-    if (!document.storage_key || !document.mime_type || !document.file_size_bytes) {
-      throw new NotFoundException({ code: 'OWNER_PET_DOCUMENT_NOT_FOUND', message: 'Document was not found.' });
-    }
-    const filePath = this.storagePath(document.storage_key);
-    const fileStat = await stat(filePath).catch(() => null);
-    if (!fileStat?.isFile()) {
-      throw new NotFoundException({ code: 'OWNER_PET_DOCUMENT_NOT_FOUND', message: 'Document was not found.' });
-    }
-    await this.writeDocumentAccessAudit(owner.sub, petId, documentId, 'pet.document.content.read');
-    return {
-      stream: createReadStream(filePath),
-      safeFileName: this.safeDownloadName(document.file_name ?? 'pet-document'),
-      mimeType: document.mime_type,
-      fileSizeBytes: document.file_size_bytes,
-    };
+    let download:OwnerPetDocumentDownload;
+    try { download=await openStoredPetDocument(document); }
+    catch(error){if(error instanceof BadRequestException)throw error;throw new NotFoundException({ code:'OWNER_PET_DOCUMENT_NOT_FOUND',message:'Document was not found.' });}
+    try {await this.writeDocumentAccessAudit(owner.sub,petId,documentId,'pet.document.content.read');return download;}
+    catch(error){download.stream.destroy();throw error;}
   }
 
   async deleteDocument(owner: JwtPayload, petId: string, documentId: string): Promise<void> {
@@ -1173,19 +1163,11 @@ export class OwnerPetService {
   }
 
   private storagePath(storageKey: string): string {
-    const root = process.env.PET_DOCUMENT_STORAGE_DIR ?? path.resolve(process.cwd(), '.storage', 'pet-documents');
-    const resolved = path.resolve(root, storageKey);
-    const rootResolved = path.resolve(root);
-    const relative = path.relative(rootResolved, resolved);
-    if (relative.startsWith('..') || path.isAbsolute(relative)) {
-      throw new BadRequestException({ code: 'INVALID_PET_DOCUMENT_STORAGE_KEY', message: 'Invalid document storage key.' });
-    }
-    return resolved;
+    return petDocumentStoragePath(storageKey);
   }
 
   private safeDownloadName(value: string): string {
-    const normalized = path.basename(value).replace(/[\r\n"]/g, '').trim();
-    return normalized.slice(0, 180) || 'pet-document';
+    return safePetDocumentName(value);
   }
 
   private blankToNull(value: string | undefined | null): string | null {
