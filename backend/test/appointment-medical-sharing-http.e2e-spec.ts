@@ -63,6 +63,20 @@ describe('Wave 4A medical sharing (Docker PostgreSQL and real Nest HTTP)', () =>
   afterAll(async () => { await app?.close(); });
   afterEach(async () => { await revokeAll(); });
 
+  it('Owner sharing presentation is scoped, closed and excludes medical content',async()=>{
+    const fetchContext=async(auth?:string)=>request(app.getHttpServer()).get(ownerPath).set('Authorization',`Bearer ${auth??await token()}`);
+    const response=await fetchContext();expect(response.status).toBe(200);
+    expect(Object.keys(response.body).sort()).toEqual(['appointmentId','petId','clinicId','locationId','eligible','resources','resourcesTruncated','shares','clinic','pet','appointment','resourceDetails'].sort());
+    expect(response.body.clinic).toEqual({displayName:'A',locationAddress:'A'});expect(response.body.pet).toEqual({displayName:'Pet'});
+    expect(response.body.appointment.startsAt).toEqual(expect.any(String));expect(response.body.appointment.endsAt).toEqual(expect.any(String));expect(response.body.appointment.timezone).toEqual(expect.any(String));
+    expect(response.body.resourceDetails).toEqual(expect.arrayContaining([{type:'RESULT',id:result,label:'Результат приёма',createdAt:expect.any(String)},{type:'DOCUMENT',id:I.document,label:'history.pdf',createdAt:expect.any(String)}]));
+    expect(JSON.stringify(response.body)).not.toMatch(/clinicalSummary|Owner-selected historical|private-source|file_url|ocr/i);
+    const other=await fetchContext(await token(I.otherOwner));expect(other.status).toBe(404);expect(other.body).toEqual(denied);
+    const created=await grant({mode:'SELECTED',resources:[{type:'DOCUMENT',id:I.document}]});expect(created.status).toBe(201);
+    const readback=await fetchContext();expect(readback.body.shares).toEqual([created.body]);expect(readback.body.shares[0].resources).toEqual([{type:'DOCUMENT',id:I.document}]);
+    const cancelled=await revoke(created.body.id);expect(cancelled.status).toBe(200);expect((await fetchContext()).body.shares).toEqual([cancelled.body]);
+  });
+
   it.each([Role.CLINIC_ADMIN,Role.CLINIC_RECEPTIONIST])('BP-11 truthful operational minimum without grant: %s',async role=>{
     process.env.VETHELP_CLINIC_APPOINTMENTS_REGISTRY='true';
     const phone=`+1${Math.floor(Math.random()*1e10).toString().padStart(10,'0')}`;
@@ -111,6 +125,35 @@ describe('Wave 4A medical sharing (Docker PostgreSQL and real Nest HTTP)', () =>
     expect((await grant(selected(),randomUUID(),await token(I.otherOwner))).status).toBe(404);
     expect((await grant({mode:'SELECTED',resources:[{type:'RESULT',id:randomUUID()}]})).body).toEqual(denied);
     expect((await grant({...selected(),clinicId:I.otherClinic})).status).toBe(400);
+  });
+  it('Owner selected snapshot A/B remains exact after eligible C appears',async()=>{
+    const created=await grant(selected());expect(created.status).toBe(201);
+    const future=randomUUID();
+    await db.query(`INSERT INTO pet_schema.pet_documents(id,pet_id,owner_id,file_url,doc_type,status,file_name) VALUES($1,$2,$3,'source','HISTORY','PROCESSED','later.pdf')`,[future,I.pet,I.owner]);
+    const response=await request(app.getHttpServer()).get(ownerPath).set('Authorization',`Bearer ${await token()}`);expect(response.status).toBe(200);
+    expect(response.body.resources).toContainEqual({type:'DOCUMENT',id:future});
+    expect(response.body.shares).toEqual([created.body]);expect(response.body.shares[0].resources).toHaveLength(2);
+    expect(response.body.shares[0].resources).toEqual(expect.arrayContaining(selected().resources));
+    expect((await read(future,'DOCUMENT')).body).toEqual(denied);
+  });
+  it('Owner cannot select another Owner/Pet document or a DRAFT Result',async()=>{
+    const sameOwnerPet=randomUUID(),foreignPet=randomUUID(),sameOwnerDocument=randomUUID(),foreignDocument=randomUUID();
+    await db.query(`INSERT INTO pet_schema.pets(id,owner_id,name,species) VALUES($1,$2,'Other Pet','DOG'),($3,$4,'Foreign Pet','CAT')`,[sameOwnerPet,I.owner,foreignPet,I.otherOwner]);
+    await db.query(`INSERT INTO pet_schema.pet_documents(id,pet_id,owner_id,file_url,doc_type,status) VALUES($1,$2,$3,'source','HISTORY','PROCESSED'),($4,$5,$6,'source','HISTORY','PROCESSED')`,[sameOwnerDocument,sameOwnerPet,I.owner,foreignDocument,foreignPet,I.otherOwner]);
+    // One Result per Visit is authoritative: use an independent Visit, not the published fixture.
+    const draftSlot=randomUUID(),draftHold=randomUUID(),draftAppointment=randomUUID(),draftVisit=randomUUID();
+    await db.query(`INSERT INTO clinic_schema.appointment_slots(id,clinic_location_id,service_id,starts_at,ends_at) VALUES($1,$2,$3,clock_timestamp()-interval '1 hour',clock_timestamp())`,[draftSlot,I.location,I.service]);
+    await db.query(`INSERT INTO booking_schema.booking_holds(id,slot_id,owner_id,pet_id,state,expires_at) VALUES($1,$2,$3,$4,'COMPLETED',clock_timestamp()+interval '1 hour')`,[draftHold,draftSlot,I.owner,I.pet]);
+    await db.query(`INSERT INTO booking_schema.appointments(id,hold_id,owner_id,pet_id,clinic_location_id,slot_id,status) VALUES($1,$2,$3,$4,$5,$6,'COMPLETED')`,[draftAppointment,draftHold,I.owner,I.pet,I.location,draftSlot]);
+    await db.query(`INSERT INTO clinical_schema.visits(id,appointment_id,booking_hold_id,owner_id,pet_id,clinic_id,location_id,slot_id,completed_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,[draftVisit,draftAppointment,draftHold,I.owner,I.pet,I.clinic,I.location,draftSlot,I.vet]);
+    const draft=await request(app.getHttpServer()).post(`/v1/clinic/visits/${draftVisit}/results`).set('Authorization',`Bearer ${await vet()}`).set('Idempotency-Key',randomUUID()).set('X-Correlation-ID',randomUUID()).send({clinicalSummary:'Unpublished private draft'});
+    expect(draft.status).toBe(201);expect(draft.body.status).toBe('DRAFT');
+    for(const resource of [{type:'DOCUMENT',id:sameOwnerDocument},{type:'DOCUMENT',id:foreignDocument},{type:'RESULT',id:draft.body.id}]){
+      const response=await grant({mode:'SELECTED',resources:[resource]});expect(response.status).toBe(404);expect(response.body).toEqual(denied);
+    }
+    const response=await request(app.getHttpServer()).get(ownerPath).set('Authorization',`Bearer ${await token()}`);expect(response.status).toBe(200);
+    expect(response.body.resources).not.toContainEqual({type:'RESULT',id:draft.body.id});expect(response.body.shares).toEqual([]);
+    expect(JSON.stringify(response.body)).not.toMatch(/Other Pet|Foreign Pet|Unpublished private draft/);
   });
   it('only veterinarian with exact scope can read; admin/reception cannot', async () => {
     expect((await grant(selected())).status).toBe(201);

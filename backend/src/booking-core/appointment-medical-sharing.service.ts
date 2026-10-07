@@ -24,8 +24,21 @@ export class AppointmentMedicalSharingService {
       const context = await this.context(client, appointmentId, actor.sub, false);
       const resources = await this.eligible(client, context);
       const shares = (await client.query<Share>('SELECT * FROM medical_schema.appointment_data_shares WHERE appointment_id=$1 AND owner_id=$2 ORDER BY created_at,id', [appointmentId, actor.sub])).rows;
+      const views = await Promise.all(shares.map(share => this.view(client, share)));
+      const presentation = (await client.query<{ clinic_name:string;address:string;pet_name:string;starts_at:Date;ends_at:Date;timezone:string }>(`SELECT clinic.public_name AS clinic_name,location.address,pet.name AS pet_name,slot.starts_at,slot.ends_at,clinic.timezone
+        FROM booking_schema.appointments appointment JOIN clinic_schema.clinic_locations location ON location.id=appointment.clinic_location_id
+        JOIN clinic_schema.clinics clinic ON clinic.id=location.clinic_id JOIN pet_schema.pets pet ON pet.id=appointment.pet_id
+        JOIN clinic_schema.appointment_slots slot ON slot.id=appointment.slot_id WHERE appointment.id=$1 AND appointment.owner_id=$2`,[appointmentId,actor.sub])).rows[0];
+      const references = [...resources.slice(0,200),...views.flatMap(share=>share.resources)];
+      const details = (await client.query<{ type:MedicalResourceRef['type'];id:string;label:string;created_at:Date }>(`
+        SELECT 'RESULT' AS type,id::text,'Результат приёма' AS label,published_at AS created_at FROM clinical_schema.visit_results WHERE owner_id=$1 AND pet_id=$2 AND status='PUBLISHED' AND id=ANY($3::uuid[])
+        UNION ALL SELECT 'AMENDMENT',id::text,'Уточнение к результату',published_at FROM clinical_schema.visit_result_amendments WHERE owner_id=$1 AND pet_id=$2 AND id=ANY($4::uuid[])
+        UNION ALL SELECT 'DOCUMENT',id::text,COALESCE(file_name,'Медицинский документ'),created_at FROM pet_schema.pet_documents WHERE owner_id=$1 AND pet_id=$2 AND doc_type IN('PASSPORT','HISTORY') AND id=ANY($5::uuid[])
+        ORDER BY type,id`,[actor.sub,context.pet_id,...(['RESULT','AMENDMENT','DOCUMENT'].map(type=>[...new Set(references.filter(ref=>ref.type===type).map(ref=>ref.id))]))])).rows.map(row=>({type:row.type,id:row.id,label:row.label,createdAt:row.created_at.toISOString()}));
       return { appointmentId, petId: context.pet_id, clinicId: context.clinic_id, locationId: context.location_id,
-        eligible: this.canGrant(context), resources: resources.slice(0,200), resourcesTruncated: resources.length>200, shares: await Promise.all(shares.map(share => this.view(client, share))) };
+        eligible: this.canGrant(context), resources: resources.slice(0,200), resourcesTruncated: resources.length>200, shares: views,
+        clinic: {displayName:presentation.clinic_name,locationAddress:presentation.address},pet:{displayName:presentation.pet_name},
+        appointment:{startsAt:presentation.starts_at.toISOString(),endsAt:presentation.ends_at.toISOString(),timezone:presentation.timezone},resourceDetails:details };
     });
   }
 

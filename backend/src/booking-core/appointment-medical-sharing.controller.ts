@@ -61,9 +61,13 @@ export class OwnerAppointmentMedicalSharingController {
   @Get()
   @ApiOperation({ operationId: 'MedicalShare_ownerContext' })
   @ApiOkResponse({ schema: { type: 'object', additionalProperties: false,
-    required: ['appointmentId', 'petId', 'clinicId', 'locationId', 'eligible', 'resources', 'resourcesTruncated', 'shares'], properties: {
+    required: ['appointmentId', 'petId', 'clinicId', 'locationId', 'eligible', 'resources', 'resourcesTruncated', 'shares','clinic','pet','appointment','resourceDetails'], properties: {
       appointmentId: idSchema, petId: idSchema, clinicId: idSchema, locationId: idSchema,
       eligible: { type: 'boolean' }, resourcesTruncated: { type: 'boolean' }, resources: refsSchema, shares: { type: 'array', items: shareSchema },
+      clinic:{type:'object',additionalProperties:false,required:['displayName','locationAddress'],properties:{displayName:{type:'string'},locationAddress:{type:'string'}}},
+      pet:{type:'object',additionalProperties:false,required:['displayName'],properties:{displayName:{type:'string'}}},
+      appointment:{type:'object',additionalProperties:false,required:['startsAt','endsAt','timezone'],properties:{startsAt:dateSchema,endsAt:dateSchema,timezone:{type:'string'}}},
+      resourceDetails:{type:'array',items:{type:'object',additionalProperties:false,required:['type','id','label','createdAt'],properties:{...refSchema.properties,label:{type:'string'},createdAt:dateSchema}}},
     },
   } })
   context(@Param('appointmentId') appointment: string, @CurrentUser() actor: JwtPayload) {

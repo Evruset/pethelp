@@ -13,6 +13,7 @@ import { AvailabilityScreen } from '@/clinics/AvailabilityScreen';
 import type { AvailabilityHandoff } from '@/clinics/availability-api';
 import { BookingReviewScreen } from '@/booking/BookingReviewScreen';
 import { PetDiaryScreen } from '@/pets/PetDiaryScreen';
+import { MedicalSharingScreen } from '@/medical-sharing/MedicalSharingScreen';
 
 export default function AuthenticatedHomeScreen() {
   const {session}=useSession();
@@ -25,9 +26,11 @@ function AuthorityScopedHome() {
   const [selectedService,setSelectedService]=useState<ClinicServiceHandoff|null>(null);
   const [selectedAvailability,setSelectedAvailability]=useState<AvailabilityHandoff|null>(null);
   const [petIntent,setPetIntent]=useState<'BOOKING'|'DIARY'|null>(null);
+  const [sharing,setSharing]=useState(false);
   const { error, logout, session } = useSession();
   const { resumedIntent, consumeResumedIntent } = useAuthJourney();
   const pets = usePetJourney();
+  if(sharing)return <MedicalSharingScreen onBack={()=>setSharing(false)}/>;
   if(petIntent==='DIARY'&&pets.continuedPetId){const pet=pets.pets.find((item)=>item.petId===pets.continuedPetId);if(pet)return <PetDiaryScreen petId={pet.petId} petName={pet.name} onBack={()=>{pets.cancel();setPetIntent(null);}} onSwitchPet={pets.start}/>;}
   if(selectedAvailability&&pets.continuedPetId)return <BookingReviewScreen petId={pets.continuedPetId} context={selectedAvailability} authorityGeneration={authorityGeneration} onBack={()=>setSelectedAvailability(null)} onConflict={()=>{setSelectedAvailability(null);setSelectedService(null);}}/>;
   if(selectedService)return <AvailabilityScreen key={`${authorityGeneration}:${selectedService.clinicId}:${selectedService.locationId}:${selectedService.serviceId}`} authorityGeneration={authorityGeneration} context={selectedService} onBack={()=>setSelectedService(null)} onContinue={setSelectedAvailability}/>;
@@ -46,6 +49,7 @@ function AuthorityScopedHome() {
       {error === 'SESSION_CLEANUP_FAILED' ? <Text accessibilityRole="alert">Не удалось завершить выход. Повторите попытку.</Text> : null}
       <Pressable accessibilityRole="button" onPress={()=>{setPetIntent('BOOKING');pets.start();}}><Text>Начать запись</Text></Pressable>
       <Pressable accessibilityRole="button" onPress={()=>{setPetIntent('DIARY');pets.start();}}><Text>Дневник питомца</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={()=>setSharing(true)}><Text>Мои записи — медицинские данные</Text></Pressable>
       <Pressable accessibilityRole="button" onPress={() => { void logout(); }}>
         <Text>Выйти</Text>
       </Pressable>

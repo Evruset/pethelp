@@ -1194,7 +1194,11 @@
                     "eligible",
                     "resources",
                     "resourcesTruncated",
-                    "shares"
+                    "shares",
+                    "clinic",
+                    "pet",
+                    "appointment",
+                    "resourceDetails"
                   ],
                   "properties": {
                     "appointmentId": {
@@ -1326,6 +1330,90 @@
                                 }
                               }
                             }
+                          }
+                        }
+                      }
+                    },
+                    "clinic": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "displayName",
+                        "locationAddress"
+                      ],
+                      "properties": {
+                        "displayName": {
+                          "type": "string"
+                        },
+                        "locationAddress": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "pet": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "displayName"
+                      ],
+                      "properties": {
+                        "displayName": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "appointment": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "startsAt",
+                        "endsAt",
+                        "timezone"
+                      ],
+                      "properties": {
+                        "startsAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "endsAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "timezone": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "resourceDetails": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "type",
+                          "id",
+                          "label",
+                          "createdAt"
+                        ],
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "RESULT",
+                              "AMENDMENT",
+                              "DOCUMENT"
+                            ]
+                          },
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
                           }
                         }
                       }
