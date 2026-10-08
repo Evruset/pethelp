@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { resetBookingPersistence } from './helpers/booking-test-reset';
+import { renewRegressionClinicIds } from './helpers/regression-fixture-isolation';
 import type { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
@@ -143,7 +144,8 @@ describe('Clinic appointment detail HTTP authority and privacy', () => {
     await database.query(`UPDATE clinic_schema.appointment_slots SET service_id = NULL, staff_id = NULL, resource_id = NULL WHERE id = $1`, [IDS.slot]);
     const response = await detail(actor());
     expect(response.status).toBe(200);
-    expect(response.body).toMatchObject({ owner: null, service: null, veterinarian: null, resource: null });
+    // BP-11 preserves the Owner projection with truthful unavailable fields.
+    expect(response.body).toMatchObject({ owner: { displayName: null, phone: null }, service: null, veterinarian: null, resource: null });
   });
 
   it('uses a safe presentation for unknown stored status without leaking the raw enum', async () => {
@@ -189,6 +191,7 @@ describe('Clinic appointment detail HTTP authority and privacy', () => {
 });
 
 async function resetFixtures(database: DatabaseService) {
+  renewRegressionClinicIds(IDS, config.databaseUrl);
   await database.query('TRUNCATE clinic_schema.clinics, pet_schema.pets, identity_schema.users CASCADE');
   await resetBookingPersistence(database);
   await database.query('INSERT INTO identity_schema.users (id) SELECT unnest($1::uuid[])', [[IDS.owner, IDS.employee, IDS.admin, IDS.revoked, IDS.missingMembership, IDS.veterinarian]]);

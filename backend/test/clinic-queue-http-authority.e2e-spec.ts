@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { resetBookingPersistence } from './helpers/booking-test-reset';
+import { renewRegressionClinicIds } from './helpers/regression-fixture-isolation';
 import type { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
@@ -280,15 +281,15 @@ describe('Clinic Queue HTTP authority matrix', () => {
   });
 
   it.each([
-    ['role denied', { sub: IDS.veterinarian, roles: [Role.CLINIC_VETERINARIAN], clinicIds: [IDS.clinic], locationIds: [IDS.location] }],
-    ['revoked membership', { sub: IDS.revoked, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic], locationIds: [IDS.location] }],
-    ['claims without membership', { sub: IDS.noMembership, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic], locationIds: [IDS.location], capabilities: ['booking.queue.read'] }],
-    ['missing clinic scope', { sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], locationIds: [IDS.location] }],
-    ['incompatible clinic scope', { sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.otherClinic], locationIds: [IDS.location] }],
-    ['missing location scope', { sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic] }],
-    ['incompatible location scope', { sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic], locationIds: [IDS.otherLocation] }],
-  ])('denies queue read for %s without leaking queue data', async (_name, actor) => {
-    const response = await queue(actor);
+    ['role denied', () => ({ sub: IDS.veterinarian, roles: [Role.CLINIC_VETERINARIAN], clinicIds: [IDS.clinic], locationIds: [IDS.location] })],
+    ['revoked membership', () => ({ sub: IDS.revoked, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic], locationIds: [IDS.location] })],
+    ['claims without membership', () => ({ sub: IDS.noMembership, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic], locationIds: [IDS.location], capabilities: ['booking.queue.read'] })],
+    ['missing clinic scope', () => ({ sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], locationIds: [IDS.location] })],
+    ['incompatible clinic scope', () => ({ sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.otherClinic], locationIds: [IDS.location] })],
+    ['missing location scope', () => ({ sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic] })],
+    ['incompatible location scope', () => ({ sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic], locationIds: [IDS.otherLocation] })],
+  ] as Array<[string, () => Actor]>)('denies queue read for %s without leaking queue data', async (_name, actorFactory) => {
+    const response = await queue(actorFactory());
     expect(response.status).toBe(403);
     expectNoLeak(response.body);
   });
@@ -303,16 +304,16 @@ describe('Clinic Queue HTTP authority matrix', () => {
   });
 
   it.each([
-    ['role denied', { sub: IDS.veterinarian, roles: [Role.CLINIC_VETERINARIAN], clinicIds: [IDS.clinic], locationIds: [IDS.location] }],
-    ['missing membership', { sub: IDS.noMembership, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic], locationIds: [IDS.location], capabilities: ['booking.queue.read'] }],
-    ['revoked membership', { sub: IDS.revoked, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic], locationIds: [IDS.location] }],
-    ['missing clinic scope', { sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], locationIds: [IDS.location] }],
-    ['incompatible clinic scope', { sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.otherClinic], locationIds: [IDS.location] }],
-    ['missing location scope', { sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic] }],
-    ['incompatible location scope', { sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic], locationIds: [IDS.otherLocation] }],
-  ])('denies confirm for %s without state, appointment, audit or outbox effects', async (_name, actor) => {
+    ['role denied', () => ({ sub: IDS.veterinarian, roles: [Role.CLINIC_VETERINARIAN], clinicIds: [IDS.clinic], locationIds: [IDS.location] })],
+    ['missing membership', () => ({ sub: IDS.noMembership, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic], locationIds: [IDS.location], capabilities: ['booking.queue.read'] })],
+    ['revoked membership', () => ({ sub: IDS.revoked, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic], locationIds: [IDS.location] })],
+    ['missing clinic scope', () => ({ sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], locationIds: [IDS.location] })],
+    ['incompatible clinic scope', () => ({ sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.otherClinic], locationIds: [IDS.location] })],
+    ['missing location scope', () => ({ sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic] })],
+    ['incompatible location scope', () => ({ sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic], locationIds: [IDS.otherLocation] })],
+  ] as Array<[string, () => Actor]>)('denies confirm for %s without state, appointment, audit or outbox effects', async (_name, actorFactory) => {
     const before = await mutationSnapshot(database);
-    const response = await confirm(actor);
+    const response = await confirm(actorFactory());
     expect(response.status).toBe(403);
     expectNoLeak(response.body);
     expect(await mutationSnapshot(database)).toEqual(before);
@@ -754,6 +755,7 @@ async function seedQueueVolume(database: DatabaseService, count: number) {
 }
 
 async function resetFixtures(database: DatabaseService) {
+  renewRegressionClinicIds(IDS, config.databaseUrl);
   await database.query('TRUNCATE clinic_schema.clinics, pet_schema.pets, identity_schema.users CASCADE');
   await resetBookingPersistence(database);
   await database.query(`INSERT INTO identity_schema.users (id) SELECT unnest($1::uuid[])`, [[IDS.owner, IDS.otherOwner, IDS.allowed, IDS.revoked, IDS.noMembership, IDS.veterinarian]]);
