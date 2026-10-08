@@ -35,7 +35,7 @@ describe('Wave 4A medical sharing (Docker PostgreSQL and real Nest HTTP)', () =>
   const bytes=Buffer.from('%PDF-1.4\nPrivate acceptance document\n');
   const fixtureKey=`wave4a-test-${I.owner}/${I.document}.pdf`;
   const fixtureDirectory=path.dirname(documentStorage.petDocumentStoragePath(fixtureKey));
-  const download=async(id=I.document,auth?:string)=>request(app.getHttpServer()).get(`${clinicPath}/resources/DOCUMENT/${id}/download`).set('Authorization',`Bearer ${auth??await vet()}`).buffer(true).parse((response,callback)=>{const chunks:Buffer[]=[];response.on('data',(chunk:Buffer)=>chunks.push(Buffer.from(chunk)));response.on('end',()=>{const buffer=Buffer.concat(chunks);callback(null,response.headers['content-type']?.includes('application/json')?JSON.parse(buffer.toString()):buffer);});});
+  const download=async(id:string=I.document,auth?:string)=>request(app.getHttpServer()).get(`${clinicPath}/resources/DOCUMENT/${id}/download`).set('Authorization',`Bearer ${auth??await vet()}`).buffer(true).parse((response,callback)=>{const chunks:Buffer[]=[];response.on('data',(chunk:Buffer)=>chunks.push(Buffer.from(chunk)));response.on('end',()=>{const buffer=Buffer.concat(chunks);callback(null,response.headers['content-type']?.includes('application/json')?JSON.parse(buffer.toString()):buffer);});});
   async function revokeAll() {
     const rows = (await db.query(`SELECT id FROM medical_schema.appointment_data_shares WHERE appointment_id=$1 AND status='ACTIVE'`, [I.appointment])).rows;
     for (const row of rows) expect((await revoke(row.id)).status).toBe(200);
@@ -336,6 +336,97 @@ describe('Wave 4A medical sharing (Docker PostgreSQL and real Nest HTTP)', () =>
     const body={mode:'SELECTED',resources:[{type:'DOCUMENT',id:document}]};expect((await grant(body)).status).toBe(201);
     await db.query('UPDATE pet_schema.pet_documents SET deleted_at=clock_timestamp() WHERE id=$1',[document]);
     expect((await read(document,'DOCUMENT')).body).toEqual(denied);expect((await grant(body)).body).toEqual(denied);
+  });
+  const finalPaths=['RESULT','AMENDMENT','DOCUMENT_METADATA','DOCUMENT_BYTES'] as const;
+  async function finalGrant(){
+    const response=await request(app.getHttpServer()).post(`/v1/clinic/visits/${I.visit}/results/${result}/amendments`).set('Authorization',`Bearer ${await vet()}`).set('Idempotency-Key',randomUUID()).set('X-Correlation-ID',randomUUID()).send({content:'Explicit final gate amendment'});
+    expect(response.status).toBe(201);
+    const refs=[...selected().resources,{type:'AMENDMENT',id:response.body.amendmentId}];
+    const created=await grant({mode:'SELECTED',resources:refs});expect(created.status).toBe(201);
+    return {shareId:created.body.id,amendment:response.body.amendmentId};
+  }
+  async function finalRead(kind:typeof finalPaths[number],amendment:string,auth?:string){return kind==='DOCUMENT_BYTES'?download(I.document,auth):read(kind==='RESULT'?result:kind==='AMENDMENT'?amendment:I.document,kind==='DOCUMENT_METADATA'?'DOCUMENT':kind,auth);}
+  async function waitForRealLock(){
+    for(let attempt=0;attempt<150;attempt++){
+      if((await db.query(`SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND (query LIKE '%medical_schema.appointment_data_shares%' OR query LIKE '%clinic_schema.%')`)).rows.length)return;
+      await new Promise(resolve=>setTimeout(resolve,20));
+    }
+    throw new Error('Final gate competing SQL did not block on PostgreSQL row lock');
+  }
+  function authorityChange(kind:string){
+    if(kind==='membership')return ['UPDATE clinic_schema.employee_location_memberships SET active=false,revoked_at=clock_timestamp() WHERE employee_id=$1 AND clinic_location_id=$2',[I.vet,I.location]] as const;
+    if(kind==='clinic')return ["UPDATE clinic_schema.clinics SET status='INACTIVE' WHERE id=$1",[I.clinic]] as const;
+    return ["UPDATE clinic_schema.clinic_locations SET status='INACTIVE' WHERE id=$1",[I.location]] as const;
+  }
+  async function restoreAuthority(kind:string){
+    if(kind==='membership')await db.query('UPDATE clinic_schema.employee_location_memberships SET active=true,revoked_at=NULL WHERE employee_id=$1 AND clinic_location_id=$2',[I.vet,I.location]);
+    if(kind==='clinic')await db.query("UPDATE clinic_schema.clinics SET status='ACTIVE' WHERE id=$1",[I.clinic]);
+    if(kind==='location')await db.query("UPDATE clinic_schema.clinic_locations SET status='ACTIVE' WHERE id=$1",[I.location]);
+  }
+  for(const kind of finalPaths)for(const authority of ['revoke','membership','clinic','location']){
+    it(`final real race ${kind}/${authority}: read authorization wins; mutation waits; subsequent read denied`,async()=>{
+      const fixture=await finalGrant();let resume!:()=>void,notify!:()=>void;
+      const paused=new Promise<void>(resolve=>{notify=resolve;}),barrier=new Promise<void>(resolve=>{resume=resolve;});
+      const original=db.withTransaction.bind(db);let intercepted=false;
+      // Instrument only timing after a real PostgreSQL grant SELECT has acquired its locks.
+      // Every statement, transaction, competing mutation and HTTP response remains real.
+      const timing=jest.spyOn(db,'withTransaction').mockImplementation((work,options)=>original(client=>work(new Proxy(client,{get(target,key){if(key!=='query')return Reflect.get(target,key);return async(sql:string,values:unknown[])=>{const value=await target.query(sql,values);if(!intercepted&&sql.includes('FOR SHARE OF share')){intercepted=true;notify();await barrier;}return value;};}})),options));
+      let pendingRead:Promise<request.Response>|undefined,pendingMutation:Promise<unknown>|undefined;
+      try{
+        pendingRead=finalRead(kind,fixture.amendment);let timeout:ReturnType<typeof setTimeout>|undefined;try{await Promise.race([paused,new Promise((_,reject)=>{timeout=setTimeout(()=>reject(new Error('Read barrier timed out')),10000);})]);}finally{clearTimeout(timeout);}
+        pendingMutation=authority==='revoke'?revoke(fixture.shareId).then(response=>{expect(response.status).toBe(200);}):db.withTransaction(async client=>{const [sql,values]=authorityChange(authority);await client.query(sql,[...values]);});
+        await waitForRealLock();resume();const response=await pendingRead;expect(response.status).toBe(200);if(kind==='DOCUMENT_BYTES')expect(response.body).toEqual(bytes);await pendingMutation;
+        const open=jest.spyOn(documentStorage,'openStoredPetDocument');try{const after=await finalRead(kind,fixture.amendment);expect(after.status).toBe(404);expect(after.body).toEqual(denied);expect(open).not.toHaveBeenCalled();}finally{open.mockRestore();}
+      }finally{resume();await Promise.allSettled([pendingRead,pendingMutation].filter(Boolean));timing.mockRestore();await restoreAuthority(authority);}
+    });
+    it(`final real race ${kind}/${authority}: mutation commits first; new authorization denied`,async()=>{
+      const fixture=await finalGrant();const open=jest.spyOn(documentStorage,'openStoredPetDocument');
+      const auditBefore=(await db.query(`SELECT count(*)::int n FROM audit_schema.audit_log WHERE action='medical.document.content.read' AND aggregate_id=$1`,[I.document])).rows[0].n;
+      try{
+        if(authority==='revoke'){expect((await revoke(fixture.shareId)).status).toBe(200);}
+        else{
+          const client=await db.pool.connect();let pending:Promise<request.Response>|undefined;
+          try{await client.query('BEGIN');const [sql,values]=authorityChange(authority);await client.query(sql,[...values]);pending=finalRead(kind,fixture.amendment);await waitForRealLock();await client.query('COMMIT');const response=await pending;expect(response.status).toBe(404);expect(response.body).toEqual(denied);}
+          finally{await client.query('ROLLBACK');client.release();await pending;}
+        }
+        const response=await finalRead(kind,fixture.amendment);expect(response.status).toBe(404);expect(response.body).toEqual(denied);expect(open).not.toHaveBeenCalled();
+        expect((await db.query(`SELECT count(*)::int n FROM audit_schema.audit_log WHERE action='medical.document.content.read' AND aggregate_id=$1`,[I.document])).rows[0].n).toBe(auditBefore);
+      }finally{open.mockRestore();await restoreAuthority(authority);}
+    });
+  }
+  async function unsharedHistory(owner:string,pet:string){
+    const slot=randomUUID(),hold=randomUUID(),appointment=randomUUID(),visit=randomUUID(),document=randomUUID();
+    await db.query(`INSERT INTO clinic_schema.appointment_slots(id,clinic_location_id,service_id,starts_at,ends_at) VALUES($1,$2,$3,clock_timestamp()-interval '1 hour',clock_timestamp())`,[slot,I.location,I.service]);
+    await db.query(`INSERT INTO booking_schema.booking_holds(id,slot_id,owner_id,pet_id,state,expires_at) VALUES($1,$2,$3,$4,'COMPLETED',clock_timestamp()+interval '1 hour')`,[hold,slot,owner,pet]);
+    await db.query(`INSERT INTO booking_schema.appointments(id,hold_id,owner_id,pet_id,clinic_location_id,slot_id,status) VALUES($1,$2,$3,$4,$5,$6,'COMPLETED')`,[appointment,hold,owner,pet,I.location,slot]);
+    await db.query(`INSERT INTO clinical_schema.visits(id,appointment_id,booking_hold_id,owner_id,pet_id,clinic_id,location_id,slot_id,completed_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,[visit,appointment,hold,owner,pet,I.clinic,I.location,slot,I.vet]);
+    const path=`/v1/clinic/visits/${visit}/results`,headers={Authorization:`Bearer ${await vet()}`,'Idempotency-Key':randomUUID(),'X-Correlation-ID':randomUUID()};
+    const draft=await request(app.getHttpServer()).post(path).set(headers).send({clinicalSummary:'Private unshared final-gate source'});expect(draft.status).toBe(201);
+    expect((await request(app.getHttpServer()).post(`${path}/${draft.body.id}/publish`).set({...headers,'Idempotency-Key':randomUUID(),'If-Match':'1'})).status).toBe(200);
+    const amendment=await request(app.getHttpServer()).post(`${path}/${draft.body.id}/amendments`).set({...headers,'Idempotency-Key':randomUUID()}).send({content:'Private unshared final-gate amendment'});expect(amendment.status).toBe(201);
+    await db.query(`INSERT INTO pet_schema.pet_documents(id,pet_id,owner_id,file_url,doc_type,status) VALUES($1,$2,$3,'private-source','HISTORY','PROCESSED')`,[document,pet,owner]);
+    return {RESULT:draft.body.id,AMENDMENT:amendment.body.amendmentId,DOCUMENT:document};
+  }
+  it.each(finalPaths)('final no-leak and role matrix for %s',async kind=>{
+    const fixture=await finalGrant(),otherPet=randomUUID(),foreignPet=randomUUID();
+    await db.query(`INSERT INTO pet_schema.pets(id,owner_id,name,species) VALUES($1,$2,'Private Other','DOG'),($3,$4,'Private Foreign','DOG')`,[otherPet,I.owner,foreignPet,I.otherOwner]);
+    const sources=[await unsharedHistory(I.owner,I.pet),await unsharedHistory(I.owner,otherPet),await unsharedHistory(I.otherOwner,foreignPet)];
+    const type=kind==='DOCUMENT_METADATA'||kind==='DOCUMENT_BYTES'?'DOCUMENT':kind;
+    const fetchResource=(id:string,auth?:string)=>kind==='DOCUMENT_BYTES'?download(id,auth):read(id,type,auth);
+    const selectedId=type==='RESULT'?result:type==='AMENDMENT'?fixture.amendment:I.document;
+    expect((await fetchResource(selectedId)).status).toBe(200);
+    const open=jest.spyOn(documentStorage,'openStoredPetDocument');
+    const canonical=async(response:request.Response)=>{expect(response.status).toBe(404);expect(response.body).toEqual(denied);expect(JSON.stringify(response.body)).not.toMatch(/Private|storage|source|Owner|Pet/);};
+    try{
+      for(const id of [randomUUID(),...sources.map(source=>source[type])])await canonical(await fetchResource(id));
+      for(const [clinics,locations] of [[[I.otherClinic],[I.otherLocation]],[[I.clinic],[I.otherLocation]]])await canonical(await fetchResource(selectedId,await token(I.vet,[Role.CLINIC_VETERINARIAN],clinics,locations)));
+      for(const authority of ['membership','clinic','location']){const [sql,values]=authorityChange(authority);await db.query(sql,[...values]);try{await canonical(await fetchResource(selectedId));}finally{await restoreAuthority(authority);}}
+      for(const role of [Role.CLINIC_ADMIN,Role.CLINIC_RECEPTIONIST])expect((await fetchResource(selectedId,await token(role===Role.CLINIC_ADMIN?I.admin:I.reception,[role],[I.clinic],[I.location]))).status).toBe(403);
+      if(type==='DOCUMENT'){
+        await db.query('UPDATE pet_schema.pet_documents SET deleted_at=clock_timestamp() WHERE id=$1',[I.document]);try{await canonical(await fetchResource(selectedId));}finally{await db.query('UPDATE pet_schema.pet_documents SET deleted_at=NULL WHERE id=$1',[I.document]);}
+      }
+      expect((await revoke(fixture.shareId)).status).toBe(200);await canonical(await fetchResource(selectedId));expect(open).not.toHaveBeenCalled();
+    }finally{open.mockRestore();}
   });
   it('more than 200 historical resources does not block an explicitly selected resource',async()=>{
     await db.query(`INSERT INTO pet_schema.pet_documents(pet_id,owner_id,file_url,doc_type,status) SELECT $1,$2,'source','HISTORY','PROCESSED' FROM generate_series(1,201)`,[I.pet,I.owner]);

@@ -23,10 +23,10 @@ test('allowed scope exposes navigation, list and keyboard detail/back flow', asy
   await expect(page.getByRole('link', { name: 'Открыть приёмы врача' }).first()).toHaveAttribute('aria-current', 'page');
   await expect(page.getByRole('link', { name: 'Открыть очередь записей' })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Приёмы врача' })).toBeVisible();
-  await expect(page.getByText('Milo · CAT')).toBeVisible();
+  await expect(page.getByText('Milo · Кошка')).toBeVisible();
   await page.getByRole('link', { name: 'Открыть приём Milo' }).focus(); await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: 'Milo' })).toBeVisible();
-  await expect(page.getByText('Приём завершён или действие недоступно.')).toBeVisible();
+  await expect(page.getByText('Завершение приёма недоступно для вашей роли.')).toBeVisible();
   await expect(page.getByRole('button', { name: /заверш/i })).toHaveCount(0);
   await page.getByRole('link', { name: 'К списку приёмов' }).click(); await expect(page.getByRole('heading', { name: 'Приёмы врача' })).toBeVisible();
   expect(listReads).toBeGreaterThanOrEqual(2);
@@ -44,28 +44,28 @@ test('wrong-scope session hides navigation and makes no protected request', asyn
 
 test('malformed holdId is rejected before the detail upstream request', async ({ page, context, baseURL }) => {
   await session(context, baseURL); await page.goto(`${listRoute()}/not-a-uuid`);
-  await expect(page.getByRole('heading', { name: 'Приёмы сейчас недоступны' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Приём сейчас недоступен' })).toBeVisible();
   expect(detailReads).toBe(0);
 });
 
 test('backend denial is normalized for list and detail', async ({ page, context, baseURL }) => {
   mode = 'backend-deny'; await session(context, baseURL); await page.goto(listRoute());
   await expect(page.getByRole('heading', { name: 'Приёмы сейчас недоступны' })).toBeVisible();
-  await page.goto(detailRoute()); await expect(page.getByRole('heading', { name: 'Приёмы сейчас недоступны' })).toBeVisible();
+  await page.goto(detailRoute()); await expect(page.getByRole('heading', { name: 'Приём сейчас недоступен' })).toBeVisible();
   await expect(page.getByText(/capability|membership|CLINIC_SCOPE/i)).toHaveCount(0);
 });
 
 test('runtime parser accepts approved values and fails closed for malformed HTTP 200 DTOs', async ({ page, context, baseURL }) => {
   for (const valid of [visit({ status: 'CONFIRMED' }), visit({ status: 'COMPLETED', scheduledStart: '2026-07-12T13:00:00+03:00', scheduledEnd: '2026-07-12T13:30:00+03:00' })]) {
-    payloadOverride = [valid]; await session(context, baseURL); await page.goto(listRoute()); await expect(page.getByText('Milo · CAT')).toBeVisible();
+    payloadOverride = [valid]; await session(context, baseURL); await page.goto(listRoute()); await expect(page.getByText('Milo · Кошка')).toBeVisible();
   }
   const missing = visit(); delete (missing as Record<string, unknown>).species;
   for (const invalid of [
     visit({ status: 'PENDING' }), visit({ status: 'confirmed' }), visit({ status: '' }), visit({ status: 'UNKNOWN' }),
     visit({ scheduledStart: 'not-a-date' }), visit({ scheduledStart: '2026-99-99T10:00:00Z' }), visit({ scheduledStart: '2026-07-12' }), visit({ scheduledStart: '2026-07-12T10:00:00' }), visit({ scheduledStart: '' }), visit({ scheduledStart: 123 }),
     { ...visit(), extra: 'unexpected' }, missing,
-  ]) { payloadOverride = [invalid]; await session(context, baseURL); await page.goto(listRoute()); await expect(page.getByRole('heading', { name: 'Не удалось получить приёмы' })).toBeVisible(); await expect(page.getByText('Milo · CAT')).toHaveCount(0); }
-  payloadOverride = visit({ status: 'PENDING' }); await session(context, baseURL); await page.goto(detailRoute()); await expect(page.getByRole('heading', { name: 'Не удалось получить приёмы' })).toBeVisible(); await expect(page.getByText('PENDING')).toHaveCount(0);
+  ]) { payloadOverride = [invalid]; await session(context, baseURL); await page.goto(listRoute()); await expect(page.getByRole('heading', { name: 'Не удалось получить приёмы' })).toBeVisible(); await expect(page.getByText('Milo · Кошка')).toHaveCount(0); }
+  payloadOverride = visit({ status: 'PENDING' }); await session(context, baseURL); await page.goto(detailRoute()); await expect(page.getByRole('heading', { name: 'Не удалось получить приём' })).toBeVisible(); await expect(page.getByText('PENDING')).toHaveCount(0);
 });
 
 function listRoute() { return `/clinics/${clinicId}/locations/${locationId}/vet/visits`; }
@@ -78,7 +78,7 @@ async function session(context: BrowserContext, baseURL: string | undefined) {
 function handle(request: import('node:http').IncomingMessage, response: import('node:http').ServerResponse) {
   const url = new URL(request.url ?? '/', `http://${request.headers.host ?? `127.0.0.1:${port}`}`);
   if (url.pathname === '/v1/auth/session') return json(response, 200, { subjectId: 'vet-user', roles: ['CLINIC_VETERINARIAN'], effectiveCapabilities: mode === 'allowed' || mode === 'backend-deny' ? ['clinical.visit.workspace.read'] : [], clinicScopes: [{ clinicId: mode === 'wrong-scope' ? otherClinicId : clinicId, locationId }] });
-  if (url.pathname === `/v1/clinic/${clinicId}/locations/${locationId}/vet/visits` || url.pathname === `/v1/clinic/${clinicId}/locations/${locationId}/vet/visits/${holdId}`) { reads += 1; if (url.pathname.endsWith(holdId)) detailReads += 1; else listReads += 1; if (mode === 'backend-deny') return json(response, 403, { code: 'CLINIC_SCOPE_MISMATCH' }); return json(response, 200, payloadOverride ?? (url.pathname.endsWith(holdId) ? visit() : [visit()])); }
+  if (url.pathname === `/v1/clinic/${clinicId}/locations/${locationId}/vet/visits` || url.pathname === `/v1/clinic/${clinicId}/locations/${locationId}/vet/visits/${holdId}`) { reads += 1; if (url.pathname.endsWith(holdId)) detailReads += 1; else listReads += 1; if (mode === 'backend-deny') return json(response, 403, { code: 'CLINIC_SCOPE_MISMATCH' }); return json(response, 200, payloadOverride ?? (url.pathname.endsWith(holdId) ? { ...visit(), visitId: null } : [visit()])); }
   return json(response, 404, { code: 'NOT_FOUND' });
 }
 function visit(overrides: Record<string, unknown> = {}) { return { holdId, clinicId, locationId, scheduledStart: '2026-07-12T10:00:00.000Z', scheduledEnd: '2026-07-12T10:30:00.000Z', status: 'CONFIRMED', petDisplayName: 'Milo', species: 'CAT', ...overrides }; }
