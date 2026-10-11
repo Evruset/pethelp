@@ -16,7 +16,7 @@ const MIGRATIONS = [
 ] as const;
 
 describe('v1.5 clinic contract profile migration (real PostgreSQL)', () => {
-  it('applies the complete canonical chain on a fresh database', async () => {
+  it('applies the historical contract/lifecycle chain through 171968 on a fresh database', async () => {
     await withDatabase(async ({ client, databaseUrl, migrationDir }) => {
       copyCanonicalMigrations(migrationDir, true);
       migrate('up', databaseUrl, migrationDir);
@@ -103,6 +103,8 @@ function copyCanonicalMigrations(target: string, includeWave1: boolean): void {
   const source = join(process.cwd(), 'migrations/node-pg');
   mkdirSync(target, { recursive: true });
   for (const file of readdirSync(source).filter((name) => name.endsWith('.js'))) {
+    // End at the historical irreversible fence, not later clinical/sharing migrations.
+    if (Number(file.split('_')[0]) > 1719680000000) continue;
     if (!includeWave1 && (MIGRATIONS as readonly string[]).includes(file)) continue;
     copyFileSync(join(source, file), join(target, file));
   }
