@@ -1,5 +1,5 @@
-import { BadRequestException, Injectable, NotFoundException, PreconditionFailedException } from '@nestjs/common';
-import { createHmac, randomUUID } from 'node:crypto';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException, PreconditionFailedException } from '@nestjs/common';
+import { createHash, createHmac, randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { ReadStream } from 'node:fs';
@@ -7,8 +7,9 @@ import type { PoolClient } from 'pg';
 import { DatabaseService } from '../database/database.service';
 import { config } from '../config';
 import { openStoredPetDocument, petDocumentStoragePath, safePetDocumentName } from '../common/pet-document-storage';
+import { publishByteSnapshot, readObservedLegacyBytes, readVerifiedSnapshot, snapshotObjectInventory, type ByteSnapshot } from '../common/document-byte-snapshots';
 import { DomainException } from '../common/domain-error';
-import { JwtPayload } from './auth.types';
+import { JwtPayload, Role } from './auth.types';
 import { CreateOwnerPetDto, UpdateOwnerPetDto } from './dto/owner-pet.dto';
 import { ownerAppointmentPresentation, OwnerAppointmentPresentation } from './owner-appointments.service';
 
@@ -814,11 +815,13 @@ export class OwnerPetService {
     if (docType !== 'PASSPORT' && docType !== 'HISTORY') {
       throw new BadRequestException({ code: 'INVALID_PET_DOCUMENT_TYPE', message: 'Document type is not supported.' });
     }
+    this.assertByteOwner(owner);
     this.validateUploadedFile(file, { allowPdf: true });
     await this.ensurePetActive(owner, petId);
-    const stored = await this.storeUploadedFile(owner.sub, petId, file!);
-
+    const started=new Date(),snapshot=await publishByteSnapshot(file!.buffer!,file!.size),ended=new Date();
+    const stored={documentId:randomUUID(),storageKey:snapshot.storageKey,fileName:this.safeDownloadName(file!.originalname),mimeType:file!.mimetype,fileSizeBytes:snapshot.byteLength};
     return this.database.withTransaction(async (client) => {
+      await this.lockByteOwner(client,owner,petId);
       const document = await client.query<PetDocumentRow>(`
         INSERT INTO pet_schema.pet_documents (
           id, pet_id, owner_id, file_url, doc_type, status,
@@ -843,6 +846,7 @@ export class OwnerPetService {
         stored.storageKey,
       ]);
 
+      await this.persistByteVersion(client,owner.sub,petId,stored.documentId,snapshot,'UPLOAD_BYTES',started,ended);
       await this.writePetAudit(client, owner.sub, petId, 'pet.document.uploaded', {
         documentId: document.rows[0].id,
         docType,
@@ -852,6 +856,50 @@ export class OwnerPetService {
 
       return this.toDocumentUpload(document.rows[0]);
     });
+  }
+
+  private assertByteOwner(owner:JwtPayload){if(!owner.roles.includes(Role.OWNER))throw new ForbiddenException({code:'ROLE_FORBIDDEN'});}
+  private async lockByteOwner(client:PoolClient,owner:JwtPayload,petId:string){
+    this.assertByteOwner(owner);
+    const current=await client.query('SELECT id FROM pet_schema.pets WHERE id=$1 AND owner_id=$2 AND archived_at IS NULL FOR SHARE',[petId,owner.sub]);
+    if(!current.rowCount)throw new NotFoundException({code:'OWNER_PET_NOT_FOUND',message:'Pet was not found.'});
+  }
+  private async persistByteVersion(client:PoolClient,ownerId:string,petId:string,documentId:string,snapshot:ByteSnapshot,kind:'UPLOAD_BYTES'|'OBSERVED_EXISTING_AT_CAPTURE',start:Date,end:Date){
+    await client.query(`INSERT INTO pet_schema.document_byte_versions(version_id,document_id,owner_id,pet_id,storage_object_id,sha256,byte_length,capture_operation_id,capture_kind,capture_coherence,observation_started_at,observation_ended_at)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,[snapshot.versionId,documentId,ownerId,petId,snapshot.storageObjectId,snapshot.sha256,snapshot.byteLength,randomUUID(),kind,kind==='UPLOAD_BYTES'?'UPLOAD_BUFFER':'OBSERVED_SEQUENCE_ONLY',start,end]);
+    await client.query(`INSERT INTO pet_schema.document_byte_events(version_id,event_type,actor_id,operation_id) VALUES($1,'VERIFIED_CAPTURE',$2,$3)`,[snapshot.versionId,ownerId,randomUUID()]);
+  }
+  /** Internal existing-source observation; no new Pilot route or historical original assertion. */
+  async captureExistingDocumentSource(owner:JwtPayload,petId:string,documentId:string){
+    this.assertByteOwner(owner);await this.ensurePetActive(owner,petId);const source=await this.readOwnedDocument(owner,petId,documentId);
+    if(!['PASSPORT','HISTORY'].includes(source.doc_type)||!source.storage_key||!source.file_size_bytes)throw new NotFoundException({code:'OWNER_PET_DOCUMENT_NOT_FOUND'});
+    const started=new Date(),input=await readObservedLegacyBytes(source.storage_key,source.file_size_bytes),snapshot=await publishByteSnapshot(input),ended=new Date();
+    const again=await readObservedLegacyBytes(source.storage_key,source.file_size_bytes);
+    if(createHash('sha256').update(again).digest('hex')!==snapshot.sha256)throw new NotFoundException({code:'OWNER_PET_DOCUMENT_NOT_FOUND'});
+    return this.database.withTransaction(async client=>{
+      await this.lockByteOwner(client,owner,petId);
+      const current=(await client.query(`SELECT storage_key,file_size_bytes,doc_type FROM pet_schema.pet_documents WHERE id=$1 AND owner_id=$2 AND pet_id=$3 AND deleted_at IS NULL FOR SHARE`,[documentId,owner.sub,petId])).rows[0];
+      if(!current||current.storage_key!==source.storage_key||current.file_size_bytes!==source.file_size_bytes||current.doc_type!==source.doc_type)throw new NotFoundException({code:'OWNER_PET_DOCUMENT_NOT_FOUND'});
+      await this.persistByteVersion(client,owner.sub,petId,documentId,snapshot,'OBSERVED_EXISTING_AT_CAPTURE',started,ended);
+      return {versionId:snapshot.versionId,authority:'OBSERVED_SEQUENCE_ONLY'};
+    });
+  }
+  /** Internal/private verification. Never an authorization token or public download API. */
+  async verifyDocumentSnapshot(owner:JwtPayload,petId:string,documentId:string,versionId:string){
+    const version=await this.database.withTransaction(async client=>{
+      await this.lockByteOwner(client,owner,petId);
+      const row=(await client.query(`SELECT v.storage_object_id,v.sha256,v.byte_length,v.capture_coherence FROM pet_schema.document_byte_versions v JOIN pet_schema.pet_documents d ON d.id=v.document_id AND d.owner_id=v.owner_id AND d.pet_id=v.pet_id
+        WHERE v.version_id=$1 AND v.document_id=$2 AND v.owner_id=$3 AND v.pet_id=$4 AND d.deleted_at IS NULL AND d.doc_type IN('PASSPORT','HISTORY') AND (v.capture_coherence<>'UPLOAD_BUFFER' OR (d.storage_key=v.storage_object_id::text||'.blob' AND d.file_size_bytes=v.byte_length)) AND NOT EXISTS(SELECT 1 FROM pet_schema.document_byte_events e WHERE e.version_id=v.version_id AND e.event_type IN('UNAVAILABLE','CORRUPT','REPLACED','RETIRED'))`,[versionId,documentId,owner.sub,petId])).rows[0];
+      if(!row)throw new NotFoundException({code:'OWNER_PET_DOCUMENT_NOT_FOUND'});return row;
+    });
+    // Storage integrity only; byte use/adapter binding is not implemented here.
+    await readVerifiedSnapshot({storageObjectId:version.storage_object_id,sha256:version.sha256,byteLength:Number(version.byte_length)});
+    await this.database.withTransaction(async client=>{await this.lockByteOwner(client,owner,petId);const valid=await client.query(`SELECT d.id FROM pet_schema.pet_documents d JOIN pet_schema.document_byte_versions v ON v.document_id=d.id WHERE d.id=$1 AND d.owner_id=$2 AND d.pet_id=$3 AND v.version_id=$4 AND d.deleted_at IS NULL AND d.doc_type IN('PASSPORT','HISTORY') AND (v.capture_coherence<>'UPLOAD_BUFFER' OR (d.storage_key=v.storage_object_id::text||'.blob' AND d.file_size_bytes=v.byte_length)) FOR SHARE OF d`,[documentId,owner.sub,petId,versionId]);if(!valid.rowCount|| (await client.query(`SELECT 1 FROM pet_schema.document_byte_events WHERE version_id=$1 AND event_type IN('UNAVAILABLE','CORRUPT','REPLACED','RETIRED')`,[versionId])).rowCount)throw new NotFoundException({code:'OWNER_PET_DOCUMENT_NOT_FOUND'});});
+    return {versionId,storageIntegrity:'SNAPSHOT_BYTES_VERIFIED',captureCoherence:version.capture_coherence,sourceBytesVerified:version.capture_coherence==='UPLOAD_BUFFER'};
+  }
+  async reconcilePrivateSnapshotObjects(){
+    const objects=await snapshotObjectInventory(),published=new Set((await this.database.query('SELECT storage_object_id::text FROM pet_schema.document_byte_versions WHERE storage_object_id=ANY($1::uuid[])',[objects])).rows.map(row=>row.storage_object_id));
+    return objects.filter(id=>!published.has(id)); // Operator-only call; no deletion and no HTTP projection.
   }
 
   async uploadPetPhoto(owner: JwtPayload, petId: string, file: UploadedPetFile | undefined): Promise<OwnerPet> {

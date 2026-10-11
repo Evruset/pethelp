@@ -1,5 +1,27 @@
 # V50 program current state
 
+## 2026-10-11 — V15-W4B-03A-01 technical acceptance / publication
+
+`WAVE4B_03A_01_MACHINE_COMPLETE=YES`, `WAVE4B_03A_01_HUMAN_ACCEPTANCE=APPROVED`, `WAVE4B_03A_01_COMPLETE=YES`, `WAVE4B_03A_02_READY_TO_START=YES` under the explicit Product Owner/Acting Technical Lead decision V15-W4B-03A-01-ACCEPT. Acceptance and limits: `docs/testing/evidence/wave4b-03a-01-20261011/ACCEPTANCE.md`. Historical candidate/NOT_RECORDED statements below remain original audit provenance.
+
+Accepted technical scope: private snapshots, SHA-256/actual length, exclusive/fsync/readback publication, additive171976, append-only/fail-closed guards, Owner/source rechecks and legacy preservation. Verified59 unique PASS,72 migrations/checksums, populated upgrade/build PASS and three distinct NO VETO reviews. Runtime source/tests and all40 machine evidence files remain unchanged; only this acceptance overlay and separate publication supplements are added. Exact final scope/hashes: PUBLICATION.json and PUBLICATION-SHA256SUMS in the same evidence directory. Original674 dirty entries preserved; accepted runtime gates reused without reruns.
+
+Publication is authorized only on isolated `agent/v15-w4b-03a-01-storage-b5appvjv`, parent `addbde9ec696a82cb983c6071c91aeadff7807cc`. The delivery receipt records actual published SHA, fresh-fetch local/remote equality and final preservation. No transition/main merge or deployment.
+
+`OCR_SOURCE_BYTE_INTEGRITY=DEFERRED_BLOCKING_VALIDATED_IMPORT` remains. Production storage isolation, restore/retention and actual adapter byte consumption are NOT complete. No OCR_RESULT_SOURCE_BOUND or validated import readiness is implied. 03A-02 requires a separate implementation goal; no implementation, UI, Wave5 or Jira/Confluence action in this publication. STOP after remote-backed acceptance.
+
+## 2026-10-11 — V15-W4B-03A-01 storage/DB implementation candidate
+
+`WAVE4B_03A_01_MACHINE_COMPLETE=YES`, `WAVE4B_03A_01_READY_FOR_PO_REVIEW=YES`. Human implementation acceptance NOT_RECORDED. Isolated branch `agent/v15-w4b-03a-01-storage-b5appvjv`, accepted base `addbde9ec696a82cb983c6071c91aeadff7807cc`. Original674 dirty entries preserved byte-for-byte; index empty, no commit/push or original worktree writes.
+
+Implemented private UUID snapshots, SHA-256/actual count, preallocation bounds, exclusive publication/fsync/readback and rehash. Upload rechecks current Owner/Pet after I/O and commits document/version/event/audit atomically. Legacy capture is OBSERVED_SEQUENCE_ONLY; no historical retroproof. Current scope/key/size/type changes deny trusted use. Private orphan inventory is bounded and performs no deletion.
+
+Additive171976 introduces five immutable provenance tables, nullable creation-transaction witness, exact context and fail-closed bound claim/success guards. All71 historical migrations remain unchanged. Production creates no byte job sidecars, receipts or result bindings; provider/job/review/route/sharing contracts remain unchanged.
+
+59 unique focused PASS,0 unresolved FAIL: filesystem24, PostgreSQL authority30, populated71→72 upgrade1, targeted Owner/Clinic bytes1, storage compatibility3. Fresh72 migrations/checksums/build PASS. Raw harness failures and their successful supersessions are recorded. Final DB/Security/architecture reviews: NO VETO. Unrelated accepted gates remain sticky; no T044 or broad regression rerun. Evidence: `docs/testing/evidence/wave4b-03a-01-20261011/REPORT.md`, MANIFEST and SHA256SUMS. Contract: `docs/v15/19-wave4b-03a-01-storage-authority.md`.
+
+`OCR_SOURCE_BYTE_INTEGRITY=DEFERRED_BLOCKING_VALIDATED_IMPORT`. Actual adapter consumption, result binding, validated import and completed W4B03A are not claimed. 03A-02 needs separate authorization for execution receipts, fenced finish/result binding and exact Owner revision linkage. Production storage identities/ACL/mounts, read-only workers, restore and retention remain rollout prerequisites. Rollback stops ALL claimers and publishers while retaining guards/provenance/files. STOP after evidence; no UI/import/Pet writes/grant changes/Wave5/Jira/deployment/merge.
+
 ## 2026-10-11 — V15-W4B-03A architecture acceptance / documentation publication
 
 `WAVE4B_03A_DESIGN_COMPLETE=YES`, `WAVE4B_03A_DESIGN_HUMAN_ACCEPTANCE=APPROVED`, `WAVE4B_03A_READY_FOR_IMPLEMENTATION=YES` under explicit Product Owner V15-W4B-03A-DESIGN-ACCEPT. Architecture direction approved; no implementation readiness evidence or validated import approval implied. Decision/limits: `docs/v15/evidence/w4b-03a-design-20261011/ACCEPTANCE.md`. Historical design candidate/NOT_RECORDED statements below remain original audit provenance.

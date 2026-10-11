@@ -75,6 +75,17 @@ describe('Wave 4A medical sharing (Docker PostgreSQL and real Nest HTTP)', () =>
   afterAll(async () => { await app?.close();await rm(fixtureDirectory,{recursive:true,force:true}); });
   afterEach(async () => { await revokeAll(); });
 
+  it('W4B03A01 immutable upload preserves Owner/Clinic actual byte delivery and selected isolation',async()=>{
+    const owner={sub:I.owner,roles:[Role.OWNER],clinicIds:[],locationIds:[]},service=app.get(OwnerPetService);
+    const upload=await service.uploadDocumentFile(owner,I.pet,{buffer:bytes,size:bytes.length,mimetype:'application/pdf',originalname:'history.pdf'},'HISTORY');
+    expect((await download(upload.documentId)).status).toBe(404);
+    expect((await grant({mode:'SELECTED',resources:[{type:'DOCUMENT',id:upload.documentId}]})).status).toBe(201);
+    const response=await download(upload.documentId);expect(response.status).toBe(200);expect(response.body).toEqual(bytes);expect(response.headers['cache-control']).toBe('private, no-store');
+    expect((await download(I.otherDocument)).status).toBe(404);
+    const owned=await service.downloadDocument(owner,I.pet,upload.documentId),chunks:Buffer[]=[];for await(const chunk of owned.stream)chunks.push(Buffer.from(chunk));expect(Buffer.concat(chunks)).toEqual(bytes);
+    expect(JSON.stringify(upload)).not.toMatch(/sha256|storage_object|storage_key|lease/);
+    await revokeAll();expect((await download(upload.documentId)).status).toBe(404);
+  });
   it('Document byte delivery returns private verified bytes and preserves Owner download',async()=>{
     expect((await grant(selected())).status).toBe(201);const response=await download();expect(response.status).toBe(200);expect(response.body).toEqual(bytes);
     expect(response.headers['content-type']).toBe('application/pdf');expect(response.headers['content-length']).toBe(String(bytes.length));expect(response.headers['content-disposition']).toContain('attachment; filename="history.pdf"');expect(response.headers['cache-control']).toBe('private, no-store');expect(response.headers['x-content-type-options']).toBe('nosniff');

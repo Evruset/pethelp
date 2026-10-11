@@ -1,0 +1,40 @@
+PASS test/document-byte-authority.e2e-spec.ts (14.064 s)
+  Document byte DB/Owner authority actual PostgreSQL
+    ✓ B07 deferred COMMIT failure leaves no document/version/event/audit and private orphan (89 ms)
+    ○ skipped B01 upload atomically publishes private version/event with no Pet/OCR promotion or public tokens
+    ○ skipped B09 exact authority denies foreign
+    ○ skipped B09 exact authority denies pet
+    ○ skipped B09 exact authority denies document
+    ○ skipped B09 exact authority denies version
+    ○ skipped B09 exact authority denies role
+    ○ skipped B09 upload transfer after IO cannot publish metadata
+    ○ skipped B09 upload archive after IO cannot publish metadata
+    ○ skipped B08/B14 observed legacy is sequence-only, never backfills historical job/result/review
+    ○ skipped B08 legacy bytes mutation during capture rejected
+    ○ skipped B08 legacy metadata mutation during capture rejected
+    ○ skipped B09 verification rechecks Owner after filesystem read
+    ○ skipped B19 newly created same-TX job may bind; old worker claim fails without attempt
+    ○ skipped B14 old queued attempt0 cannot rebind even after UPDATE or witness forgery
+    ○ skipped B14 sequence-only observation cannot bind even new job
+    ○ skipped B20 deferred bound success guard rolls back commit; no raw/bindings created
+    ○ skipped B20 no forged ACTUAL_BYTE_INPUT receipt accepted
+    ○ skipped B20 no forged SIMULATED_METADATA_ONLY receipt accepted
+    ○ skipped B20 no result binding insert accepted
+    ○ skipped B25 append-only versions/events/sources and all-table TRUNCATE denied
+    ○ skipped B25 forged context/version digest and foreign actor denied; negative event is terminal
+    ○ skipped B19/B28 unbound metadata-only job still claims/finishes without source-bound claim
+    ○ skipped B06 parallel Owner captures publish unique rows/events without context mixing
+    ○ skipped B14 forged Owner/Pet/document version context and publication key rejected
+    ○ skipped B19/B25 destructive rollback refuses and retains every populated provenance row
+
+Test Suites: 1 passed, 1 total
+Tests:       25 skipped, 1 passed, 26 total
+Snapshots:   0 total
+Time:        14.34 s
+Ran all test suites within paths "test/document-byte-authority.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4b-03a-01-20261011/commit-boundary-results.json
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

@@ -1,0 +1,38 @@
+PASS src/common/document-byte-snapshots.spec.ts (6.682 s)
+  Private snapshot actual filesystem
+    ✓ B01 actual SHA/count, 0400 final mode, flat UUID, independent caller buffer (25 ms)
+    ✓ B02 refuses empty input before publication (19 ms)
+    ✓ B02 refuses oversized input before publication (4 ms)
+    ✓ B02 refuses truncated input before publication (4 ms)
+    ✓ B02 exact maximum accepted (153 ms)
+    ✓ B03 rehash detects replace after publication (18 ms)
+    ✓ B03 rehash detects inplace after publication (17 ms)
+    ✓ B03 rehash detects truncate after publication (15 ms)
+    ✓ B04 rejects final symlink (13 ms)
+    ✓ B04 rejects final hardlink (12 ms)
+    ✓ B04 rejects path ../outside (6 ms)
+    ✓ B04 rejects path /etc/passwd (2 ms)
+    ✓ B04 rejects path sub/../../outside (2 ms)
+    ✓ B05 fails closed on relative root (2 ms)
+    ✓ B05 fails closed on missing root (3 ms)
+    ✓ B05 fails closed on unsafe root (3 ms)
+    ✓ B05 fails closed on symlink root (3 ms)
+    ✓ B05 fails closed on ancestor root (3 ms)
+    ✓ B06 parallel capture creates distinct immutable objects (34 ms)
+    ✓ B06 exclusive-create refuses UUID collision without overwrite (25 ms)
+    ✓ B07 write failure closes handles and leaves only private orphan (8 ms)
+    ✓ B07 file-sync failure closes handles and leaves only private orphan (8 ms)
+    ✓ B07 directory-sync failure closes handles and leaves only private orphan (9 ms)
+    ✓ B08 observed bytes are bounded and reject unsafe nested ancestor (12 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       24 passed, 24 total
+Snapshots:   0 total
+Time:        7.025 s
+Ran all test suites within paths "src/common/document-byte-snapshots.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4b-03a-01-20261011/filesystem-results.json
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

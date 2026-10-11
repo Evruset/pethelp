@@ -1,0 +1,55 @@
+FAIL test/document-byte-authority.e2e-spec.ts (14.472 s)
+  Document byte DB/Owner authority actual PostgreSQL
+    ✓ B01 upload atomically publishes private version/event with no Pet/OCR promotion or public tokens (67 ms)
+    ✕ B07 deferred COMMIT failure leaves no document/version/event/audit and private orphan (24 ms)
+    ○ skipped B09 exact authority denies foreign
+    ○ skipped B09 exact authority denies pet
+    ○ skipped B09 exact authority denies document
+    ○ skipped B09 exact authority denies version
+    ○ skipped B09 exact authority denies role
+    ○ skipped B09 upload transfer after IO cannot publish metadata
+    ○ skipped B09 upload archive after IO cannot publish metadata
+    ○ skipped B08/B14 observed legacy is sequence-only, never backfills historical job/result/review
+    ○ skipped B08 legacy bytes mutation during capture rejected
+    ○ skipped B08 legacy metadata mutation during capture rejected
+    ○ skipped B09 verification rechecks Owner after filesystem read
+    ○ skipped B19 newly created same-TX job may bind; old worker claim fails without attempt
+    ○ skipped B14 old queued attempt0 cannot rebind even after UPDATE or witness forgery
+    ○ skipped B14 sequence-only observation cannot bind even new job
+    ○ skipped B20 deferred bound success guard rolls back commit; no raw/bindings created
+    ○ skipped B20 no forged ACTUAL_BYTE_INPUT receipt accepted
+    ○ skipped B20 no forged SIMULATED_METADATA_ONLY receipt accepted
+    ○ skipped B20 no result binding insert accepted
+    ○ skipped B25 append-only versions/events/sources and all-table TRUNCATE denied
+    ○ skipped B25 forged context/version digest and foreign actor denied; negative event is terminal
+    ○ skipped B19/B28 unbound metadata-only job still claims/finishes without source-bound claim
+    ○ skipped B06 parallel Owner captures publish unique rows/events without context mixing
+    ○ skipped B14 forged Owner/Pet/document version context and publication key rejected
+    ○ skipped B19/B25 destructive rollback refuses and retains every populated provenance row
+
+  ● Document byte DB/Owner authority actual PostgreSQL › B07 deferred COMMIT failure leaves no document/version/event/audit and private orphan
+
+    error: operator does not exist: text = uuid
+
+      17 |  it.each(['foreign','pet','document','version','role'] as const)('B09 exact authority denies %s',async kind=>{const u=await upload(),v=await version(u.documentId);await expect(pets.verifyDocumentSnapshot(kind==='foreign'?foreign:kind==='role'?{sub:ownerId,roles:[Role.CLINIC_ADMIN]}:owner,kind==='pet'?otherPet:pet,kind==='document'?randomUUID():u.documentId,kind==='version'?randomUUID():v.version_id)).rejects.toBeDefined();});
+      18 |  it.each(['transfer','archive'] as const)('B09 upload %s after IO cannot publish metadata',async kind=>{const count=(await db.query('SELECT count(*) n FROM pet_schema.document_byte_versions')).rows[0].n,real=storage.publishByteSnapshot;jest.spyOn(storage,'publishByteSnapshot').mockImplementationOnce(async(...args)=>{const s=await real(...args);await db.query(kind==='transfer'?'UPDATE pet_schema.pets SET owner_id=$2 WHERE id=$1':'UPDATE pet_schema.pets SET archived_at=clock_timestamp() WHERE id=$1',kind==='transfer'?[pet,foreignId]:[pet]);return s;});await expect(upload()).rejects.toMatchObject({status:404});expect((await db.query('SELECT count(*) n FROM pet_schema.document_byte_versions')).rows[0].n).toBe(count);expect((await pets.reconcilePrivateSnapshotObjects()).length).toBeGreaterThan(0);});
+    > 19 |  it('B07 deferred COMMIT failure leaves no document/version/event/audit and private orphan',async()=>{const name='byte_test_'+randomUUID().replace(/-/g,''),before=(await db.query('SELECT count(*) n FROM pet_schema.document_byte_versions')).rows[0].n,counts=(await db.query(`SELECT (SELECT count(*) FROM pet_schema.pet_documents WHERE owner_id=$1) documents,(SELECT count(*) FROM pet_schema.document_byte_events WHERE actor_id=$1) events,(SELECT count(*) FROM audit_schema.audit_log WHERE actor_id=$1 AND action='pet.document.uploaded') audits`,[ownerId])).rows[0];await db.query(`CREATE FUNCTION audit_schema.${name}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.actor_id='${ownerId}' AND NEW.action='pet.document.uploaded' THEN RAISE EXCEPTION 'TEST_DEFERRED_FAILURE';END IF;RETURN NEW;END $$;CREATE CONSTRAINT TRIGGER ${name} AFTER INSERT ON audit_schema.audit_log DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION audit_schema.${name}()`);try{await expect(upload()).rejects.toThrow('TEST_DEFERRED_FAILURE');expect((await db.query('SELECT count(*) n FROM pet_schema.document_byte_versions')).rows[0].n).toBe(before);expect((await db.query(`SELECT (SELECT count(*) FROM pet_schema.pet_documents WHERE owner_id=$1) documents,(SELECT count(*) FROM pet_schema.document_byte_events WHERE actor_id=$1) events,(SELECT count(*) FROM audit_schema.audit_log WHERE actor_id=$1 AND action='pet.document.uploaded') audits`,[ownerId])).rows[0]).toEqual(counts);expect((await pets.reconcilePrivateSnapshotObjects()).length).toBeGreaterThan(0);}finally{await db.query(`DROP TRIGGER ${name} ON audit_schema.audit_log;DROP FUNCTION audit_schema.${name}()`);}});
+         |                                                                                                                                                                                                                                                                   ^
+      20 |  async function legacyDoc(){const doc=randomUUID(),key=randomUUID()+'.legacy';await fs.writeFile(path.join(process.env.PET_DOCUMENT_STORAGE_DIR!,key),bytes,{mode:0o600});await db.query(`INSERT INTO pet_schema.pet_documents(id,owner_id,pet_id,file_url,doc_type,status,storage_key,file_size_bytes,ocr_result) VALUES($1,$2,$3,'PRIVATE','HISTORY','PROCESSED',$4,$5,$6)`,[doc,ownerId,pet,key,bytes.length,JSON.stringify(legacy)]);return{doc,key};}
+      21 |  it('B08/B14 observed legacy is sequence-only, never backfills historical job/result/review',async()=>{const {doc}=await legacyDoc(),job=await jobs.enqueue(owner,pet,doc),before=(await db.query('SELECT * FROM pet_schema.ocr_jobs WHERE id=$1',[job.jobId])).rows[0],s=await pets.captureExistingDocumentSource(owner,pet,doc),v=await version(doc);expect(s.authority).toBe('OBSERVED_SEQUENCE_ONLY');expect(v.capture_kind).toBe('OBSERVED_EXISTING_AT_CAPTURE');expect(await pets.verifyDocumentSnapshot(owner,pet,doc,s.versionId)).toMatchObject({sourceBytesVerified:false});expect((await db.query('SELECT * FROM pet_schema.ocr_jobs WHERE id=$1',[job.jobId])).rows[0]).toEqual(before);expect((await db.query('SELECT authority,raw_result FROM pet_schema.ocr_legacy_unverified WHERE document_id=$1',[doc])).rows[0]).toEqual({authority:'LEGACY_UNVERIFIED',raw_result:legacy});});
+      22 |  it.each(['bytes','metadata'] as const)('B08 legacy %s mutation during capture rejected',async kind=>{const {doc,key}=await legacyDoc(),real=storage.publishByteSnapshot;jest.spyOn(storage,'publishByteSnapshot').mockImplementationOnce(async(...args)=>{const s=await real(...args);if(kind==='bytes')await fs.writeFile(path.join(process.env.PET_DOCUMENT_STORAGE_DIR!,key),Buffer.alloc(bytes.length,1));else await db.query('UPDATE pet_schema.pet_documents SET storage_key=$2 WHERE id=$1',[doc,randomUUID()+'.legacy']);return s;});await expect(pets.captureExistingDocumentSource(owner,pet,doc)).rejects.toMatchObject({status:404});expect(await version(doc)).toBeUndefined();});
+
+      at node_modules/pg-pool/index.js:45:11
+      at Object.<anonymous> (test/document-byte-authority.e2e-spec.ts:19:259)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 24 skipped, 1 passed, 26 total
+Snapshots:   0 total
+Time:        14.762 s
+Ran all test suites within paths "test/document-byte-authority.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4b-03a-01-20261011/authority-recheck-results.json
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
