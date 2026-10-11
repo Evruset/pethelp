@@ -58,6 +58,1491 @@
         ]
       }
     },
+    "/v1/owner/pets/{petId}/documents/{documentId}/ocr/candidates/{candidateId}/review": {
+      "get": {
+        "operationId": "OwnerOcrReview_read",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "candidateId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 10
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "candidateId",
+                    "jobId",
+                    "resultId",
+                    "documentId",
+                    "petId",
+                    "schemaVersion",
+                    "kind",
+                    "reviewState",
+                    "revision",
+                    "textVersion",
+                    "text",
+                    "textIdentity",
+                    "originalText",
+                    "originalTextIdentity",
+                    "sourceIdentity",
+                    "resultIdentity",
+                    "authority",
+                    "sourceByteIntegrity",
+                    "decision",
+                    "history",
+                    "page"
+                  ],
+                  "properties": {
+                    "candidateId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "jobId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "resultId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "documentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "petId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "schemaVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "EXTRACTED_TEXT"
+                      ]
+                    },
+                    "reviewState": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_OWNER_REVIEW",
+                        "IN_REVIEW",
+                        "CONFIRMED",
+                        "REJECTED"
+                      ]
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    },
+                    "textVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 32768
+                    },
+                    "textIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "originalText": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 32768
+                    },
+                    "originalTextIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "sourceIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "resultIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "authority": {
+                      "type": "string",
+                      "enum": [
+                        "OWNER_DECISION_ONLY"
+                      ]
+                    },
+                    "sourceByteIntegrity": {
+                      "type": "string",
+                      "enum": [
+                        "DEFERRED_BLOCKING_VALIDATED_IMPORT"
+                      ]
+                    },
+                    "decision": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "revision",
+                        "expectedRevision",
+                        "action",
+                        "reviewState",
+                        "textVersion",
+                        "text",
+                        "textIdentity",
+                        "actorId",
+                        "createdAt"
+                      ],
+                      "properties": {
+                        "revision": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "expectedRevision": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "action": {
+                          "type": "string",
+                          "enum": [
+                            "START",
+                            "CORRECT",
+                            "CONFIRM",
+                            "REJECT"
+                          ]
+                        },
+                        "reviewState": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING_OWNER_REVIEW",
+                            "IN_REVIEW",
+                            "CONFIRMED",
+                            "REJECTED"
+                          ]
+                        },
+                        "textVersion": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 32768
+                        },
+                        "textIdentity": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "actorId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "nullable": true
+                    },
+                    "history": {
+                      "type": "array",
+                      "maxItems": 20,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "revision",
+                          "expectedRevision",
+                          "action",
+                          "reviewState",
+                          "textVersion",
+                          "text",
+                          "textIdentity",
+                          "actorId",
+                          "createdAt"
+                        ],
+                        "properties": {
+                          "revision": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 2147483647
+                          },
+                          "expectedRevision": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 2147483647
+                          },
+                          "action": {
+                            "type": "string",
+                            "enum": [
+                              "START",
+                              "CORRECT",
+                              "CONFIRM",
+                              "REJECT"
+                            ]
+                          },
+                          "reviewState": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING_OWNER_REVIEW",
+                              "IN_REVIEW",
+                              "CONFIRMED",
+                              "REJECTED"
+                            ]
+                          },
+                          "textVersion": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 2147483647
+                          },
+                          "text": {
+                            "type": "string",
+                            "minLength": 0,
+                            "maxLength": 32768
+                          },
+                          "textIdentity": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$"
+                          },
+                          "actorId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "page": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "limit",
+                        "offset",
+                        "total",
+                        "nextOffset"
+                      ],
+                      "properties": {
+                        "limit": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 20
+                        },
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "nextOffset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647,
+                          "nullable": true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or concurrency headers"
+          },
+          "403": {
+            "description": "Owner role required"
+          },
+          "404": {
+            "description": "Exact current Owner/Pet/Document/candidate unavailable"
+          },
+          "409": {
+            "description": "Revision, terminal decision or idempotency conflict"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Owner OCR review"
+        ]
+      }
+    },
+    "/v1/owner/pets/{petId}/documents/{documentId}/ocr/candidates/{candidateId}/review/start": {
+      "post": {
+        "operationId": "OwnerOcrReview_start",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "candidateId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"(0|[1-9][0-9]{0,9})\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "candidateId",
+                    "jobId",
+                    "resultId",
+                    "documentId",
+                    "petId",
+                    "schemaVersion",
+                    "kind",
+                    "reviewState",
+                    "revision",
+                    "textVersion",
+                    "text",
+                    "textIdentity",
+                    "originalText",
+                    "originalTextIdentity",
+                    "sourceIdentity",
+                    "resultIdentity",
+                    "authority",
+                    "sourceByteIntegrity",
+                    "decision"
+                  ],
+                  "properties": {
+                    "candidateId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "jobId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "resultId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "documentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "petId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "schemaVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "EXTRACTED_TEXT"
+                      ]
+                    },
+                    "reviewState": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_OWNER_REVIEW",
+                        "IN_REVIEW",
+                        "CONFIRMED",
+                        "REJECTED"
+                      ]
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    },
+                    "textVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 32768
+                    },
+                    "textIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "originalText": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 32768
+                    },
+                    "originalTextIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "sourceIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "resultIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "authority": {
+                      "type": "string",
+                      "enum": [
+                        "OWNER_DECISION_ONLY"
+                      ]
+                    },
+                    "sourceByteIntegrity": {
+                      "type": "string",
+                      "enum": [
+                        "DEFERRED_BLOCKING_VALIDATED_IMPORT"
+                      ]
+                    },
+                    "decision": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "revision",
+                        "expectedRevision",
+                        "action",
+                        "reviewState",
+                        "textVersion",
+                        "text",
+                        "textIdentity",
+                        "actorId",
+                        "createdAt"
+                      ],
+                      "properties": {
+                        "revision": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "expectedRevision": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "action": {
+                          "type": "string",
+                          "enum": [
+                            "START",
+                            "CORRECT",
+                            "CONFIRM",
+                            "REJECT"
+                          ]
+                        },
+                        "reviewState": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING_OWNER_REVIEW",
+                            "IN_REVIEW",
+                            "CONFIRMED",
+                            "REJECTED"
+                          ]
+                        },
+                        "textVersion": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 32768
+                        },
+                        "textIdentity": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "actorId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or concurrency headers"
+          },
+          "403": {
+            "description": "Owner role required"
+          },
+          "404": {
+            "description": "Exact current Owner/Pet/Document/candidate unavailable"
+          },
+          "409": {
+            "description": "Revision, terminal decision or idempotency conflict"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Owner OCR review"
+        ]
+      }
+    },
+    "/v1/owner/pets/{petId}/documents/{documentId}/ocr/candidates/{candidateId}/review/corrections": {
+      "post": {
+        "operationId": "OwnerOcrReview_correct",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "candidateId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"(0|[1-9][0-9]{0,9})\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "text"
+                ],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 32768
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "candidateId",
+                    "jobId",
+                    "resultId",
+                    "documentId",
+                    "petId",
+                    "schemaVersion",
+                    "kind",
+                    "reviewState",
+                    "revision",
+                    "textVersion",
+                    "text",
+                    "textIdentity",
+                    "originalText",
+                    "originalTextIdentity",
+                    "sourceIdentity",
+                    "resultIdentity",
+                    "authority",
+                    "sourceByteIntegrity",
+                    "decision"
+                  ],
+                  "properties": {
+                    "candidateId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "jobId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "resultId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "documentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "petId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "schemaVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "EXTRACTED_TEXT"
+                      ]
+                    },
+                    "reviewState": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_OWNER_REVIEW",
+                        "IN_REVIEW",
+                        "CONFIRMED",
+                        "REJECTED"
+                      ]
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    },
+                    "textVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 32768
+                    },
+                    "textIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "originalText": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 32768
+                    },
+                    "originalTextIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "sourceIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "resultIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "authority": {
+                      "type": "string",
+                      "enum": [
+                        "OWNER_DECISION_ONLY"
+                      ]
+                    },
+                    "sourceByteIntegrity": {
+                      "type": "string",
+                      "enum": [
+                        "DEFERRED_BLOCKING_VALIDATED_IMPORT"
+                      ]
+                    },
+                    "decision": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "revision",
+                        "expectedRevision",
+                        "action",
+                        "reviewState",
+                        "textVersion",
+                        "text",
+                        "textIdentity",
+                        "actorId",
+                        "createdAt"
+                      ],
+                      "properties": {
+                        "revision": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "expectedRevision": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "action": {
+                          "type": "string",
+                          "enum": [
+                            "START",
+                            "CORRECT",
+                            "CONFIRM",
+                            "REJECT"
+                          ]
+                        },
+                        "reviewState": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING_OWNER_REVIEW",
+                            "IN_REVIEW",
+                            "CONFIRMED",
+                            "REJECTED"
+                          ]
+                        },
+                        "textVersion": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 32768
+                        },
+                        "textIdentity": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "actorId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or concurrency headers"
+          },
+          "403": {
+            "description": "Owner role required"
+          },
+          "404": {
+            "description": "Exact current Owner/Pet/Document/candidate unavailable"
+          },
+          "409": {
+            "description": "Revision, terminal decision or idempotency conflict"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Owner OCR review"
+        ]
+      }
+    },
+    "/v1/owner/pets/{petId}/documents/{documentId}/ocr/candidates/{candidateId}/review/confirm": {
+      "post": {
+        "operationId": "OwnerOcrReview_confirm",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "candidateId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"(0|[1-9][0-9]{0,9})\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "candidateId",
+                    "jobId",
+                    "resultId",
+                    "documentId",
+                    "petId",
+                    "schemaVersion",
+                    "kind",
+                    "reviewState",
+                    "revision",
+                    "textVersion",
+                    "text",
+                    "textIdentity",
+                    "originalText",
+                    "originalTextIdentity",
+                    "sourceIdentity",
+                    "resultIdentity",
+                    "authority",
+                    "sourceByteIntegrity",
+                    "decision"
+                  ],
+                  "properties": {
+                    "candidateId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "jobId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "resultId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "documentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "petId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "schemaVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "EXTRACTED_TEXT"
+                      ]
+                    },
+                    "reviewState": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_OWNER_REVIEW",
+                        "IN_REVIEW",
+                        "CONFIRMED",
+                        "REJECTED"
+                      ]
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    },
+                    "textVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 32768
+                    },
+                    "textIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "originalText": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 32768
+                    },
+                    "originalTextIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "sourceIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "resultIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "authority": {
+                      "type": "string",
+                      "enum": [
+                        "OWNER_DECISION_ONLY"
+                      ]
+                    },
+                    "sourceByteIntegrity": {
+                      "type": "string",
+                      "enum": [
+                        "DEFERRED_BLOCKING_VALIDATED_IMPORT"
+                      ]
+                    },
+                    "decision": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "revision",
+                        "expectedRevision",
+                        "action",
+                        "reviewState",
+                        "textVersion",
+                        "text",
+                        "textIdentity",
+                        "actorId",
+                        "createdAt"
+                      ],
+                      "properties": {
+                        "revision": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "expectedRevision": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "action": {
+                          "type": "string",
+                          "enum": [
+                            "START",
+                            "CORRECT",
+                            "CONFIRM",
+                            "REJECT"
+                          ]
+                        },
+                        "reviewState": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING_OWNER_REVIEW",
+                            "IN_REVIEW",
+                            "CONFIRMED",
+                            "REJECTED"
+                          ]
+                        },
+                        "textVersion": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 32768
+                        },
+                        "textIdentity": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "actorId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or concurrency headers"
+          },
+          "403": {
+            "description": "Owner role required"
+          },
+          "404": {
+            "description": "Exact current Owner/Pet/Document/candidate unavailable"
+          },
+          "409": {
+            "description": "Revision, terminal decision or idempotency conflict"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Owner OCR review"
+        ]
+      }
+    },
+    "/v1/owner/pets/{petId}/documents/{documentId}/ocr/candidates/{candidateId}/review/reject": {
+      "post": {
+        "operationId": "OwnerOcrReview_reject",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "candidateId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"(0|[1-9][0-9]{0,9})\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "candidateId",
+                    "jobId",
+                    "resultId",
+                    "documentId",
+                    "petId",
+                    "schemaVersion",
+                    "kind",
+                    "reviewState",
+                    "revision",
+                    "textVersion",
+                    "text",
+                    "textIdentity",
+                    "originalText",
+                    "originalTextIdentity",
+                    "sourceIdentity",
+                    "resultIdentity",
+                    "authority",
+                    "sourceByteIntegrity",
+                    "decision"
+                  ],
+                  "properties": {
+                    "candidateId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "jobId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "resultId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "documentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "petId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "schemaVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "EXTRACTED_TEXT"
+                      ]
+                    },
+                    "reviewState": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_OWNER_REVIEW",
+                        "IN_REVIEW",
+                        "CONFIRMED",
+                        "REJECTED"
+                      ]
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    },
+                    "textVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 32768
+                    },
+                    "textIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "originalText": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 32768
+                    },
+                    "originalTextIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "sourceIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "resultIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "authority": {
+                      "type": "string",
+                      "enum": [
+                        "OWNER_DECISION_ONLY"
+                      ]
+                    },
+                    "sourceByteIntegrity": {
+                      "type": "string",
+                      "enum": [
+                        "DEFERRED_BLOCKING_VALIDATED_IMPORT"
+                      ]
+                    },
+                    "decision": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "revision",
+                        "expectedRevision",
+                        "action",
+                        "reviewState",
+                        "textVersion",
+                        "text",
+                        "textIdentity",
+                        "actorId",
+                        "createdAt"
+                      ],
+                      "properties": {
+                        "revision": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "expectedRevision": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "action": {
+                          "type": "string",
+                          "enum": [
+                            "START",
+                            "CORRECT",
+                            "CONFIRM",
+                            "REJECT"
+                          ]
+                        },
+                        "reviewState": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING_OWNER_REVIEW",
+                            "IN_REVIEW",
+                            "CONFIRMED",
+                            "REJECTED"
+                          ]
+                        },
+                        "textVersion": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 32768
+                        },
+                        "textIdentity": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "actorId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or concurrency headers"
+          },
+          "403": {
+            "description": "Owner role required"
+          },
+          "404": {
+            "description": "Exact current Owner/Pet/Document/candidate unavailable"
+          },
+          "409": {
+            "description": "Revision, terminal decision or idempotency conflict"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Owner OCR review"
+        ]
+      }
+    },
     "/v1/owner/pets/{petId}/documents/{documentId}/ocr": {
       "post": {
         "operationId": "OwnerOcr_enqueue",
@@ -427,7 +1912,10 @@
                             "reviewState": {
                               "type": "string",
                               "enum": [
-                                "PENDING_OWNER_REVIEW"
+                                "PENDING_OWNER_REVIEW",
+                                "IN_REVIEW",
+                                "CONFIRMED",
+                                "REJECTED"
                               ]
                             }
                           }

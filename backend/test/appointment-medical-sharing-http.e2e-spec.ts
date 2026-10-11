@@ -12,6 +12,7 @@ import { BookingErrorFilter } from '../src/common/booking-error.filter';
 import { config } from '../src/config';
 import { DatabaseService } from '../src/database/database.service';
 import { NestRoot } from '../src/nest-root-full';
+import { OwnerOcrReviewService } from '../src/auth/owner-ocr-review.service';
 import { OwnerOcrService } from '../src/auth/owner-ocr.service';
 import { OwnerPetService } from '../src/auth/owner-pet.service';
 
@@ -435,6 +436,16 @@ describe('Wave 4A medical sharing (Docker PostgreSQL and real Nest HTTP)', () =>
     expect(context.status).toBe(200);expect(context.body.resourcesTruncated).toBe(true);expect(context.body.resources).toHaveLength(200);
     expect((await grant(selected())).status).toBe(201);
     expect((await grant({mode:'ALL_CURRENT'})).status).toBe(400);
+  });
+  it('W4B02 confirmed corrected OCR remains private and selected Document delivers original bytes',async()=>{
+    const jobs=app.get(OwnerOcrService),reviews=app.get(OwnerOcrReviewService),actor={sub:I.owner,roles:[Role.OWNER]},marker='W4B02_ORIGINAL_PRIVATE',corrected='W4B02_CORRECTED_PRIVATE';
+    await jobs.enqueue(actor,I.pet,I.document);const claim=await jobs.claim();expect(claim?.document_id).toBe(I.document);expect(await jobs.finish(claim!,{text:marker,provider:'SIMULATED_OCR'})).toBe(true);
+    const raw=await jobs.read(actor,I.pet,I.document),candidate=raw.result!.candidate.candidateId;
+    await reviews.mutate(actor,I.pet,I.document,candidate,'CORRECT',{text:corrected},'"0"',randomUUID());
+    expect(await reviews.mutate(actor,I.pet,I.document,candidate,'CONFIRM',{},'"1"',randomUUID())).toMatchObject({revision:2,text:corrected,authority:'OWNER_DECISION_ONLY',reviewState:'CONFIRMED'});
+    expect((await grant(selected())).status).toBe(201);
+    for(const response of [await read(I.document,'DOCUMENT'),await list(),await request(app.getHttpServer()).get(ownerPath).set('Authorization',`Bearer ${await token()}`)]){expect(response.status).toBe(200);expect(JSON.stringify(response.body)).not.toMatch(/W4B02_|extraction|ocr_result|source_identity|OWNER_DECISION_ONLY/);}
+    expect((await download()).body).toEqual(bytes);expect((await db.query('SELECT medical_history_ocr FROM pet_schema.pets WHERE id=$1',[I.pet])).rows[0].medical_history_ocr).toBeNull();
   });
   it('W4B unconfirmed OCR stays Owner-private while selected Document shares original bytes only',async()=>{
     const jobs=app.get(OwnerOcrService),ocrPath=`/v1/owner/pets/${I.pet}/documents/${I.document}/ocr`,marker='W4B_UNCONFIRMED_PRIVATE_EXTRACTION';

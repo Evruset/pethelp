@@ -1,6 +1,8 @@
 import { Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { OwnerOcrReviewService } from './owner-ocr-review.service';
+import { OwnerOcrReviewController } from './owner-ocr-review.controller';
 import { OwnerOcrService } from './owner-ocr.service';
 import { OwnerOcrController } from './owner-ocr.controller';
 import { OcrProvider } from './ocr-provider';
@@ -25,7 +27,7 @@ import { mvpScope } from '../config/mvp-scope.config';
 @Global()
 @Module({
   imports: [JwtModule.register({})],
-  controllers: [OwnerOcrController, OwnerAuthController, OwnerProfileController, mvpScope.pilot ? OwnerPetMvpController : OwnerPetController, EffectiveSessionController],
+  controllers: [OwnerOcrReviewController, OwnerOcrController, OwnerAuthController, OwnerProfileController, mvpScope.pilot ? OwnerPetMvpController : OwnerPetController, EffectiveSessionController],
   providers: [
     JwtAuthGuard,
     OptionalJwtAuthGuard,
@@ -40,6 +42,7 @@ import { mvpScope } from '../config/mvp-scope.config';
     OwnerPetService,
     OcrDocumentWorker,
     OwnerOcrService,
+    OwnerOcrReviewService,
     OcrProvider,
     CapabilityEvaluatorService,
   ],

@@ -1,0 +1,2122 @@
+diff --git a/backend/artifacts/openapi/swagger.json b/backend/artifacts/openapi/swagger.json
+index 7b4fc9e..86e0f93 100644
+--- a/backend/artifacts/openapi/swagger.json
++++ b/backend/artifacts/openapi/swagger.json
+@@ -58,6 +58,1491 @@
+         ]
+       }
+     },
++    "/v1/owner/pets/{petId}/documents/{documentId}/ocr/candidates/{candidateId}/review": {
++      "get": {
++        "operationId": "OwnerOcrReview_read",
++        "parameters": [
++          {
++            "name": "petId",
++            "required": true,
++            "in": "path",
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "name": "documentId",
++            "required": true,
++            "in": "path",
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "name": "candidateId",
++            "required": true,
++            "in": "path",
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "name": "limit",
++            "required": false,
++            "in": "query",
++            "schema": {
++              "type": "integer",
++              "minimum": 1,
++              "maximum": 20,
++              "default": 10
++            }
++          },
++          {
++            "name": "offset",
++            "required": false,
++            "in": "query",
++            "schema": {
++              "type": "integer",
++              "minimum": 0,
++              "maximum": 1000000,
++              "default": 0
++            }
++          }
++        ],
++        "responses": {
++          "200": {
++            "description": "",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "object",
++                  "additionalProperties": false,
++                  "required": [
++                    "candidateId",
++                    "jobId",
++                    "resultId",
++                    "documentId",
++                    "petId",
++                    "schemaVersion",
++                    "kind",
++                    "reviewState",
++                    "revision",
++                    "textVersion",
++                    "text",
++                    "textIdentity",
++                    "originalText",
++                    "originalTextIdentity",
++                    "sourceIdentity",
++                    "resultIdentity",
++                    "authority",
++                    "sourceByteIntegrity",
++                    "decision",
++                    "history",
++                    "page"
++                  ],
++                  "properties": {
++                    "candidateId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "jobId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "resultId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "documentId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "petId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "schemaVersion": {
++                      "type": "integer",
++                      "enum": [
++                        1
++                      ]
++                    },
++                    "kind": {
++                      "type": "string",
++                      "enum": [
++                        "EXTRACTED_TEXT"
++                      ]
++                    },
++                    "reviewState": {
++                      "type": "string",
++                      "enum": [
++                        "PENDING_OWNER_REVIEW",
++                        "IN_REVIEW",
++                        "CONFIRMED",
++                        "REJECTED"
++                      ]
++                    },
++                    "revision": {
++                      "type": "integer",
++                      "minimum": 0,
++                      "maximum": 2147483647
++                    },
++                    "textVersion": {
++                      "type": "integer",
++                      "minimum": 0,
++                      "maximum": 2147483647
++                    },
++                    "text": {
++                      "type": "string",
++                      "minLength": 0,
++                      "maxLength": 32768
++                    },
++                    "textIdentity": {
++                      "type": "string",
++                      "pattern": "^[0-9a-f]{64}$"
++                    },
++                    "originalText": {
++                      "type": "string",
++                      "minLength": 0,
++                      "maxLength": 32768
++                    },
++                    "originalTextIdentity": {
++                      "type": "string",
++                      "pattern": "^[0-9a-f]{64}$"
++                    },
++                    "sourceIdentity": {
++                      "type": "string",
++                      "pattern": "^[0-9a-f]{64}$"
++                    },
++                    "resultIdentity": {
++                      "type": "string",
++                      "pattern": "^[0-9a-f]{64}$"
++                    },
++                    "authority": {
++                      "type": "string",
++                      "enum": [
++                        "OWNER_DECISION_ONLY"
++                      ]
++                    },
++                    "sourceByteIntegrity": {
++                      "type": "string",
++                      "enum": [
++                        "DEFERRED_BLOCKING_VALIDATED_IMPORT"
++                      ]
++                    },
++                    "decision": {
++                      "type": "object",
++                      "additionalProperties": false,
++                      "required": [
++                        "revision",
++                        "expectedRevision",
++                        "action",
++                        "reviewState",
++                        "textVersion",
++                        "text",
++                        "textIdentity",
++                        "actorId",
++                        "createdAt"
++                      ],
++                      "properties": {
++                        "revision": {
++                          "type": "integer",
++                          "minimum": 0,
++                          "maximum": 2147483647
++                        },
++                        "expectedRevision": {
++                          "type": "integer",
++                          "minimum": 0,
++                          "maximum": 2147483647
++                        },
++                        "action": {
++                          "type": "string",
++                          "enum": [
++                            "START",
++                            "CORRECT",
++                            "CONFIRM",
++                            "REJECT"
++                          ]
++                        },
++                        "reviewState": {
++                          "type": "string",
++                          "enum": [
++                            "PENDING_OWNER_REVIEW",
++                            "IN_REVIEW",
++                            "CONFIRMED",
++                            "REJECTED"
++                          ]
++                        },
++                        "textVersion": {
++                          "type": "integer",
++                          "minimum": 0,
++                          "maximum": 2147483647
++                        },
++                        "text": {
++                          "type": "string",
++                          "minLength": 0,
++                          "maxLength": 32768
++                        },
++                        "textIdentity": {
++                          "type": "string",
++                          "pattern": "^[0-9a-f]{64}$"
++                        },
++                        "actorId": {
++                          "type": "string",
++                          "format": "uuid"
++                        },
++                        "createdAt": {
++                          "type": "string",
++                          "format": "date-time"
++                        }
++                      },
++                      "nullable": true
++                    },
++                    "history": {
++                      "type": "array",
++                      "maxItems": 20,
++                      "items": {
++                        "type": "object",
++                        "additionalProperties": false,
++                        "required": [
++                          "revision",
++                          "expectedRevision",
++                          "action",
++                          "reviewState",
++                          "textVersion",
++                          "text",
++                          "textIdentity",
++                          "actorId",
++                          "createdAt"
++                        ],
++                        "properties": {
++                          "revision": {
++                            "type": "integer",
++                            "minimum": 0,
++                            "maximum": 2147483647
++                          },
++                          "expectedRevision": {
++                            "type": "integer",
++                            "minimum": 0,
++                            "maximum": 2147483647
++                          },
++                          "action": {
++                            "type": "string",
++                            "enum": [
++                              "START",
++                              "CORRECT",
++                              "CONFIRM",
++                              "REJECT"
++                            ]
++                          },
++                          "reviewState": {
++                            "type": "string",
++                            "enum": [
++                              "PENDING_OWNER_REVIEW",
++                              "IN_REVIEW",
++                              "CONFIRMED",
++                              "REJECTED"
++                            ]
++                          },
++                          "textVersion": {
++                            "type": "integer",
++                            "minimum": 0,
++                            "maximum": 2147483647
++                          },
++                          "text": {
++                            "type": "string",
++                            "minLength": 0,
++                            "maxLength": 32768
++                          },
++                          "textIdentity": {
++                            "type": "string",
++                            "pattern": "^[0-9a-f]{64}$"
++                          },
++                          "actorId": {
++                            "type": "string",
++                            "format": "uuid"
++                          },
++                          "createdAt": {
++                            "type": "string",
++                            "format": "date-time"
++                          }
++                        }
++                      }
++                    },
++                    "page": {
++                      "type": "object",
++                      "additionalProperties": false,
++                      "required": [
++                        "limit",
++                        "offset",
++                        "total",
++                        "nextOffset"
++                      ],
++                      "properties": {
++                        "limit": {
++                          "type": "integer",
++                          "minimum": 1,
++                          "maximum": 20
++                        },
++                        "offset": {
++                          "type": "integer",
++                          "minimum": 0,
++                          "maximum": 2147483647
++                        },
++                        "total": {
++                          "type": "integer",
++                          "minimum": 0,
++                          "maximum": 2147483647
++                        },
++                        "nextOffset": {
++                          "type": "integer",
++                          "minimum": 0,
++                          "maximum": 2147483647,
++                          "nullable": true
++                        }
++                      }
++                    }
++                  }
++                }
++              }
++            }
++          },
++          "400": {
++            "description": "Invalid request or concurrency headers"
++          },
++          "403": {
++            "description": "Owner role required"
++          },
++          "404": {
++            "description": "Exact current Owner/Pet/Document/candidate unavailable"
++          },
++          "409": {
++            "description": "Revision, terminal decision or idempotency conflict"
++          }
++        },
++        "security": [
++          {
++            "bearerAuth": []
++          }
++        ],
++        "summary": "",
++        "tags": [
++          "Owner OCR review"
++        ]
++      }
++    },
++    "/v1/owner/pets/{petId}/documents/{documentId}/ocr/candidates/{candidateId}/review/start": {
++      "post": {
++        "operationId": "OwnerOcrReview_start",
++        "parameters": [
++          {
++            "name": "petId",
++            "required": true,
++            "in": "path",
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "name": "documentId",
++            "required": true,
++            "in": "path",
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "name": "candidateId",
++            "required": true,
++            "in": "path",
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "name": "Idempotency-Key",
++            "in": "header",
++            "required": true,
++            "schema": {
++              "type": "string",
++              "format": "uuid"
++            }
++          },
++          {
++            "name": "If-Match",
++            "in": "header",
++            "required": true,
++            "schema": {
++              "type": "string",
++              "pattern": "^\"(0|[1-9][0-9]{0,9})\"$"
++            }
++          }
++        ],
++        "requestBody": {
++          "required": false,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false,
++                "required": [],
++                "properties": {}
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "object",
++                  "additionalProperties": false,
++                  "required": [
++                    "candidateId",
++                    "jobId",
++                    "resultId",
++                    "documentId",
++                    "petId",
++                    "schemaVersion",
++                    "kind",
++                    "reviewState",
++                    "revision",
++                    "textVersion",
++                    "text",
++                    "textIdentity",
++                    "originalText",
++                    "originalTextIdentity",
++                    "sourceIdentity",
++                    "resultIdentity",
++                    "authority",
++                    "sourceByteIntegrity",
++                    "decision"
++                  ],
++                  "properties": {
++                    "candidateId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "jobId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "resultId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "documentId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "petId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "schemaVersion": {
++                      "type": "integer",
++                      "enum": [
++                        1
++                      ]
++                    },
++                    "kind": {
++                      "type": "string",
++                      "enum": [
++                        "EXTRACTED_TEXT"
++                      ]
++                    },
++                    "reviewState": {
++                      "type": "string",
++                      "enum": [
++                        "PENDING_OWNER_REVIEW",
++                        "IN_REVIEW",
++                        "CONFIRMED",
++                        "REJECTED"
++                      ]
++                    },
++                    "revision": {
++                      "type": "integer",
++                      "minimum": 0,
++                      "maximum": 2147483647
++                    },
++                    "textVersion": {
++                      "type": "integer",
++                      "minimum": 0,
++                      "maximum": 2147483647
++                    },
++                    "text": {
++                      "type": "string",
++                      "minLength": 0,
++                      "maxLength": 32768
++                    },
++                    "textIdentity": {
++                      "type": "string",
++                      "pattern": "^[0-9a-f]{64}$"
++                    },
++                    "originalText": {
++                      "type": "string",
++                      "minLength": 0,
++                      "maxLength": 32768
++                    },
++                    "originalTextIdentity": {
++                      "type": "string",
++                      "pattern": "^[0-9a-f]{64}$"
++                    },
++                    "sourceIdentity": {
++                      "type": "string",
++                      "pattern": "^[0-9a-f]{64}$"
++                    },
++                    "resultIdentity": {
++                      "type": "string",
++                      "pattern": "^[0-9a-f]{64}$"
++                    },
++                    "authority": {
++                      "type": "string",
++                      "enum": [
++                        "OWNER_DECISION_ONLY"
++                      ]
++                    },
++                    "sourceByteIntegrity": {
++                      "type": "string",
++                      "enum": [
++                        "DEFERRED_BLOCKING_VALIDATED_IMPORT"
++                      ]
++                    },
++                    "decision": {
++                      "type": "object",
++                      "additionalProperties": false,
++                      "required": [
++                        "revision",
++                        "expectedRevision",
++                        "action",
++                        "reviewState",
++                        "textVersion",
++                        "text",
++                        "textIdentity",
++                        "actorId",
++                        "createdAt"
++                      ],
++                      "properties": {
++                        "revision": {
++                          "type": "integer",
++                          "minimum": 0,
++                          "maximum": 2147483647
++                        },
++                        "expectedRevision": {
++                          "type": "integer",
++                          "minimum": 0,
++                          "maximum": 2147483647
++                        },
++                        "action": {
++                          "type": "string",
++                          "enum": [
++                            "START",
++                            "CORRECT",
++                            "CONFIRM",
++                            "REJECT"
++                          ]
++                        },
++                        "reviewState": {
++                          "type": "string",
++                          "enum": [
++                            "PENDING_OWNER_REVIEW",
++                            "IN_REVIEW",
++                            "CONFIRMED",
++                            "REJECTED"
++                          ]
++                        },
++                        "textVersion": {
++                          "type": "integer",
++                          "minimum": 0,
++                          "maximum": 2147483647
++                        },
++                        "text": {
++                          "type": "string",
++                          "minLength": 0,
++                          "maxLength": 32768
++                        },
++                        "textIdentity": {
++                          "type": "string",
++                          "pattern": "^[0-9a-f]{64}$"
++                        },
++                        "actorId": {
++                          "type": "string",
++                          "format": "uuid"
++                        },
++                        "createdAt": {
++                          "type": "string",
++                          "format": "date-time"
++                        }
++                      },
++                      "nullable": true
++                    }
++                  }
++                }
++              }
++            }
++          },
++          "400": {
++            "description": "Invalid request or concurrency headers"
++          },
++          "403": {
++            "description": "Owner role required"
++          },
++          "404": {
++            "description": "Exact current Owner/Pet/Document/candidate unavailable"
++          },
++          "409": {
++            "description": "Revision, terminal decision or idempotency conflict"
++          }
++        },
++        "security": [
++          {
++            "bearerAuth": []
++          }
++        ],
++        "summary": "",
++        "tags": [
++          "Owner OCR review"
++        ]
++      }
++    },
++    "/v1/owner/pets/{petId}/documents/{documentId}/ocr/candidates/{candidateId}/review/corrections": {
++      "post": {
++        "operationId": "OwnerOcrReview_correct",
++        "parameters": [
++          {
++            "name": "petId",
++            "required": true,
++            "in": "path",
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "name": "documentId",
++            "required": true,
++            "in": "path",
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "name": "candidateId",
++            "required": true,
++            "in": "path",
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "name": "Idempotency-Key",
++            "in": "header",
++            "required": true,
++            "schema": {
++              "type": "string",
++              "format": "uuid"
++            }
++          },
++          {
++            "name": "If-Match",
++            "in": "header",
++            "required": true,
++            "schema": {
++              "type": "string",
++              "pattern": "^\"(0|[1-9][0-9]{0,9})\"$"
++            }
++          }
++        ],
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false,
++                "required": [
++                  "text"
++                ],
++                "properties": {
++                  "text": {
++                    "type": "string",
++                    "minLength": 1,
++                    "maxLength": 32768
++                  }
++                }
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "object",
++                  "additionalProperties": false,
++                  "required": [
++                    "candidateId",
++                    "jobId",
++                    "resultId",
++                    "documentId",
++                    "petId",
++                    "schemaVersion",
++                    "kind",
++                    "reviewState",
++                    "revision",
++                    "textVersion",
++                    "text",
++                    "textIdentity",
++                    "originalText",
++                    "originalTextIdentity",
++                    "sourceIdentity",
++                    "resultIdentity",
++                    "authority",
++                    "sourceByteIntegrity",
++                    "decision"
++                  ],
++                  "properties": {
++                    "candidateId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "jobId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "resultId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "documentId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "petId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "schemaVersion": {
++                      "type": "integer",
++                      "enum": [
++                        1
++                      ]
++                    },
++                    "kind": {
++                      "type": "string",
++                      "enum": [
++                        "EXTRACTED_TEXT"
++                      ]
++                    },
++                    "reviewState": {
++                      "type": "string",
++                      "enum": [
++                        "PENDING_OWNER_REVIEW",
++                        "IN_REVIEW",
++                        "CONFIRMED",
++                        "REJECTED"
++                      ]
++                    },
++                    "revision": {
++                      "type": "integer",
++                      "minimum": 0,
++                      "maximum": 2147483647
++                    },
++                    "textVersion": {
++                      "type": "integer",
++                      "minimum": 0,
++                      "maximum": 2147483647
++                    },
++                    "text": {
++                      "type": "string",
++                      "minLength": 0,
++                      "maxLength": 32768
++                    },
++                    "textIdentity": {
++                      "type": "string",
++                      "pattern": "^[0-9a-f]{64}$"
++                    },
++                    "originalText": {
++                      "type": "string",
++                      "minLength": 0,
++                      "maxLength": 32768
++                    },
++                    "originalTextIdentity": {
++                      "type": "string",
++                      "pattern": "^[0-9a-f]{64}$"
++                    },
++                    "sourceIdentity": {
++                      "type": "string",
++                      "pattern": "^[0-9a-f]{64}$"
++                    },
++                    "resultIdentity": {
++                      "type": "string",
++                      "pattern": "^[0-9a-f]{64}$"
++                    },
++                    "authority": {
++                      "type": "string",
++                      "enum": [
++                        "OWNER_DECISION_ONLY"
++                      ]
++                    },
++                    "sourceByteIntegrity": {
++                      "type": "string",
++                      "enum": [
++                        "DEFERRED_BLOCKING_VALIDATED_IMPORT"
++                      ]
++                    },
++                    "decision": {
++                      "type": "object",
++                      "additionalProperties": false,
++                      "required": [
++                        "revision",
++                        "expectedRevision",
++                        "action",
++                        "reviewState",
++                        "textVersion",
++                        "text",
++                        "textIdentity",
++                        "actorId",
++                        "createdAt"
++                      ],
++                      "properties": {
++                        "revision": {
++                          "type": "integer",
++                          "minimum": 0,
++                          "maximum": 2147483647
++                        },
++                        "expectedRevision": {
++                          "type": "integer",
++                          "minimum": 0,
++                          "maximum": 2147483647
++                        },
++                        "action": {
++                          "type": "string",
++                          "enum": [
++                            "START",
++                            "CORRECT",
++                            "CONFIRM",
++                            "REJECT"
++                          ]
++                        },
++                        "reviewState": {
++                          "type": "string",
++                          "enum": [
++                            "PENDING_OWNER_REVIEW",
++                            "IN_REVIEW",
++                            "CONFIRMED",
++                            "REJECTED"
++                          ]
++                        },
++                        "textVersion": {
++                          "type": "integer",
++                          "minimum": 0,
++                          "maximum": 2147483647
++                        },
++                        "text": {
++                          "type": "string",
++                          "minLength": 0,
++                          "maxLength": 32768
++                        },
++                        "textIdentity": {
++                          "type": "string",
++                          "pattern": "^[0-9a-f]{64}$"
++                        },
++                        "actorId": {
++                          "type": "string",
++                          "format": "uuid"
++                        },
++                        "createdAt": {
++                          "type": "string",
++                          "format": "date-time"
++                        }
++                      },
++                      "nullable": true
++                    }
++                  }
++                }
++              }
++            }
++          },
++          "400": {
++            "description": "Invalid request or concurrency headers"
++          },
++          "403": {
++            "description": "Owner role required"
++          },
++          "404": {
++            "description": "Exact current Owner/Pet/Document/candidate unavailable"
++          },
++          "409": {
++            "description": "Revision, terminal decision or idempotency conflict"
++          }
++        },
++        "security": [
++          {
++            "bearerAuth": []
++          }
++        ],
++        "summary": "",
++        "tags": [
++          "Owner OCR review"
++        ]
++      }
++    },
++    "/v1/owner/pets/{petId}/documents/{documentId}/ocr/candidates/{candidateId}/review/confirm": {
++      "post": {
++        "operationId": "OwnerOcrReview_confirm",
++        "parameters": [
++          {
++            "name": "petId",
++            "required": true,
++            "in": "path",
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "name": "documentId",
++            "required": true,
++            "in": "path",
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "name": "candidateId",
++            "required": true,
++            "in": "path",
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "name": "Idempotency-Key",
++            "in": "header",
++            "required": true,
++            "schema": {
++              "type": "string",
++              "format": "uuid"
++            }
++          },
++          {
++            "name": "If-Match",
++            "in": "header",
++            "required": true,
++            "schema": {
++              "type": "string",
++              "pattern": "^\"(0|[1-9][0-9]{0,9})\"$"
++            }
++          }
++        ],
++        "requestBody": {
++          "required": false,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false,
++                "required": [],
++                "properties": {}
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "object",
++                  "additionalProperties": false,
++                  "required": [
++                    "candidateId",
++                    "jobId",
++                    "resultId",
++                    "documentId",
++                    "petId",
++                    "schemaVersion",
++                    "kind",
++                    "reviewState",
++                    "revision",
++                    "textVersion",
++                    "text",
++                    "textIdentity",
++                    "originalText",
++                    "originalTextIdentity",
++                    "sourceIdentity",
++                    "resultIdentity",
++                    "authority",
++                    "sourceByteIntegrity",
++                    "decision"
++                  ],
++                  "properties": {
++                    "candidateId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "jobId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "resultId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "documentId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "petId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "schemaVersion": {
++                      "type": "integer",
++                      "enum": [
++                        1
++                      ]
++                    },
++                    "kind": {
++                      "type": "string",
++                      "enum": [
++                        "EXTRACTED_TEXT"
++                      ]
++                    },
++                    "reviewState": {
++                      "type": "string",
++                      "enum": [
++                        "PENDING_OWNER_REVIEW",
++                        "IN_REVIEW",
++                        "CONFIRMED",
++                        "REJECTED"
++                      ]
++                    },
++                    "revision": {
++                      "type": "integer",
++                      "minimum": 0,
++                      "maximum": 2147483647
++                    },
++                    "textVersion": {
++                      "type": "integer",
++                      "minimum": 0,
++                      "maximum": 2147483647
++                    },
++                    "text": {
++                      "type": "string",
++                      "minLength": 0,
++                      "maxLength": 32768
++                    },
++                    "textIdentity": {
++                      "type": "string",
++                      "pattern": "^[0-9a-f]{64}$"
++                    },
++                    "originalText": {
++                      "type": "string",
++                      "minLength": 0,
++                      "maxLength": 32768
++                    },
++                    "originalTextIdentity": {
++                      "type": "string",
++                      "pattern": "^[0-9a-f]{64}$"
++                    },
++                    "sourceIdentity": {
++                      "type": "string",
++                      "pattern": "^[0-9a-f]{64}$"
++                    },
++                    "resultIdentity": {
++                      "type": "string",
++                      "pattern": "^[0-9a-f]{64}$"
++                    },
++                    "authority": {
++                      "type": "string",
++                      "enum": [
++                        "OWNER_DECISION_ONLY"
++                      ]
++                    },
++                    "sourceByteIntegrity": {
++                      "type": "string",
++                      "enum": [
++                        "DEFERRED_BLOCKING_VALIDATED_IMPORT"
++                      ]
++                    },
++                    "decision": {
++                      "type": "object",
++                      "additionalProperties": false,
++                      "required": [
++                        "revision",
++                        "expectedRevision",
++                        "action",
++                        "reviewState",
++                        "textVersion",
++                        "text",
++                        "textIdentity",
++                        "actorId",
++                        "createdAt"
++                      ],
++                      "properties": {
++                        "revision": {
++                          "type": "integer",
++                          "minimum": 0,
++                          "maximum": 2147483647
++                        },
++                        "expectedRevision": {
++                          "type": "integer",
++                          "minimum": 0,
++                          "maximum": 2147483647
++                        },
++                        "action": {
++                          "type": "string",
++                          "enum": [
++                            "START",
++                            "CORRECT",
++                            "CONFIRM",
++                            "REJECT"
++                          ]
++                        },
++                        "reviewState": {
++                          "type": "string",
++                          "enum": [
++                            "PENDING_OWNER_REVIEW",
++                            "IN_REVIEW",
++                            "CONFIRMED",
++                            "REJECTED"
++                          ]
++                        },
++                        "textVersion": {
++                          "type": "integer",
++                          "minimum": 0,
++                          "maximum": 2147483647
++                        },
++                        "text": {
++                          "type": "string",
++                          "minLength": 0,
++                          "maxLength": 32768
++                        },
++                        "textIdentity": {
++                          "type": "string",
++                          "pattern": "^[0-9a-f]{64}$"
++                        },
++                        "actorId": {
++                          "type": "string",
++                          "format": "uuid"
++                        },
++                        "createdAt": {
++                          "type": "string",
++                          "format": "date-time"
++                        }
++                      },
++                      "nullable": true
++                    }
++                  }
++                }
++              }
++            }
++          },
++          "400": {
++            "description": "Invalid request or concurrency headers"
++          },
++          "403": {
++            "description": "Owner role required"
++          },
++          "404": {
++            "description": "Exact current Owner/Pet/Document/candidate unavailable"
++          },
++          "409": {
++            "description": "Revision, terminal decision or idempotency conflict"
++          }
++        },
++        "security": [
++          {
++            "bearerAuth": []
++          }
++        ],
++        "summary": "",
++        "tags": [
++          "Owner OCR review"
++        ]
++      }
++    },
++    "/v1/owner/pets/{petId}/documents/{documentId}/ocr/candidates/{candidateId}/review/reject": {
++      "post": {
++        "operationId": "OwnerOcrReview_reject",
++        "parameters": [
++          {
++            "name": "petId",
++            "required": true,
++            "in": "path",
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "name": "documentId",
++            "required": true,
++            "in": "path",
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "name": "candidateId",
++            "required": true,
++            "in": "path",
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "name": "Idempotency-Key",
++            "in": "header",
++            "required": true,
++            "schema": {
++              "type": "string",
++              "format": "uuid"
++            }
++          },
++          {
++            "name": "If-Match",
++            "in": "header",
++            "required": true,
++            "schema": {
++              "type": "string",
++              "pattern": "^\"(0|[1-9][0-9]{0,9})\"$"
++            }
++          }
++        ],
++        "requestBody": {
++          "required": false,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false,
++                "required": [],
++                "properties": {}
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "object",
++                  "additionalProperties": false,
++                  "required": [
++                    "candidateId",
++                    "jobId",
++                    "resultId",
++                    "documentId",
++                    "petId",
++                    "schemaVersion",
++                    "kind",
++                    "reviewState",
++                    "revision",
++                    "textVersion",
++                    "text",
++                    "textIdentity",
++                    "originalText",
++                    "originalTextIdentity",
++                    "sourceIdentity",
++                    "resultIdentity",
++                    "authority",
++                    "sourceByteIntegrity",
++                    "decision"
++                  ],
++                  "properties": {
++                    "candidateId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "jobId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "resultId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "documentId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "petId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "schemaVersion": {
++                      "type": "integer",
++                      "enum": [
++                        1
++                      ]
++                    },
++                    "kind": {
++                      "type": "string",
++                      "enum": [
++                        "EXTRACTED_TEXT"
++                      ]
++                    },
++                    "reviewState": {
++                      "type": "string",
++                      "enum": [
++                        "PENDING_OWNER_REVIEW",
++                        "IN_REVIEW",
++                        "CONFIRMED",
++                        "REJECTED"
++                      ]
++                    },
++                    "revision": {
++                      "type": "integer",
++                      "minimum": 0,
++                      "maximum": 2147483647
++                    },
++                    "textVersion": {
++                      "type": "integer",
++                      "minimum": 0,
++                      "maximum": 2147483647
++                    },
++                    "text": {
++                      "type": "string",
++                      "minLength": 0,
++                      "maxLength": 32768
++                    },
++                    "textIdentity": {
++                      "type": "string",
++                      "pattern": "^[0-9a-f]{64}$"
++                    },
++                    "originalText": {
++                      "type": "string",
++                      "minLength": 0,
++                      "maxLength": 32768
++                    },
++                    "originalTextIdentity": {
++                      "type": "string",
++                      "pattern": "^[0-9a-f]{64}$"
++                    },
++                    "sourceIdentity": {
++                      "type": "string",
++                      "pattern": "^[0-9a-f]{64}$"
++                    },
++                    "resultIdentity": {
++                      "type": "string",
++                      "pattern": "^[0-9a-f]{64}$"
++                    },
++                    "authority": {
++                      "type": "string",
++                      "enum": [
++                        "OWNER_DECISION_ONLY"
++                      ]
++                    },
++                    "sourceByteIntegrity": {
++                      "type": "string",
++                      "enum": [
++                        "DEFERRED_BLOCKING_VALIDATED_IMPORT"
++                      ]
++                    },
++                    "decision": {
++                      "type": "object",
++                      "additionalProperties": false,
++                      "required": [
++                        "revision",
++                        "expectedRevision",
++                        "action",
++                        "reviewState",
++                        "textVersion",
++                        "text",
++                        "textIdentity",
++                        "actorId",
++                        "createdAt"
++                      ],
++                      "properties": {
++                        "revision": {
++                          "type": "integer",
++                          "minimum": 0,
++                          "maximum": 2147483647
++                        },
++                        "expectedRevision": {
++                          "type": "integer",
++                          "minimum": 0,
++                          "maximum": 2147483647
++                        },
++                        "action": {
++                          "type": "string",
++                          "enum": [
++                            "START",
++                            "CORRECT",
++                            "CONFIRM",
++                            "REJECT"
++                          ]
++                        },
++                        "reviewState": {
++                          "type": "string",
++                          "enum": [
++                            "PENDING_OWNER_REVIEW",
++                            "IN_REVIEW",
++                            "CONFIRMED",
++                            "REJECTED"
++                          ]
++                        },
++                        "textVersion": {
++                          "type": "integer",
++                          "minimum": 0,
++                          "maximum": 2147483647
++                        },
++                        "text": {
++                          "type": "string",
++                          "minLength": 0,
++                          "maxLength": 32768
++                        },
++                        "textIdentity": {
++                          "type": "string",
++                          "pattern": "^[0-9a-f]{64}$"
++                        },
++                        "actorId": {
++                          "type": "string",
++                          "format": "uuid"
++                        },
++                        "createdAt": {
++                          "type": "string",
++                          "format": "date-time"
++                        }
++                      },
++                      "nullable": true
++                    }
++                  }
++                }
++              }
++            }
++          },
++          "400": {
++            "description": "Invalid request or concurrency headers"
++          },
++          "403": {
++            "description": "Owner role required"
++          },
++          "404": {
++            "description": "Exact current Owner/Pet/Document/candidate unavailable"
++          },
++          "409": {
++            "description": "Revision, terminal decision or idempotency conflict"
++          }
++        },
++        "security": [
++          {
++            "bearerAuth": []
++          }
++        ],
++        "summary": "",
++        "tags": [
++          "Owner OCR review"
++        ]
++      }
++    },
+     "/v1/owner/pets/{petId}/documents/{documentId}/ocr": {
+       "post": {
+         "operationId": "OwnerOcr_enqueue",
+@@ -427,7 +1912,10 @@
+                             "reviewState": {
+                               "type": "string",
+                               "enum": [
+-                                "PENDING_OWNER_REVIEW"
++                                "PENDING_OWNER_REVIEW",
++                                "IN_REVIEW",
++                                "CONFIRMED",
++                                "REJECTED"
+                               ]
+                             }
+                           }
+diff --git a/backend/scripts/assert-owner-ocr-openapi.cjs b/backend/scripts/assert-owner-ocr-openapi.cjs
+index 3c1e70a..b34f520 100644
+--- a/backend/scripts/assert-owner-ocr-openapi.cjs
++++ b/backend/scripts/assert-owner-ocr-openapi.cjs
+@@ -5,5 +5,5 @@ const ops=[d.paths[p].post,d.paths[p].get,d.paths[p+'/retry'].post];
+ for(const op of ops){assert.ok(op.security.some(x=>'bearerAuth' in x));assert.ok(!op.parameters?.some(x=>['ownerId','sourceUrl','storageKey','claimToken'].includes(x.name)));}
+ const response=(op,status)=>op.responses[status].content['application/json'].schema;
+ for(const op of [ops[0],ops[2]]){const req=op.requestBody.content['application/json'].schema;assert.equal(req.additionalProperties,false);assert.deepEqual(req.properties,{});const job=response(op,201);assert.equal(job.additionalProperties,false);assert.deepEqual(job.properties.authority.enum,['UNCONFIRMED']);assert.equal(job.properties.attemptCount.maximum,3);assert.equal(job.properties.maxAttempts.enum[0],3);}
+-const read=response(ops[1],200);assert.equal(read.additionalProperties,false);const result=read.properties.result;assert.equal(result.nullable,true);assert.equal(result.additionalProperties,false);assert.deepEqual(result.properties.authority.enum,['UNCONFIRMED']);const candidate=result.properties.candidate;assert.deepEqual(candidate.properties.kind.enum,['EXTRACTED_TEXT']);assert.deepEqual(candidate.properties.schemaVersion.enum,[1]);assert.deepEqual(candidate.properties.reviewState.enum,['PENDING_OWNER_REVIEW']);assert.equal(candidate.additionalProperties,false);assert.equal(result.properties.extraction.additionalProperties,false);assert.deepEqual(Object.keys(result.properties.extraction.properties).sort(),['provider','providerVersion','text']);assert.ok(!JSON.stringify(read).match(/storage_key|sourceUrl|medicalHistory|diagnosis|claim_token|lease_until/));
++const read=response(ops[1],200);assert.equal(read.additionalProperties,false);const result=read.properties.result;assert.equal(result.nullable,true);assert.equal(result.additionalProperties,false);assert.deepEqual(result.properties.authority.enum,['UNCONFIRMED']);const candidate=result.properties.candidate;assert.deepEqual(candidate.properties.kind.enum,['EXTRACTED_TEXT']);assert.deepEqual(candidate.properties.schemaVersion.enum,[1]);assert.deepEqual(candidate.properties.reviewState.enum,['PENDING_OWNER_REVIEW','IN_REVIEW','CONFIRMED','REJECTED']);assert.equal(candidate.additionalProperties,false);assert.equal(result.properties.extraction.additionalProperties,false);assert.deepEqual(Object.keys(result.properties.extraction.properties).sort(),['provider','providerVersion','text']);assert.ok(!JSON.stringify(read).match(/storage_key|sourceUrl|medicalHistory|diagnosis|claim_token|lease_until/));
+ console.log('Owner OCR OpenAPI closed scope/non-authority contract PASS (3 operations)');
+diff --git a/backend/src/auth/auth.module.ts b/backend/src/auth/auth.module.ts
+index 4ff1252..ea6ae86 100644
+--- a/backend/src/auth/auth.module.ts
++++ b/backend/src/auth/auth.module.ts
+@@ -1,6 +1,8 @@
+ import { Global, Module } from '@nestjs/common';
+ import { JwtModule } from '@nestjs/jwt';
+ import { JwtAuthGuard } from './jwt-auth.guard';
++import { OwnerOcrReviewService } from './owner-ocr-review.service';
++import { OwnerOcrReviewController } from './owner-ocr-review.controller';
+ import { OwnerOcrService } from './owner-ocr.service';
+ import { OwnerOcrController } from './owner-ocr.controller';
+ import { OcrProvider } from './ocr-provider';
+@@ -25,7 +27,7 @@ import { mvpScope } from '../config/mvp-scope.config';
+ @Global()
+ @Module({
+   imports: [JwtModule.register({})],
+-  controllers: [OwnerOcrController, OwnerAuthController, OwnerProfileController, mvpScope.pilot ? OwnerPetMvpController : OwnerPetController, EffectiveSessionController],
++  controllers: [OwnerOcrReviewController, OwnerOcrController, OwnerAuthController, OwnerProfileController, mvpScope.pilot ? OwnerPetMvpController : OwnerPetController, EffectiveSessionController],
+   providers: [
+     JwtAuthGuard,
+     OptionalJwtAuthGuard,
+@@ -40,6 +42,7 @@ import { mvpScope } from '../config/mvp-scope.config';
+     OwnerPetService,
+     OcrDocumentWorker,
+     OwnerOcrService,
++    OwnerOcrReviewService,
+     OcrProvider,
+     CapabilityEvaluatorService,
+   ],
+diff --git a/backend/src/auth/owner-ocr.openapi.ts b/backend/src/auth/owner-ocr.openapi.ts
+index 88044a9..5409a84 100644
+--- a/backend/src/auth/owner-ocr.openapi.ts
++++ b/backend/src/auth/owner-ocr.openapi.ts
+@@ -4,5 +4,5 @@ const time: SchemaObject = {type:'string',format:'date-time'};
+ function closed(properties: Record<string,SchemaObject>): SchemaObject & {properties: Record<string,SchemaObject>} { return {type:'object',additionalProperties:false,required:Object.keys(properties),properties}; }
+ export const ocrJobSchema=closed({jobId:uuid,documentId:uuid,petId:uuid,state:{type:'string',enum:['QUEUED','RUNNING','SUCCEEDED','FAILED']},attemptCount:{type:'integer',minimum:0,maximum:3},maxAttempts:{type:'integer',enum:[3]},errorCode:{type:'string',nullable:true,enum:['PROVIDER_FAILED','INVALID_RESULT','LEASE_EXPIRED','SOURCE_UNAVAILABLE','SOURCE_CHANGED']},authority:{type:'string',enum:['UNCONFIRMED']}});
+ const extraction:SchemaObject={type:'object',additionalProperties:false,required:['text'],properties:{text:{type:'string',maxLength:32768},provider:{type:'string',maxLength:120},providerVersion:{type:'string',maxLength:80}}};
+-export const ocrReadSchema=closed({...ocrJobSchema.properties,attempts:{type:'array',maxItems:3,items:closed({attemptNumber:{type:'integer',minimum:1,maximum:3},status:{type:'string',enum:['RUNNING','SUCCEEDED','FAILED','ABANDONED']},startedAt:time,finishedAt:{...time,nullable:true},errorCode:{...ocrJobSchema.properties!.errorCode}})},result:{...closed({resultId:uuid,sourceIdentity:{type:'string',pattern:'^[0-9a-f]{64}$'},resultIdentity:{type:'string',pattern:'^[0-9a-f]{64}$'},authority:{type:'string',enum:['UNCONFIRMED']},extraction,extractedAt:time,provider:{type:'string',nullable:true},providerVersion:{type:'string',nullable:true},startedAt:time,finishedAt:time,candidate:closed({candidateId:uuid,schemaVersion:{type:'integer',enum:[1]},kind:{type:'string',enum:['EXTRACTED_TEXT']},text:{type:'string',maxLength:32768},reviewState:{type:'string',enum:['PENDING_OWNER_REVIEW']}})}),nullable:true}});
++export const ocrReadSchema=closed({...ocrJobSchema.properties,attempts:{type:'array',maxItems:3,items:closed({attemptNumber:{type:'integer',minimum:1,maximum:3},status:{type:'string',enum:['RUNNING','SUCCEEDED','FAILED','ABANDONED']},startedAt:time,finishedAt:{...time,nullable:true},errorCode:{...ocrJobSchema.properties!.errorCode}})},result:{...closed({resultId:uuid,sourceIdentity:{type:'string',pattern:'^[0-9a-f]{64}$'},resultIdentity:{type:'string',pattern:'^[0-9a-f]{64}$'},authority:{type:'string',enum:['UNCONFIRMED']},extraction,extractedAt:time,provider:{type:'string',nullable:true},providerVersion:{type:'string',nullable:true},startedAt:time,finishedAt:time,candidate:closed({candidateId:uuid,schemaVersion:{type:'integer',enum:[1]},kind:{type:'string',enum:['EXTRACTED_TEXT']},text:{type:'string',maxLength:32768},reviewState:{type:'string',enum:['PENDING_OWNER_REVIEW','IN_REVIEW','CONFIRMED','REJECTED']}})}),nullable:true}});
+ export const ocrEmptyRequest=closed({});
+diff --git a/backend/src/auth/owner-ocr.service.ts b/backend/src/auth/owner-ocr.service.ts
+index b7ee6c8..5f57fec 100644
+--- a/backend/src/auth/owner-ocr.service.ts
++++ b/backend/src/auth/owner-ocr.service.ts
+@@ -53,8 +53,8 @@ export class OwnerOcrService {
+       const job = (await client.query<Job>(`SELECT * FROM pet_schema.ocr_jobs WHERE document_id=$1 AND owner_id=$2 AND pet_id=$3 FOR SHARE`, [documentId, owner.sub, petId])).rows[0];
+       if (!job || !await this.source(client, owner.sub, petId, documentId)) this.missing();
+       const result = (await client.query(`SELECT r.id,r.extraction,r.result_identity,r.extracted_at,a.provider_identity,a.provider_version,a.started_at,a.finished_at,
+-        c.id candidate_id,c.extracted_text,c.schema_version,c.kind,c.review_state FROM pet_schema.ocr_results r
+-        JOIN pet_schema.ocr_attempts a ON a.id=r.attempt_id JOIN pet_schema.ocr_candidates c ON c.result_id=r.id WHERE r.job_id=$1`, [job.id])).rows[0];
++        c.id candidate_id,c.extracted_text,c.schema_version,c.kind,COALESCE(review.review_state,c.review_state) review_state FROM pet_schema.ocr_results r
++        JOIN pet_schema.ocr_attempts a ON a.id=r.attempt_id JOIN pet_schema.ocr_candidates c ON c.result_id=r.id LEFT JOIN LATERAL (SELECT review_state FROM pet_schema.ocr_review_revisions WHERE candidate_id=c.id ORDER BY revision DESC LIMIT 1) review ON true WHERE r.job_id=$1`, [job.id])).rows[0];
+       const attempts = (await client.query(`SELECT attempt_number AS "attemptNumber",status,started_at AS "startedAt",finished_at AS "finishedAt",error_code AS "errorCode"
+         FROM pet_schema.ocr_attempts WHERE job_id=$1 ORDER BY attempt_number`, [job.id])).rows;
+       return { ...this.presentJob(job), attempts, result: result ? {
+diff --git a/backend/src/config/mvp-product-scope.guard.spec.ts b/backend/src/config/mvp-product-scope.guard.spec.ts
+index 7837e83..f6541af 100644
+--- a/backend/src/config/mvp-product-scope.guard.spec.ts
++++ b/backend/src/config/mvp-product-scope.guard.spec.ts
+@@ -59,3 +59,13 @@ describe('OCR exact Pilot route allowance',()=>{
+     for(const [p,m] of [[path,'DELETE'],[path,'PATCH'],[path+'/retry','GET'],[path+'/confirm','POST'],[path+'/extra','GET'],['/v1/owner/pets/pet-id/documents','POST'],['/v1/owner/pets/pet-id/documents/document-id/download','GET']])expect(isPilotBackendRouteAllowed(p,m)).toBe(false);
+   });
+ });
++
++describe('OCR review exact Pilot allowance',()=>{
++  it('opens only read and four explicit mutation methods, preserving job/retry and legacy blocks',()=>{
++    const path='/v1/owner/pets/pet/documents/doc/ocr/candidates/candidate/review';
++    expect(isPilotBackendRouteAllowed(path,'GET')).toBe(true);
++    for(const action of ['start','corrections','confirm','reject'])expect(isPilotBackendRouteAllowed(path+'/'+action,'POST')).toBe(true);
++    for(const [p,method] of [[path,'POST'],[path,'PATCH'],[path+'/confirm','GET'],[path+'/confirm/extra','POST'],[path+'/validated-import','POST'],['/v1/owner/pets/pet/documents/doc/download','GET']])expect(isPilotBackendRouteAllowed(p,method)).toBe(false);
++    expect(isPilotBackendRouteAllowed('/v1/owner/pets/pet/documents/doc/ocr','POST')).toBe(true);expect(isPilotBackendRouteAllowed('/v1/owner/pets/pet/documents/doc/ocr/retry','POST')).toBe(true);
++  });
++});
+diff --git a/backend/src/config/mvp-product-scope.guard.ts b/backend/src/config/mvp-product-scope.guard.ts
+index 420182b..d1fc4ca 100644
+--- a/backend/src/config/mvp-product-scope.guard.ts
++++ b/backend/src/config/mvp-product-scope.guard.ts
+@@ -15,6 +15,9 @@ export function isPilotBackendRouteAllowed(pathname: string, method?: string): b
+   // BP-15 foundation opens only these explicit Owner OCR methods; legacy document routes stay closed.
+   if (/^\/v1\/owner\/pets\/[^/]+\/documents\/[^/]+\/ocr$/.test(pathname) && ['GET','POST'].includes(method?.toUpperCase() ?? '')) return true;
+   if (/^\/v1\/owner\/pets\/[^/]+\/documents\/[^/]+\/ocr\/retry$/.test(pathname) && method?.toUpperCase() === 'POST') return true;
++  const review = /^\/v1\/owner\/pets\/[^/]+\/documents\/[^/]+\/ocr\/candidates\/[^/]+\/review/;
++  if (new RegExp(review.source+'$').test(pathname) && method?.toUpperCase()==='GET') return true;
++  if (new RegExp(review.source+'/(start|corrections|confirm|reject)$').test(pathname) && method?.toUpperCase()==='POST') return true;
+   return !pilotBlockedRoutes.some((route) => route.pattern.test(pathname) && (!route.method || route.method === method?.toUpperCase()));
+ }
+ 
+diff --git a/backend/test/appointment-medical-sharing-http.e2e-spec.ts b/backend/test/appointment-medical-sharing-http.e2e-spec.ts
+index c2f2084..db53f02 100644
+--- a/backend/test/appointment-medical-sharing-http.e2e-spec.ts
++++ b/backend/test/appointment-medical-sharing-http.e2e-spec.ts
+@@ -12,6 +12,7 @@ import { BookingErrorFilter } from '../src/common/booking-error.filter';
+ import { config } from '../src/config';
+ import { DatabaseService } from '../src/database/database.service';
+ import { NestRoot } from '../src/nest-root-full';
++import { OwnerOcrReviewService } from '../src/auth/owner-ocr-review.service';
+ import { OwnerOcrService } from '../src/auth/owner-ocr.service';
+ import { OwnerPetService } from '../src/auth/owner-pet.service';
+ 
+@@ -436,6 +437,16 @@ describe('Wave 4A medical sharing (Docker PostgreSQL and real Nest HTTP)', () =>
+     expect((await grant(selected())).status).toBe(201);
+     expect((await grant({mode:'ALL_CURRENT'})).status).toBe(400);
+   });
++  it('W4B02 confirmed corrected OCR remains private and selected Document delivers original bytes',async()=>{
++    const jobs=app.get(OwnerOcrService),reviews=app.get(OwnerOcrReviewService),actor={sub:I.owner,roles:[Role.OWNER]},marker='W4B02_ORIGINAL_PRIVATE',corrected='W4B02_CORRECTED_PRIVATE';
++    await jobs.enqueue(actor,I.pet,I.document);const claim=await jobs.claim();expect(claim?.document_id).toBe(I.document);expect(await jobs.finish(claim!,{text:marker,provider:'SIMULATED_OCR'})).toBe(true);
++    const raw=await jobs.read(actor,I.pet,I.document),candidate=raw.result!.candidate.candidateId;
++    await reviews.mutate(actor,I.pet,I.document,candidate,'CORRECT',{text:corrected},'"0"',randomUUID());
++    expect(await reviews.mutate(actor,I.pet,I.document,candidate,'CONFIRM',{},'"1"',randomUUID())).toMatchObject({revision:2,text:corrected,authority:'OWNER_DECISION_ONLY',reviewState:'CONFIRMED'});
++    expect((await grant(selected())).status).toBe(201);
++    for(const response of [await read(I.document,'DOCUMENT'),await list(),await request(app.getHttpServer()).get(ownerPath).set('Authorization',`Bearer ${await token()}`)]){expect(response.status).toBe(200);expect(JSON.stringify(response.body)).not.toMatch(/W4B02_|extraction|ocr_result|source_identity|OWNER_DECISION_ONLY/);}
++    expect((await download()).body).toEqual(bytes);expect((await db.query('SELECT medical_history_ocr FROM pet_schema.pets WHERE id=$1',[I.pet])).rows[0].medical_history_ocr).toBeNull();
++  });
+   it('W4B unconfirmed OCR stays Owner-private while selected Document shares original bytes only',async()=>{
+     const jobs=app.get(OwnerOcrService),ocrPath=`/v1/owner/pets/${I.pet}/documents/${I.document}/ocr`,marker='W4B_UNCONFIRMED_PRIVATE_EXTRACTION';
+     const post=await request(app.getHttpServer()).post(ocrPath).set('Authorization',`Bearer ${await token()}`).send({});expect(post.status).toBe(201);
+diff --git a/docs/ai/current-state.md b/docs/ai/current-state.md
+index c6d10d2..8dcc53c 100644
+--- a/docs/ai/current-state.md
++++ b/docs/ai/current-state.md
+@@ -1,5 +1,15 @@
+ # V50 program current state
+ 
++## 2026-10-11 — V15-W4B-02 Owner OCR review / decision authority
++
++`WAVE4B_02_MACHINE_COMPLETE=YES`, `WAVE4B_02_READY_FOR_PO_REVIEW=YES`, `WAVE4B_02_HUMAN_ACCEPTANCE=NOT_RECORDED`. Isolated uncommitted branch `agent/v15-w4b-02-review-2ajw4xh6` from fresh published W4B01 `57f0a54d82df34322542c874f309bc687c66fb7b`. Original674dirty entries byte-for-byte preserved; empty index, no commit/push.
++
++Additive171975 append-only review revisions; exact current Owner/Pet/Document/job/result/candidate authority, explicit START/CORRECT/CONFIRM/REJECT, strong revision ETag/If-Match and Owner-keyed idempotency, immutable original/raw/provenance and decision history. Owner confirmation is OWNER_DECISION_ONLY; no Pet-history promotion, clinical facts/import, UI/provider integration or sharing-grant change. Existing raw job GET retains original candidate.text and UNCONFIRMED authority; latest reviewState is a projection; corrected confirmed text/version only comes from review API.
++
++Executed67uniquePASS/0unresolvedFAIL:45PostgreSQL/Nest review,20affectedguard,1populated70→71upgrade,1newsharing-isolation case;76acceptedsharing cases selected out. Fresh71migrations/checksums and sixOpenAPIassertions/backendbuildPASS;70historicalchecksumrows and legacy values preserved. DB/Data Authority,Security/Privacy,ArchitectureNO VETO. Failed fresh SQL/initial test typing attempts disclosed and repaired narrowly; sticky unaffected gates retained. PostgreSQL deadlocks0/idle-in-transaction0; retained container IDs/states unchanged.
++
++`OCR_SOURCE_BYTE_INTEGRITY=DEFERRED_BLOCKING_VALIDATED_IMPORT`. Future import must prove original bytes/immutable version, bind exact confirmed text revision, establish separate medical validation/import authority and sharing eligibility. W4B03 recommendation only, not implemented. Apply171975 before new binaries; rollback retains history; no deployment here. Contract `docs/v15/15-wave4b-02-owner-ocr-review.md`; executed evidence/source hashes/reviews `docs/testing/evidence/wave4b-02-20261011/REPORT.md`, `MANIFEST.json`, `SHA256SUMS`. STOP; no human approval inferred.
++
+ ## 2026-10-11 — V15-W4B-01 Product Owner technical acceptance / publication checkpoint
+ 
+ `WAVE4B_01_HUMAN_ACCEPTANCE=APPROVED` by explicit Product Owner decision for the limited OCR Authority Foundation.46uniquePASS,70migrations/populatedupgrade,build/5OpenAPIassertions and DB/SecurityNO VETO accepted; provider simulation accepted for foundation only. Authoritative decision/limits: `docs/testing/evidence/wave4b-01-20261011/ACCEPTANCE.md`. This entry supersedes historical W4B human NOT_RECORDED status below.
+diff --git a/backend/migrations/node-pg/1719750000000_owner_ocr_review_authority.js b/backend/migrations/node-pg/1719750000000_owner_ocr_review_authority.js
+new file mode 100644
+index 0000000..9568db2
+--- /dev/null
++++ b/backend/migrations/node-pg/1719750000000_owner_ocr_review_authority.js
+@@ -0,0 +1,65 @@
++/* Owner text decisions only. No validated import or medical promotion. */
++exports.up = (pgm) => pgm.sql(`
++  ALTER TABLE pet_schema.ocr_candidates ADD CONSTRAINT ocr_candidate_result_context UNIQUE(id,job_id,result_id);
++  CREATE TABLE pet_schema.ocr_review_revisions (
++    candidate_id uuid NOT NULL, revision integer NOT NULL CHECK(revision>0),
++    expected_revision integer NOT NULL CHECK(expected_revision>=0 AND revision=expected_revision+1),
++    job_id uuid NOT NULL, result_id uuid NOT NULL, document_id uuid NOT NULL, owner_id uuid NOT NULL, pet_id uuid NOT NULL,
++    actor_id uuid NOT NULL REFERENCES identity_schema.users(id),
++    action text NOT NULL CHECK(action IN('START','CORRECT','CONFIRM','REJECT')),
++    review_state text NOT NULL CHECK(review_state IN('IN_REVIEW','CONFIRMED','REJECTED')),
++    text_version integer NOT NULL CHECK(text_version>=0 AND text_version<=revision),
++    corrected_text text NOT NULL CHECK(octet_length(corrected_text) BETWEEN 0 AND 32768),
++    original_text_identity char(64) NOT NULL CHECK(original_text_identity ~ '^[0-9a-f]{64}$'),
++    text_identity char(64) NOT NULL CHECK(text_identity ~ '^[0-9a-f]{64}$'),
++    source_identity char(64) NOT NULL, result_identity char(64) NOT NULL,
++    idempotency_key uuid NOT NULL, payload_identity char(64) NOT NULL CHECK(payload_identity ~ '^[0-9a-f]{64}$'),
++    authority text NOT NULL DEFAULT 'OWNER_DECISION_ONLY' CHECK(authority='OWNER_DECISION_ONLY'),
++    created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
++    PRIMARY KEY(candidate_id,revision), UNIQUE(owner_id,idempotency_key),
++    FOREIGN KEY(candidate_id,job_id,result_id) REFERENCES pet_schema.ocr_candidates(id,job_id,result_id),
++    FOREIGN KEY(job_id,document_id,owner_id,pet_id) REFERENCES pet_schema.ocr_jobs(id,document_id,owner_id,pet_id)
++  );
++  CREATE FUNCTION pet_schema.enforce_ocr_review_revision() RETURNS trigger LANGUAGE plpgsql AS $$
++  DECLARE
++    candidate pet_schema.ocr_candidates%ROWTYPE;
++    job pet_schema.ocr_jobs%ROWTYPE;
++    result pet_schema.ocr_results%ROWTYPE;
++    previous pet_schema.ocr_review_revisions%ROWTYPE;
++    current_revision integer; current_text text; current_text_version integer; current_state text;
++  BEGIN
++    SELECT * INTO job FROM pet_schema.ocr_jobs WHERE id=NEW.job_id FOR SHARE;
++    IF NOT FOUND OR job.state<>'SUCCEEDED' THEN RAISE EXCEPTION 'OCR review unavailable' USING ERRCODE='40001'; END IF;
++    PERFORM id FROM pet_schema.pets WHERE id=job.pet_id AND owner_id=job.owner_id AND archived_at IS NULL FOR SHARE;
++    IF NOT FOUND THEN RAISE EXCEPTION 'OCR review unavailable' USING ERRCODE='40001'; END IF;
++    PERFORM id FROM pet_schema.pet_documents WHERE id=job.document_id AND owner_id=job.owner_id AND pet_id=job.pet_id AND deleted_at IS NULL AND doc_type IN('PASSPORT','HISTORY') FOR SHARE;
++    IF NOT FOUND THEN RAISE EXCEPTION 'OCR review unavailable' USING ERRCODE='40001'; END IF;
++    SELECT * INTO candidate FROM pet_schema.ocr_candidates WHERE id=NEW.candidate_id FOR UPDATE;
++    SELECT * INTO result FROM pet_schema.ocr_results WHERE id=candidate.result_id;
++    IF candidate.id IS NULL OR result.id IS NULL OR
++      (NEW.job_id,NEW.result_id,NEW.document_id,NEW.owner_id,NEW.pet_id,NEW.actor_id,NEW.source_identity,NEW.result_identity)
++      IS DISTINCT FROM (candidate.job_id,candidate.result_id,job.document_id,job.owner_id,job.pet_id,job.owner_id,result.source_identity,result.result_identity)
++      THEN RAISE EXCEPTION 'OCR review context mismatch' USING ERRCODE='23514'; END IF;
++    SELECT * INTO previous FROM pet_schema.ocr_review_revisions WHERE candidate_id=candidate.id ORDER BY revision DESC LIMIT 1;
++    current_revision:=COALESCE(previous.revision,0);
++    current_text:=COALESCE(previous.corrected_text,candidate.extracted_text);
++    current_text_version:=COALESCE(previous.text_version,0);
++    current_state:=COALESCE(previous.review_state,'PENDING_OWNER_REVIEW');
++    IF NEW.expected_revision<>current_revision OR current_state IN('CONFIRMED','REJECTED') OR
++      (NEW.action='START' AND current_state<>'PENDING_OWNER_REVIEW')
++      THEN RAISE EXCEPTION 'OCR review revision conflict' USING ERRCODE='40001'; END IF;
++    IF NEW.original_text_identity<>encode(digest(candidate.extracted_text,'sha256'),'hex') OR
++      NEW.text_identity<>encode(digest(NEW.corrected_text,'sha256'),'hex') OR (NEW.action='CORRECT' AND btrim(NEW.corrected_text)='') OR
++      (NEW.action<>'CORRECT' AND NEW.corrected_text<>current_text) OR
++      NEW.text_version<>(CASE WHEN NEW.action='CORRECT' THEN NEW.revision ELSE current_text_version END) OR
++      NEW.review_state<>(CASE WHEN NEW.action IN('START','CORRECT') THEN 'IN_REVIEW' WHEN NEW.action='CONFIRM' THEN 'CONFIRMED' ELSE 'REJECTED' END)
++      THEN RAISE EXCEPTION 'OCR review content mismatch' USING ERRCODE='23514'; END IF;
++    RETURN NEW;
++  END $$;
++  CREATE TRIGGER ocr_review_revision_integrity BEFORE INSERT ON pet_schema.ocr_review_revisions FOR EACH ROW EXECUTE FUNCTION pet_schema.enforce_ocr_review_revision();
++  CREATE FUNCTION pet_schema.ocr_review_append_only() RETURNS trigger LANGUAGE plpgsql AS $$
++  BEGIN RAISE EXCEPTION 'OCR decisions are append-only'; END $$;
++  CREATE TRIGGER ocr_review_no_mutation BEFORE UPDATE OR DELETE ON pet_schema.ocr_review_revisions FOR EACH ROW EXECUTE FUNCTION pet_schema.ocr_review_append_only();
++  CREATE TRIGGER ocr_review_no_truncate BEFORE TRUNCATE ON pet_schema.ocr_review_revisions FOR EACH STATEMENT EXECUTE FUNCTION pet_schema.ocr_review_append_only();
++`);
++exports.down = () => { throw new Error('Owner OCR review history retained; destructive DOWN is unsupported.'); };
+diff --git a/backend/scripts/assert-owner-ocr-review-openapi.cjs b/backend/scripts/assert-owner-ocr-review-openapi.cjs
+new file mode 100644
+index 0000000..a1a70e9
+--- /dev/null
++++ b/backend/scripts/assert-owner-ocr-review-openapi.cjs
+@@ -0,0 +1,17 @@
++const assert=require('node:assert/strict');
++const d=require('../artifacts/openapi/swagger.json');
++const base='/v1/owner/pets/{petId}/documents/{documentId}/ocr/candidates/{candidateId}/review';
++const ops=[d.paths[base].get,...['start','corrections','confirm','reject'].map(x=>d.paths[base+'/'+x].post)];
++for(const [i,op] of ops.entries()){
++ assert.ok(op.security.some(x=>'bearerAuth'in x));
++ for(const status of [400,403,404,409]) assert.ok(op.responses[status]);
++ const response=op.responses[200].content['application/json'].schema;
++ assert.equal(response.additionalProperties,false);assert.deepEqual(response.properties.authority.enum,['OWNER_DECISION_ONLY']);
++ assert.deepEqual(response.properties.sourceByteIntegrity.enum,['DEFERRED_BLOCKING_VALIDATED_IMPORT']);
++ assert.deepEqual(response.properties.reviewState.enum,['PENDING_OWNER_REVIEW','IN_REVIEW','CONFIRMED','REJECTED']);
++ assert.equal(response.properties.revision.type,'integer');assert.equal(response.properties.text.maxLength,32768);
++ assert.ok(!JSON.stringify(response).match(/storage_key|lease_token|claim_token|payload_identity|medicalHistory|diagnosis/));
++ if(i){for(const name of ['If-Match','Idempotency-Key']) assert.ok(op.parameters.some(p=>p.name===name&&p.in==='header'&&p.required));const body=op.requestBody.content['application/json'].schema;assert.equal(body.additionalProperties,false);assert.deepEqual(Object.keys(body.properties),i===2?['text']:[]);}
++ else assert.equal(response.properties.history.maxItems,20);
++}
++console.log('Owner OCR review OpenAPI authority/revision/closed-scope PASS (5 operations)');
+diff --git a/backend/src/auth/owner-ocr-review.controller.ts b/backend/src/auth/owner-ocr-review.controller.ts
+new file mode 100644
+index 0000000..d2334d0
+--- /dev/null
++++ b/backend/src/auth/owner-ocr-review.controller.ts
+@@ -0,0 +1,35 @@
++import { BadRequestException, Body, Controller, Get, Header, Headers, HttpCode, Param, ParseUUIDPipe, Post, Query, Res, UseGuards } from '@nestjs/common';
++import { ApiBearerAuth, ApiBody, ApiHeader, ApiOkResponse, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
++import { Response } from 'express';
++import { SWAGGER_BEARER_AUTH } from '../openapi/openapi';
++import { CurrentUser } from './current-user.decorator';
++import { JwtAuthGuard } from './jwt-auth.guard';
++import { JwtPayload, Role } from './auth.types';
++import { Roles } from './roles.decorator';
++import { RolesGuard } from './roles.guard';
++import { OwnerOcrReviewService } from './owner-ocr-review.service';
++import { correctionBody, emptyReviewBody, reviewMutationSchema, reviewReadSchema } from './owner-ocr-review.openapi';
++const Match=()=>ApiHeader({name:'If-Match',required:true,schema:{type:'string',pattern:'^"(0|[1-9][0-9]{0,9})"$'}});
++const Idempotency=()=>ApiHeader({name:'Idempotency-Key',required:true,schema:{type:'string',format:'uuid'}});
++
++@ApiTags('Owner OCR review') @ApiBearerAuth(SWAGGER_BEARER_AUTH)
++@UseGuards(JwtAuthGuard,RolesGuard) @Roles(Role.OWNER)
++@ApiResponse({status:400,description:'Invalid request or concurrency headers'}) @ApiResponse({status:403,description:'Owner role required'})
++@ApiResponse({status:404,description:'Exact current Owner/Pet/Document/candidate unavailable'}) @ApiResponse({status:409,description:'Revision, terminal decision or idempotency conflict'})
++@Controller('v1/owner/pets/:petId/documents/:documentId/ocr/candidates/:candidateId/review')
++export class OwnerOcrReviewController {
++  constructor(private readonly reviews:OwnerOcrReviewService) {}
++  @Get() @ApiQuery({name:'limit',required:false,schema:{type:'integer',minimum:1,maximum:20,default:10}}) @ApiQuery({name:'offset',required:false,schema:{type:'integer',minimum:0,maximum:1000000,default:0}}) @Header('Cache-Control','no-store') @ApiOperation({operationId:'OwnerOcrReview_read'}) @ApiOkResponse({schema:reviewReadSchema})
++  async read(@CurrentUser() owner:JwtPayload,@Param('petId',new ParseUUIDPipe()) pet:string,@Param('documentId',new ParseUUIDPipe()) doc:string,@Param('candidateId',new ParseUUIDPipe()) candidate:string,@Res({passthrough:true}) response:Response,@Query('limit') limit?:string,@Query('offset') offset?:string) {
++    const result=await this.reviews.read(owner,pet,doc,candidate,this.integer(limit,10),this.integer(offset,0));response.setHeader('ETag',`"${result.revision}"`);return result;
++  }
++  @Post('start') @HttpCode(200) @Header('Cache-Control','no-store') @Match() @Idempotency() @ApiBody({schema:emptyReviewBody,required:false}) @ApiOkResponse({schema:reviewMutationSchema}) @ApiOperation({operationId:'OwnerOcrReview_start'})
++  async start(@CurrentUser() owner:JwtPayload,@Param('petId',new ParseUUIDPipe()) pet:string,@Param('documentId',new ParseUUIDPipe()) doc:string,@Param('candidateId',new ParseUUIDPipe()) candidate:string,@Body() body:unknown,@Headers('if-match') match:string,@Headers('idempotency-key') key:string,@Res({passthrough:true}) response:Response) {const result=await this.reviews.mutate(owner,pet,doc,candidate,'START',body,match,key);response.setHeader('ETag',`"${result.revision}"`);return result;}
++  @Post('corrections') @HttpCode(200) @Header('Cache-Control','no-store') @Match() @Idempotency() @ApiBody({schema:correctionBody}) @ApiOkResponse({schema:reviewMutationSchema}) @ApiOperation({operationId:'OwnerOcrReview_correct'})
++  async correct(@CurrentUser() owner:JwtPayload,@Param('petId',new ParseUUIDPipe()) pet:string,@Param('documentId',new ParseUUIDPipe()) doc:string,@Param('candidateId',new ParseUUIDPipe()) candidate:string,@Body() body:unknown,@Headers('if-match') match:string,@Headers('idempotency-key') key:string,@Res({passthrough:true}) response:Response) {const result=await this.reviews.mutate(owner,pet,doc,candidate,'CORRECT',body,match,key);response.setHeader('ETag',`"${result.revision}"`);return result;}
++  @Post('confirm') @HttpCode(200) @Header('Cache-Control','no-store') @Match() @Idempotency() @ApiBody({schema:emptyReviewBody,required:false}) @ApiOkResponse({schema:reviewMutationSchema}) @ApiOperation({operationId:'OwnerOcrReview_confirm'})
++  async confirm(@CurrentUser() owner:JwtPayload,@Param('petId',new ParseUUIDPipe()) pet:string,@Param('documentId',new ParseUUIDPipe()) doc:string,@Param('candidateId',new ParseUUIDPipe()) candidate:string,@Body() body:unknown,@Headers('if-match') match:string,@Headers('idempotency-key') key:string,@Res({passthrough:true}) response:Response) {const result=await this.reviews.mutate(owner,pet,doc,candidate,'CONFIRM',body,match,key);response.setHeader('ETag',`"${result.revision}"`);return result;}
++  @Post('reject') @HttpCode(200) @Header('Cache-Control','no-store') @Match() @Idempotency() @ApiBody({schema:emptyReviewBody,required:false}) @ApiOkResponse({schema:reviewMutationSchema}) @ApiOperation({operationId:'OwnerOcrReview_reject'})
++  async reject(@CurrentUser() owner:JwtPayload,@Param('petId',new ParseUUIDPipe()) pet:string,@Param('documentId',new ParseUUIDPipe()) doc:string,@Param('candidateId',new ParseUUIDPipe()) candidate:string,@Body() body:unknown,@Headers('if-match') match:string,@Headers('idempotency-key') key:string,@Res({passthrough:true}) response:Response) {const result=await this.reviews.mutate(owner,pet,doc,candidate,'REJECT',body,match,key);response.setHeader('ETag',`"${result.revision}"`);return result;}
++  private integer(value:string|undefined,fallback:number):number {if(value===undefined)return fallback;if(!/^(0|[1-9][0-9]*)$/.test(value))throw new BadRequestException({code:'INVALID_REQUEST',message:'Invalid review page.'});return Number(value);}
++}
+diff --git a/backend/src/auth/owner-ocr-review.openapi.ts b/backend/src/auth/owner-ocr-review.openapi.ts
+new file mode 100644
+index 0000000..7d0fdc6
+--- /dev/null
++++ b/backend/src/auth/owner-ocr-review.openapi.ts
+@@ -0,0 +1,9 @@
++import type { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
++const uuid:SchemaObject={type:'string',format:'uuid'},hash:SchemaObject={type:'string',pattern:'^[0-9a-f]{64}$'},text:SchemaObject={type:'string',minLength:0,maxLength:32768};
++export function closed(properties:Record<string,SchemaObject>):SchemaObject & {properties:Record<string,SchemaObject>} { return {type:'object',additionalProperties:false,required:Object.keys(properties),properties}; }
++export const emptyReviewBody=closed({}),correctionBody=closed({text:{...text,minLength:1}});
++const state:SchemaObject={type:'string',enum:['PENDING_OWNER_REVIEW','IN_REVIEW','CONFIRMED','REJECTED']};
++const revision:SchemaObject={type:'integer',minimum:0,maximum:2147483647};
++const decision=closed({revision,expectedRevision:revision,action:{type:'string',enum:['START','CORRECT','CONFIRM','REJECT']},reviewState:state,textVersion:revision,text,textIdentity:hash,actorId:uuid,createdAt:{type:'string',format:'date-time'}});
++export const reviewMutationSchema=closed({candidateId:uuid,jobId:uuid,resultId:uuid,documentId:uuid,petId:uuid,schemaVersion:{type:'integer',enum:[1]},kind:{type:'string',enum:['EXTRACTED_TEXT']},reviewState:state,revision,textVersion:revision,text,textIdentity:hash,originalText:text,originalTextIdentity:hash,sourceIdentity:hash,resultIdentity:hash,authority:{type:'string',enum:['OWNER_DECISION_ONLY']},sourceByteIntegrity:{type:'string',enum:['DEFERRED_BLOCKING_VALIDATED_IMPORT']},decision:{...decision,nullable:true}});
++export const reviewReadSchema=closed({...reviewMutationSchema.properties,history:{type:'array',maxItems:20,items:decision},page:closed({limit:{type:'integer',minimum:1,maximum:20},offset:revision,total:revision,nextOffset:{...revision,nullable:true}})});
+diff --git a/backend/src/auth/owner-ocr-review.service.ts b/backend/src/auth/owner-ocr-review.service.ts
+new file mode 100644
+index 0000000..a9d85a4
+--- /dev/null
++++ b/backend/src/auth/owner-ocr-review.service.ts
+@@ -0,0 +1,94 @@
++import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
++import { createHash, createHmac } from 'node:crypto';
++import { PoolClient } from 'pg';
++import { config } from '../config';
++import { DatabaseService } from '../database/database.service';
++import { JwtPayload, Role } from './auth.types';
++
++type Action = 'START' | 'CORRECT' | 'CONFIRM' | 'REJECT';
++type Context = { candidate_id: string; job_id: string; result_id: string; document_id: string; owner_id: string; pet_id: string; original_text: string; original_text_identity: string; source_identity: string; result_identity: string };
++type Revision = { candidate_id: string; revision: number; expected_revision: number; action: Action; review_state: string; text_version: number; corrected_text: string; text_identity: string; actor_id: string; created_at: Date; payload_identity: string };
++const digest = (value: string) => createHash('sha256').update(value).digest('hex');
++const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
++
++@Injectable()
++export class OwnerOcrReviewService {
++  constructor(private readonly database: DatabaseService) {}
++  private owner(owner: JwtPayload): void {
++    if (!owner.roles.includes(Role.OWNER)) throw new ForbiddenException({code:'ROLE_FORBIDDEN',message:'Owner role required.'});
++  }
++  private missing(): never { throw new NotFoundException({code:'OWNER_OCR_REVIEW_NOT_FOUND',message:'OCR review was not found.'}); }
++  private conflict(): never { throw new ConflictException({code:'OCR_REVIEW_CONFLICT',message:'OCR review revision or command conflicts.'}); }
++
++  private async context(client: PoolClient, owner: JwtPayload, petId: string, documentId: string, candidateId: string, mutate: boolean): Promise<Context> {
++    const job=(await client.query(`SELECT id,state FROM pet_schema.ocr_jobs WHERE document_id=$1 AND owner_id=$2 AND pet_id=$3 FOR SHARE`,[documentId,owner.sub,petId])).rows[0];
++    if (!job) this.missing();
++    const pet=await client.query(`SELECT id FROM pet_schema.pets WHERE id=$1 AND owner_id=$2 AND archived_at IS NULL FOR SHARE`,[petId,owner.sub]);
++    const doc=await client.query(`SELECT id FROM pet_schema.pet_documents WHERE id=$1 AND owner_id=$2 AND pet_id=$3 AND deleted_at IS NULL AND doc_type IN('PASSPORT','HISTORY') FOR SHARE`,[documentId,owner.sub,petId]);
++    if (!pet.rowCount || !doc.rowCount) this.missing();
++    const candidate=(await client.query<Context>(`SELECT c.id candidate_id,c.job_id,c.result_id,r.document_id,r.owner_id,r.pet_id,
++      c.extracted_text original_text,encode(digest(c.extracted_text,'sha256'),'hex') original_text_identity,r.source_identity,r.result_identity
++      FROM pet_schema.ocr_candidates c JOIN pet_schema.ocr_results r ON r.id=c.result_id AND r.job_id=c.job_id
++      WHERE c.id=$1 AND c.job_id=$2 AND r.document_id=$3 AND r.owner_id=$4 AND r.pet_id=$5
++      FOR ${mutate?'UPDATE':'SHARE'} OF c`,[candidateId,job.id,documentId,owner.sub,petId])).rows[0];
++    if (!candidate) this.missing();
++    if (job.state!=='SUCCEEDED') this.conflict();
++    return candidate;
++  }
++  private async head(client: PoolClient, candidateId: string): Promise<Revision | undefined> {
++    return (await client.query<Revision>('SELECT * FROM pet_schema.ocr_review_revisions WHERE candidate_id=$1 ORDER BY revision DESC LIMIT 1',[candidateId])).rows[0];
++  }
++  private revision(row: Revision) {
++    return {revision:row.revision,expectedRevision:row.expected_revision,action:row.action,reviewState:row.review_state,textVersion:row.text_version,text:row.corrected_text,textIdentity:row.text_identity,actorId:row.actor_id,createdAt:row.created_at};
++  }
++  private presentation(context: Context, head?: Revision) {
++    return {candidateId:context.candidate_id,jobId:context.job_id,resultId:context.result_id,documentId:context.document_id,petId:context.pet_id,
++      schemaVersion:1,kind:'EXTRACTED_TEXT',reviewState:head?.review_state??'PENDING_OWNER_REVIEW',revision:head?.revision??0,
++      textVersion:head?.text_version??0,text:head?.corrected_text??context.original_text,textIdentity:head?.text_identity??context.original_text_identity,
++      originalText:context.original_text,originalTextIdentity:context.original_text_identity,sourceIdentity:context.source_identity,resultIdentity:context.result_identity,
++      authority:'OWNER_DECISION_ONLY',sourceByteIntegrity:'DEFERRED_BLOCKING_VALIDATED_IMPORT',decision:head?this.revision(head):null};
++  }
++
++  async read(owner: JwtPayload, petId: string, documentId: string, candidateId: string, limit=10, offset=0) {
++    this.owner(owner);
++    if (!Number.isInteger(limit)||limit<1||limit>20||!Number.isInteger(offset)||offset<0||offset>1000000) throw new BadRequestException({code:'INVALID_REQUEST',message:'Invalid review page.'});
++    return this.database.withTransaction(async client=>{
++      const context=await this.context(client,owner,petId,documentId,candidateId,false),head=await this.head(client,candidateId);
++      const history=(await client.query<Revision>('SELECT * FROM pet_schema.ocr_review_revisions WHERE candidate_id=$1 ORDER BY revision LIMIT $2 OFFSET $3',[candidateId,limit,offset])).rows;
++      const total=head?.revision??0;
++      return {...this.presentation(context,head),history:history.map(row=>this.revision(row)),page:{limit,offset,total,nextOffset:offset+history.length<total?offset+history.length:null}};
++    });
++  }
++
++  async mutate(owner: JwtPayload, petId: string, documentId: string, candidateId: string, action: Action, body: unknown, ifMatch?: string, key?: string) {
++    this.owner(owner);
++    if (!['START','CORRECT','CONFIRM','REJECT'].includes(action) || !ifMatch || !/^"(0|[1-9][0-9]{0,9})"$/.test(ifMatch) || !key || !uuid.test(key)) throw new BadRequestException({code:'INVALID_REQUEST',message:'Strong numeric If-Match and UUID Idempotency-Key required.'});
++    const expected=Number(ifMatch.slice(1,-1));
++    if (!Number.isSafeInteger(expected)||expected>2147483646) throw new BadRequestException({code:'INVALID_REQUEST',message:'Invalid revision.'});
++    const value=body===undefined?{}:body;
++    if (value===null||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(k=>action==='CORRECT'?k!=='text':true)) throw new BadRequestException({code:'INVALID_REQUEST',message:'Unsupported review fields.'});
++    const text=(value as Record<string,unknown>).text;
++    if (action==='CORRECT' && (typeof text!=='string'||!text.trim()||text.includes(String.fromCharCode(0))||Buffer.byteLength(text)>32768||Buffer.from(text).toString('utf8')!==text)) throw new BadRequestException({code:'INVALID_REQUEST',message:'Corrected text must be nonempty valid UTF-8 within32768bytes.'});
++    const signature=createHmac('sha256',config.ownerPetIdempotencyHmacKey).update(JSON.stringify(['ocr-review-v1',owner.sub,petId,documentId,candidateId,action,expected,action==='CORRECT'?text:null])).digest('hex');
++    try {
++      return await this.database.withTransaction(async client=>{
++        const context=await this.context(client,owner,petId,documentId,candidateId,true);
++        const replay=(await client.query<Revision>('SELECT * FROM pet_schema.ocr_review_revisions WHERE owner_id=$1 AND idempotency_key=$2',[owner.sub,key])).rows[0];
++        if (replay) {
++          if (replay.candidate_id!==candidateId||replay.payload_identity!==signature) this.conflict();
++          return this.presentation(context,replay);
++        }
++        const head=await this.head(client,candidateId),version=head?.revision??0,state=head?.review_state??'PENDING_OWNER_REVIEW';
++        if (version!==expected||['CONFIRMED','REJECTED'].includes(state)||(action==='START'&&state!=='PENDING_OWNER_REVIEW')) this.conflict();
++        const next=version+1,currentText=action==='CORRECT'?text as string:head?.corrected_text??context.original_text;
++        const inserted=(await client.query<Revision>(`INSERT INTO pet_schema.ocr_review_revisions(candidate_id,revision,expected_revision,job_id,result_id,document_id,owner_id,pet_id,actor_id,action,review_state,text_version,corrected_text,original_text_identity,text_identity,source_identity,result_identity,idempotency_key,payload_identity)
++          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$7,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
++        [candidateId,next,expected,context.job_id,context.result_id,documentId,owner.sub,petId,action,action==='CONFIRM'?'CONFIRMED':action==='REJECT'?'REJECTED':'IN_REVIEW',action==='CORRECT'?next:head?.text_version??0,currentText,context.original_text_identity,digest(currentText),context.source_identity,context.result_identity,key,signature])).rows[0];
++        return this.presentation(context,inserted);
++      });
++    } catch(error) {
++      if (['40001','23505'].includes((error as {code?:string})?.code??'')) this.conflict();
++      throw error;
++    }
++  }
++}
+diff --git a/backend/test/owner-ocr-review-migration.e2e-spec.ts b/backend/test/owner-ocr-review-migration.e2e-spec.ts
+new file mode 100644
+index 0000000..d9d3322
+--- /dev/null
++++ b/backend/test/owner-ocr-review-migration.e2e-spec.ts
+@@ -0,0 +1,22 @@
++import {execFileSync} from 'node:child_process';
++import {randomUUID,createHash} from 'node:crypto';
++import {Client} from 'pg';
++jest.setTimeout(120000);
++describe('Populated W4B01 -> W4B02 migration',()=>{
++  it('preserves exact legacy/job/raw/candidate rows and70 migration hashes, initializes no Owner decisions',async()=>{
++    const url=new URL(process.env.DATABASE_URL!);if(process.env.W4B02_ACCEPTANCE!=='true'||url.hostname!=='postgres'||!url.pathname.startsWith('/vethelp_w4b02_'))throw new Error('Owned Docker DB only');
++    const admin=new Client({connectionString:url.toString()});await admin.connect();const name='vethelp_w4b02_upgrade_'+randomUUID().replace(/-/g,'');let db:Client|undefined;
++    const migrate=(args:string[])=>execFileSync(process.execPath,['node_modules/node-pg-migrate/bin/node-pg-migrate.js',...args,'--migrations-dir','migrations/node-pg','--migrations-table','schema_migrations','--single-transaction'],{env:{...process.env,DATABASE_URL:url.toString()},stdio:'pipe',timeout:60000});
++    try{await admin.query(`CREATE DATABASE "${name}"`);url.pathname='/'+name;migrate(['up','1719740000000','--timestamp']);db=new Client({connectionString:url.toString()});await db.connect();
++      const owner=randomUUID(),pet=randomUUID(),doc=randomUUID(),job=randomUUID(),attempt=randomUUID(),result=randomUUID(),candidate=randomUUID(),legacy={text:'Legacy value',unknown:{preserve:true}},extraction={text:'Original extracted text',provider:'SIMULATED_OCR'};
++      const hash=(s:string)=>createHash('sha256').update(s).digest('hex');
++      await db.query('INSERT INTO identity_schema.users(id) VALUES($1)',[owner]);await db.query(`INSERT INTO pet_schema.pets(id,owner_id,name,species,medical_history_ocr) VALUES($1,$2,'Legacy','DOG',$3)`,[pet,owner,JSON.stringify(legacy)]);await db.query(`INSERT INTO pet_schema.pet_documents(id,pet_id,owner_id,file_url,doc_type,status,ocr_result) VALUES($1,$2,$3,'source','HISTORY','PROCESSED',$4)`,[doc,pet,owner,JSON.stringify(legacy)]);
++      await db.query(`INSERT INTO pet_schema.ocr_jobs(id,document_id,owner_id,pet_id,source_identity,source_snapshot,state,attempt_count) VALUES($1,$2,$3,$4,$5,$6,'SUCCEEDED',1)`,[job,doc,owner,pet,hash('source'),JSON.stringify({documentId:doc,documentType:'HISTORY'})]);
++      await db.query(`INSERT INTO pet_schema.ocr_attempts(id,job_id,attempt_number,status,finished_at,provider_identity) VALUES($1,$2,1,'SUCCEEDED',clock_timestamp(),'SIMULATED_OCR')`,[attempt,job]);await db.query(`INSERT INTO pet_schema.ocr_results(id,job_id,attempt_id,document_id,owner_id,pet_id,source_identity,result_identity,extraction) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,[result,job,attempt,doc,owner,pet,hash('source'),hash(JSON.stringify(extraction)),JSON.stringify(extraction)]);await db.query(`INSERT INTO pet_schema.ocr_candidates(id,result_id,job_id,extracted_text) VALUES($1,$2,$3,$4)`,[candidate,result,job,extraction.text]);
++      const tables=['pets','pet_documents','ocr_jobs','ocr_attempts','ocr_results','ocr_candidates'];const before:Record<string,unknown>={};for(const t of tables)before[t]=(await db.query(`SELECT * FROM pet_schema.${t}`)).rows;
++      execFileSync(process.execPath,['scripts/verify-migration-checksums.cjs','--write-missing'],{env:{...process.env,DATABASE_URL:url.toString()},stdio:'pipe'});const hashes=(await db.query('SELECT * FROM schema_migration_checksums WHERE file_name NOT LIKE $1 ORDER BY file_name',['171975%'])).rows;
++      migrate(['up']);execFileSync(process.execPath,['scripts/verify-migration-checksums.cjs'],{env:{...process.env,DATABASE_URL:url.toString()},stdio:'pipe'});
++      for(const t of tables)expect((await db.query(`SELECT * FROM pet_schema.${t}`)).rows).toEqual(before[t]);expect((await db.query('SELECT * FROM schema_migration_checksums WHERE file_name NOT LIKE $1 ORDER BY file_name',['171975%'])).rows).toEqual(hashes);expect(hashes).toHaveLength(70);expect((await db.query('SELECT * FROM pet_schema.ocr_review_revisions')).rows).toHaveLength(0);expect((await db.query('SELECT authority,raw_result FROM pet_schema.ocr_legacy_unverified')).rows).toEqual([{authority:'LEGACY_UNVERIFIED',raw_result:legacy},{authority:'LEGACY_UNVERIFIED',raw_result:legacy}]);expect(()=>migrate(['down','1'])).toThrow();
++    }finally{await db?.end();await admin.query(`DROP DATABASE IF EXISTS "${name}"`);await admin.end();}
++  });
++});
+diff --git a/backend/test/owner-ocr-review.e2e-spec.ts b/backend/test/owner-ocr-review.e2e-spec.ts
+new file mode 100644
+index 0000000..27d3abd
+--- /dev/null
++++ b/backend/test/owner-ocr-review.e2e-spec.ts
+@@ -0,0 +1,137 @@
++import 'reflect-metadata';
++import { INestApplication } from '@nestjs/common';
++import { NestFactory } from '@nestjs/core';
++import { JwtService } from '@nestjs/jwt';
++import { createHash, randomUUID } from 'node:crypto';
++import { readFileSync } from 'node:fs';
++import request from 'supertest';
++import { Role, JwtPayload } from '../src/auth/auth.types';
++import { OwnerOcrService } from '../src/auth/owner-ocr.service';
++import { OwnerOcrReviewService } from '../src/auth/owner-ocr-review.service';
++import { OwnerPetService } from '../src/auth/owner-pet.service';
++import { BookingErrorFilter } from '../src/common/booking-error.filter';
++import { DatabaseService } from '../src/database/database.service';
++import { config } from '../src/config';
++import { NestRoot } from '../src/nest-root-full';
++
++jest.setTimeout(90000);
++describe('Owner OCR review authority (real PostgreSQL/Nest)',()=>{
++  let app:INestApplication,db:DatabaseService,jobs:OwnerOcrService,reviews:OwnerOcrReviewService,jwt:JwtService;
++  const ownerId=randomUUID(),foreignId=randomUUID(),pet=randomUUID(),foreignPet=randomUUID();
++  const owner:JwtPayload={sub:ownerId,roles:[Role.OWNER]},foreign:JwtPayload={sub:foreignId,roles:[Role.OWNER]};
++  const legacy={text:'LEGACY_UNVERIFIED_PRIVATE'},original='ORIGINAL_PRIVATE_EXTRACTION';
++  const digest=(text:string)=>createHash('sha256').update(text).digest('hex');
++  const token=(sub=ownerId,roles=[Role.OWNER])=>jwt.signAsync({sub,roles},{secret:config.jwtSecret,issuer:config.jwtIssuer,audience:config.jwtAudience,algorithm:'HS256'});
++  type Fixture={doc:string,candidate:string,job:string,result:string};
++  const path=(f:Fixture,p=pet)=>`/v1/owner/pets/${p}/documents/${f.doc}/ocr/candidates/${f.candidate}/review`;
++  async function document(p:string=pet,o:string=ownerId){const id=randomUUID();await db.query(`INSERT INTO pet_schema.pet_documents(id,owner_id,pet_id,file_url,doc_type,status,ocr_result,storage_key) VALUES($1,$2,$3,'PRIVATE_STORAGE_URL','HISTORY','PROCESSED',$4,'PRIVATE_STORAGE_KEY')`,[id,o,p,JSON.stringify(legacy)]);return id;}
++  async function fixture(p=pet,actor=owner):Promise<Fixture>{const doc=await document(p,actor.sub),job=await jobs.enqueue(actor,p,doc),claim=await jobs.claim();expect(claim?.document_id).toBe(doc);expect(await jobs.finish(claim!,{text:original,provider:'SIMULATED_OCR'})).toBe(true);const raw=await jobs.read(actor,p,doc);return{doc,candidate:raw.result!.candidate.candidateId,job:job.jobId,result:raw.result!.resultId};}
++  const mutate=(f:Fixture,action:'START'|'CORRECT'|'CONFIRM'|'REJECT',revision=0,body:unknown={},key=randomUUID())=>reviews.mutate(owner,pet,f.doc,f.candidate,action,body,`"${revision}"`,key);
++  const read=(f:Fixture)=>reviews.read(owner,pet,f.doc,f.candidate);
++  const snapshot=async(f:Fixture)=>(await db.query(`SELECT row_to_json(p) pet,row_to_json(d) document,row_to_json(j) job,row_to_json(r) raw,row_to_json(c) candidate
++    FROM pet_schema.pets p JOIN pet_schema.pet_documents d ON d.pet_id=p.id JOIN pet_schema.ocr_jobs j ON j.document_id=d.id JOIN pet_schema.ocr_results r ON r.job_id=j.id JOIN pet_schema.ocr_candidates c ON c.result_id=r.id WHERE c.id=$1`,[f.candidate])).rows[0];
++  beforeAll(async()=>{
++    if(process.env.W4B02_ACCEPTANCE!=='true'||new URL(config.databaseUrl).hostname!=='postgres'||!new URL(config.databaseUrl).pathname.startsWith('/vethelp_w4b02_'))throw new Error('Exclusive test-owned Docker required');
++    app=await NestFactory.create(NestRoot,{logger:false});app.useGlobalFilters(new BookingErrorFilter());await app.init();db=app.get(DatabaseService);jobs=app.get(OwnerOcrService);reviews=app.get(OwnerOcrReviewService);jwt=app.get(JwtService);
++    await db.query('INSERT INTO identity_schema.users(id) VALUES($1),($2)',[ownerId,foreignId]);
++    await db.query(`INSERT INTO pet_schema.pets(id,owner_id,name,species,medical_history_ocr) VALUES($1,$2,'Review','DOG',$3),($4,$5,'Foreign','CAT',NULL)`,[pet,ownerId,JSON.stringify(legacy),foreignPet,foreignId]);
++  });
++  afterEach(async()=>{await db.query(`UPDATE pet_schema.ocr_attempts SET status='FAILED',finished_at=clock_timestamp(),error_code='PROVIDER_FAILED' WHERE status='RUNNING'`);await db.query(`UPDATE pet_schema.ocr_jobs SET state='FAILED',claim_token=NULL,lease_until=NULL,error_code='PROVIDER_FAILED' WHERE state IN('QUEUED','RUNNING')`);});
++  afterAll(async()=>{await app?.close();});
++
++  it.each(['','   '])('historically permitted blank raw text %j can be started and rejected unchanged',async raw=>{
++    const doc=await document(),job=randomUUID(),attempt=randomUUID(),result=randomUUID(),candidate=randomUUID(),source=digest('metadata'),extraction={text:raw};
++    await db.query(`INSERT INTO pet_schema.ocr_jobs(id,document_id,owner_id,pet_id,source_identity,source_snapshot,state,attempt_count) VALUES($1,$2,$3,$4,$5,'{}','SUCCEEDED',1)`,[job,doc,ownerId,pet,source]);
++    await db.query(`INSERT INTO pet_schema.ocr_attempts(id,job_id,attempt_number,status,finished_at) VALUES($1,$2,1,'SUCCEEDED',clock_timestamp())`,[attempt,job]);
++    await db.query(`INSERT INTO pet_schema.ocr_results(id,job_id,attempt_id,document_id,owner_id,pet_id,source_identity,result_identity,extraction) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,[result,job,attempt,doc,ownerId,pet,source,digest(JSON.stringify(extraction)),JSON.stringify(extraction)]);
++    await db.query(`INSERT INTO pet_schema.ocr_candidates(id,result_id,job_id,extracted_text) VALUES($1,$2,$3,$4)`,[candidate,result,job,raw]);
++    const f={doc,job,result,candidate};expect(await mutate(f,'START')).toMatchObject({revision:1,text:raw,textVersion:0});expect(await mutate(f,'REJECT',1)).toMatchObject({revision:2,text:raw,textVersion:0,reviewState:'REJECTED'});expect((await read(f)).originalText).toBe(raw);
++  });
++  it('GET is side-effect free virtual revision0/PENDING with original text and no-store ETag',async()=>{
++    const f=await fixture(),response=await request(app.getHttpServer()).get(path(f)).set('Authorization',`Bearer ${await token()}`);
++    expect(response.status).toBe(200);expect(response.headers.etag).toBe('"0"');expect(response.headers['cache-control']).toBe('no-store');expect(response.body).toMatchObject({reviewState:'PENDING_OWNER_REVIEW',revision:0,textVersion:0,text:original,originalText:original,authority:'OWNER_DECISION_ONLY',sourceByteIntegrity:'DEFERRED_BLOCKING_VALIDATED_IMPORT',history:[],decision:null});expect((await db.query('SELECT * FROM pet_schema.ocr_review_revisions WHERE candidate_id=$1',[f.candidate])).rows).toHaveLength(0);expect(JSON.stringify(response.body)).not.toMatch(/PRIVATE_STORAGE|claim_token|lease_until|payload_identity|corrected_text|owner_id/);
++  });
++  it('start/correct/confirm records exact text revision and leaves raw/provenance/Pet/job untouched',async()=>{
++    const f=await fixture(),before=await snapshot(f);expect(await mutate(f,'START')).toMatchObject({reviewState:'IN_REVIEW',revision:1,textVersion:0});
++    expect(await mutate(f,'CORRECT',1,{text:'Owner corrected text'})).toMatchObject({revision:2,textVersion:2,text:'Owner corrected text'});
++    expect(await mutate(f,'CONFIRM',2)).toMatchObject({revision:3,reviewState:'CONFIRMED',textVersion:2,originalText:original,text:'Owner corrected text',authority:'OWNER_DECISION_ONLY',decision:{expectedRevision:2,actorId:ownerId,action:'CONFIRM'}});
++    const final=await read(f);expect(final.history.map(r=>[r.revision,r.action,r.textVersion])).toEqual([[1,'START',0],[2,'CORRECT',2],[3,'CONFIRM',2]]);expect(final.originalTextIdentity).toBe(digest(original));expect(final.textIdentity).toBe(digest('Owner corrected text'));
++    const raw=await jobs.read(owner,pet,f.doc);expect(raw.state).toBe('SUCCEEDED');expect(raw.result).toMatchObject({authority:'UNCONFIRMED',extraction:{text:original},candidate:{text:original,reviewState:'CONFIRMED'}});expect(await snapshot(f)).toEqual(before);
++  });
++  it('multiple corrections retain every version and rejection is terminal',async()=>{
++    const f=await fixture();await mutate(f,'CORRECT',0,{text:'first'});await mutate(f,'CORRECT',1,{text:'second'});await mutate(f,'REJECT',2);const final=await read(f);expect(final).toMatchObject({reviewState:'REJECTED',revision:3,textVersion:2,text:'second'});expect(final.history.map(r=>r.text)).toEqual(['first','second','second']);await expect(mutate(f,'CONFIRM',3)).rejects.toMatchObject({status:409});await expect(mutate(f,'CORRECT',3,{text:'third'})).rejects.toMatchObject({status:409});
++  });
++  it('explicit confirmation of original revision0 is non-authoritative and double confirmation conflicts',async()=>{
++    const f=await fixture();expect(await mutate(f,'CONFIRM')).toMatchObject({revision:1,textVersion:0,reviewState:'CONFIRMED',text:original,authority:'OWNER_DECISION_ONLY'});await expect(mutate(f,'CONFIRM',1)).rejects.toMatchObject({status:409});await expect(mutate(f,'REJECT',1)).rejects.toMatchObject({status:409});
++  });
++  it('stale revision and repeated START cannot create a hidden version',async()=>{const f=await fixture();await mutate(f,'START');await expect(mutate(f,'START',1)).rejects.toMatchObject({status:409});await expect(mutate(f,'CONFIRM',0)).rejects.toMatchObject({status:409});expect((await read(f)).revision).toBe(1);});
++  it.each(['CONFIRM','REJECT'] as const)('concurrent correction versus %s accepts exactly one revision',async action=>{
++    const f=await fixture(),rs=await Promise.allSettled([mutate(f,'CORRECT',0,{text:'RACE_PRIVATE_CORRECTION'}),mutate(f,action)]);expect(rs.filter(r=>r.status==='fulfilled')).toHaveLength(1);expect(rs.filter(r=>r.status==='rejected')).toHaveLength(1);expect((rs.find(r=>r.status==='rejected') as PromiseRejectedResult).reason.status).toBe(409);expect((await read(f)).history).toHaveLength(1);
++  });
++  it('simultaneous confirm/reject yields one terminal decision',async()=>{const f=await fixture();const rs=await Promise.allSettled([mutate(f,'CONFIRM'),mutate(f,'REJECT')]);expect(rs.filter(r=>r.status==='fulfilled')).toHaveLength(1);expect((await read(f)).history).toHaveLength(1);});
++  it('concurrent identical idempotency replay writes once and returns original response after newer decision',async()=>{
++    const f=await fixture(),key=randomUUID(),rs=await Promise.all(Array.from({length:6},()=>mutate(f,'CORRECT',0,{text:'stable'},key)));for(const r of rs)expect(r).toEqual(rs[0]);await mutate(f,'CONFIRM',1);expect(await mutate(f,'CORRECT',0,{text:'stable'},key)).toEqual(rs[0]);expect((await read(f)).reviewState).toBe('CONFIRMED');expect((await read(f)).history).toHaveLength(2);
++  });
++  it('same idempotency key with changed text, action, revision or candidate conflicts',async()=>{
++    const f=await fixture(),g=await fixture(),key=randomUUID();await mutate(f,'CORRECT',0,{text:'one'},key);
++    for(const request of [()=>mutate(f,'CORRECT',0,{text:'two'},key),()=>mutate(f,'CONFIRM',0,{},key),()=>mutate(f,'CORRECT',1,{text:'one'},key),()=>mutate(g,'CORRECT',0,{text:'one'},key)])await expect(request()).rejects.toMatchObject({status:409});
++  });
++  it('same Owner idempotency key concurrently used on different candidates rolls back losing revision',async()=>{
++    const f=await fixture(),g=await fixture(),key=randomUUID(),rs=await Promise.allSettled([mutate(f,'CONFIRM',0,{},key),mutate(g,'CONFIRM',0,{},key)]);expect(rs.filter(r=>r.status==='fulfilled')).toHaveLength(1);expect((await read(f)).revision+(await read(g)).revision).toBe(1);
++  });
++  it.each([Role.CLINIC_ADMIN,Role.CLINIC_RECEPTIONIST,Role.CLINIC_VETERINARIAN,Role.PLATFORM_ADMIN,Role.SUPPORT_L2])('HTTP role %s cannot inspect/correct/decide even with matching sub',async role=>{
++    const f=await fixture(),auth=await token(ownerId,[role]);for(const [method,url] of [['get',path(f)],['post',path(f)+'/corrections'],['post',path(f)+'/confirm'],['post',path(f)+'/reject']] as const){const r=await request(app.getHttpServer())[method](url).set('Authorization',`Bearer ${auth}`).set('If-Match','"0"').set('Idempotency-Key',randomUUID()).send({});expect(r.status).toBe(403);expect(JSON.stringify(r.body)).not.toContain(original);}
++  });
++  it('foreign Owner/Pet/document/candidate references fail404 before read or replay',async()=>{
++    const f=await fixture(),g=await fixture(foreignPet,foreign),sameOwnerOther=await fixture(),key=randomUUID();await mutate(f,'CONFIRM',0,{},key);
++    for(const [actor,p,d,c] of [[foreign,pet,f.doc,f.candidate],[owner,foreignPet,f.doc,f.candidate],[owner,pet,g.doc,g.candidate],[owner,pet,sameOwnerOther.doc,f.candidate],[owner,pet,f.doc,g.candidate],[owner,pet,f.doc,randomUUID()]] as [JwtPayload,string,string,string][]){await expect(reviews.read(actor,p,d,c)).rejects.toMatchObject({status:404});await expect(reviews.mutate(actor,p,d,c,'CONFIRM',{},'"0"',key)).rejects.toMatchObject({status:404});}
++  });
++  it.each(['deleted','archived','ownerChanged'])('current source %s denies read, new decision and idempotency replay',async mode=>{
++    const f=await fixture(),key=randomUUID();await mutate(f,'START',0,{},key);
++    if(mode==='deleted')await db.query('UPDATE pet_schema.pet_documents SET deleted_at=clock_timestamp() WHERE id=$1',[f.doc]);
++    if(mode==='archived')await db.query('UPDATE pet_schema.pets SET archived_at=clock_timestamp() WHERE id=$1',[pet]);
++    if(mode==='ownerChanged')await db.query('UPDATE pet_schema.pets SET owner_id=$2 WHERE id=$1',[pet,foreignId]);
++    try{await expect(read(f)).rejects.toMatchObject({status:404});await expect(mutate(f,'CONFIRM',1)).rejects.toMatchObject({status:404});await expect(mutate(f,'START',0,{},key)).rejects.toMatchObject({status:404});}
++    finally{if(mode==='archived')await db.query('UPDATE pet_schema.pets SET archived_at=NULL WHERE id=$1',[pet]);if(mode==='ownerChanged')await db.query('UPDATE pet_schema.pets SET owner_id=$2 WHERE id=$1',[pet,ownerId]);}
++  });
++  it('missing/queued/failed OCR cannot create a review',async()=>{
++    const doc=await document(),candidate=randomUUID();await expect(reviews.read(owner,pet,doc,candidate)).rejects.toMatchObject({status:404});await jobs.enqueue(owner,pet,doc);await expect(reviews.mutate(owner,pet,doc,candidate,'CONFIRM',{},'"0"',randomUUID())).rejects.toMatchObject({status:404});await jobs.finish((await jobs.claim())!,{text:''});await expect(reviews.read(owner,pet,doc,candidate)).rejects.toMatchObject({status:404});
++  });
++  it.each(['missing','weak','unquoted','leadingZero','negative','overflow'])('invalid If-Match %s fails400',async mode=>{const f=await fixture(),match={missing:undefined,weak:'W/"0"',unquoted:'0',leadingZero:'"00"',negative:'"-1"',overflow:'"2147483647"'}[mode];await expect(reviews.mutate(owner,pet,f.doc,f.candidate,'CONFIRM',{},match,randomUUID())).rejects.toMatchObject({status:400});});
++  it.each(['missing','forged'])('invalid idempotency header %s fails400',async mode=>{const f=await fixture();await expect(reviews.mutate(owner,pet,f.doc,f.candidate,'CONFIRM',{},'"0"',mode==='missing'?undefined:'forged')).rejects.toMatchObject({status:400});});
++  it.each(['missingText','empty','whitespace','oversizedUtf8','nul','invalidUtf8','unknownField','array','null'])('invalid correction %s fails400 without persistence',async name=>{
++    const f=await fixture();const bad:Record<string,unknown>={missingText:{},empty:{text:''},whitespace:{text:'  '},oversizedUtf8:{text:'я'.repeat(16385)},nul:{text:String.fromCharCode(0)},invalidUtf8:{text:String.fromCharCode(0xd800)},unknownField:{text:'x',ownerId:foreignId},array:[],null:null};await expect(mutate(f,'CORRECT',0,bad[name])).rejects.toMatchObject({status:400});expect((await read(f)).revision).toBe(0);
++  });
++  it('real HTTP exposes strong ETags, strict bodies,400/401/404/409 and bounded history pagination',async()=>{
++    const f=await fixture(),auth=`Bearer ${await token()}`;expect((await request(app.getHttpServer()).get(path(f))).status).toBe(401);
++    expect((await request(app.getHttpServer()).post(path(f)+'/confirm').set('Authorization',auth).set('If-Match','"0"').set('Idempotency-Key',randomUUID()).send({text:'forged'})).status).toBe(400);
++    expect((await request(app.getHttpServer()).get(path({...f,candidate:'forged'})).set('Authorization',auth)).status).toBe(400);
++    const corrected=await request(app.getHttpServer()).post(path(f)+'/corrections').set('Authorization',auth).set('If-Match','"0"').set('Idempotency-Key',randomUUID()).send({text:'HTTP_PRIVATE_CORRECTION'});expect(corrected.status).toBe(200);expect(corrected.headers.etag).toBe('"1"');expect(corrected.headers['cache-control']).toBe('no-store');
++    const confirmed=await request(app.getHttpServer()).post(path(f)+'/confirm').set('Authorization',auth).set('If-Match','"1"').set('Idempotency-Key',randomUUID()).send({});expect(confirmed.status).toBe(200);expect(confirmed.headers.etag).toBe('"2"');
++    expect((await request(app.getHttpServer()).post(path(f)+'/reject').set('Authorization',auth).set('If-Match','"1"').set('Idempotency-Key',randomUUID()).send({})).status).toBe(409);
++    const page=await request(app.getHttpServer()).get(path(f)+'?limit=1&offset=0').set('Authorization',auth);expect(page.status).toBe(200);expect(page.body.page).toEqual({limit:1,offset:0,total:2,nextOffset:1});expect(page.body.history).toHaveLength(1);expect(page.headers.etag).toBe('"2"');
++    expect((await request(app.getHttpServer()).get(path(f)+'?limit=21').set('Authorization',auth)).status).toBe(400);
++    expect((await request(app.getHttpServer()).get(path(f)+'?offset=1e2').set('Authorization',auth)).status).toBe(400);
++    expect(JSON.stringify((await db.query(`SELECT payload_json FROM audit_schema.audit_log WHERE actor_id=$1`,[ownerId])).rows)).not.toContain('HTTP_PRIVATE_CORRECTION');
++  });
++  it('DB rejects rewriting/deleting/truncating decisions and raw data',async()=>{
++    const f=await fixture();await mutate(f,'CORRECT',0,{text:'Private correction'});const before=await snapshot(f),history=(await db.query('SELECT * FROM pet_schema.ocr_review_revisions WHERE candidate_id=$1',[f.candidate])).rows;
++    for(const table of ['ocr_review_revisions','ocr_candidates','ocr_results']){await expect(db.query(`UPDATE pet_schema.${table} SET ${table==='ocr_review_revisions'?'corrected_text':table==='ocr_candidates'?'extracted_text':'authority'}='changed'`)).rejects.toBeDefined();await expect(db.query(`DELETE FROM pet_schema.${table}`)).rejects.toBeDefined();await expect(db.query(`TRUNCATE pet_schema.${table} CASCADE`)).rejects.toBeDefined();}
++    expect(await snapshot(f)).toEqual(before);expect((await db.query('SELECT * FROM pet_schema.ocr_review_revisions WHERE candidate_id=$1',[f.candidate])).rows).toEqual(history);
++  });
++  it('DB integrity rejects forged actor/context/identity/version/state and decision text substitution',async()=>{
++    const f=await fixture();await mutate(f,'START');const previous=(await db.query('SELECT * FROM pet_schema.ocr_review_revisions WHERE candidate_id=$1',[f.candidate])).rows[0];
++    const valid={...previous,revision:2,expected_revision:1,action:'CONFIRM',review_state:'CONFIRMED',idempotency_key:randomUUID()};
++    for(const altered of [{actor_id:foreignId},{pet_id:foreignPet},{result_id:randomUUID()},{original_text_identity:'0'.repeat(64)},{text_identity:'1'.repeat(64)},{source_identity:'2'.repeat(64)},{revision:3,expected_revision:2},{review_state:'IN_REVIEW'},{corrected_text:'FORGED_NEW_TEXT',text_identity:digest('FORGED_NEW_TEXT')},{text_version:1}])await expect(db.query('INSERT INTO pet_schema.ocr_review_revisions SELECT * FROM json_populate_record(NULL::pet_schema.ocr_review_revisions,$1::json)',[JSON.stringify({...valid,...altered,idempotency_key:randomUUID()})])).rejects.toBeDefined();expect((await read(f)).revision).toBe(1);
++  });
++  it('ledger insert failure leaves no revision or decision; retry reuses same idempotency key',async()=>{
++    const f=await fixture(),key=randomUUID();await db.query(`CREATE FUNCTION pet_schema.test_fail_review() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'test ledger failure'; END $$;CREATE TRIGGER test_fail_review BEFORE INSERT ON pet_schema.ocr_review_revisions FOR EACH ROW EXECUTE FUNCTION pet_schema.test_fail_review();`);
++    try{await expect(mutate(f,'CONFIRM',0,{},key)).rejects.toThrow('test ledger failure');expect((await read(f)).revision).toBe(0);}finally{await db.query('DROP TRIGGER test_fail_review ON pet_schema.ocr_review_revisions;DROP FUNCTION pet_schema.test_fail_review();');}
++    expect(await mutate(f,'CONFIRM',0,{},key)).toMatchObject({reviewState:'CONFIRMED',revision:1});
++  });
++  it('confirmation preserves legacy LEGACY_UNVERIFIED and never writes Pet or validated imports',async()=>{
++    const f=await fixture();await mutate(f,'CONFIRM');expect((await db.query(`SELECT authority,raw_result FROM pet_schema.ocr_legacy_unverified WHERE pet_id=$1 AND (document_id=$2 OR document_id IS NULL)`,[pet,f.doc])).rows).toEqual([{authority:'LEGACY_UNVERIFIED',raw_result:legacy},{authority:'LEGACY_UNVERIFIED',raw_result:legacy}]);
++    expect(JSON.stringify(await app.get(OwnerPetService).readMvp(owner,pet))).not.toMatch(/LEGACY_UNVERIFIED_PRIVATE|ORIGINAL_PRIVATE_EXTRACTION/);
++    const service=readFileSync('src/auth/owner-ocr-review.service.ts','utf8'),migration=readFileSync('migrations/node-pg/1719750000000_owner_ocr_review_authority.js','utf8');expect(service+migration).not.toMatch(/UPDATE\s+pet_schema\.pets|SET\s+medical_history_ocr|CREATE TABLE[^;]*validated_import/i);
++  });
++});
+diff --git a/docs/v15/15-wave4b-02-owner-ocr-review.md b/docs/v15/15-wave4b-02-owner-ocr-review.md
+new file mode 100644
+index 0000000..a4834ec
+--- /dev/null
++++ b/docs/v15/15-wave4b-02-owner-ocr-review.md
+@@ -0,0 +1,39 @@
++# V15-W4B-02 — Owner OCR review and decision authority
++
++Base: `57f0a54d82df34322542c874f309bc687c66fb7b`, accepted W4B-01. Isolated branch `agent/v15-w4b-02-review-2ajw4xh6`. Backend only; no commit/push, Owner UI, provider integration, validated import or medical-history promotion.
++
++## Decision model
++
++Raw extraction, metadata provenance and schema-v1 EXTRACTED_TEXT intake candidates remain immutable under171974. New additive171975 stores an append-only Owner decision/revision ledger. Existing candidates have virtual revision0/PENDING_OWNER_REVIEW; migration creates no Owner decisions or historical classifications. START and CORRECT enter IN_REVIEW; CONFIRM and REJECT are terminal. Direct explicit confirmation/rejection of original revision0 is permitted. Historically permitted empty raw extraction can be started/rejected unchanged; corrections must contain nonblank valid UTF-8 text within32768bytes.
++
++Each mutation appends revision=expectedRevision+1. Each correction creates a new textVersion equal to its event revision; START/CONFIRM/REJECT preserve the latest textVersion (0 means original extraction). The decision records its exact predecessor, actor, original text digest, corrected text/version/digest, candidate/job/result/document/Owner/Pet links, source/result identities, database timestamp, idempotency key and keyed request identity. UPDATE/DELETE/TRUNCATE are denied; destructive DOWN is refused. Apply171975 before starting the new binaries; deployment is outside this goal. Disabling the routes is the rollback; history is retained.
++
++The current active Pet Owner alone may read or decide. Job SHARE → Pet SHARE → Document SHARE → candidate UPDATE (SHARE for reads) locks establish current scope and serialize candidate decisions. Service and trigger verify exact context, current Owner, succeeded job, nondeleted original document, predecessor, terminal state, original/current text identities and transition. Ledger insertion commits atomically. No raw/job lifecycle or provider execution is performed by review operations.
++
++## Owner API
++
++Base: `/v1/owner/pets/:petId/documents/:documentId/ocr/candidates/:candidateId/review`.
++
++- GET retrieves original/current text, provenance identities, head and bounded history (limit1–20, default10; offset0–1000000).
++- POST `/start`, `/confirm`, `/reject` accept only an optional empty object.
++- POST `/corrections` accepts only `{text:string}`.
++
++All commands require strong numeric `If-Match: "N"` and UUID `Idempotency-Key`; responses provide strong revision ETag and no-store. Invalid shape/path/header is400; authenticated non-Owner403; unavailable or foreign exact context404; stale/terminal/idempotency conflict409. Missing/failed jobs without a candidate are404. A candidate attached to a nonsucceeded job is unavailable409. No client supplies an actor, source/job identity or authority. Closed projections exclude storage paths/URLs, lease/claim tokens, HMAC/request identities and database column names.
++
++Identical replay returns the exact original command response and revision, even after a subsequent decision. Reauthorization precedes replay, so current ownership/removal still denies access. Changed payload/action/target/predecessor with the same Owner key conflicts409. Clients GET again for current head after a replay. A fresh-key double confirmation conflicts; it is distinct from identical idempotent replay.
++
++The existing W4B-01 job GET still exposes immutable **original** candidate.text and UNCONFIRMED raw authority; its reviewState now projects current decision state. It does not return corrected text as raw extraction. Only the new review endpoint pairs corrected text with its exact revision/textVersion/decision. CONFIRMED denotes Owner-confirmed text, not medical validation. No job enqueue/retry/claim/finish behavior changes. Pilot allowances are anchored to exactly five new operations; legacy/download/import routes remain blocked.
++
++## Future validated-import authority contract — not implemented
++
++`OCR_SOURCE_BYTE_INTEGRITY=DEFERRED_BLOCKING_VALIDATED_IMPORT`.
++
++Metadata identity cannot prove original bytes. Before any validated import, require a content digest verified against the original immutable bytes, or an independently proven immutable document version; preserve its provenance and exact binding to result and confirmed textVersion. A provider result identity or Owner decision alone cannot satisfy this prerequisite. No unavailable byte provenance may be invented or backfilled as verified.
++
++A future separately authorized import must target one exact confirmed candidate revision/textVersion, recheck the current Owner/Pet/Document/result scope and source-byte proof, define trusted clinical structure/validation and an explicit import action with its own idempotency/audit boundary. Owner-confirmed free text must not be treated as diagnoses, drugs, dates or measurements. Corrections and decisions remain immutable provenance; an import cannot rewrite them or legacy LEGACY_UNVERIFIED values.
++
++Imported resources, if later implemented and accepted, require a separate explicit medical-authority classification and sharing-eligibility decision. Confirmation itself creates neither an eligible Wave4A RESULT/AMENDMENT/DOCUMENT nor a grant, and existing grants must never include OCR candidates or Owner decisions automatically. Rejection prevents import of that candidate. No import endpoint, Pet write, clinical resource or sharing-rule change exists in this slice.
++
++## Verification and limits
++
++Evidence: `docs/testing/evidence/wave4b-02-20261011/REPORT.md`, source hashes and SHA256SUMS. Automated authority checks do not imply human approval, real OCR accuracy, source-byte integrity, UI/UAT or Pilot acceptance. Follow-up W4B-03 must keep byte integrity blocking validated import; its product scope and authority must be separately agreed.

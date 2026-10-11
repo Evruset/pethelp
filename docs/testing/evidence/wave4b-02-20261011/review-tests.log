@@ -1,0 +1,59 @@
+PASS test/owner-ocr-review.e2e-spec.ts (31.456 s)
+  Owner OCR review authority (real PostgreSQL/Nest)
+    ✓ historically permitted blank raw text "" can be started and rejected unchanged (91 ms)
+    ✓ historically permitted blank raw text "   " can be started and rejected unchanged (54 ms)
+    ✓ GET is side-effect free virtual revision0/PENDING with original text and no-store ETag (113 ms)
+    ✓ start/correct/confirm records exact text revision and leaves raw/provenance/Pet/job untouched (139 ms)
+    ✓ multiple corrections retain every version and rejection is terminal (125 ms)
+    ✓ explicit confirmation of original revision0 is non-authoritative and double confirmation conflicts (98 ms)
+    ✓ stale revision and repeated START cannot create a hidden version (98 ms)
+    ✓ concurrent correction versus CONFIRM accepts exactly one revision (121 ms)
+    ✓ concurrent correction versus REJECT accepts exactly one revision (63 ms)
+    ✓ simultaneous confirm/reject yields one terminal decision (65 ms)
+    ✓ concurrent identical idempotency replay writes once and returns original response after newer decision (242 ms)
+    ✓ same idempotency key with changed text, action, revision or candidate conflicts (133 ms)
+    ✓ same Owner idempotency key concurrently used on different candidates rolls back losing revision (134 ms)
+    ✓ HTTP role CLINIC_ADMIN cannot inspect/correct/decide even with matching sub (94 ms)
+    ✓ HTTP role CLINIC_RECEPTIONIST cannot inspect/correct/decide even with matching sub (63 ms)
+    ✓ HTTP role CLINIC_VETERINARIAN cannot inspect/correct/decide even with matching sub (80 ms)
+    ✓ HTTP role PLATFORM_ADMIN cannot inspect/correct/decide even with matching sub (63 ms)
+    ✓ HTTP role SUPPORT_L2 cannot inspect/correct/decide even with matching sub (68 ms)
+    ✓ foreign Owner/Pet/document/candidate references fail404 before read or replay (181 ms)
+    ✓ current source deleted denies read, new decision and idempotency replay (95 ms)
+    ✓ current source archived denies read, new decision and idempotency replay (94 ms)
+    ✓ current source ownerChanged denies read, new decision and idempotency replay (77 ms)
+    ✓ missing/queued/failed OCR cannot create a review (39 ms)
+    ✓ invalid If-Match missing fails400 (32 ms)
+    ✓ invalid If-Match weak fails400 (86 ms)
+    ✓ invalid If-Match unquoted fails400 (139 ms)
+    ✓ invalid If-Match leadingZero fails400 (277 ms)
+    ✓ invalid If-Match negative fails400 (63 ms)
+    ✓ invalid If-Match overflow fails400 (35 ms)
+    ✓ invalid idempotency header missing fails400 (62 ms)
+    ✓ invalid idempotency header forged fails400 (73 ms)
+    ✓ invalid correction missingText fails400 without persistence (47 ms)
+    ✓ invalid correction empty fails400 without persistence (38 ms)
+    ✓ invalid correction whitespace fails400 without persistence (40 ms)
+    ✓ invalid correction oversizedUtf8 fails400 without persistence (43 ms)
+    ✓ invalid correction nul fails400 without persistence (42 ms)
+    ✓ invalid correction invalidUtf8 fails400 without persistence (47 ms)
+    ✓ invalid correction unknownField fails400 without persistence (36 ms)
+    ✓ invalid correction array fails400 without persistence (51 ms)
+    ✓ invalid correction null fails400 without persistence (65 ms)
+    ✓ real HTTP exposes strong ETags, strict bodies,400/401/404/409 and bounded history pagination (147 ms)
+    ✓ DB rejects rewriting/deleting/truncating decisions and raw data (145 ms)
+    ✓ DB integrity rejects forged actor/context/identity/version/state and decision text substitution (457 ms)
+    ✓ ledger insert failure leaves no revision or decision; retry reuses same idempotency key (117 ms)
+    ✓ confirmation preserves legacy LEGACY_UNVERIFIED and never writes Pet or validated imports (47 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       45 passed, 45 total
+Snapshots:   0 total
+Time:        32.382 s
+Ran all test suites within paths "test/owner-ocr-review.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4b-02-20261011/review-results.json
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

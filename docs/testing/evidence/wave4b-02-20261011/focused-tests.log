@@ -1,0 +1,22 @@
+FAIL test/owner-ocr-review.e2e-spec.ts
+  ● Test suite failed to run
+
+    [96mtest/owner-ocr-review.e2e-spec.ts[0m:[93m28[0m:[93m89[0m - [91merror[0m[90m TS2345: [0mArgument of type 'string' is not assignable to parameter of type '`${string}-${string}-${string}-${string}-${string}`'.
+
+    [7m28[0m   async function fixture(p=pet,actor=owner):Promise<Fixture>{const doc=await document(p,actor.sub),job=await jobs.enqueue(actor,p,doc),claim=await jobs.claim();expect(claim?.document_id).toBe(doc);expect(await jobs.finish(claim!,{text:original,provider:'SIMULATED_OCR'})).toBe(true);const raw=await jobs.read(actor,p,doc);return{doc,candidate:raw.result!.candidate.candidateId,job:job.jobId,result:raw.result!.resultId};}
+    [7m  [0m [91m                                                                                        ~~~~~~~~~[0m
+
+PASS test/owner-ocr-review-migration.e2e-spec.ts (5.862 s)
+PASS src/config/mvp-product-scope.guard.spec.ts
+
+Test Suites: 1 failed, 2 passed, 3 total
+Tests:       21 passed, 21 total
+Snapshots:   0 total
+Time:        13.645 s
+Ran all test suites within paths "test/owner-ocr-review.e2e-spec.ts", "test/owner-ocr-review-migration.e2e-spec.ts", "src/config/mvp-product-scope.guard.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4b-02-20261011/focused-results.json
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

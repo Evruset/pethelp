@@ -1,0 +1,11 @@
+{
+  "originalWorktreeEntries": 674,
+  "originalSnapshotUnchanged": true,
+  "originalSnapshotSha256": "f4fe840760b5c771ac774d252cea85b2303dc535872bf255450900dbbdb9fbb5",
+  "implementationHead": "57f0a54d82df34322542c874f309bc687c66fb7b",
+  "indexEmpty": true,
+  "historicalMigrationSourcesUnchanged": true,
+  "jobRetryClaimFinishUnchanged": true,
+  "openapiDelta": "5 new paths; raw candidate reviewState enum only; all other contracts identical",
+  "diffCheck": "PASS"
+}

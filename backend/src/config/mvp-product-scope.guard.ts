@@ -15,6 +15,9 @@ export function isPilotBackendRouteAllowed(pathname: string, method?: string): b
   // BP-15 foundation opens only these explicit Owner OCR methods; legacy document routes stay closed.
   if (/^\/v1\/owner\/pets\/[^/]+\/documents\/[^/]+\/ocr$/.test(pathname) && ['GET','POST'].includes(method?.toUpperCase() ?? '')) return true;
   if (/^\/v1\/owner\/pets\/[^/]+\/documents\/[^/]+\/ocr\/retry$/.test(pathname) && method?.toUpperCase() === 'POST') return true;
+  const review = /^\/v1\/owner\/pets\/[^/]+\/documents\/[^/]+\/ocr\/candidates\/[^/]+\/review/;
+  if (new RegExp(review.source+'$').test(pathname) && method?.toUpperCase()==='GET') return true;
+  if (new RegExp(review.source+'/(start|corrections|confirm|reject)$').test(pathname) && method?.toUpperCase()==='POST') return true;
   return !pilotBlockedRoutes.some((route) => route.pattern.test(pathname) && (!route.method || route.method === method?.toUpperCase()));
 }
 

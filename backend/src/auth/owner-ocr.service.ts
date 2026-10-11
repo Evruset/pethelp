@@ -53,8 +53,8 @@ export class OwnerOcrService {
       const job = (await client.query<Job>(`SELECT * FROM pet_schema.ocr_jobs WHERE document_id=$1 AND owner_id=$2 AND pet_id=$3 FOR SHARE`, [documentId, owner.sub, petId])).rows[0];
       if (!job || !await this.source(client, owner.sub, petId, documentId)) this.missing();
       const result = (await client.query(`SELECT r.id,r.extraction,r.result_identity,r.extracted_at,a.provider_identity,a.provider_version,a.started_at,a.finished_at,
-        c.id candidate_id,c.extracted_text,c.schema_version,c.kind,c.review_state FROM pet_schema.ocr_results r
-        JOIN pet_schema.ocr_attempts a ON a.id=r.attempt_id JOIN pet_schema.ocr_candidates c ON c.result_id=r.id WHERE r.job_id=$1`, [job.id])).rows[0];
+        c.id candidate_id,c.extracted_text,c.schema_version,c.kind,COALESCE(review.review_state,c.review_state) review_state FROM pet_schema.ocr_results r
+        JOIN pet_schema.ocr_attempts a ON a.id=r.attempt_id JOIN pet_schema.ocr_candidates c ON c.result_id=r.id LEFT JOIN LATERAL (SELECT review_state FROM pet_schema.ocr_review_revisions WHERE candidate_id=c.id ORDER BY revision DESC LIMIT 1) review ON true WHERE r.job_id=$1`, [job.id])).rows[0];
       const attempts = (await client.query(`SELECT attempt_number AS "attemptNumber",status,started_at AS "startedAt",finished_at AS "finishedAt",error_code AS "errorCode"
         FROM pet_schema.ocr_attempts WHERE job_id=$1 ORDER BY attempt_number`, [job.id])).rows;
       return { ...this.presentJob(job), attempts, result: result ? {

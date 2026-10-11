@@ -59,3 +59,13 @@ describe('OCR exact Pilot route allowance',()=>{
     for(const [p,m] of [[path,'DELETE'],[path,'PATCH'],[path+'/retry','GET'],[path+'/confirm','POST'],[path+'/extra','GET'],['/v1/owner/pets/pet-id/documents','POST'],['/v1/owner/pets/pet-id/documents/document-id/download','GET']])expect(isPilotBackendRouteAllowed(p,m)).toBe(false);
   });
 });
+
+describe('OCR review exact Pilot allowance',()=>{
+  it('opens only read and four explicit mutation methods, preserving job/retry and legacy blocks',()=>{
+    const path='/v1/owner/pets/pet/documents/doc/ocr/candidates/candidate/review';
+    expect(isPilotBackendRouteAllowed(path,'GET')).toBe(true);
+    for(const action of ['start','corrections','confirm','reject'])expect(isPilotBackendRouteAllowed(path+'/'+action,'POST')).toBe(true);
+    for(const [p,method] of [[path,'POST'],[path,'PATCH'],[path+'/confirm','GET'],[path+'/confirm/extra','POST'],[path+'/validated-import','POST'],['/v1/owner/pets/pet/documents/doc/download','GET']])expect(isPilotBackendRouteAllowed(p,method)).toBe(false);
+    expect(isPilotBackendRouteAllowed('/v1/owner/pets/pet/documents/doc/ocr','POST')).toBe(true);expect(isPilotBackendRouteAllowed('/v1/owner/pets/pet/documents/doc/ocr/retry','POST')).toBe(true);
+  });
+});

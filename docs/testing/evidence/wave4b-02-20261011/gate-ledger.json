@@ -1,0 +1,96 @@
+[
+  {
+    "gate": "Owner review authority / concurrency / privacy",
+    "status": "PASS",
+    "count": 45,
+    "evidence": "review-results.json",
+    "fresh_or_reused": "FRESH",
+    "evidence_revision": "2dd5296b18f626a77b4eda8ce1fdacdc433ef05f341473a5557092a154c250e1",
+    "dependency_surface": "Owner review authority / concurrency / privacy",
+    "invalidated_by": null
+  },
+  {
+    "gate": "Pilot route boundary",
+    "status": "PASS",
+    "count": 20,
+    "evidence": "focused-results.json",
+    "fresh_or_reused": "FRESH",
+    "evidence_revision": "2dd5296b18f626a77b4eda8ce1fdacdc433ef05f341473a5557092a154c250e1",
+    "dependency_surface": "Pilot route boundary",
+    "invalidated_by": null
+  },
+  {
+    "gate": "populated70→71 upgrade/legacy preservation",
+    "status": "PASS",
+    "count": 1,
+    "evidence": "focused-results.json",
+    "fresh_or_reused": "FRESH",
+    "evidence_revision": "2dd5296b18f626a77b4eda8ce1fdacdc433ef05f341473a5557092a154c250e1",
+    "dependency_surface": "populated70→71 upgrade/legacy preservation",
+    "invalidated_by": null
+  },
+  {
+    "gate": "confirmed OCR clinic-sharing isolation",
+    "status": "PASS",
+    "count": 1,
+    "evidence": "sharing-results.json",
+    "fresh_or_reused": "FRESH",
+    "evidence_revision": "2dd5296b18f626a77b4eda8ce1fdacdc433ef05f341473a5557092a154c250e1",
+    "dependency_surface": "confirmed OCR clinic-sharing isolation",
+    "invalidated_by": null
+  },
+  {
+    "gate": "fresh71migrations/checksums",
+    "status": "PASS",
+    "evidence": "fresh-migrations-repaired.log + fresh-checksums.log",
+    "fresh_or_reused": "FRESH",
+    "evidence_revision": "2dd5296b18f626a77b4eda8ce1fdacdc433ef05f341473a5557092a154c250e1",
+    "dependency_surface": "fresh71migrations/checksums",
+    "invalidated_by": null
+  },
+  {
+    "gate": "backendbuild",
+    "status": "PASS",
+    "evidence": "backend-build-final.log",
+    "fresh_or_reused": "FRESH",
+    "evidence_revision": "2dd5296b18f626a77b4eda8ce1fdacdc433ef05f341473a5557092a154c250e1",
+    "dependency_surface": "backendbuild",
+    "invalidated_by": null
+  },
+  {
+    "gate": "sixOpenAPIassertions",
+    "status": "PASS",
+    "evidence": "assert-*.log",
+    "fresh_or_reused": "FRESH",
+    "evidence_revision": "2dd5296b18f626a77b4eda8ce1fdacdc433ef05f341473a5557092a154c250e1",
+    "dependency_surface": "sixOpenAPIassertions",
+    "invalidated_by": null
+  },
+  {
+    "gate": "DB/Security/Architecture",
+    "status": "NO VETO",
+    "evidence": "*-REVIEW.md",
+    "fresh_or_reused": "FRESH",
+    "evidence_revision": "2dd5296b18f626a77b4eda8ce1fdacdc433ef05f341473a5557092a154c250e1",
+    "dependency_surface": "DB/Security/Architecture",
+    "invalidated_by": null
+  },
+  {
+    "gate": "original674/index/historicalsource/retainedresources",
+    "status": "PASS",
+    "evidence": "preservation-contract-verification.json + resource-verification.json",
+    "fresh_or_reused": "FRESH",
+    "evidence_revision": "2dd5296b18f626a77b4eda8ce1fdacdc433ef05f341473a5557092a154c250e1",
+    "dependency_surface": "original674/index/historicalsource/retainedresources",
+    "invalidated_by": null
+  },
+  {
+    "gate": "W1–4A/T044/unaffectedW4B01",
+    "status": "REUSED_STICKY_PASS",
+    "evidence": "accepted baseline docs/testing/evidence/wave4b-01-20261011/ACCEPTANCE.md + wave4a-final-20261011/ACCEPTANCE.md",
+    "fresh_or_reused": "REUSED",
+    "evidence_revision": "2dd5296b18f626a77b4eda8ce1fdacdc433ef05f341473a5557092a154c250e1",
+    "dependency_surface": "W1–4A/T044/unaffectedW4B01",
+    "invalidated_by": null
+  }
+]

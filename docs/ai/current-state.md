@@ -1,5 +1,23 @@
 # V50 program current state
 
+## 2026-10-11 — V15-W4B-02 Product Owner technical acceptance / publication
+
+`WAVE4B_02_MACHINE_COMPLETE=YES`, `WAVE4B_02_HUMAN_ACCEPTANCE=APPROVED`, `WAVE4B_02_COMPLETE=YES`, `WAVE4B_03_READY_FOR_DESIGN=YES` under explicit Product Owner/Acting Technical Lead decision V15-W4B-02-ACCEPT. Decision and limits: `docs/testing/evidence/wave4b-02-20261011/ACCEPTANCE.md`. This supersedes historical human NOT_RECORDED below; original machine reports/source hashes remain intact.
+
+Accepted67uniquePASS/0unresolvedFAIL,71migrations/checksums, populated upgrade, backendbuild/sixOpenAPIassertions and DB/Security/ArchitectureNO VETO. Owner text decisions are not clinical validation. `OCR_SOURCE_BYTE_INTEGRITY=DEFERRED_BLOCKING_VALIDATED_IMPORT`; no validated import, Pet-history promotion, UI, real OCR accuracy, UAT or Pilot acceptance implied.
+
+Publication authorized only on `agent/v15-w4b-02-review-2ajw4xh6`, exactparent `57f0a54d82df34322542c874f309bc687c66fb7b`:17 verified implementation/test/documentation files plus preserved machine evidence and acceptance supplements. Only this current-state file receives an acceptance annotation; runtime source remains unchanged. `publication-scope.json` binds exact hashes; delivery receipt reports commit/freshremote SHA equality. Original674dirty entries preserved byte-for-byte; accepted runtime gates sticky, no reruns. STOP after remote-backed acceptance; W4B03 design recommendation only, no implementation/transition-main merge/deployment/Jira/Confluence/Wave5.
+
+## 2026-10-11 — V15-W4B-02 Owner OCR review / decision authority
+
+`WAVE4B_02_MACHINE_COMPLETE=YES`, `WAVE4B_02_READY_FOR_PO_REVIEW=YES`, `WAVE4B_02_HUMAN_ACCEPTANCE=NOT_RECORDED`. Isolated uncommitted branch `agent/v15-w4b-02-review-2ajw4xh6` from fresh published W4B01 `57f0a54d82df34322542c874f309bc687c66fb7b`. Original674dirty entries byte-for-byte preserved; empty index, no commit/push.
+
+Additive171975 append-only review revisions; exact current Owner/Pet/Document/job/result/candidate authority, explicit START/CORRECT/CONFIRM/REJECT, strong revision ETag/If-Match and Owner-keyed idempotency, immutable original/raw/provenance and decision history. Owner confirmation is OWNER_DECISION_ONLY; no Pet-history promotion, clinical facts/import, UI/provider integration or sharing-grant change. Existing raw job GET retains original candidate.text and UNCONFIRMED authority; latest reviewState is a projection; corrected confirmed text/version only comes from review API.
+
+Executed67uniquePASS/0unresolvedFAIL:45PostgreSQL/Nest review,20affectedguard,1populated70→71upgrade,1newsharing-isolation case;76acceptedsharing cases selected out. Fresh71migrations/checksums and sixOpenAPIassertions/backendbuildPASS;70historicalchecksumrows and legacy values preserved. DB/Data Authority,Security/Privacy,ArchitectureNO VETO. Failed fresh SQL/initial test typing attempts disclosed and repaired narrowly; sticky unaffected gates retained. PostgreSQL deadlocks0/idle-in-transaction0; retained container IDs/states unchanged.
+
+`OCR_SOURCE_BYTE_INTEGRITY=DEFERRED_BLOCKING_VALIDATED_IMPORT`. Future import must prove original bytes/immutable version, bind exact confirmed text revision, establish separate medical validation/import authority and sharing eligibility. W4B03 recommendation only, not implemented. Apply171975 before new binaries; rollback retains history; no deployment here. Contract `docs/v15/15-wave4b-02-owner-ocr-review.md`; executed evidence/source hashes/reviews `docs/testing/evidence/wave4b-02-20261011/REPORT.md`, `MANIFEST.json`, `SHA256SUMS`. STOP; no human approval inferred.
+
 ## 2026-10-11 — V15-W4B-01 Product Owner technical acceptance / publication checkpoint
 
 `WAVE4B_01_HUMAN_ACCEPTANCE=APPROVED` by explicit Product Owner decision for the limited OCR Authority Foundation.46uniquePASS,70migrations/populatedupgrade,build/5OpenAPIassertions and DB/SecurityNO VETO accepted; provider simulation accepted for foundation only. Authoritative decision/limits: `docs/testing/evidence/wave4b-01-20261011/ACCEPTANCE.md`. This entry supersedes historical W4B human NOT_RECORDED status below.
