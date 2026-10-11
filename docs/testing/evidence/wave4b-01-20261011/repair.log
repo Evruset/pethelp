@@ -1,0 +1,9 @@
+PASS test/owner-ocr-foundation.e2e-spec.ts (15.487 s)
+PASS test/owner-ocr-migration.e2e-spec.ts (5.748 s)
+
+Test Suites: 2 passed, 2 total
+Tests:       24 skipped, 2 passed, 26 total
+Snapshots:   0 total
+Time:        21.648 s
+Ran all test suites within paths "test/owner-ocr-foundation.e2e-spec.ts", "test/owner-ocr-migration.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4b-01-20261011/repair.json

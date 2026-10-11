@@ -1,0 +1,9 @@
+const assert=require('node:assert/strict');
+const d=require('../artifacts/openapi/swagger.json');
+const p='/v1/owner/pets/{petId}/documents/{documentId}/ocr';
+const ops=[d.paths[p].post,d.paths[p].get,d.paths[p+'/retry'].post];
+for(const op of ops){assert.ok(op.security.some(x=>'bearerAuth' in x));assert.ok(!op.parameters?.some(x=>['ownerId','sourceUrl','storageKey','claimToken'].includes(x.name)));}
+const response=(op,status)=>op.responses[status].content['application/json'].schema;
+for(const op of [ops[0],ops[2]]){const req=op.requestBody.content['application/json'].schema;assert.equal(req.additionalProperties,false);assert.deepEqual(req.properties,{});const job=response(op,201);assert.equal(job.additionalProperties,false);assert.deepEqual(job.properties.authority.enum,['UNCONFIRMED']);assert.equal(job.properties.attemptCount.maximum,3);assert.equal(job.properties.maxAttempts.enum[0],3);}
+const read=response(ops[1],200);assert.equal(read.additionalProperties,false);const result=read.properties.result;assert.equal(result.nullable,true);assert.equal(result.additionalProperties,false);assert.deepEqual(result.properties.authority.enum,['UNCONFIRMED']);const candidate=result.properties.candidate;assert.deepEqual(candidate.properties.kind.enum,['EXTRACTED_TEXT']);assert.deepEqual(candidate.properties.schemaVersion.enum,[1]);assert.deepEqual(candidate.properties.reviewState.enum,['PENDING_OWNER_REVIEW']);assert.equal(candidate.additionalProperties,false);assert.equal(result.properties.extraction.additionalProperties,false);assert.deepEqual(Object.keys(result.properties.extraction.properties).sort(),['provider','providerVersion','text']);assert.ok(!JSON.stringify(read).match(/storage_key|sourceUrl|medicalHistory|diagnosis|claim_token|lease_until/));
+console.log('Owner OCR OpenAPI closed scope/non-authority contract PASS (3 operations)');

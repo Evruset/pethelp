@@ -49,3 +49,13 @@ describe('MVP product route containment', () => {
     expect(assertMvpProductRoute(legacy, '/v1/owner/pets/pet-id', 'PATCH')).toBe(true);
   });
 });
+
+// BP-15 backend foundation: no reopening legacy document operations.
+describe('OCR exact Pilot route allowance',()=>{
+  it('allows only OCR enqueue/read and retry with their exact methods',()=>{
+    const path='/v1/owner/pets/pet-id/documents/document-id/ocr';
+    for(const method of ['GET','POST'])expect(isPilotBackendRouteAllowed(path,method)).toBe(true);
+    expect(isPilotBackendRouteAllowed(path+'/retry','POST')).toBe(true);
+    for(const [p,m] of [[path,'DELETE'],[path,'PATCH'],[path+'/retry','GET'],[path+'/confirm','POST'],[path+'/extra','GET'],['/v1/owner/pets/pet-id/documents','POST'],['/v1/owner/pets/pet-id/documents/document-id/download','GET']])expect(isPilotBackendRouteAllowed(p,m)).toBe(false);
+  });
+});

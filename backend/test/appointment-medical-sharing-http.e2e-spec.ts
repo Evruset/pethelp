@@ -12,6 +12,7 @@ import { BookingErrorFilter } from '../src/common/booking-error.filter';
 import { config } from '../src/config';
 import { DatabaseService } from '../src/database/database.service';
 import { NestRoot } from '../src/nest-root-full';
+import { OwnerOcrService } from '../src/auth/owner-ocr.service';
 import { OwnerPetService } from '../src/auth/owner-pet.service';
 
 jest.setTimeout(90000);
@@ -435,4 +436,19 @@ describe('Wave 4A medical sharing (Docker PostgreSQL and real Nest HTTP)', () =>
     expect((await grant(selected())).status).toBe(201);
     expect((await grant({mode:'ALL_CURRENT'})).status).toBe(400);
   });
+  it('W4B unconfirmed OCR stays Owner-private while selected Document shares original bytes only',async()=>{
+    const jobs=app.get(OwnerOcrService),ocrPath=`/v1/owner/pets/${I.pet}/documents/${I.document}/ocr`,marker='W4B_UNCONFIRMED_PRIVATE_EXTRACTION';
+    const post=await request(app.getHttpServer()).post(ocrPath).set('Authorization',`Bearer ${await token()}`).send({});expect(post.status).toBe(201);
+    const claim=await jobs.claim();expect(claim?.document_id).toBe(I.document);expect(await jobs.finish(claim!,{text:marker,provider:'SIMULATED_OCR'})).toBe(true);
+    const raw=await request(app.getHttpServer()).get(ocrPath).set('Authorization',`Bearer ${await token()}`);expect(raw.status).toBe(200);expect(raw.headers['cache-control']).toBe('no-store');expect(raw.body.result).toMatchObject({authority:'UNCONFIRMED',extraction:{text:marker},candidate:{kind:'EXTRACTED_TEXT',reviewState:'PENDING_OWNER_REVIEW'}});
+    for(const [auth,status] of [[await token(I.otherOwner),404],[await vet(),403]] as const){const denied=await request(app.getHttpServer()).get(ocrPath).set('Authorization',`Bearer ${auth}`);expect(denied.status).toBe(status);expect(JSON.stringify(denied.body)).not.toContain(marker);}
+    for(const [auth,status] of [[await token(),409],[await token(I.otherOwner),404],[await vet(),403]] as const)expect((await request(app.getHttpServer()).post(ocrPath+'/retry').set('Authorization',`Bearer ${auth}`).send({})).status).toBe(status);
+    expect((await grant(selected())).status).toBe(201);
+    const metadata=await read(I.document,'DOCUMENT');expect(metadata.status).toBe(200);expect(JSON.stringify(metadata.body)).not.toMatch(/W4B_UNCONFIRMED|extraction|ocr_result|source_identity|PENDING_OWNER/);
+    expect(JSON.stringify((await list()).body)).not.toContain(marker);
+    expect(JSON.stringify((await request(app.getHttpServer()).get(ownerPath).set('Authorization',`Bearer ${await token()}`)).body)).not.toContain(marker);
+    expect((await download()).body).toEqual(bytes);
+    expect((await db.query('SELECT medical_history_ocr FROM pet_schema.pets WHERE id=$1',[I.pet])).rows[0].medical_history_ocr).toBeNull();
+  });
+
 });

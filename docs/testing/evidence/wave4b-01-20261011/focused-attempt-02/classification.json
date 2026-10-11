@@ -1,0 +1,8 @@
+{
+  "classification": "IMPLEMENTATION_AND_TEST_EXPECTATION",
+  "passedServiceCases": 24,
+  "httpFailure": "Pilot scope guard intentionally blocks legacy documents wildcard; exact new OCR routes need explicit bounded allowance",
+  "migrationFailure": "test-only SQL string quote syntax",
+  "repair": "allow exactly GET/POST OCR and POST OCR retry, retain all legacy blocks; parameterized checksum test query",
+  "stickyFreshTestsRetained": 24
+}

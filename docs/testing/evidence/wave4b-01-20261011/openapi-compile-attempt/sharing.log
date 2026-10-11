@@ -1,0 +1,15 @@
+FAIL test/appointment-medical-sharing-http.e2e-spec.ts
+  ● Test suite failed to run
+
+    [96msrc/auth/owner-ocr.openapi.ts[0m:[93m7[0m:[93m285[0m - [91merror[0m[90m TS2322: [0mType '{ nullable?: boolean | undefined; discriminator?: DiscriminatorObject | undefined; readOnly?: boolean | undefined; writeOnly?: boolean | undefined; xml?: XmlObject | undefined; ... 32 more ...; 'x-enumNames'?: string[] | undefined; } | { ...; }' is not assignable to type 'SchemaObject'.
+      Type '{ $ref: string; }' has no properties in common with type 'SchemaObject'.
+
+    [7m7[0m export const ocrReadSchema=closed({...ocrJobSchema.properties,attempts:{type:'array',maxItems:3,items:closed({attemptNumber:{type:'integer',minimum:1,maximum:3},status:{type:'string',enum:['RUNNING','SUCCEEDED','FAILED','ABANDONED']},startedAt:time,finishedAt:{...time,nullable:true},errorCode:{...ocrJobSchema.properties!.errorCode}})},result:{...closed({resultId:uuid,sourceIdentity:{type:'string',pattern:'^[0-9a-f]{64}$'},resultIdentity:{type:'string',pattern:'^[0-9a-f]{64}$'},authority:{type:'string',enum:['UNCONFIRMED']},extraction,extractedAt:time,provider:{type:'string',nullable:true},providerVersion:{type:'string',nullable:true},startedAt:time,finishedAt:time,candidate:closed({candidateId:uuid,schemaVersion:{type:'integer',enum:[1]},kind:{type:'string',enum:['EXTRACTED_TEXT']},text:{type:'string',maxLength:32768},reviewState:{type:'string',enum:['PENDING_OWNER_REVIEW']}})}),nullable:true}});
+    [7m [0m [91m                                                                                                                                                                                                                                                                                            ~~~~~~~~~[0m
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        9.245 s
+Ran all test suites within paths "test/appointment-medical-sharing-http.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4b-01-20261011/sharing.json

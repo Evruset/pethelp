@@ -12,6 +12,9 @@ const pilotBlockedRoutes: Array<{ pattern: RegExp; method?: string }> = [
 ];
 
 export function isPilotBackendRouteAllowed(pathname: string, method?: string): boolean {
+  // BP-15 foundation opens only these explicit Owner OCR methods; legacy document routes stay closed.
+  if (/^\/v1\/owner\/pets\/[^/]+\/documents\/[^/]+\/ocr$/.test(pathname) && ['GET','POST'].includes(method?.toUpperCase() ?? '')) return true;
+  if (/^\/v1\/owner\/pets\/[^/]+\/documents\/[^/]+\/ocr\/retry$/.test(pathname) && method?.toUpperCase() === 'POST') return true;
   return !pilotBlockedRoutes.some((route) => route.pattern.test(pathname) && (!route.method || route.method === method?.toUpperCase()));
 }
 

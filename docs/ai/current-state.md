@@ -1,5 +1,25 @@
 # V50 program current state
 
+## 2026-10-11 — V15-W4B-01 Product Owner technical acceptance / publication checkpoint
+
+`WAVE4B_01_HUMAN_ACCEPTANCE=APPROVED` by explicit Product Owner decision for the limited OCR Authority Foundation.46uniquePASS,70migrations/populatedupgrade,build/5OpenAPIassertions and DB/SecurityNO VETO accepted; provider simulation accepted for foundation only. Authoritative decision/limits: `docs/testing/evidence/wave4b-01-20261011/ACCEPTANCE.md`. This entry supersedes historical W4B human NOT_RECORDED status below.
+
+`OCR_SOURCE_BYTE_INTEGRITY=DEFERRED_BLOCKING_VALIDATED_IMPORT`. Before ANY validated import, resolve original bytes with a content digest or independently proven immutable document version. Metadata hashes are not byte-integrity proof. No Owner review/validated import/realOCRaccuracy/Pilot acceptance is implied. W4B-02 is ready to start after remote-backed publication, subject to this import blocker and separate implementation scope; not implemented here.
+
+Approved delivery branch `agent/v15-w4b-01-ocr-4svfycsv`, exactparent `16888e1a191bf410a6aeb8f611f5ce4af98282df`. Only16verified implementation/test/documentation files plus required evidence;13code/test/generatedAPI files unchanged from tested snapshot,1controller EOF-only formatting correction,2documentation files annotated. Publication receipt reports actual commit/freshremoteSHA equality; historical prepublication evidence retains its original dates/statuses. Original674dirty entries remain preserved; no accepted gate rerun. STOP after ordinary push; no transition/main merge/deployment/Jira/Confluence/Wave5 or W4B-02 implementation.
+
+
+## 2026-10-11 — V15-W4B-01 OCR Authority Foundation
+
+Wave4A COMPLETE / HUMAN_ACCEPTANCE=APPROVED is authoritative under `docs/testing/evidence/wave4a-final-20261011/ACCEPTANCE.md`; real-device/UAT/Pilot Go-Live remain separate and unaccepted. Fresh source/origin `16888e1a191bf410a6aeb8f611f5ce4af98282df`. Isolated implementation branch `agent/v15-w4b-01-ocr-4svfycsv`; original local worktree remains at a1c092e with all674 dirty entries unchanged. No commit/push.
+
+W4B-01 backend: legacy worker no longer writes Pet medical history or legacy document OCR; historical JSON untouched, labelled LEGACY_UNVERIFIED via sidecar view. New171974 append-only OCR job/attempt/raw/text-candidate persistence; fenced leases, lifetime3attempts, retry/recovery, provider outside transactions, atomic completion, exact current Owner/Pet/Document scope and private three-operation API. Candidate v1 EXTRACTED_TEXT/PENDING_OWNER_REVIEW; no automatic promotion or confirmation route/UI. Existing simulated provider retained; metadata source digest is not content-byte provenance. Sharing source/grants/old API operations unchanged.
+
+Actual coverage46 distinct PASS/0unresolvedFAIL:24retained fresh service cases +2repairedHTTP/populatedupgrade +19affectedguard +1newsharing-isolationHTTP.75acceptedHTTPcases selected out, no acceptedWave4A rerun. Fresh70migrations/checksums and populated69→70upgradePASS preserving legacy rows; backend build and5OpenAPIassertionsPASS. Fresh DB/Data Authority PASS/NO VETO and Security/Privacy NO VETO. Failed harness/route-integration/contract-typing attempts disclosed; no threshold relaxation. PostgreSQL final idle-in-transaction0/deadlocks0; retained Docker resources unchanged.
+
+`WAVE4B_01_MACHINE_COMPLETE=YES`, `WAVE4B_01_READY_FOR_REVIEW=YES`; W4B human acceptance NOT_RECORDED. Architecture/API/rollback bounds: `docs/v15/14-wave4b-01-ocr-foundation.md`; raw execution/source hashes/reviews: `docs/testing/evidence/wave4b-01-20261011/REPORT.md`, `MANIFEST.json`, `SHA256SUMS`. Before deployment stop legacy worker binaries; real extraction/content digests remain future scope. NEXT recommendation only: W4B-02 explicit Owner review/correction/confirmation backend authority. STOP; no Wave5/Jira/Confluence/main/deployment/commit/push.
+
+
 ## Active isolated transition session — PetHelp v1.5 Wave 0/1/2/3/4
 
 ### Wave4A regression reconciliation — 2026-10-08

@@ -58,6 +58,519 @@
         ]
       }
     },
+    "/v1/owner/pets/{petId}/documents/{documentId}/ocr": {
+      "post": {
+        "operationId": "OwnerOcr_enqueue",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "documentId",
+                    "petId",
+                    "state",
+                    "attemptCount",
+                    "maxAttempts",
+                    "errorCode",
+                    "authority"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "documentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "petId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "QUEUED",
+                        "RUNNING",
+                        "SUCCEEDED",
+                        "FAILED"
+                      ]
+                    },
+                    "attemptCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 3
+                    },
+                    "maxAttempts": {
+                      "type": "integer",
+                      "enum": [
+                        3
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        "PROVIDER_FAILED",
+                        "INVALID_RESULT",
+                        "LEASE_EXPIRED",
+                        "SOURCE_UNAVAILABLE",
+                        "SOURCE_CHANGED"
+                      ]
+                    },
+                    "authority": {
+                      "type": "string",
+                      "enum": [
+                        "UNCONFIRMED"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Idempotently queue non-authoritative OCR for an owned document",
+        "tags": [
+          "Owner OCR candidates"
+        ]
+      },
+      "get": {
+        "operationId": "OwnerOcr_read",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "documentId",
+                    "petId",
+                    "state",
+                    "attemptCount",
+                    "maxAttempts",
+                    "errorCode",
+                    "authority",
+                    "attempts",
+                    "result"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "documentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "petId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "QUEUED",
+                        "RUNNING",
+                        "SUCCEEDED",
+                        "FAILED"
+                      ]
+                    },
+                    "attemptCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 3
+                    },
+                    "maxAttempts": {
+                      "type": "integer",
+                      "enum": [
+                        3
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        "PROVIDER_FAILED",
+                        "INVALID_RESULT",
+                        "LEASE_EXPIRED",
+                        "SOURCE_UNAVAILABLE",
+                        "SOURCE_CHANGED"
+                      ]
+                    },
+                    "authority": {
+                      "type": "string",
+                      "enum": [
+                        "UNCONFIRMED"
+                      ]
+                    },
+                    "attempts": {
+                      "type": "array",
+                      "maxItems": 3,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "attemptNumber",
+                          "status",
+                          "startedAt",
+                          "finishedAt",
+                          "errorCode"
+                        ],
+                        "properties": {
+                          "attemptNumber": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 3
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "RUNNING",
+                              "SUCCEEDED",
+                              "FAILED",
+                              "ABANDONED"
+                            ]
+                          },
+                          "startedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "finishedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          },
+                          "errorCode": {
+                            "type": "string",
+                            "nullable": true,
+                            "enum": [
+                              "PROVIDER_FAILED",
+                              "INVALID_RESULT",
+                              "LEASE_EXPIRED",
+                              "SOURCE_UNAVAILABLE",
+                              "SOURCE_CHANGED"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "resultId",
+                        "sourceIdentity",
+                        "resultIdentity",
+                        "authority",
+                        "extraction",
+                        "extractedAt",
+                        "provider",
+                        "providerVersion",
+                        "startedAt",
+                        "finishedAt",
+                        "candidate"
+                      ],
+                      "properties": {
+                        "resultId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "sourceIdentity": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "resultIdentity": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "authority": {
+                          "type": "string",
+                          "enum": [
+                            "UNCONFIRMED"
+                          ]
+                        },
+                        "extraction": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "text"
+                          ],
+                          "properties": {
+                            "text": {
+                              "type": "string",
+                              "maxLength": 32768
+                            },
+                            "provider": {
+                              "type": "string",
+                              "maxLength": 120
+                            },
+                            "providerVersion": {
+                              "type": "string",
+                              "maxLength": 80
+                            }
+                          }
+                        },
+                        "extractedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "provider": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "providerVersion": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "startedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "finishedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "candidate": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "candidateId",
+                            "schemaVersion",
+                            "kind",
+                            "text",
+                            "reviewState"
+                          ],
+                          "properties": {
+                            "candidateId": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "schemaVersion": {
+                              "type": "integer",
+                              "enum": [
+                                1
+                              ]
+                            },
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "EXTRACTED_TEXT"
+                              ]
+                            },
+                            "text": {
+                              "type": "string",
+                              "maxLength": 32768
+                            },
+                            "reviewState": {
+                              "type": "string",
+                              "enum": [
+                                "PENDING_OWNER_REVIEW"
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Read private unconfirmed OCR and text candidate; no medical promotion",
+        "tags": [
+          "Owner OCR candidates"
+        ]
+      }
+    },
+    "/v1/owner/pets/{petId}/documents/{documentId}/ocr/retry": {
+      "post": {
+        "operationId": "OwnerOcr_retry",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "documentId",
+                    "petId",
+                    "state",
+                    "attemptCount",
+                    "maxAttempts",
+                    "errorCode",
+                    "authority"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "documentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "petId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "QUEUED",
+                        "RUNNING",
+                        "SUCCEEDED",
+                        "FAILED"
+                      ]
+                    },
+                    "attemptCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 3
+                    },
+                    "maxAttempts": {
+                      "type": "integer",
+                      "enum": [
+                        3
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        "PROVIDER_FAILED",
+                        "INVALID_RESULT",
+                        "LEASE_EXPIRED",
+                        "SOURCE_UNAVAILABLE",
+                        "SOURCE_CHANGED"
+                      ]
+                    },
+                    "authority": {
+                      "type": "string",
+                      "enum": [
+                        "UNCONFIRMED"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Retry failed owned OCR within its lifetime three-attempt budget",
+        "tags": [
+          "Owner OCR candidates"
+        ]
+      }
+    },
     "/v1/auth/otp/request": {
       "post": {
         "operationId": "requestOtp",

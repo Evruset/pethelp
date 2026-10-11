@@ -1,0 +1,1303 @@
+diff --git a/backend/artifacts/openapi/swagger.json b/backend/artifacts/openapi/swagger.json
+index ef24671..7b4fc9e 100644
+--- a/backend/artifacts/openapi/swagger.json
++++ b/backend/artifacts/openapi/swagger.json
+@@ -58,6 +58,519 @@
+         ]
+       }
+     },
++    "/v1/owner/pets/{petId}/documents/{documentId}/ocr": {
++      "post": {
++        "operationId": "OwnerOcr_enqueue",
++        "parameters": [
++          {
++            "name": "petId",
++            "required": true,
++            "in": "path",
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "name": "documentId",
++            "required": true,
++            "in": "path",
++            "schema": {
++              "type": "string"
++            }
++          }
++        ],
++        "requestBody": {
++          "required": false,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false,
++                "required": [],
++                "properties": {}
++              }
++            }
++          }
++        },
++        "responses": {
++          "201": {
++            "description": "",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "object",
++                  "additionalProperties": false,
++                  "required": [
++                    "jobId",
++                    "documentId",
++                    "petId",
++                    "state",
++                    "attemptCount",
++                    "maxAttempts",
++                    "errorCode",
++                    "authority"
++                  ],
++                  "properties": {
++                    "jobId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "documentId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "petId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "state": {
++                      "type": "string",
++                      "enum": [
++                        "QUEUED",
++                        "RUNNING",
++                        "SUCCEEDED",
++                        "FAILED"
++                      ]
++                    },
++                    "attemptCount": {
++                      "type": "integer",
++                      "minimum": 0,
++                      "maximum": 3
++                    },
++                    "maxAttempts": {
++                      "type": "integer",
++                      "enum": [
++                        3
++                      ]
++                    },
++                    "errorCode": {
++                      "type": "string",
++                      "nullable": true,
++                      "enum": [
++                        "PROVIDER_FAILED",
++                        "INVALID_RESULT",
++                        "LEASE_EXPIRED",
++                        "SOURCE_UNAVAILABLE",
++                        "SOURCE_CHANGED"
++                      ]
++                    },
++                    "authority": {
++                      "type": "string",
++                      "enum": [
++                        "UNCONFIRMED"
++                      ]
++                    }
++                  }
++                }
++              }
++            }
++          }
++        },
++        "security": [
++          {
++            "bearerAuth": []
++          }
++        ],
++        "summary": "Idempotently queue non-authoritative OCR for an owned document",
++        "tags": [
++          "Owner OCR candidates"
++        ]
++      },
++      "get": {
++        "operationId": "OwnerOcr_read",
++        "parameters": [
++          {
++            "name": "petId",
++            "required": true,
++            "in": "path",
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "name": "documentId",
++            "required": true,
++            "in": "path",
++            "schema": {
++              "type": "string"
++            }
++          }
++        ],
++        "responses": {
++          "200": {
++            "description": "",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "object",
++                  "additionalProperties": false,
++                  "required": [
++                    "jobId",
++                    "documentId",
++                    "petId",
++                    "state",
++                    "attemptCount",
++                    "maxAttempts",
++                    "errorCode",
++                    "authority",
++                    "attempts",
++                    "result"
++                  ],
++                  "properties": {
++                    "jobId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "documentId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "petId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "state": {
++                      "type": "string",
++                      "enum": [
++                        "QUEUED",
++                        "RUNNING",
++                        "SUCCEEDED",
++                        "FAILED"
++                      ]
++                    },
++                    "attemptCount": {
++                      "type": "integer",
++                      "minimum": 0,
++                      "maximum": 3
++                    },
++                    "maxAttempts": {
++                      "type": "integer",
++                      "enum": [
++                        3
++                      ]
++                    },
++                    "errorCode": {
++                      "type": "string",
++                      "nullable": true,
++                      "enum": [
++                        "PROVIDER_FAILED",
++                        "INVALID_RESULT",
++                        "LEASE_EXPIRED",
++                        "SOURCE_UNAVAILABLE",
++                        "SOURCE_CHANGED"
++                      ]
++                    },
++                    "authority": {
++                      "type": "string",
++                      "enum": [
++                        "UNCONFIRMED"
++                      ]
++                    },
++                    "attempts": {
++                      "type": "array",
++                      "maxItems": 3,
++                      "items": {
++                        "type": "object",
++                        "additionalProperties": false,
++                        "required": [
++                          "attemptNumber",
++                          "status",
++                          "startedAt",
++                          "finishedAt",
++                          "errorCode"
++                        ],
++                        "properties": {
++                          "attemptNumber": {
++                            "type": "integer",
++                            "minimum": 1,
++                            "maximum": 3
++                          },
++                          "status": {
++                            "type": "string",
++                            "enum": [
++                              "RUNNING",
++                              "SUCCEEDED",
++                              "FAILED",
++                              "ABANDONED"
++                            ]
++                          },
++                          "startedAt": {
++                            "type": "string",
++                            "format": "date-time"
++                          },
++                          "finishedAt": {
++                            "type": "string",
++                            "format": "date-time",
++                            "nullable": true
++                          },
++                          "errorCode": {
++                            "type": "string",
++                            "nullable": true,
++                            "enum": [
++                              "PROVIDER_FAILED",
++                              "INVALID_RESULT",
++                              "LEASE_EXPIRED",
++                              "SOURCE_UNAVAILABLE",
++                              "SOURCE_CHANGED"
++                            ]
++                          }
++                        }
++                      }
++                    },
++                    "result": {
++                      "type": "object",
++                      "additionalProperties": false,
++                      "required": [
++                        "resultId",
++                        "sourceIdentity",
++                        "resultIdentity",
++                        "authority",
++                        "extraction",
++                        "extractedAt",
++                        "provider",
++                        "providerVersion",
++                        "startedAt",
++                        "finishedAt",
++                        "candidate"
++                      ],
++                      "properties": {
++                        "resultId": {
++                          "type": "string",
++                          "format": "uuid"
++                        },
++                        "sourceIdentity": {
++                          "type": "string",
++                          "pattern": "^[0-9a-f]{64}$"
++                        },
++                        "resultIdentity": {
++                          "type": "string",
++                          "pattern": "^[0-9a-f]{64}$"
++                        },
++                        "authority": {
++                          "type": "string",
++                          "enum": [
++                            "UNCONFIRMED"
++                          ]
++                        },
++                        "extraction": {
++                          "type": "object",
++                          "additionalProperties": false,
++                          "required": [
++                            "text"
++                          ],
++                          "properties": {
++                            "text": {
++                              "type": "string",
++                              "maxLength": 32768
++                            },
++                            "provider": {
++                              "type": "string",
++                              "maxLength": 120
++                            },
++                            "providerVersion": {
++                              "type": "string",
++                              "maxLength": 80
++                            }
++                          }
++                        },
++                        "extractedAt": {
++                          "type": "string",
++                          "format": "date-time"
++                        },
++                        "provider": {
++                          "type": "string",
++                          "nullable": true
++                        },
++                        "providerVersion": {
++                          "type": "string",
++                          "nullable": true
++                        },
++                        "startedAt": {
++                          "type": "string",
++                          "format": "date-time"
++                        },
++                        "finishedAt": {
++                          "type": "string",
++                          "format": "date-time"
++                        },
++                        "candidate": {
++                          "type": "object",
++                          "additionalProperties": false,
++                          "required": [
++                            "candidateId",
++                            "schemaVersion",
++                            "kind",
++                            "text",
++                            "reviewState"
++                          ],
++                          "properties": {
++                            "candidateId": {
++                              "type": "string",
++                              "format": "uuid"
++                            },
++                            "schemaVersion": {
++                              "type": "integer",
++                              "enum": [
++                                1
++                              ]
++                            },
++                            "kind": {
++                              "type": "string",
++                              "enum": [
++                                "EXTRACTED_TEXT"
++                              ]
++                            },
++                            "text": {
++                              "type": "string",
++                              "maxLength": 32768
++                            },
++                            "reviewState": {
++                              "type": "string",
++                              "enum": [
++                                "PENDING_OWNER_REVIEW"
++                              ]
++                            }
++                          }
++                        }
++                      },
++                      "nullable": true
++                    }
++                  }
++                }
++              }
++            }
++          }
++        },
++        "security": [
++          {
++            "bearerAuth": []
++          }
++        ],
++        "summary": "Read private unconfirmed OCR and text candidate; no medical promotion",
++        "tags": [
++          "Owner OCR candidates"
++        ]
++      }
++    },
++    "/v1/owner/pets/{petId}/documents/{documentId}/ocr/retry": {
++      "post": {
++        "operationId": "OwnerOcr_retry",
++        "parameters": [
++          {
++            "name": "petId",
++            "required": true,
++            "in": "path",
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "name": "documentId",
++            "required": true,
++            "in": "path",
++            "schema": {
++              "type": "string"
++            }
++          }
++        ],
++        "requestBody": {
++          "required": false,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false,
++                "required": [],
++                "properties": {}
++              }
++            }
++          }
++        },
++        "responses": {
++          "201": {
++            "description": "",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "object",
++                  "additionalProperties": false,
++                  "required": [
++                    "jobId",
++                    "documentId",
++                    "petId",
++                    "state",
++                    "attemptCount",
++                    "maxAttempts",
++                    "errorCode",
++                    "authority"
++                  ],
++                  "properties": {
++                    "jobId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "documentId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "petId": {
++                      "type": "string",
++                      "format": "uuid"
++                    },
++                    "state": {
++                      "type": "string",
++                      "enum": [
++                        "QUEUED",
++                        "RUNNING",
++                        "SUCCEEDED",
++                        "FAILED"
++                      ]
++                    },
++                    "attemptCount": {
++                      "type": "integer",
++                      "minimum": 0,
++                      "maximum": 3
++                    },
++                    "maxAttempts": {
++                      "type": "integer",
++                      "enum": [
++                        3
++                      ]
++                    },
++                    "errorCode": {
++                      "type": "string",
++                      "nullable": true,
++                      "enum": [
++                        "PROVIDER_FAILED",
++                        "INVALID_RESULT",
++                        "LEASE_EXPIRED",
++                        "SOURCE_UNAVAILABLE",
++                        "SOURCE_CHANGED"
++                      ]
++                    },
++                    "authority": {
++                      "type": "string",
++                      "enum": [
++                        "UNCONFIRMED"
++                      ]
++                    }
++                  }
++                }
++              }
++            }
++          }
++        },
++        "security": [
++          {
++            "bearerAuth": []
++          }
++        ],
++        "summary": "Retry failed owned OCR within its lifetime three-attempt budget",
++        "tags": [
++          "Owner OCR candidates"
++        ]
++      }
++    },
+     "/v1/auth/otp/request": {
+       "post": {
+         "operationId": "requestOtp",
+diff --git a/backend/src/auth/auth.module.ts b/backend/src/auth/auth.module.ts
+index 9f7d848..4ff1252 100644
+--- a/backend/src/auth/auth.module.ts
++++ b/backend/src/auth/auth.module.ts
+@@ -1,6 +1,9 @@
+ import { Global, Module } from '@nestjs/common';
+ import { JwtModule } from '@nestjs/jwt';
+ import { JwtAuthGuard } from './jwt-auth.guard';
++import { OwnerOcrService } from './owner-ocr.service';
++import { OwnerOcrController } from './owner-ocr.controller';
++import { OcrProvider } from './ocr-provider';
+ import { OcrDocumentWorker } from './ocr-document.worker';
+ import { OwnerAuthController, OwnerProfileController } from './owner-auth.controller';
+ import { OwnerAppointmentsService } from './owner-appointments.service';
+@@ -22,7 +25,7 @@ import { mvpScope } from '../config/mvp-scope.config';
+ @Global()
+ @Module({
+   imports: [JwtModule.register({})],
+-  controllers: [OwnerAuthController, OwnerProfileController, mvpScope.pilot ? OwnerPetMvpController : OwnerPetController, EffectiveSessionController],
++  controllers: [OwnerOcrController, OwnerAuthController, OwnerProfileController, mvpScope.pilot ? OwnerPetMvpController : OwnerPetController, EffectiveSessionController],
+   providers: [
+     JwtAuthGuard,
+     OptionalJwtAuthGuard,
+@@ -36,6 +39,8 @@ import { mvpScope } from '../config/mvp-scope.config';
+     OwnerAppointmentsService,
+     OwnerPetService,
+     OcrDocumentWorker,
++    OwnerOcrService,
++    OcrProvider,
+     CapabilityEvaluatorService,
+   ],
+   exports: [
+diff --git a/backend/src/auth/ocr-document.worker.ts b/backend/src/auth/ocr-document.worker.ts
+index 0aab9e9..9fceda1 100644
+--- a/backend/src/auth/ocr-document.worker.ts
++++ b/backend/src/auth/ocr-document.worker.ts
+@@ -1,77 +1,36 @@
+ import { Injectable, Logger } from '@nestjs/common';
+ import { Cron } from '@nestjs/schedule';
+-import { DatabaseService } from '../database/database.service';
+-
+-interface OcrDocumentJob {
+-  id: string;
+-  pet_id: string;
+-  file_url: string;
+-  doc_type: 'PASSPORT' | 'HISTORY';
+-}
++import { OwnerOcrService } from './owner-ocr.service';
++import { OcrProvider } from './ocr-provider';
+ 
+ @Injectable()
+ export class OcrDocumentWorker {
+   private readonly logger = new Logger(OcrDocumentWorker.name);
+   private running = false;
+-
+-  constructor(private readonly database: DatabaseService) {}
++  constructor(private readonly jobs: OwnerOcrService, private readonly provider: OcrProvider) {}
+ 
+   @Cron('*/10 * * * * *')
+   async processDocuments(): Promise<void> {
+     if ((process.env.WORKERS_ENABLED ?? 'true').toLowerCase() !== 'true' || this.running) return;
+     this.running = true;
+     try {
+-      const processed = await this.database.withTransaction(async (client) => {
+-        await client.query("SET LOCAL lock_timeout = '50ms'");
+-        await client.query("SET LOCAL statement_timeout = '500ms'");
+-        const jobs = await client.query<OcrDocumentJob>(`
+-          SELECT id, pet_id, file_url, doc_type
+-          FROM pet_schema.pet_documents
+-          WHERE status = 'PROCESSING'
+-          ORDER BY created_at ASC, id ASC
+-          LIMIT 10
+-          FOR UPDATE SKIP LOCKED
+-        `);
+-
+-        for (const job of jobs.rows) {
+-          const ocrResult = this.simulateOcr(job);
+-          await client.query(`
+-            UPDATE pet_schema.pets
+-            SET medical_history_ocr = $2::jsonb,
+-                updated_at = clock_timestamp()
+-            WHERE id = $1::uuid
+-          `, [job.pet_id, JSON.stringify(ocrResult)]);
+-          await client.query(`
+-            UPDATE pet_schema.pet_documents
+-            SET status = 'PROCESSED',
+-                ocr_result = $2::jsonb,
+-                processed_at = clock_timestamp(),
+-                updated_at = clock_timestamp()
+-            WHERE id = $1::uuid
+-          `, [job.id, JSON.stringify(ocrResult)]);
+-        }
+-        return jobs.rowCount ?? 0;
+-      });
+-      if (processed > 0) {
+-        this.logger.log(`Processed ${processed} pet OCR document(s)`);
+-      }
+-    } catch (error) {
+-      this.logger.error('OCR document worker failed', error instanceof Error ? error.stack : String(error));
+-    } finally {
+-      this.running = false;
+-    }
+-  }
+-
+-  private simulateOcr(job: OcrDocumentJob): Record<string, unknown> {
+-    return {
+-      documentId: job.id,
+-      documentType: job.doc_type,
+-      sourceUrl: job.file_url,
+-      text: job.doc_type === 'PASSPORT'
+-        ? 'OCR simulated: veterinary passport fields detected.'
+-        : 'OCR simulated: medical history notes detected.',
+-      provider: 'SIMULATED_OCR',
+-      processedAt: new Date().toISOString(),
+-    };
++      const claim = await this.jobs.claim();
++      if (!claim) return;
++      const abort = new AbortController();
++      let timer: ReturnType<typeof setTimeout> | undefined;
++      try {
++        // claim transaction has COMMITTED before invoking even the simulated provider.
++        const extraction = await Promise.race([
++          this.provider.extract(claim.source_snapshot, abort.signal),
++          new Promise<never>((_, reject) => { timer = setTimeout(() => { abort.abort(); reject(new Error('OCR timeout')); }, 30000); }),
++        ]);
++        await this.jobs.finish(claim, extraction);
++      } catch {
++        // Never log/store provider error messages: they may contain medical text or credentials.
++        await this.jobs.finish(claim, undefined, 'PROVIDER_FAILED');
++      } finally { if (timer) clearTimeout(timer); }
++    } catch {
++      this.logger.error('OCR processing checkpoint failed; durable lease recovery will retry.');
++    } finally { this.running = false; }
+   }
+ }
+diff --git a/backend/src/config/mvp-product-scope.guard.spec.ts b/backend/src/config/mvp-product-scope.guard.spec.ts
+index c4c72c1..7837e83 100644
+--- a/backend/src/config/mvp-product-scope.guard.spec.ts
++++ b/backend/src/config/mvp-product-scope.guard.spec.ts
+@@ -49,3 +49,13 @@ describe('MVP product route containment', () => {
+     expect(assertMvpProductRoute(legacy, '/v1/owner/pets/pet-id', 'PATCH')).toBe(true);
+   });
+ });
++
++// BP-15 backend foundation: no reopening legacy document operations.
++describe('OCR exact Pilot route allowance',()=>{
++  it('allows only OCR enqueue/read and retry with their exact methods',()=>{
++    const path='/v1/owner/pets/pet-id/documents/document-id/ocr';
++    for(const method of ['GET','POST'])expect(isPilotBackendRouteAllowed(path,method)).toBe(true);
++    expect(isPilotBackendRouteAllowed(path+'/retry','POST')).toBe(true);
++    for(const [p,m] of [[path,'DELETE'],[path,'PATCH'],[path+'/retry','GET'],[path+'/confirm','POST'],[path+'/extra','GET'],['/v1/owner/pets/pet-id/documents','POST'],['/v1/owner/pets/pet-id/documents/document-id/download','GET']])expect(isPilotBackendRouteAllowed(p,m)).toBe(false);
++  });
++});
+diff --git a/backend/src/config/mvp-product-scope.guard.ts b/backend/src/config/mvp-product-scope.guard.ts
+index b4434bc..420182b 100644
+--- a/backend/src/config/mvp-product-scope.guard.ts
++++ b/backend/src/config/mvp-product-scope.guard.ts
+@@ -12,6 +12,9 @@ const pilotBlockedRoutes: Array<{ pattern: RegExp; method?: string }> = [
+ ];
+ 
+ export function isPilotBackendRouteAllowed(pathname: string, method?: string): boolean {
++  // BP-15 foundation opens only these explicit Owner OCR methods; legacy document routes stay closed.
++  if (/^\/v1\/owner\/pets\/[^/]+\/documents\/[^/]+\/ocr$/.test(pathname) && ['GET','POST'].includes(method?.toUpperCase() ?? '')) return true;
++  if (/^\/v1\/owner\/pets\/[^/]+\/documents\/[^/]+\/ocr\/retry$/.test(pathname) && method?.toUpperCase() === 'POST') return true;
+   return !pilotBlockedRoutes.some((route) => route.pattern.test(pathname) && (!route.method || route.method === method?.toUpperCase()));
+ }
+ 
+diff --git a/backend/test/appointment-medical-sharing-http.e2e-spec.ts b/backend/test/appointment-medical-sharing-http.e2e-spec.ts
+index 954a6b4..c2f2084 100644
+--- a/backend/test/appointment-medical-sharing-http.e2e-spec.ts
++++ b/backend/test/appointment-medical-sharing-http.e2e-spec.ts
+@@ -12,6 +12,7 @@ import { BookingErrorFilter } from '../src/common/booking-error.filter';
+ import { config } from '../src/config';
+ import { DatabaseService } from '../src/database/database.service';
+ import { NestRoot } from '../src/nest-root-full';
++import { OwnerOcrService } from '../src/auth/owner-ocr.service';
+ import { OwnerPetService } from '../src/auth/owner-pet.service';
+ 
+ jest.setTimeout(90000);
+@@ -435,4 +436,19 @@ describe('Wave 4A medical sharing (Docker PostgreSQL and real Nest HTTP)', () =>
+     expect((await grant(selected())).status).toBe(201);
+     expect((await grant({mode:'ALL_CURRENT'})).status).toBe(400);
+   });
++  it('W4B unconfirmed OCR stays Owner-private while selected Document shares original bytes only',async()=>{
++    const jobs=app.get(OwnerOcrService),ocrPath=`/v1/owner/pets/${I.pet}/documents/${I.document}/ocr`,marker='W4B_UNCONFIRMED_PRIVATE_EXTRACTION';
++    const post=await request(app.getHttpServer()).post(ocrPath).set('Authorization',`Bearer ${await token()}`).send({});expect(post.status).toBe(201);
++    const claim=await jobs.claim();expect(claim?.document_id).toBe(I.document);expect(await jobs.finish(claim!,{text:marker,provider:'SIMULATED_OCR'})).toBe(true);
++    const raw=await request(app.getHttpServer()).get(ocrPath).set('Authorization',`Bearer ${await token()}`);expect(raw.status).toBe(200);expect(raw.headers['cache-control']).toBe('no-store');expect(raw.body.result).toMatchObject({authority:'UNCONFIRMED',extraction:{text:marker},candidate:{kind:'EXTRACTED_TEXT',reviewState:'PENDING_OWNER_REVIEW'}});
++    for(const [auth,status] of [[await token(I.otherOwner),404],[await vet(),403]] as const){const denied=await request(app.getHttpServer()).get(ocrPath).set('Authorization',`Bearer ${auth}`);expect(denied.status).toBe(status);expect(JSON.stringify(denied.body)).not.toContain(marker);}
++    for(const [auth,status] of [[await token(),409],[await token(I.otherOwner),404],[await vet(),403]] as const)expect((await request(app.getHttpServer()).post(ocrPath+'/retry').set('Authorization',`Bearer ${auth}`).send({})).status).toBe(status);
++    expect((await grant(selected())).status).toBe(201);
++    const metadata=await read(I.document,'DOCUMENT');expect(metadata.status).toBe(200);expect(JSON.stringify(metadata.body)).not.toMatch(/W4B_UNCONFIRMED|extraction|ocr_result|source_identity|PENDING_OWNER/);
++    expect(JSON.stringify((await list()).body)).not.toContain(marker);
++    expect(JSON.stringify((await request(app.getHttpServer()).get(ownerPath).set('Authorization',`Bearer ${await token()}`)).body)).not.toContain(marker);
++    expect((await download()).body).toEqual(bytes);
++    expect((await db.query('SELECT medical_history_ocr FROM pet_schema.pets WHERE id=$1',[I.pet])).rows[0].medical_history_ocr).toBeNull();
++  });
++
+ });
+diff --git a/docs/ai/current-state.md b/docs/ai/current-state.md
+index a70165a..403156e 100644
+--- a/docs/ai/current-state.md
++++ b/docs/ai/current-state.md
+@@ -1,5 +1,16 @@
+ # V50 program current state
+ 
++## 2026-10-11 — V15-W4B-01 OCR Authority Foundation
++
++Wave4A COMPLETE / HUMAN_ACCEPTANCE=APPROVED is authoritative under `docs/testing/evidence/wave4a-final-20261011/ACCEPTANCE.md`; real-device/UAT/Pilot Go-Live remain separate and unaccepted. Fresh source/origin `16888e1a191bf410a6aeb8f611f5ce4af98282df`. Isolated implementation branch `agent/v15-w4b-01-ocr-4svfycsv`; original local worktree remains at a1c092e with all674 dirty entries unchanged. No commit/push.
++
++W4B-01 backend: legacy worker no longer writes Pet medical history or legacy document OCR; historical JSON untouched, labelled LEGACY_UNVERIFIED via sidecar view. New171974 append-only OCR job/attempt/raw/text-candidate persistence; fenced leases, lifetime3attempts, retry/recovery, provider outside transactions, atomic completion, exact current Owner/Pet/Document scope and private three-operation API. Candidate v1 EXTRACTED_TEXT/PENDING_OWNER_REVIEW; no automatic promotion or confirmation route/UI. Existing simulated provider retained; metadata source digest is not content-byte provenance. Sharing source/grants/old API operations unchanged.
++
++Actual coverage46 distinct PASS/0unresolvedFAIL:24retained fresh service cases +2repairedHTTP/populatedupgrade +19affectedguard +1newsharing-isolationHTTP.75acceptedHTTPcases selected out, no acceptedWave4A rerun. Fresh70migrations/checksums and populated69→70upgradePASS preserving legacy rows; backend build and5OpenAPIassertionsPASS. Fresh DB/Data Authority PASS/NO VETO and Security/Privacy NO VETO. Failed harness/route-integration/contract-typing attempts disclosed; no threshold relaxation. PostgreSQL final idle-in-transaction0/deadlocks0; retained Docker resources unchanged.
++
++`WAVE4B_01_MACHINE_COMPLETE=YES`, `WAVE4B_01_READY_FOR_REVIEW=YES`; W4B human acceptance NOT_RECORDED. Architecture/API/rollback bounds: `docs/v15/14-wave4b-01-ocr-foundation.md`; raw execution/source hashes/reviews: `docs/testing/evidence/wave4b-01-20261011/REPORT.md`, `MANIFEST.json`, `SHA256SUMS`. Before deployment stop legacy worker binaries; real extraction/content digests remain future scope. NEXT recommendation only: W4B-02 explicit Owner review/correction/confirmation backend authority. STOP; no Wave5/Jira/Confluence/main/deployment/commit/push.
++
++
+ ## Active isolated transition session — PetHelp v1.5 Wave 0/1/2/3/4
+ 
+ ### Wave4A regression reconciliation — 2026-10-08
+diff --git a/backend/migrations/node-pg/1719740000000_owner_ocr_foundation.js b/backend/migrations/node-pg/1719740000000_owner_ocr_foundation.js
+new file mode 100644
+index 0000000..51a0aa8
+--- /dev/null
++++ b/backend/migrations/node-pg/1719740000000_owner_ocr_foundation.js
+@@ -0,0 +1,83 @@
++/* Append-only OCR foundation. No legacy values are rewritten or promoted. */
++exports.up = (pgm) => pgm.sql(`
++  CREATE VIEW pet_schema.ocr_legacy_unverified AS
++    SELECT owner_id, id AS pet_id, NULL::uuid AS document_id,
++      'PET_HISTORY'::text AS source_kind, 'LEGACY_UNVERIFIED'::text AS authority, medical_history_ocr AS raw_result
++    FROM pet_schema.pets WHERE medical_history_ocr IS NOT NULL
++    UNION ALL
++    SELECT owner_id, pet_id, id, 'DOCUMENT', 'LEGACY_UNVERIFIED', ocr_result
++    FROM pet_schema.pet_documents WHERE ocr_result IS NOT NULL;
++
++  CREATE TABLE pet_schema.ocr_jobs (
++    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
++    document_id uuid NOT NULL UNIQUE,
++    owner_id uuid NOT NULL, pet_id uuid NOT NULL,
++    source_identity char(64) NOT NULL CHECK(source_identity ~ '^[0-9a-f]{64}$'),
++    source_snapshot jsonb NOT NULL CHECK(octet_length(source_snapshot::text) <= 8192),
++    state text NOT NULL DEFAULT 'QUEUED' CHECK(state IN('QUEUED','RUNNING','SUCCEEDED','FAILED')),
++    attempt_count integer NOT NULL DEFAULT 0 CHECK(attempt_count BETWEEN 0 AND 3),
++    claim_token uuid, lease_until timestamptz,
++    available_at timestamptz NOT NULL DEFAULT clock_timestamp(),
++    error_code text CHECK(error_code IN('PROVIDER_FAILED','INVALID_RESULT','LEASE_EXPIRED','SOURCE_UNAVAILABLE','SOURCE_CHANGED')),
++    created_at timestamptz NOT NULL DEFAULT clock_timestamp(), updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
++    FOREIGN KEY(document_id,owner_id,pet_id) REFERENCES pet_schema.pet_documents(id,owner_id,pet_id),
++    UNIQUE(id,document_id,owner_id,pet_id),
++    CHECK((state='RUNNING') = (claim_token IS NOT NULL AND lease_until IS NOT NULL)),
++    CHECK(state<>'RUNNING' OR attempt_count>0)
++  );
++  CREATE INDEX ocr_jobs_queue_idx ON pet_schema.ocr_jobs(available_at,created_at,id) WHERE state IN('QUEUED','RUNNING');
++  CREATE TABLE pet_schema.ocr_attempts (
++    id uuid PRIMARY KEY, job_id uuid NOT NULL REFERENCES pet_schema.ocr_jobs(id),
++    attempt_number integer NOT NULL CHECK(attempt_number BETWEEN 1 AND 3),
++    status text NOT NULL CHECK(status IN('RUNNING','SUCCEEDED','FAILED','ABANDONED')),
++    started_at timestamptz NOT NULL DEFAULT clock_timestamp(), finished_at timestamptz,
++    error_code text CHECK(error_code IN('PROVIDER_FAILED','INVALID_RESULT','LEASE_EXPIRED','SOURCE_UNAVAILABLE','SOURCE_CHANGED')),
++    provider_identity varchar(120), provider_version varchar(80),
++    UNIQUE(job_id,attempt_number), UNIQUE(id,job_id),
++    CHECK((status='RUNNING') = (finished_at IS NULL))
++  );
++  CREATE TABLE pet_schema.ocr_results (
++    id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid NOT NULL UNIQUE,
++    attempt_id uuid NOT NULL, document_id uuid NOT NULL, owner_id uuid NOT NULL, pet_id uuid NOT NULL,
++    source_identity char(64) NOT NULL, result_identity char(64) NOT NULL CHECK(result_identity ~ '^[0-9a-f]{64}$'),
++    extraction jsonb NOT NULL CHECK(jsonb_typeof(extraction)='object' AND octet_length(extraction::text)<=65536),
++    extracted_at timestamptz NOT NULL DEFAULT clock_timestamp(),
++    authority text NOT NULL DEFAULT 'UNCONFIRMED' CHECK(authority='UNCONFIRMED'),
++    FOREIGN KEY(job_id,document_id,owner_id,pet_id) REFERENCES pet_schema.ocr_jobs(id,document_id,owner_id,pet_id),
++    FOREIGN KEY(attempt_id,job_id) REFERENCES pet_schema.ocr_attempts(id,job_id),
++    UNIQUE(id,job_id)
++  );
++  CREATE TABLE pet_schema.ocr_candidates (
++    id uuid PRIMARY KEY DEFAULT gen_random_uuid(), result_id uuid NOT NULL UNIQUE,
++    job_id uuid NOT NULL, schema_version integer NOT NULL DEFAULT 1 CHECK(schema_version=1),
++    kind text NOT NULL DEFAULT 'EXTRACTED_TEXT' CHECK(kind='EXTRACTED_TEXT'),
++    extracted_text text NOT NULL CHECK(octet_length(extracted_text)<=32768),
++    review_state text NOT NULL DEFAULT 'PENDING_OWNER_REVIEW' CHECK(review_state='PENDING_OWNER_REVIEW'),
++    created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
++    FOREIGN KEY(result_id,job_id) REFERENCES pet_schema.ocr_results(id,job_id)
++  );
++  CREATE FUNCTION pet_schema.guard_ocr_immutable() RETURNS trigger LANGUAGE plpgsql AS $$
++  BEGIN
++    IF TG_OP='DELETE' OR TG_OP='TRUNCATE' THEN RAISE EXCEPTION 'OCR provenance is retained'; END IF;
++    IF TG_TABLE_NAME='ocr_jobs' THEN
++      IF (NEW.id,NEW.document_id,NEW.owner_id,NEW.pet_id,NEW.source_identity,NEW.source_snapshot,NEW.created_at)
++        IS DISTINCT FROM (OLD.id,OLD.document_id,OLD.owner_id,OLD.pet_id,OLD.source_identity,OLD.source_snapshot,OLD.created_at)
++        THEN RAISE EXCEPTION 'OCR source is immutable'; END IF;
++      IF OLD.state='SUCCEEDED' AND NEW IS DISTINCT FROM OLD THEN RAISE EXCEPTION 'OCR success is immutable'; END IF;
++    ELSIF TG_TABLE_NAME='ocr_attempts' THEN
++      IF OLD.status<>'RUNNING' OR NEW.status='RUNNING' OR
++        (NEW.id,NEW.job_id,NEW.attempt_number,NEW.started_at) IS DISTINCT FROM (OLD.id,OLD.job_id,OLD.attempt_number,OLD.started_at)
++        THEN RAISE EXCEPTION 'OCR completed attempt is immutable'; END IF;
++    ELSE RAISE EXCEPTION 'OCR extraction is immutable'; END IF;
++    RETURN NEW;
++  END $$;
++  CREATE TRIGGER ocr_jobs_immutable BEFORE UPDATE OR DELETE ON pet_schema.ocr_jobs FOR EACH ROW EXECUTE FUNCTION pet_schema.guard_ocr_immutable();
++  CREATE TRIGGER ocr_attempts_immutable BEFORE UPDATE OR DELETE ON pet_schema.ocr_attempts FOR EACH ROW EXECUTE FUNCTION pet_schema.guard_ocr_immutable();
++  CREATE TRIGGER ocr_results_immutable BEFORE UPDATE OR DELETE ON pet_schema.ocr_results FOR EACH ROW EXECUTE FUNCTION pet_schema.guard_ocr_immutable();
++  CREATE TRIGGER ocr_candidates_immutable BEFORE UPDATE OR DELETE ON pet_schema.ocr_candidates FOR EACH ROW EXECUTE FUNCTION pet_schema.guard_ocr_immutable();
++  CREATE TRIGGER ocr_jobs_no_truncate BEFORE TRUNCATE ON pet_schema.ocr_jobs FOR EACH STATEMENT EXECUTE FUNCTION pet_schema.guard_ocr_immutable();
++  CREATE TRIGGER ocr_attempts_no_truncate BEFORE TRUNCATE ON pet_schema.ocr_attempts FOR EACH STATEMENT EXECUTE FUNCTION pet_schema.guard_ocr_immutable();
++  CREATE TRIGGER ocr_results_no_truncate BEFORE TRUNCATE ON pet_schema.ocr_results FOR EACH STATEMENT EXECUTE FUNCTION pet_schema.guard_ocr_immutable();
++  CREATE TRIGGER ocr_candidates_no_truncate BEFORE TRUNCATE ON pet_schema.ocr_candidates FOR EACH STATEMENT EXECUTE FUNCTION pet_schema.guard_ocr_immutable();
++`);
++exports.down = () => { throw new Error('OCR provenance retained: disable the worker; destructive DOWN is unsupported.'); };
+diff --git a/backend/scripts/assert-owner-ocr-openapi.cjs b/backend/scripts/assert-owner-ocr-openapi.cjs
+new file mode 100644
+index 0000000..3c1e70a
+--- /dev/null
++++ b/backend/scripts/assert-owner-ocr-openapi.cjs
+@@ -0,0 +1,9 @@
++const assert=require('node:assert/strict');
++const d=require('../artifacts/openapi/swagger.json');
++const p='/v1/owner/pets/{petId}/documents/{documentId}/ocr';
++const ops=[d.paths[p].post,d.paths[p].get,d.paths[p+'/retry'].post];
++for(const op of ops){assert.ok(op.security.some(x=>'bearerAuth' in x));assert.ok(!op.parameters?.some(x=>['ownerId','sourceUrl','storageKey','claimToken'].includes(x.name)));}
++const response=(op,status)=>op.responses[status].content['application/json'].schema;
++for(const op of [ops[0],ops[2]]){const req=op.requestBody.content['application/json'].schema;assert.equal(req.additionalProperties,false);assert.deepEqual(req.properties,{});const job=response(op,201);assert.equal(job.additionalProperties,false);assert.deepEqual(job.properties.authority.enum,['UNCONFIRMED']);assert.equal(job.properties.attemptCount.maximum,3);assert.equal(job.properties.maxAttempts.enum[0],3);}
++const read=response(ops[1],200);assert.equal(read.additionalProperties,false);const result=read.properties.result;assert.equal(result.nullable,true);assert.equal(result.additionalProperties,false);assert.deepEqual(result.properties.authority.enum,['UNCONFIRMED']);const candidate=result.properties.candidate;assert.deepEqual(candidate.properties.kind.enum,['EXTRACTED_TEXT']);assert.deepEqual(candidate.properties.schemaVersion.enum,[1]);assert.deepEqual(candidate.properties.reviewState.enum,['PENDING_OWNER_REVIEW']);assert.equal(candidate.additionalProperties,false);assert.equal(result.properties.extraction.additionalProperties,false);assert.deepEqual(Object.keys(result.properties.extraction.properties).sort(),['provider','providerVersion','text']);assert.ok(!JSON.stringify(read).match(/storage_key|sourceUrl|medicalHistory|diagnosis|claim_token|lease_until/));
++console.log('Owner OCR OpenAPI closed scope/non-authority contract PASS (3 operations)');
+diff --git a/backend/src/auth/ocr-provider.ts b/backend/src/auth/ocr-provider.ts
+new file mode 100644
+index 0000000..97d9a99
+--- /dev/null
++++ b/backend/src/auth/ocr-provider.ts
+@@ -0,0 +1,23 @@
++import { Injectable } from '@nestjs/common';
++
++export interface OcrSource {
++  documentId: string;
++  documentType: 'PASSPORT' | 'HISTORY';
++}
++export interface OcrExtraction {
++  text: string;
++  provider?: string;
++  providerVersion?: string;
++}
++/** Existing simulated text abstraction. No network integration or clinical inference. */
++@Injectable()
++export class OcrProvider {
++  async extract(source: OcrSource, _signal: AbortSignal): Promise<OcrExtraction> {
++    return {
++      text: source.documentType === 'PASSPORT'
++        ? 'OCR simulated: veterinary passport fields detected.'
++        : 'OCR simulated: medical history notes detected.',
++      provider: 'SIMULATED_OCR',
++    };
++  }
++}
+diff --git a/backend/src/auth/owner-ocr.controller.ts b/backend/src/auth/owner-ocr.controller.ts
+new file mode 100644
+index 0000000..743376c
+--- /dev/null
++++ b/backend/src/auth/owner-ocr.controller.ts
+@@ -0,0 +1,35 @@
++import { BadRequestException, Body, Controller, Get, Header, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
++import { ApiBearerAuth, ApiBody, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
++import { SWAGGER_BEARER_AUTH } from '../openapi/openapi';
++import { CurrentUser } from './current-user.decorator';
++import { JwtAuthGuard } from './jwt-auth.guard';
++import { JwtPayload, Role } from './auth.types';
++import { ocrEmptyRequest, ocrJobSchema, ocrReadSchema } from './owner-ocr.openapi';
++import { OwnerOcrService } from './owner-ocr.service';
++import { Roles } from './roles.decorator';
++import { RolesGuard } from './roles.guard';
++
++@ApiTags('Owner OCR candidates')
++@ApiBearerAuth(SWAGGER_BEARER_AUTH)
++@UseGuards(JwtAuthGuard, RolesGuard)
++@Roles(Role.OWNER)
++@Controller('v1/owner/pets/:petId/documents/:documentId/ocr')
++export class OwnerOcrController {
++  constructor(private readonly jobs: OwnerOcrService) {}
++  @ApiBody({schema:ocrEmptyRequest,required:false}) @ApiCreatedResponse({schema:ocrJobSchema})
++  @Post() @Header('Cache-Control', 'no-store')
++  @ApiOperation({ operationId: 'OwnerOcr_enqueue', summary: 'Idempotently queue non-authoritative OCR for an owned document' })
++  enqueue(@Body() body: unknown, @CurrentUser() owner: JwtPayload, @Param('petId', new ParseUUIDPipe()) petId: string, @Param('documentId', new ParseUUIDPipe()) documentId: string) { this.empty(body); return this.jobs.enqueue(owner, petId, documentId); }
++  @ApiOkResponse({schema:ocrReadSchema})
++  @Get() @Header('Cache-Control', 'no-store')
++  @ApiOperation({ operationId: 'OwnerOcr_read', summary: 'Read private unconfirmed OCR and text candidate; no medical promotion' })
++  read(@CurrentUser() owner: JwtPayload, @Param('petId', new ParseUUIDPipe()) petId: string, @Param('documentId', new ParseUUIDPipe()) documentId: string) { return this.jobs.read(owner, petId, documentId); }
++  @ApiBody({schema:ocrEmptyRequest,required:false}) @ApiCreatedResponse({schema:ocrJobSchema})
++  @Post('retry') @Header('Cache-Control', 'no-store')
++  @ApiOperation({ operationId: 'OwnerOcr_retry', summary: 'Retry failed owned OCR within its lifetime three-attempt budget' })
++  retry(@Body() body: unknown, @CurrentUser() owner: JwtPayload, @Param('petId', new ParseUUIDPipe()) petId: string, @Param('documentId', new ParseUUIDPipe()) documentId: string) { this.empty(body); return this.jobs.retry(owner, petId, documentId); }
++  private empty(body: unknown): void {
++    if (body !== undefined && (body === null || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).length)) throw new BadRequestException({code:'INVALID_REQUEST',message:'No OCR authority fields are accepted.'});
++  }
++}
++
+diff --git a/backend/src/auth/owner-ocr.openapi.ts b/backend/src/auth/owner-ocr.openapi.ts
+new file mode 100644
+index 0000000..88044a9
+--- /dev/null
++++ b/backend/src/auth/owner-ocr.openapi.ts
+@@ -0,0 +1,8 @@
++import type { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
++const uuid: SchemaObject = {type:'string',format:'uuid'};
++const time: SchemaObject = {type:'string',format:'date-time'};
++function closed(properties: Record<string,SchemaObject>): SchemaObject & {properties: Record<string,SchemaObject>} { return {type:'object',additionalProperties:false,required:Object.keys(properties),properties}; }
++export const ocrJobSchema=closed({jobId:uuid,documentId:uuid,petId:uuid,state:{type:'string',enum:['QUEUED','RUNNING','SUCCEEDED','FAILED']},attemptCount:{type:'integer',minimum:0,maximum:3},maxAttempts:{type:'integer',enum:[3]},errorCode:{type:'string',nullable:true,enum:['PROVIDER_FAILED','INVALID_RESULT','LEASE_EXPIRED','SOURCE_UNAVAILABLE','SOURCE_CHANGED']},authority:{type:'string',enum:['UNCONFIRMED']}});
++const extraction:SchemaObject={type:'object',additionalProperties:false,required:['text'],properties:{text:{type:'string',maxLength:32768},provider:{type:'string',maxLength:120},providerVersion:{type:'string',maxLength:80}}};
++export const ocrReadSchema=closed({...ocrJobSchema.properties,attempts:{type:'array',maxItems:3,items:closed({attemptNumber:{type:'integer',minimum:1,maximum:3},status:{type:'string',enum:['RUNNING','SUCCEEDED','FAILED','ABANDONED']},startedAt:time,finishedAt:{...time,nullable:true},errorCode:{...ocrJobSchema.properties!.errorCode}})},result:{...closed({resultId:uuid,sourceIdentity:{type:'string',pattern:'^[0-9a-f]{64}$'},resultIdentity:{type:'string',pattern:'^[0-9a-f]{64}$'},authority:{type:'string',enum:['UNCONFIRMED']},extraction,extractedAt:time,provider:{type:'string',nullable:true},providerVersion:{type:'string',nullable:true},startedAt:time,finishedAt:time,candidate:closed({candidateId:uuid,schemaVersion:{type:'integer',enum:[1]},kind:{type:'string',enum:['EXTRACTED_TEXT']},text:{type:'string',maxLength:32768},reviewState:{type:'string',enum:['PENDING_OWNER_REVIEW']}})}),nullable:true}});
++export const ocrEmptyRequest=closed({});
+diff --git a/backend/src/auth/owner-ocr.service.ts b/backend/src/auth/owner-ocr.service.ts
+new file mode 100644
+index 0000000..b7ee6c8
+--- /dev/null
++++ b/backend/src/auth/owner-ocr.service.ts
+@@ -0,0 +1,153 @@
++import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
++import { createHash, randomUUID } from 'node:crypto';
++import { PoolClient } from 'pg';
++import { DatabaseService } from '../database/database.service';
++import { JwtPayload, Role } from './auth.types';
++import { OcrExtraction, OcrSource } from './ocr-provider';
++
++type SourceRow = { id: string; owner_id: string; pet_id: string; doc_type: 'PASSPORT' | 'HISTORY'; storage_key: string | null; file_size_bytes: number | null; created_at: Date };
++type Job = { id: string; document_id: string; owner_id: string; pet_id: string; state: string; attempt_count: number; source_identity: string; source_snapshot: OcrSource; claim_token: string | null; error_code: string | null; lease_until: Date | null };
++export type OcrClaim = Job & { claim_token: string };
++export type OcrFailure = 'PROVIDER_FAILED' | 'INVALID_RESULT' | 'SOURCE_UNAVAILABLE' | 'SOURCE_CHANGED';
++const hash = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
++
++@Injectable()
++export class OwnerOcrService {
++  constructor(private readonly database: DatabaseService) {}
++
++  private owner(owner: JwtPayload): void {
++    if (!owner.roles.includes(Role.OWNER)) throw new ForbiddenException({ code: 'ROLE_FORBIDDEN', message: 'Owner role required.' });
++  }
++  private missing(): never { throw new NotFoundException({ code: 'OWNER_OCR_NOT_FOUND', message: 'OCR source or job was not found.' }); }
++
++  private async source(client: PoolClient, ownerId: string, petId: string, documentId: string): Promise<SourceRow | undefined> {
++    // Lock order: job (if existing) -> Pet -> Document. No sharing locks or grants are changed.
++    const pet = await client.query(`SELECT id FROM pet_schema.pets WHERE id=$1 AND owner_id=$2 AND archived_at IS NULL FOR SHARE`, [petId, ownerId]);
++    if (!pet.rowCount) return undefined;
++    const doc = await client.query<SourceRow>(`SELECT id,owner_id,pet_id,doc_type,storage_key,file_size_bytes,created_at
++      FROM pet_schema.pet_documents WHERE id=$1 AND pet_id=$2 AND owner_id=$3
++      AND deleted_at IS NULL AND doc_type IN('PASSPORT','HISTORY') FOR SHARE`, [documentId, petId, ownerId]);
++    return doc.rows[0];
++  }
++  private fingerprint(source: SourceRow): string {
++    return hash([source.id, source.owner_id, source.pet_id, source.doc_type, source.storage_key, source.file_size_bytes, source.created_at.toISOString()]);
++  }
++
++  async enqueue(owner: JwtPayload, petId: string, documentId: string) {
++    this.owner(owner);
++    return this.database.withTransaction(async client => {
++      const source = await this.source(client, owner.sub, petId, documentId);
++      if (!source) this.missing();
++      await client.query(`INSERT INTO pet_schema.ocr_jobs(document_id,owner_id,pet_id,source_identity,source_snapshot)
++        VALUES($1,$2,$3,$4,$5::jsonb) ON CONFLICT(document_id) DO NOTHING`,
++      [documentId, owner.sub, petId, this.fingerprint(source), JSON.stringify({ documentId, documentType: source.doc_type })]);
++      const job = await client.query<Job>(`SELECT * FROM pet_schema.ocr_jobs WHERE document_id=$1 AND owner_id=$2 AND pet_id=$3`, [documentId, owner.sub, petId]);
++      if (!job.rows[0]) this.missing();
++      return this.presentJob(job.rows[0]);
++    });
++  }
++
++  async read(owner: JwtPayload, petId: string, documentId: string) {
++    this.owner(owner);
++    return this.database.withTransaction(async client => {
++      const job = (await client.query<Job>(`SELECT * FROM pet_schema.ocr_jobs WHERE document_id=$1 AND owner_id=$2 AND pet_id=$3 FOR SHARE`, [documentId, owner.sub, petId])).rows[0];
++      if (!job || !await this.source(client, owner.sub, petId, documentId)) this.missing();
++      const result = (await client.query(`SELECT r.id,r.extraction,r.result_identity,r.extracted_at,a.provider_identity,a.provider_version,a.started_at,a.finished_at,
++        c.id candidate_id,c.extracted_text,c.schema_version,c.kind,c.review_state FROM pet_schema.ocr_results r
++        JOIN pet_schema.ocr_attempts a ON a.id=r.attempt_id JOIN pet_schema.ocr_candidates c ON c.result_id=r.id WHERE r.job_id=$1`, [job.id])).rows[0];
++      const attempts = (await client.query(`SELECT attempt_number AS "attemptNumber",status,started_at AS "startedAt",finished_at AS "finishedAt",error_code AS "errorCode"
++        FROM pet_schema.ocr_attempts WHERE job_id=$1 ORDER BY attempt_number`, [job.id])).rows;
++      return { ...this.presentJob(job), attempts, result: result ? {
++        resultId: result.id, sourceIdentity: job.source_identity, resultIdentity: result.result_identity,
++        authority: 'UNCONFIRMED', extraction: result.extraction, extractedAt: result.extracted_at,
++        provider: result.provider_identity, providerVersion: result.provider_version,
++        startedAt: result.started_at, finishedAt: result.finished_at,
++        candidate: { candidateId: result.candidate_id, schemaVersion: result.schema_version, kind: result.kind, text: result.extracted_text, reviewState: result.review_state },
++      } : null };
++    });
++  }
++
++  async retry(owner: JwtPayload, petId: string, documentId: string) {
++    this.owner(owner);
++    return this.database.withTransaction(async client => {
++      const job = (await client.query<Job>(`SELECT * FROM pet_schema.ocr_jobs WHERE document_id=$1 AND owner_id=$2 AND pet_id=$3 FOR UPDATE`, [documentId, owner.sub, petId])).rows[0];
++      const source = await this.source(client, owner.sub, petId, documentId);
++      if (!job || !source) this.missing();
++      if (this.fingerprint(source) !== job.source_identity) throw new ConflictException({ code: 'OCR_SOURCE_CHANGED', message: 'OCR source changed.' });
++      if (job.state !== 'FAILED' || job.attempt_count >= 3) throw new ConflictException({ code: 'OCR_RETRY_UNAVAILABLE', message: 'Retry is unavailable.' });
++      const next = await client.query<Job>(`UPDATE pet_schema.ocr_jobs SET state='QUEUED',error_code=NULL,available_at=clock_timestamp(),updated_at=clock_timestamp() WHERE id=$1 RETURNING *`, [job.id]);
++      return this.presentJob(next.rows[0]);
++    });
++  }
++
++  async claim(): Promise<OcrClaim | null> {
++    return this.database.withTransaction(async client => {
++      // One bounded recovery/claim per poll. SKIP LOCKED enables independent workers.
++      const job = (await client.query<Job>(`SELECT * FROM pet_schema.ocr_jobs WHERE
++        (state='QUEUED' AND available_at<=clock_timestamp()) OR (state='RUNNING' AND lease_until<=clock_timestamp())
++        ORDER BY available_at,created_at,id LIMIT 1 FOR UPDATE SKIP LOCKED`)).rows[0];
++      if (!job) return null;
++      if (job.state === 'RUNNING') {
++        await client.query(`UPDATE pet_schema.ocr_attempts SET status='ABANDONED',finished_at=clock_timestamp(),error_code='LEASE_EXPIRED' WHERE id=$1 AND status='RUNNING'`, [job.claim_token]);
++        if (job.attempt_count >= 3) {
++          await client.query(`UPDATE pet_schema.ocr_jobs SET state='FAILED',claim_token=NULL,lease_until=NULL,error_code='LEASE_EXPIRED',updated_at=clock_timestamp() WHERE id=$1`, [job.id]);
++          return null;
++        }
++      }
++      const source = await this.source(client, job.owner_id, job.pet_id, job.document_id);
++      if (!source || this.fingerprint(source) !== job.source_identity) {
++        await client.query(`UPDATE pet_schema.ocr_jobs SET state='FAILED',claim_token=NULL,lease_until=NULL,error_code=$2,updated_at=clock_timestamp() WHERE id=$1`, [job.id, source ? 'SOURCE_CHANGED' : 'SOURCE_UNAVAILABLE']);
++        return null;
++      }
++      const token = randomUUID();
++      const claimed = await client.query<OcrClaim>(`UPDATE pet_schema.ocr_jobs SET state='RUNNING',attempt_count=attempt_count+1,
++        claim_token=$2,lease_until=clock_timestamp()+interval '60 seconds',error_code=NULL,updated_at=clock_timestamp() WHERE id=$1 RETURNING *`, [job.id, token]);
++      await client.query(`INSERT INTO pet_schema.ocr_attempts(id,job_id,attempt_number,status) VALUES($1,$2,$3,'RUNNING')`, [token, job.id, claimed.rows[0].attempt_count]);
++      return claimed.rows[0];
++    });
++  }
++
++  async finish(claim: OcrClaim, extraction?: OcrExtraction, failure?: OcrFailure): Promise<boolean> {
++    let serialized: string | undefined;
++    if (!failure) {
++      try { serialized = this.validate(extraction); } catch { failure = 'INVALID_RESULT'; }
++    }
++    return this.database.withTransaction(async client => {
++      const job = (await client.query<Job>(`SELECT * FROM pet_schema.ocr_jobs WHERE id=$1 AND lease_until>clock_timestamp() FOR UPDATE`, [claim.id])).rows[0];
++      // Lease/token fencing prevents late provider responses and duplicate replay from writing.
++      if (!job || job.state !== 'RUNNING' || job.claim_token !== claim.claim_token) return false;
++      const source = await this.source(client, job.owner_id, job.pet_id, job.document_id);
++      if (!source) failure = 'SOURCE_UNAVAILABLE';
++      else if (this.fingerprint(source) !== job.source_identity) failure = 'SOURCE_CHANGED';
++      if (failure) {
++        await client.query(`UPDATE pet_schema.ocr_attempts SET status='FAILED',finished_at=clock_timestamp(),error_code=$2 WHERE id=$1`, [claim.claim_token, failure]);
++        const again = failure === 'PROVIDER_FAILED' && job.attempt_count < 3;
++        await client.query(`UPDATE pet_schema.ocr_jobs SET state=$2,claim_token=NULL,lease_until=NULL,error_code=$3,
++          available_at=clock_timestamp()+($4::integer * interval '5 seconds'),updated_at=clock_timestamp() WHERE id=$1`, [job.id, again ? 'QUEUED' : 'FAILED', failure, job.attempt_count]);
++      } else {
++        const value = JSON.parse(serialized!) as OcrExtraction;
++        await client.query(`UPDATE pet_schema.ocr_attempts SET status='SUCCEEDED',finished_at=clock_timestamp(),provider_identity=$2,provider_version=$3 WHERE id=$1`, [claim.claim_token, value.provider ?? null, value.providerVersion ?? null]);
++        const result = await client.query(`INSERT INTO pet_schema.ocr_results(job_id,attempt_id,document_id,owner_id,pet_id,source_identity,result_identity,extraction)
++          VALUES($1,$2,$3,$4,$5,$6,$7,$8::jsonb) RETURNING id`, [job.id, claim.claim_token, job.document_id, job.owner_id, job.pet_id, job.source_identity, hash(value), serialized]);
++        await client.query(`INSERT INTO pet_schema.ocr_candidates(result_id,job_id,extracted_text) VALUES($1,$2,$3)`, [result.rows[0].id, job.id, value.text]);
++        await client.query(`UPDATE pet_schema.ocr_jobs SET state='SUCCEEDED',claim_token=NULL,lease_until=NULL,error_code=NULL,updated_at=clock_timestamp() WHERE id=$1`, [job.id]);
++      }
++      return true;
++    });
++  }
++
++  private validate(value: unknown): string {
++    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new BadRequestException();
++    const v = value as Record<string, unknown>;
++    if (Object.keys(v).some(key => !['text','provider','providerVersion'].includes(key)) || typeof v.text !== 'string' || !v.text.trim() || v.text.includes('\u0000') || Buffer.byteLength(v.text, 'utf8') > 32768) throw new BadRequestException();
++    for (const [key, limit] of [['provider',120],['providerVersion',80]] as const) {
++      if (v[key] !== undefined && (typeof v[key] !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_.:-]*$/.test(v[key] as string) || (v[key] as string).length > limit)) throw new BadRequestException();
++    }
++    const serialized = JSON.stringify(value);
++    if (Buffer.byteLength(serialized, 'utf8') > 65000) throw new BadRequestException();
++    return serialized;
++  }
++  private presentJob(job: Job) {
++    return { jobId: job.id, documentId: job.document_id, petId: job.pet_id, state: job.state, attemptCount: job.attempt_count, maxAttempts: 3, errorCode: job.error_code, authority: 'UNCONFIRMED' };
++  }
++}
+diff --git a/backend/test/owner-ocr-foundation.e2e-spec.ts b/backend/test/owner-ocr-foundation.e2e-spec.ts
+new file mode 100644
+index 0000000..f2e3b44
+--- /dev/null
++++ b/backend/test/owner-ocr-foundation.e2e-spec.ts
+@@ -0,0 +1,138 @@
++import 'reflect-metadata';
++import { INestApplication } from '@nestjs/common';
++import { NestFactory } from '@nestjs/core';
++import { JwtService } from '@nestjs/jwt';
++import { randomUUID } from 'node:crypto';
++import { readFileSync } from 'node:fs';
++import request from 'supertest';
++import { JwtPayload, Role } from '../src/auth/auth.types';
++import { OwnerOcrService } from '../src/auth/owner-ocr.service';
++import { OcrDocumentWorker } from '../src/auth/ocr-document.worker';
++import { OcrProvider } from '../src/auth/ocr-provider';
++import { OwnerPetService } from '../src/auth/owner-pet.service';
++import { BookingErrorFilter } from '../src/common/booking-error.filter';
++import { config } from '../src/config';
++import { DatabaseService } from '../src/database/database.service';
++import { NestRoot } from '../src/nest-root-full';
++
++jest.setTimeout(90000);
++describe('Owner OCR foundation (real isolated PostgreSQL/Nest)', () => {
++  let app: INestApplication, db: DatabaseService, jobs: OwnerOcrService, jwt: JwtService;
++  const ownerId=randomUUID(), foreignOwner=randomUUID(), pet=randomUUID(), otherPet=randomUUID();
++  const owner={sub:ownerId,roles:[Role.OWNER]};
++  const raw={text:'LEGACY_PRIVATE_UNVERIFIED'};
++  const path=(doc:string,p=pet)=>`/v1/owner/pets/${p}/documents/${doc}/ocr`;
++  const token=(sub=ownerId,roles=[Role.OWNER])=>jwt.signAsync({sub,roles},{secret:config.jwtSecret,issuer:config.jwtIssuer,audience:config.jwtAudience,algorithm:'HS256'});
++  const result={text:'Unconfirmed source text',provider:'SIMULATED_OCR'};
++  async function document(type='HISTORY',p=pet,o=ownerId) {
++    const id=randomUUID();
++    await db.query(`INSERT INTO pet_schema.pet_documents(id,pet_id,owner_id,file_url,doc_type,status,ocr_result,storage_key,file_size_bytes)
++      VALUES($1,$2,$3,'private-storage-marker',$4,'PROCESSED',$5,'private-storage-key',99)`,[id,p,o,type,JSON.stringify(raw)]);
++    return id;
++  }
++  async function queued() { const doc=await document(); const job=await jobs.enqueue(owner,pet,doc); return {doc,job}; }
++  async function ready(id:string) {await db.query(`UPDATE pet_schema.ocr_jobs SET available_at=clock_timestamp()-interval '1 second' WHERE id=$1`,[id]);}
++  beforeAll(async()=>{
++    if(process.env.W4B_ACCEPTANCE!=='true'||new URL(config.databaseUrl).hostname!=='postgres'||!new URL(config.databaseUrl).pathname.startsWith('/vethelp_w4b_'))throw new Error('Requires test-owned Docker DB');
++    app=await NestFactory.create(NestRoot,{logger:false});app.useGlobalFilters(new BookingErrorFilter());await app.init();db=app.get(DatabaseService);jobs=app.get(OwnerOcrService);jwt=app.get(JwtService);
++    await db.query(`INSERT INTO identity_schema.users(id) VALUES($1),($2)`,[ownerId,foreignOwner]);
++    await db.query(`INSERT INTO pet_schema.pets(id,owner_id,name,species,medical_history_ocr) VALUES($1,$2,'OCR','DOG',$3),($4,$5,'Foreign','CAT',NULL)`,[pet,ownerId,JSON.stringify(raw),otherPet,foreignOwner]);
++  });
++  afterEach(async()=>{
++    await db.query(`UPDATE pet_schema.ocr_attempts SET status='FAILED',finished_at=clock_timestamp(),error_code='PROVIDER_FAILED' WHERE status='RUNNING'`);
++    await db.query(`UPDATE pet_schema.ocr_jobs SET state='FAILED',claim_token=NULL,lease_until=NULL,error_code='PROVIDER_FAILED' WHERE state IN('QUEUED','RUNNING')`);
++  });
++  afterAll(async()=>{await app?.close();});
++
++  it('explicit enqueue works with document PROCESSED and concurrent replay creates one durable job',async()=>{
++    const doc=await document();const before=(await db.query(`SELECT row_to_json(d) row FROM pet_schema.pet_documents d WHERE id=$1`,[doc])).rows[0];
++    const rows=await Promise.all(Array.from({length:8},()=>jobs.enqueue(owner,pet,doc)));
++    expect(new Set(rows.map(r=>r.jobId)).size).toBe(1);expect(rows[0]).toMatchObject({state:'QUEUED',authority:'UNCONFIRMED',attemptCount:0});
++    expect((await db.query(`SELECT row_to_json(d) row FROM pet_schema.pet_documents d WHERE id=$1`,[doc])).rows[0]).toEqual(before);
++  });
++  it.each(['enqueue','read','retry'] as const)('exact Owner/Pet/Document scope denies forged/missing/foreign references for %s',async method=>{
++    const {doc}=await queued();const foreign=await document('HISTORY',otherPet,foreignOwner);
++    for(const [actor,p,d] of [[{sub:foreignOwner,roles:[Role.OWNER]},pet,doc],[owner,pet,foreign],[owner,otherPet,doc],[owner,pet,randomUUID()]] as [JwtPayload,string,string][])await expect(jobs[method](actor,p,d)).rejects.toMatchObject({status:404});
++    await expect(jobs[method]({sub:ownerId,roles:[Role.CLINIC_ADMIN]},pet,doc)).rejects.toMatchObject({status:403});
++  });
++  it('real HTTP rejects unauthenticated/non-Owner/malformed scopes and applies no-store',async()=>{
++    const doc=await document();expect((await request(app.getHttpServer()).post(path(doc))).status).toBe(401);
++    for(const roles of [[Role.CLINIC_ADMIN],[Role.CLINIC_RECEPTIONIST],[Role.CLINIC_VETERINARIAN]])expect((await request(app.getHttpServer()).post(path(doc)).set('Authorization',`Bearer ${await token(ownerId,roles)}`)).status).toBe(403);
++    expect((await request(app.getHttpServer()).post(path('forged')).set('Authorization',`Bearer ${await token()}`)).status).toBe(400);
++    expect((await request(app.getHttpServer()).post(path(doc)).set('Authorization',`Bearer ${await token()}`).send({ownerId:foreignOwner,petId:otherPet,documentId:randomUUID()})).status).toBe(400);
++    const accepted=await request(app.getHttpServer()).post(path(doc)).set('Authorization',`Bearer ${await token()}`).send({});
++    expect(accepted.status).toBe(201);expect(accepted.body).toMatchObject({documentId:doc,petId:pet});expect(accepted.headers['cache-control']).toBe('no-store');
++    const denied=await request(app.getHttpServer()).get(path(doc)).set('Authorization',`Bearer ${await token(foreignOwner)}`);expect(denied.status).toBe(404);expect(JSON.stringify(denied.body)).not.toMatch(/private|LEGACY|Unconfirmed|storage/i);
++  });
++  it('parallel workers claim once and persist immutable text-only v1 provenance atomically without Pet writes',async()=>{
++    const {doc,job}=await queued();const before=(await db.query(`SELECT row_to_json(p) row FROM pet_schema.pets p WHERE id=$1`,[pet])).rows[0];
++    const claimed=(await Promise.all(Array.from({length:8},()=>jobs.claim()))).filter(c=>c!==null);expect(claimed).toHaveLength(1);
++    expect(await jobs.finish(claimed[0]!,{...result,providerVersion:'v1'})).toBe(true);expect(await jobs.finish(claimed[0]!,result)).toBe(false);
++    const read=await jobs.read(owner,pet,doc);expect(read.state).toBe('SUCCEEDED');expect(read.result).toMatchObject({authority:'UNCONFIRMED',provider:'SIMULATED_OCR',providerVersion:'v1',candidate:{schemaVersion:1,kind:'EXTRACTED_TEXT',reviewState:'PENDING_OWNER_REVIEW',text:result.text}});
++    expect(read.result!.sourceIdentity).toMatch(/^[0-9a-f]{64}$/);expect(read.result!.resultIdentity).toMatch(/^[0-9a-f]{64}$/);expect(read.result!.startedAt).toBeInstanceOf(Date);expect(read.result!.finishedAt).toBeInstanceOf(Date);
++    expect(JSON.stringify(read)).not.toMatch(/private-storage|storage_key|claim_token|lease_until|diagnosis|drug|measurement/);
++    expect((await db.query(`SELECT row_to_json(p) row FROM pet_schema.pets p WHERE id=$1`,[pet])).rows[0]).toEqual(before);
++    expect((await db.query('SELECT ocr_result FROM pet_schema.pet_documents WHERE id=$1',[doc])).rows[0].ocr_result).toEqual(raw);
++    expect((await db.query('SELECT count(*)::int n FROM pet_schema.ocr_results WHERE job_id=$1',[job.jobId])).rows[0].n).toBe(1);
++    for(const [table,column] of [['ocr_jobs','source_identity'],['ocr_results','authority'],['ocr_candidates','review_state']])await expect(db.query(`UPDATE pet_schema.${table} SET ${column}='changed' WHERE ${table==='ocr_jobs'?'id':'job_id'}=$1`,[job.jobId])).rejects.toBeDefined();
++  });
++  it('nullable provider provenance remains unavailable rather than invented',async()=>{
++    const {doc}=await queued();expect(await jobs.finish((await jobs.claim())!,{text:'Text only'})).toBe(true);
++    const r=(await jobs.read(owner,pet,doc)).result!;expect(r.provider).toBeNull();expect(r.providerVersion).toBeNull();expect(r.extraction).toEqual({text:'Text only'});
++  });
++  it('lease recovery fences old execution, records abandonment and accepts only replacement result',async()=>{
++    const {doc,job}=await queued();const first=(await jobs.claim())!;await db.query(`UPDATE pet_schema.ocr_jobs SET lease_until=clock_timestamp()-interval '1 second' WHERE id=$1`,[job.jobId]);
++    expect(await jobs.finish(first,result)).toBe(false);const second=(await jobs.claim())!;expect(second.claim_token).not.toBe(first.claim_token);
++    expect(await jobs.finish(first,{text:'STALE'})).toBe(false);expect(await jobs.finish(second,result)).toBe(true);
++    expect((await jobs.read(owner,pet,doc)).attempts.map(a=>a.status)).toEqual(['ABANDONED','SUCCEEDED']);
++  });
++  it('three expired claims exhaust recovery budget without a fourth execution',async()=>{
++    const {doc,job}=await queued();for(let i=0;i<3;i++){expect(await jobs.claim()).not.toBeNull();await db.query(`UPDATE pet_schema.ocr_jobs SET lease_until=clock_timestamp()-interval '1 second' WHERE id=$1`,[job.jobId]);}
++    expect(await jobs.claim()).toBeNull();const read=await jobs.read(owner,pet,doc);expect(read).toMatchObject({state:'FAILED',attemptCount:3,errorCode:'LEASE_EXPIRED'});expect(read.attempts.map(a=>a.status)).toEqual(['ABANDONED','ABANDONED','ABANDONED']);await expect(jobs.retry(owner,pet,doc)).rejects.toMatchObject({status:409});
++  });
++  it('provider failure persists bounded backoff/history and exhausts lifetime budget',async()=>{
++    const {doc,job}=await queued();for(let i=1;i<=3;i++){const c=(await jobs.claim())!;expect(c.attempt_count).toBe(i);await jobs.finish(c,undefined,'PROVIDER_FAILED');if(i<3){expect(await jobs.claim()).toBeNull();await ready(job.jobId);}}
++    const read=await jobs.read(owner,pet,doc);expect(read).toMatchObject({state:'FAILED',attemptCount:3,errorCode:'PROVIDER_FAILED',result:null});expect(read.attempts).toHaveLength(3);await expect(jobs.retry(owner,pet,doc)).rejects.toMatchObject({status:409});
++  });
++  it.each([null,{text:''},{text:'x'.repeat(32769)},{text:'ok',diagnosis:'invented'},{text:'ok',provider:'secret https://credential'},{text:'\u0000'}])('invalid or oversized result is bounded and not persisted (%j)',async value=>{
++    const {doc}=await queued();await jobs.finish((await jobs.claim())!,value as never);expect(await jobs.read(owner,pet,doc)).toMatchObject({state:'FAILED',errorCode:'INVALID_RESULT',result:null});
++  });
++  it('explicit Owner retry does not reset attempts; simultaneous retries permit one transition',async()=>{
++    const {doc}=await queued();await jobs.finish((await jobs.claim())!,{text:''});
++    const rs=await Promise.allSettled([jobs.retry(owner,pet,doc),jobs.retry(owner,pet,doc)]);expect(rs.filter(r=>r.status==='fulfilled')).toHaveLength(1);
++    expect((await jobs.read(owner,pet,doc)).attemptCount).toBe(1);await jobs.finish((await jobs.claim())!,result);await expect(jobs.retry(owner,pet,doc)).rejects.toMatchObject({status:409});
++  });
++  it('candidate persistence failure rolls back extraction, attempt and job success as one transaction',async()=>{
++    const {doc,job}=await queued(),claim=(await jobs.claim())!;
++    await db.query(`CREATE FUNCTION pet_schema.test_fail_ocr_candidate() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'test candidate failure'; END $$;CREATE TRIGGER test_fail_ocr_candidate BEFORE INSERT ON pet_schema.ocr_candidates FOR EACH ROW EXECUTE FUNCTION pet_schema.test_fail_ocr_candidate();`);
++    try {await expect(jobs.finish(claim,result)).rejects.toThrow('test candidate failure');expect((await jobs.read(owner,pet,doc)).state).toBe('RUNNING');expect((await db.query('SELECT * FROM pet_schema.ocr_results WHERE job_id=$1',[job.jobId])).rows).toHaveLength(0);}
++    finally {await db.query('DROP TRIGGER test_fail_ocr_candidate ON pet_schema.ocr_candidates;DROP FUNCTION pet_schema.test_fail_ocr_candidate();');}
++    expect(await jobs.finish(claim,result)).toBe(true);
++  });
++  it('provider runs outside any transaction and unsafe provider errors are never persisted',async()=>{
++    const {doc}=await queued();const provider=new OcrProvider();const extract=jest.spyOn(provider,'extract').mockImplementation(async()=>{
++      expect((await db.query(`SELECT count(*)::int n FROM pg_stat_activity WHERE datname=current_database() AND state='idle in transaction'`)).rows[0].n).toBe(0);
++      expect((await db.query(`SELECT state FROM pet_schema.ocr_jobs WHERE document_id=$1`,[doc])).rows[0].state).toBe('RUNNING');throw new Error('MEDICAL_SECRET credential/path');
++    });
++    const prior=process.env.WORKERS_ENABLED;process.env.WORKERS_ENABLED='true';try{await new OcrDocumentWorker(jobs,provider).processDocuments();}finally{process.env.WORKERS_ENABLED=prior;extract.mockRestore();}
++    const read=await jobs.read(owner,pet,doc);expect(read.errorCode).toBe('PROVIDER_FAILED');expect(JSON.stringify(read)).not.toMatch(/MEDICAL_SECRET|credential/);
++  });
++  it.each(['deleted','archived','ownerChanged','sourceChanged'])('concurrent source %s prevents persistence after provider execution',async mode=>{
++    const {doc}=await queued(),claim=(await jobs.claim())!;
++    if(mode==='deleted')await db.query('UPDATE pet_schema.pet_documents SET deleted_at=clock_timestamp() WHERE id=$1',[doc]);
++    if(mode==='archived')await db.query('UPDATE pet_schema.pets SET archived_at=clock_timestamp() WHERE id=$1',[pet]);
++    if(mode==='ownerChanged')await db.query('UPDATE pet_schema.pets SET owner_id=$2 WHERE id=$1',[pet,foreignOwner]);
++    if(mode==='sourceChanged')await db.query("UPDATE pet_schema.pet_documents SET storage_key='changed' WHERE id=$1",[doc]);
++    try {expect(await jobs.finish(claim,result)).toBe(true);expect((await db.query('SELECT state,error_code FROM pet_schema.ocr_jobs WHERE id=$1',[claim.id])).rows[0]).toEqual({state:'FAILED',error_code:mode==='sourceChanged'?'SOURCE_CHANGED':'SOURCE_UNAVAILABLE'});expect((await db.query('SELECT * FROM pet_schema.ocr_results WHERE job_id=$1',[claim.id])).rows).toHaveLength(0);}
++    finally {if(mode==='archived')await db.query('UPDATE pet_schema.pets SET archived_at=NULL WHERE id=$1',[pet]);if(mode==='ownerChanged')await db.query('UPDATE pet_schema.pets SET owner_id=$2 WHERE id=$1',[pet,ownerId]);}
++  });
++  it('queued deleted source never invokes provider or creates a result',async()=>{
++    const {doc,job}=await queued();await db.query('UPDATE pet_schema.pet_documents SET deleted_at=clock_timestamp() WHERE id=$1',[doc]);expect(await jobs.claim()).toBeNull();expect((await db.query('SELECT state,error_code FROM pet_schema.ocr_jobs WHERE id=$1',[job.jobId])).rows[0]).toEqual({state:'FAILED',error_code:'SOURCE_UNAVAILABLE'});
++  });
++  it('legacy values remain labelled unverified and absent from Pet and medical projections',async()=>{
++    const doc=await document();const legacy=(await db.query(`SELECT source_kind,authority,raw_result FROM pet_schema.ocr_legacy_unverified WHERE pet_id=$1 AND (document_id=$2 OR document_id IS NULL) ORDER BY source_kind`,[pet,doc])).rows;
++    expect(legacy).toEqual([{source_kind:'DOCUMENT',authority:'LEGACY_UNVERIFIED',raw_result:raw},{source_kind:'PET_HISTORY',authority:'LEGACY_UNVERIFIED',raw_result:raw}]);
++    const profile=await app.get(OwnerPetService).readMvp(owner,pet);expect(JSON.stringify(profile)).not.toMatch(/LEGACY_PRIVATE|medicalHistoryOcr|ocr_result/);
++    const worker=readFileSync('src/auth/ocr-document.worker.ts','utf8'),service=readFileSync('src/auth/owner-ocr.service.ts','utf8');expect(worker+service).not.toMatch(/UPDATE\s+pet_schema\.pets|SET\s+medical_history_ocr|SET\s+ocr_result/i);
++  });
++});
+diff --git a/backend/test/owner-ocr-migration.e2e-spec.ts b/backend/test/owner-ocr-migration.e2e-spec.ts
+new file mode 100644
+index 0000000..140fd16
+--- /dev/null
++++ b/backend/test/owner-ocr-migration.e2e-spec.ts
+@@ -0,0 +1,25 @@
++import { execFileSync } from 'node:child_process';
++import { randomUUID } from 'node:crypto';
++import { Client } from 'pg';
++jest.setTimeout(120000);
++describe('OCR append-only populated legacy upgrade',()=>{
++  it('preserves exact legacy rows and checksums, classifies old values unverified, and refuses destructive rollback',async()=>{
++    const url=new URL(process.env.DATABASE_URL!);if(process.env.W4B_ACCEPTANCE!=='true'||url.hostname!=='postgres'||!url.pathname.startsWith('/vethelp_w4b_'))throw new Error('Test-owned DB required');
++    const admin=new Client({connectionString:url.toString()});await admin.connect();const name='vethelp_w4b_upgrade_'+randomUUID().replace(/-/g,'');let db:Client|undefined;
++    const migrate=(args:string[])=>execFileSync(process.execPath,['node_modules/node-pg-migrate/bin/node-pg-migrate.js',...args,'--migrations-dir','migrations/node-pg','--migrations-table','schema_migrations','--single-transaction'],{env:{...process.env,DATABASE_URL:url.toString()},stdio:'pipe',timeout:60000});
++    try{await admin.query(`CREATE DATABASE "${name}"`);url.pathname='/'+name;migrate(['up','1719730000000','--timestamp']);db=new Client({connectionString:url.toString()});await db.connect();
++      const owner=randomUUID(),pet=randomUUID(),doc=randomUUID(),history={text:'legacy history',unknown:{retained:true}},ocr={text:'legacy raw',sourceUrl:'historic-value'};
++      await db.query('INSERT INTO identity_schema.users(id) VALUES($1)',[owner]);await db.query(`INSERT INTO pet_schema.pets(id,owner_id,name,species,medical_history_ocr) VALUES($1,$2,'Legacy','DOG',$3)`,[pet,owner,JSON.stringify(history)]);
++      await db.query(`INSERT INTO pet_schema.pet_documents(id,pet_id,owner_id,file_url,doc_type,status,ocr_result) VALUES($1,$2,$3,'old-private-source','HISTORY','PROCESSED',$4)`,[doc,pet,owner,JSON.stringify(ocr)]);
++      const before=(await db.query('SELECT row_to_json(p) pet,row_to_json(d) document FROM pet_schema.pets p JOIN pet_schema.pet_documents d ON d.pet_id=p.id WHERE p.id=$1',[pet])).rows;
++      execFileSync(process.execPath,['scripts/verify-migration-checksums.cjs','--write-missing'],{env:{...process.env,DATABASE_URL:url.toString()},stdio:'pipe'});
++      const prior=(await db.query('SELECT * FROM public.schema_migration_checksums WHERE file_name NOT LIKE $1 ORDER BY file_name',['171974%'])).rows;
++      migrate(['up']);execFileSync(process.execPath,['scripts/verify-migration-checksums.cjs','--write-missing'],{env:{...process.env,DATABASE_URL:url.toString()},stdio:'pipe'});execFileSync(process.execPath,['scripts/verify-migration-checksums.cjs'],{env:{...process.env,DATABASE_URL:url.toString()},stdio:'pipe'});
++      expect((await db.query('SELECT row_to_json(p) pet,row_to_json(d) document FROM pet_schema.pets p JOIN pet_schema.pet_documents d ON d.pet_id=p.id WHERE p.id=$1',[pet])).rows).toEqual(before);
++      expect((await db.query("SELECT authority,raw_result FROM pet_schema.ocr_legacy_unverified ORDER BY source_kind")).rows).toEqual([{authority:'LEGACY_UNVERIFIED',raw_result:ocr},{authority:'LEGACY_UNVERIFIED',raw_result:history}]);
++      expect((await db.query('SELECT count(*)::int n FROM pet_schema.ocr_jobs')).rows[0].n).toBe(0);
++      expect((await db.query('SELECT * FROM public.schema_migration_checksums WHERE file_name NOT LIKE $1 ORDER BY file_name',['171974%'])).rows).toEqual(prior);
++      expect(()=>migrate(['down','1'])).toThrow();expect((await db.query("SELECT * FROM schema_migrations WHERE name LIKE '171974%'")).rows).toHaveLength(1);
++    }finally{await db?.end();await admin.query(`DROP DATABASE IF EXISTS "${name}"`);await admin.end();}
++  });
++});
+diff --git a/docs/v15/14-wave4b-01-ocr-foundation.md b/docs/v15/14-wave4b-01-ocr-foundation.md
+new file mode 100644
+index 0000000..f71914e
+--- /dev/null
++++ b/docs/v15/14-wave4b-01-ocr-foundation.md
+@@ -0,0 +1,31 @@
++# V15-W4B-01 — OCR Authority Foundation
++
++Base: 16888e1a191bf410a6aeb8f611f5ce4af98282df. Wave4A accepted under docs/testing/evidence/wave4a-final-20261011/ACCEPTANCE.md. This is an uncommitted bounded backend implementation; W4B human acceptance is not given.
++
++## Authority decisions
++
++Legacy worker's sole production direct-write path into pets.medical_history_ocr and pet_documents.ocr_result is removed. Historical values remain exactly in place and are exposed only through a SQL sidecar view labelled LEGACY_UNVERIFIED; existing Pet/Diary/sharing projections expose neither old OCR nor new candidates as medical truth. The view is not an API. No applied migration changes.
++
++A new additive171974 migration creates per-document jobs, attempt history, immutable raw results and extracted-text candidates. Source identity binds document id/Owner/Pet/type/storage metadata/creation time; it is a metadata digest, not a content-byte digest. Current supported provider is the existing simulation (text and available provider metadata); no external calls, document parsing, NLP, diagnoses or measurements are introduced. Future real provider work must bind original immutable bytes and record its real provenance.
++
++## Lifecycle and storage
++
++Explicit Owner enqueue is idempotent by document id, regardless of document PROCESSED status. No automatic upload/legacy queueing or new upload API is added. Jobs have QUEUED/RUNNING/SUCCEEDED/FAILED states, 60-second leases, random claim fencing, three lifetime attempts,5/10-second failure backoff and bounded abandoned-lease recovery. Multiple workers use FOR UPDATE SKIP LOCKED; provider invocation occurs after claim COMMIT with30-second abort timeout. A provider may execute again after a crash (at-least-once); unique/fenced persistence admits one accepted result.
++
++Attempt completion, raw extraction, candidate and success commit atomically. Lost/failed persistence leaves the lease recoverable. Current source scope/identity is rechecked before persistence. Source deletion/archive/ownership/metadata changes deny completion. Results/candidates and source provenance cannot be edited/deleted/truncated by normal application operations; destructive DOWN is refused. Rollback means disabling workers and retaining provenance. Before deployment, stop old worker binaries so no previous process can continue its legacy direct writes; this task performs no deployment.
++
++Text is bounded to32768 UTF-8 bytes; serialized result to65000 bytes, DB ceiling65536. Only text/provider/providerVersion are supported; unavailable provenance remains null/absent. Errors are fixed codes, never arbitrary provider messages. Candidates are schema1 EXTRACTED_TEXT/PENDING_OWNER_REVIEW, not validated facts. Later correction/confirmation needs a separate Owner-decision layer; original extraction remains immutable.
++
++## API impact
++
++- POST /v1/owner/pets/:petId/documents/:documentId/ocr — enqueue or return same job.
++- GET same path — Owner-private state, attempts, unconfirmed result and candidate.
++- POST same path/retry — retry a failed current-scope job without resetting lifetime attempts.
++
++Both POSTs accept only an optional empty object. UUID pipes/JWT/Owner guard plus current Pet ownership/active status and exact document Owner/Pet/type/nondeleted scope apply. Foreign/missing scope is404, non-Owner403, invalid path/body400, unavailable/exhausted retry409. Responses use no-store and exclude storage paths, URLs, claim tokens and lease fields. Only these exact methods bypass the existing Pilot legacy-document block. Existing sharing source, grants and old OpenAPI operations remain unchanged; generated OpenAPI adds only these three operations.
++
++## Validation and next slice
++
++Evidence: docs/testing/evidence/wave4b-01-20261011/REPORT.md and SHA256SUMS.46 distinct passing automated cases:27OCR/upgrade/sharing cases +19affected route-guard cases; no unresolved failures. Fresh70migrations/checksums, populated69→70upgrade, build and5OpenAPIassertionsPASS. DB and Security reviews NO VETO. Prior Wave1–4A gates sticky; accepted75HTTPcases selected out of the new sharing test. No client/dependency change.
++
++Recommended W4B-02: bounded backend Owner review/correction/confirmation decision model, optimistic version/idempotency, append-only audit and explicit validated-import authority. Define its validation/medical-sharing eligibility before exposing confirmed imports. No UI or that confirmation implementation is included here.

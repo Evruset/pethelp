@@ -1,0 +1,15 @@
+ migrations 
+------------
+         70
+(1 row)
+
+ idle_in_transaction 
+---------------------
+                   0
+(1 row)
+
+ deadlocks 
+-----------
+         0
+(1 row)
+

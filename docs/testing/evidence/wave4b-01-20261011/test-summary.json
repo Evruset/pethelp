@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "uniquePassed": 46,
+  "unresolvedFailed": 0,
+  "retainedFreshServicePassed": 24,
+  "repairedHTTPAndUpgradePassed": 2,
+  "productScopeGuardPassed": 19,
+  "newSharingIsolationPassed": 1,
+  "focusedOCRTotal": 27,
+  "selectorPending": {
+    "repair": 24,
+    "sharingAcceptedWave4A": 75
+  },
+  "selectorPendingCoverage": "24 covered by retained freshPASS;75 accepted sticky not rerun",
+  "backendBuild": "PASS",
+  "openapiAssertions": 5,
+  "priorWave1To4AGates": "REUSED_STICKY_PASS except affected guard/OpenAPI checks and new OCR isolation assertions",
+  "repairDisclosure": [
+    "test-harness-attempt-01",
+    "focused-attempt-02",
+    "openapi-compile-attempt"
+  ]
+}
