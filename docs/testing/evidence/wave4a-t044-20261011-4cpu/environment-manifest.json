@@ -1,0 +1,85 @@
+{
+  "engine": {
+    "cpuCount": 4,
+    "memoryBytes": 8221097984,
+    "architecture": "x86_64",
+    "kernel": "6.10.11-linuxkit",
+    "driver": "overlay2",
+    "cgroupVersion": "2"
+  },
+  "project": "pethelp-wave4a-t044-control-20261011a",
+  "checkpoint": "bd9d2c1fab893c1bb7ee72de887fe82d826be38b",
+  "workingTree": "DIRTY",
+  "runtimeProfile": "PILOT_V1",
+  "nodeEnv": "test",
+  "workers": false,
+  "poolMax": 20,
+  "connectionTimeoutMs": 700,
+  "lockTimeoutMs": 50,
+  "statementTimeoutMs": 250,
+  "runs": [
+    {
+      "run": 1,
+      "database": "t044_control_11a_run1",
+      "node": "v22.23.1",
+      "postgres": {
+        "version": "PostgreSQL 16.14 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit",
+        "work_mem": "4MB",
+        "shared_buffers": "128MB",
+        "max_connections": "100"
+      },
+      "cpuCount": 4,
+      "cpuset": "0-3",
+      "cpuMax": "max 100000",
+      "memoryBytes": 8221097984,
+      "wallMs": 24818,
+      "cpuUsageMs": 26167.341,
+      "throttleDelta": 0,
+      "memoryPeakBytes": 679141376,
+      "memoryEvents": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "cpuPressureAfter": "some avg10=2.38 avg60=1.09 avg300=0.27 total=957976\nfull avg10=0.82 avg60=0.32 avg300=0.08 total=344548"
+    },
+    {
+      "run": 2,
+      "database": "t044_control_11a_run2",
+      "node": "v22.23.1",
+      "postgres": {
+        "version": "PostgreSQL 16.14 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit",
+        "work_mem": "4MB",
+        "shared_buffers": "128MB",
+        "max_connections": "100"
+      },
+      "cpuCount": 4,
+      "cpuset": "0-3",
+      "cpuMax": "max 100000",
+      "memoryBytes": 8221097984,
+      "wallMs": 24133,
+      "cpuUsageMs": 26032.587,
+      "throttleDelta": 0,
+      "memoryPeakBytes": 643588096,
+      "memoryEvents": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "cpuPressureAfter": "some avg10=2.32 avg60=1.20 avg300=0.30 total=1025424\nfull avg10=0.84 avg60=0.37 avg300=0.09 total=382461"
+    },
+    {
+      "run": 3,
+      "database": "t044_control_11a_run3",
+      "node": "v22.23.1",
+      "postgres": {
+        "version": "PostgreSQL 16.14 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit",
+        "work_mem": "4MB",
+        "shared_buffers": "128MB",
+        "max_connections": "100"
+      },
+      "cpuCount": 4,
+      "cpuset": "0-3",
+      "cpuMax": "max 100000",
+      "memoryBytes": 8221097984,
+      "wallMs": 25273,
+      "cpuUsageMs": 27476.021,
+      "throttleDelta": 0,
+      "memoryPeakBytes": 642854912,
+      "memoryEvents": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "cpuPressureAfter": "some avg10=2.15 avg60=1.02 avg300=0.25 total=886116\nfull avg10=0.61 avg60=0.26 avg300=0.06 total=325454"
+    }
+  ]
+}

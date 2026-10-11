@@ -1,0 +1,454 @@
+{
+  "schemaVersion": 1,
+  "decision": "RECOMMENDED_FOR_HUMAN_APPROVAL",
+  "humanApproval": "PENDING_EXPLICIT_OWNER_SIGN_OFF",
+  "wave4A": "PARTIAL",
+  "branch": "agent/v15-transition-wave-01",
+  "baseLocalRemote": "bd9d2c1fab893c1bb7ee72de887fe82d826be38b",
+  "workingTree": "DIRTY",
+  "evidenceVerification": "PASS",
+  "executionDate": "2026-10-11",
+  "sourceSnapshot": {
+    "base": "bd9d2c1fab893c1bb7ee72de887fe82d826be38b",
+    "dirtySourceSha256": "889379032d8f2cd1b36bb2f3bdaa16f5771c1ce7b1b3bb6f90f586a7f21fff2f",
+    "definition": "git diff --binary --no-ext-diff HEAD -- backend/src/booking-core backend/src/workers/hold-expiration.service.ts backend/test/booking-core-performance.integration-spec.ts",
+    "sourceHashes": {
+      "backend/test/booking-core-performance.integration-spec.ts": "7cf3c680872f0493a6d429aa41a8395df73268c6fe2678d81f75d37f581d13d3",
+      "backend/src/booking-core/booking-hold-creation.service.ts": "502f68c34ecc02d16d7430bb09c54ca16f2597dd3d37b8fd67202c01155cbdbe",
+      "backend/src/booking-core/booking-security.service.ts": "492faf9cd6f1957fd05c67cd3366200fb721a99d739b0bf9ff5d396766feb9bc",
+      "backend/src/booking-core/booking.service.ts": "ada9b5e6720e86cf5045da64e7b89e1e876fd72669fa30bcd52f5752e8674952",
+      "backend/src/workers/hold-expiration.service.ts": "19ab51615aff167061b077df77e4ea828355c31d7a8aae2ef6879185de15a2e7"
+    },
+    "proposedAcceptedPerformanceSha256": "02da614fbca7c34ed26d3494ab6640d5660a077dad3fd30d15ce6da48f1f9bbc",
+    "proposedPatchSha256": "5ff2a9893f481212f4174457a4cdfb795ac692ff58b3e919800d948c7f27b9f2",
+    "proposedSnapshotExecuted": false,
+    "note": "Measured source includes disabled hooks. Proposed subset excludes them: not byte-identical, not an accepted diagnostic feature."
+  },
+  "runtime": {
+    "cpuCount": 4,
+    "cpuset": "0-3",
+    "memoryBytes": 8221097984,
+    "node": "22.23.1",
+    "postgres": "16.14",
+    "poolMax": 20,
+    "connectionTimeoutMs": 700,
+    "lockTimeoutMs": 50,
+    "statementTimeoutMs": 250
+  },
+  "runs": [
+    {
+      "run": 1,
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "Bp95Ms": 600.59,
+      "DinitialSuccesses": 100,
+      "Binvariants": {
+        "capacity": 5,
+        "held": 5,
+        "booked": 0,
+        "activeHolds": 5,
+        "overbooked": 0,
+        "counterDrift": 0,
+        "holds": 5,
+        "createdEvents": 5,
+        "createdAudits": 5,
+        "poolInUseAfter": 0,
+        "poolWaitingAfter": 0
+      },
+      "Dinvariants": {
+        "capacity": 1,
+        "held": 1,
+        "booked": 0,
+        "activeHolds": 1,
+        "overbooked": 0,
+        "counterDrift": 0,
+        "holds": 1,
+        "createdEvents": 1,
+        "createdAudits": 1,
+        "stableReplays": 100,
+        "postBurstReplay": true,
+        "changedFingerprintCode": "IDEMPOTENCY_CONFLICT",
+        "poolInUseAfter": 0,
+        "poolWaitingAfter": 0
+      },
+      "thresholds": {
+        "invariantViolations": 0,
+        "duplicateMutations": 0,
+        "unexpected5xx": 0,
+        "deadlocks": 0,
+        "poolLeaks": 0,
+        "hotContentionCompletionMs": 2000,
+        "multiCapacityP95Ms": 2000,
+        "distributedP95Ms": 1500,
+        "expiryBacklog50CycleMs": 2000,
+        "poolWaitingAfterProfile": 0
+      },
+      "sourceHashes": {
+        "backend/test/booking-core-performance.integration-spec.ts": "7cf3c680872f0493a6d429aa41a8395df73268c6fe2678d81f75d37f581d13d3",
+        "backend/src/booking-core/booking-hold-creation.service.ts": "502f68c34ecc02d16d7430bb09c54ca16f2597dd3d37b8fd67202c01155cbdbe",
+        "backend/src/booking-core/booking-security.service.ts": "492faf9cd6f1957fd05c67cd3366200fb721a99d739b0bf9ff5d396766feb9bc",
+        "backend/src/booking-core/booking.service.ts": "ada9b5e6720e86cf5045da64e7b89e1e876fd72669fa30bcd52f5752e8674952",
+        "backend/src/workers/hold-expiration.service.ts": "19ab51615aff167061b077df77e4ea828355c31d7a8aae2ef6879185de15a2e7"
+      },
+      "environment": {
+        "node": "v22.23.1",
+        "postgres": {
+          "version": "PostgreSQL 16.14 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit",
+          "work_mem": "4MB",
+          "shared_buffers": "128MB",
+          "max_connections": "100"
+        },
+        "poolMax": 20,
+        "maxPoolInUse": 20,
+        "cpuCount": 4,
+        "memoryBytes": 8221097984,
+        "topology": "disposable PostgreSQL database; isolated one-off Node 22 container; no development workers"
+      },
+      "dirtySnapshotSha256": "889379032d8f2cd1b36bb2f3bdaa16f5771c1ce7b1b3bb6f90f586a7f21fff2f"
+    },
+    {
+      "run": 2,
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "Bp95Ms": 666.48,
+      "DinitialSuccesses": 100,
+      "Binvariants": {
+        "capacity": 5,
+        "held": 5,
+        "booked": 0,
+        "activeHolds": 5,
+        "overbooked": 0,
+        "counterDrift": 0,
+        "holds": 5,
+        "createdEvents": 5,
+        "createdAudits": 5,
+        "poolInUseAfter": 0,
+        "poolWaitingAfter": 0
+      },
+      "Dinvariants": {
+        "capacity": 1,
+        "held": 1,
+        "booked": 0,
+        "activeHolds": 1,
+        "overbooked": 0,
+        "counterDrift": 0,
+        "holds": 1,
+        "createdEvents": 1,
+        "createdAudits": 1,
+        "stableReplays": 100,
+        "postBurstReplay": true,
+        "changedFingerprintCode": "IDEMPOTENCY_CONFLICT",
+        "poolInUseAfter": 0,
+        "poolWaitingAfter": 0
+      },
+      "thresholds": {
+        "invariantViolations": 0,
+        "duplicateMutations": 0,
+        "unexpected5xx": 0,
+        "deadlocks": 0,
+        "poolLeaks": 0,
+        "hotContentionCompletionMs": 2000,
+        "multiCapacityP95Ms": 2000,
+        "distributedP95Ms": 1500,
+        "expiryBacklog50CycleMs": 2000,
+        "poolWaitingAfterProfile": 0
+      },
+      "sourceHashes": {
+        "backend/test/booking-core-performance.integration-spec.ts": "7cf3c680872f0493a6d429aa41a8395df73268c6fe2678d81f75d37f581d13d3",
+        "backend/src/booking-core/booking-hold-creation.service.ts": "502f68c34ecc02d16d7430bb09c54ca16f2597dd3d37b8fd67202c01155cbdbe",
+        "backend/src/booking-core/booking-security.service.ts": "492faf9cd6f1957fd05c67cd3366200fb721a99d739b0bf9ff5d396766feb9bc",
+        "backend/src/booking-core/booking.service.ts": "ada9b5e6720e86cf5045da64e7b89e1e876fd72669fa30bcd52f5752e8674952",
+        "backend/src/workers/hold-expiration.service.ts": "19ab51615aff167061b077df77e4ea828355c31d7a8aae2ef6879185de15a2e7"
+      },
+      "environment": {
+        "node": "v22.23.1",
+        "postgres": {
+          "version": "PostgreSQL 16.14 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit",
+          "work_mem": "4MB",
+          "shared_buffers": "128MB",
+          "max_connections": "100"
+        },
+        "poolMax": 20,
+        "maxPoolInUse": 20,
+        "cpuCount": 4,
+        "memoryBytes": 8221097984,
+        "topology": "disposable PostgreSQL database; isolated one-off Node 22 container; no development workers"
+      },
+      "dirtySnapshotSha256": "889379032d8f2cd1b36bb2f3bdaa16f5771c1ce7b1b3bb6f90f586a7f21fff2f"
+    },
+    {
+      "run": 3,
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "Bp95Ms": 753.18,
+      "DinitialSuccesses": 100,
+      "Binvariants": {
+        "capacity": 5,
+        "held": 5,
+        "booked": 0,
+        "activeHolds": 5,
+        "overbooked": 0,
+        "counterDrift": 0,
+        "holds": 5,
+        "createdEvents": 5,
+        "createdAudits": 5,
+        "poolInUseAfter": 0,
+        "poolWaitingAfter": 0
+      },
+      "Dinvariants": {
+        "capacity": 1,
+        "held": 1,
+        "booked": 0,
+        "activeHolds": 1,
+        "overbooked": 0,
+        "counterDrift": 0,
+        "holds": 1,
+        "createdEvents": 1,
+        "createdAudits": 1,
+        "stableReplays": 100,
+        "postBurstReplay": true,
+        "changedFingerprintCode": "IDEMPOTENCY_CONFLICT",
+        "poolInUseAfter": 0,
+        "poolWaitingAfter": 0
+      },
+      "thresholds": {
+        "invariantViolations": 0,
+        "duplicateMutations": 0,
+        "unexpected5xx": 0,
+        "deadlocks": 0,
+        "poolLeaks": 0,
+        "hotContentionCompletionMs": 2000,
+        "multiCapacityP95Ms": 2000,
+        "distributedP95Ms": 1500,
+        "expiryBacklog50CycleMs": 2000,
+        "poolWaitingAfterProfile": 0
+      },
+      "sourceHashes": {
+        "backend/test/booking-core-performance.integration-spec.ts": "7cf3c680872f0493a6d429aa41a8395df73268c6fe2678d81f75d37f581d13d3",
+        "backend/src/booking-core/booking-hold-creation.service.ts": "502f68c34ecc02d16d7430bb09c54ca16f2597dd3d37b8fd67202c01155cbdbe",
+        "backend/src/booking-core/booking-security.service.ts": "492faf9cd6f1957fd05c67cd3366200fb721a99d739b0bf9ff5d396766feb9bc",
+        "backend/src/booking-core/booking.service.ts": "ada9b5e6720e86cf5045da64e7b89e1e876fd72669fa30bcd52f5752e8674952",
+        "backend/src/workers/hold-expiration.service.ts": "19ab51615aff167061b077df77e4ea828355c31d7a8aae2ef6879185de15a2e7"
+      },
+      "environment": {
+        "node": "v22.23.1",
+        "postgres": {
+          "version": "PostgreSQL 16.14 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit",
+          "work_mem": "4MB",
+          "shared_buffers": "128MB",
+          "max_connections": "100"
+        },
+        "poolMax": 20,
+        "maxPoolInUse": 20,
+        "cpuCount": 4,
+        "memoryBytes": 8221097984,
+        "topology": "disposable PostgreSQL database; isolated one-off Node 22 container; no development workers"
+      },
+      "dirtySnapshotSha256": "889379032d8f2cd1b36bb2f3bdaa16f5771c1ce7b1b3bb6f90f586a7f21fff2f"
+    }
+  ],
+  "files": [
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-1/container.json",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-1/container.json",
+      "bytes": 263,
+      "sha256": "3840f6d4e9a7534e2fa6300f0f6a33232c81f094818de219e517c7fe92f90317"
+    },
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-1/jest-results.json",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-1/jest-results.json",
+      "bytes": 5225,
+      "sha256": "c75c0e5dd47ac3fe760750c95f4ff04abd6e225d576ba5afce1dba58c9171369"
+    },
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-1/jest.log",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-1/jest.log",
+      "bytes": 1867,
+      "sha256": "1b6b583391a7d5ea5679479c85d3a9d551f72d001bb47c0f2d86a1621b04f977"
+    },
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-1/node-resources-after.json",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-1/node-resources-after.json",
+      "bytes": 825,
+      "sha256": "31d88b400434407394b25dbc5f7f3c923a81081b84f97028dd8e8c7f3f86c1e3"
+    },
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-1/node-resources-before.json",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-1/node-resources-before.json",
+      "bytes": 742,
+      "sha256": "de8cb01f40a12f52c6f50728b54d7cd13c831cec02fb58d38e595ba03986eae4"
+    },
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-1/postgres-final-state.raw.json",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-1/postgres-final-state.txt",
+      "bytes": 431,
+      "sha256": "110e35443935afee8a355cade94db561fe22510a60bade103aa3640d33d5e430",
+      "encoding": "lossless UTF8 JSON wrapper",
+      "originalSha256": "9c459e5db25aeab7de85135c53c51f7207e5adca2f4c154f311a93125b6c0647"
+    },
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-1/results.json",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-1/results.json",
+      "bytes": 21204,
+      "sha256": "7fdc88ad5ad45eb15486c807affb96803e6679774404764e22d3525ce0bcd51c"
+    },
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-2/container.json",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-2/container.json",
+      "bytes": 263,
+      "sha256": "a9ded9bfb63647e342392fab68873277ee3c0b5ddbce9895717e352989062eef"
+    },
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-2/jest-results.json",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-2/jest-results.json",
+      "bytes": 5225,
+      "sha256": "1fb716b3cc83567240d8c3ad15b5b7ce5506f649682ee979cc8edd964922b012"
+    },
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-2/jest.log",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-2/jest.log",
+      "bytes": 2194,
+      "sha256": "4271a3eda26f17656e0df2db5cd999edf00650aa621c97be93b7a0feebf97ef0"
+    },
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-2/node-resources-after.json",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-2/node-resources-after.json",
+      "bytes": 819,
+      "sha256": "7eefef8f325c7a7d7ff1f6511a61e731ac571e8eeaa8d60f9eb32da358175ce3"
+    },
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-2/node-resources-before.json",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-2/node-resources-before.json",
+      "bytes": 742,
+      "sha256": "7af28660bb7f05ae48de648e3d47ff372c4c5f051d9e4a17c3da21e3f5dcdcde"
+    },
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-2/postgres-final-state.raw.json",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-2/postgres-final-state.txt",
+      "bytes": 431,
+      "sha256": "d868fe0eab1272b049d993b618fd433fe2214bcf686dd5b55df500db3aae3453",
+      "encoding": "lossless UTF8 JSON wrapper",
+      "originalSha256": "2f741d6669f6d807ac2463131f9c72f03daa86195b7ce7f5d99404c13dfb7130"
+    },
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-2/results.json",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-2/results.json",
+      "bytes": 21171,
+      "sha256": "ea9471d293baa01ad32eb2a65fcdd6cb8f4ba0fde00d8fcb66e5eec1ec84244b"
+    },
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-3/container.json",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-3/container.json",
+      "bytes": 263,
+      "sha256": "383d6186106a02a5d92278a2b9bb8dd5c56b6a7400be65da89037cba03941b0d"
+    },
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-3/jest-results.json",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-3/jest-results.json",
+      "bytes": 5225,
+      "sha256": "1fc02eb61eb0ed761c52232d3d0cae290e8eacb80c9529e89eea63671609dfc6"
+    },
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-3/jest.log",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-3/jest.log",
+      "bytes": 2289,
+      "sha256": "bb24b79d210ed2336ddda4dd986620d5329adfe760f687a17220d3e8f78ac7e9"
+    },
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-3/node-resources-after.json",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-3/node-resources-after.json",
+      "bytes": 875,
+      "sha256": "86ac4c2473e0fa3ab11328b14d6650c2a40b1af901f21b63becd168eac5bf210"
+    },
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-3/node-resources-before.json",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-3/node-resources-before.json",
+      "bytes": 743,
+      "sha256": "b732b66ea87f3ddbf0643cd931fbf93dfee154f3c239cf5a79d6df3b8585de12"
+    },
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-3/postgres-final-state.raw.json",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-3/postgres-final-state.txt",
+      "bytes": 431,
+      "sha256": "1e21df4c3036f4164eb7288d68fb6d5cd54770d2a0b3df2bd38df045e492a9a9",
+      "encoding": "lossless UTF8 JSON wrapper",
+      "originalSha256": "780639839f98ce98fbdbf2a2f9649520c4aa2f7be106813af68a561b98d91e61"
+    },
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-3/results.json",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-3/results.json",
+      "bytes": 21201,
+      "sha256": "6a3273020eda586a980c54fb2416b3897bb23db649d7925de123ea04d5f817e3"
+    },
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/engine.json",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/engine.json",
+      "bytes": 132,
+      "sha256": "1ef6beb4914913c3eb4c8132cd33085321cc2c620d651da4243f26a46d35d955"
+    },
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/environment-manifest.json",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/environment-manifest.json",
+      "bytes": 2832,
+      "sha256": "79ee78757f769aae026e504703481dfa4205f082f575ea3522fb89ff9cef62bd"
+    },
+    {
+      "path": "docs/testing/evidence/wave4a-t044-20261011-4cpu/source-hashes.json",
+      "originalPath": ".artifacts/wave4a-t044-resource-control/20261011-4cpu-01/source-hashes.json",
+      "bytes": 628,
+      "sha256": "72d2948fbed9aa82d82a6b8a3dc9c119dff4f6624557775ff5750f58c4c0074e"
+    }
+  ],
+  "candidateFiles": [
+    "backend/test/clinical-foundation-migration.integration-spec.ts",
+    "backend/test/v15-clinic-contract-profile-migration.integration-spec.ts",
+    "backend/test/clinical-result-cardinality-migration.integration-spec.ts",
+    "backend/test/booking-core-performance.integration-spec.ts",
+    "docs/ai/current-state.md",
+    "docs/v15/13-wave4a-regression-reconciliation.md",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-1/container.json",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-1/jest-results.json",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-1/jest.log",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-1/node-resources-after.json",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-1/node-resources-before.json",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-1/postgres-final-state.raw.json",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-1/results.json",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-2/container.json",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-2/jest-results.json",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-2/jest.log",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-2/node-resources-after.json",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-2/node-resources-before.json",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-2/postgres-final-state.raw.json",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-2/results.json",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-3/container.json",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-3/jest-results.json",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-3/jest.log",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-3/node-resources-after.json",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-3/node-resources-before.json",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-3/postgres-final-state.raw.json",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/run-3/results.json",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/engine.json",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/environment-manifest.json",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/source-hashes.json",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/manifest.json",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/README.md",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/commit-plan.md",
+    "docs/testing/evidence/wave4a-t044-20261011-4cpu/SHA256SUMS"
+  ],
+  "excluded": [
+    "./....",
+    ".artifacts/**",
+    "OPTIONAL_DIAGNOSTIC hunks in performance test"
+  ],
+  "limitations": [
+    "Historical one-CPU requirement remains unresolved",
+    "Raw generated interpretation has static one-CPU prose; actual structured environment/snapshots authoritative",
+    "Latency distributions are empirical quantiles, not raw per-request arrays",
+    "No consolidated regression or final Security/Independent Review",
+    "Final chosen source snapshot must be verified before commit; no staging/commit/push performed"
+  ],
+  "nextAction": "Owner sign-off of4CPU profile and exact scope, then validate final selected source before commit."
+}

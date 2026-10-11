@@ -1,0 +1,29 @@
+time="2026-10-11T11:40:03+03:00" level=warning msg="Found orphan containers ([pethelp-wave4a-t044-control-20261011a-run2 pethelp-wave4a-t044-control-20261011a-run2-observer pethelp-wave4a-t044-control-20261011a-run1 pethelp-wave4a-t044-control-20261011a-run1-observer]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
+
+> vethelp-mvp1@0.1.0 test
+> jest --runInBand --passWithNoTests --runTestsByPath test/booking-core-performance.integration-spec.ts --passWithNoTests=false --json --outputFile=/workspace/.artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-3/jest-results.json
+
+[32m[Nest] 27  - [39m10/11/2026, 8:40:24 AM [32m    LOG[39m [38;5;3m[HoldExpirationService] [39m[32mExpired 50 hold(s)[39m
+PASS test/booking-core-performance.integration-spec.ts (22.834 s)
+  T044 Booking Core engineering baseline (real PostgreSQL)
+    ✓ profile A: final-unit contention is reproducible at 50 and 100 contenders (1816 ms)
+    ✓ profile B: multi-capacity contention conserves all five units (841 ms)
+    ✓ profile C: distributed create load establishes a bounded concurrency ramp (2927 ms)
+    ✓ profile D: idempotency storm creates exactly one mutation and rejects changed fingerprint (256 ms)
+    ✓ profile E: stale-version contention is side-effect free (288 ms)
+    ✓ profile F: mixed confirm/decline/owner-cancel races converge without deadlock (191 ms)
+    ✓ profile G: bounded expiry backlog drains and cached health reflects recovery (817 ms)
+    ✓ captures representative PostgreSQL plans for slot, idempotency and expiry claims (1269 ms)
+    ✓ global hard gates: no deadlocks, pool leaks, stuck transactions, or unexpected failures (6 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       9 passed, 9 total
+Snapshots:   0 total
+Time:        23.163 s
+Ran all test suites within paths "test/booking-core-performance.integration-spec.ts".
+Test results written to: ../.artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-3/jest-results.json
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
