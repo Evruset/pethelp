@@ -1,0 +1,269 @@
+{
+  "base": "fe503ab83e0f927facaca69457d8e9684dee20d1",
+  "freshRemote": "origin/agent/v15-w4b-02-review-2ajw4xh6",
+  "readOnlyCatalog": "schema-audit.json",
+  "targetedSourceFiles": 16,
+  "records": [
+    {
+      "path": "backend/src/common/pet-document-storage.ts",
+      "sha256": "74392fe423eb76bac44cc3a20b2fcef2ef9678ad5bd6388c1164861e15b43eec",
+      "anchors": {
+        "petDocumentStoragePath": [
+          9,
+          21
+        ],
+        "openStoredPetDocument": [
+          19
+        ],
+        "O_NOFOLLOW": [
+          26
+        ]
+      },
+      "unchangedFromAcceptedBase": true
+    },
+    {
+      "path": "backend/src/common/pet-document-storage.spec.ts",
+      "sha256": "496bca9288c915ad4be4609831e45aeda91766ffd261efb7ef974e3ec043032c",
+      "anchors": {
+        "opens verified descriptor": [
+          10
+        ],
+        "rejects missing": [
+          11
+        ]
+      },
+      "unchangedFromAcceptedBase": true
+    },
+    {
+      "path": "backend/src/auth/owner-pet.service.ts",
+      "sha256": "1d11addcfbcff7ef848a6231735152a20d23d4ba0d1fc525c652701f175cb7c5",
+      "anchors": {
+        "async uploadDocumentFile": [
+          808
+        ],
+        "private validateUploadedFile": [
+          1058
+        ],
+        "private async storeUploadedFile": [
+          1073
+        ],
+        "async downloadDocument": [
+          932
+        ],
+        "async deleteDocument": [
+          941
+        ],
+        "private async readOwnedDocument": [
+          1096
+        ],
+        "async setArchived": [
+          563
+        ]
+      },
+      "unchangedFromAcceptedBase": true
+    },
+    {
+      "path": "backend/src/auth/owner-pet.controller.ts",
+      "sha256": "153375c17f2d8ba690b4c623b384927c5df0f4b9e025f7b87a7f7c16f01c2a30",
+      "anchors": {
+        "@Post(':petId/documents')": [
+          60
+        ],
+        "@Get(':petId/documents/:documentId/download')": [
+          109
+        ]
+      },
+      "unchangedFromAcceptedBase": true
+    },
+    {
+      "path": "backend/src/auth/owner-ocr.service.ts",
+      "sha256": "80af601c09214a71bfd72f5ddebc49501056dde3e3529ba0f37c550898061ee5",
+      "anchors": {
+        "private fingerprint": [
+          32
+        ],
+        "async enqueue": [
+          36
+        ],
+        "async claim": [
+          83
+        ],
+        "async finish": [
+          110
+        ]
+      },
+      "unchangedFromAcceptedBase": true
+    },
+    {
+      "path": "backend/src/auth/ocr-document.worker.ts",
+      "sha256": "df6c97835d9c09703ed227bef379ae10746db9f24ad435e9a8f79c6b4d3eac8c",
+      "anchors": {
+        "provider.extract": [
+          24
+        ],
+        "jobs.finish": [
+          27,
+          30
+        ]
+      },
+      "unchangedFromAcceptedBase": true
+    },
+    {
+      "path": "backend/src/auth/ocr-provider.ts",
+      "sha256": "4104ea556ca9b29805708c5181881a1afcd3d425e1720ab65f3bef00ab88872b",
+      "anchors": {
+        "interface OcrSource": [
+          3
+        ],
+        "async extract": [
+          15
+        ],
+        "SIMULATED_OCR": [
+          20
+        ]
+      },
+      "unchangedFromAcceptedBase": true
+    },
+    {
+      "path": "backend/src/auth/owner-ocr-review.service.ts",
+      "sha256": "d4e96d9f5d5ba06636817991e145e55365aeaecdbc6b43aa7c8e655ba25c756f",
+      "anchors": {
+        "private async context": [
+          23
+        ],
+        "async mutate": [
+          63
+        ],
+        "async read": [
+          52
+        ]
+      },
+      "unchangedFromAcceptedBase": true
+    },
+    {
+      "path": "backend/src/booking-core/appointment-medical-sharing.service.ts",
+      "sha256": "fdc70b2f8087a583d606389f56d4336ace2d8f4572e4f89f207644826d563603",
+      "anchors": {
+        "async clinicDownload": [
+          126
+        ],
+        "private async clinicAuthority": [
+          146
+        ]
+      },
+      "unchangedFromAcceptedBase": true
+    },
+    {
+      "path": "backend/src/database/database.service.ts",
+      "sha256": "8c015e67832c3277a427c2ec79eb7fa6d53da2bf6f24a9d36efc088608558b77",
+      "anchors": {
+        "async withTransaction": [
+          44
+        ],
+        "client.query('COMMIT')": [
+          53
+        ]
+      },
+      "unchangedFromAcceptedBase": true
+    },
+    {
+      "path": "backend/src/config/mvp-product-scope.guard.ts",
+      "sha256": "a1558231dea259b139ab32ce97f041e9146dfb64a891f1a3dedf683be9078e25",
+      "anchors": {
+        "pilotBlockedRoutes": [
+          4,
+          21
+        ],
+        "const review": [
+          18
+        ]
+      },
+      "unchangedFromAcceptedBase": true
+    },
+    {
+      "path": "backend/migrations/node-pg/1719400000000_autonomous_marketplace_pr36.js",
+      "sha256": "a97ff772282335acf557bde86275c9e0965fe57f924d3bbfd3941f2ed7794ac4",
+      "anchors": {
+        "CREATE TABLE IF NOT EXISTS pet_schema.pet_documents": [
+          65
+        ]
+      },
+      "unchangedFromAcceptedBase": true
+    },
+    {
+      "path": "backend/migrations/node-pg/1719410000000_add_pet_document_file_metadata.js",
+      "sha256": "f8e59f174c7f0b4ab03b9f4e05d7443636fa8c9466e3eeb79f225ed80548d39a",
+      "anchors": {
+        "storage_key text": [
+          7
+        ],
+        "file_size_bytes > 0": [
+          20
+        ]
+      },
+      "unchangedFromAcceptedBase": true
+    },
+    {
+      "path": "backend/migrations/node-pg/1719730000000_add_appointment_medical_sharing.js",
+      "sha256": "759ab33c13a41b3afbb235754b32ac09cc0ef0920c43989e3f0b34ef26e02ff9",
+      "anchors": {
+        "documents_medical_owner_key": [
+          8,
+          82
+        ]
+      },
+      "unchangedFromAcceptedBase": true
+    },
+    {
+      "path": "backend/migrations/node-pg/1719740000000_owner_ocr_foundation.js",
+      "sha256": "fd4e645ba6e2ec79374b70ad2f3b9d747d91438705ce57ab406dc9c25433aef3",
+      "anchors": {
+        "document_id uuid NOT NULL UNIQUE": [
+          13
+        ],
+        "source_identity char": [
+          15,
+          42
+        ],
+        "guard_ocr_immutable": [
+          59,
+          74,
+          75,
+          76,
+          77,
+          78,
+          79,
+          80,
+          81
+        ]
+      },
+      "unchangedFromAcceptedBase": true
+    },
+    {
+      "path": "backend/migrations/node-pg/1719750000000_owner_ocr_review_authority.js",
+      "sha256": "b5b884ef3cf88e9b57b6c87e187c0f3472334894c567a492bb158fd7ebc23a42",
+      "anchors": {
+        "CREATE TABLE pet_schema.ocr_review_revisions": [
+          4
+        ],
+        "enforce_ocr_review_revision": [
+          23,
+          59
+        ],
+        "ocr_review_append_only": [
+          60,
+          62,
+          63
+        ]
+      },
+      "unchangedFromAcceptedBase": true
+    }
+  ],
+  "searchScope": "named document/storage/OCR/review code and directly related migrations; no broad repository inventory",
+  "limitations": [
+    "No production database or document bytes accessed",
+    "No deployment storage permissions or immutable version guarantees verified",
+    "Schema catalog is retained test-owned W4B02 DB, not production",
+    "Current simulation never consumes document bytes"
+  ]
+}

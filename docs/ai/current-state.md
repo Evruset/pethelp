@@ -1,5 +1,23 @@
 # V50 program current state
 
+## 2026-10-11 — V15-W4B-03A architecture acceptance / documentation publication
+
+`WAVE4B_03A_DESIGN_COMPLETE=YES`, `WAVE4B_03A_DESIGN_HUMAN_ACCEPTANCE=APPROVED`, `WAVE4B_03A_READY_FOR_IMPLEMENTATION=YES` under explicit Product Owner V15-W4B-03A-DESIGN-ACCEPT. Architecture direction approved; no implementation readiness evidence or validated import approval implied. Decision/limits: `docs/v15/evidence/w4b-03a-design-20261011/ACCEPTANCE.md`. Historical design candidate/NOT_RECORDED statements below remain original audit provenance.
+
+Accepted private snapshots/SHA256/actualcount/immutableversion, proposed171976, actual-input receipt, immutable result provenance and exactOwner revision linkage; no historical retroproof. Five independent layers verified; current simulation is not real extraction proof. `OCR_SOURCE_BYTE_INTEGRITY=DEFERRED_BLOCKING_VALIDATED_IMPORT` stays in force.
+
+Isolated design branch `agent/v15-w4b-03a-byte-integrity-design-nc811mrg`, parent `fe503ab83e0f927facaca69457d8e9684dee20d1`. Exact11doc/evidencefiles in publication MANIFEST; main design/matrix/reviews/sourceaudit unchanged, this current-state acceptance entry only. Original674dirty preserved; no production/schema/migrations/runtime execution. Delivery receipt reports published commit/freshremote equality. Protected storage/durability, trusted byte consumption, deferred DB/rollback guards and focused implementation tests remain prerequisites; Pilot acquisition and future clinical/import/sharing authority remain separate decisions. STOP after publication; no implementation/W4B03B/UI/Wave5/deployment/Jira/Confluence/main.
+
+## 2026-10-11 — V15-W4B-03A original-document byte-integrity design
+
+`WAVE4B_03A_DESIGN_COMPLETE=YES`, `WAVE4B_03A_READY_FOR_IMPLEMENTATION_REVIEW=YES`; human design acceptance NOT_RECORDED. Fresh origin W4B02 `fe503ab83e0f927facaca69457d8e9684dee20d1`, isolated detached clean baseline; original674dirty entries preserved byte-for-byte. No production implementation/schema change, tests, commit or push.
+
+Source audit: local upload persists bytes before DB insert without digest/exclusive version; shared descriptor primitive checks path/regular file/size but not hash or same-inode mutation; current OCR simulation takes IDs/type only. Proposed171976 sidecars bind protected create-only snapshots/count/SHA256→newjob→trusted byte-consumption attempt receipt→immutable result→exact Owner CONFIRM revision, with distinct byte/source/Owner/clinical assertions. Preserve onejob/document and all old jobs/results/decisions; no historical retroproof. Legacy capture needs coherence proof or remains observed-sequence-only; existing successful metadata-only job requires fresh upload/newdocument/newjob and newOwner decision for future bound processing.
+
+DB/Data Authority and Security/Privacy design NO VETO after clarifying torn legacy reads and rollback old-worker claims. Rollback stops ALL claimers; proposed deferred guard prevents bound-job success without exact receipt. Storage ownership/mount/durability and actual adapter consumption remain unproven implementation/rollout prerequisites; Pilot acquisition/reupload decision remains separate.28 proposed race/failure/authority scenarios,0executed; accepted gates REUSED_STICKY_PASS.
+
+`OCR_SOURCE_BYTE_INTEGRITY=DEFERRED_BLOCKING_VALIDATED_IMPORT`. W4B03B requires accepted/implemented/tested03A, actual byte-input evidence, exact fresh Owner-confirmed revision, separate clinical validation/import/sharing authority and document-acquisition decision. Design/plan: `docs/v15/16-wave4b-03a-byte-integrity-design.md`; matrix17; DB/Security risk reviews18; source hashes and READ ONLY test-owned PostgreSQL catalog `docs/v15/evidence/w4b-03a-design-20261011/`. STOP after design; no import/Pet writes/UI/provider replacement/Wave5/Jira/Confluence/main/deployment.
+
 ## 2026-10-11 — V15-W4B-02 Product Owner technical acceptance / publication
 
 `WAVE4B_02_MACHINE_COMPLETE=YES`, `WAVE4B_02_HUMAN_ACCEPTANCE=APPROVED`, `WAVE4B_02_COMPLETE=YES`, `WAVE4B_03_READY_FOR_DESIGN=YES` under explicit Product Owner/Acting Technical Lead decision V15-W4B-02-ACCEPT. Decision and limits: `docs/testing/evidence/wave4b-02-20261011/ACCEPTANCE.md`. This supersedes historical human NOT_RECORDED below; original machine reports/source hashes remain intact.
