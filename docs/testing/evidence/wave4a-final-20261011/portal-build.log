@@ -1,0 +1,93 @@
+▲ Next.js 16.2.9 (Turbopack)
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 9.7s
+  Running TypeScript ...
+  Finished TypeScript in 9.1s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/7) ...
+  Generating static pages using 3 workers (1/7) 
+  Generating static pages using 3 workers (3/7) 
+  Generating static pages using 3 workers (5/7) 
+✓ Generating static pages using 3 workers (7/7) in 200ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/auth/session
+├ ƒ /api/booking-holds/[holdId]
+├ ƒ /api/booking-holds/[holdId]/events
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/appointments
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/appointments/[appointmentId]
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/booking-holds/[holdId]/audit-trail
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/booking-queue
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/patients
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/patients/[patientId]
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/patients/[patientId]/local-profile
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/patients/[patientId]/local-profile/reference
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/quality-dashboard
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/schedule/export-attempts
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/schedule/import
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/schedule/manual-slots
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/schedule/periods
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/schedule/periods/[periodId]/cancel
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/schedule/resources
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/schedule/resources/[resourceId]
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/schedule/services
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/schedule/services/[serviceId]
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/schedule/slots
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/schedule/slots/[slotId]/blackout
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/schedule/slots/[slotId]/capacity
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/schedule/staff
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/schedule/staff/[staffId]
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/schedule/working-hours
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/telemed/cases/[caseId]/assign
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/telemed/cases/[caseId]/sessions/[sessionId]/connect
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/telemed/cases/[caseId]/start-session
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/telemed/cases/[caseId]/workspace
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/telemed/vet-queue
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/vet/visits
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/vet/visits/[holdId]
+├ ƒ /api/clinic/[clinicId]/locations/[locationId]/workspace-home
+├ ƒ /api/clinic/appointments/[appointmentId]/medical-shares
+├ ƒ /api/clinic/appointments/[appointmentId]/medical-shares/resources/[type]/[resourceId]
+├ ƒ /api/clinic/appointments/[appointmentId]/medical-shares/resources/[type]/[resourceId]/download
+├ ƒ /api/clinic/booking-holds/[holdId]/alternative-slot
+├ ƒ /api/clinic/booking-holds/[holdId]/complete
+├ ƒ /api/clinic/booking-holds/[holdId]/confirm
+├ ƒ /api/clinic/booking-holds/[holdId]/decline
+├ ƒ /api/clinic/booking-holds/[holdId]/request-notes
+├ ƒ /api/clinic/locations/[locationId]/slots
+├ ƒ /api/clinic/visits/[visitId]/results
+├ ƒ /api/clinic/visits/[visitId]/results/[resultId]
+├ ƒ /api/clinic/visits/[visitId]/results/[resultId]/amendments
+├ ƒ /api/clinic/visits/[visitId]/results/[resultId]/publish
+├ ƒ /api/dev/local-session
+├ ƒ /api/telemed/vet/cases/[caseId]/assign
+├ ƒ /api/telemed/vet/cases/[caseId]/audit-trail
+├ ƒ /api/telemed/vet/cases/[caseId]/sessions/[sessionId]/connect
+├ ƒ /api/telemed/vet/cases/[caseId]/start-session
+├ ƒ /api/telemed/vet/cases/[caseId]/workspace
+├ ƒ /api/telemed/vet/queue
+├ ƒ /clinics/[clinicId]/locations/[locationId]
+├ ƒ /clinics/[clinicId]/locations/[locationId]/appointments
+├ ƒ /clinics/[clinicId]/locations/[locationId]/appointments/[appointmentId]
+├ ƒ /clinics/[clinicId]/locations/[locationId]/patients
+├ ƒ /clinics/[clinicId]/locations/[locationId]/patients/[patientId]
+├ ƒ /clinics/[clinicId]/locations/[locationId]/quality
+├ ƒ /clinics/[clinicId]/locations/[locationId]/queue
+├ ƒ /clinics/[clinicId]/locations/[locationId]/schedule
+├ ƒ /clinics/[clinicId]/locations/[locationId]/telemed
+├ ƒ /clinics/[clinicId]/locations/[locationId]/vet/visits
+├ ƒ /clinics/[clinicId]/locations/[locationId]/vet/visits/[holdId]
+├ ○ /forbidden
+├ ƒ /ops/security
+└ ƒ /telemed/vet
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

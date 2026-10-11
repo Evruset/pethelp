@@ -1,0 +1,15 @@
+PASS test/v15-appointment-lifecycle-http.e2e-spec.ts (20.866 s)
+  v1.5 appointment lifecycle real Nest runtime
+    ✓ enforces clinic authority/reason and exposes authoritative Owner cancellation readback (935 ms)
+    ✓ keeps original slot until authenticated Owner accepts the clinic proposal (869 ms)
+    ✓ marks no-show only for authorized clinic staff after start and exposes Owner readback (728 ms)
+    ✓ allows Owner rejection through the public runtime and keeps the original slot (879 ms)
+    ✓ converges V15_AUTO_CONFIRM create through the public runtime to authoritative Owner cancellation (653 ms)
+    ✓ converges MVP_V1_MANUAL create through the public runtime to authoritative Owner cancellation (694 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       6 passed, 6 total
+Snapshots:   0 total
+Time:        21.277 s
+Ran all test suites within paths "test/v15-appointment-lifecycle-http.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-011.json

@@ -1,0 +1,285 @@
+{
+  "config": {
+    "argv": [
+      "/Users/evrusetskiy/.npm/_npx/56b7e88bf8a51914/node_modules/node/bin/node",
+      "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/apps/clinic-portal/node_modules/@playwright/test/cli.js",
+      "test",
+      "-c",
+      "closure.playwright.config.mjs",
+      "tests/e2e/shared-medical.spec.ts",
+      "--grep",
+      "closure:",
+      "--reporter=list,json"
+    ],
+    "configFile": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/apps/clinic-portal/closure.playwright.config.mjs",
+    "rootDir": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/apps/clinic-portal/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/apps/clinic-portal/tests/e2e/support/allure-global-setup.ts",
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/docs/testing/evidence/wave4a-final-20261011/browser",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/apps/clinic-portal/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.1",
+    "workers": 1,
+    "webServer": {
+      "command": "/Users/evrusetskiy/.npm/_npx/56b7e88bf8a51914/node_modules/node/bin/node node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3411",
+      "url": "http://127.0.0.1:3411",
+      "reuseExistingServer": false,
+      "timeout": 120000,
+      "env": {
+        "VETHELP_API_BASE_URL": "http://127.0.0.1:3412",
+        "VETHELP_CLINIC_JWT_SECRET": "clinic-e2e-secret-at-least-32-bytes",
+        "NEXT_TELEMETRY_DISABLED": "1",
+        "PORTAL_V50_SHELL": "true",
+        "PORTAL_V51_SHELL": "true",
+        "VETHELP_CLINIC_APPOINTMENTS_REGISTRY": "false",
+        "VETHELP_CLINIC_PATIENTS_REGISTRY": "false",
+        "VETHELP_CLINIC_PATIENT_ADMIN_MUTATIONS": "false",
+        "VETHELP_CLINIC_PATIENT_ADMIN_REFERENCE_SEARCH": "false",
+        "CLINIC_V50_WORKSPACE_HOME": "false"
+      }
+    }
+  },
+  "suites": [
+    {
+      "title": "shared-medical.spec.ts",
+      "file": "shared-medical.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "closure: late resource response cannot survive session capability removal",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 6867,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('heading', { name: 'Milo' })\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('heading', { name: 'Milo' })\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('heading', { name: 'Milo' })\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('heading', { name: 'Milo' })\u001b[22m\n\n    at /private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/apps/clinic-portal/tests/e2e/shared-medical.spec.ts:42:230",
+                    "location": {
+                      "file": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/apps/clinic-portal/tests/e2e/shared-medical.spec.ts",
+                      "column": 230,
+                      "line": 42
+                    },
+                    "snippet": "  40 |  await page.route(`**${bff}/resources/RESULT/${result}`,async route=>{observed();await held;await route.fulfill({json:{type:'RESULT',id:result,content:'Late old-scope medical content',publishedAt:'2026-10-01T10:00:00.000Z'}}).catch(()=>{});});\n  41 |  await page.goto(route);await requested;role='CLINIC_ADMIN';await page.evaluate(()=>window.dispatchEvent(new Event('vethelp:session-changed')));\n> 42 |  await expect(page.locator('[aria-labelledby=\"shared-medical-title\"]')).toHaveCount(0);release();await expect(page.getByText('Late old-scope medical content')).toHaveCount(0);await expect(page.getByRole('heading',{name:'Milo'})).toBeVisible();\n     |                                                                                                                                                                                                                                      ^\n  43 | });\n  44 | test('closure: scope removal aborts an outstanding document and clears medical content',async({page,context,baseURL})=>{\n  45 |  mode='shared';await session(context,baseURL);await page.goto(route);await expect(page.getByText('Selected original result')).toBeVisible();let release!:()=>void;const held=new Promise<void>(resolve=>release=resolve);let observed!:()=>void;const requested=new Promise<void>(resolve=>observed=resolve);let downloads=0;page.on('download',()=>downloads++);"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/apps/clinic-portal/tests/e2e/shared-medical.spec.ts",
+                        "column": 230,
+                        "line": 42
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('heading', { name: 'Milo' })\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('heading', { name: 'Milo' })\u001b[22m\n\n\n  40 |  await page.route(`**${bff}/resources/RESULT/${result}`,async route=>{observed();await held;await route.fulfill({json:{type:'RESULT',id:result,content:'Late old-scope medical content',publishedAt:'2026-10-01T10:00:00.000Z'}}).catch(()=>{});});\n  41 |  await page.goto(route);await requested;role='CLINIC_ADMIN';await page.evaluate(()=>window.dispatchEvent(new Event('vethelp:session-changed')));\n> 42 |  await expect(page.locator('[aria-labelledby=\"shared-medical-title\"]')).toHaveCount(0);release();await expect(page.getByText('Late old-scope medical content')).toHaveCount(0);await expect(page.getByRole('heading',{name:'Milo'})).toBeVisible();\n     |                                                                                                                                                                                                                                      ^\n  43 | });\n  44 | test('closure: scope removal aborts an outstanding document and clears medical content',async({page,context,baseURL})=>{\n  45 |  mode='shared';await session(context,baseURL);await page.goto(route);await expect(page.getByText('Selected original result')).toBeVisible();let release!:()=>void;const held=new Promise<void>(resolve=>release=resolve);let observed!:()=>void;const requested=new Promise<void>(resolve=>observed=resolve);let downloads=0;page.on('download',()=>downloads++);\n    at /private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/apps/clinic-portal/tests/e2e/shared-medical.spec.ts:42:230"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-11T12:49:59.750Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/docs/testing/evidence/wave4a-final-20261011/browser/shared-medical-closure-lat-4165d--session-capability-removal-chromium/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/docs/testing/evidence/wave4a-final-20261011/browser/shared-medical-closure-lat-4165d--session-capability-removal-chromium/error-context.md"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/docs/testing/evidence/wave4a-final-20261011/browser/shared-medical-closure-lat-4165d--session-capability-removal-chromium/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/docs/testing/evidence/wave4a-final-20261011/browser/shared-medical-closure-lat-4165d--session-capability-removal-chromium/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/apps/clinic-portal/tests/e2e/shared-medical.spec.ts",
+                    "column": 230,
+                    "line": 42
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "8c2328a2baf9f17c2a6a-ee141bae79db58f3b97c",
+          "file": "shared-medical.spec.ts",
+          "line": 38,
+          "column": 5
+        },
+        {
+          "title": "closure: scope removal aborts an outstanding document and clears medical content",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-11T12:50:08.885Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "8c2328a2baf9f17c2a6a-71949ea4f854c496b0fe",
+          "file": "shared-medical.spec.ts",
+          "line": 44,
+          "column": 5
+        },
+        {
+          "title": "closure: responsive keyboard medical path at 375px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-11T12:50:08.886Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "8c2328a2baf9f17c2a6a-aea1afc3786fc9dca5a5",
+          "file": "shared-medical.spec.ts",
+          "line": 51,
+          "column": 35
+        },
+        {
+          "title": "closure: responsive keyboard medical path at 1280px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-11T12:50:08.886Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "8c2328a2baf9f17c2a6a-6175e9b73754f6c84acf",
+          "file": "shared-medical.spec.ts",
+          "line": 51,
+          "column": 35
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-11T12:49:55.345Z",
+    "duration": 13580.809000000001,
+    "expected": 0,
+    "skipped": 3,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

@@ -1,0 +1,128 @@
+[
+  {
+    "gate": "authority/concurrency32races+4no-leak",
+    "status": "REUSED_STICKY_PASS",
+    "evidence_revision": "35d3b9f",
+    "dependency_surface": "backend/src+backend/migrations",
+    "fresh_or_reused": "reused",
+    "invalidated_by": null,
+    "evidence": "sticky-pethelp-wave4a-reconcile-checkpoint-backend.log"
+  },
+  {
+    "gate": "actual bytes/denial/audit+deferredCOMMIT cleanup/immutable snapshot",
+    "status": "REUSED_STICKY_PASS",
+    "evidence_revision": "35d3b9f",
+    "dependency_surface": "sharingHTTP/storage authority",
+    "fresh_or_reused": "reused",
+    "invalidated_by": null,
+    "evidence": "sticky-ledger.json"
+  },
+  {
+    "gate": "Owner explicit selection/revoke/readback/uncertain retry/accessibility",
+    "status": "REUSED_STICKY_PASS",
+    "evidence_revision": "35d3b9f",
+    "dependency_surface": "apps/owner-app/src/medical-sharing",
+    "fresh_or_reused": "reused",
+    "invalidated_by": null,
+    "evidence": "docs/v15/12-wave4a-completion-evidence.md"
+  },
+  {
+    "gate": "Owner late initial context session clearance",
+    "status": "PASS",
+    "evidence_revision": "a1c092e+test-only closure additions",
+    "dependency_surface": "Owner screen",
+    "fresh_or_reused": "fresh",
+    "invalidated_by": null,
+    "evidence": "owner-closure.json"
+  },
+  {
+    "gate": "Clinic selected resources/errors/revoke/actual byte download/keyboard",
+    "status": "REUSED_STICKY_PASS",
+    "evidence_revision": "35d3b9f",
+    "dependency_surface": "Clinic sharing component/BFF/parser",
+    "fresh_or_reused": "reused",
+    "invalidated_by": null,
+    "evidence": "sticky-pethelp-wave4a-reconcile-checkpoint-portal.log"
+  },
+  {
+    "gate": "Clinic session/scope late-response isolation/responsive375+1280/axe",
+    "status": "PASS",
+    "evidence_revision": "a1c092e+test-only closure additions",
+    "dependency_surface": "Clinic sharing component",
+    "fresh_or_reused": "fresh",
+    "invalidated_by": null,
+    "evidence": "portal-closure.json"
+  },
+  {
+    "gate": "fresh69migrations+checksum",
+    "status": "PASS",
+    "evidence_revision": "a1c092e",
+    "dependency_surface": "backend/migrations",
+    "fresh_or_reused": "fresh",
+    "invalidated_by": null,
+    "evidence": "fresh-migrations.log+fresh-checksums.log+migrate-runtime.json"
+  },
+  {
+    "gate": "backendbuild/OpenAPI4assertions",
+    "status": "PASS",
+    "evidence_revision": "a1c092e",
+    "dependency_surface": "backend/source/openapi",
+    "fresh_or_reused": "fresh",
+    "invalidated_by": null,
+    "evidence": "backend-build.log+openapi.log"
+  },
+  {
+    "gate": "T0444CPU approved/selectedsource/34files/3publishedcommits",
+    "status": "REUSED_STICKY_PASS",
+    "evidence_revision": "a1c092e",
+    "dependency_surface": "approved test assertions/production unchanged",
+    "fresh_or_reused": "reused",
+    "invalidated_by": null,
+    "evidence": "../wave4a-t044-20261011-4cpu/manifest.json+current-state+POapproval conversation"
+  },
+  {
+    "gate": "populatedWave3upgrade",
+    "status": "PASS",
+    "evidence_revision": "a1c092e",
+    "dependency_surface": "migration171972\u2192171973",
+    "fresh_or_reused": "fresh",
+    "invalidated_by": null,
+    "evidence": "regression-022.json+log"
+  },
+  {
+    "gate": "consolidated64suite matrix",
+    "status": "PASS",
+    "evidence_revision": "a1c092e",
+    "dependency_surface": "original543test matrix",
+    "fresh_or_reused": "fresh56suites+reused8suites",
+    "invalidated_by": null,
+    "evidence": "consolidated-coverage.json+regression-runtime.json"
+  },
+  {
+    "gate": "SecurityPrivacyReview",
+    "status": "NO VETO",
+    "evidence_revision": "a1c092e",
+    "dependency_surface": "current production+executed evidence",
+    "fresh_or_reused": "fresh",
+    "invalidated_by": null,
+    "evidence": "review-security-privacy.md"
+  },
+  {
+    "gate": "DBDataAuthorityReview",
+    "status": "NO VETO",
+    "evidence_revision": "a1c092e",
+    "dependency_surface": "current production+executed evidence",
+    "fresh_or_reused": "fresh",
+    "invalidated_by": null,
+    "evidence": "review-db-data-authority.md"
+  },
+  {
+    "gate": "IndependentArchitectureQAReview",
+    "status": "NO VETO",
+    "evidence_revision": "a1c092e",
+    "dependency_surface": "current production+executed evidence",
+    "fresh_or_reused": "fresh",
+    "invalidated_by": null,
+    "evidence": "review-independent-architecture-qa.md"
+  }
+]

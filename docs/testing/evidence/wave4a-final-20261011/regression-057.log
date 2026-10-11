@@ -1,0 +1,10 @@
+PASS src/booking-core/clinic-patient-administrative-reference.normalizer.spec.ts (6.933 s)
+  clinic patient administrative reference normalization
+    ✓ pins Unicode 17 full case folding, including expansions and non-BMP letters (9 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        7.317 s
+Ran all test suites within paths "src/booking-core/clinic-patient-administrative-reference.normalizer.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-057.json

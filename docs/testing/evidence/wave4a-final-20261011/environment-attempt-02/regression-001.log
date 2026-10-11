@@ -1,0 +1,733 @@
+FAIL test/clinic-queue-http-authority.e2e-spec.ts (16.417 s)
+  Clinic Queue HTTP authority matrix
+    ✕ blocks legacy cancellation mutations in PILOT before authentication or state change (4 ms)
+    ✕ allows the scoped receptionist to read only its queue (2 ms)
+    ✕ returns a repeatable authoritative FIFO snapshot with stable tie-breaker and no read side effects (1 ms)
+    ✕ applies the documented default 50 and maximum 100 snapshot limits without duplicates (1 ms)
+    ✕ removes confirmed and declined terminal holds from the next poll and preserves owner readback (1 ms)
+    ✕ returns only a transactionally consistent snapshot during concurrent confirm (1 ms)
+    ✕ returns only a transactionally consistent snapshot during concurrent request-notes (1 ms)
+    ✕ does not normalize a technical read failure into a successful empty queue
+    ✕ denies queue read for role denied without leaking queue data (1 ms)
+    ✕ denies queue read for revoked membership without leaking queue data
+    ✕ denies queue read for claims without membership without leaking queue data (1 ms)
+    ✕ denies queue read for missing clinic scope without leaking queue data (4 ms)
+    ✕ denies queue read for incompatible clinic scope without leaking queue data (1 ms)
+    ✕ denies queue read for missing location scope without leaking queue data
+    ✕ denies queue read for incompatible location scope without leaking queue data (1 ms)
+    ✕ denies cross-clinic and cross-location queue reads without payload disclosure
+    ✕ denies confirm for role denied without state, appointment, audit or outbox effects (8 ms)
+    ✕ denies confirm for missing membership without state, appointment, audit or outbox effects
+    ✕ denies confirm for revoked membership without state, appointment, audit or outbox effects (1 ms)
+    ✕ denies confirm for missing clinic scope without state, appointment, audit or outbox effects (2 ms)
+    ✕ denies confirm for incompatible clinic scope without state, appointment, audit or outbox effects (1 ms)
+    ✕ denies confirm for missing location scope without state, appointment, audit or outbox effects (1 ms)
+    ✕ denies confirm for incompatible location scope without state, appointment, audit or outbox effects (1 ms)
+    ✕ confirms idempotently and publishes the authoritative owner readback (1 ms)
+    ✕ denies decline across the authority matrix without side effects (1 ms)
+    ✕ denies request-notes across the authority matrix without side effects (1 ms)
+    ✕ declines idempotently with authoritative release, reason, audit, outbox and owner readback (1 ms)
+    ✕ requests notes idempotently while preserving the pending hold and publishing the request text (15 ms)
+    ✕ rejects decline from terminal CONFIRMED without side effects
+    ✕ rejects request-notes from terminal CONFIRMED without side effects (1 ms)
+    ✕ requires If-Match for confirm without side effects (6 ms)
+    ✕ requires If-Match for decline without side effects
+    ✕ requires If-Match for request-notes without side effects (1 ms)
+    ✕ rejects impossible future version for confirm without side effects
+    ✕ rejects impossible future version for decline without side effects
+    ✕ rejects impossible future version for request-notes without side effects
+    ✕ rejects a stale confirm after request-notes advances the authoritative version (1 ms)
+    ✕ replays the first request-notes result for the same key without overwriting a changed payload
+    ✕ rejects a different-key replay after terminal confirm without duplicate effects
+    ✕ rejects a different-key replay after terminal decline without duplicate effects (1 ms)
+    ✕ serializes duplicate concurrent confirm delivery to one business transition
+    ✕ serializes confirm-vs-decline with one winner, controlled loser and one effect set
+    ○ skipped polls the authoritative version after a missed non-terminal update and converges after multiple missed updates
+    ○ skipped proposes an alternative idempotently with exact clinic scope, reserved capacity and owner readback
+    ○ skipped denies clinic proposal across role, membership and exact scope without alternative effects
+    ○ skipped normalizes foreign owner read and rejects staff or unauthenticated access without disclosure
+    ○ skipped accepts once, replays the same key, and rejects a second key without duplicate effects
+    ○ skipped denies foreign-owner accept without proposal, capacity, appointment, audit or outbox effects
+    ○ skipped rejects expired, stale and conflicted accepts while preserving capacity and effects
+    ○ skipped requires If-Match for propose-alternative without side effects
+    ○ skipped rejects impossible future version for propose-alternative without side effects
+    ○ skipped serializes request-notes-vs-propose with one winner, controlled loser and one effect set
+
+  ● Clinic Queue HTTP authority matrix › blocks legacy cancellation mutations in PILOT before authentication or state change
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › allows the scoped receptionist to read only its queue
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › returns a repeatable authoritative FIFO snapshot with stable tie-breaker and no read side effects
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › applies the documented default 50 and maximum 100 snapshot limits without duplicates
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › removes confirmed and declined terminal holds from the next poll and preserves owner readback
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › returns only a transactionally consistent snapshot during concurrent confirm
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › returns only a transactionally consistent snapshot during concurrent request-notes
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › does not normalize a technical read failure into a successful empty queue
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › denies queue read for role denied without leaking queue data
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › denies queue read for revoked membership without leaking queue data
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › denies queue read for claims without membership without leaking queue data
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › denies queue read for missing clinic scope without leaking queue data
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › denies queue read for incompatible clinic scope without leaking queue data
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › denies queue read for missing location scope without leaking queue data
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › denies queue read for incompatible location scope without leaking queue data
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › denies cross-clinic and cross-location queue reads without payload disclosure
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › denies confirm for role denied without state, appointment, audit or outbox effects
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › denies confirm for missing membership without state, appointment, audit or outbox effects
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › denies confirm for revoked membership without state, appointment, audit or outbox effects
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › denies confirm for missing clinic scope without state, appointment, audit or outbox effects
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › denies confirm for incompatible clinic scope without state, appointment, audit or outbox effects
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › denies confirm for missing location scope without state, appointment, audit or outbox effects
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › denies confirm for incompatible location scope without state, appointment, audit or outbox effects
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › confirms idempotently and publishes the authoritative owner readback
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › denies decline across the authority matrix without side effects
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › denies request-notes across the authority matrix without side effects
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › declines idempotently with authoritative release, reason, audit, outbox and owner readback
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › requests notes idempotently while preserving the pending hold and publishing the request text
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › rejects decline from terminal CONFIRMED without side effects
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › rejects request-notes from terminal CONFIRMED without side effects
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › requires If-Match for confirm without side effects
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › requires If-Match for decline without side effects
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › requires If-Match for request-notes without side effects
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › rejects impossible future version for confirm without side effects
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › rejects impossible future version for decline without side effects
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › rejects impossible future version for request-notes without side effects
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › rejects a stale confirm after request-notes advances the authoritative version
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › replays the first request-notes result for the same key without overwriting a changed payload
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › rejects a different-key replay after terminal confirm without duplicate effects
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › rejects a different-key replay after terminal decline without duplicate effects
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › serializes duplicate concurrent confirm delivery to one business transition
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+  ● Clinic Queue HTTP authority matrix › serializes confirm-vs-decline with one winner, controlled loser and one effect set
+
+    REGRESSION_FIXTURE_DATABASE_NOT_OWNED
+
+      19 |     !/^\/vethelp_wave3_reconcile_[a-z0-9_]+$/.test(target.pathname)
+      20 |   ) {
+    > 21 |     throw new Error('REGRESSION_FIXTURE_DATABASE_NOT_OWNED');
+         |           ^
+      22 |   }
+      23 |
+      24 |   // Only this fixture's new clinic incarnations change. Audit is never cleared.
+
+      at renewRegressionClinicIds (test/helpers/regression-fixture-isolation.ts:21:11)
+      at resetFixtures (test/clinic-queue-http-authority.e2e-spec.ts:758:27)
+      at Object.<anonymous> (test/clinic-queue-http-authority.e2e-spec.ts:62:26)
+
+Test Suites: 1 failed, 1 total
+Tests:       42 failed, 10 skipped, 52 total
+Snapshots:   0 total
+Time:        16.822 s
+Ran all test suites within paths "test/clinic-queue-http-authority.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-001.json

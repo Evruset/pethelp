@@ -1,0 +1,14 @@
+[33m[Nest] 1  - [39m10/11/2026, 1:04:10 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=capability[39m
+[33m[Nest] 1  - [39m10/11/2026, 1:04:10 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=inactive-membership[39m
+PASS src/booking-core/clinic-employee-access.service.spec.ts (6.058 s)
+  ClinicEmployeeAccessService clinical completion
+    ✓ allows an active veterinarian in the requested location (6 ms)
+    ✓ denies a clinic administrator before querying membership (3 ms)
+    ✓ denies a veterinarian without an active location membership (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       3 passed, 3 total
+Snapshots:   0 total
+Time:        6.34 s
+Ran all test suites within paths "src/booking-core/clinic-employee-access.service.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-039.json

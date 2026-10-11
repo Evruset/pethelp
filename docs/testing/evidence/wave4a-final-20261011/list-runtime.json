@@ -1,0 +1,9 @@
+{
+  "name": "/v15-w4a-final-v88ucbla-list",
+  "image": "node:22-bookworm",
+  "exitCode": 0,
+  "status": "exited",
+  "cpuset": "0-3",
+  "started": "2026-10-11T12:44:06.762483749Z",
+  "finished": "2026-10-11T12:44:08.760102285Z"
+}

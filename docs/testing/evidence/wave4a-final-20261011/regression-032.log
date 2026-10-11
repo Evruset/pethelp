@@ -1,0 +1,13 @@
+PASS src/auth/otp-auth-composition.spec.ts (8.318 s)
+  T128 fail-closed OTP composition
+    ✓ does not mutate challenge state or call provider when limiter infrastructure is unavailable (5 ms)
+    ✓ does not mutate challenge or call provider when resend limiter is unavailable (2 ms)
+    ✓ catches cleanup failure, prevents overlap, and records only a bounded failure counter (3 ms)
+    ✓ translates raw limiter DB failure to a safe 503 and bounded telemetry (2 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       4 passed, 4 total
+Snapshots:   0 total
+Time:        8.614 s
+Ran all test suites within paths "src/auth/otp-auth-composition.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-032.json

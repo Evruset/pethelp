@@ -1,0 +1,10 @@
+PASS test/appointment-medical-sharing-migration.e2e-spec.ts (13.452 s)
+  Wave4A additive migration on populated Wave3 (Docker PostgreSQL)
+    ✓ preserves previous records and creates empty sharing authority, with matching checksums (5883 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        13.785 s
+Ran all test suites within paths "test/appointment-medical-sharing-migration.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-022.json

@@ -1,0 +1,11 @@
+PASS src/auth/owner-pet-archive-migration.spec.ts (10.27 s)
+  owner pet archival migration
+    ✓ is additive and repeatable for empty and populated pet tables (6 ms)
+    ✓ uses a forward-only down policy that cannot reactivate or delete pets
+
+Test Suites: 1 passed, 1 total
+Tests:       2 passed, 2 total
+Snapshots:   0 total
+Time:        10.564 s
+Ran all test suites within paths "src/auth/owner-pet-archive-migration.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-051.json

@@ -1,0 +1,11 @@
+PASS src/nest-root-full.spec.ts (15.1 s)
+  NestRoot MVP scope composition
+    ✓ does not register external routes, workers or providers in PILOT_V1 (4 ms)
+    ✓ preserves the legacy module composition in LEGACY_COMPAT (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       2 passed, 2 total
+Snapshots:   0 total
+Time:        15.38 s
+Ran all test suites within paths "src/nest-root-full.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-040.json

@@ -61,4 +61,10 @@ describe('Owner medical sharing workflow and accessibility',()=>{
     let resolve!:(value:typeof active)=>void;api.create.mockReturnValue(new Promise(value=>{resolve=value;}));const view=await open();await prepare(view);await fireEvent.press(view.getByRole('button',{name:'Подтвердить передачу'}));await waitFor(()=>expect(api.create).toHaveBeenCalledTimes(1));
     mockSession=null;await view.rerender(<MedicalSharingScreen api={api} onBack={jest.fn()}/>);await act(async()=>resolve(active));expect(view.queryByText('Питомец: Барсик')).toBeNull();expect(view.queryByText('Доступ предоставлен — подтверждено сервером')).toBeNull();expect(view.getByText('Для доступа к записям войдите в аккаунт')).toBeTruthy();
   });
+  it('closure: session removal suppresses late initial context readback',async()=>{
+    let resolve!:(value:typeof context)=>void;api.context.mockReturnValue(new Promise(value=>{resolve=value;}));
+    const view=await render(<MedicalSharingScreen api={api} onBack={jest.fn()}/>);await fireEvent.press(view.getByRole('button',{name:'Поделиться медицинскими данными'}));await waitFor(()=>expect(api.context).toHaveBeenCalledTimes(1));
+    mockSession=null;await view.rerender(<MedicalSharingScreen api={api} onBack={jest.fn()}/>);await act(async()=>resolve(context));
+    expect(view.queryByText('Питомец: Барсик')).toBeNull();expect(view.getByText('Для доступа к записям войдите в аккаунт')).toBeTruthy();
+  });
 });

@@ -1,0 +1,6 @@
+{
+  "classification": "ENVIRONMENT",
+  "reason": "JWT_ISSUER missing before test import",
+  "testsExecuted": 0,
+  "repair": "Complete synthetic JWT_ISSUER/JWT_AUDIENCE launch configuration; use new test-owned clone DB and container. No source/test changes or acceptance retry."
+}

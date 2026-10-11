@@ -1,0 +1,11 @@
+PASS src/booking-core/clinic-contract-profile-migration.spec.ts (8.166 s)
+  clinic booking contract profile migration
+    ✓ adds a manual-default, constrained, versioned and audited clinic policy (5 ms)
+    ✓ provides a bounded schema rollback without mutating booking history (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       2 passed, 2 total
+Snapshots:   0 total
+Time:        8.534 s
+Ran all test suites within paths "src/booking-core/clinic-contract-profile-migration.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-047.json

@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "contractUnchanged": true,
+  "onlyDifference": "info.version",
+  "exportedDefault": "1.0.0",
+  "publishedNpmPackageVersion": "0.1.0",
+  "reason": "Direct ts-node invocation omits npm_package_version; npm-run export supplies package0.1.0",
+  "rawSha256": "240f96e4fc7c65912e9bf2f1e320530f57db6f114f6af58909e9aa8fa16931ee",
+  "publishedSha256": "a1337905517ad08b54d610039fdb64dab6d1a4aab537559a30888321e84e57aa",
+  "action": "Preserved generated evidence, restored published artifact bytes in isolated worktree only; no repeat of4 passing contract assertions."
+}

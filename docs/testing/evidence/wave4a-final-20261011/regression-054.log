@@ -1,0 +1,10 @@
+PASS src/owner-home/owner-home.controller.spec.ts (8.233 s)
+  OwnerHomeController
+    ✓ passes only the authenticated owner and optional selected-pet hint to the service (6 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        8.549 s
+Ran all test suites within paths "src/owner-home/owner-home.controller.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-054.json

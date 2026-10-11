@@ -1,0 +1,61 @@
+PASS test/clinic-queue-http-authority.e2e-spec.ts (32.034 s)
+  Clinic Queue HTTP authority matrix
+    ✓ polls the authoritative version after a missed non-terminal update and converges after multiple missed updates (1026 ms)
+    ✓ proposes an alternative idempotently with exact clinic scope, reserved capacity and owner readback (706 ms)
+    ✓ denies clinic proposal across role, membership and exact scope without alternative effects (6537 ms)
+    ✓ normalizes foreign owner read and rejects staff or unauthenticated access without disclosure (887 ms)
+    ✓ accepts once, replays the same key, and rejects a second key without duplicate effects (1102 ms)
+    ✓ denies foreign-owner accept without proposal, capacity, appointment, audit or outbox effects (713 ms)
+    ✓ rejects expired, stale and conflicted accepts while preserving capacity and effects (1620 ms)
+    ✓ requires If-Match for propose-alternative without side effects (831 ms)
+    ✓ rejects impossible future version for propose-alternative without side effects (677 ms)
+    ✓ serializes request-notes-vs-propose with one winner, controlled loser and one effect set (883 ms)
+    ○ skipped blocks legacy cancellation mutations in PILOT before authentication or state change
+    ○ skipped allows the scoped receptionist to read only its queue
+    ○ skipped returns a repeatable authoritative FIFO snapshot with stable tie-breaker and no read side effects
+    ○ skipped applies the documented default 50 and maximum 100 snapshot limits without duplicates
+    ○ skipped removes confirmed and declined terminal holds from the next poll and preserves owner readback
+    ○ skipped returns only a transactionally consistent snapshot during concurrent confirm
+    ○ skipped returns only a transactionally consistent snapshot during concurrent request-notes
+    ○ skipped does not normalize a technical read failure into a successful empty queue
+    ○ skipped denies queue read for role denied without leaking queue data
+    ○ skipped denies queue read for revoked membership without leaking queue data
+    ○ skipped denies queue read for claims without membership without leaking queue data
+    ○ skipped denies queue read for missing clinic scope without leaking queue data
+    ○ skipped denies queue read for incompatible clinic scope without leaking queue data
+    ○ skipped denies queue read for missing location scope without leaking queue data
+    ○ skipped denies queue read for incompatible location scope without leaking queue data
+    ○ skipped denies cross-clinic and cross-location queue reads without payload disclosure
+    ○ skipped denies confirm for role denied without state, appointment, audit or outbox effects
+    ○ skipped denies confirm for missing membership without state, appointment, audit or outbox effects
+    ○ skipped denies confirm for revoked membership without state, appointment, audit or outbox effects
+    ○ skipped denies confirm for missing clinic scope without state, appointment, audit or outbox effects
+    ○ skipped denies confirm for incompatible clinic scope without state, appointment, audit or outbox effects
+    ○ skipped denies confirm for missing location scope without state, appointment, audit or outbox effects
+    ○ skipped denies confirm for incompatible location scope without state, appointment, audit or outbox effects
+    ○ skipped confirms idempotently and publishes the authoritative owner readback
+    ○ skipped denies decline across the authority matrix without side effects
+    ○ skipped denies request-notes across the authority matrix without side effects
+    ○ skipped declines idempotently with authoritative release, reason, audit, outbox and owner readback
+    ○ skipped requests notes idempotently while preserving the pending hold and publishing the request text
+    ○ skipped rejects decline from terminal CONFIRMED without side effects
+    ○ skipped rejects request-notes from terminal CONFIRMED without side effects
+    ○ skipped requires If-Match for confirm without side effects
+    ○ skipped requires If-Match for decline without side effects
+    ○ skipped requires If-Match for request-notes without side effects
+    ○ skipped rejects impossible future version for confirm without side effects
+    ○ skipped rejects impossible future version for decline without side effects
+    ○ skipped rejects impossible future version for request-notes without side effects
+    ○ skipped rejects a stale confirm after request-notes advances the authoritative version
+    ○ skipped replays the first request-notes result for the same key without overwriting a changed payload
+    ○ skipped rejects a different-key replay after terminal confirm without duplicate effects
+    ○ skipped rejects a different-key replay after terminal decline without duplicate effects
+    ○ skipped serializes duplicate concurrent confirm delivery to one business transition
+    ○ skipped serializes confirm-vs-decline with one winner, controlled loser and one effect set
+
+Test Suites: 1 passed, 1 total
+Tests:       42 skipped, 10 passed, 52 total
+Snapshots:   0 total
+Time:        32.344 s
+Ran all test suites within paths "test/clinic-queue-http-authority.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-002.json

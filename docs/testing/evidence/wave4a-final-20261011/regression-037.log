@@ -1,0 +1,16 @@
+PASS src/config/mvp-scope-workers.spec.ts (9.451 s)
+  PILOT_V1 disabled external workers
+    ✓ MIS relay exits before database claim or provider access (3 ms)
+    ✓ MIS reconciliation exits before database claim or provider access (1 ms)
+    ✓ payment relay exits before database claim or provider access (1 ms)
+    ✓ payment reconciliation exits before database claim or provider access (1 ms)
+    ✓ telemedicine session relay exits before database claim or provider access (1 ms)
+    ✓ telemedicine SLA exits before database claim or provider access (1 ms)
+    ✓ insurance coverage relay exits before database claim or provider access
+
+Test Suites: 1 passed, 1 total
+Tests:       7 passed, 7 total
+Snapshots:   0 total
+Time:        9.732 s
+Ran all test suites within paths "src/config/mvp-scope-workers.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-037.json

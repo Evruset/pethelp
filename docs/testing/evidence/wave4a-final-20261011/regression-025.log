@@ -1,0 +1,12 @@
+PASS src/modules/telemed/telemed-vet-workspace.service.spec.ts (7.818 s)
+  TelemedVetWorkspaceService
+    ✓ shows queued cases and only cases assigned to the requesting veterinarian (9 ms)
+    ✓ rejects workspace changes from another veterinarian before mutating the case (5 ms)
+    ✓ pins workspace updates to the assigned veterinarian in the SQL predicate (2 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       3 passed, 3 total
+Snapshots:   0 total
+Time:        8.197 s
+Ran all test suites within paths "src/modules/telemed/telemed-vet-workspace.service.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-025.json

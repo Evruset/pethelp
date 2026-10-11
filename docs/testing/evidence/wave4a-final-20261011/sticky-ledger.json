@@ -1,0 +1,90 @@
+[
+  {
+    "gate": "test/appointment-medical-sharing-http.e2e-spec.ts",
+    "status": "REUSED_STICKY_PASS",
+    "passed": 75,
+    "evidence": "sticky-pethelp-wave4a-reconcile-checkpoint-backend.log",
+    "evidence_revision": "35d3b9f7471c5ff701b7fb2fa00d2a62b1640b4e",
+    "sourceSha256": "c0744c7c6bfb554bc05d9ab312dfa3ab75a22ad3b733411867ab2dacef50e401",
+    "dependency_surface": "backend/src and backend/migrations unchanged35d3b9f..a1c092e",
+    "fresh_or_reused": "reused",
+    "invalidated_by": null
+  },
+  {
+    "gate": "test/booking-core-performance.integration-spec.ts",
+    "status": "REUSED_STICKY_PASS",
+    "passed": 9,
+    "evidence": "/private/tmp/pethelp-t044-candidate.X05Hh7/validation-corrected-01/REPORT.md",
+    "evidence_revision": "a1c092ec695d0fb9945e324c96db30914e131830",
+    "sourceSha256": "02da614fbca7c34ed26d3494ab6640d5660a077dad3fd30d15ce6da48f1f9bbc",
+    "dependency_surface": "backend/src and backend/migrations unchanged35d3b9f..a1c092e",
+    "fresh_or_reused": "reused",
+    "invalidated_by": null
+  },
+  {
+    "gate": "test/clinical-foundation-migration.integration-spec.ts",
+    "status": "REUSED_STICKY_PASS",
+    "passed": 2,
+    "evidence": "/private/tmp/pethelp-t044-candidate.X05Hh7/validation-corrected-01/REPORT.md",
+    "evidence_revision": "a1c092ec695d0fb9945e324c96db30914e131830",
+    "sourceSha256": "73512cff6ce782a42f586683ffbd772093827e5e57ce16ddd5c0931ba9a53e87",
+    "dependency_surface": "backend/src and backend/migrations unchanged35d3b9f..a1c092e",
+    "fresh_or_reused": "reused",
+    "invalidated_by": null
+  },
+  {
+    "gate": "test/v15-clinic-contract-profile-migration.integration-spec.ts",
+    "status": "REUSED_STICKY_PASS",
+    "passed": 2,
+    "evidence": "/private/tmp/pethelp-t044-candidate.X05Hh7/validation-corrected-01/REPORT.md",
+    "evidence_revision": "a1c092ec695d0fb9945e324c96db30914e131830",
+    "sourceSha256": "2054f96e8689e12cb6da547516de3217a9f3e889e64f2929347e21691a0c35d1",
+    "dependency_surface": "backend/src and backend/migrations unchanged35d3b9f..a1c092e",
+    "fresh_or_reused": "reused",
+    "invalidated_by": null
+  },
+  {
+    "gate": "test/clinical-result-cardinality-migration.integration-spec.ts",
+    "status": "REUSED_STICKY_PASS",
+    "passed": 1,
+    "evidence": "/private/tmp/pethelp-t044-candidate.X05Hh7/validation-corrected-01/REPORT.md",
+    "evidence_revision": "a1c092ec695d0fb9945e324c96db30914e131830",
+    "sourceSha256": "c2134451aa2e153de275739fa932c03b82e48f53ca8abf95e8353988ad680fb2",
+    "dependency_surface": "backend/src and backend/migrations unchanged35d3b9f..a1c092e",
+    "fresh_or_reused": "reused",
+    "invalidated_by": null
+  },
+  {
+    "gate": "test/appointment-medical-sharing-contract.spec.ts",
+    "status": "REUSED_STICKY_PASS",
+    "passed": 26,
+    "evidence": "sticky-pethelp-wave4a-reconcile-checkpoint-backend.log",
+    "evidence_revision": "35d3b9f7471c5ff701b7fb2fa00d2a62b1640b4e",
+    "sourceSha256": "84558020c09a6b5f7577cad957822a650f56232e723b361418764eb34d651da7",
+    "dependency_surface": "backend/src and backend/migrations unchanged35d3b9f..a1c092e",
+    "fresh_or_reused": "reused",
+    "invalidated_by": null
+  },
+  {
+    "gate": "src/common/pet-document-storage.spec.ts",
+    "status": "REUSED_STICKY_PASS",
+    "passed": 3,
+    "evidence": "sticky-pethelp-wave4a-reconcile-checkpoint-backend.log",
+    "evidence_revision": "35d3b9f7471c5ff701b7fb2fa00d2a62b1640b4e",
+    "sourceSha256": "496bca9288c915ad4be4609831e45aeda91766ffd261efb7ef974e3ec043032c",
+    "dependency_surface": "backend/src and backend/migrations unchanged35d3b9f..a1c092e",
+    "fresh_or_reused": "reused",
+    "invalidated_by": null
+  },
+  {
+    "gate": "src/auth/owner-pet.service.spec.ts",
+    "status": "REUSED_STICKY_PASS",
+    "passed": 4,
+    "evidence": "docs/v15/12-wave4a-completion-evidence.md: Authorized Document delivery \u2014 Owner service4/4",
+    "evidence_revision": "35d3b9f7471c5ff701b7fb2fa00d2a62b1640b4e",
+    "sourceSha256": "e2a75f9b2028f2333bc4bae80b7587d7fc307745bf49a0ea07e4f1fab5ae6536",
+    "dependency_surface": "backend/src and backend/migrations unchanged35d3b9f..a1c092e",
+    "fresh_or_reused": "reused",
+    "invalidated_by": null
+  }
+]

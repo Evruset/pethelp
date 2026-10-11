@@ -1,0 +1,10 @@
+ migration_count |                last_migration                 
+-----------------+-----------------------------------------------
+              69 | 1719730000000_add_appointment_medical_sharing
+(1 row)
+
+ sharing_migration_count 
+-------------------------
+                       1
+(1 row)
+

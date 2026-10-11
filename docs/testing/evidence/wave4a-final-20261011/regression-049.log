@@ -1,0 +1,18 @@
+PASS src/modules/telemed/telemed-audit-projection.spec.ts (5.611 s)
+  projectTelemedAuditEvent
+    ✓ projects ASSIGNED with exact display-safe fields (4 ms)
+    ✓ projects SAFETY_ESCALATED with exact display-safe fields (1 ms)
+    ✓ projects RECOMMENDATION_SAVED with exact display-safe fields (2 ms)
+    ✓ projects FOLLOW_UP_ROUTED with exact display-safe fields (2 ms)
+    ✓ projects SESSION_STARTED with exact display-safe fields (1 ms)
+    ✓ projects DOCTOR_CONNECTED with exact display-safe fields (1 ms)
+    ✓ projects OWNER_CANCELLED with exact display-safe fields (1 ms)
+    ✓ projects DOCTOR_TIMEOUT with exact display-safe fields (1 ms)
+    ✓ fails closed for an unknown stored event type (8 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       9 passed, 9 total
+Snapshots:   0 total
+Time:        5.91 s
+Ran all test suites within paths "src/modules/telemed/telemed-audit-projection.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-049.json

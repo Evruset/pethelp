@@ -1,0 +1,10 @@
+[
+  {
+    "suite": "test/clinic-queue-http-authority.e2e-spec.ts",
+    "lane": "PILOT_V1",
+    "db": "vethelp_wave3_final_001",
+    "status": "FAIL",
+    "log": "regression-001.log",
+    "exitCode": 1
+  }
+]

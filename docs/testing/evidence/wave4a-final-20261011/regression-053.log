@@ -1,0 +1,11 @@
+PASS src/booking-core/appointment-lifecycle-migration.spec.ts (6.076 s)
+  appointment lifecycle migration
+    ✓ adds an additive appointment authority model without fabricating unknown history (4 ms)
+    ✓ refuses destructive lifecycle-history rollback (13 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       2 passed, 2 total
+Snapshots:   0 total
+Time:        6.393 s
+Ran all test suites within paths "src/booking-core/appointment-lifecycle-migration.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-053.json

@@ -1,0 +1,8 @@
+{
+  "classification": "ENVIRONMENT",
+  "reason": "Test-owned database name did not match existing strict regression-fixture guard",
+  "reportedFailedTests": 42,
+  "selectionSkipped": 10,
+  "businessScenariosExecuted": 0,
+  "repair": "Use required vethelp_wave3_reconcile_ prefix in newly created clones. Existing fail-closed fixture guard unchanged."
+}

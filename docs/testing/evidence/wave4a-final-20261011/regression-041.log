@@ -1,0 +1,11 @@
+PASS src/notifications/owner-notifications.controller.spec.ts (6.902 s)
+  OwnerNotificationsController
+    ✓ derives recipient from JWT and returns only the public projection (10 ms)
+    ✓ hides foreign notification existence on mark-read (2 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       2 passed, 2 total
+Snapshots:   0 total
+Time:        7.247 s
+Ran all test suites within paths "src/notifications/owner-notifications.controller.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-041.json

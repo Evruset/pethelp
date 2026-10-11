@@ -1,0 +1,69 @@
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=capability[39m
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=clinic-scope[39m
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=location-scope[39m
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=inactive-membership[39m
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=capability[39m
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=capability[39m
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=inactive-membership[39m
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=location-scope[39m
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=capability[39m
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=capability[39m
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=clinic-scope[39m
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=location-scope[39m
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=inactive-membership[39m
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=capability[39m
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=capability[39m
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=capability[39m
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=clinic-scope[39m
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=location-scope[39m
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=inactive-membership[39m
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=inactive-membership[39m
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=capability[39m
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=assignment[39m
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=data-category[39m
+[33m[Nest] 1  - [39m10/11/2026, 12:55:17 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=data-category[39m
+PASS src/auth/capability-evaluator.service.spec.ts (7.562 s)
+  CapabilityEvaluatorService booking.queue.read ABAC matrix
+    ✓ allows receptionist with matching claims and active membership (5 ms)
+    ✓ denies wrong role before membership query (5 ms)
+    ✓ denies cross clinic claim before membership query (1 ms)
+    ✓ denies cross location claim before membership query (1 ms)
+    ✓ denies revoked membership after claim checks (2 ms)
+  CapabilityEvaluatorService appointment.registry.read ABAC matrix
+    ✓ allows scoped reception with active membership (1 ms)
+    ✓ denies role CLINIC_VETERINARIAN before membership query (1 ms)
+    ✓ denies role OWNER before membership query (1 ms)
+  CapabilityEvaluatorService patient.admin.read ABAC matrix
+    ✓ requires exact scopes and active membership (2 ms)
+    ✓ does not infer administrative patient access for veterinarians (1 ms)
+  CapabilityEvaluatorService patient.admin.local-profile.update ABAC matrix
+    ✓ allows exact-scope reception/admin with active membership (1 ms)
+    ✓ denies veterinarian without membership leakage (1 ms)
+    ✓ denies foreign clinic without membership leakage (1 ms)
+    ✓ denies foreign location without membership leakage (1 ms)
+    ✓ denies inactive membership (1 ms)
+  CapabilityEvaluatorService clinical.visit.workspace.read ABAC matrix
+    ✓ allows an active scoped clinic veterinarian
+    ✓ denies clinic admin before membership query (2 ms)
+    ✓ denies receptionist before membership query (1 ms)
+    ✓ denies JWT capability-shaped claim without role grant before membership query (1 ms)
+    ✓ denies clinic mismatch before membership query (1 ms)
+    ✓ denies location mismatch before membership query (1 ms)
+    ✓ normalizes inactive membership denial (1 ms)
+    ✓ normalizes revoked membership denial (1 ms)
+  CapabilityEvaluatorService ops.slo.snapshot.read platform authority
+    ✓ allows platform admin without clinic or location claims
+    ✓ does not treat clinic or location claims as platform authority (1 ms)
+    ✓ denies a role without the platform capability before querying membership (1 ms)
+  CapabilityEvaluatorService telemed.vet.audit-trail.read assignment/category policy
+    ✓ allows the assigned veterinarian for a known clinical data category without clinic membership authority
+    ✓ normalizes unassigned veterinarian denial without membership query (1 ms)
+    ✓ normalizes forbidden category denial without membership query (1 ms)
+    ✓ normalizes unknown category denial without membership query (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       30 passed, 30 total
+Snapshots:   0 total
+Time:        7.986 s
+Ran all test suites within paths "src/auth/capability-evaluator.service.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-014.json

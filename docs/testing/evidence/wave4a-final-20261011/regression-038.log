@@ -1,0 +1,14 @@
+PASS src/config/mvp-scope-boot.spec.ts (12.558 s)
+  PILOT_V1 boot containment
+    ✓ boots without external credentials and keeps database-backed health green (43 ms)
+    ✓ does not register the optional POST /v1/booking-holds/00000000-0000-4000-8000-000000000000/payment-intents route (13 ms)
+    ✓ does not register the optional GET /v1/insurance/profiles route (8 ms)
+    ✓ does not register the optional GET /v1/telemed/sessions route (4 ms)
+    ✓ does not register the optional GET /v1/emergency/clinics route (5 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       5 passed, 5 total
+Snapshots:   0 total
+Time:        12.867 s
+Ran all test suites within paths "src/config/mvp-scope-boot.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-038.json

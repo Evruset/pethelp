@@ -1,0 +1,6 @@
+{
+  "status": "PASS",
+  "retainedContainersChecked": 34,
+  "sameIdsNamesImagesStates": true,
+  "retainedDatabasesConnectedOrReset": false
+}

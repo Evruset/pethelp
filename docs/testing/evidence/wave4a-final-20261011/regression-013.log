@@ -1,0 +1,24 @@
+PASS src/auth/owner-pet-v50.service.spec.ts (10.312 s)
+  OwnerPetService V50 archive and diary contract
+    ✓ archives atomically with owner scope, If-Match, version increment and audit (9 ms)
+    ✓ restores an archived pet with the same atomic owner/version contract (3 ms)
+    ✓ does not advance version or audit when archive state already matches (2 ms)
+    ✓ uses active-only owner list by default and can explicitly include archived pets (2 ms)
+    ✓ normalizes foreign archive to 404 without leaking current version (2 ms)
+    ✓ normalizes foreign profile and diary deep links to the same pet 404 (2 ms)
+    ✓ applies catalog pet context only through an active owner-scoped lookup (1 ms)
+    ✓ normalizes unknown catalog pet context to unpersonalized absence (1 ms)
+    ✓ allows an owned archived profile and diary as controlled read-only history (1 ms)
+    ✓ rejects missing and stale If-Match without applying archive (2 ms)
+    ✓ returns server-sorted, bounded diary presentation and maps only persisted document states (3 ms)
+    ✓ returns allowlisted document metadata and normalizes foreign documents to 404 (2 ms)
+    ✓ maps persisted document state PROCESSING without inventing review state (1 ms)
+    ✓ maps persisted document state PROCESSED without inventing review state (1 ms)
+    ✓ maps persisted document state FAILED without inventing review state
+
+Test Suites: 1 passed, 1 total
+Tests:       15 passed, 15 total
+Snapshots:   0 total
+Time:        10.616 s
+Ran all test suites within paths "src/auth/owner-pet-v50.service.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-013.json

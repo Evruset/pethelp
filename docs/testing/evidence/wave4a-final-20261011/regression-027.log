@@ -1,0 +1,29 @@
+PASS src/observability/context-logger.service.spec.ts (7.585 s)
+  ContextLoggerService safe telemetry boundary
+    ✓ keeps only allowlisted primitive fields and framework authority (8 ms)
+    ✓ drops denied field otp (1 ms)
+    ✓ drops denied field accessToken (1 ms)
+    ✓ drops denied field sessionToken (1 ms)
+    ✓ drops denied field refreshToken (1 ms)
+    ✓ drops denied field Authorization (2 ms)
+    ✓ drops denied field Cookie (1 ms)
+    ✓ drops denied field phone (1 ms)
+    ✓ drops denied field email (2 ms)
+    ✓ drops denied field freeText (2 ms)
+    ✓ drops denied field requestBody (6 ms)
+    ✓ drops denied field responseBody
+    ✓ drops denied field providerPayload (2 ms)
+    ✓ drops denied field error (1 ms)
+    ✓ drops arbitrary messages and nested objects (1 ms)
+    ✓ drops arbitrary free-text messages and unsafe context (1 ms)
+    ✓ fails closed when sanitizer property enumeration throws (2 ms)
+    ✓ rejects code-shaped secrets from core and every string-valued field (1 ms)
+    ✓ does not invoke accessor fields (1 ms)
+    ✓ preserves the bounded Registry access method and redacted route template (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       20 passed, 20 total
+Snapshots:   0 total
+Time:        8.078 s
+Ran all test suites within paths "src/observability/context-logger.service.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-027.json

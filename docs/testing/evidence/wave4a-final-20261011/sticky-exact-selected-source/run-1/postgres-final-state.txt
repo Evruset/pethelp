@@ -1,0 +1,10 @@
+       datname       | deadlocks | temp_files | temp_bytes | numbackends 
+---------------------+-----------+------------+------------+-------------
+ t044_exact_11c_run1 |         0 |          0 |          0 |           1
+(1 row)
+
+ state  | count 
+--------+-------
+ active |     1
+(1 row)
+

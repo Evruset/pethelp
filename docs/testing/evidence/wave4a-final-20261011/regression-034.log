@@ -1,0 +1,12 @@
+PASS src/public-catalog/owner-clinic-catalog.controller.spec.ts (8.023 s)
+  OwnerClinicCatalogController
+    ✓ requests only online-bookable locations and exposes the bounded projection (8 ms)
+    ✓ returns the bounded service projection and masks a mismatched location (4 ms)
+    ✓ returns bounded availability and masks an invalid context (2 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       3 passed, 3 total
+Snapshots:   0 total
+Time:        8.358 s
+Ran all test suites within paths "src/public-catalog/owner-clinic-catalog.controller.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-034.json

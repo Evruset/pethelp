@@ -1,0 +1,13 @@
+PASS src/public-catalog/public-catalog.service.spec.ts (7.65 s)
+  PublicCatalogService
+    ✓ returns public locations with availability marked as a read-only snapshot (10 ms)
+    ✓ builds filtered public clinic discovery SQL without nonexistent slot status fields (2 ms)
+    ✓ returns only allowlisted active veterinarian discovery fields with freshness (3 ms)
+    ✓ returns owner-safe booking options with server-local dates and no capacity fields (4 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       4 passed, 4 total
+Snapshots:   0 total
+Time:        8.009 s
+Ran all test suites within paths "src/public-catalog/public-catalog.service.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-017.json

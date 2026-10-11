@@ -1,0 +1,45 @@
+{
+  "base": "a1c092ec695d0fb9945e324c96db30914e131830",
+  "freshChainMigrations": 69,
+  "backendBuild": "PASS",
+  "openapiAssertions": 4,
+  "ownerNewTests": {
+    "passed": 1,
+    "failed": 0,
+    "acceptedSelectedOut": 15
+  },
+  "portalNewTests": {
+    "startTime": "2026-10-11T12:51:37.004Z",
+    "duration": 12383.571,
+    "expected": 4,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "stickyBackendSuites": 8,
+  "stickyBackendTests": 122,
+  "authorityMatrix": "REUSED_STICKY_PASS32 real races and4 no-leak in75HTTP; identical source/migrations",
+  "originalSnapshotEntries": 674,
+  "regressionStatus": "PASS",
+  "humanWave4AAcceptance": "APPROVED",
+  "populatedWave3Upgrade": {
+    "passed": 1,
+    "failed": 0,
+    "pending": 0,
+    "evidence": "regression-022.json"
+  },
+  "reviewDB": "NO VETO",
+  "reviewSecurityPrivacy": "NO VETO",
+  "freshBackendTests": 421,
+  "freshBackendFailed": 0,
+  "consolidatedTests": 543,
+  "consolidatedSuites": 64,
+  "reviewIndependentArchitectureQA": "NO VETO",
+  "WAVE4A_MACHINE_COMPLETE": "YES",
+  "WAVE4A_READY_FOR_PO_ACCEPTANCE": "YES",
+  "WAVE4A_HUMAN_ACCEPTANCE": "APPROVED",
+  "WAVE4A_COMPLETE": "YES",
+  "humanAcceptanceEvidence": "ACCEPTANCE.md",
+  "realDeviceUAT": "NOT_ACCEPTED",
+  "pilotGoLive": "NOT_ACCEPTED"
+}

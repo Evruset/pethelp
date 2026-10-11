@@ -1,0 +1,13 @@
+PASS test/owner-pet-mvp.integration-spec.ts (10.86 s)
+  T022 Owner Pet MVP (PostgreSQL)
+    ✓ creates one owner-scoped row under 20 concurrent identical retries (176 ms)
+    ✓ rejects changed payload but isolates the same key across owners (46 ms)
+    ✓ returns only active supported pets in stable order and fails replay closed after archive (26 ms)
+    ✓ rolls back pet and ledger atomically when bounded audit persistence fails (55 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       4 passed, 4 total
+Snapshots:   0 total
+Time:        11.184 s
+Ran all test suites within paths "test/owner-pet-mvp.integration-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-026.json

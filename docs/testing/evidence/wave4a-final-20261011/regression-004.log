@@ -1,0 +1,36 @@
+PASS test/clinic-appointments-registry.e2e-spec.ts (40.911 s)
+  Clinic appointments registry HTTP authority and cursor matrix
+    ✓ returns safe upcoming and history projections for receptionist and admin (1024 ms)
+    ✓ uses stable keyset ties and a fixed snapshot without duplicates or inserted rows (638 ms)
+    ✓ keeps the exact end boundary in upcoming and excludes it from history for the cursor snapshot (967 ms)
+    ✓ returns authoritative empty output distinct from a technical failure (886 ms)
+    ✓ does not expose sensitive or internal fields anywhere in the response (846 ms)
+    ✓ is side-effect free across repeated reads (718 ms)
+    ✓ denies missing membership without projection leakage (1019 ms)
+    ✓ denies revoked membership without projection leakage (913 ms)
+    ✓ denies role denied without projection leakage (811 ms)
+    ✓ denies missing clinic scope without projection leakage (912 ms)
+    ✓ denies incompatible clinic scope without projection leakage (811 ms)
+    ✓ denies missing location scope without projection leakage (851 ms)
+    ✓ denies incompatible location scope without projection leakage (853 ms)
+    ✓ denies unauthenticated, cross-location and cross-clinic requests without leakage (790 ms)
+    ✓ rejects missing or invalid bucket undefined (1243 ms)
+    ✓ rejects missing or invalid bucket invalid (1093 ms)
+    ✓ rejects invalid limit 0 (1250 ms)
+    ✓ rejects invalid limit -1 (1273 ms)
+    ✓ rejects invalid limit 1.5 (1058 ms)
+    ✓ rejects invalid limit 101 (1005 ms)
+    ✓ rejects invalid limit many (972 ms)
+    ✓ rejects invalid limit 1e2 (775 ms)
+    ✓ rejects invalid limit 0x10 (843 ms)
+    ✓ rejects invalid limit 01 (646 ms)
+    ✓ rejects invalid limit  1  (776 ms)
+    ✓ uses default 50 and accepts maximum 100 (828 ms)
+    ✓ rejects malformed, tampered, cross-bucket and cross-scope cursors uniformly (1277 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       27 passed, 27 total
+Snapshots:   0 total
+Time:        41.312 s
+Ran all test suites within paths "test/clinic-appointments-registry.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-004.json

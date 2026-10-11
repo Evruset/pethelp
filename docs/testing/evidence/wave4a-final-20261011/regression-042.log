@@ -1,0 +1,14 @@
+PASS src/auth/capability.spec.ts (6.989 s)
+  hasCapability
+    ✓ grants clinical visit completion to clinic veterinarians (3 ms)
+    ✓ does not grant clinical visit completion to clinic administrators (2 ms)
+    ✓ derives booking queue capability for clinic reception without trusting a JWT capability claim (1 ms)
+    ✓ grants patient.admin.read only to receptionist and clinic admin (1 ms)
+    ✓ grants local profile mutation separately from read and never to veterinarians (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       5 passed, 5 total
+Snapshots:   0 total
+Time:        7.305 s
+Ran all test suites within paths "src/auth/capability.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-042.json

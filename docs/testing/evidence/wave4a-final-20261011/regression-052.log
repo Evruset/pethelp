@@ -1,0 +1,11 @@
+PASS src/booking-core/clinic-contract-profile-audit-protection-migration.spec.ts (6.384 s)
+  clinic contract profile audit protection migration
+    ✓ protects audit rows and records only the database session role as actor (4 ms)
+    ✓ refuses destructive schema rollback past the audit safety barrier (11 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       2 passed, 2 total
+Snapshots:   0 total
+Time:        6.679 s
+Ran all test suites within paths "src/booking-core/clinic-contract-profile-audit-protection-migration.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-052.json

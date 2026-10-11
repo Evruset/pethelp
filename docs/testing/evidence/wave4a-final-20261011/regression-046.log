@@ -1,0 +1,11 @@
+PASS src/auth/optional-jwt-auth.guard.spec.ts (7.122 s)
+  OptionalJwtAuthGuard
+    ✓ allows a guest request without invoking JWT validation (4 ms)
+    ✓ delegates a present authorization header so invalid tokens remain 401 (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       2 passed, 2 total
+Snapshots:   0 total
+Time:        7.39 s
+Ran all test suites within paths "src/auth/optional-jwt-auth.guard.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-046.json
