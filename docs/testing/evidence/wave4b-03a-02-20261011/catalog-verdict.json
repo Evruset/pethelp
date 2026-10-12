@@ -1,0 +1,19 @@
+{
+  "migrations": 73,
+  "checksums": 73,
+  "receiptClasses": [
+    {
+      "input_evidence_class": "SIMULATED_METADATA_ONLY",
+      "evidence_origin": "SIMULATED_PROVIDER",
+      "count": 1
+    },
+    {
+      "input_evidence_class": "ACTUAL_BYTE_INPUT",
+      "evidence_origin": "TEST_CONSUMER",
+      "count": 17
+    }
+  ],
+  "executorCanLogin": false,
+  "testWriterMember": true,
+  "oldWriterMember": false
+}

@@ -1,0 +1,14 @@
+PASS test/ocr-byte-execution.e2e-spec.ts (16.314 s)
+PASS test/ocr-byte-execution-migration.e2e-spec.ts (6.551 s)
+
+Test Suites: 2 passed, 2 total
+Tests:       40 skipped, 2 passed, 42 total
+Snapshots:   0 total
+Time:        23.218 s
+Ran all test suites within paths "test/ocr-byte-execution-migration.e2e-spec.ts", "test/ocr-byte-execution.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4b-03a-02-20261011/upgrade-config-results.json
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

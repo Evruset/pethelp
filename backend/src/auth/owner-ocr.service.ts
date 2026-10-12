@@ -1,9 +1,10 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Optional, NotFoundException } from '@nestjs/common';
 import { createHash, randomUUID } from 'node:crypto';
 import { PoolClient } from 'pg';
 import { DatabaseService } from '../database/database.service';
 import { JwtPayload, Role } from './auth.types';
-import { OcrExtraction, OcrSource } from './ocr-provider';
+import { OcrByteExecutionService } from './ocr-byte-execution.service';
+import { OcrProvider, OcrExtraction, OcrSource } from './ocr-provider';
 
 type SourceRow = { id: string; owner_id: string; pet_id: string; doc_type: 'PASSPORT' | 'HISTORY'; storage_key: string | null; file_size_bytes: number | null; created_at: Date };
 type Job = { id: string; document_id: string; owner_id: string; pet_id: string; state: string; attempt_count: number; source_identity: string; source_snapshot: OcrSource; claim_token: string | null; error_code: string | null; lease_until: Date | null };
@@ -13,7 +14,9 @@ const hash = (value: unknown) => createHash('sha256').update(JSON.stringify(valu
 
 @Injectable()
 export class OwnerOcrService {
-  constructor(private readonly database: DatabaseService) {}
+  constructor(private readonly database: DatabaseService, @Optional() private readonly bytes?:OcrByteExecutionService) {}
+
+  async processBound(claim:OcrClaim,provider:OcrProvider){const bytes=this.bytes;if(!bytes||!await bytes.isBound(claim.id))return false;if(!bytes.enabled)throw new Error('OCR byte execution disabled');await bytes.execute(claim,provider);return true;}
 
   private owner(owner: JwtPayload): void {
     if (!owner.roles.includes(Role.OWNER)) throw new ForbiddenException({ code: 'ROLE_FORBIDDEN', message: 'Owner role required.' });
@@ -38,9 +41,10 @@ export class OwnerOcrService {
     return this.database.withTransaction(async client => {
       const source = await this.source(client, owner.sub, petId, documentId);
       if (!source) this.missing();
-      await client.query(`INSERT INTO pet_schema.ocr_jobs(document_id,owner_id,pet_id,source_identity,source_snapshot)
-        VALUES($1,$2,$3,$4,$5::jsonb) ON CONFLICT(document_id) DO NOTHING`,
+      const inserted=await client.query<{id:string}>(`INSERT INTO pet_schema.ocr_jobs(document_id,owner_id,pet_id,source_identity,source_snapshot)
+        VALUES($1,$2,$3,$4,$5::jsonb) ON CONFLICT(document_id) DO NOTHING RETURNING id`,
       [documentId, owner.sub, petId, this.fingerprint(source), JSON.stringify({ documentId, documentType: source.doc_type })]);
+      if(inserted.rows[0])await this.bytes?.attachNewSource(client,inserted.rows[0].id);
       const job = await client.query<Job>(`SELECT * FROM pet_schema.ocr_jobs WHERE document_id=$1 AND owner_id=$2 AND pet_id=$3`, [documentId, owner.sub, petId]);
       if (!job.rows[0]) this.missing();
       return this.presentJob(job.rows[0]);
@@ -75,16 +79,18 @@ export class OwnerOcrService {
       if (!job || !source) this.missing();
       if (this.fingerprint(source) !== job.source_identity) throw new ConflictException({ code: 'OCR_SOURCE_CHANGED', message: 'OCR source changed.' });
       if (job.state !== 'FAILED' || job.attempt_count >= 3) throw new ConflictException({ code: 'OCR_RETRY_UNAVAILABLE', message: 'Retry is unavailable.' });
+      if(this.bytes&&await this.bytes.isBound(job.id,client)){try{await this.bytes.context(client,job);}catch{throw new ConflictException({code:'OCR_SOURCE_CHANGED'});}}
       const next = await client.query<Job>(`UPDATE pet_schema.ocr_jobs SET state='QUEUED',error_code=NULL,available_at=clock_timestamp(),updated_at=clock_timestamp() WHERE id=$1 RETURNING *`, [job.id]);
       return this.presentJob(next.rows[0]);
     });
   }
 
   async claim(): Promise<OcrClaim | null> {
+    const bound=await this.bytes?.claim();if(bound)return bound;
     return this.database.withTransaction(async client => {
       // One bounded recovery/claim per poll. SKIP LOCKED enables independent workers.
       const job = (await client.query<Job>(`SELECT * FROM pet_schema.ocr_jobs WHERE
-        (state='QUEUED' AND available_at<=clock_timestamp()) OR (state='RUNNING' AND lease_until<=clock_timestamp())
+        NOT EXISTS(SELECT 1 FROM pet_schema.ocr_job_byte_sources s WHERE s.job_id=ocr_jobs.id) AND ((state='QUEUED' AND available_at<=clock_timestamp()) OR (state='RUNNING' AND lease_until<=clock_timestamp()))
         ORDER BY available_at,created_at,id LIMIT 1 FOR UPDATE SKIP LOCKED`)).rows[0];
       if (!job) return null;
       if (job.state === 'RUNNING') {
@@ -108,6 +114,7 @@ export class OwnerOcrService {
   }
 
   async finish(claim: OcrClaim, extraction?: OcrExtraction, failure?: OcrFailure): Promise<boolean> {
+    if(this.bytes&&await this.bytes.isBound(claim.id))return this.bytes.fail(claim,failure==='SOURCE_CHANGED'||failure==='SOURCE_UNAVAILABLE'?'SOURCE_CHANGED':'INVALID_RESULT');
     let serialized: string | undefined;
     if (!failure) {
       try { serialized = this.validate(extraction); } catch { failure = 'INVALID_RESULT'; }

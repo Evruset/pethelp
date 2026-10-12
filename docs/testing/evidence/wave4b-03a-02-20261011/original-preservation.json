@@ -1,0 +1,11 @@
+{
+  "entries": 674,
+  "snapshotSha256": "f4fe840760b5c771ac774d252cea85b2303dc535872bf255450900dbbdb9fbb5",
+  "unchanged": true,
+  "checkedAgainst": "/tmp/v15-w4a-publish-preservation.json",
+  "originalWorktree": "/Users/evrusetskiy/work/pethelp-v15-wave-01",
+  "originalHead": "a1c092ec695d0fb9945e324c96db30914e131830",
+  "taskHead": "5d1b40582a8e5ee22e2dc087fed47a462fec984a",
+  "taskBranch": "agent/v15-w4b-03a-02-execution-i61r043p",
+  "indexEmpty": true
+}

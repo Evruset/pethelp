@@ -16,6 +16,7 @@ export class OcrDocumentWorker {
     try {
       const claim = await this.jobs.claim();
       if (!claim) return;
+      if(await this.jobs.processBound(claim,this.provider))return;
       const abort = new AbortController();
       let timer: ReturnType<typeof setTimeout> | undefined;
       try {

@@ -1,0 +1,56 @@
+PASS test/ocr-byte-execution.e2e-spec.ts (16.943 s)
+  Verified OCR execution (exclusive PostgreSQL/Nest/private FS)
+    ✓ GUARD deferred COMMIT rejects success without receipt (191 ms)
+    ✓ GUARD deferred COMMIT rejects success without binding (107 ms)
+    ○ skipped full consumer sees exact bounded bytes outside transactions, without storage identifiers
+    ○ skipped rejects partial consumption atomically
+    ○ skipped rejects ignore consumption atomically
+    ○ skipped rejects mutate consumption atomically
+    ○ skipped rejects hash consumption atomically
+    ○ skipped rejects length consumption atomically
+    ○ skipped provider-supplied receipt JSON cannot mint trusted evidence
+    ○ skipped simulation produces metadata-only receipt and never actual binding
+    ○ skipped throw creates no partial provenance and allows bounded provider retry
+    ○ skipped timeout creates no partial provenance and allows bounded provider retry
+    ○ skipped three lifetime attempts cap provider failures
+    ○ skipped missing/corrupt frozen bytes fail closed before adapter, retain CORRUPT event and deny retry
+    ○ skipped owner authority change during adapter forbids finish
+    ○ skipped archive authority change during adapter forbids finish
+    ○ skipped delete authority change during adapter forbids finish
+    ○ skipped type authority change during adapter forbids finish
+    ○ skipped key authority change during adapter forbids finish
+    ○ skipped authentic receipt from another version/attempt is rejected
+    ○ skipped expired worker cannot overwrite reclaimed attempt result
+    ○ skipped concurrent completion replay commits exactly once
+    ○ skipped negative event committed while adapter runs wins over completion
+    ○ skipped deferred COMMIT failure rolls back raw/candidate/receipt/binding/audit together
+    ○ skipped old ordinary binary cannot claim bound job using protocol GUC alone
+    ○ skipped exact confirmed correction resolver preserves raw/history/Pet and separates clinical authority
+    ○ skipped internal proof denies foreign reference
+    ○ skipped internal proof denies pet reference
+    ○ skipped internal proof denies document reference
+    ○ skipped internal proof denies candidate reference
+    ○ skipped internal proof denies role reference
+    ○ skipped negative event after finish keeps immutable evidence but makes confirmation proof unavailable
+    ○ skipped ocr_attempt_byte_receipts rejects UPDATE DELETE and TRUNCATE
+    ○ skipped ocr_result_byte_bindings rejects UPDATE DELETE and TRUNCATE
+    ○ skipped EXTRA B09 concurrent enqueue binds only one new job; old queued jobs cannot be rebound
+    ○ skipped EXTRA B17 negative-event-first blocks finish without deadlock and rejects publication
+    ○ skipped EXTRA B17 finish-first holds version through COMMIT; later event preserves history
+    ○ skipped EXTRA B16 binding insert failure rolls back every completion row
+    ○ skipped EXTRA B18 bytes changed after confirmation preserve receipt and deny proof
+    ○ skipped EXTRA B22 rejected and in-review candidates have no confirmation proof
+    ○ skipped EXTRA B27 generic audit contains only IDs/class and no extracted text or private storage data
+    ○ skipped EXTRA CONFIG rejects percent-encoded alias of ordinary database identity
+
+Test Suites: 1 passed, 1 total
+Tests:       40 skipped, 2 passed, 42 total
+Snapshots:   0 total
+Time:        17.68 s
+Ran all test suites within paths "test/ocr-byte-execution.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4b-03a-02-20261011/guard-results.json
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

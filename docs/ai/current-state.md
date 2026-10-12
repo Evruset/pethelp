@@ -1,5 +1,25 @@
 # V50 program current state
 
+## 2026-10-12 — V15-W4B-03A-02 technical PO acceptance / publication
+
+`WAVE4B_03A_02_MACHINE_COMPLETE=YES`, `WAVE4B_03A_02_HUMAN_ACCEPTANCE=APPROVED` under the explicit Product Owner/Acting Technical Lead decision V15-W4B-03A-02-ACCEPT. Acceptance/limits: `docs/testing/evidence/wave4b-03a-02-20261011/ACCEPTANCE.md`. Following successful fresh-fetch remote-backed verification: `WAVE4B_03A_02_COMPLETE=YES`, `WAVE4B_03A_03_READY_TO_START=YES`. Actual commit/remote SHA and verification are reported by the publication delivery receipt. Historical candidate/NOT_RECORDED statements below remain original machine provenance.
+
+Approved9 implementation/test +2 documentation +48 machine evidence files verified against MANIFEST/source hashes.141 unique PASS,73 migrations/checksums, populated upgrades/build,7 OpenAPI assertions and three NO VETO reviews reused as STICKY_PASS without reruns. Implementation/tests, contract20 and all48 original evidence files remain byte-for-byte unchanged; only this state overlay and separate ACCEPTANCE.md/PUBLICATION.json/PUBLICATION-SHA256SUMS are added. Exact final scope/hashes in publication supplements. Original674 dirty entries preserved; root sole writer.
+
+Publication authorized exclusively on `agent/v15-w4b-03a-02-execution-i61r043p`, parent `5d1b40582a8e5ee22e2dc087fed47a462fec984a`. Ordinary push only; no transition/main merge or deployment. Technical acceptance covers verified transport/provenance mechanics. ACTUAL evidence is TEST_CONSUMER-only; production simulation remains SIMULATED_METADATA_ONLY and cannot earn an actual binding or OCR_RESULT_SOURCE_BOUND.
+
+`OCR_SOURCE_BYTE_INTEGRITY=DEFERRED_BLOCKING_VALIDATED_IMPORT`. Production storage isolation, restore/retention, publisher/worker separation, writer provisioning and real adapter acceptance remain open. No clinical validation, validated import, real OCR accuracy, UI, UAT or Pilot acceptance. No03A-03 implementation in this action. STOP after remote-backed publication.
+
+## 2026-10-11 — V15-W4B-03A-02 verified OCR execution candidate
+
+`WAVE4B_03A_02_MACHINE_COMPLETE=YES`, `WAVE4B_03A_02_READY_FOR_PO_REVIEW=YES`. Human acceptance NOT_RECORDED. Accepted base `5d1b40582a8e5ee22e2dc087fed47a462fec984a`; isolated branch `agent/v15-w4b-03a-02-execution-i61r043p`. Original674 dirty entries preserved byte-for-byte, index empty, no commit/push or original worktree writes.
+
+Implemented new-job-only verified source binding, dedicated off-by-default byte executor, private Buffer verification outside PG transactions, opaque adapter evidence, atomic immutable receipt/ACTUAL-only result binding and internal exact Owner-confirmed revision proof. Simulation remains SIMULATED_METADATA_ONLY; ACTUAL_BYTE_INPUT is demonstrated only by a gated TEST_CONSUMER. No real OCR claim, Pet medical-history write, validated import, UI, route/grant expansion or historical provenance rewrite. Additive171977; all72 prior migrations unchanged. Rollback stops all claimers and retains data/schema.
+
+141 unique PASS /0 unresolvedFAIL:42 execution/config,2 populated upgrades,25 foundation,45 review,27 storage. Fresh73 migrations/checksums, backend build and7 OpenAPI assertions PASS; DB/Data Authority, Security/Privacy and Architecture/QA NO VETO. Both real blocked source-event/finish interleavings, fencing and deferred COMMIT failures covered. Initial compilation failures resolved and retained; no unrelated sticky gate rerun. Evidence: `docs/testing/evidence/wave4b-03a-02-20261011/REPORT.md`, MANIFEST and SHA256SUMS. Contract: `docs/v15/20-wave4b-03a-02-verified-ocr-execution.md`.
+
+`OCR_SOURCE_BYTE_INTEGRITY=DEFERRED_BLOCKING_VALIDATED_IMPORT`. Production storage isolation, durability/restore/retention, distinct writer provisioning and real adapter consumption remain separate prerequisites. No production enablement,03B import or next-wave implementation. Separate Product Owner acceptance/publication decision required. STOP after machine candidate.
+
 ## 2026-10-11 — V15-W4B-03A-01 technical acceptance / publication
 
 `WAVE4B_03A_01_MACHINE_COMPLETE=YES`, `WAVE4B_03A_01_HUMAN_ACCEPTANCE=APPROVED`, `WAVE4B_03A_01_COMPLETE=YES`, `WAVE4B_03A_02_READY_TO_START=YES` under the explicit Product Owner/Acting Technical Lead decision V15-W4B-03A-01-ACCEPT. Acceptance and limits: `docs/testing/evidence/wave4b-03a-01-20261011/ACCEPTANCE.md`. Historical candidate/NOT_RECORDED statements below remain original audit provenance.

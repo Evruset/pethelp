@@ -1,0 +1,46 @@
+PASS test/ocr-byte-execution.e2e-spec.ts (17.89 s)
+  Verified OCR execution (exclusive PostgreSQL/Nest/private FS)
+    ✓ full consumer sees exact bounded bytes outside transactions, without storage identifiers (241 ms)
+    ✓ rejects partial consumption atomically (77 ms)
+    ✓ rejects ignore consumption atomically (78 ms)
+    ✓ rejects mutate consumption atomically (79 ms)
+    ✓ rejects hash consumption atomically (84 ms)
+    ✓ rejects length consumption atomically (56 ms)
+    ✓ provider-supplied receipt JSON cannot mint trusted evidence (70 ms)
+    ✓ simulation produces metadata-only receipt and never actual binding (98 ms)
+    ✓ throw creates no partial provenance and allows bounded provider retry (57 ms)
+    ✓ timeout creates no partial provenance and allows bounded provider retry (72 ms)
+    ✓ three lifetime attempts cap provider failures (147 ms)
+    ✓ missing/corrupt frozen bytes fail closed before adapter, retain CORRUPT event and deny retry (92 ms)
+    ✓ owner authority change during adapter forbids finish (79 ms)
+    ✓ archive authority change during adapter forbids finish (67 ms)
+    ✓ delete authority change during adapter forbids finish (78 ms)
+    ✓ type authority change during adapter forbids finish (85 ms)
+    ✓ key authority change during adapter forbids finish (85 ms)
+    ✓ authentic receipt from another version/attempt is rejected (110 ms)
+    ✓ expired worker cannot overwrite reclaimed attempt result (146 ms)
+    ✓ concurrent completion replay commits exactly once (86 ms)
+    ✓ negative event committed while adapter runs wins over completion (118 ms)
+    ✓ deferred COMMIT failure rolls back raw/candidate/receipt/binding/audit together (119 ms)
+    ✓ old ordinary binary cannot claim bound job using protocol GUC alone (70 ms)
+    ✓ exact confirmed correction resolver preserves raw/history/Pet and separates clinical authority (149 ms)
+    ✓ internal proof denies foreign reference (113 ms)
+    ✓ internal proof denies pet reference (117 ms)
+    ✓ internal proof denies document reference (104 ms)
+    ✓ internal proof denies candidate reference (111 ms)
+    ✓ internal proof denies role reference (112 ms)
+    ✓ negative event after finish keeps immutable evidence but makes confirmation proof unavailable (107 ms)
+    ✓ ocr_attempt_byte_receipts rejects UPDATE DELETE and TRUNCATE (140 ms)
+    ✓ ocr_result_byte_bindings rejects UPDATE DELETE and TRUNCATE (176 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       32 passed, 32 total
+Snapshots:   0 total
+Time:        18.194 s
+Ran all test suites within paths "test/ocr-byte-execution.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4b-03a-02-20261011/execution-results.json
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { OwnerOcrReviewService } from './owner-ocr-review.service';
 import { OwnerOcrReviewController } from './owner-ocr-review.controller';
+import { OcrByteExecutionService } from './ocr-byte-execution.service';
 import { OwnerOcrService } from './owner-ocr.service';
 import { OwnerOcrController } from './owner-ocr.controller';
 import { OcrProvider } from './ocr-provider';
@@ -42,6 +43,7 @@ import { mvpScope } from '../config/mvp-scope.config';
     OwnerPetService,
     OcrDocumentWorker,
     OwnerOcrService,
+    OcrByteExecutionService,
     OwnerOcrReviewService,
     OcrProvider,
     CapabilityEvaluatorService,
