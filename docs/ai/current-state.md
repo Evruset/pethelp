@@ -2741,3 +2741,12 @@ Batch stop: exactly three checkpoints were processed (T085 continuation, T140, T
 - Backendbuild andCJS/PythonstaticchecksPASS; accepted31/141/earliergatesREUSED_STICKY_PASS. FreshDB,Security,OperationsNO VETO. Test-onlyharness deadlinefinding fixed andrecordedtimings revalidated without runtime replay.
 - `WAVE4B_03A_04_MACHINE_CANDIDATE=YES`; `WAVE4B_03A_04_READY_FOR_PO_REVIEW=YES`; humanacceptance NOT_RECORDED. PRODUCTION_STORAGE_ISOLATION=NOT_VERIFIED; RETENTION_POLICY=PENDING_PRODUCT_OWNER_DECISION; REAL_OCR_ADAPTER_ACCEPTANCE=NOT_ACCEPTED; WAVE4B_03A_COMPLETE=NO; WAVE4B_03B_READY=NO; OCR_SOURCE_BYTE_INTEGRITY=DEFERRED_BLOCKING_VALIDATED_IMPORT.
 - Evidence docs/testing/evidence/wave4b-03a-04-20261012/REPORT.md; deploymentgap/plan doc23, retentiondecision/adapterhandoff doc24. Nextactions requiretargetinfra/legal/privacy/PO decisions and separateauthorization. Stopafterverification/evidence; no newimplementationstarted.
+
+
+## 2026-10-12 — W4B-03A-04 isolated PO acceptance and OCR freeze
+
+- ExplicitPOdecision “Close W4B-03A-04 and Freeze OCR” conditionallyapprovedisolatedscope; allconditionsreconciled:MANIFEST/SHA256SUMS,10uniquePASS,73checksumrows/build,threeNO VETO,original674byte-identical. Noacceptedruntimegatesrerun. Frozenmachinecommit `921c5f17f6df5dd847605995b041edfc983261da` preservesoriginalsource/evidencehashes; acceptancein docs/testing/evidence/wave4b-03a-04-20261012/ACCEPTANCE.md.
+- `WAVE4B_03A_04_HUMAN_ACCEPTANCE=APPROVED_ISOLATED_ONLY`; `WAVE4B_03A_04_ISOLATED_SCOPE_COMPLETE=YES`; `WAVE4B_03A_COMPLETE=NO`; `WAVE4B_03B_READY=NO`; `OCR_SOURCE_BYTE_INTEGRITY=DEFERRED_BLOCKING_VALIDATED_IMPORT`.
+- Productionisolation/identityseparation,realadapter,retentionandphysicaldurability/productionrestore remainopen. Persistentrestartrehashdoesnotgrantprocessingeligibility. No Pilot/productionenablement,UAT,validatedimport orclinicalacceptanceimplied.
+- `OCR_DEVELOPMENT=FROZEN_PENDING_PRODUCT_DECISION`. Afterauthorizedpublication STOP. NoW4B-03A-05,W4B-03B,newaudits orinfrawork untilseparateexplicitproductdecision. Earliernext-actionplans are frozen, notexecutionauthorization. No main/transitionmerge,deployment,JiraorConfluencechanges.
+- Publicationlimitedto existingisolatedbranch agent/v15-w4b-03a-04-drain-wdlk821n withordinarypush/freshfetch/SHAequalityverification. Acceptancecommitrecordsprepublicationdecision; actualremoteverification reportedafterpush withoutadditionalwork.
