@@ -7,7 +7,7 @@ Build a small, runnable, visually inspectable improvement to the Owner App, Clin
 
 ## Allowed changes
 - `apps/owner-app/` — React Native Expo Owner App.
-- `portal/` — Clinic Portal.
+- `apps/clinic-portal/` — Clinic Portal.
 - `prototype-v49/` or `prototype-v50/` — existing prototypes.
 Change only the directories relevant to the issue. Keep existing assets/design tokens and current business behavior.
 
