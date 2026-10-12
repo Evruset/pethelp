@@ -1,0 +1,97 @@
+name: VetHelp Codex prototype queue
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: vethelp-codex-prototype-queue
+  cancel-in-progress: false
+
+jobs:
+  prototype:
+    if: ${{ github.event.label.name == 'codex-ready' && github.event.issue.state == 'open' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout main without stored credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Prepare approved issue task
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh issue view "$ISSUE_NUMBER" --repo "$GH_REPO" --json body --jq '.body' > .codex-task.md
+          test -s .codex-task.md
+          test "$(wc -c < .codex-task.md)" -le 12000
+
+      - name: Require configured API credential
+        env:
+          CODEX_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -z "$CODEX_API_KEY" ]; then
+            echo "::error::Configure OPENAI_API_KEY as a GitHub Actions secret before labeling issues codex-ready."
+            exit 1
+          fi
+
+      - name: Run Codex in restricted workspace
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ":workspace"
+          prompt-file: .github/codex/vethelp-prototype-prompt.md
+          output-file: ${{ runner.temp }}/codex-result.md
+
+      - name: Publish code to a draft PR only
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          GH_REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          rm -f .codex-task.md
+          python3 - <<'PY'
+          import subprocess
+          import sys
+          result = subprocess.check_output(
+              ["git", "status", "--porcelain=v1", "--untracked-files=all"], text=True
+          ).splitlines()
+          permitted = ("apps/owner-app/", "portal/", "prototype-v49/", "prototype-v50/")
+          changed = [line[3:] for line in result]
+          if not changed:
+              sys.exit("No implementation changes; no PR created.")
+          denied = [p for p in changed if not p.startswith(permitted) or " -> " in p]
+          if denied:
+              sys.exit("Out-of-scope changes; refusing publication: " + ", ".join(denied))
+          PY
+          branch="codex/prototype-issue-${ISSUE_NUMBER}-${RUN_ID}"
+          git switch -c "$branch"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A -- apps/owner-app portal prototype-v49 prototype-v50
+          git diff --cached --check
+          git diff --cached --quiet && { echo "No staged changes"; exit 1; }
+          git commit -m "prototype: implement issue #${ISSUE_NUMBER} with Codex"
+          gh auth setup-git
+          git push --set-upstream origin "$branch"
+          {
+            printf 'Prototype candidate for #%s. Review before merge.\n\n' "$ISSUE_NUMBER"
+            printf 'No deployment or merge was performed.\n\n'
+            printf 'Closes #%s only when merged.\n\n' "$ISSUE_NUMBER"
+            if [ -f "${RUNNER_TEMP}/codex-result.md" ]; then
+              head -c 8000 "${RUNNER_TEMP}/codex-result.md"
+            fi
+          } > "${RUNNER_TEMP}/codex-pr-body.md"
+          gh pr create --repo "$GH_REPO" --draft --base main --head "$branch"             --title "Codex prototype: issue #${ISSUE_NUMBER}"             --body-file "${RUNNER_TEMP}/codex-pr-body.md"
