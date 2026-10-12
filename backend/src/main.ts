@@ -33,7 +33,7 @@ async function bootstrap(): Promise<void> {
   app.enableCors({
     origin: corsOrigin(),
     methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Accept', 'Authorization', 'Content-Type', 'Idempotency-Key', 'X-Correlation-ID', 'X-Causation-ID', 'traceparent'],
+    allowedHeaders: ['Accept', 'Authorization', 'Content-Type', 'Idempotency-Key', 'If-Match', 'X-Correlation-ID', 'X-Causation-ID', 'traceparent'],
   });
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,

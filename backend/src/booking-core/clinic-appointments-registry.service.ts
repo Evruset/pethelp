@@ -39,6 +39,7 @@ type DetailRow = {
   appointment_version: number;
   appointment_status: string;
   appointment_created_at: Date;
+  slot_id:string; service_id:string|null; lifecycle_state:string|null; cancellation_reason_text:string|null;
   slot_starts_at: Date;
   slot_ends_at: Date;
   slot_source: string;
@@ -152,6 +153,7 @@ export class ClinicAppointmentsRegistryService {
         client.query<DetailRow>(`
           SELECT a.id AS appointment_id, a.version AS appointment_version,
                  a.status AS appointment_status, a.created_at AS appointment_created_at,
+                 a.slot_id, s.service_id, a.lifecycle_state, a.cancellation_reason_text,
                  s.starts_at AS slot_starts_at, s.ends_at AS slot_ends_at,
                  s.source AS slot_source, clinic.timezone,
                  p.id AS pet_id, p.name AS pet_name, p.species AS pet_species, p.breed AS pet_breed,
@@ -184,6 +186,8 @@ export class ClinicAppointmentsRegistryService {
       const row = result.rows[0];
       if (!row) throw DomainErrors.clinicScopeMismatch();
       const status = this.detailStatus(row.appointment_status);
+      const events = await client.query<{event_type:string;occurred_at:Date}>('SELECT event_type,occurred_at FROM booking_schema.appointment_events WHERE appointment_id=$1 ORDER BY occurred_at DESC,id DESC LIMIT 50',[row.appointment_id]);
+      const reception = input.employee.roles.some(role=>['CLINIC_ADMIN','CLINIC_RECEPTIONIST'].includes(role));
       return {
         clinicId: input.clinicId,
         locationId: input.locationId,
@@ -212,6 +216,7 @@ export class ClinicAppointmentsRegistryService {
         veterinarian: row.veterinarian_name ? { displayName: row.veterinarian_name } : null,
         resource: row.resource_name ? { displayName: row.resource_name } : null,
         availableActions: [],
+        operations: {slotId:row.slot_id,serviceId:row.service_id,lifecycle:row.lifecycle_state ?? 'UNKNOWN',canCancel:reception && row.appointment_status==='CONFIRMED' && ['CONFIRMED','RESCHEDULE_PROPOSED'].includes(row.lifecycle_state ?? ''),canPropose:reception && row.appointment_status==='CONFIRMED' && row.lifecycle_state==='CONFIRMED',cancellationReason:row.cancellation_reason_text,events:events.rows.map(event=>({type:event.event_type,at:strictIsoTimestamp(event.occurred_at)}))},
       };
     });
   }

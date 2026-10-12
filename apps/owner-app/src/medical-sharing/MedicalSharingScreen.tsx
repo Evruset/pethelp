@@ -10,13 +10,16 @@ const refKey=(ref:ResourceRef)=>`${ref.type}:${ref.id}`;
 const secureKey=()=>{const value=globalThis.crypto?.randomUUID?.();if(!value)throw new Error('SECURE_RANDOM_UNAVAILABLE');return value;};
 const date=(value:string,timezone?:string)=>new Intl.DateTimeFormat('ru-RU',{dateStyle:'medium',timeStyle:'short',...(timezone?{timeZone:timezone}:{})}).format(new Date(value));
 
-export function MedicalSharingScreen({onBack,api=medicalSharingApi}:{onBack():void;api?:MedicalSharingApi}){
+export function MedicalSharingScreen({onBack,initialHoldId,api=medicalSharingApi}:{onBack():void;initialHoldId?:string;api?:MedicalSharingApi}){
   const {session}=useSession();
-  return <SharingJourney key={`${session?.cacheScope}:${session?.opaqueCredential}`} credential={session?.opaqueCredential} cacheScope={session?.cacheScope} api={api} onBack={onBack}/>;
+  return <SharingJourney key={`${session?.cacheScope}:${session?.opaqueCredential}`} credential={session?.opaqueCredential} cacheScope={session?.cacheScope} api={api} initialHoldId={initialHoldId} onBack={onBack}/>;
 }
-function SharingJourney({credential,cacheScope,api,onBack}:{credential?:string;cacheScope?:string;api:MedicalSharingApi;onBack():void}){
+function SharingJourney({credential,cacheScope,api,onBack,initialHoldId}:{initialHoldId?:string;credential?:string;cacheScope?:string;api:MedicalSharingApi;onBack():void}){
   const [appointment,setAppointment]=useState<OwnerAppointment|null>(null);
   const query=useQuery({queryKey:['owner',cacheScope,'medical-sharing-appointments'],enabled:Boolean(credential),queryFn:({signal})=>api.appointments(credential!,signal)});
+  const direct = initialHoldId ? query.data?.find(item=>item.holdId===initialHoldId) : null;
+  if(initialHoldId && !query.isError && direct?.appointmentId && credential)return <AppointmentSharing key={direct.appointmentId} appointment={direct} credential={credential} api={api} onBack={onBack}/>;
+  if(initialHoldId && query.isSuccess && !direct?.appointmentId)return <Screen title="Медицинские данные"><StateMessage kind="empty" title="Для этой записи предоставление доступа недоступно"/><Button label="Назад к записи" onPress={onBack}/></Screen>;
   if(appointment&&credential)return <AppointmentSharing key={appointment.appointmentId!} appointment={appointment} credential={credential} api={api} onBack={()=>setAppointment(null)}/>;
   const entries=credential&&!query.isError?query.data?.filter(item=>item.appointmentId):undefined;
   return <ScrollView><Screen title="Мои записи — медицинские данные">
@@ -88,7 +91,7 @@ function AppointmentSharing({appointment,credential,api,onBack}:{appointment:Own
     {notice?<Text accessibilityRole="alert" accessibilityLiveRegion="polite">{notice}</Text>:null}
     {context?<>
       <Card><Text>Клиника: {context.clinic.displayName}</Text><Text>{context.clinic.locationAddress}</Text><Text>Запись: {date(context.appointment.startsAt,context.appointment.timezone)}</Text><Text>Питомец: {context.pet.displayName}</Text></Card>
-      <Text>Доступ предоставляется только выбранным данным для этой записи. Новые результаты и документы не будут добавлены автоматически.</Text>
+      <Text>Это разрешение на доступ к выбранным медицинским ресурсам, а не согласие на обработку всех персональных данных. Доступ предоставляется только выбранным данным для этой записи. Новые результаты и документы не будут добавлены автоматически.</Text>
       {!context.eligible?<Text>Для этой записи новый доступ предоставить нельзя. Ранее предоставленный доступ можно отозвать.</Text>:<>
         <Text accessibilityRole="header">Выберите данные</Text>
         {context.resourcesTruncated?<Text>Показаны первые 200 ресурсов. Выберите нужные данные из списка; оставшиеся ресурсы не будут добавлены автоматически.</Text>:null}

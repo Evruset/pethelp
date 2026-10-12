@@ -4,14 +4,15 @@ import type { AvailabilityHandoff } from '@/clinics/availability-api';
 export type BookingCommand = Readonly<AvailabilityHandoff & { petId: string }>;
 export type BookingResult = Readonly<{
   holdId: string;
-  status: 'PENDING_CONFIRMATION';
+  appointmentId?: string;
+  status: 'PENDING_CONFIRMATION' | 'CONFIRMED';
   slotId: string;
   expiresAt: string;
   lastUpdatedAt: string;
   correlationId: string;
   serverNow: string;
   aggregateVersion: number;
-  confirmationMode: 'MANUAL';
+  confirmationMode: 'MANUAL' | 'AUTOMATIC';
   nextAction: 'READ_STATUS';
 }>;
 
@@ -28,7 +29,11 @@ export function parseBookingResult(raw: unknown): BookingResult {
   if (!raw || typeof raw !== 'object') throw new Error('INVALID_BOOKING_RESPONSE');
   const value = raw as Record<string, unknown>;
   const keys = ['holdId','status','slotId','expiresAt','lastUpdatedAt','correlationId','serverNow','aggregateVersion','confirmationMode','nextAction'];
-  if (!exact(value, keys) || !UUID.test(String(value.holdId)) || value.status !== 'PENDING_CONFIRMATION' || !UUID.test(String(value.slotId)) || !instant(value.expiresAt) || !instant(value.lastUpdatedAt) || !UUID.test(String(value.correlationId)) || !instant(value.serverNow) || !Number.isInteger(value.aggregateVersion) || Number(value.aggregateVersion) < 1 || value.confirmationMode !== 'MANUAL' || value.nextAction !== 'READ_STATUS') throw new Error('INVALID_BOOKING_RESPONSE');
+  if ('appointmentId' in value) {
+    if (value.status !== 'CONFIRMED' || !UUID.test(String(value.appointmentId))) throw new Error('INVALID_BOOKING_RESPONSE');
+    keys.push('appointmentId');
+  }
+  if (!exact(value, keys) || !UUID.test(String(value.holdId)) || !((value.status === 'PENDING_CONFIRMATION' && value.confirmationMode === 'MANUAL') || (value.status === 'CONFIRMED' && value.confirmationMode === 'AUTOMATIC')) || !UUID.test(String(value.slotId)) || !instant(value.expiresAt) || !instant(value.lastUpdatedAt) || !UUID.test(String(value.correlationId)) || !instant(value.serverNow) || !Number.isInteger(value.aggregateVersion) || Number(value.aggregateVersion) < 1 || value.nextAction !== 'READ_STATUS') throw new Error('INVALID_BOOKING_RESPONSE');
   return value as BookingResult;
 }
 

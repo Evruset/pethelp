@@ -19,17 +19,16 @@ export function isProductSurfaceEnabled(
   surface: MvpProductSurface,
   profile: MvpProductScopeProfile = resolveMvpProductScope(),
 ): boolean {
-  void surface;
-  return profile === 'LEGACY_COMPAT';
+  return profile === 'LEGACY_COMPAT' || surface === 'clinical-workspace';
 }
 
 export function isPilotProductPath(pathname: string): boolean {
   const blocked = [
     /^\/telemed(?:\/|$)/,
-    /^\/clinics\/[^/]+\/locations\/[^/]+\/(?:telemed|quality|vet\/visits)(?:\/|$)/,
+    /^\/clinics\/[^/]+\/locations\/[^/]+\/(?:telemed|quality)(?:\/|$)/,
     /^\/api\/telemed(?:\/|$)/,
-    /^\/api\/clinic\/[^/]+\/locations\/[^/]+\/(?:telemed|quality-dashboard|vet\/visits)(?:\/|$)/,
-    /^\/api\/clinic\/booking-holds\/[^/]+\/(?:alternative-slot|complete)(?:\/|$)/,
+    /^\/api\/clinic\/[^/]+\/locations\/[^/]+\/(?:telemed|quality-dashboard)(?:\/|$)/,
+    /^\/api\/clinic\/booking-holds\/[^/]+\/alternative-slot(?:\/|$)/,
     /^\/api\/clinic\/[^/]+\/locations\/[^/]+\/booking-holds\/[^/]+\/audit-trail(?:\/|$)/,
   ];
   return !blocked.some((pattern) => pattern.test(pathname));

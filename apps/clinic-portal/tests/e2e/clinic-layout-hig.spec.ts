@@ -23,6 +23,7 @@ type CapturedSlotRequest = {
 };
 
 test.describe.configure({ mode: 'serial' });
+test.use({ timezoneId: 'Europe/Moscow' });
 
 test.beforeAll(async () => {
   server = createServer(handleBackendRequest);
@@ -108,7 +109,7 @@ test('keeps correlation id stable and rotates idempotency key on slot retry', as
   });
 
   await page.goto(route());
-  await page.getByTestId(`schedule-slot-${slotId}`).getByRole('button', { name: 'Blackout' }).click();
+  await page.getByTestId(`schedule-slot-${slotId}`).getByRole('button', { name: 'Закрыть окно' }).click();
   await page.getByRole('dialog', { name: 'Закрыть окно' }).getByRole('button', { name: 'Закрыть окно' }).click();
   await expect(page.getByRole('status')).toContainText('Окно закрыто');
 
@@ -134,7 +135,7 @@ test('retries SLOT_LOCKED_RETRY three times with exponential backoff', async ({ 
   });
 
   await page.goto(route());
-  await page.getByTestId(`schedule-slot-${slotId}`).getByRole('button', { name: 'Blackout' }).click();
+  await page.getByTestId(`schedule-slot-${slotId}`).getByRole('button', { name: 'Закрыть окно' }).click();
   await page.getByRole('dialog', { name: 'Закрыть окно' }).getByRole('button', { name: 'Закрыть окно' }).click();
   await expect(page.getByRole('dialog', { name: 'Слот недоступен' })).toBeVisible({ timeout: 12_000 });
 
@@ -157,7 +158,7 @@ test('shows accessible slide-over when slot retry is exhausted', async ({ page, 
   });
 
   await page.goto(route());
-  await page.getByTestId(`schedule-slot-${slotId}`).getByRole('button', { name: 'Blackout' }).click();
+  await page.getByTestId(`schedule-slot-${slotId}`).getByRole('button', { name: 'Закрыть окно' }).click();
   await page.getByRole('dialog', { name: 'Закрыть окно' }).getByRole('button', { name: 'Закрыть окно' }).click();
 
   const dialog = page.getByRole('dialog', { name: 'Слот недоступен' });
@@ -174,8 +175,8 @@ test('captures schedule occupied and blackout visual baseline', async ({ page, c
 
   await expect(page.getByTestId(`schedule-slot-${occupiedSlotId}`)).toContainText('Заполнен');
   await expect(page.getByTestId(`schedule-slot-${blackoutSlotId}`)).toContainText('Закрыт');
-  await expect(page.getByTestId(`schedule-slot-${occupiedSlotId}`).getByRole('button', { name: 'Blackout' })).toBeDisabled();
-  await expect(page.getByTestId(`schedule-slot-${blackoutSlotId}`).getByRole('button', { name: 'Blackout' })).toBeDisabled();
+  await expect(page.getByTestId(`schedule-slot-${occupiedSlotId}`).getByRole('button', { name: 'Закрыть окно' })).toBeDisabled();
+  await expect(page.getByTestId(`schedule-slot-${blackoutSlotId}`).getByRole('button', { name: 'Закрыть окно' })).toBeDisabled();
   await expect(page).toHaveScreenshot('schedule-occupied-blackout.png', { fullPage: true });
 });
 function route(): string {

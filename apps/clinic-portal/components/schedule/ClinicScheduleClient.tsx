@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ClinicSchedule, ClinicSchedulePeriod, ClinicScheduleResource, ClinicScheduleService, ClinicScheduleSlot, ClinicScheduleStaff, ClinicWorkingHoursDay } from '@/lib/api/clinic-schedule';
 import { useBookingCoordinator } from './useBookingCoordinator';
 
@@ -231,10 +231,26 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
   const [completionDialog, setCompletionDialog] = useState<{ slot: ClinicScheduleSlot; summary: string } | null>(null);
   const [blackoutDialog, setBlackoutDialog] = useState<ClinicScheduleSlot | null>(null);
 
-  const range = useMemo(() => ({
-    from: new Date().toISOString(),
-    to: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-  }), []);
+  const [viewDate, setViewDate] = useState(() => localInputValue(new Date(initialSchedule.serverNow)).slice(0, 10));
+  const [viewDays, setViewDays] = useState(14);
+  const [viewStaff, setViewStaff] = useState('');
+  const [viewResource, setViewResource] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [readFailed, setReadFailed] = useState(false);
+  const request = useRef<AbortController | null>(null);
+  const firstRange = useRef(true);
+  const range = useMemo(() => {
+    const from = new Date(`${viewDate}T00:00:00`);
+    const to = new Date(from); to.setDate(to.getDate() + viewDays);
+    return { from: from.toISOString(), to: to.toISOString() };
+  }, [viewDate, viewDays]);
+  const [loadedRange, setLoadedRange] = useState(range.from + range.to);
+  const loadingPeriod = refreshing || loadedRange !== range.from + range.to;
+  const visibleSlots = schedule.slots.filter(slot => (!viewStaff || slot.staff?.id === viewStaff) && (!viewResource || slot.resource?.id === viewResource));
+  const moveDate = (direction: number) => {
+    const next = new Date(`${viewDate}T12:00:00`); next.setDate(next.getDate() + direction * viewDays);
+    setViewDate(localInputValue(next).slice(0, 10));
+  };
   const activeServices = useMemo(() => schedule.services.filter((service) => service.active), [schedule.services]);
   const activeStaff = useMemo(() => schedule.staff.filter((staff) => staff.active), [schedule.staff]);
   const activeResources = useMemo(() => schedule.resources.filter((resource) => resource.active), [schedule.resources]);
@@ -275,30 +291,33 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
   }, [bookingCoordinator]);
 
   const refresh = useCallback(async () => {
-    const url = new URL(`/api/clinic/${clinicId}/locations/${locationId}/schedule/slots`, window.location.origin);
-    url.searchParams.set('from', range.from);
-    url.searchParams.set('to', range.to);
-    const response = await fetch(url, { cache: 'no-store' });
-    if (response.status === 403) {
-      window.location.assign('/forbidden');
-      return;
-    }
-    const payload = await response.json().catch(() => null) as ClinicSchedule | null;
-    if (!response.ok || !payload) {
-      setNotice('Не удалось обновить расписание.');
-      return;
-    }
-    setSchedule(payload);
-    setWorkingHours(payload.workingHours);
-    setServiceDrafts(initialServiceDrafts(payload.services));
-    setStaffDrafts(initialStaffDrafts(payload.staff));
-    setResourceDrafts(initialResourceDrafts(payload.resources));
-    if (!payload.services.some((service) => service.id === serviceId && service.active)) {
-      setServiceId(payload.services.find((service) => service.active)?.id ?? '');
-    }
-    if (staffId && !payload.staff.some((staff) => staff.id === staffId && staff.active)) setStaffId('');
-    if (resourceId && !payload.resources.some((resource) => resource.id === resourceId && resource.active)) setResourceId('');
-  }, [clinicId, locationId, range.from, range.to, resourceId, serviceId, staffId]);
+    request.current?.abort();
+    const controller = new AbortController(); request.current = controller;
+    setRefreshing(true); setReadFailed(false);
+    try {
+      const url = new URL(`/api/clinic/${clinicId}/locations/${locationId}/schedule/slots`, window.location.origin);
+      url.searchParams.set('from', range.from); url.searchParams.set('to', range.to);
+      const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
+      if (controller.signal.aborted) return;
+      if (response.status === 403) { window.location.assign('/forbidden'); return; }
+      const payload = await response.json().catch(() => null) as ClinicSchedule | null;
+      if (controller.signal.aborted) return;
+      if (!response.ok || !payload || payload.clinicId !== clinicId || payload.locationId !== locationId || !Array.isArray(payload.slots) || !Array.isArray(payload.services) || !Array.isArray(payload.staff) || !Array.isArray(payload.resources) || !Array.isArray(payload.workingHours) || !Array.isArray(payload.periods)) throw new Error('SCHEDULE_UNAVAILABLE');
+      setSchedule(payload); setLoadedRange(range.from + range.to); setWorkingHours(payload.workingHours);
+      setServiceDrafts(initialServiceDrafts(payload.services));
+      setStaffDrafts(initialStaffDrafts(payload.staff)); setResourceDrafts(initialResourceDrafts(payload.resources));
+      setServiceId(current => payload.services.some(service => service.id === current && service.active) ? current : payload.services.find(service => service.active)?.id ?? '');
+      setStaffId(current => payload.staff.some(staff => staff.id === current && staff.active) ? current : '');
+      setResourceId(current => payload.resources.some(resource => resource.id === current && resource.active) ? current : '');
+    } catch {
+      if (!controller.signal.aborted) { setReadFailed(true); }
+    } finally { if (!controller.signal.aborted) setRefreshing(false); }
+  }, [clinicId, locationId, range.from, range.to]);
+  useEffect(() => {
+    if (firstRange.current) { firstRange.current = false; return; }
+    void refresh();
+  }, [refresh]);
+  useEffect(() => () => { request.current?.abort(); }, []);
 
   const updateServiceDraft = useCallback((id: string, patch: Partial<ServiceForm>) => {
     setServiceDrafts((current) => ({
@@ -788,7 +807,7 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
       );
       if (result.ok) {
         setSelectedSlotId(slot.id);
-        setNotice('Capacity обновлена. Расписание обновлено.');
+        setNotice('Вместимость обновлена. Расписание обновлено.');
         await refresh();
         return;
       }
@@ -886,14 +905,16 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
     }
   }, [bookingCoordinator, busy, clinicId, locationId, refresh, workingHours]);
 
+  if (schedule.clinicId !== clinicId || schedule.locationId !== locationId) return <main><p role="status">Обновляем контекст филиала…</p><button type="button" onClick={()=>void refresh()}>Повторить</button></main>;
+
   return (
     <main className="min-h-screen px-4 py-6 sm:px-8 lg:px-12">
       <section className="mx-auto max-w-7xl">
         <header className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-blue-700">VetHelp · Schedule</p>
+            <p className="text-sm font-semibold text-blue-700">VetHelp · Клиника</p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">Расписание локации</h1>
-            <p className="mt-2 text-sm text-slate-600">Ручные окна и blackout проходят через backend, audit и outbox. Окна с удержаниями не закрываются локально.</p>
+            <p className="mt-2 text-sm text-slate-600">Просматривайте приёмы, свободное время и загрузку врачей. Занятые окна защищены от изменения.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => void exportJson()} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">JSON</button>
@@ -904,11 +925,105 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
 
         {notice ? <div className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700" role="status">{notice}</div> : null}
 
+        <section aria-label="Просмотр расписания" className="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-semibold">Приёмы и свободные окна</h2><p className="mt-1 text-sm text-slate-600">Дата и время показаны в часовом поясе устройства: {Intl.DateTimeFormat().resolvedOptions().timeZone}. Часовой пояс филиала уточняйте в клинике.</p>
+          <div className="mt-4 flex flex-wrap items-end gap-3">
+            <label className="grid gap-1 text-sm">Начало периода<input aria-label="Дата расписания" type="date" value={viewDate} onChange={event => { if (event.target.value && Number.isFinite(Date.parse(event.target.value))) setViewDate(event.target.value); }} className="rounded-lg border border-slate-300 p-2"/></label>
+            <div className="flex gap-2" aria-label="Длительность периода">{[[1,'День'],[7,'Неделя'],[14,'14 дней']].map(([days,label]) => <button key={days} type="button" aria-pressed={viewDays === days} onClick={()=>setViewDays(Number(days))} className={`rounded-lg border px-3 py-2 text-sm ${viewDays === days ? 'bg-blue-700 text-white' : 'border-slate-300'}`}>{label}</button>)}</div>
+            <button type="button" aria-label="Предыдущий период" onClick={()=>moveDate(-1)} className="rounded-lg border border-slate-300 px-3 py-2">←</button>
+            <button type="button" onClick={()=>setViewDate(localInputValue(new Date()).slice(0,10))} className="rounded-lg border border-slate-300 px-3 py-2">Сегодня</button>
+            <button type="button" aria-label="Следующий период" onClick={()=>moveDate(1)} className="rounded-lg border border-slate-300 px-3 py-2">→</button>
+            <label className="grid gap-1 text-sm">Врач<select aria-label="Фильтр по врачу" value={viewStaff} onChange={event=>setViewStaff(event.target.value)} className="rounded-lg border border-slate-300 p-2"><option value="">Все врачи</option>{schedule.staff.map(staff=><option key={staff.id} value={staff.id}>{staff.displayName}</option>)}</select></label>
+            <label className="grid gap-1 text-sm">Ресурс<select aria-label="Фильтр по ресурсу" value={viewResource} onChange={event=>setViewResource(event.target.value)} className="rounded-lg border border-slate-300 p-2"><option value="">Все ресурсы</option>{schedule.resources.map(resource=><option key={resource.id} value={resource.id}>{resource.displayName}</option>)}</select></label>
+          </div>
+        </section>
+        <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          {loadingPeriod || readFailed ? <div className="px-6 py-12 text-center" aria-live="polite">{readFailed ? "Расписание недоступно. Нажмите «Обновить»." : "Обновляем расписание…"}</div> : visibleSlots.length === 0 ? (
+            <div className="px-6 py-16 text-center text-sm text-slate-600">В выбранном периоде и с этими фильтрами окон нет.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table aria-label="Приёмы и свободные окна" className="min-w-full table-fixed border-collapse text-left">
+                <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th className="w-44 px-4 py-3">Время</th>
+                    <th className="w-56 px-4 py-3">Услуга</th>
+                    <th className="w-56 px-4 py-3">Специалист / ресурс</th>
+                    <th className="w-36 px-4 py-3">Статус</th>
+                    <th className="w-36 px-4 py-3">Вместимость</th>
+                    <th className="w-44 px-4 py-3">Источник</th>
+                    <th className="w-44 px-4 py-3">Действия</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleSlots.map((slot) => {
+                    const activeSlotAction = slotAction?.slotId === slot.id ? slotAction : null;
+                    const slotSelected = selectedSlotId === slot.id;
+                    const slotBusy = activeSlotAction != null;
+                    return (
+                    <tr
+                      key={slot.id}
+                      data-testid={`schedule-slot-${slot.id}`}
+                      className={`vh-schedule-slot-row border-t border-slate-200 ${slotSelected ? 'vh-schedule-slot-row--selected' : ''} ${slotBusy ? 'vh-schedule-slot-row--busy' : ''}`}
+                    >
+                      <td className="px-4 py-4 align-top"><p className="text-sm font-semibold text-slate-950">{dt(slot.startsAt)}</p><p className="mt-1 text-xs text-slate-600">{tm(slot.startsAt)}-{tm(slot.endsAt)}</p></td>
+                      <td className="px-4 py-4 align-top text-sm text-slate-700">{slot.service?.displayName ?? 'Услуга не указана'}</td>
+                      <td className="px-4 py-4 align-top text-sm text-slate-700"><p>{slot.staff?.displayName ?? 'Специалист не задан'}</p><p className="mt-1 text-xs text-slate-500">{slot.resource?.displayName ?? 'Ресурс не задан'}</p></td>
+                      <td className="px-4 py-4 align-top">
+                        {slotBusy ? (
+                          <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800" role="status">
+                            <span className="vh-cupertino-spinner" aria-hidden="true" />
+                            {activeSlotAction.retryAttempt > 0 ? `Повтор ${activeSlotAction.retryAttempt}/3` : 'Отправляем'}
+                          </span>
+                        ) : (
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${slot.state === 'CLOSED' ? 'bg-slate-100 text-slate-700' : slot.status === 'LOCKED_BY_HOLD' ? 'bg-amber-50 text-amber-800' : 'bg-emerald-50 text-emerald-700'}`}>{statusLabel(slot)}</span>
+                        )}
+                        {slot.bookingHold ? <p className="mt-2 text-xs text-slate-600">{slot.bookingHold.state === 'CONFIRMED' ? 'Запись подтверждена' : slot.bookingHold.state === 'MANUAL_CONFIRM_PENDING' ? 'Заявка ожидает решения' : slot.bookingHold.state === 'COMPLETED' ? 'Приём завершён' : slot.bookingHold.state === 'REJECTED' ? 'Заявка отклонена' : slot.bookingHold.state === 'EXPIRED' ? 'Срок заявки истёк' : slot.bookingHold.state === 'RELEASED' ? 'Заявка отменена' : 'Проверьте статус записи'}</p> : null}
+                      </td>
+                      <td className="px-4 py-4 align-top text-sm text-slate-700">{slot.bookedCount} записей · {slot.heldCount} заявок · мест {slot.capacity}</td>
+                      <td className="px-4 py-4 align-top text-sm text-slate-700"><p>Окно приёма</p>{slot.stale ? <p className="mt-1 text-xs text-amber-700">Требует обновления</p> : <p className="mt-1 text-xs text-slate-500">Данные загружены</p>}</td>
+                      <td className="px-4 py-4 align-top">
+                        <div className={`flex flex-col gap-2 ${slotBusy ? 'vh-schedule-slot-actions--busy' : ''}`}>
+                          <button
+                            type="button"
+                            disabled={busy || slot.state === 'CLOSED' || slot.heldCount > 0 || slot.bookedCount > 0}
+                            onClick={() => setCapacityDialog({ slot, value: String(slot.capacity) })}
+                            className="vh-schedule-slot-action w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                          >
+                            Вместимость
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy || slot.state === 'CLOSED' || slot.heldCount > 0 || slot.bookedCount > 0}
+                            onClick={() => setBlackoutDialog(slot)}
+                            className="vh-schedule-slot-action w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                          >
+                            Закрыть окно
+                          </button>
+                          {canCompleteAppointments ? (
+                            <button
+                              type="button"
+                              disabled={busy || slot.bookingHold?.state !== 'CONFIRMED'}
+                              onClick={() => setCompletionDialog({ slot, summary: '' })}
+                              className="vh-schedule-slot-action w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                            >
+                              Закрыть приём
+                            </button>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );})}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        <h2 className="mt-8 text-xl font-semibold">Настройки расписания филиала</h2>
         <section className="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-slate-950">Рабочие часы</h2>
-              <p className="mt-1 text-sm text-slate-600">Недельный график хранится на backend и используется как source metadata для ручного расписания.</p>
+              <p className="mt-1 text-sm text-slate-600">Укажите часы работы филиала для планирования приёмов.</p>
             </div>
             <button type="button" disabled={busy} onClick={() => void saveWorkingHours()} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
               {busy ? 'Сохраняем...' : 'Сохранить'}
@@ -1162,7 +1277,7 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
               <input type="datetime-local" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
             </label>
             <label>
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Capacity</span>
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Вместимость</span>
               <input type="number" min={1} max={50} value={capacity} onChange={(event) => setCapacity(Number(event.target.value))} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
             </label>
           </div>
@@ -1183,86 +1298,6 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
           <textarea value={importJson} onChange={(event) => setImportJson(event.target.value)} rows={8} spellCheck={false} className="mt-4 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm text-slate-800" />
         </section>
 
-        <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          {schedule.slots.length === 0 ? (
-            <div className="px-6 py-16 text-center text-sm text-slate-600">На ближайшие 14 дней слоты не найдены.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full table-fixed border-collapse text-left">
-                <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  <tr>
-                    <th className="w-44 px-4 py-3">Время</th>
-                    <th className="w-56 px-4 py-3">Услуга</th>
-                    <th className="w-56 px-4 py-3">Специалист / ресурс</th>
-                    <th className="w-36 px-4 py-3">Статус</th>
-                    <th className="w-36 px-4 py-3">Capacity</th>
-                    <th className="w-44 px-4 py-3">Источник</th>
-                    <th className="w-44 px-4 py-3">Действия</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {schedule.slots.map((slot) => {
-                    const activeSlotAction = slotAction?.slotId === slot.id ? slotAction : null;
-                    const slotSelected = selectedSlotId === slot.id;
-                    const slotBusy = activeSlotAction != null;
-                    return (
-                    <tr
-                      key={slot.id}
-                      data-testid={`schedule-slot-${slot.id}`}
-                      className={`vh-schedule-slot-row border-t border-slate-200 ${slotSelected ? 'vh-schedule-slot-row--selected' : ''} ${slotBusy ? 'vh-schedule-slot-row--busy' : ''}`}
-                    >
-                      <td className="px-4 py-4 align-top"><p className="text-sm font-semibold text-slate-950">{dt(slot.startsAt)}</p><p className="mt-1 text-xs text-slate-600">{tm(slot.startsAt)}-{tm(slot.endsAt)}</p></td>
-                      <td className="px-4 py-4 align-top text-sm text-slate-700">{slot.service?.displayName ?? 'Услуга не указана'}</td>
-                      <td className="px-4 py-4 align-top text-sm text-slate-700"><p>{slot.staff?.displayName ?? 'Специалист не задан'}</p><p className="mt-1 text-xs text-slate-500">{slot.resource?.displayName ?? 'Ресурс не задан'}</p></td>
-                      <td className="px-4 py-4 align-top">
-                        {slotBusy ? (
-                          <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800" role="status">
-                            <span className="vh-cupertino-spinner" aria-hidden="true" />
-                            {activeSlotAction.retryAttempt > 0 ? `Повтор ${activeSlotAction.retryAttempt}/3` : 'Отправляем'}
-                          </span>
-                        ) : (
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${slot.state === 'CLOSED' ? 'bg-slate-100 text-slate-700' : slot.status === 'LOCKED_BY_HOLD' ? 'bg-amber-50 text-amber-800' : 'bg-emerald-50 text-emerald-700'}`}>{statusLabel(slot)}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-4 align-top text-sm text-slate-700">{slot.bookedCount} записей · {slot.heldCount} holds · cap {slot.capacity}</td>
-                      <td className="px-4 py-4 align-top text-sm text-slate-700"><p>{slot.source} · {slot.integrationMode}</p>{slot.stale ? <p className="mt-1 text-xs text-amber-700">Freshness устарел</p> : <p className="mt-1 text-xs text-slate-500">Fresh</p>}</td>
-                      <td className="px-4 py-4 align-top">
-                        <div className={`flex flex-col gap-2 ${slotBusy ? 'vh-schedule-slot-actions--busy' : ''}`}>
-                          <button
-                            type="button"
-                            disabled={busy || slot.state === 'CLOSED' || slot.heldCount > 0 || slot.bookedCount > 0}
-                            onClick={() => setCapacityDialog({ slot, value: String(slot.capacity) })}
-                            className="vh-schedule-slot-action w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
-                          >
-                            Capacity
-                          </button>
-                          <button
-                            type="button"
-                            disabled={busy || slot.state === 'CLOSED' || slot.heldCount > 0 || slot.bookedCount > 0}
-                            onClick={() => setBlackoutDialog(slot)}
-                            className="vh-schedule-slot-action w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
-                          >
-                            Blackout
-                          </button>
-                          {canCompleteAppointments ? (
-                            <button
-                              type="button"
-                              disabled={busy || slot.bookingHold?.state !== 'CONFIRMED'}
-                              onClick={() => setCompletionDialog({ slot, summary: '' })}
-                              className="vh-schedule-slot-action w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
-                            >
-                              Закрыть приём
-                            </button>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  );})}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
       </section>
       {capacityDialog ? (
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="capacity-dialog-title">
@@ -1275,11 +1310,11 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
           />
           <section className="absolute left-1/2 top-1/2 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white shadow-2xl">
             <header className="border-b border-slate-200 px-6 py-5">
-              <h2 id="capacity-dialog-title" className="text-xl font-semibold text-slate-950">Изменить capacity</h2>
+              <h2 id="capacity-dialog-title" className="text-xl font-semibold text-slate-950">Изменить вместимость</h2>
             </header>
             <div className="px-6 py-5">
               <label className="block">
-                <span className="text-sm font-semibold text-slate-700">Новая capacity</span>
+                <span className="text-sm font-semibold text-slate-700">Новая вместимость</span>
                 <input
                   type="number"
                   min={1}

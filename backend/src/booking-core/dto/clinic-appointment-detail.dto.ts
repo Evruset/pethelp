@@ -31,7 +31,17 @@ export class ClinicAppointmentDetailPetDto {
   @ApiProperty({ type: String, nullable: true }) breed!: string | null;
 }
 
+export class ClinicAppointmentOperationsDto {
+  @ApiProperty({format:'uuid'}) slotId!:string;
+  @ApiProperty({type:String,nullable:true,format:'uuid'}) serviceId!:string|null;
+  @ApiProperty() lifecycle!:string;
+  @ApiProperty() canCancel!:boolean;
+  @ApiProperty() canPropose!:boolean;
+  @ApiProperty({type:String,nullable:true}) cancellationReason!:string|null;
+  @ApiProperty({type:'array',items:{type:'object',properties:{type:{type:'string'},at:{type:'string',format:'date-time'}}}}) events!:{type:string;at:string}[];
+}
 export class ClinicAppointmentDetailDto {
+  @ApiProperty({type:ClinicAppointmentOperationsDto}) operations!:ClinicAppointmentOperationsDto;
   @ApiProperty({ format: 'uuid' }) clinicId!: string;
   @ApiProperty({ format: 'uuid' }) locationId!: string;
   @ApiProperty({ format: 'date-time' }) serverNow!: string;

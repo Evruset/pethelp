@@ -18,11 +18,11 @@ export function PetJourneyScreen() {
     {journey.pets.length > 0 && !creatingForm ? <Button label="Добавить ещё" onPress={() => setCreatingForm(true)} /> : null}
     {journey.selectionStale ? <StateMessage kind="error" title="Выбранный питомец больше недоступен. Выберите другого или добавьте нового." /> : null}
     {creatingForm ? <View style={{ gap: 12 }}><Field label="Имя питомца" value={name} onChangeText={setName} error={name.length > 0 && invalid ? 'Введите от 1 до 120 символов' : undefined} />
-      <View accessibilityRole="radiogroup" style={{ gap: 8 }}>{(['DOG','CAT','OTHER'] as PetSpecies[]).map((value) => <Card key={value} selected={species === value} onPress={() => setSpecies(value)}><Text>{value}</Text></Card>)}</View>
+      <View accessibilityRole="radiogroup" style={{ gap: 8 }}>{(['DOG','CAT','OTHER'] as PetSpecies[]).map((value) => <Card key={value} selected={species === value} onPress={() => setSpecies(value)}><Text>{value === 'DOG' ? 'Собака' : value === 'CAT' ? 'Кошка' : 'Другой вид'}</Text></Card>)}</View>
       {journey.createError ? <StateMessage kind="error" title="Не удалось сохранить питомца. Повторите попытку." /> : null}
       <Button label={journey.creating ? 'Сохраняем…' : 'Сохранить питомца'} disabled={invalid || journey.creating} onPress={() => { void journey.create({ name: normalized, species }).then(() => setCreatingForm(false)).catch(() => undefined); }} />
       <Button label="Отмена" disabled={journey.creating} onPress={() => setCreatingForm(false)} /></View> : null}
     {journey.selectedPetId ? <Button label="Продолжить" onPress={journey.continueSelection} /> : <Text>Выберите одного питомца, чтобы продолжить</Text>}
-    <Button label="Отменить запись" onPress={journey.cancel} />
+    <Button label="На главную" variant="ghost" onPress={journey.cancel} />
   </Screen>;
 }

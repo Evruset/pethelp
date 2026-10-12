@@ -27,7 +27,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npx -y node@22 node_modules/next/dist/bin/next start -H 127.0.0.1 -p ${port}`,
+    command: `node node_modules/next/dist/bin/next start -H 127.0.0.1 -p ${port}`,
     url: `http://127.0.0.1:${port}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

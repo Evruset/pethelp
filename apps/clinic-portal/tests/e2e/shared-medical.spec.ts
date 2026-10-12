@@ -51,6 +51,6 @@ test('closure: scope removal aborts an outstanding document and clears medical c
 for(const width of [375,1280])test(`closure: responsive keyboard medical path at ${width}px`,async({page,context,baseURL})=>{
  mode='shared';await page.setViewportSize({width,height:900});await session(context,baseURL);await page.goto(route);await expect(page.getByText('Selected original result')).toBeVisible();
  const section=page.locator('[aria-labelledby="shared-medical-title"]');const refresh=page.getByRole('button',{name:'Обновить предоставленные данные'});await refresh.focus();await expect(refresh).toBeFocused();
- const box=await section.boundingBox();expect(box).not.toBeNull();expect(box!.x).toBeGreaterThanOrEqual(0);expect(box!.x+box!.width).toBeLessThanOrEqual(width+1);expect((await page.evaluate(()=>document.documentElement.scrollWidth))).toBeLessThanOrEqual(width);
+ const box=await section.boundingBox();expect(box).not.toBeNull();expect(box!.x).toBeGreaterThanOrEqual(0);expect(box!.x+box!.width).toBeLessThanOrEqual(width+1);expect((await page.evaluate(()=>globalThis.document.documentElement.scrollWidth))).toBeLessThanOrEqual(width);
  expect((await new AxeBuilder({page}).include('[aria-labelledby="shared-medical-title"]').analyze()).violations).toEqual([]);
 });

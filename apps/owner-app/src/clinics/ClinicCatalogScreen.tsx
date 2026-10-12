@@ -11,7 +11,7 @@ export function ClinicCatalogScreen({onClose,onOpenClinic}:{onClose():void;onOpe
     {query.isPending?<StateMessage kind="loading" title="Загружаем клиники"/>:null}
     {query.isError?<StateMessage kind="error" title="Не удалось загрузить клиники" action={<Button label="Повторить" onPress={()=>{void query.refetch();}}/>}/>:null}
     {!query.isError&&query.data?.clinics.length===0?<StateMessage kind="empty" title="Сейчас нет клиник для онлайн-записи"/>:null}
-    {!query.isError&&query.data?.clinics.map(clinic=><Card key={clinic.locationId}><View style={{gap:6}}><Text style={{fontWeight:'600'}}>{clinic.name}</Text><Text>{clinic.address}</Text>{clinic.phone?<Text>{clinic.phone}</Text>:null}<Button label="Открыть клинику" onPress={()=>onOpenClinic({clinicId:clinic.clinicId,locationId:clinic.locationId})}/></View></Card>)}
+    {!query.isError&&query.data?.clinics.map(clinic=><Card key={clinic.locationId}><View style={{gap:6}}><Text style={{fontWeight:'600'}}>{clinic.name}</Text><Text>Филиал: {clinic.address}</Text>{clinic.phone?<Text>{clinic.phone}</Text>:null}<Button label="Открыть клинику" onPress={()=>onOpenClinic({clinicId:clinic.clinicId,locationId:clinic.locationId})}/></View></Card>)}
     <Button label="Назад" onPress={onClose}/>
   </Screen>;
 }

@@ -17,7 +17,9 @@ export type ClinicAppointmentsSnapshot = {
   nextCursor: string | null;
 };
 
+export type AppointmentOperations = {slotId:string;serviceId:string|null;lifecycle:string;canCancel:boolean;canPropose:boolean;cancellationReason:string|null;events:{type:string;at:string}[]};
 export type ClinicAppointmentDetail = {
+  operations: AppointmentOperations | null;
   clinicId: string;
   locationId: string;
   serverNow: string;
@@ -89,6 +91,12 @@ export function parseClinicAppointmentDetail(
     || !record(payload.pet) || !Array.isArray(payload.availableActions) || payload.availableActions.length !== 0) {
     throw new ClinicAppointmentsResponseError('malformed');
   }
+  const rawOps = payload.operations;
+  let operations:AppointmentOperations|null=null;
+  if(rawOps!==undefined){
+    if(!record(rawOps)||!UUID.test(String(rawOps.slotId))||!(rawOps.serviceId===null||UUID.test(String(rawOps.serviceId)))||typeof rawOps.lifecycle!=='string'||typeof rawOps.canCancel!=='boolean'||typeof rawOps.canPropose!=='boolean'||!(rawOps.cancellationReason===null||typeof rawOps.cancellationReason==='string')||!Array.isArray(rawOps.events)||rawOps.events.length>50||!rawOps.events.every(e=>record(e)&&text(e.type)&&strictTimestamp(e.at)))throw new ClinicAppointmentsResponseError('malformed');
+    operations=rawOps as AppointmentOperations;
+  }
   const appointment = payload.appointment;
   const schedule = payload.schedule;
   const pet = payload.pet;
@@ -110,6 +118,7 @@ export function parseClinicAppointmentDetail(
   const known = new Set(['SCHEDULED', 'COMPLETED', 'NO_SHOW', 'CANCELLED', 'UNKNOWN']);
   const statusCode = known.has(appointment.statusCode) ? appointment.statusCode : 'UNKNOWN';
   return {
+    operations,
     clinicId: payload.clinicId,
     locationId: payload.locationId,
     serverNow: payload.serverNow,

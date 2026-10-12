@@ -31,6 +31,12 @@ jest.mock("@/session/SessionProvider", () => ({
   }),
 }));
 describe("AvailabilityScreen", () => {
+  it("does not offer cached slots while a background authority refresh is active", async () => {
+    mockUseQuery.mockReturnValue({isPending:false,isError:false,isFetching:true,data,refetch:jest.fn()});
+    const screen=await render(<AvailabilityScreen context={context} onBack={jest.fn()} onContinue={jest.fn()}/>);
+    expect(screen.getByText("Обновляем доступное время")).toBeTruthy();expect(screen.queryByText("11:00")).toBeNull();
+    expect(screen.getByRole("button",{name:"Продолжить"}).props.accessibilityState.disabled).toBe(true);
+  });
   it("shows clinic-local time, selects exactly one and refreshes before handoff", async () => {
     const onContinue = jest.fn(),
       refetch = jest.fn().mockResolvedValue({ isError: false, data });

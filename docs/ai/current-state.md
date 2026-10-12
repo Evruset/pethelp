@@ -1,3 +1,11 @@
+## 2026-10-12 — PRODUCT EXPERIENCE BIG BATCH 01
+
+`PRODUCT_BATCH_01_IMPLEMENTATION=PARTIAL`, `DEMO_READY=YES`, `OCR_FROZEN=YES`. Isolated branch `agent/product-batch-01-eg0mppwf`, accepted base `a33226a5e7f3f5e9e14954a18e057adcf3fbcc78`; no commits/push. Owner home/pets/appointment list+detail, manual+automatic booking, navigation and uncertain-command safety improved; Clinic schedule day/week/filter/stale-scope protection and appointment navigation improved. Real isolated API demo PASS: Clinic confirm/decline, Owner pending cancellation, second pet, automatic confirmation, patient fixture and shared authoritative statuses. Only backend change: CORS permits existing If-Match. No schema, authority, sharing or OCR change.
+
+66 unique focused Owner tests PASS; 57 unique affected Clinic Playwright tests PASS plus one expected flag-off SKIP; real integrated demo 1 PASS; targeted Pilot blocked-completion visibility 1 PASS. Typechecks and backend/Clinic builds PASS; git diff --check PASS. Original674 dirty snapshot preserved byte-for-byte (`f4fe840760b5c771ac774d252cea85b2303dc535872bf255450900dbbdb9fbb5`). Full concise result, files, reproduction and demo-only consent/auth limitations: `docs/product/PRODUCT-BATCH-01.md`.
+
+Remaining product blockers: Pilot veterinarian assigned-visit/workspace, online alternative acceptance, confirmed manual cancellation policy/endpoint and real patient consent journey. No real-device/UAT/production acceptance inferred. Recommend PRODUCT BATCH 02 for these agreed product flows; no OCR continuation or infrastructure Wave. OCR remains frozen pending explicit product decision.
+
 # V50 program current state
 
 ## 2026-10-12 — V15-W4B-03A-02 technical PO acceptance / publication

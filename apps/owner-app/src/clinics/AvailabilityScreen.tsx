@@ -115,6 +115,7 @@ export function AvailabilityScreen({
       refreshInFlight.current = false;
     }
   };
+  const authorityRefreshing = Boolean(query.isFetching && !refreshing);
   const groups = new Map<string, AvailabilitySlot[]>();
   if (!query.isError)
     for (const slot of query.data?.slots ?? [])
@@ -124,6 +125,7 @@ export function AvailabilityScreen({
       {query.isPending ? (
         <StateMessage kind="loading" title="Загружаем доступное время" />
       ) : null}
+      {authorityRefreshing && !query.isPending ? <StateMessage kind="loading" title="Обновляем доступное время" /> : null}
       {query.isError ? (
         <StateMessage
           kind="error"
@@ -138,7 +140,7 @@ export function AvailabilityScreen({
           }
         />
       ) : null}
-      {!query.isError && query.data ? (
+      {!query.isError && query.data && !authorityRefreshing ? (
         <>
           <Card>
             <View style={{ gap: 6 }}>
@@ -225,7 +227,7 @@ export function AvailabilityScreen({
       />
       <Button
         label="Продолжить"
-        disabled={!selected || !current || refreshing || query.isError}
+        disabled={!selected || !current || refreshing || authorityRefreshing || query.isError}
         onPress={() => {
           void refresh(true);
         }}

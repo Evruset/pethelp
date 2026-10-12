@@ -22,13 +22,13 @@ test('allowed scope exposes navigation, list and keyboard detail/back flow', asy
   await expect(page.getByRole('link', { name: 'Открыть приёмы врача' }).first()).toBeVisible();
   await expect(page.getByRole('link', { name: 'Открыть приёмы врача' }).first()).toHaveAttribute('aria-current', 'page');
   await expect(page.getByRole('link', { name: 'Открыть очередь записей' })).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: 'Приёмы врача' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Приёмы филиала' })).toBeVisible();
   await expect(page.getByText('Milo · Кошка')).toBeVisible();
   await page.getByRole('link', { name: 'Открыть приём Milo' }).focus(); await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: 'Milo' })).toBeVisible();
   await expect(page.getByText('Завершение приёма недоступно для вашей роли.')).toBeVisible();
   await expect(page.getByRole('button', { name: /заверш/i })).toHaveCount(0);
-  await page.getByRole('link', { name: 'К списку приёмов' }).click(); await expect(page.getByRole('heading', { name: 'Приёмы врача' })).toBeVisible();
+  await page.getByRole('link', { name: 'К списку приёмов' }).click(); await expect(page.getByRole('heading', { name: 'Приёмы филиала' })).toBeVisible();
   expect(listReads).toBeGreaterThanOrEqual(2);
   expect(detailReads).toBe(1);
   expect((await new AxeBuilder({ page }).include('[aria-labelledby="vet-visits-title"]').analyze()).violations).toEqual([]);
@@ -57,11 +57,11 @@ test('backend denial is normalized for list and detail', async ({ page, context,
 
 test('runtime parser accepts approved values and fails closed for malformed HTTP 200 DTOs', async ({ page, context, baseURL }) => {
   for (const valid of [visit({ status: 'CONFIRMED' }), visit({ status: 'COMPLETED', scheduledStart: '2026-07-12T13:00:00+03:00', scheduledEnd: '2026-07-12T13:30:00+03:00' })]) {
-    payloadOverride = [valid]; await session(context, baseURL); await page.goto(listRoute()); await expect(page.getByText('Milo · Кошка')).toBeVisible();
+    payloadOverride = [valid]; await session(context, baseURL); await page.goto(listRoute()); await page.getByLabel('Статус',{exact:true}).selectOption('ALL'); await expect(page.getByText('Milo · Кошка')).toBeVisible();
   }
   const missing = visit(); delete (missing as Record<string, unknown>).species;
   for (const invalid of [
-    visit({ status: 'PENDING' }), visit({ status: 'confirmed' }), visit({ status: '' }), visit({ status: 'UNKNOWN' }),
+    visit({clinicId:otherClinicId}),visit({locationId:otherClinicId}),visit({ status: 'PENDING' }), visit({ status: 'confirmed' }), visit({ status: '' }), visit({ status: 'UNKNOWN' }),
     visit({ scheduledStart: 'not-a-date' }), visit({ scheduledStart: '2026-99-99T10:00:00Z' }), visit({ scheduledStart: '2026-07-12' }), visit({ scheduledStart: '2026-07-12T10:00:00' }), visit({ scheduledStart: '' }), visit({ scheduledStart: 123 }),
     { ...visit(), extra: 'unexpected' }, missing,
   ]) { payloadOverride = [invalid]; await session(context, baseURL); await page.goto(listRoute()); await expect(page.getByRole('heading', { name: 'Не удалось получить приёмы' })).toBeVisible(); await expect(page.getByText('Milo · Кошка')).toHaveCount(0); }

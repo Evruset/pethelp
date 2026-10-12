@@ -1,8 +1,9 @@
-import type { PropsWithChildren, ReactNode } from "react";
+import { useState, type PropsWithChildren, type ReactNode } from "react";
 import {
   ActivityIndicator,
   Modal,
   Pressable,
+  ScrollView,
   Text,
   TextInput,
   View,
@@ -15,9 +16,11 @@ export function Screen({
   title,
 }: PropsWithChildren<{ title: string }>) {
   return (
-    <View
+    <ScrollView
       accessibilityLabel={title}
-      style={{
+      keyboardShouldPersistTaps="handled"
+      style={{ flex: 1, backgroundColor: "#f4f8f7" }}
+      contentContainerStyle={{
         width: "100%",
         maxWidth: 720,
         alignSelf: "center",
@@ -27,7 +30,7 @@ export function Screen({
     >
       <Header title={title} />
       {children}
-    </View>
+    </ScrollView>
   );
 }
 export function Button({
@@ -41,6 +44,7 @@ export function Button({
   disabled?: boolean;
   variant?: "primary" | "secondary" | "ghost";
 }) {
+  const [focused, setFocused] = useState(false);
   const quiet = variant !== "primary";
   const outlined = variant === "secondary";
   return (
@@ -49,19 +53,22 @@ export function Button({
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={{
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      style={({ pressed }) => ({
+        opacity: pressed ? 0.8 : 1,
         minHeight: 48,
         justifyContent: "center",
         padding: 14,
-        borderWidth: outlined ? 1 : 0,
-        borderColor: outlined ? uiTokens.color.primary : "transparent",
+        borderWidth: focused ? 3 : outlined ? 1 : 0,
+        borderColor: focused ? "#073e32" : outlined ? uiTokens.color.primary : "transparent",
         borderRadius: uiTokens.radius.card,
         backgroundColor: disabled
           ? uiTokens.color.disabled
           : quiet
             ? "transparent"
             : uiTokens.color.primary,
-      }}
+      })}
     >
       <Text
         style={{
@@ -113,7 +120,8 @@ export function Card({
   const body = (
     <View
       style={{
-        padding: 14,
+        padding: 18,
+        backgroundColor: "#ffffff",
         opacity: disabled ? 0.55 : 1,
         borderWidth: 2,
         borderColor: selected
@@ -138,8 +146,9 @@ export function Card({
     body
   );
 }
-export function StatusBadge({ label }: { label: string }) {
-  return <Text accessibilityRole="text">{label}</Text>;
+export function StatusBadge({ label, tone = 'neutral' }: { label: string; tone?: 'info' | 'success' | 'warning' | 'danger' | 'neutral' }) {
+  const colors = { info: ['#eaf2ff', '#17437a'], success: ['#e6f2ee', '#126b5b'], warning: ['#f3edff', '#65409c'], danger: ['#feecec', '#a61b1b'], neutral: ['#eef1f4', '#425466'] };
+  return <Text accessibilityRole="text" style={{ alignSelf: "flex-start", backgroundColor: colors[tone][0], color: colors[tone][1], borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6, fontWeight: "600" }}>{label}</Text>;
 }
 export function Header({ title }: { title: string }) {
   return (
