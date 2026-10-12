@@ -1,4 +1,5 @@
-import {ConflictException,ForbiddenException,Injectable,NotFoundException,OnModuleDestroy} from '@nestjs/common';
+import {ConflictException,ForbiddenException,Injectable,NotFoundException,OnModuleDestroy,OnModuleInit} from '@nestjs/common';
+import {operationalRole,operationalPreflight,operationalDenied} from './ocr-operational-preflight';
 import {Pool,PoolClient} from 'pg';
 import {createHash,randomUUID} from 'node:crypto';
 import {DatabaseService} from '../database/database.service';
@@ -13,21 +14,23 @@ type Bound={job_id:string;version_id:string;sha256:string;byte_length:string;sto
 type Adapter={extractVerified(input:VerifiedByteInput,signal:AbortSignal):Promise<OcrExecution>};
 const sha=(value:string)=>createHash('sha256').update(value).digest('hex');
 @Injectable()
-export class OcrByteExecutionService implements OnModuleDestroy {
+export class OcrByteExecutionService implements OnModuleDestroy,OnModuleInit {
  readonly enabled=process.env.OCR_VERIFIED_BYTES_ENABLED==='true';
  private readonly pool?:Pool;
+ private ready=false;
  constructor(private readonly database:DatabaseService){
-  if(this.enabled){const value=process.env.OCR_BYTE_DATABASE_URL;if(!value)throw new Error('OCR byte writer configuration required');const a=new URL(config.databaseUrl),b=new URL(value);if(a.host!==b.host||a.pathname!==b.pathname||decodeURIComponent(a.username)===decodeURIComponent(b.username))throw new Error('Separate same-database OCR writer identity required');this.pool=new Pool({connectionString:value,max:2,connectionTimeoutMillis:1000,idleTimeoutMillis:1000});}
+  if(this.enabled&&operationalRole()==='worker'){const value=process.env.OCR_BYTE_DATABASE_URL;if(!value)throw new Error('OCR byte writer configuration required');const a=new URL(config.databaseUrl),b=new URL(value);if(a.host!==b.host||a.pathname!==b.pathname||decodeURIComponent(a.username)===decodeURIComponent(b.username))throw new Error('Separate same-database OCR writer identity required');this.pool=new Pool({connectionString:value,max:2,connectionTimeoutMillis:1000,idleTimeoutMillis:1000});}
  }
+ async onModuleInit(){if(this.enabled){await operationalPreflight(this.database,this.pool);this.ready=true;}}
  async onModuleDestroy(){await this.pool?.end();}
  private unavailable():never{throw new NotFoundException({code:'OWNER_OCR_NOT_FOUND'});}
  private async writer<T>(work:(client:PoolClient)=>Promise<T>):Promise<T>{
-  if(!this.enabled||!this.pool)throw new Error('OCR byte execution disabled');const c=await this.pool.connect();
+  if(!this.enabled||!this.pool||!this.ready)throw operationalDenied();const c=await this.pool.connect();
   try{await c.query('BEGIN');await c.query('SET LOCAL ROLE vethelp_ocr_byte_executor');await c.query("SELECT set_config('app.ocr_byte_protocol','VERIFIED_BYTES_V1',true)");const value=await work(c);await c.query('COMMIT');return value;}catch(e){await c.query('ROLLBACK').catch(()=>undefined);throw e;}finally{c.release();}
  }
  async isBound(jobId:string,client?:PoolClient){const sql='SELECT 1 FROM pet_schema.ocr_job_byte_sources WHERE job_id=$1';const result=client?await client.query(sql,[jobId]):await this.database.query(sql,[jobId]);return result.rowCount!==0;}
  async attachNewSource(c:PoolClient,jobId:string){
-  if(!this.enabled)return;const j=(await c.query<Job>('SELECT * FROM pet_schema.ocr_jobs WHERE id=$1',[jobId])).rows[0];
+  if(!this.enabled)return;if(!this.ready||operationalRole()!=='publisher')throw operationalDenied();const j=(await c.query<Job>('SELECT * FROM pet_schema.ocr_jobs WHERE id=$1',[jobId])).rows[0];
   const v=(await c.query(`SELECT * FROM pet_schema.document_byte_versions WHERE document_id=$1 AND capture_kind='UPLOAD_BYTES' ORDER BY captured_at DESC LIMIT 1`,[j.document_id])).rows[0];if(!v)return;
   await c.query(`INSERT INTO pet_schema.ocr_job_byte_sources(job_id,document_id,owner_id,pet_id,version_id,sha256,byte_length) VALUES($1,$2,$3,$4,$5,$6,$7)`,[j.id,j.document_id,j.owner_id,j.pet_id,v.version_id,v.sha256,v.byte_length]);
  }
@@ -41,7 +44,7 @@ export class OcrByteExecutionService implements OnModuleDestroy {
   if((await c.query(`SELECT 1 FROM pet_schema.document_byte_events WHERE version_id=$1 AND event_type IN('UNAVAILABLE','CORRUPT','REPLACED','RETIRED')`,[b.version_id])).rowCount)this.unavailable();return b;
  }
  async claim():Promise<OcrClaim|null>{
-  if(!this.enabled)return null;
+  if(!this.enabled||!this.pool)return null;
   return this.writer(async c=>{
    const j=(await c.query<Job>(`SELECT j.* FROM pet_schema.ocr_jobs j WHERE EXISTS(SELECT 1 FROM pet_schema.ocr_job_byte_sources WHERE job_id=j.id) AND ((j.state='QUEUED' AND j.available_at<=clock_timestamp()) OR (j.state='RUNNING' AND j.lease_until<=clock_timestamp())) ORDER BY j.available_at,j.created_at,j.id LIMIT 1 FOR UPDATE SKIP LOCKED`)).rows[0];if(!j)return null;
    if(j.state==='RUNNING'){await c.query(`UPDATE pet_schema.ocr_attempts SET status='ABANDONED',finished_at=clock_timestamp(),error_code='LEASE_EXPIRED' WHERE id=$1 AND status='RUNNING'`,[j.claim_token]);if(j.attempt_count>=3){await c.query(`UPDATE pet_schema.ocr_jobs SET state='FAILED',claim_token=NULL,lease_until=NULL,error_code='LEASE_EXPIRED' WHERE id=$1`,[j.id]);return null;}}
@@ -85,7 +88,7 @@ export class OcrByteExecutionService implements OnModuleDestroy {
   for(const [key,max] of [['provider',120],['providerVersion',80]] as const)if(value[key]!==undefined&&(typeof value[key]!=='string'||! /^[A-Za-z0-9][A-Za-z0-9_.:-]*$/.test(value[key]!)||value[key]!.length>max))throw new ByteEvidenceError();
  }
  async fail(claim:OcrClaim,code:'SOURCE_CHANGED'|'INVALID_RESULT'|'PROVIDER_FAILED',corruptVersion?:string){
-  if(!this.enabled)return false;return this.writer(async c=>{const j=await this.live(c,claim);if(!j)return false;
+  if(!this.enabled||!this.pool)return false;return this.writer(async c=>{const j=await this.live(c,claim);if(!j)return false;
    // Failure events lock the version only after job; never version -> upstream.
    if(corruptVersion){const own=(await c.query('SELECT version_id FROM pet_schema.ocr_job_byte_sources WHERE job_id=$1 AND version_id=$2',[j.id,corruptVersion])).rows[0];if(own)await c.query(`INSERT INTO pet_schema.document_byte_events(version_id,event_type,actor_id,operation_id,error_code) VALUES($1,'CORRUPT',$2,$3,'INTEGRITY_FAILED')`,[own.version_id,j.owner_id,randomUUID()]);}
    await c.query(`UPDATE pet_schema.ocr_attempts SET status='FAILED',finished_at=clock_timestamp(),error_code=$2 WHERE id=$1 AND status='RUNNING'`,[claim.claim_token,code]);

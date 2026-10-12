@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import {operationalRole,operationalDenied} from './auth/ocr-operational-preflight';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule } from '@nestjs/swagger';
@@ -21,6 +22,7 @@ function corsOrigin(): true | string[] {
 }
 
 async function bootstrap(): Promise<void> {
+  if(process.env.OCR_VERIFIED_BYTES_ENABLED==='true'&&operationalRole()!=='publisher')throw operationalDenied();
   const app = await NestFactory.create(NestRoot, {
     logger: ['log', 'warn', 'error'],
     rawBody: true,

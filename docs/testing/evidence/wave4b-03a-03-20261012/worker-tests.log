@@ -1,0 +1,94 @@
+Error: Cannot find module 'reflect-metadata'
+Require stack:
+- /legacy/old-worker-probe.ts
+    at Function.<anonymous> (node:internal/modules/cjs/loader:1430:15)
+    at Function.Module._resolveFilename.sharedData.moduleResolveFilenameHook.installedValue [as _resolveFilename] (/workspace/backend/node_modules/@cspotcode/source-map-support/source-map-support.js:811:30)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1040:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1045:22)
+    at Function._load (node:internal/modules/cjs/loader:1216:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+    at Module.require (node:internal/modules/cjs/loader:1527:12)
+    at require (node:internal/modules/helpers:147:16)
+    at Object.<anonymous> (/legacy/old-worker-probe.ts:1:1)
+    at Module._compile (node:internal/modules/cjs/loader:1781:14) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/legacy/old-worker-probe.ts' ]
+}
+FAIL test/ocr-operational.e2e-spec.ts (19.736 s)
+  Operational publisher/configuration
+    ○ skipped isolated publisher starts with private RW mount and no writer credentials/membership
+    ○ skipped publishes three immutable snapshots and new bound queued jobs without enabling claimers
+    ○ skipped rejects unsafe NODE_ENV startup configuration
+    ○ skipped rejects unsafe OCR_OPERATIONAL_PROFILE startup configuration
+    ○ skipped rejects unsafe OCR_PROCESS_ROLE startup configuration
+    ○ skipped rejects unsafe WORKERS_ENABLED startup configuration
+    ○ skipped rejects writable mount for worker role
+    ○ skipped rejects missing writer credentials before worker activation
+    ○ skipped publisher rejects access to writer credentials
+    ○ skipped disabled verifier is compatible and has no startup storage/DB requirement
+    ○ skipped unsafe root configuration fails without changing filesystem permissions
+  Operational worker/rollback compatibility
+    ✓ kernel read-only mount blocks write and chmod while canonical bytes remain readable (48 ms)
+    ✓ reader identity has no executor membership or Pet medical-history update privilege (2 ms)
+    ✓ missing writer membership fails closed at startup (99 ms)
+    ✓ bad writer credentials fail closed without processing queued jobs (76 ms)
+    ✓ application membership in executor is rejected even with NOINHERIT (13 ms)
+    ✓ column-only write privilege on reader is rejected (51 ms)
+    ✓ missing executor insert privilege fails startup and is restored only by owned test admin (89 ms)
+    ✓ rejects disabled-trigger protocol/privilege drift before any claim (123 ms)
+    ✓ rejects changed-function protocol/privilege drift before any claim (126 ms)
+    ✓ rejects changed-checksum protocol/privilege drift before any claim (263 ms)
+    ✓ rejects extra-writer-column protocol/privilege drift before any claim (109 ms)
+    ✓ rejects extra-writer-role protocol/privilege drift before any claim (65 ms)
+    ✕ actual older binary cannot claim bound jobs or finish a valid newer claim (2659 ms)
+    ✕ separated worker preserves simulation and actual evidence classifications (187 ms)
+  Operational immutable confirmation fixture
+    ○ skipped records exact Owner correction/CONFIRM without rewriting results or legacy history
+
+  ● Operational worker/rollback compatibility › actual older binary cannot claim bound jobs or finish a valid newer claim
+
+    Command failed: /usr/local/bin/node -r ts-node/register /legacy/old-worker-probe.ts claim
+    Error: Cannot find module 'reflect-metadata'
+    Require stack:
+    - /legacy/old-worker-probe.ts
+
+    > 1 | import 'reflect-metadata';import {readFileSync} from 'node:fs';import {DatabaseService} from './backend/src/database/database.service';import {OwnerOcrService} from './backend/src/auth/owner-ocr.service';async function main(){const db=new DatabaseService(),jobs=new OwnerOcrService(db);try{if(process.argv[2]==='claim')await jobs.claim();else await jobs.finish(JSON.parse(readFileSync(0,'utf8')),{text:'SYNTHETIC_OLD_BINARY'});console.log(JSON.stringify({denied:false}));}catch{console.log(JSON.stringify({denied:true}));}finally{await db.onModuleDestroy();}}void main();
+        | ^
+
+      at Function.Module._resolveFilename.sharedData.moduleResolveFilenameHook.installedValue [as _resolveFilename] (node_modules/@cspotcode/source-map-support/source-map-support.js:811:30)
+      at Object.<anonymous> (../../legacy/old-worker-probe.ts:1:1)
+      at Module._compile (node:internal/modules/cjs/loader:1781:14) {
+        code: 'MODULE_NOT_FOUND',
+        requireStack: [ '/legacy/old-worker-probe.ts' ]
+      }
+      at probe (test/ocr-operational.e2e-spec.ts:55:158)
+      at Object.<anonymous> (test/ocr-operational.e2e-spec.ts:55:462)
+
+  ● Operational worker/rollback compatibility › separated worker preserves simulation and actual evidence classifications
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 2
+    Received: 1
+
+      54 |  });
+      55 |  it('actual older binary cannot claim bound jobs or finish a valid newer claim',async()=>{const probe=(action:string,claim?:unknown)=>JSON.parse(execFileSync(process.execPath,['-r','ts-node/register','/legacy/old-worker-probe.ts',action],{env:{...process.env,DATABASE_URL:process.env.ACCEPTANCE_API_URL,OCR_VERIFIED_BYTES_ENABLED:'false',TS_NODE_PROJECT:'/legacy/backend/tsconfig.json'},input:JSON.stringify(claim??null),encoding:'utf8',timeout:20000}));expect(probe('claim')).toEqual({denied:true});const claim=(await executor.claim())!;expect(claim).toBeTruthy();expect(probe('finish',claim)).toEqual({denied:true});expect((await db.query('SELECT count(*)::int n FROM pet_schema.ocr_results WHERE job_id=$1',[claim.id])).rows[0].n).toBe(0);await executor.execute(claim,new Consumer());expect((await db.query('SELECT state FROM pet_schema.ocr_jobs WHERE id=$1',[claim.id])).rows[0].state).toBe('SUCCEEDED');});
+    > 56 |  it('separated worker preserves simulation and actual evidence classifications',async()=>{const simulated=(await executor.claim())!,actual=(await executor.claim())!;await executor.execute(simulated,new OcrProvider());await executor.execute(actual,new Consumer());expect((await db.query("SELECT count(*)::int n FROM pet_schema.ocr_result_byte_bindings")).rows[0].n).toBe(2);expect((await db.query("SELECT full_consumption,consumed_length,consumed_sha256 FROM pet_schema.ocr_attempt_byte_receipts WHERE input_evidence_class='SIMULATED_METADATA_ONLY'")).rows[0]).toEqual({full_consumption:false,consumed_length:'0',consumed_sha256:null});expect((await reconcileOperationalSources(db)).provenanceReconciled).toBe(true);});
+         |                                                                                                                                                                                                                                                                                                                                                                              ^
+      57 | });
+      58 | selected('confirmation')('Operational immutable confirmation fixture',()=>{
+      59 |  let app:INestApplication,db:DatabaseService;
+
+      at Object.<anonymous> (test/ocr-operational.e2e-spec.ts:56:366)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 12 skipped, 12 passed, 26 total
+Snapshots:   0 total
+Time:        20.089 s
+Ran all test suites within paths "test/ocr-operational.e2e-spec.ts".
+Test results written to: ../../owned-results/results.json
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
