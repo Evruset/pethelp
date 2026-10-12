@@ -1,0 +1,43 @@
+{
+  "PASS": true,
+  "runtimeReplays": 0,
+  "existingMeasurementsIndependentlyValidated": true,
+  "newHarnessFutureDeadlineAssertion": true,
+  "cases": [
+    {
+      "case": "active",
+      "observedSignalToFinalSeconds": 3.979,
+      "totalBudgetSeconds": 40,
+      "totalDeadlinePASS": true,
+      "initialShutdownBudgetSeconds": 40
+    },
+    {
+      "case": "blocked",
+      "observedSignalToFinalSeconds": 45.729,
+      "totalBudgetSeconds": 65,
+      "totalDeadlinePASS": true,
+      "initialShutdownBudgetSeconds": 40
+    },
+    {
+      "case": "commit",
+      "observedSignalToFinalSeconds": 3.551,
+      "totalBudgetSeconds": 40,
+      "totalDeadlinePASS": true,
+      "initialShutdownBudgetSeconds": 40
+    },
+    {
+      "case": "expired",
+      "observedSignalToFinalSeconds": 7.247,
+      "totalBudgetSeconds": 80,
+      "totalDeadlinePASS": true,
+      "initialShutdownBudgetSeconds": null
+    },
+    {
+      "case": "kill",
+      "observedSignalToFinalSeconds": 65.546,
+      "totalBudgetSeconds": 80,
+      "totalDeadlinePASS": true,
+      "initialShutdownBudgetSeconds": null
+    }
+  ]
+}

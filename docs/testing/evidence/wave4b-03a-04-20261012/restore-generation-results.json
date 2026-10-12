@@ -1,0 +1,103 @@
+{
+  "uniqueChecks": 5,
+  "PASS": 5,
+  "FAIL": 0,
+  "checks": [
+    {
+      "gate": "consistent DB/object manifest, exact14table restore inclreceipts/results/Ownerdecision/audit/checksum",
+      "PASS": true
+    },
+    {
+      "gate": "healthy restored bytes+actualworker restart eligibility",
+      "PASS": true,
+      "eligible": true
+    },
+    {
+      "gate": "missing restored bytes+actualworker restart eligibility",
+      "PASS": true,
+      "eligible": false
+    },
+    {
+      "gate": "mismatch restored bytes+actualworker restart eligibility",
+      "PASS": true,
+      "eligible": false
+    },
+    {
+      "gate": "persistenttestfilesystem + controlledPGcontainerrestart + newreaderprocess, exact bytes/length/provenance",
+      "PASS": true,
+      "powerLossProof": false,
+      "realEnvironmentProof": false,
+      "verifiedProcessingEligibility": "DENIED_UNSAFE_MOUNT_PROFILE"
+    }
+  ],
+  "referenceManifest": "recoverable-generation.json",
+  "allOriginalClaimersStopped": true,
+  "recoveryWorkerExitCodesAllZero": true,
+  "sourceDbUnchangedByRestore": true,
+  "persistentFilesystemRestart": "PASS_CONTROLLED_CONTAINER_RESTART_REHASH_ONLY",
+  "persistentVerifiedOcrResumption": "DENIED_UNSAFE_MOUNT_PROFILE",
+  "logicalRestore": "PASS_ISOLATED_ONLY",
+  "powerLossDurability": "NOT_VERIFIED",
+  "productionRestore": "NOT_VERIFIED",
+  "retention": "PENDING_PRODUCT_OWNER_DECISION",
+  "sourceSnapshotsDeleted": 0,
+  "productionProvider": "NOT_ACCEPTED",
+  "tableSnapshots": {
+    "pet_schema.pets": {
+      "count": 2,
+      "sha256": "f638cabac6a1f61f46ee78a57b501db62d9f978040d24e338139affc15dd1e10"
+    },
+    "pet_schema.pet_documents": {
+      "count": 4,
+      "sha256": "a22d73870a81afacbf3dea100229f8ad184b007964f018c04e8798e679daa1ad"
+    },
+    "pet_schema.document_byte_versions": {
+      "count": 4,
+      "sha256": "b344ed6850d2d2fbbf8b49df0efb91c896273587fb0bd3f5a90a4a498fc5f52a"
+    },
+    "pet_schema.document_byte_events": {
+      "count": 8,
+      "sha256": "e25124e49883ecd94e0cbaf59734c97b99c6dd1210de87ddb09fa4024c06c726"
+    },
+    "pet_schema.ocr_job_byte_sources": {
+      "count": 4,
+      "sha256": "ef332ff421cb17ae27cbe21ec337c9e3a8bb97d44b1dd01f947ac33979d3ae3d"
+    },
+    "pet_schema.ocr_jobs": {
+      "count": 4,
+      "sha256": "0dba09f322b11517af187d9c4ff0ead72f343cf1c66093213a2deca7bf858c2c"
+    },
+    "pet_schema.ocr_attempts": {
+      "count": 4,
+      "sha256": "22e6d29446d68e6e9ffcdec59e11049d2df12ad84f3f042f156c5c369da39178"
+    },
+    "pet_schema.ocr_results": {
+      "count": 4,
+      "sha256": "ee9160d500cbea2a17e7c5c3a1513a98cb1abe9d3175bfa77c914f4892e23e9f"
+    },
+    "pet_schema.ocr_candidates": {
+      "count": 4,
+      "sha256": "c8507a5db89478001c9b14c32c719bed8cf930dafe07e8d54075b352ad0238fe"
+    },
+    "pet_schema.ocr_attempt_byte_receipts": {
+      "count": 4,
+      "sha256": "d97e67ecc509aa3d214a89310dd57cc181d3e9c1bdb147c80db73d4dbe1400c3"
+    },
+    "pet_schema.ocr_result_byte_bindings": {
+      "count": 3,
+      "sha256": "9635abd8124ca4ff355fca50556c6bbc7bca5939912258247f7d8f1b1c0355a2"
+    },
+    "pet_schema.ocr_review_revisions": {
+      "count": 4,
+      "sha256": "4b9ec8770dbdcc33146f320c3ba5629b6a75019763e480e5220765b92743b4dc"
+    },
+    "audit_schema.audit_log": {
+      "count": 8,
+      "sha256": "f8abecc7311553764a6b2ea1f1f35a374aec33f95fb48a71c18727f3672bece4"
+    },
+    "public.schema_migration_checksums": {
+      "count": 73,
+      "sha256": "01096fcafa82d9d218289068c254b636d0986f30eaf16469fb4b1eda0ead6eb1"
+    }
+  }
+}

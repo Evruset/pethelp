@@ -1,0 +1,53 @@
+{
+  "case": "kill",
+  "PASS": true,
+  "syncStage": "PRE_COMMIT",
+  "observedStageAt": 1791803930414,
+  "beforeSignal": {
+    "state": "RUNNING",
+    "attemptCount": 1,
+    "results": 0,
+    "candidates": 0,
+    "receipts": 0,
+    "bindings": 0,
+    "successAudits": 0,
+    "legacyPreserved": true,
+    "receiptOrigin": null,
+    "resultIdentity": null
+  },
+  "outcome": "B_REAL_LEASE_RECOVERY_FENCED_OLD_ATTEMPT",
+  "signalToFinalObservationSeconds": 65.546,
+  "shutdownBudgetSeconds": 80,
+  "initialExit": 137,
+  "final": {
+    "state": "SUCCEEDED",
+    "attemptCount": 2,
+    "results": 1,
+    "candidates": 1,
+    "receipts": 1,
+    "bindings": 1,
+    "successAudits": 1,
+    "legacyPreserved": true,
+    "receiptOrigin": "TEST_CONSUMER",
+    "resultIdentity": "4d491a4e21d75d3139b8bc3ae0dcc3d32a42f528ef05c49f1e5c4d6c6050006e"
+  },
+  "attemptHistory": [
+    {
+      "status": "ABANDONED",
+      "error": "LEASE_EXPIRED",
+      "startedAt": "2026-10-12T11:18:49.829515+00:00",
+      "finishedAt": "2026-10-12T11:19:54.812213+00:00"
+    },
+    {
+      "status": "SUCCEEDED",
+      "error": null,
+      "startedAt": "2026-10-12T11:19:54.883133+00:00",
+      "finishedAt": "2026-10-12T11:19:55.038033+00:00"
+    }
+  ],
+  "acceptedLeaseSeconds": 60,
+  "acceptedProviderTimeoutMs": 30000,
+  "acceptedRetryCap": 3,
+  "testConsumerOnly": true,
+  "injectedProductionChanges": false
+}

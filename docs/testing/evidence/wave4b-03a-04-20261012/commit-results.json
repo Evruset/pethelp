@@ -1,0 +1,47 @@
+{
+  "case": "commit",
+  "PASS": true,
+  "syncStage": "PRE_COMMIT",
+  "observedStageAt": 1791803930756,
+  "beforeSignal": {
+    "state": "RUNNING",
+    "attemptCount": 1,
+    "results": 0,
+    "candidates": 0,
+    "receipts": 0,
+    "bindings": 0,
+    "successAudits": 0,
+    "legacyPreserved": true,
+    "receiptOrigin": null,
+    "resultIdentity": null
+  },
+  "outcome": "A_GRACEFUL_COMPLETION",
+  "signalToFinalObservationSeconds": 3.551,
+  "shutdownBudgetSeconds": 40,
+  "initialExit": 0,
+  "final": {
+    "state": "SUCCEEDED",
+    "attemptCount": 1,
+    "results": 1,
+    "candidates": 1,
+    "receipts": 1,
+    "bindings": 1,
+    "successAudits": 1,
+    "legacyPreserved": true,
+    "receiptOrigin": "TEST_CONSUMER",
+    "resultIdentity": "4d491a4e21d75d3139b8bc3ae0dcc3d32a42f528ef05c49f1e5c4d6c6050006e"
+  },
+  "attemptHistory": [
+    {
+      "status": "SUCCEEDED",
+      "error": null,
+      "startedAt": "2026-10-12T11:18:49.743915+00:00",
+      "finishedAt": "2026-10-12T11:18:50.334557+00:00"
+    }
+  ],
+  "acceptedLeaseSeconds": 60,
+  "acceptedProviderTimeoutMs": 30000,
+  "acceptedRetryCap": 3,
+  "testConsumerOnly": true,
+  "injectedProductionChanges": false
+}
