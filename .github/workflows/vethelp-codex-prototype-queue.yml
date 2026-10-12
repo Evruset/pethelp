@@ -68,7 +68,7 @@ jobs:
           result = subprocess.check_output(
               ["git", "status", "--porcelain=v1", "--untracked-files=all"], text=True
           ).splitlines()
-          permitted = ("apps/owner-app/", "portal/", "prototype-v49/", "prototype-v50/")
+          permitted = ("apps/owner-app/", "apps/clinic-portal/", "prototype-v49/", "prototype-v50/")
           changed = [line[3:] for line in result]
           if not changed:
               sys.exit("No implementation changes; no PR created.")
@@ -80,7 +80,7 @@ jobs:
           git switch -c "$branch"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A -- apps/owner-app portal prototype-v49 prototype-v50
+          git add -A
           git diff --cached --check
           git diff --cached --quiet && { echo "No staged changes"; exit 1; }
           git commit -m "prototype: implement issue #${ISSUE_NUMBER} with Codex"
