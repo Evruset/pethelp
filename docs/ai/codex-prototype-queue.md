@@ -11,7 +11,7 @@ This is a minimal GitHub Issues → Codex → draft PR channel. It is **not acti
 
 ## Execution
 
-- On a reviewed issue's `codex-ready` label event, GitHub Actions checks out **main**, reads the issue, executes the official `openai/codex-action@v1` with `:workspace` permissions and sudo dropped, and allows only Owner/Clinic/static-prototype changes.
+- On a reviewed issue's `codex-ready` label event, GitHub Actions checks out **main**, reads the issue, executes the official `openai/codex-action@v1` with `:workspace` permissions and sudo dropped, and allows only Owner/Clinic/static-prototype changes in `apps/owner-app/`, `apps/clinic-portal/`, `prototype-v49/` or `prototype-v50/`.
 - The Codex step has no stored git credentials; GitHub token is used only in separate issue-input and PR-publishing steps.
 - A successful change becomes a **draft pull request** against main. Nothing merges or deploys automatically.
 - If the issue needs backend, credentials, medical-data handling or a product decision, the agent is instructed to stop; the run may require operator inspection of Actions logs.
