@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { getClinicSession } from '@/lib/auth/clinic-session';
+import { getEffectiveSession, hasCapability } from '@/lib/auth/effective-session';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -21,10 +22,22 @@ function requiredUuid(value: string | null): string | null {
 export async function POST(request: Request, context: RouteContext): Promise<NextResponse> {
   const { holdId } = await context.params;
   const session = await getClinicSession();
-  const permitted = session?.roles.includes('CLINIC_ADMIN') || session?.roles.includes('CLINIC_VETERINARIAN');
+  const permitted = session?.roles.includes('CLINIC_VETERINARIAN');
 
   if (!session || !permitted || !UUID.test(holdId)) {
     return NextResponse.json({ code: 'LOCATION_SCOPE_DENIED' }, { status: 403 });
+  }
+
+  // Local role claims are never sufficient for clinical mutation.
+  // Backend derives effective capabilities; its completion endpoint still
+  // authorizes the appointment's actual clinic/location and membership.
+  try {
+    const effective = await getEffectiveSession(session);
+    if (effective.subjectId !== session.subjectId || !effective.roles.includes('CLINIC_VETERINARIAN') || !hasCapability(effective, 'clinical.visit.complete')) {
+      return NextResponse.json({ code: 'LOCATION_SCOPE_DENIED' }, { status: 403 });
+    }
+  } catch {
+    return NextResponse.json({ code: 'BACKEND_UNAVAILABLE' }, { status: 503 });
   }
 
   const correlationId = requiredUuid(request.headers.get('X-Correlation-ID')) ?? randomUUID();
