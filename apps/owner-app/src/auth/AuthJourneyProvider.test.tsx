@@ -112,7 +112,8 @@ it('direct login uses the canonical authenticated landing without synthetic resu
   await act(async () => { fireEvent.press(view.getByText('Получить код')); });
   await act(async () => { fireEvent.changeText(view.getByLabelText('Код из сообщения'), '123456'); });
   await act(async () => { fireEvent.press(view.getByText('Подтвердить')); });
-  await waitFor(() => expect(view.getByLabelText('Личный кабинет')).toBeTruthy());
+  // Direct login lands on the current authenticated Owner Home, not the retired account shell.
+  await waitFor(() => expect(view.getByLabelText('Записать питомца')).toBeTruthy());
   expect(view.queryByText('Продолжить запись')).toBeNull();
 });
 
