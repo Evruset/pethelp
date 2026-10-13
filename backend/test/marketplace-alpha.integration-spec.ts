@@ -117,7 +117,9 @@ async function createFixture(database: DatabaseService): Promise<{
   const petId = randomUUID();
 
   await database.query('TRUNCATE clinic_schema.clinics CASCADE');
-  await database.query('TRUNCATE pet_schema.pets, identity_schema.users CASCADE');
+  // Delete rows without TRUNCATE CASCADE: that would include append-only OCR review history.
+  await database.query('DELETE FROM pet_schema.pets');
+  await database.query('DELETE FROM identity_schema.users');
   await resetBookingPersistence(database);
   await database.query('INSERT INTO identity_schema.users (id) VALUES ($1::uuid), ($2::uuid)', [ownerId, employeeId]);
   await database.query(`INSERT INTO pet_schema.pets (id, owner_id, name, species) VALUES ($1::uuid, $2::uuid, 'Marketplace pet', 'DOG')`, [petId, ownerId]);
