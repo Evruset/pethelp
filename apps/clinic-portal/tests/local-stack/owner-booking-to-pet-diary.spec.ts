@@ -41,7 +41,7 @@ test('local stack owner booking is completed by a veterinarian and appears in pe
   await expect(page.getByRole('form', { name: 'Завершение приёма' })).toBeVisible();
   await page.getByLabel('Клиническое заключение').fill(summary);
   await page.getByRole('button', { name: 'Завершить приём' }).click();
-  await expect(page.getByRole('status')).toContainText('Приём завершён.');
+  await expect(page.getByRole('heading', { name: 'Приём завершён', exact: true })).toBeVisible();
 
   const careSummary = await apiData<{ visits: Array<{ holdId: string; state: string; clinicalSummary?: string | null }> }>(
     request,
