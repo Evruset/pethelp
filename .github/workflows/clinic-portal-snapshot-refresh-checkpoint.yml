@@ -42,5 +42,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "test(clinic): refresh occupied/blackout screenshot golden for current shell"
           git fetch origin refs/heads/agent/product-batch-01-eg0mppwf
-          git rebase FETCH_HEAD
+          # Next build can rewrite tracked generated typings in this disposable runner.
+          # Autostash keeps that generated change out of the golden-only commit.
+          git -c rebase.autoStash=true rebase FETCH_HEAD
           git push origin HEAD:refs/heads/agent/product-batch-01-eg0mppwf
