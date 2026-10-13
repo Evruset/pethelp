@@ -14,17 +14,27 @@ const dateLabel = (iso: string) => {
   const [year, month, day] = iso.split("-");
   return `${day}.${month}.${year}`;
 };
-export function AvailabilityScreen({
-  context,
-  authorityGeneration = "component-session",
-  onBack,
-  onContinue,
-}: {
+type AvailabilityScreenProps = {
   context: ClinicServiceHandoff;
   authorityGeneration?: string;
   onBack(): void;
   onContinue(value: AvailabilityHandoff): void;
-}) {
+};
+
+export function AvailabilityScreen(props: AvailabilityScreenProps) {
+  const { session } = useSession();
+  const { context, authorityGeneration = "component-session" } = props;
+  const scopeKey = `${session?.opaqueCredential ?? ''}:${authorityGeneration}:${context.clinicId}:${context.locationId}:${context.serviceId}`;
+  // A new authority scope remounts the stateful flow; no effect-time setState reset.
+  return <AvailabilityContent key={scopeKey} {...props} />;
+}
+
+function AvailabilityContent({
+  context,
+  authorityGeneration = "component-session",
+  onBack,
+  onContinue,
+}: AvailabilityScreenProps) {
   const { session } = useSession();
   const [chosenDate, setChosenDate] = useState<string | null>(null);
   const [selected, setSelected] = useState<AvailabilitySlot | null>(null);
@@ -33,15 +43,13 @@ export function AvailabilityScreen({
   const [refreshFailed, setRefreshFailed] = useState(false);
   const scopeIdentity = `${session?.opaqueCredential ?? ''}:${authorityGeneration ?? ''}:${context.clinicId}:${context.locationId}:${context.serviceId}`;
   const latestScope = useRef(scopeIdentity);
-  latestScope.current = scopeIdentity;
   const operation = useRef(0);
   const refreshInFlight = useRef(false);
   const selectionGeneration = useRef(0);
-  useEffect(() => {
-    setRefreshing(false); setSelected(null); setChosenDate(null);
-    setStale(false); setRefreshFailed(false);
-    return () => { operation.current += 1; refreshInFlight.current = false; };
-  }, [scopeIdentity]);
+  useEffect(() => () => {
+    operation.current += 1;
+    refreshInFlight.current = false;
+  }, []);
   const query = useQuery({
     queryKey: [
       "owner",

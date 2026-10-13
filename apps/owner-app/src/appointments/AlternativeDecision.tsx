@@ -13,10 +13,16 @@ export function AlternativeDecision({token,detail,onResolved}:{token:string;deta
  const commandKey=['owner',session?.cacheScope,'alternative-command',detail.holdId];
  const retained=cache.getQueryData<Command>(commandKey);
  const [snapshot,setSnapshot]=useState<Alternative|null>(null),[error,setError]=useState<string|null>(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[command,setCommand]=useState<Command|null>(retained??null),[uncertain,setUncertain]=useState(Boolean(retained?.uncertain)),[tick,setTick]=useState(0);
- const epoch=useRef(0),flight=useRef(false),receivedAt=useRef(0);
- useEffect(()=>{const request=++epoch.current,abort=new AbortController();setSnapshot(null);setLoading(true);setError(null);void alternativeApi.read(token,detail,abort.signal).then(value=>{if(request===epoch.current){receivedAt.current=Date.now();setSnapshot(value);}}).catch(()=>{if(request===epoch.current)setError('Предложение недоступно. Обновите запись.');}).finally(()=>{if(request===epoch.current)setLoading(false);});return()=>{epoch.current++;abort.abort();};},[token,detail.holdId,detail.pet.id,detail.clinic.id,tick]);
- const [clock,setClock]=useState(Date.now());useEffect(()=>{const timer=setInterval(()=>setClock(Date.now()),1000);return()=>clearInterval(timer);},[]);
- const expired=snapshot?Date.parse(snapshot.serverNow)+Math.max(0,clock-receivedAt.current)>=Date.parse(snapshot.deadline):true;
+ const epoch=useRef(0),flight=useRef(false);
+ const [receivedAt,setReceivedAt]=useState(0);
+ useEffect(()=>{const request=++epoch.current,abort=new AbortController();
+  // Schedule local reset after the effect; React must not cascade synchronous effect updates.
+  void Promise.resolve().then(()=>{if(request===epoch.current){setSnapshot(null);setLoading(true);setError(null);}});
+  void alternativeApi.read(token,detail,abort.signal).then(value=>{if(request===epoch.current){setReceivedAt(Date.now());setSnapshot(value);}}).catch(()=>{if(request===epoch.current)setError('Предложение недоступно. Обновите запись.');}).finally(()=>{if(request===epoch.current)setLoading(false);});
+  return()=>{if(epoch.current===request)epoch.current+=1;abort.abort();};
+ },[token,detail,tick]);
+ const [clock,setClock]=useState(0);useEffect(()=>{const timer=setInterval(()=>setClock(Date.now()),1000);return()=>clearInterval(timer);},[]);
+ const expired=snapshot?Date.parse(snapshot.serverNow)+Math.max(0,clock-receivedAt)>=Date.parse(snapshot.deadline):true;
  function prepare(snapshot:Alternative,decision:'accept'|'decline'){const next={snapshot,decision,key:crypto.randomUUID(),correlation:crypto.randomUUID()};cache.setQueryDefaults(commandKey,{gcTime:Infinity});cache.setQueryData(commandKey,next);setCommand(next);}
  function clear(){cache.removeQueries({queryKey:commandKey,exact:true});setCommand(null);}
  async function submit(){if(!command||flight.current)return;flight.current=true;setBusy(true);setError(null);const request=epoch.current;const pending={...command,uncertain:true};cache.setQueryData(commandKey,pending);setUncertain(true);const matches=()=>{const active=cache.getQueryData<Command>(commandKey);return active?.key===pending.key&&active.snapshot.proposalId===pending.snapshot.proposalId&&active.decision===pending.decision;};const settle=()=>{if(matches())cache.removeQueries({queryKey:commandKey,exact:true});};
