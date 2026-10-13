@@ -1,0 +1,46 @@
+name: One-time Clinic Portal Approved Snapshot Refresh
+
+on:
+  push:
+    branches:
+      - agent/product-batch-01-eg0mppwf
+    paths:
+      - .github/workflows/clinic-portal-snapshot-refresh-checkpoint.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: github.repository == 'Evruset/pethelp' && github.ref == 'refs/heads/agent/product-batch-01-eg0mppwf'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: apps/clinic-portal
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Capture the occupied/blackout golden in CI Chromium
+        run: npx playwright test tests/e2e/clinic-layout-hig.spec.ts -g 'captures schedule occupied and blackout visual baseline' --update-snapshots
+      - name: Publish only the one approved PNG golden
+        run: |
+          set -euo pipefail
+          TARGET=apps/clinic-portal/tests/e2e/clinic-layout-hig.spec.ts-snapshots/schedule-occupied-blackout-chromium-linux.png
+          git add "$TARGET"
+          git diff --cached --check
+          test "$(git diff --cached --name-only | wc -l | tr -d ' ')" = 1
+          test "$(git diff --cached --name-only)" = "$TARGET"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "test(clinic): refresh occupied/blackout screenshot golden for current shell"
+          git fetch origin refs/heads/agent/product-batch-01-eg0mppwf
+          git rebase FETCH_HEAD
+          git push origin HEAD:refs/heads/agent/product-batch-01-eg0mppwf
