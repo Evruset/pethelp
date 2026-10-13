@@ -57,7 +57,7 @@ function RaceProbe() {
 async function setup(api = mockApi()) {
   const store = mockStore();
   const view = await render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })}>
       <SessionProvider store={store} authority={authority} now={() => Date.now()}>
         <AuthJourneyProvider api={api}><PetJourneyProvider api={petApi}><Flow /></PetJourneyProvider></AuthJourneyProvider>
       </SessionProvider>
@@ -70,7 +70,7 @@ async function setup(api = mockApi()) {
 async function setupRace(api = mockApi()) {
   const store = mockStore();
   const view = await render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })}>
       <SessionProvider store={store} authority={authority} now={() => Date.now()}>
         <AuthJourneyProvider api={api}><RaceProbe /></AuthJourneyProvider>
       </SessionProvider>
