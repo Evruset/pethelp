@@ -33,7 +33,7 @@ export async function POST(request: Request, context: RouteContext): Promise<Nex
   // authorizes the appointment's actual clinic/location and membership.
   try {
     const effective = await getEffectiveSession(session);
-    if (effective.subjectId !== session.subjectId || !effective.roles.includes('CLINIC_VETERINARIAN') || !hasCapability(effective, 'clinical.visit.complete')) {
+    if (effective.subjectId !== session.userId || !effective.roles.includes('CLINIC_VETERINARIAN') || !hasCapability(effective, 'clinical.visit.complete')) {
       return NextResponse.json({ code: 'LOCATION_SCOPE_DENIED' }, { status: 403 });
     }
   } catch {
