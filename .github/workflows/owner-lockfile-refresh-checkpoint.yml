@@ -6,6 +6,7 @@ on:
       - agent/product-batch-01-eg0mppwf
     paths:
       - apps/owner-app/package.json
+      - .github/workflows/owner-lockfile-refresh-checkpoint.yml
 
 permissions:
   contents: write
