@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { resetBookingPersistence } from './helpers/booking-test-reset';
 import { Role } from '../src/auth/auth.types';
 import { AlternativeSlotService } from '../src/booking-core/alternative-slot.service';
 import { ClinicEmployeeAccessService } from '../src/booking-core/clinic-employee-access.service';
@@ -116,11 +115,8 @@ async function createFixture(database: DatabaseService): Promise<{
   const employeeId = randomUUID();
   const petId = randomUUID();
 
-  await database.query('TRUNCATE clinic_schema.clinics CASCADE');
-  // Delete rows without TRUNCATE CASCADE: that would include append-only OCR review history.
-  await database.query('DELETE FROM pet_schema.pets');
-  await database.query('DELETE FROM identity_schema.users');
-  await resetBookingPersistence(database);
+  // CI creates a fresh database. Every test uses random IDs, so fixture
+  // setup must not delete previous test data or truncate append-only OCR tables.
   await database.query('INSERT INTO identity_schema.users (id) VALUES ($1::uuid), ($2::uuid)', [ownerId, employeeId]);
   await database.query(`INSERT INTO pet_schema.pets (id, owner_id, name, species) VALUES ($1::uuid, $2::uuid, 'Marketplace pet', 'DOG')`, [petId, ownerId]);
 
