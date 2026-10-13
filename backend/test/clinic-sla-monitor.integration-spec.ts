@@ -128,7 +128,7 @@ async function createSlaFixture(database: DatabaseService): Promise<{ holdId: st
   const petId = randomUUID();
 
   await database.query('TRUNCATE clinic_schema.clinics CASCADE');
-  await database.query('TRUNCATE pet_schema.pets, identity_schema.users CASCADE');
+  // Unique IDs isolate fixtures; do not truncate append-only OCR actor/patient histories.
   await resetBookingPersistence(database);
 
   await database.query('INSERT INTO identity_schema.users (id) VALUES ($1::uuid)', [ownerId]);

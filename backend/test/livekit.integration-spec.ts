@@ -127,11 +127,11 @@ async function createConnectedSession(database: DatabaseService) {
 }
 
 async function resetDatabase(database: DatabaseService): Promise<void> {
+  // Do not TRUNCATE users/pets: CASCADE reaches immutable OCR review history.
   await database.query(`
     TRUNCATE TABLE telemed_schema.telemed_sessions, payment_schema.provider_webhook_events,
       payment_schema.ledger_entries, payment_schema.payment_intents, audit_schema.audit_log,
       booking_schema.outbox_events, booking_schema.appointment_events, booking_schema.appointments,
-      booking_schema.idempotency_records, booking_schema.booking_holds, pet_schema.pets,
-      identity_schema.users, clinic_schema.clinics RESTART IDENTITY CASCADE
+      booking_schema.idempotency_records, booking_schema.booking_holds, clinic_schema.clinics RESTART IDENTITY CASCADE
   `);
 }

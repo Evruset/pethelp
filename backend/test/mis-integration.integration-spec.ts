@@ -239,6 +239,7 @@ function lookupScope(fixture: Fixture) {
 }
 
 async function resetDatabase(database: DatabaseService): Promise<void> {
+  // Do not TRUNCATE users/pets: CASCADE reaches immutable OCR review history.
   await database.query(`
     TRUNCATE TABLE
       audit_schema.audit_log,
@@ -247,8 +248,6 @@ async function resetDatabase(database: DatabaseService): Promise<void> {
       booking_schema.appointments,
       booking_schema.idempotency_records,
       booking_schema.booking_holds,
-      pet_schema.pets,
-      identity_schema.users,
       clinic_schema.clinics
     RESTART IDENTITY CASCADE
   `);
