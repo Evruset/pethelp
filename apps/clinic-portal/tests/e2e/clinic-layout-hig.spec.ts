@@ -177,6 +177,10 @@ test('captures schedule occupied and blackout visual baseline', async ({ page, c
   await expect(page.getByTestId(`schedule-slot-${blackoutSlotId}`)).toContainText('Закрыт');
   await expect(page.getByTestId(`schedule-slot-${occupiedSlotId}`).getByRole('button', { name: 'Закрыть окно' })).toBeDisabled();
   await expect(page.getByTestId(`schedule-slot-${blackoutSlotId}`).getByRole('button', { name: 'Закрыть окно' })).toBeDisabled();
+  // This legacy golden compares slot states. Native DoctorShift has separate visual
+  // evidence; keep the newly added read-only section present but outside this crop.
+  await expect(page.locator('#schedule-shifts')).toBeVisible();
+  await page.addStyleTag({ content: '#schedule-shifts { display: none !important; }' });
   await expect(page).toHaveScreenshot('schedule-occupied-blackout.png', { fullPage: true });
 });
 function route(): string {
