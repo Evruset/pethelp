@@ -25,6 +25,9 @@ jobs:
       - name: Refresh lockfile against exact SDK patch dependencies
         working-directory: apps/owner-app
         run: |
+          # Regenerate from the updated direct dependencies in this disposable CI checkout.
+          # Keeping the stale SDK 57 lock graph would retain an incompatible jest preset peer.
+          rm package-lock.json
           npm install --package-lock-only --ignore-scripts --no-audit --no-fund
           npm ci --ignore-scripts
           npx expo-doctor
