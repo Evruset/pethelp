@@ -59,8 +59,8 @@ describe('Emergency routing independent review boundary', () => {
       `, [fixture.locationId]);
     });
     const profile = await database.query<{ id: string }>('SELECT id::text FROM clinic_schema.emergency_capability_profiles WHERE clinic_location_id = $1::uuid', [fixture.locationId]);
-    await database.query(`INSERT INTO clinic_schema.emergency_capabilities (profile_id, capability_code, species, available_24x7, source) VALUES ($1::uuid, 'ICU', 'DOG', true, 'TEST')`, [profile.rows[0].id]);
-    await expect(routing.search({ species: 'DOG', requiredCapabilities: 'ICU', limit: '10' })).resolves.toEqual([]);
+    await database.query(`INSERT INTO clinic_schema.emergency_capabilities (profile_id, capability_code, species, available_24x7, source) VALUES ($1::uuid, 'ICU', 'CAT', true, 'TEST')`, [profile.rows[0].id]);
+    await expect(routing.search({ species: 'CAT', requiredCapabilities: 'ICU', limit: '10' })).resolves.toEqual([]);
   });
 });
 
@@ -72,8 +72,8 @@ async function createFixture(database: DatabaseService): Promise<{
 }> {
   const clinicAdminId = randomUUID();
   const platformAdminId = randomUUID();
-  await database.query('TRUNCATE clinic_schema.clinics CASCADE');
-  await database.query('TRUNCATE identity_schema.users CASCADE');
+  // This suite uses a fresh CI database. Each fixture has fresh UUIDs; never
+  // TRUNCATE parent tables, which would cascade into append-only OCR decisions.
   await database.query('INSERT INTO identity_schema.users (id) VALUES ($1::uuid), ($2::uuid)', [clinicAdminId, platformAdminId]);
   const clinic = await database.query<{ id: string }>(`INSERT INTO clinic_schema.clinics (legal_name, public_name) VALUES ('Emergency Alpha LLC', 'Emergency Alpha') RETURNING id::text`);
   const location = await database.query<{ id: string }>(`INSERT INTO clinic_schema.clinic_locations (clinic_id, address, latitude, longitude) VALUES ($1::uuid, 'Emergency Alpha Address', 55.751244, 37.618423) RETURNING id::text`, [clinic.rows[0].id]);
