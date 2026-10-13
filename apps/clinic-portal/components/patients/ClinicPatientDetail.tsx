@@ -326,11 +326,11 @@ export function ClinicPatientDetailView({ clinicId, locationId, patientId, inval
       {phase === 'policy' && <Message title="Карточка временно недоступна" text="Не удалось проверить актуальные правила доступа. Попробуйте позже." />}
       {phase === 'error' && <Message title="Не удалось загрузить карточку" text="Это техническая ошибка, а не отсутствие пациента." retry={() => void load()} />}
       {phase === 'malformed' && <Message title="Не удалось проверить данные карточки" text="Ответ сервиса имеет неподдерживаемый формат. Данные не показаны." retry={() => void load()} />}
-      {phase === 'degraded' && <section role="alert" className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-4">
-        <p className="font-semibold text-amber-950">Обновление проверить не удалось</p>
-        <p className="mt-1 text-sm text-amber-900">Показаны последние подтверждённые данные; они не считаются новым ответом сервиса.</p>
+      {phase === 'degraded' && <section role="alert" className="mb-4 rounded-xl border border-violet-300 bg-violet-50 p-4">
+        <p className="font-semibold text-violet-950">Обновление проверить не удалось</p>
+        <p className="mt-1 text-sm text-violet-900">Показаны последние подтверждённые данные; они не считаются новым ответом сервиса.</p>
       </section>}
-      {visible && <div className="grid gap-5 lg:grid-cols-2">
+      {visible && <><nav className="vh-product-quick-actions" aria-label="Разделы карточки пациента"><a href="#patient-title">О питомце</a><a href="#appointments-title">Записи и история</a><a href="#local-alias-title">Данные клиники</a></nav><div className="grid gap-4 lg:grid-cols-2">
         <section aria-labelledby="patient-title" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
           <h2 id="patient-title" className="text-xl font-semibold text-slate-950">Пациент</h2><dl className="mt-5 grid gap-5 sm:grid-cols-2">
             <Fact label="Имя" value={patient.pet.displayName} /><Fact label="Вид" value={patient.pet.speciesLabel} />
@@ -383,7 +383,7 @@ export function ClinicPatientDetailView({ clinicId, locationId, patientId, inval
             {patient.appointments.recent.map((item) => <Appointment key={item.appointmentId} item={item} clinicId={clinicId} locationId={locationId} />)}
           </ul> : <p className="mt-3 text-sm text-slate-600">Недавних записей нет.</p>}
         </section>
-      </div>}
+      </div></>}
     </div>
     {aliasEditorOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4" onMouseDown={(event) => {
       if (event.target === event.currentTarget) closeAliasEditor();

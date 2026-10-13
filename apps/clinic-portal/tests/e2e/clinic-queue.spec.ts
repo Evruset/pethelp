@@ -161,7 +161,7 @@ test('keeps an expired-but-not-transitioned MANUAL_CONFIRM_PENDING fixture in au
 
   await expect(rowFor(page, 'Барс')).toContainText('1');
   await expect(rowFor(page, 'Барс')).toContainText('SLA просрочен');
-  await expect(rowFor(page, 'Барс')).toContainText('backend ещё не перевёл заявку');
+  await expect(rowFor(page, 'Барс')).toContainText('Срок ответа истёк. Обновите очередь, чтобы проверить статус.');
   await expect(rowFor(page, 'Барс').getByRole('button', { name: 'Недоступно' })).toBeDisabled();
   await expect(rowFor(page, 'Шарик')).toContainText('2');
   await expect(rowFor(page, 'Шарик').getByRole('button', { name: 'Ожидает очередь' })).toBeDisabled();

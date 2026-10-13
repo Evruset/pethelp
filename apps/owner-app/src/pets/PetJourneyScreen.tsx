@@ -12,7 +12,7 @@ export function PetJourneyScreen() {
   const normalized = name.trim(); const invalid = Array.from(normalized).length < 1 || Array.from(normalized).length > 120;
   if (journey.loading) return <Screen title="Выберите питомца"><StateMessage kind="loading" title="Загружаем питомцев" /></Screen>;
   if (journey.error) return <Screen title="Выберите питомца"><StateMessage kind="error" title="Не удалось загрузить питомцев" action={<Button label="Повторить" onPress={journey.retry} />} /></Screen>;
-  return <Screen title="Выберите питомца">
+  return <Screen title="Выберите питомца" onBack={journey.cancel} backLabel="На главную" backDisabled={journey.creating} footer={!creatingForm ? (journey.selectedPetId ? <Button label="Продолжить" onPress={journey.continueSelection}/> : <Text>Выберите одного питомца, чтобы продолжить</Text>) : undefined}>
     {journey.pets.length === 0 && !creatingForm ? <StateMessage kind="empty" title="У вас пока нет питомцев" action={<Button label="Добавить питомца" onPress={() => setCreatingForm(true)} />} /> : null}
     {journey.pets.map((pet) => <Card key={pet.petId} selected={journey.selectedPetId === pet.petId} onPress={() => journey.select(pet.petId)}><Text>{pet.name}</Text><Text>{pet.species === 'DOG' ? 'Собака' : pet.species === 'CAT' ? 'Кошка' : 'Другой вид'}</Text></Card>)}
     {journey.pets.length > 0 && !creatingForm ? <Button label="Добавить ещё" onPress={() => setCreatingForm(true)} /> : null}
@@ -22,7 +22,5 @@ export function PetJourneyScreen() {
       {journey.createError ? <StateMessage kind="error" title="Не удалось сохранить питомца. Повторите попытку." /> : null}
       <Button label={journey.creating ? 'Сохраняем…' : 'Сохранить питомца'} disabled={invalid || journey.creating} onPress={() => { void journey.create({ name: normalized, species }).then(() => setCreatingForm(false)).catch(() => undefined); }} />
       <Button label="Отмена" disabled={journey.creating} onPress={() => setCreatingForm(false)} /></View> : null}
-    {journey.selectedPetId ? <Button label="Продолжить" onPress={journey.continueSelection} /> : <Text>Выберите одного питомца, чтобы продолжить</Text>}
-    <Button label="На главную" variant="ghost" onPress={journey.cancel} />
   </Screen>;
 }

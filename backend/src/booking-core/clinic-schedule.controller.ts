@@ -234,7 +234,7 @@ export class ClinicScheduleController {
   @Roles(Role.CLINIC_RECEPTIONIST, Role.CLINIC_ADMIN)
   @ApiBearerAuth(SWAGGER_BEARER_AUTH)
   @ApiOperation({ summary: 'Clinic schedule slots for a location' })
-  @ApiOkResponse({ description: 'Slots include source, integration mode, freshness and current counters.' })
+  @ApiOkResponse({ description: 'Slots include source, integration mode, freshness and current counters; doctorShifts contains location-scoped shift inventory.' })
   @ApiUnauthorizedResponse({ description: 'Clinic employee JWT is required.' })
   @ApiForbiddenResponse({ description: 'Clinic/location scope mismatch.' })
   async listSlots(

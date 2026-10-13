@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { ApiError } from '@/api/errors';
 import { useSession } from '@/session/SessionProvider';
@@ -22,7 +22,7 @@ function SharingJourney({credential,cacheScope,api,onBack,initialHoldId}:{initia
   if(initialHoldId && query.isSuccess && !direct?.appointmentId)return <Screen title="Медицинские данные"><StateMessage kind="empty" title="Для этой записи предоставление доступа недоступно"/><Button label="Назад к записи" onPress={onBack}/></Screen>;
   if(appointment&&credential)return <AppointmentSharing key={appointment.appointmentId!} appointment={appointment} credential={credential} api={api} onBack={()=>setAppointment(null)}/>;
   const entries=credential&&!query.isError?query.data?.filter(item=>item.appointmentId):undefined;
-  return <ScrollView><Screen title="Мои записи — медицинские данные">
+  return <Screen title="Мои записи — медицинские данные" onBack={onBack} backLabel="Назад в личный кабинет">
     <Text>Выберите запись, чтобы поделиться конкретными медицинскими данными с принимающей клиникой или отозвать доступ.</Text>
     {!credential?<StateMessage kind="forbidden" title="Для доступа к записям войдите в аккаунт"/>:null}
     {credential&&query.isPending?<StateMessage kind="loading" title="Загружаем записи"/>:null}
@@ -30,10 +30,9 @@ function SharingJourney({credential,cacheScope,api,onBack,initialHoldId}:{initia
     {entries?.length===0?<StateMessage kind="empty" title="У вас пока нет подтверждённых записей"/>:null}
     {entries?.map(item=><Card key={item.appointmentId!}>
       <Text>{item.clinic.name}</Text><Text>{item.clinic.address}</Text><Text>{item.pet.name} · {date(item.startsAt)}</Text>
-      <Button label={['CONFIRMED','RESCHEDULE_PROPOSED','COMPLETED'].includes(item.state)?'Поделиться медицинскими данными':'Просмотреть предоставленный доступ'} onPress={()=>setAppointment(item)}/>
+      <Button variant="secondary" label={['CONFIRMED','RESCHEDULE_PROPOSED','COMPLETED'].includes(item.state)?'Поделиться медицинскими данными':'Просмотреть предоставленный доступ'} onPress={()=>setAppointment(item)}/>
     </Card>)}
-    <Button label="Назад в личный кабинет" variant="secondary" onPress={onBack}/>
-  </Screen></ScrollView>;
+  </Screen>;
 }
 type Command={kind:'CREATE';resources:ResourceRef[];key:string;correlation:string}|{kind:'REVOKE';share:MedicalShare;key:string;correlation:string};
 function AppointmentSharing({appointment,credential,api,onBack}:{appointment:OwnerAppointment;credential:string;api:MedicalSharingApi;onBack():void}){
@@ -85,7 +84,7 @@ function AppointmentSharing({appointment,credential,api,onBack}:{appointment:Own
     }finally{if(generation.current===current){setSending(false);busy.current=false;}}
   };
   const frozen=Boolean(command)||sending;
-  return <ScrollView><Screen title="Поделиться медицинскими данными">
+  return <Screen title="Поделиться медицинскими данными" onBack={onBack} backLabel="Назад к записям" backDisabled={sending||uncertain}>
     {loading?<StateMessage kind="loading" title="Загружаем данные доступа"/>:null}
     {error?<StateMessage kind="error" title={error}/>:null}
     {notice?<Text accessibilityRole="alert" accessibilityLiveRegion="polite">{notice}</Text>:null}
@@ -93,7 +92,7 @@ function AppointmentSharing({appointment,credential,api,onBack}:{appointment:Own
       <Card><Text>Клиника: {context.clinic.displayName}</Text><Text>{context.clinic.locationAddress}</Text><Text>Запись: {date(context.appointment.startsAt,context.appointment.timezone)}</Text><Text>Питомец: {context.pet.displayName}</Text></Card>
       <Text>Это разрешение на доступ к выбранным медицинским ресурсам, а не согласие на обработку всех персональных данных. Доступ предоставляется только выбранным данным для этой записи. Новые результаты и документы не будут добавлены автоматически.</Text>
       {!context.eligible?<Text>Для этой записи новый доступ предоставить нельзя. Ранее предоставленный доступ можно отозвать.</Text>:<>
-        <Text accessibilityRole="header">Выберите данные</Text>
+        <Text accessibilityRole="header" style={{fontSize:18,fontWeight:'700'}}>Выберите данные</Text><Text>Выбрано ресурсов: {selected.length}. Добавятся только отмеченные пункты.</Text>
         {context.resourcesTruncated?<Text>Показаны первые 200 ресурсов. Выберите нужные данные из списка; оставшиеся ресурсы не будут добавлены автоматически.</Text>:null}
         {context.resources.length===0?<Text>Сейчас нет доступных для передачи ресурсов.</Text>:null}
         {context.resources.map(resource=>{
@@ -101,7 +100,7 @@ function AppointmentSharing({appointment,credential,api,onBack}:{appointment:Own
         })}
         {!command?<Button label="Продолжить к подтверждению" disabled={!selected.length||sending} onPress={()=>prepare('CREATE')}/>:null}
       </>}
-      {context.shares.length?<Text accessibilityRole="header">Предоставленный доступ</Text>:null}
+      {context.shares.length?<Text accessibilityRole="header" style={{fontSize:18,fontWeight:'700'}}>Предоставленный доступ</Text>:null}
       {context.shares.map(share=><Card key={share.id}><Text>{share.status==='ACTIVE'?'Активный доступ':'Доступ отозван'}</Text><Text>Создан: {date(share.createdAt,context.appointment.timezone)}</Text>{share.resources.map(resource=><Text key={refKey(resource)}>{label(resource)}</Text>)}{share.status==='ACTIVE'&&!command?<Button label="Отозвать доступ" disabled={sending} onPress={()=>prepare('REVOKE',share)}/>:null}</Card>)}
     </>:null}
     {command?<View accessibilityLabel="Подтверждение доступа" onAccessibilityEscape={()=>{if(!sending&&!uncertain)setCommand(null);}}>
@@ -111,6 +110,5 @@ function AppointmentSharing({appointment,credential,api,onBack}:{appointment:Own
       <Button label="Отмена" variant="secondary" disabled={sending||uncertain} onPress={()=>setCommand(null)}/>
     </View>:null}
     {!command?<Button label="Обновить данные доступа" variant="secondary" disabled={loading||sending} onPress={()=>{void refresh();}}/>:null}
-    <Button label="Назад к записям" variant="secondary" disabled={sending||uncertain} onPress={onBack}/>
-  </Screen></ScrollView>;
+  </Screen>;
 }

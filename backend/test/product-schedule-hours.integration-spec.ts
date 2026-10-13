@@ -1,0 +1,20 @@
+import 'reflect-metadata';
+import {randomUUID} from 'node:crypto';
+import {Role} from '../src/auth/auth.types';
+import {DatabaseService} from '../src/database/database.service';
+import {ClinicScheduleService} from '../src/booking-core/clinic-schedule.service';
+import {ClinicEmployeeAccessService} from '../src/booking-core/clinic-employee-access.service';
+const run=process.env.PRODUCT_DEMO_TEST==='true'?describe:describe.skip;
+run('Product weekly hours real PostgreSQL repeated-command regression',()=>{
+ let db:DatabaseService,service:ClinicScheduleService;
+ const clinicId='90000000-0000-4000-8000-000000000001',locationId='91000000-0000-4000-8000-000000000001';
+ const employee={sub:'33333333-3333-4333-8333-333333333333',roles:[Role.CLINIC_ADMIN],clinicIds:[clinicId],locationIds:[locationId]};
+ let days:Array<{weekday:number;opensAt:string|null;closesAt:string|null;active:boolean}>;
+ beforeAll(async()=>{if(new URL(process.env.DATABASE_URL!).pathname!=='/product_batch01')throw new Error('Exclusive synthetic product DB required');db=new DatabaseService();service=new ClinicScheduleService(db,new ClinicEmployeeAccessService());days=(await service.listSlots({clinicId,locationId,employee,from:new Date().toISOString(),to:new Date(Date.now()+86400000).toISOString()})).workingHours.map(({weekday,opensAt,closesAt,active})=>({weekday,opensAt,closesAt,active}));});
+ afterAll(async()=>db?.onModuleDestroy());
+ const counts=async()=> (await db.query(`SELECT (SELECT count(*)::int FROM booking_schema.outbox_events WHERE event_type='clinic.schedule.working_hours.updated.v1' AND aggregate_id=$1::uuid) AS events,(SELECT count(*)::int FROM audit_schema.audit_log WHERE action='clinic.schedule.working_hours.updated' AND aggregate_id=$1::uuid) AS audits`,[locationId])).rows[0];
+ it('persists two successive commands atomically with distinct durable events/audits',async()=>{const before=await counts();for(let i=0;i<2;i++){const result=await service.updateWorkingHours({clinicId,locationId,employee,days,idempotencyKey:randomUUID(),correlationId:randomUUID()});expect(result.map(({weekday,opensAt,closesAt,active})=>({weekday,opensAt:active?opensAt:null,closesAt:active?closesAt:null,active}))).toEqual(days.map(d=>({...d,opensAt:d.active?d.opensAt:null,closesAt:d.active?d.closesAt:null})));}const after=await counts();expect(after.events-before.events).toBe(2);expect(after.audits-before.audits).toBe(2);});
+ it('replays one command without duplicating publication or audit',async()=>{const input={clinicId,locationId,employee,days,idempotencyKey:randomUUID(),correlationId:randomUUID()};const first=await service.updateWorkingHours(input),before=await counts();expect(await service.updateWorkingHours(input)).toEqual(first);expect(await counts()).toEqual(before);});
+ it('keeps different authorized actors independent even with the same key',async()=>{const actorId=randomUUID();await db.withTransaction(async client=>{await client.query('INSERT INTO identity_schema.users(id) VALUES($1)',[actorId]);await client.query("INSERT INTO clinic_schema.employee_location_memberships(employee_id,clinic_location_id,role,active) VALUES($1,$2,'CLINIC_ADMIN',true)",[actorId,locationId]);});const key=randomUUID(),before=await counts();for(const actor of [employee,{...employee,sub:actorId}])await service.updateWorkingHours({clinicId,locationId,employee:actor,days,idempotencyKey:key,correlationId:randomUUID()});const after=await counts();expect(after.events-before.events).toBe(2);expect(after.audits-before.audits).toBe(2);});
+ it('denies a forged clinic scope without publication or audit',async()=>{const before=await counts();await expect(service.updateWorkingHours({clinicId:'90000000-0000-4000-8000-000000000099',locationId,employee,days,idempotencyKey:randomUUID(),correlationId:randomUUID()})).rejects.toMatchObject({status:403});expect(await counts()).toEqual(before);});
+});

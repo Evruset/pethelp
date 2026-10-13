@@ -240,8 +240,8 @@ test('creates a manual slot with selected staff and resource', async ({ page, co
   await uiStep(page, testInfo, 'Задать сотрудника, ресурс и время ручного окна', async () => {
     await form.getByLabel('Специалист').selectOption(staffId);
     await form.getByLabel('Ресурс').selectOption(resourceId);
-    await form.getByLabel('Начало').fill('2026-06-30T10:00');
-    await form.getByLabel('Конец').fill('2026-06-30T10:30');
+    await form.getByLabel('Начало').fill(new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().slice(0,16));
+    await form.getByLabel('Конец').fill(new Date(Date.now() + 48 * 60 * 60 * 1000 + 30 * 60 * 1000).toISOString().slice(0,16));
     await form.getByLabel('Вместимость').fill('2');
   });
   await uiStep(page, testInfo, 'Создать ручное окно и проверить readback', async () => {

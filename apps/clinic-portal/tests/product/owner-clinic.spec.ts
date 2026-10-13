@@ -41,7 +41,7 @@ test('DEMO real API: Owner manual/automatic booking, Clinic confirmation/decline
  }
  await page.getByRole('button',{name:'Обновить статус'}).click();await expect(page.getByText('Подтверждена',{exact:true})).toBeVisible();
  await (require(resolve('../../dev/product-batch01/patient-fixture.cjs')))(manual.holdId);
- await clinic.goto(`${scope}/patients`);await expect(clinic.getByText('Барсик',{exact:true}).first()).toBeVisible();await clinic.getByText('Барсик',{exact:true}).first().click();await expect(clinic.getByRole('heading',{name:/Барсик/}).first()).toBeVisible();await clinic.screenshot({path:resolve(pictures,'clinic-patient.png'),fullPage:true});
+ await clinic.goto(`${scope}/patients`);await expect(clinic.getByText('Барсик',{exact:true}).first()).toBeVisible();await clinic.getByText('Барсик',{exact:true}).first().click();await expect(clinic).toHaveURL(/\/patients\/[0-9a-f-]+$/);await expect(clinic.getByRole('heading',{level:1,name:'Барсик',exact:true})).toBeVisible();await clinic.screenshot({path:resolve(pictures,'clinic-patient.png'),fullPage:true});
  await page.getByRole('button',{name:'Назад к записям'}).click();await page.getByRole('button',{name:'На главную'}).click();
  const pending=await book(page,state.clinics[0].name);await page.getByRole('button',{name:'Открыть запись',exact:true}).click();await page.getByRole('button',{name:'Отменить запись',exact:true}).click();await page.getByRole('button',{name:'Подтвердить отмену'}).click();await expect(page.getByText('Отменена',{exact:true})).toBeVisible();
  const reread=await request.get(`${base}/v1/owner/appointments/${pending.holdId}`,{headers:{Authorization:`Bearer ${session.sessionToken}`}});expect((await reread.json()).state).toBe('RELEASED');

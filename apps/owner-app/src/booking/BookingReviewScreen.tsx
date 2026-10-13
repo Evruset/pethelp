@@ -69,15 +69,14 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
     {onDone ? <Button label="На главную" variant="secondary" onPress={onDone} /> : null}
   </Screen>;
 
-  return <Screen title="Проверьте заявку">
+  return <Screen title="Проверьте заявку" step={!result ? "Запись · шаг 5 из 5" : undefined} backLabel="Назад к времени" backDisabled={sending || failure === 'uncertain'} onBack={!result ? () => { generation.current += 1; onBack(); } : undefined}>
     {!complete ? <StateMessage kind="error" title="Данные записи устарели. Вернитесь и выберите время заново." action={<Button label="Выбрать другое время" onPress={onConflict}/>} /> : <>
-      <Card><View style={{ gap: 8 }}><Text accessibilityRole="header">Детали записи</Text><Text>Питомец: {pet!.name}</Text><Text>Клиника: {clinic!.name}</Text><Text>Услуга: {service!.name}</Text><Text>Ориентировочная стоимость: {formatPrice(service!.price.amount, service!.price.currency)}</Text><Text>Дата и время: {slot!.localDate} · {slot!.localTime}</Text></View></Card>
+      <Card><View style={{ gap: 8 }}><Text accessibilityRole="header">Детали записи</Text><Text>Питомец: {pet!.name}</Text><Text>Клиника: {clinic!.name}</Text><Text>Услуга: {service!.name}</Text><Text>Ориентировочная стоимость: {formatPrice(service!.price.amount, service!.price.currency)}</Text><Text>Дата и время: {new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'long',timeZone:'UTC'}).format(new Date(`${slot!.localDate}T12:00:00Z`))} · {slot!.localTime}</Text></View></Card>
       {failure === 'conflict' ? <StateMessage kind="error" title="Это время уже недоступно. Выберите другое." action={<Button label="Выбрать другое время" onPress={onConflict}/>} /> : null}
       {failure === 'identity' ? <StateMessage kind="error" title="Данные заявки изменились. Вернитесь к выбору и начните отправку заново." action={<Button label="Вернуться к выбору" onPress={onBack}/>} /> : null}
       {failure === 'uncertain' ? <StateMessage kind="error" title="Не удалось получить ответ сервера. Безопасно проверьте заявку повторно." /> : null}
       {failure === 'technical' ? <StateMessage kind="error" title="Не удалось отправить заявку. Повторите попытку." /> : null}
       <Button label={sending ? 'Отправляем…' : failure === 'uncertain' ? 'Проверить заявку' : 'Отправить заявку'} disabled={sending || failure === 'conflict' || failure === 'identity'} onPress={() => { void submit(); }} />
-      <Button label="Назад к времени" variant="ghost" disabled={sending || failure === 'uncertain'} onPress={() => { generation.current += 1; onBack(); }} />
     </>}
   </Screen>;
 }

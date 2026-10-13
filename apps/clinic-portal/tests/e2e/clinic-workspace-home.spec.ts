@@ -93,6 +93,8 @@ test.describe('enabled workspace home', () => {
     mode = 'vet'; await page.goto(route());
     await expect(page.getByText('Персональная сводка врача пока не подключена.')).toBeVisible();
     await expect(page.getByText('Ожидают')).toHaveCount(0);
+    await expect(page.getByRole('navigation',{name:'Быстрые действия'}).getByRole('link',{name:'Открыть приёмы филиала'})).toHaveAttribute('href',`${route()}/vet/visits`);
+    await expect(page.getByRole('navigation',{name:'Быстрые действия'}).getByRole('link',{name:'Разобрать заявки'})).toHaveCount(0);
     await captureAt(page, 'veterinarian', [{ width: 375, height: 812 }, { width: 1440, height: 900 }]);
     mode = 'multi'; await page.reload();
     await expect(page.getByRole('heading', { name: 'Очередь' })).toBeVisible();

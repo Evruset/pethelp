@@ -5,7 +5,7 @@ import type { HoldAuditTrail, ManualConfirmationQueue, ManualConfirmationQueueIt
 import { BookingHold, BookingHoldParseError, BookingHoldState, parseBookingHold } from '@/lib/api/booking-hold';
 import { AlternativeSlotDrawer } from './AlternativeSlotDrawer';
 
-type Props = { clinicId: string; locationId: string; initialQueue: ManualConfirmationQueue; canInspectHold: boolean; canReplayHold: boolean };
+type Props = { clinicId: string; locationId: string; initialQueue: ManualConfirmationQueue; canInspectHold: boolean; canReplayHold: boolean; canProposeAlternative?:boolean; canViewAudit?:boolean };
 type RowState = 'idle' | 'confirming' | 'declining' | 'requestingNotes' | 'fenced';
 
 const SLA_CRITICAL_MS = 180000;
@@ -73,7 +73,7 @@ function isQueuePayload(payload: unknown, clinicId: string, locationId: string):
   });
 }
 
-export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canInspectHold, canReplayHold }: Props) {
+export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canInspectHold, canReplayHold, canProposeAlternative=true, canViewAudit=true }: Props) {
   const [queue, setQueue] = useState(initialQueue);
   const [offsetMs, setOffsetMs] = useState(() => Date.parse(initialQueue.serverNow) - Date.now());
   const [now, setNow] = useState(Date.now());
@@ -368,7 +368,7 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
           <div>
             <p className="text-sm font-semibold text-blue-700">VetHelp</p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">Очередь подтверждения</h1>
-            <p className="mt-2 text-sm text-slate-600">FIFO порядок задаёт backend. Таймеры основаны на serverNow.</p>
+            <p className="mt-2 text-sm text-slate-600">Обрабатывайте заявки по порядку поступления. Срок ответа синхронизирован с клиникой.</p>
           </div>
           <div className="flex items-center gap-3">
             <span className={`rounded-full px-3 py-1 text-xs font-semibold ${online ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`} aria-live="polite">
@@ -379,21 +379,21 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
         </header>
 
         <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-          При предложении альтернативы исходный и новый слот защищаются backend до решения владельца.
+          После подтверждения приём появится в записях и расписании. Другое время для подтверждённого приёма можно предложить в его карточке.
         </div>
         {notice ? <div className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700" role="status">{notice}</div> : null}
 
         <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           {queue.items.length === 0 ? <Empty /> : (
             <div className="overflow-x-auto">
-              <table className="min-w-full table-fixed border-collapse text-left">
+              <table className="vh-product-table min-w-full table-fixed border-collapse text-left">
                 <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   <tr>
                     <th className="w-16 px-4 py-3">№</th><th className="w-40 px-4 py-3">Поступила</th><th className="w-48 px-4 py-3">Питомец</th><th className="w-52 px-4 py-3">Услуга</th><th className="w-44 px-4 py-3">Визит</th><th className="w-44 px-4 py-3">SLA</th><th className="w-56 px-4 py-3">Действия</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {queue.items.map((item, index) => <QueueRow key={item.holdId} item={item} position={index + 1} serverNowMs={serverNowMs} state={rowState[item.holdId] ?? 'idle'} canAct={online && firstActionableIndex === index} onConfirm={confirm} onDecline={setDeclineItem} onAlternative={setAlternativeItem} onNotes={setNotesItem} onAudit={openAudit} onHold={canInspectHold ? setHoldItem : undefined} />)}
+                  {queue.items.map((item, index) => <QueueRow key={item.holdId} item={item} position={index + 1} serverNowMs={serverNowMs} state={rowState[item.holdId] ?? 'idle'} canAct={online && firstActionableIndex === index} onConfirm={confirm} onDecline={setDeclineItem} onAlternative={canProposeAlternative?setAlternativeItem:undefined} onNotes={setNotesItem} onAudit={canViewAudit?openAudit:undefined} onHold={canInspectHold ? setHoldItem : undefined} />)}
                 </tbody>
               </table>
             </div>
@@ -410,10 +410,10 @@ export function ClinicQueueClientV2({ clinicId, locationId, initialQueue, canIns
 }
 
 function Empty() {
-  return <div className="px-6 py-16 text-center"><p className="text-lg font-semibold text-slate-900">Нет заявок, ожидающих подтверждения</p><p className="mt-2 text-sm text-slate-600">Новые заявки появятся здесь в порядке поступления.</p></div>;
+  return <div className="px-6 py-10 text-center"><p className="text-lg font-semibold text-slate-900">Нет заявок, ожидающих подтверждения</p><p className="mt-2 text-sm text-slate-600">Новые заявки появятся здесь в порядке поступления.</p></div>;
 }
 
-function QueueRow({ item, position, serverNowMs, state, canAct, onConfirm, onDecline, onAlternative, onNotes, onAudit, onHold }: { item: ManualConfirmationQueueItem; position: number; serverNowMs: number; state: RowState; canAct: boolean; onConfirm: (item: ManualConfirmationQueueItem) => void; onDecline: (item: ManualConfirmationQueueItem) => void; onAlternative: (item: ManualConfirmationQueueItem) => void; onNotes: (item: ManualConfirmationQueueItem) => void; onAudit: (item: ManualConfirmationQueueItem) => void; onHold?: (item: ManualConfirmationQueueItem) => void }) {
+function QueueRow({ item, position, serverNowMs, state, canAct, onConfirm, onDecline, onAlternative, onNotes, onAudit, onHold }: { item: ManualConfirmationQueueItem; position: number; serverNowMs: number; state: RowState; canAct: boolean; onConfirm: (item: ManualConfirmationQueueItem) => void; onDecline: (item: ManualConfirmationQueueItem) => void; onAlternative?: (item: ManualConfirmationQueueItem) => void; onNotes: (item: ManualConfirmationQueueItem) => void; onAudit?: (item: ManualConfirmationQueueItem) => void; onHold?: (item: ManualConfirmationQueueItem) => void }) {
   const expiresAtMs = timestampMs(item.confirmationSlaExpiresAt);
   const remainingMs = expiresAtMs === null ? null : expiresAtMs - serverNowMs;
   const breached = remainingMs !== null && remainingMs <= 0;
@@ -443,13 +443,13 @@ function QueueRow({ item, position, serverNowMs, state, canAct, onConfirm, onDec
         : 'Подтвердить';
   return (
     <tr className={`border-t border-slate-200 ${breached ? 'bg-red-50 text-red-950' : critical ? 'bg-red-50/70 text-slate-950 motion-safe:animate-pulse' : 'bg-white text-slate-900'}`}>
-      <td className="px-4 py-4 align-top text-sm font-semibold">{position}</td>
-      <td className="px-4 py-4 align-top text-sm text-slate-700">{dt(item.manualConfirmPendingAt)}</td>
-      <td className="px-4 py-4 align-top"><p className="text-sm font-semibold">{item.pet.name}</p><p className="mt-1 text-xs text-slate-600">{species(item.pet.species)}</p></td>
-      <td className="px-4 py-4 align-top text-sm text-slate-700"><p>{item.service?.displayName ?? 'Услуга не указана'}</p>{item.latestAudit ? <p className="mt-2 text-xs text-slate-500">Последнее: {auditAction(item.latestAudit.action)} · {dt(item.latestAudit.occurredAt)}</p> : null}</td>
-      <td className="px-4 py-4 align-top"><p className="text-sm font-medium text-slate-800">{dt(item.slot.startsAt)}</p><p className="mt-1 text-xs text-slate-600">{tm(item.slot.startsAt)}-{tm(item.slot.endsAt)}</p></td>
-      <td className="px-4 py-4 align-top"><span className={`inline-flex rounded-full px-2.5 py-1 text-sm font-semibold ${(critical || breached) ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'}`} aria-live={critical || breached ? 'polite' : undefined}>{slaLabel}</span>{(critical || breached) ? <p className="mt-2 text-xs font-medium text-red-800">{breached ? 'Требуется авторитетное обновление: backend ещё не перевёл заявку.' : 'Внимание: срок подтверждения истекает.'}</p> : !canAct ? <p className="mt-2 text-xs text-slate-600">Сначала обработайте более раннюю заявку.</p> : null}</td>
-      <td className="px-4 py-4 align-top"><div className="flex flex-col gap-2"><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onConfirm(item)} className="w-full rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">{actionLabel}</button><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onAlternative(item)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Другое время</button><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onNotes(item)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Уточнения</button><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onDecline(item)} className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Отклонить</button>{onHold ? <button type="button" onClick={() => onHold(item)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Состояние удержания</button> : null}<button type="button" onClick={() => onAudit(item)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">История</button></div></td>
+      <td data-label="Очередь" className="px-4 py-4 align-top text-sm font-semibold">{position}</td>
+      <td data-label="Поступила" className="px-4 py-4 align-top text-sm text-slate-700">{dt(item.manualConfirmPendingAt)}</td>
+      <td data-label="Питомец" className="px-4 py-4 align-top"><p className="text-sm font-semibold">{item.pet.name}</p><p className="mt-1 text-xs text-slate-600">{species(item.pet.species)}</p></td>
+      <td data-label="Услуга" className="px-4 py-4 align-top text-sm text-slate-700"><p>{item.service?.displayName ?? 'Услуга не указана'}</p>{item.latestAudit ? <p className="mt-2 text-xs text-slate-500">Последнее: {auditAction(item.latestAudit.action)} · {dt(item.latestAudit.occurredAt)}</p> : null}</td>
+      <td data-label="Визит" className="px-4 py-4 align-top"><p className="text-sm font-medium text-slate-800">{dt(item.slot.startsAt)}</p><p className="mt-1 text-xs text-slate-600">{tm(item.slot.startsAt)}-{tm(item.slot.endsAt)}</p></td>
+      <td data-label="Срок ответа" className="px-4 py-4 align-top"><span className={`inline-flex rounded-full px-2.5 py-1 text-sm font-semibold ${(critical || breached) ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'}`} aria-live={critical || breached ? 'polite' : undefined}>{slaLabel}</span>{(critical || breached) ? <p className="mt-2 text-xs font-medium text-red-800">{breached ? 'Срок ответа истёк. Обновите очередь, чтобы проверить статус.' : 'Внимание: срок подтверждения истекает.'}</p> : !canAct ? <p className="mt-2 text-xs text-slate-600">Сначала обработайте более раннюю заявку.</p> : null}</td>
+      <td data-label="Действия" className="px-4 py-4 align-top"><div className="vh-queue-actions"><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onConfirm(item)} className="w-full rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">{actionLabel}</button>{onAlternative?<button type="button" disabled={blocked || state !== 'idle'} onClick={() => onAlternative(item)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Другое время</button>:null}<button type="button" disabled={blocked || state !== 'idle'} onClick={() => onNotes(item)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">Уточнения</button><button type="button" disabled={blocked || state !== 'idle'} onClick={() => onDecline(item)} className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Отклонить</button>{onHold ? <button type="button" onClick={() => onHold(item)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Состояние удержания</button> : null}{onAudit?<button type="button" onClick={() => onAudit(item)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">История</button>:null}</div></td>
     </tr>
   );
 }

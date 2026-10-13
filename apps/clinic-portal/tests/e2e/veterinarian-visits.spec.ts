@@ -34,6 +34,8 @@ test('allowed scope exposes navigation, list and keyboard detail/back flow', asy
   expect((await new AxeBuilder({ page }).include('[aria-labelledby="vet-visits-title"]').analyze()).violations).toEqual([]);
 });
 
+test('filters the authorized branch visit list by patient and recovers empty search',async({page,context,baseURL})=>{await session(context,baseURL);await page.goto(listRoute());await expect(page.getByText('Milo · Кошка')).toBeVisible();await page.getByLabel('Поиск приёмов по питомцу').fill('absent');await expect(page.getByText('Нет доступных приёмов.')).toBeVisible();await expect(page.getByText('Milo · Кошка')).toHaveCount(0);await page.getByLabel('Поиск приёмов по питомцу').fill(' MILO ');await expect(page.getByText('Milo · Кошка')).toBeVisible();});
+
 async function expectFailClosed(sessionMode: 'denied' | 'wrong-scope', page: import('@playwright/test').Page, context: BrowserContext, baseURL: string | undefined) {
   mode = sessionMode; await session(context, baseURL); await page.goto(listRoute());
   await expect(page.getByRole('link', { name: 'Открыть приёмы врача' })).toHaveCount(0);

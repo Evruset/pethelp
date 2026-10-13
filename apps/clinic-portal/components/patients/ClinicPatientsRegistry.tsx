@@ -32,14 +32,14 @@ function PatientCard({ item, clinicId, locationId }: { item: ClinicPatient; clin
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">{item.pet.speciesLabel}</p>
-            <h2 id={`patient-${item.patientId}`} className="mt-1 text-xl font-semibold text-slate-950">{item.pet.displayName}</h2>
+            <h2 id={`patient-${item.patientId}`} className="mt-1 text-xl font-semibold text-slate-950"><Link className="rounded hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700" href={href}>{item.pet.displayName}</Link></h2>
             <p className="mt-1 text-sm text-slate-600">{item.owner.displayName ?? 'Владелец не указан'}</p>
           </div>
           <span className="rounded-full border border-slate-300 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-700">
             {sexLabel(item.pet.sexCode)}
           </span>
         </div>
-        <dl className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <dl className="mt-4 grid gap-3 sm:grid-cols-2">
           <div><dt className="text-xs font-semibold text-slate-500">Порода</dt><dd className="mt-1 text-sm text-slate-800">{item.pet.breed ?? 'Не указана'}</dd></div>
           <div><dt className="text-xs font-semibold text-slate-500">Дата рождения</dt><dd className="mt-1 text-sm text-slate-800">{date(item.pet.birthDate)}</dd></div>
           <div><dt className="text-xs font-semibold text-slate-500">Первое обращение</dt><dd className="mt-1 text-sm text-slate-800">{instant(item.relationship.firstSeenAt)}</dd></div>
@@ -290,9 +290,9 @@ export function ClinicPatientsRegistry({ clinicId, locationId, referenceSearchEn
       <section aria-labelledby="patients-title">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">Clinic Portal · Реестр</p>
+            <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">Пациенты · филиал</p>
             <h1 id="patients-title" className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">Пациенты</h1>
-            <p className="mt-2 max-w-2xl text-base text-slate-600">Безопасный административный список выбранной локации.</p>
+            <p className="mt-2 max-w-2xl text-base text-slate-600">Найдите питомца по имени и откройте его карточку и записи в этом филиале.</p>
           </div>
           <button ref={refreshButton} type="button" disabled={refreshing || referencePending}
             onClick={() => searchMode === 'reference' && referenceQuery ? void submitReference() : void loadFirst(true, query)}
@@ -372,8 +372,8 @@ export function ClinicPatientsRegistry({ clinicId, locationId, referenceSearchEn
             : query ? 'По этому имени пациенты не найдены.' : 'В этой локации пока нет доступных пациентов.'}</h2>
           {searchMode === 'reference' && referenceQuery && <p className="mt-2 text-sm text-slate-600">Проверьте номер или выберите другую локацию.</p>}
         </section>}
-        {items.length > 0 && <>
-          <ul aria-label="Реестр пациентов" className="mt-6 grid gap-4">{items.map((item) => <PatientCard key={item.patientId} item={item} clinicId={clinicId} locationId={locationId} />)}</ul>
+        {items.length > 0 && <><p className="mt-4 text-sm text-slate-600">В загруженном списке: {items.length}. Доступ ограничен выбранным филиалом.</p>
+          <ul aria-label="Реестр пациентов" className="mt-4 grid gap-3 xl:grid-cols-2">{items.map((item) => <PatientCard key={item.patientId} item={item} clinicId={clinicId} locationId={locationId} />)}</ul>
           {searchMode === 'ordinary' && nextCursor && <div className="mt-6 flex justify-center"><button type="button" disabled={loadingMore} onClick={() => void loadMore()}
             className="min-h-11 rounded-xl bg-blue-700 px-6 py-3 font-semibold text-white disabled:opacity-60">
             {loadingMore ? 'Загружаем…' : notice === 'page-error' ? 'Повторить загрузку' : 'Показать ещё'}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { Button, Card, Screen, StateMessage } from "@/ui/primitives";
 import { useSession } from "@/session/SessionProvider";
 import {
@@ -26,25 +26,22 @@ export function AvailabilityScreen({
   onContinue(value: AvailabilityHandoff): void;
 }) {
   const { session } = useSession();
+  const [chosenDate, setChosenDate] = useState<string | null>(null);
   const [selected, setSelected] = useState<AvailabilitySlot | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [stale, setStale] = useState(false);
   const [refreshFailed, setRefreshFailed] = useState(false);
+  const scopeIdentity = `${session?.opaqueCredential ?? ''}:${authorityGeneration ?? ''}:${context.clinicId}:${context.locationId}:${context.serviceId}`;
+  const latestScope = useRef(scopeIdentity);
+  latestScope.current = scopeIdentity;
   const operation = useRef(0);
   const refreshInFlight = useRef(false);
   const selectionGeneration = useRef(0);
-  useEffect(
-    () => () => {
-      operation.current += 1;
-      refreshInFlight.current = false;
-    },
-    [
-      authorityGeneration,
-      context.clinicId,
-      context.locationId,
-      context.serviceId,
-    ],
-  );
+  useEffect(() => {
+    setRefreshing(false); setSelected(null); setChosenDate(null);
+    setStale(false); setRefreshFailed(false);
+    return () => { operation.current += 1; refreshInFlight.current = false; };
+  }, [scopeIdentity]);
   const query = useQuery({
     queryKey: [
       "owner",
@@ -68,7 +65,7 @@ export function AvailabilityScreen({
         slot.expectedVersion === selected.expectedVersion,
     );
   const refresh = async (forward: boolean) => {
-    if (refreshInFlight.current) return;
+    if (refreshInFlight.current || latestScope.current !== scopeIdentity) return;
     refreshInFlight.current = true;
     const request = ++operation.current;
     const selectedAtStart = selected;
@@ -79,6 +76,7 @@ export function AvailabilityScreen({
     try {
       const result = await query.refetch();
       if (
+        latestScope.current !== scopeIdentity ||
         operation.current !== request ||
         selectionGeneration.current !== selectedGeneration
       )
@@ -111,17 +109,21 @@ export function AvailabilityScreen({
     } catch {
       if (operation.current === request) setRefreshFailed(true);
     } finally {
-      if (operation.current === request) setRefreshing(false);
-      refreshInFlight.current = false;
+      if (operation.current === request) { setRefreshing(false); refreshInFlight.current = false; }
     }
   };
   const authorityRefreshing = Boolean(query.isFetching && !refreshing);
+  const sortedSlots=[...(query.data?.slots??[])].sort((a,b)=>a.startsAt.localeCompare(b.startsAt));
   const groups = new Map<string, AvailabilitySlot[]>();
   if (!query.isError)
-    for (const slot of query.data?.slots ?? [])
+    for (const slot of sortedSlots)
       groups.set(slot.localDate, [...(groups.get(slot.localDate) ?? []), slot]);
+  const visibleDate = chosenDate && groups.has(chosenDate) ? chosenDate : [...groups.keys()][0];
   return (
-    <Screen title="Доступное время">
+    <Screen title="Доступное время" step="Запись · шаг 4 из 5" backLabel="Назад к услугам" backDisabled={refreshing} onBack={() => { operation.current += 1; refreshInFlight.current = false; onBack(); }} footer={<>
+      <Text style={{color:'#52655e'}}>{selected && current ? `Выбрано: ${dateLabel(selected.localDate)} в ${selected.localTime}` : 'Выберите удобные дату и время'}</Text>
+      <Button label="Продолжить" disabled={!selected || !current || refreshing || authorityRefreshing || query.isError} onPress={() => { void refresh(true); }}/>
+    </>}>
       {query.isPending ? (
         <StateMessage kind="loading" title="Загружаем доступное время" />
       ) : null}
@@ -149,6 +151,7 @@ export function AvailabilityScreen({
               <Text>Время клиники · {query.data.timezone}</Text>
             </View>
           </Card>
+          {query.data.slots.length>0?<Text>Ближайшее из доступных окон: {dateLabel(sortedSlots[0].localDate)} · {sortedSlots[0].localTime}</Text>:null}
           {query.data.slots.length === 0 ? (
             <StateMessage
               kind="empty"
@@ -159,7 +162,10 @@ export function AvailabilityScreen({
               accessibilityRole="radiogroup"
               accessibilityLabel="Выбор доступного времени"
             >
-              {[...groups].map(([date, slots]) => (
+              <ScrollView horizontal accessibilityLabel="Даты приёма" showsHorizontalScrollIndicator={false} contentContainerStyle={{gap:8,paddingVertical:8}}>
+                {[...groups.keys()].map(date => <View key={date}><Card compact role="button" selected={date===visibleDate} disabled={refreshing} onPress={() => { if(refreshInFlight.current)return; selectionGeneration.current += 1; setChosenDate(date); setSelected(null); setStale(false); }}><Text style={{fontWeight:'600'}}>{dateLabel(date)}</Text></Card></View>)}
+              </ScrollView>
+              {[...groups].filter(([date])=>date===visibleDate).map(([date, slots]) => (
                 <View
                   key={date}
                   accessibilityLabel={`Дата ${dateLabel(date)}`}
@@ -171,27 +177,26 @@ export function AvailabilityScreen({
                   >
                     {dateLabel(date)}
                   </Text>
-                  <View style={{ gap: 10 }}>
+                  <View style={{ flexDirection:"row", flexWrap:"wrap", gap:8 }}>
                     {slots.map((slot) => (
-                      <Card
-                        key={slot.slotId}
+                      <View key={slot.slotId} style={{flexBasis:"30%",flexGrow:1,maxWidth:"33%"}}><Card compact
                         disabled={refreshing}
                         selected={
                           slot.slotId === selected?.slotId &&
                           slot.expectedVersion === selected.expectedVersion
                         }
                         onPress={() => {
-                          if (refreshInFlight.current) return;
+                          if (refreshInFlight.current || latestScope.current !== scopeIdentity) return;
                           selectionGeneration.current += 1;
                           setSelected(slot);
                           setStale(false);
                           setRefreshFailed(false);
                         }}
                       >
-                        <Text style={{ fontSize: 17, fontWeight: "600" }}>
+                        <Text style={{ fontSize: 17, fontWeight: "600", textAlign:"center" }}>
                           {slot.localTime}
                         </Text>
-                      </Card>
+                      </Card></View>
                     ))}
                   </View>
                 </View>
@@ -199,11 +204,6 @@ export function AvailabilityScreen({
             </View>
           )}
         </>
-      ) : null}
-      {selected && current ? (
-        <Text accessibilityRole="text">
-          Выбрано: {dateLabel(selected.localDate)} в {selected.localTime}
-        </Text>
       ) : null}
       {stale || (selected && !current) ? (
         <StateMessage
@@ -223,23 +223,6 @@ export function AvailabilityScreen({
         disabled={refreshing}
         onPress={() => {
           void refresh(false);
-        }}
-      />
-      <Button
-        label="Продолжить"
-        disabled={!selected || !current || refreshing || authorityRefreshing || query.isError}
-        onPress={() => {
-          void refresh(true);
-        }}
-      />
-      <Button
-        label="Назад к услугам"
-        variant="ghost"
-        disabled={refreshing}
-        onPress={() => {
-          operation.current += 1;
-          refreshInFlight.current = false;
-          onBack();
         }}
       />
     </Screen>

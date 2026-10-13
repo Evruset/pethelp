@@ -15,7 +15,7 @@ type Phase = 'loading' | 'ready' | 'empty' | 'error' | 'degraded';
 const STATUS: Record<string, { label: string; className: string }> = {
   SCHEDULED: { label: 'Запланирована', className: 'border-blue-200 bg-blue-50 text-blue-800' },
   COMPLETED: { label: 'Завершена', className: 'border-emerald-200 bg-emerald-50 text-emerald-800' },
-  NO_SHOW: { label: 'Неявка', className: 'border-amber-200 bg-amber-50 text-amber-900' },
+  NO_SHOW: { label: 'Неявка', className: 'border-violet-200 bg-violet-50 text-violet-900' },
   CANCELLED: { label: 'Отменена', className: 'border-slate-300 bg-slate-100 text-slate-700' },
 };
 
@@ -229,11 +229,11 @@ export function ClinicAppointmentsRegistry({ clinicId, locationId }: Props) {
             </section>
           )}
           {phase === 'degraded' && (
-            <section role="alert" className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-4">
-              <p className="font-semibold text-amber-950">
+            <section role="alert" className="mb-4 rounded-xl border border-violet-300 bg-violet-50 p-4">
+              <p className="font-semibold text-violet-950">
                 {degradedContext === 'refresh' ? 'Обновление списка проверить не удалось' : 'Следующую страницу проверить не удалось'}
               </p>
-              <p className="mt-1 text-sm text-amber-900">Показан последний подтверждённый список. Обновите его, чтобы начать новый проход.</p>
+              <p className="mt-1 text-sm text-violet-900">Показан последний подтверждённый список. Обновите его, чтобы начать новый проход.</p>
             </section>
           )}
           {(phase === 'empty' || (phase === 'degraded' && items.length === 0)) && (

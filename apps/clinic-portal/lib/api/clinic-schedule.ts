@@ -85,6 +85,15 @@ export type ClinicWorkingHoursDay = {
   updatedAt: string | null;
 };
 
+export type ClinicDoctorShift = {
+  id: string;
+  doctor: { id: string; displayName: string };
+  staff: { id: string; displayName: string };
+  startsAt: string;
+  endsAt: string;
+  status: 'PUBLISHED' | 'CANCELLED';
+};
+
 export type ClinicSchedule = {
   clinicId: string;
   locationId: string;
@@ -93,6 +102,8 @@ export type ClinicSchedule = {
   staff: ClinicScheduleStaff[];
   resources: ClinicScheduleResource[];
   periods: ClinicSchedulePeriod[];
+  doctorShifts?: ClinicDoctorShift[];
+  timezone?: string;
   workingHours: ClinicWorkingHoursDay[];
   slots: ClinicScheduleSlot[];
 };
