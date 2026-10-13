@@ -1,3 +1,4 @@
+import { formatPrice } from '@/ui/format-price';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Text, View } from 'react-native';
@@ -15,8 +16,8 @@ const randomKey = () => {
   return value;
 };
 
-export function BookingReviewScreen({ petId, context, authorityGeneration, onBack, onConflict }: {
-  petId: string; context: AvailabilityHandoff; authorityGeneration: string; onBack(): void; onConflict(): void;
+export function BookingReviewScreen({ petId, context, authorityGeneration, onBack, onConflict, onDone, onOpenAppointment }: {
+  petId: string; context: AvailabilityHandoff; authorityGeneration: string; onBack(): void; onConflict(): void; onDone?(): void; onOpenAppointment?(holdId: string): void;
 }) {
   const { session } = useSession();
   const queryClient = useQueryClient();
@@ -50,26 +51,32 @@ export function BookingReviewScreen({ petId, context, authorityGeneration, onBac
       else if (error instanceof ApiError && error.safeCode === 'IDEMPOTENCY_CONFLICT') setFailure('identity');
       else if ((error instanceof ApiError && error.status === 409) || (typeof error === 'object' && error !== null && (error as { status?: unknown }).status === 409)) setFailure('conflict');
       else if (error instanceof ApiError && (error.kind === 'TIMEOUT' || error.kind === 'NETWORK')) setFailure('uncertain');
-      else setFailure('technical');
+      else if (error instanceof ApiError && error.status && error.status < 500) setFailure('technical');
+      else setFailure('uncertain');
     } finally {
       if (generation.current === request) setSending(false);
       inFlight.current = false;
     }
   };
 
-  if (result) return <Screen title="Заявка отправлена">
-    <Card><View accessibilityRole="summary" style={{ gap: 6 }}><Text accessibilityRole="header">Ожидает подтверждения клиникой</Text><Text>Статус сервера: ожидает подтверждения</Text><Text>Это ещё не подтверждённая запись.</Text></View></Card>
+  if (result) return <Screen title={result.status === 'CONFIRMED' ? 'Вы записаны' : 'Заявка отправлена'}>
+    <Card><View accessibilityRole="summary" style={{ gap: 8 }}>
+      <Text accessibilityRole="header">{result.status === 'CONFIRMED' ? 'Запись подтверждена' : 'Ожидает подтверждения клиникой'}</Text>
+      <Text>{result.status === 'CONFIRMED' ? 'Клиника подтвердила выбранное время. Подробности и актуальный статус — в ваших записях.' : 'Это ещё не подтверждённая запись. Клиника рассмотрит заявку; актуальный статус доступен в ваших записях.'}</Text>
+      <Text>{pet?.name} · {clinic?.name}</Text><Text>{slot?.localDate} · {slot?.localTime}</Text>
+    </View></Card>
+    {onOpenAppointment ? <Button label="Открыть запись" onPress={() => onOpenAppointment(result.holdId)} /> : null}
+    {onDone ? <Button label="На главную" variant="secondary" onPress={onDone} /> : null}
   </Screen>;
 
-  return <Screen title="Проверьте заявку">
+  return <Screen title="Проверьте заявку" step={!result ? "Запись · шаг 5 из 5" : undefined} backLabel="Назад к времени" backDisabled={sending || failure === 'uncertain'} onBack={!result ? () => { generation.current += 1; onBack(); } : undefined}>
     {!complete ? <StateMessage kind="error" title="Данные записи устарели. Вернитесь и выберите время заново." action={<Button label="Выбрать другое время" onPress={onConflict}/>} /> : <>
-      <Card><View style={{ gap: 8 }}><Text accessibilityRole="header">Детали записи</Text><Text>Питомец: {pet!.name}</Text><Text>Клиника: {clinic!.name}</Text><Text>Услуга: {service!.name}</Text><Text>Информационная цена: {service!.price.amount} {service!.price.currency}</Text><Text>Дата и время: {slot!.localDate} · {slot!.localTime}</Text></View></Card>
+      <Card><View style={{ gap: 8 }}><Text accessibilityRole="header">Детали записи</Text><Text>Питомец: {pet!.name}</Text><Text>Клиника: {clinic!.name}</Text><Text>Услуга: {service!.name}</Text><Text>Ориентировочная стоимость: {formatPrice(service!.price.amount, service!.price.currency)}</Text><Text>Дата и время: {new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'long',timeZone:'UTC'}).format(new Date(`${slot!.localDate}T12:00:00Z`))} · {slot!.localTime}</Text></View></Card>
       {failure === 'conflict' ? <StateMessage kind="error" title="Это время уже недоступно. Выберите другое." action={<Button label="Выбрать другое время" onPress={onConflict}/>} /> : null}
       {failure === 'identity' ? <StateMessage kind="error" title="Данные заявки изменились. Вернитесь к выбору и начните отправку заново." action={<Button label="Вернуться к выбору" onPress={onBack}/>} /> : null}
       {failure === 'uncertain' ? <StateMessage kind="error" title="Не удалось получить ответ сервера. Безопасно проверьте заявку повторно." /> : null}
       {failure === 'technical' ? <StateMessage kind="error" title="Не удалось отправить заявку. Повторите попытку." /> : null}
       <Button label={sending ? 'Отправляем…' : failure === 'uncertain' ? 'Проверить заявку' : 'Отправить заявку'} disabled={sending || failure === 'conflict' || failure === 'identity'} onPress={() => { void submit(); }} />
-      <Button label="Назад к времени" variant="ghost" disabled={sending} onPress={() => { generation.current += 1; onBack(); }} />
     </>}
   </Screen>;
 }

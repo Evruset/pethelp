@@ -1,0 +1,44 @@
+PASS test/ocr-operational.e2e-spec.ts (23.398 s)
+  Operational publisher/configuration
+    ○ skipped isolated publisher starts with private RW mount and no writer credentials/membership
+    ○ skipped publishes three immutable snapshots and new bound queued jobs without enabling claimers
+    ○ skipped rejects unsafe NODE_ENV startup configuration
+    ○ skipped rejects unsafe OCR_OPERATIONAL_PROFILE startup configuration
+    ○ skipped rejects unsafe OCR_PROCESS_ROLE startup configuration
+    ○ skipped rejects unsafe WORKERS_ENABLED startup configuration
+    ○ skipped rejects writable mount for worker role
+    ○ skipped rejects missing writer credentials before worker activation
+    ○ skipped publisher rejects access to writer credentials
+    ○ skipped disabled verifier is compatible and has no startup storage/DB requirement
+    ○ skipped unsafe root configuration fails without changing filesystem permissions
+  Operational worker/rollback compatibility
+    ✓ rejects extra-writer-column protocol/privilege drift before any claim (207 ms)
+    ✓ rejects extra-writer-role protocol/privilege drift before any claim (75 ms)
+    ✓ EXTRA direct writer-login grants are rejected before SET ROLE (147 ms)
+    ✓ EXTRA altered Owner review function is rejected at reconciliation (15 ms)
+    ✓ actual older binary cannot claim bound jobs or finish a valid newer claim (6408 ms)
+    ✓ separated worker preserves simulation and actual evidence classifications (27 ms)
+    ○ skipped kernel read-only mount blocks write and chmod while canonical bytes remain readable
+    ○ skipped reader identity has no executor membership or Pet medical-history update privilege
+    ○ skipped missing writer membership fails closed at startup
+    ○ skipped bad writer credentials fail closed without processing queued jobs
+    ○ skipped application membership in executor is rejected even with NOINHERIT
+    ○ skipped column-only write privilege on reader is rejected
+    ○ skipped missing executor insert privilege fails startup and is restored only by owned test admin
+    ○ skipped rejects disabled-trigger protocol/privilege drift before any claim
+    ○ skipped rejects changed-function protocol/privilege drift before any claim
+    ○ skipped rejects changed-checksum protocol/privilege drift before any claim
+  Operational immutable confirmation fixture
+    ○ skipped records exact Owner correction/CONFIRM without rewriting results or legacy history
+
+Test Suites: 1 passed, 1 total
+Tests:       22 skipped, 6 passed, 28 total
+Snapshots:   0 total
+Time:        23.777 s
+Ran all test suites within paths "test/ocr-operational.e2e-spec.ts".
+Test results written to: ../../owned-results/results.json
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

@@ -129,6 +129,7 @@ function WorkspaceContent({ snapshot, clinicId, locationId, stale, refreshing, l
     {operationalEmpty && <p className="vh-workspace-empty" role="status">Сейчас нет срочных операционных задач.</p>}
     {veterinarianOnly && <p className="vh-workspace-empty" role="status">Персональная сводка врача пока не подключена.</p>}
     {visible.length === 0 && <p className="vh-workspace-empty" role="status">Нет доступных сводок для этой учётной записи.</p>}
+    <WorkspaceQuickActions clinicId={clinicId} locationId={locationId} sections={visible}/>
     <div className="vh-workspace-grid">{visible.map((section) => <WorkspaceCard key={section.kind} section={section} basePath={basePath} />)}</div>
   </main>;
 }
@@ -152,4 +153,11 @@ function QueueFacts({ section }: { section: Extract<WorkspaceSection, { kind: 'Q
 }
 function AppointmentFacts({ section }: { section: Extract<WorkspaceSection, { kind: 'APPOINTMENTS'; availability: 'AVAILABLE' }> }) {
   return <><dl className="vh-workspace-facts"><div><dt>Сегодня</dt><dd>{displayCount(section.facts.todayCount)}</dd></div><div><dt>Требуют действия</dt><dd>{displayCount(section.facts.requiresActionCount)}</dd></div></dl><p>Следующий приём: {section.facts.nextScheduledAt ? new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' }).format(new Date(section.facts.nextScheduledAt)) : 'не запланирован'}</p></>;
+}
+
+function WorkspaceQuickActions({clinicId,locationId,sections}:{clinicId:string;locationId:string;sections:WorkspaceSection[]}){
+ const access=useEffectiveSession(),base=`/clinics/${clinicId}/locations/${locationId}`;
+ if(access.loading||access.error||!access.hasClinicScope(clinicId,locationId))return null;
+ const links=[...(sections.some(s=>s.kind==='QUEUE'&&s.availability==='AVAILABLE')?[{href:'queue',label:'Разобрать заявки',cap:'booking.queue.read'}]:[]),...(sections.some(s=>s.kind==='APPOINTMENTS'&&s.availability==='AVAILABLE')?[{href:'appointments',label:'Открыть записи',cap:'appointment.registry.read'}]:[]),{href:'schedule',label:'Посмотреть расписание',cap:'schedule.read'},{href:'vet/visits',label:'Открыть приёмы филиала',cap:'clinical.visit.workspace.read'}].filter(link=>access.hasCapability(link.cap));
+ return links.length?<nav className="vh-product-quick-actions" aria-label="Быстрые действия">{links.map(link=><Link key={link.href} href={`${base}/${link.href}`}>{link.label}</Link>)}</nav>:null;
 }

@@ -1,0 +1,58 @@
+FAIL test/document-byte-authority.e2e-spec.ts (19.536 s)
+  Document byte DB/Owner authority actual PostgreSQL
+    ✕ B01 upload atomically publishes private version/event with no Pet/OCR promotion or public tokens (89 ms)
+    ✓ B09 exact authority denies foreign (33 ms)
+    ✓ B09 exact authority denies pet (36 ms)
+    ✓ B09 exact authority denies document (24 ms)
+    ✓ B09 exact authority denies version (35 ms)
+    ✓ B09 exact authority denies role (25 ms)
+    ✓ B09 upload transfer after IO cannot publish metadata (29 ms)
+    ✓ B09 upload archive after IO cannot publish metadata (32 ms)
+    ✓ B07 deferred COMMIT failure leaves no document/version/event/audit and private orphan (127 ms)
+    ✓ B08/B14 observed legacy is sequence-only, never backfills historical job/result/review (223 ms)
+    ✓ B08 legacy bytes mutation during capture rejected (76 ms)
+    ✓ B08 legacy metadata mutation during capture rejected (32 ms)
+    ✓ B09 verification rechecks Owner after filesystem read (144 ms)
+    ✓ B19 newly created same-TX job may bind; old worker claim fails without attempt (56 ms)
+    ✓ B14 old queued attempt0 cannot rebind even after UPDATE or witness forgery (66 ms)
+    ✓ B14 sequence-only observation cannot bind even new job (56 ms)
+    ✓ B20 deferred bound success guard rolls back commit; no raw/bindings created (50 ms)
+    ✓ B20 no forged ACTUAL_BYTE_INPUT receipt accepted (35 ms)
+    ✓ B20 no forged SIMULATED_METADATA_ONLY receipt accepted (27 ms)
+    ✓ B20 no result binding insert accepted (29 ms)
+    ✓ B25 append-only versions/events/sources and all-table TRUNCATE denied (280 ms)
+    ✓ B25 forged context/version digest and foreign actor denied; negative event is terminal (127 ms)
+    ✓ B19/B28 unbound metadata-only job still claims/finishes without source-bound claim (79 ms)
+    ✓ B06 parallel Owner captures publish unique rows/events without context mixing (112 ms)
+    ✓ B14 forged Owner/Pet/document version context and publication key rejected (68 ms)
+    ✓ B19/B25 destructive rollback refuses and retains every populated provenance row (1682 ms)
+
+  ● Document byte DB/Owner authority actual PostgreSQL › B01 upload atomically publishes private version/event with no Pet/OCR promotion or public tokens
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 0
+    Received length: 3
+    Received array:  [{"byte_length": "22", "created_at": 2026-10-11T18:15:39.080Z, "document_id": "16f2dbf6-b669-40c6-a9a7-70ac9a63e942", "job_id": "24058878-61ad-4689-bc1a-d8ddca4e67d8", "owner_id": "b28c68c5-68bc-44a7-bb4d-e02e759e982a", "pet_id": "8bb27d92-2f68-4ddc-9ce5-279d1657776c", "protocol_version": 1, "sha256": "dad4be97c622cbffdd4b28bfb1040e19fba26fb3621e638e3ba7062d14e9e6d3", "version_id": "ea05f16b-1c86-49f3-ae41-d22f9e73d06f"}, {"byte_length": "22", "created_at": 2026-10-11T18:15:39.231Z, "document_id": "2fef4bef-b8e6-447d-a840-13ffe2eca1d0", "job_id": "26f46094-940e-4e38-ab53-b36b9290515f", "owner_id": "b28c68c5-68bc-44a7-bb4d-e02e759e982a", "pet_id": "8bb27d92-2f68-4ddc-9ce5-279d1657776c", "protocol_version": 1, "sha256": "dad4be97c622cbffdd4b28bfb1040e19fba26fb3621e638e3ba7062d14e9e6d3", "version_id": "16dab184-a23d-4e2b-ad36-df081e3dbf09"}, {"byte_length": "22", "created_at": 2026-10-11T18:15:39.366Z, "document_id": "10b121ee-1908-48c6-ae7b-03a72c0ae4b0", "job_id": "c92cf5f7-387b-439e-9852-360eb0b510c8", "owner_id": "b28c68c5-68bc-44a7-bb4d-e02e759e982a", "pet_id": "8bb27d92-2f68-4ddc-9ce5-279d1657776c", "protocol_version": 1, "sha256": "dad4be97c622cbffdd4b28bfb1040e19fba26fb3621e638e3ba7062d14e9e6d3", "version_id": "cb3a331e-9875-400d-8c06-0b75c72b0c4e"}]
+
+      14 |  afterEach(async()=>{jest.restoreAllMocks();await db.query('UPDATE pet_schema.pets SET owner_id=$2,archived_at=NULL WHERE id=$1',[pet,ownerId]);await db.query(`UPDATE pet_schema.ocr_attempts SET status='FAILED',finished_at=clock_timestamp(),error_code='PROVIDER_FAILED' WHERE status='RUNNING'`);await db.query(`UPDATE pet_schema.ocr_jobs SET state='FAILED',claim_token=NULL,lease_until=NULL,error_code='PROVIDER_FAILED' WHERE state IN('QUEUED','RUNNING')`);});
+      15 |  afterAll(async()=>{await app?.close();});
+    > 16 |  it('B01 upload atomically publishes private version/event with no Pet/OCR promotion or public tokens',async()=>{const before=(await db.query('SELECT * FROM pet_schema.pets WHERE id=$1',[pet])).rows[0],u=await upload(),v=await version(u.documentId);expect(v).toMatchObject({sha256:hash(bytes.toString()),byte_length:String(bytes.length),capture_kind:'UPLOAD_BYTES',capture_coherence:'UPLOAD_BUFFER'});expect(await pets.verifyDocumentSnapshot(owner,pet,u.documentId,v.version_id)).toMatchObject({sourceBytesVerified:true,storageIntegrity:'SNAPSHOT_BYTES_VERIFIED'});expect(JSON.stringify(u)).not.toMatch(/sha256|storage_|byte_versions/);expect((await db.query('SELECT * FROM pet_schema.pets WHERE id=$1',[pet])).rows[0]).toEqual(before);expect((await db.query('SELECT * FROM pet_schema.ocr_job_byte_sources')).rows).toHaveLength(0);});
+         |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ^
+      17 |  it.each(['foreign','pet','document','version','role'] as const)('B09 exact authority denies %s',async kind=>{const u=await upload(),v=await version(u.documentId);await expect(pets.verifyDocumentSnapshot(kind==='foreign'?foreign:kind==='role'?{sub:ownerId,roles:[Role.CLINIC_ADMIN]}:owner,kind==='pet'?otherPet:pet,kind==='document'?randomUUID():u.documentId,kind==='version'?randomUUID():v.version_id)).rejects.toBeDefined();});
+      18 |  it.each(['transfer','archive'] as const)('B09 upload %s after IO cannot publish metadata',async kind=>{const count=(await db.query('SELECT count(*) n FROM pet_schema.document_byte_versions')).rows[0].n,real=storage.publishByteSnapshot;jest.spyOn(storage,'publishByteSnapshot').mockImplementationOnce(async(...args)=>{const s=await real(...args);await db.query(kind==='transfer'?'UPDATE pet_schema.pets SET owner_id=$2 WHERE id=$1':'UPDATE pet_schema.pets SET archived_at=clock_timestamp() WHERE id=$1',kind==='transfer'?[pet,foreignId]:[pet]);return s;});await expect(upload()).rejects.toMatchObject({status:404});expect((await db.query('SELECT count(*) n FROM pet_schema.document_byte_versions')).rows[0].n).toBe(count);expect((await pets.reconcilePrivateSnapshotObjects()).length).toBeGreaterThan(0);});
+      19 |  it('B07 deferred COMMIT failure leaves no document/version/event/audit and private orphan',async()=>{const name='byte_test_'+randomUUID().replace(/-/g,''),before=(await db.query('SELECT count(*) n FROM pet_schema.document_byte_versions')).rows[0].n;await db.query(`CREATE FUNCTION audit_schema.${name}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.actor_id='${ownerId}' AND NEW.action='pet.document.uploaded' THEN RAISE EXCEPTION 'TEST_DEFERRED_FAILURE';END IF;RETURN NEW;END $$;CREATE CONSTRAINT TRIGGER ${name} AFTER INSERT ON audit_schema.audit_log DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION audit_schema.${name}()`);try{await expect(upload()).rejects.toThrow('TEST_DEFERRED_FAILURE');expect((await db.query('SELECT count(*) n FROM pet_schema.document_byte_versions')).rows[0].n).toBe(before);expect((await pets.reconcilePrivateSnapshotObjects()).length).toBeGreaterThan(0);}finally{await db.query(`DROP TRIGGER ${name} ON audit_schema.audit_log;DROP FUNCTION audit_schema.${name}()`);}});
+
+      at Object.<anonymous> (test/document-byte-authority.e2e-spec.ts:16:816)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 25 passed, 26 total
+Snapshots:   0 total
+Time:        19.83 s
+Ran all test suites within paths "test/document-byte-authority.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4b-03a-01-20261011/authority-results.json
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

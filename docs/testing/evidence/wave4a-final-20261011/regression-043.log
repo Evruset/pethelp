@@ -1,0 +1,18 @@
+PASS src/auth/owner-auth.service.spec.ts (7.186 s)
+  DeterministicOtpDeliveryStub
+    ✓ models ACCEPTED through the provider-neutral port (4 ms)
+    ✓ models PROVIDER_REJECTED through the provider-neutral port (1 ms)
+    ✓ models PROVIDER_UNAVAILABLE through the provider-neutral port
+    ✓ models PROVIDER_RETRYABLE_FAILURE through the provider-neutral port
+    ✓ models PROVIDER_FINAL_FAILURE through the provider-neutral port (1 ms)
+    ✓ models PROVIDER_TIMEOUT through the provider-neutral port (1 ms)
+    ✓ models OUTCOME_UNKNOWN through the provider-neutral port
+    ✓ fails a malformed configured outcome closed without reflecting it (1 ms)
+    ✓ cannot acknowledge delivery in production mode (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       9 passed, 9 total
+Snapshots:   0 total
+Time:        7.478 s
+Ran all test suites within paths "src/auth/owner-auth.service.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-043.json

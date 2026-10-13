@@ -1,0 +1,13 @@
+PASS src/auth/owner-pet-archive-migration.integration.spec.ts (7.666 s)
+  owner pet archival migration on real PostgreSQL
+    ✓ EMPTY_DATABASE preserves rows and installs valid archive schema (635 ms)
+    ✓ POPULATED_ACTIVE_PETS preserves rows and installs valid archive schema (329 ms)
+    ✓ POPULATED_ALREADY_ARCHIVED preserves rows and installs valid archive schema (538 ms)
+    ✓ REPEATED_MIGRATION_RUN records and applies the migration once (524 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       4 passed, 4 total
+Snapshots:   0 total
+Time:        7.935 s
+Ran all test suites within paths "src/auth/owner-pet-archive-migration.integration.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-023.json

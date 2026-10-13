@@ -40,7 +40,11 @@ export class VeterinarianVisitReadController {
   @ApiBearerAuth(SWAGGER_BEARER_AUTH)
   @ApiOperation({ summary: 'Minimal veterinarian in-person visit workspace detail' })
   @ApiExtension('x-required-capabilities', [Capability.CLINICAL_VISIT_WORKSPACE_READ])
-  @ApiOkResponse({ description: 'A confirmed or completed visit in the scoped clinic location.' })
+  @ApiOkResponse({ description: 'A confirmed or completed visit in the scoped clinic location.',schema:{type:'object',additionalProperties:false,
+    required:['holdId','clinicId','locationId','scheduledStart','scheduledEnd','status','petDisplayName','species','visitId','appointmentId'],properties:{
+      holdId:{type:'string',format:'uuid'},clinicId:{type:'string',format:'uuid'},locationId:{type:'string',format:'uuid'},appointmentId:{type:'string',format:'uuid'},visitId:{type:'string',format:'uuid',nullable:true},
+      scheduledStart:{type:'string',format:'date-time'},scheduledEnd:{type:'string',format:'date-time'},status:{type:'string',enum:['CONFIRMED','COMPLETED']},petDisplayName:{type:'string'},species:{type:'string'},
+    }}})
   @ApiForbiddenResponse({ description: 'Normalized authorization or resource denial.' })
   async detail(
     @Param('clinicId') clinicId: string,

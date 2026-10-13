@@ -1,0 +1,29 @@
+time="2026-10-11T11:39:35+03:00" level=warning msg="Found orphan containers ([pethelp-wave4a-t044-control-20261011a-run1 pethelp-wave4a-t044-control-20261011a-run1-observer]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
+
+> vethelp-mvp1@0.1.0 test
+> jest --runInBand --passWithNoTests --runTestsByPath test/booking-core-performance.integration-spec.ts --passWithNoTests=false --json --outputFile=/workspace/.artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-2/jest-results.json
+
+[32m[Nest] 27  - [39m10/11/2026, 8:39:55 AM [32m    LOG[39m [38;5;3m[HoldExpirationService] [39m[32mExpired 50 hold(s)[39m
+PASS test/booking-core-performance.integration-spec.ts (21.217 s)
+  T044 Booking Core engineering baseline (real PostgreSQL)
+    ✓ profile A: final-unit contention is reproducible at 50 and 100 contenders (1828 ms)
+    ✓ profile B: multi-capacity contention conserves all five units (756 ms)
+    ✓ profile C: distributed create load establishes a bounded concurrency ramp (2067 ms)
+    ✓ profile D: idempotency storm creates exactly one mutation and rejects changed fingerprint (181 ms)
+    ✓ profile E: stale-version contention is side-effect free (240 ms)
+    ✓ profile F: mixed confirm/decline/owner-cancel races converge without deadlock (165 ms)
+    ✓ profile G: bounded expiry backlog drains and cached health reflects recovery (637 ms)
+    ✓ captures representative PostgreSQL plans for slot, idempotency and expiry claims (1360 ms)
+    ✓ global hard gates: no deadlocks, pool leaks, stuck transactions, or unexpected failures (7 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       9 passed, 9 total
+Snapshots:   0 total
+Time:        21.605 s
+Ran all test suites within paths "test/booking-core-performance.integration-spec.ts".
+Test results written to: ../.artifacts/wave4a-t044-resource-control/20261011-4cpu-01/run-2/jest-results.json
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

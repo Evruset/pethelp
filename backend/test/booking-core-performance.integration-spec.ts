@@ -8,6 +8,7 @@ import { readFile } from "node:fs/promises";
 import { Role } from "../src/auth/auth.types";
 import { BookingHoldCreationService } from "../src/booking-core/booking-hold-creation.service";
 import { BookingRepository } from "../src/booking-core/booking.repository";
+import { BookingPolicyResolver } from "../src/booking-core/booking-policy.resolver";
 import { BookingSecurityService } from "../src/booking-core/booking-security.service";
 import { BookingService } from "../src/booking-core/booking.service";
 import { DatabaseService } from "../src/database/database.service";
@@ -51,6 +52,7 @@ const database = new DatabaseService();
 const creation = new BookingHoldCreationService(
   database,
   new BookingRepository(),
+  new BookingPolicyResolver(),
 );
 const booking = new BookingService(database, new BookingRepository());
 const clinicAccess = {
@@ -64,6 +66,8 @@ const databasePlans: Record<
   { nodes: string[]; indexes: string[]; executionTimeMs: number | null }
 > = {};
 const fixtures: Fixture[] = [];
+const databasePlanDetails: Record<string, unknown> = {};
+let slotIdentityIndexes: Array<{ index_name: string; method: string; is_primary: boolean; is_unique: boolean; is_valid: boolean; is_ready: boolean; key_columns: string[]; constraint_type: string; definition: string }> = [];
 let maxPoolInUse = 0;
 const controlledCodes = new Set([
   "SLOT_ALREADY_TAKEN",
@@ -222,7 +226,7 @@ describe("T044 Booking Core engineering baseline (real PostgreSQL)", () => {
     const outcomes = await timedBurst(
       Array.from({ length: 100 }, () => () => create(fixture, 0, 0, key, 1)),
     );
-    expect(outcomes.every((x) => x.ok)).toBe(true);
+    expect(outcomes.filter((x) => !x.ok).map((x) => ({ code: x.code, latencyMs: x.latencyMs }))).toEqual([]);
     const replay = await outcome(() => create(fixture, 0, 0, key, 1));
     expect(replay.ok).toBe(true);
     const changed = await outcome(() =>
@@ -450,10 +454,39 @@ describe("T044 Booking Core engineering baseline (real PostgreSQL)", () => {
         "QUERY PLAN": Array<{ Plan: unknown; "Execution Time"?: number }>;
       }>(sql, values);
       databasePlans[name] = planSummary(result.rows[0]["QUERY PLAN"][0]);
+      databasePlanDetails[name] = result.rows[0]["QUERY PLAN"][0];
     }
-    expect(databasePlans.slotLookup.indexes).toContain(
-      "appointment_slots_pkey",
-    );
+    // Physical index names are not the contract: prove indexed, bounded access
+    // to the PK-authoritative slot identity using the index the planner chose.
+    slotIdentityIndexes = (await database.query<typeof slotIdentityIndexes[number]>(`
+      SELECT idx.relname AS index_name,am.amname AS method,
+        i.indisprimary AS is_primary,i.indisunique AS is_unique,
+        i.indisvalid AS is_valid,i.indisready AS is_ready,
+        ARRAY(SELECT a.attname::text FROM unnest(i.indkey) WITH ORDINALITY AS k(attnum,position)
+          JOIN pg_attribute a ON a.attrelid=i.indrelid AND a.attnum=k.attnum
+          WHERE k.position<=i.indnkeyatts ORDER BY k.position) AS key_columns,
+        c.contype::text AS constraint_type,pg_get_indexdef(i.indexrelid) AS definition
+      FROM pg_index i JOIN pg_class idx ON idx.oid=i.indexrelid
+      JOIN pg_am am ON am.oid=idx.relam JOIN pg_constraint c ON c.conindid=i.indexrelid
+      WHERE i.indrelid='clinic_schema.appointment_slots'::regclass
+        AND c.conrelid=i.indrelid AND c.contype IN ('p','u')
+    `)).rows;
+    expect(slotIdentityIndexes.find(index => index.is_primary)).toMatchObject({
+      key_columns: ['id'], constraint_type: 'p', is_unique: true, is_valid: true, is_ready: true, method: 'btree',
+    });
+    const slotScans = flattenPlan((databasePlanDetails.slotLookup as { Plan: unknown }).Plan)
+      .filter(node => node['Relation Name'] === 'appointment_slots');
+    expect(slotScans).toHaveLength(1);
+    const scan = slotScans[0];
+    expect(['Index Scan', 'Index Only Scan']).toContain(scan['Node Type']);
+    expect(scan['Actual Rows']).toBe(1);
+    expect(scan['Actual Loops']).toBe(1);
+    expect(scan['Index Cond']).toContain('id =');
+    expect(scan['Index Cond']).toContain(fixture.slots[0]);
+    const chosen = slotIdentityIndexes.find(index => index.index_name === scan['Index Name']);
+    expect(chosen).toMatchObject({ method: 'btree', is_unique: true, is_valid: true, is_ready: true });
+    expect(chosen!.key_columns[0]).toBe('id');
+    expect(['p', 'u']).toContain(chosen!.constraint_type);
     expect(
       databasePlans.idempotencyLookup.indexes.some((name) =>
         name.includes("idempotency"),
@@ -850,6 +883,12 @@ async function recordProfile(profile: Profile) {
   profiles.push(profile);
 }
 
+function flattenPlan(node: unknown): Array<Record<string, unknown>> {
+  if (!node || typeof node !== 'object') return [];
+  const item = node as Record<string, unknown>;
+  return [item, ...(Array.isArray(item.Plans) ? item.Plans.flatMap(flattenPlan) : [])];
+}
+
 function planSummary(root: { Plan: unknown; "Execution Time"?: number }) {
   const nodes: string[] = [];
   const indexes: string[] = [];
@@ -936,6 +975,8 @@ async function writeEvidence(directory: string) {
         "use concurrency 10 as the conservative local repeatable operating point; this is not a production recommendation",
     },
     databasePlans,
+    databasePlanDetails,
+    slotIdentityIndexes,
     profiles,
   };
   await writeFile(

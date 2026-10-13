@@ -1,0 +1,3 @@
+ERROR:  relation "clinic_schema.clinic_contract_profile_audit" does not exist
+LINE 1: SELECT count(*) AS retained_audit_rows FROM clinic_schema.cl...
+                                                    ^

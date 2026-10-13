@@ -1,0 +1,111 @@
+{
+  "attempts": [
+    {
+      "file": "accepted-slice-results.json",
+      "passed": 30,
+      "failed": 1,
+      "runtimeErrorSuites": 0,
+      "failedAssertions": [
+        "Document byte DB/Owner authority actual PostgreSQL B03/B14 changed current document type cannot verify or bind old upload version"
+      ]
+    },
+    {
+      "file": "attempt1-focused-results.json",
+      "passed": 21,
+      "failed": 4,
+      "runtimeErrorSuites": 1,
+      "failedAssertions": [
+        "Private snapshot actual filesystem B06 exclusive-create refuses UUID collision without overwrite",
+        "Private snapshot actual filesystem B07 write failure closes handles and leaves only private orphan",
+        "Private snapshot actual filesystem B07 file-sync failure closes handles and leaves only private orphan",
+        "Private snapshot actual filesystem B07 directory-sync failure closes handles and leaves only private orphan"
+      ]
+    },
+    {
+      "file": "attempt2-focused-results.json",
+      "passed": 43,
+      "failed": 5,
+      "runtimeErrorSuites": 0,
+      "failedAssertions": [
+        "Document byte DB/Owner authority actual PostgreSQL B19 newly created same-TX job may bind; old worker claim fails without attempt",
+        "Document byte DB/Owner authority actual PostgreSQL B14 sequence-only observation cannot bind even new job",
+        "Document byte DB/Owner authority actual PostgreSQL B20 no forged ACTUAL_BYTE_INPUT receipt accepted",
+        "Document byte DB/Owner authority actual PostgreSQL B20 no forged SIMULATED_METADATA_ONLY receipt accepted",
+        "Document byte DB/Owner authority actual PostgreSQL B20 no result binding insert accepted"
+      ]
+    },
+    {
+      "file": "authority-recheck-results.json",
+      "passed": 1,
+      "failed": 1,
+      "runtimeErrorSuites": 0,
+      "failedAssertions": [
+        "Document byte DB/Owner authority actual PostgreSQL B07 deferred COMMIT failure leaves no document/version/event/audit and private orphan"
+      ]
+    },
+    {
+      "file": "authority-results.json",
+      "passed": 25,
+      "failed": 1,
+      "runtimeErrorSuites": 0,
+      "failedAssertions": [
+        "Document byte DB/Owner authority actual PostgreSQL B01 upload atomically publishes private version/event with no Pet/OCR promotion or public tokens"
+      ]
+    },
+    {
+      "file": "commit-boundary-results.json",
+      "passed": 1,
+      "failed": 0,
+      "runtimeErrorSuites": 0,
+      "failedAssertions": []
+    },
+    {
+      "file": "filesystem-results.json",
+      "passed": 24,
+      "failed": 0,
+      "runtimeErrorSuites": 0,
+      "failedAssertions": []
+    },
+    {
+      "file": "sharing-results.json",
+      "passed": 1,
+      "failed": 0,
+      "runtimeErrorSuites": 0,
+      "failedAssertions": []
+    },
+    {
+      "file": "storage-compat-results.json",
+      "passed": 3,
+      "failed": 0,
+      "runtimeErrorSuites": 0,
+      "failedAssertions": []
+    },
+    {
+      "file": "type-results.json",
+      "passed": 1,
+      "failed": 0,
+      "runtimeErrorSuites": 0,
+      "failedAssertions": []
+    },
+    {
+      "file": "verified-results.json",
+      "passed": 30,
+      "failed": 0,
+      "runtimeErrorSuites": 0,
+      "failedAssertions": []
+    }
+  ],
+  "classifications": [
+    "TEST_EXPECTATION: upload API documentId typing, Node namespace spying, exact DB exception strings",
+    "TEST_EXPECTATION: manually created bound job fixture needed accepted metadata fingerprint to reach old claim trigger",
+    "TEST_EXPECTATION: prior retained owned-DB rows required per-document assertion instead of global zero",
+    "TEST_EXPECTATION: generic audit actor_id is text; explicit parameter cast required",
+    "TEST_EXPECTATION: unsupported PHOTO fixture corrected to accepted PET_PHOTO"
+  ],
+  "productionRepairs": [
+    "Reviewer-driven receipt NULL/exact attempt/capture-event and scope hardening",
+    "Reviewer-driven current source key/size/type eligibility and pre-allocation bounds"
+  ],
+  "unresolvedFailures": 0,
+  "preservedRawTestAttempts": true
+}

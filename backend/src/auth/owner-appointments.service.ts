@@ -73,6 +73,15 @@ export type OwnerAppointmentDetail = OwnerAppointmentSummary & {
     safeReason: string | null;
     aggregateVersion: number;
   };
+  appointmentLifecycle: {
+    state: string | null;
+    cancelledBy: string | null;
+    cancelledAt: string | null;
+    lateCancellation: boolean | null;
+    reasonCode: string | null;
+    reasonText: string | null;
+    noShowAt: string | null;
+  };
 };
 
 const LOCAL_RELEASE_STATES = ['MANUAL_CONFIRM_PENDING', 'ALTERNATIVE_PENDING'];
@@ -395,6 +404,9 @@ export class OwnerAppointmentsService {
       pet_name: string;
       pet_species: string;
       server_now: Date;
+      lifecycle_state: string | null; cancelled_by: string | null; cancelled_at: Date | null;
+      late_cancellation: boolean | null; cancellation_reason_code: string | null;
+      cancellation_reason_text: string | null; no_show_at: Date | null;
     }>(
       `
       WITH server_time AS (SELECT clock_timestamp() AS value)
@@ -417,7 +429,7 @@ export class OwnerAppointmentsService {
           ) THEN 'ACTIVE'
           ELSE 'HISTORY'
         END AS bucket,
-        hold.version,
+        COALESCE(appointment.version,hold.version) AS version,
         hold.expires_at,
         hold.state_changed_at,
         slot.starts_at,
@@ -437,7 +449,10 @@ export class OwnerAppointmentsService {
         pet.id AS pet_id,
         pet.name AS pet_name,
         pet.species AS pet_species,
-        server_time.value AS server_now
+        server_time.value AS server_now,
+        appointment.lifecycle_state, appointment.cancelled_by, appointment.cancelled_at,
+        appointment.late_cancellation, appointment.cancellation_reason_code,
+        appointment.cancellation_reason_text, appointment.no_show_at
       FROM booking_schema.booking_holds hold
       JOIN clinic_schema.appointment_slots slot ON slot.id = hold.slot_id
       JOIN clinic_schema.clinic_locations location ON location.id = slot.clinic_location_id
@@ -457,7 +472,8 @@ export class OwnerAppointmentsService {
     if (!row) return undefined;
     const timeline = await this.timeline(row.hold_id);
     const presentation = ownerAppointmentPresentation(row.state, row.bucket);
-    const policy = cancellationPolicy(row.state, row.bucket);
+    const basePolicy = cancellationPolicy(row.state, row.bucket);
+    const policy = { ...basePolicy, canCancel: basePolicy.canCancel && (!row.lifecycle_state || ['CONFIRMED','RESCHEDULE_PROPOSED'].includes(row.lifecycle_state)) };
     return {
       holdId: row.hold_id,
       appointmentId: row.appointment_id,
@@ -497,8 +513,8 @@ export class OwnerAppointmentsService {
         canOpenRoute: Boolean(
           (row.latitude && row.longitude) || row.address?.trim(),
         ),
-        canReviewAlternative:
-            row.bucket === 'REQUIRES_ACTION' && row.state === 'ALTERNATIVE_PENDING',
+        canReviewAlternative: row.lifecycle_state === 'RESCHEDULE_PROPOSED' ||
+            (row.bucket === 'REQUIRES_ACTION' && row.state === 'ALTERNATIVE_PENDING'),
         canCancel: policy.canCancel,
       },
       cancellation: {
@@ -506,6 +522,15 @@ export class OwnerAppointmentsService {
         cancellationDeadlineAt: null,
         safeReason: row.bucket === 'HISTORY' ? 'Запись уже завершена.' : null,
         aggregateVersion: row.version,
+      },
+      appointmentLifecycle: {
+        state: row.lifecycle_state,
+        cancelledBy: row.cancelled_by,
+        cancelledAt: row.cancelled_at?.toISOString() ?? null,
+        lateCancellation: row.late_cancellation,
+        reasonCode: row.cancellation_reason_code,
+        reasonText: row.cancellation_reason_text,
+        noShowAt: row.no_show_at?.toISOString() ?? null,
       },
     };
   }

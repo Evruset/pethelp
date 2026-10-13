@@ -1,0 +1,44 @@
+# PetHelp v1.5 current-to-target gap register
+
+Evidence labels: `VERIFIED_CONTRACT`, `VERIFIED_CODE`, `INFERRED`, `NOT_VERIFIED`.
+
+| BP | Target requirement | Current contract/code | Current Jira | Gap | Reuse candidate | Wave | Risk / acceptance evidence |
+|---|---|---|---|---|---|---|---|
+| BP-01 | Registration and login | OTP/session APIs (`VERIFIED_CODE`) | `NOT_VERIFIED` | MATCH | Auth module | 0 | Preserve auth/security regression |
+| BP-02 | Owner pet card | Owner pet CRUD/profile/document APIs (`VERIFIED_CODE`) | `NOT_VERIFIED` | PARTIAL | Owner pet services | Later | Full target field/medical authority parity not audited |
+| BP-03 | Clinic/specialist search | Public catalog and doctor reads (`VERIFIED_CODE`) | `NOT_VERIFIED` | PARTIAL | Public Catalog | 0/later | Consent-gated public doctor data remains a known constraint |
+| BP-04 | Services and clinic-owned prices | Service/catalog/schedule management exists (`VERIFIED_CODE`) | `NOT_VERIFIED` | PARTIAL | Catalog/Schedule | Later | Target price formats and accountability need contract tests |
+| BP-05 | Published availability is an offer to accept booking | Availability exists, but PILOT booking semantics remain manual (`VERIFIED_CODE`) | `NOT_VERIFIED` | CONTRADICTION | Schedule and availability reads | 1 | Response must expose authoritative semantics |
+| BP-06 | Atomic auto-confirm on slot selection | Product/SA retained `/v1/booking-holds` and the same canonical public error contract for both profiles; PILOT creates `MANUAL_CONFIRM_PENDING`, while legacy non-PILOT can confirm (`VERIFIED_CONTRACT`, `VERIFIED_CODE`) | Normative reconciliation supplied; Jira unchanged | CONTRADICTION, decision resolved for Wave 1 | Booking Core transaction | 1 | Assert `BOOKING_STATE_CONFLICT` for stale version in both profiles; prove real PostgreSQL race/idempotency/rollback |
+| BP-07 | Owner cancellation; classify under-two-hour cancellation | Appointment records server-time Owner cancellation and immutable exact-boundary `lateCancellation`; no consequence is introduced (`VERIFIED_CODE`) | Normative reconciliation supplied; Jira unchanged | MATCH | Booking cancellation | 2 | Real PostgreSQL covers normal, late, equality boundary, replay and terminal-state rejection; both confirmation profiles converge in real Nest runtime |
+| BP-08 | Clinic cancellation with mandatory reason | Scoped clinic command persists reason/actor/server time on Appointment and writes audit/outbox (`VERIFIED_CODE`) | Normative reconciliation supplied; Jira unchanged | MATCH | Appointment lifecycle | 2 | Missing reason and cross-scope actor are rejected; Owner readback exposes the authoritative result |
+| BP-09 | Clinic proposes; owner accepts/rejects reschedule | Confirmed Appointment remains authoritative while a separately versioned proposal reserves target capacity; only Owner accept atomically moves it (`VERIFIED_CODE`) | Normative reconciliation supplied; Jira unchanged | MATCH | Existing alternative proposal table plus Appointment lifecycle | 2 | Real PostgreSQL proves accept/reject/replay, stale target, final-capacity, cancel-vs-accept and accept-vs-expiry invariants |
+| BP-10 | Alternatives after clinic cancellation | Clinic cancellation returns `SELECT_ALTERNATIVE`; existing availability/catalog supplies bounded choices and never confirms a replacement without Owner selection (`VERIFIED_CODE`, `VERIFIED_CONTRACT`) | Normative reconciliation supplied; Jira unchanged | MATCH (bounded Wave 2) | Existing availability/catalog and alternative proposal flow | 2 | No AI/cross-clinic recommendation engine was introduced; replacement confirmation remains Owner-authoritative |
+| BP-11 | Only minimum booking data shared automatically | Scoped owner/clinic reads exist; exact target field set not fully reconciled (`INFERRED`) | `NOT_VERIFIED` | PARTIAL | Existing scoped read models | 4 | Field-level no-leak API tests |
+| BP-12 | Explicit appointment-scoped medical sharing | No authoritative `AppointmentDataShare` confirmed (`NOT_VERIFIED`) | `NOT_VERIFIED` | NOT_IMPLEMENTED | Pet documents and memberships | 4 | Separate purpose from patient registry consent |
+| BP-13 | Visit result | Appointment-authoritative Visit and veterinarian-scoped draft Result are implemented on the transition branch (`VERIFIED_CODE`, `VERIFIED_RUNTIME`) | Normative reconciliation supplied; Jira unchanged | MATCH | Clinical Result slice | 3 | Real Nest/PostgreSQL proves completion replay, scope denial and terminal-state veto |
+| BP-14 | Published result immutable; append-only correction | Versioned draft, atomic publication, database immutability, append-only amendments and published-only Owner Diary are implemented (`VERIFIED_CODE`, `VERIFIED_RUNTIME`) | Normative reconciliation supplied; Jira unchanged | MATCH | Clinical Result slice | 3 | Real PostgreSQL proves competing create/edit/publish, amendment replay/order and owner isolation |
+| BP-15 | OCR candidates require owner confirmation | OCR worker/document flow exists; target authority separation is not proven (`VERIFIED_CODE`) | `NOT_VERIFIED` | LEGACY_GATED | OCR ingestion | 4 | Provider must never mutate authoritative facts directly |
+| BP-16 | Clinic-created provisional owner with consent assertion | No complete target flow confirmed (`NOT_VERIFIED`) | `NOT_VERIFIED` | NOT_IMPLEMENTED | Auth + Booking Core | 5 | Consent/legal decision and acceptance token security |
+| BP-17 | Veterinary service payment goes directly to clinic | Legacy payment modules exist outside PILOT; target non-agent boundary not proven (`VERIFIED_CODE`) | `NOT_VERIFIED` | LEGACY_GATED | None until contract audit | Later | Must not activate with Wave 1 |
+| BP-18 | Treatment complaint routed to clinic with history | No bounded target flow confirmed (`NOT_VERIFIED`) | `NOT_VERIFIED` | NOT_IMPLEMENTED | Audit/support primitives | 5 | Keep outside booking state machine |
+| BP-19 | PetHelp owns booking disputes | No bounded target support-case flow confirmed (`NOT_VERIFIED`) | `NOT_VERIFIED` | NOT_IMPLEMENTED | Audit/read models | 5 | Dispute must not become booking state |
+| BP-20 | Suspend clinic from new bookings | Emergency/feature infrastructure is not proof of clinic suspension policy (`VERIFIED_CODE`) | `NOT_VERIFIED` | NOT_IMPLEMENTED; BP-06 guard dependency | Capability/policy infrastructure | 5 | Wave 1 must prove an existing active-clinic guard or remain blocked; full suspension lifecycle stays Wave 5 |
+| BP-21 | Terminate clinic; preserve required history | No target lifecycle confirmed (`NOT_VERIFIED`) | `NOT_VERIFIED` | NOT_IMPLEMENTED; BP-06 guard dependency | Membership/audit foundations | 5 | Wave 1 must fail closed if such a state is represented; lifecycle/retention stay Wave 5 |
+| BP-22 | Owner deletion with lawful retention | Pet archival exists, but account deletion/retention orchestration is not proven (`VERIFIED_CODE`) | `NOT_VERIFIED` | PARTIAL | Pet archival and audit | 5 | Human legal decision required |
+| BP-23 | Referral link/QR; partner sends no client data | No target referral flow confirmed (`NOT_VERIFIED`) | `NOT_VERIFIED` | NOT_IMPLEMENTED | Catalog links | 5 | Prove no partner personal-data ingestion |
+| BP-24 | Telemedicine future boundary, outside current MVP | Legacy telemedicine exists and is excluded from PILOT (`VERIFIED_CODE`) | `NOT_VERIFIED` | LEGACY_GATED | Isolated telemed module | Later | Do not activate in Wave 1 |
+| BP-25 | 60-day B2B trial and configurable billing after VisitConfirmed | Legacy billing/payment elements do not prove target tariff/visit authority (`VERIFIED_CODE`) | `NOT_VERIFIED` | NOT_IMPLEMENTED | Outbox and versioned config patterns | 6 | Fees/grace remain unset; race with No_Show |
+| BP-26 | Free search/booking; Premium entitlements | Search/booking exist; target subscriptions/entitlements not confirmed (`VERIFIED_CODE`) | `NOT_VERIFIED` | PARTIAL | Auth/catalog plus future entitlements | 7 | Do not hardcode price/quota |
+
+## Wave 1 acceptance focus
+
+BP-05 and BP-06 are the only business-process semantics changed in Wave 1. All other rows are documentation/backlog inputs and explicit non-goals.
+
+## Wave 2 acceptance result
+
+BP-07 through BP-10 are implemented for the bounded Wave 2 contract. Appointment is authoritative after confirmation; hold state remains a compatibility projection. Commercial consequences, VisitConfirmed, billing, AI recommendations and broader clinic lifecycle work remain deferred.
+
+## Wave 3 acceptance result
+
+BP-13 and BP-14 are implemented for the bounded Wave 3 contract. Appointment remains attendance authority; Visit records performed care; Clinical Result transitions `DRAFT → PUBLISHED`; published content is immutable and later corrections are append-only Amendments. Owner Diary exposes only published, owner-bound projections. Jira and Confluence remain unchanged.

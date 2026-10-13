@@ -1,0 +1,342 @@
+{
+  "uniquePassed": 59,
+  "unresolvedFailed": 0,
+  "runs": [
+    {
+      "path": "filesystem-results.json",
+      "passed": 24,
+      "failed": 0,
+      "selectedOut": 0,
+      "success": true
+    },
+    {
+      "path": "accepted-slice-results.json",
+      "passed": 30,
+      "failed": 1,
+      "selectedOut": 0,
+      "success": false
+    },
+    {
+      "path": "type-results.json",
+      "passed": 1,
+      "failed": 0,
+      "selectedOut": 29,
+      "success": true
+    },
+    {
+      "path": "sharing-results.json",
+      "passed": 1,
+      "failed": 0,
+      "selectedOut": 77,
+      "success": true
+    },
+    {
+      "path": "storage-compat-results.json",
+      "passed": 3,
+      "failed": 0,
+      "selectedOut": 0,
+      "success": true
+    }
+  ],
+  "assertions": {
+    "Private snapshot actual filesystem B01 actual SHA/count, 0400 final mode, flat UUID, independent caller buffer": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Private snapshot actual filesystem B02 refuses empty input before publication": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Private snapshot actual filesystem B02 refuses oversized input before publication": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Private snapshot actual filesystem B02 refuses truncated input before publication": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Private snapshot actual filesystem B02 exact maximum accepted": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Private snapshot actual filesystem B03 rehash detects replace after publication": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Private snapshot actual filesystem B03 rehash detects inplace after publication": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Private snapshot actual filesystem B03 rehash detects truncate after publication": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Private snapshot actual filesystem B04 rejects final symlink": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Private snapshot actual filesystem B04 rejects final hardlink": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Private snapshot actual filesystem B04 rejects path ../outside": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Private snapshot actual filesystem B04 rejects path /etc/passwd": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Private snapshot actual filesystem B04 rejects path sub/../../outside": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Private snapshot actual filesystem B05 fails closed on relative root": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Private snapshot actual filesystem B05 fails closed on missing root": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Private snapshot actual filesystem B05 fails closed on unsafe root": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Private snapshot actual filesystem B05 fails closed on symlink root": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Private snapshot actual filesystem B05 fails closed on ancestor root": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Private snapshot actual filesystem B06 parallel capture creates distinct immutable objects": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Private snapshot actual filesystem B06 exclusive-create refuses UUID collision without overwrite": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Private snapshot actual filesystem B07 write failure closes handles and leaves only private orphan": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Private snapshot actual filesystem B07 file-sync failure closes handles and leaves only private orphan": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Private snapshot actual filesystem B07 directory-sync failure closes handles and leaves only private orphan": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Private snapshot actual filesystem B08 observed bytes are bounded and reject unsafe nested ancestor": {
+      "status": "passed",
+      "evidence": "filesystem-results.json",
+      "suite": "src/common/document-byte-snapshots.spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B01 upload atomically publishes private version/event with no Pet/OCR promotion or public tokens": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B09 exact authority denies foreign": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B09 exact authority denies pet": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B09 exact authority denies document": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B09 exact authority denies version": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B09 exact authority denies role": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B09 upload transfer after IO cannot publish metadata": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B09 upload archive after IO cannot publish metadata": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B07 deferred COMMIT failure leaves no document/version/event/audit and private orphan": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B08/B14 observed legacy is sequence-only, never backfills historical job/result/review": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B08 legacy bytes mutation during capture rejected": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B08 legacy metadata mutation during capture rejected": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B09 verification rechecks Owner after filesystem read": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B19 newly created same-TX job may bind; old worker claim fails without attempt": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B14 old queued attempt0 cannot rebind even after UPDATE or witness forgery": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B14 sequence-only observation cannot bind even new job": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B20 deferred bound success guard rolls back commit; no raw/bindings created": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B20 no forged ACTUAL_BYTE_INPUT receipt accepted": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B20 no forged SIMULATED_METADATA_ONLY receipt accepted": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B20 no result binding insert accepted": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B25 append-only versions/events/sources and all-table TRUNCATE denied": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B25 forged context/version digest and foreign actor denied; negative event is terminal": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B19/B28 unbound metadata-only job still claims/finishes without source-bound claim": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B06 parallel Owner captures publish unique rows/events without context mixing": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B14 forged Owner/Pet/document version context and publication key rejected": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B19/B25 destructive rollback refuses and retains every populated provenance row": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B03/B14 changed current document key cannot verify or bind old upload version": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B03/B14 changed current document size cannot verify or bind old upload version": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B03/B14 changed current document type cannot verify or bind old upload version": {
+      "status": "passed",
+      "evidence": "type-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Document byte DB/Owner authority actual PostgreSQL B03 final verification rechecks current source key after IO": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-authority.e2e-spec.ts"
+    },
+    "Populated W4B02 -> W4B03A01 migration preserves exact legacy/job/raw/candidate rows and71 migration hashes, initializes no Owner decisions": {
+      "status": "passed",
+      "evidence": "accepted-slice-results.json",
+      "suite": "test/document-byte-migration.e2e-spec.ts"
+    },
+    "Wave 4A medical sharing (Docker PostgreSQL and real Nest HTTP) W4B03A01 immutable upload preserves Owner/Clinic actual byte delivery and selected isolation": {
+      "status": "passed",
+      "evidence": "sharing-results.json",
+      "suite": "test/appointment-medical-sharing-http.e2e-spec.ts"
+    },
+    "Shared trusted document storage primitive opens verified descriptor and returns bytes without path/key": {
+      "status": "passed",
+      "evidence": "storage-compat-results.json",
+      "suite": "src/common/pet-document-storage.spec.ts"
+    },
+    "Shared trusted document storage primitive rejects missing, traversal, outside symlink and size mismatch without path errors": {
+      "status": "passed",
+      "evidence": "storage-compat-results.json",
+      "suite": "src/common/pet-document-storage.spec.ts"
+    },
+    "Shared trusted document storage primitive sanitizes actual controls, path segments and Unicode disposition": {
+      "status": "passed",
+      "evidence": "storage-compat-results.json",
+      "suite": "src/common/pet-document-storage.spec.ts"
+    }
+  },
+  "supersededFailure": {
+    "accepted-slice-results.json": "PHOTO is not an accepted PostgreSQL document type; test-only correction to PET_PHOTO; type-results.json supersedes exactly that failed assertion."
+  },
+  "sticky": "Wave1–4A/W4B01/W4B02 accepted gates retained except directly affected storage delivery, upload scope and schema checks executed here. No T044/broad regression/provider runs."
+}

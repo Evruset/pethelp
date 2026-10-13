@@ -1,0 +1,12 @@
+PASS src/auth/owner-appointments.presentation.spec.ts (8.071 s)
+  ownerAppointmentPresentation
+    ✓ does not infer that a past confirmed visit was completed (6 ms)
+    ✓ does not expose a syncing status in history (1 ms)
+    ✓ keeps an alternative proposal actionable while it is active (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       3 passed, 3 total
+Snapshots:   0 total
+Time:        8.394 s
+Ran all test suites within paths "src/auth/owner-appointments.presentation.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-048.json

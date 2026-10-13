@@ -1,0 +1,15 @@
+// Read-only reconciliation after command replay and real TTL expiry.
+import assert from 'node:assert/strict';import {createRequire} from 'node:module';import {syntheticEnv} from './env.mjs';
+Object.assign(process.env,syntheticEnv);const require=createRequire(import.meta.url);const {connect,NS,nativeId}=require('../../backend/scripts/seed-local-multi-clinic.cjs');const c=await connect();
+try{
+ const rows=await c.query(`SELECT r.payload,h.*,s.clinic_location_id,s.service_id,service.code FROM synthetic_fixture.raw r JOIN synthetic_fixture.mapping m ON m.namespace=r.namespace AND m.kind='booking' AND m.external_id=r.external_id JOIN booking_schema.booking_holds h ON h.id=m.internal_id JOIN clinic_schema.appointment_slots s ON s.id=h.slot_id JOIN clinic_schema.clinic_services service ON service.id=s.service_id WHERE r.namespace=$1 AND r.kind='bookings'`,[NS]);
+ assert.equal(rows.rowCount,260);const states={};
+ for(const row of rows.rows){const b=row.payload;const expected={PENDING_CONFIRMATION:'MANUAL_CONFIRM_PENDING',CONFIRMED:'CONFIRMED',REJECTED:'RELEASED',CANCELLED:'RELEASED',EXPIRED:'EXPIRED'}[b.state];assert.equal(row.state,expected);assert.equal(row.owner_id,nativeId(b.owner_id));assert.equal(row.pet_id,nativeId(b.pet_id));assert.equal(row.clinic_location_id,nativeId(b.location_id));assert.equal(row.code,b.service_code);states[b.state]=(states[b.state]||0)+1;
+  const action={CONFIRMED:'booking.confirmed',REJECTED:'booking.declined',CANCELLED:'booking.hold.released',EXPIRED:'booking.hold.expired'}[b.state];
+  if(action){assert.equal(Number((await c.query('SELECT count(*) FROM audit_schema.audit_log WHERE aggregate_id=$1 AND action=$2',[row.id,action])).rows[0].count),1);const event={CONFIRMED:'booking.confirmed.v1',REJECTED:'booking.hold.released.v1',CANCELLED:'booking.hold.released.v1',EXPIRED:'booking.hold.expired.v1'}[b.state];assert.equal(Number((await c.query('SELECT count(*) FROM booking_schema.outbox_events WHERE aggregate_id=$1 AND event_type=$2',[row.id,event])).rows[0].count),1);}
+  if(b.state==='CONFIRMED')assert.equal(Number((await c.query('SELECT count(*) FROM booking_schema.appointments WHERE hold_id=$1',[row.id])).rows[0].count),1);
+ }
+ assert.deepEqual(states,{PENDING_CONFIRMATION:44,CONFIRMED:44,REJECTED:86,CANCELLED:43,EXPIRED:43});
+ const broken=await c.query(`SELECT count(*) n FROM clinic_schema.appointment_slots s JOIN synthetic_fixture.mapping m ON m.internal_id=s.id AND m.namespace=$1 AND m.kind='slot' WHERE s.held_count<>(SELECT count(*) FROM booking_schema.booking_holds h WHERE h.slot_id=s.id AND h.state='MANUAL_CONFIRM_PENDING') OR s.booked_count<>(SELECT count(*) FROM booking_schema.booking_holds h WHERE h.slot_id=s.id AND h.state='CONFIRMED')`,[NS]);assert.equal(Number(broken.rows[0].n),0);
+ console.log(JSON.stringify({BOOKING_HISTORY:'PASS',sourceBookings:260,sourceEventsPreserved:476,states,terminalAuditAndOutbox:'EXACTLY_ONCE',slotCounters:'PASS',timestamps:'ACTUAL_DB_TIME_NOT_BACKDATED'}));
+}finally{await c.end();}

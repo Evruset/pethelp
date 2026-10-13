@@ -1,0 +1,2 @@
+# Preserve original raw evidence bytes and whitespace, including SQL/runner output.
+* -text -whitespace

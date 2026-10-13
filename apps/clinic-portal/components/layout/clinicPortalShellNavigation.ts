@@ -12,13 +12,14 @@ const homeNavigation: ClinicShellNavigationItem = { label: 'Главная', sho
 
 const receptionNavigation: readonly ClinicShellNavigationItem[] = [
   { label: 'Очередь', shortLabel: 'Очередь', href: 'queue', ariaLabel: 'Открыть очередь записей', capability: 'booking.queue.read', icon: 'О' },
+  { label: 'Записи', shortLabel: 'Записи', href: 'appointments', ariaLabel: 'Открыть записи', capability: 'appointment.registry.read', icon: 'З' },
   { label: 'Расписание', shortLabel: 'Слоты', href: 'schedule', ariaLabel: 'Открыть расписание', capability: 'schedule.read', icon: 'Р' },
   { label: 'Пациенты', shortLabel: 'Пациенты', href: 'patients', ariaLabel: 'Открыть реестр пациентов', capability: 'patient.admin.read', icon: 'П' },
   { label: 'Качество', shortLabel: 'Качество', href: 'quality', ariaLabel: 'Открыть панель качества', capability: 'quality.read', icon: 'К' },
 ] as const;
 
 const veterinarianNavigation: readonly ClinicShellNavigationItem[] = [
-  { label: 'Мои приёмы', shortLabel: 'Приёмы', href: 'vet/visits', ariaLabel: 'Открыть приёмы врача', capability: 'clinical.visit.workspace.read', icon: 'П' },
+  { label: 'Приёмы филиала', shortLabel: 'Приёмы', href: 'vet/visits', ariaLabel: 'Открыть приёмы врача', capability: 'clinical.visit.workspace.read', icon: 'П' },
   { label: 'Расписание', shortLabel: 'Слоты', href: 'schedule', ariaLabel: 'Открыть расписание', capability: 'schedule.read', icon: 'Р' },
 ] as const;
 
@@ -40,6 +41,7 @@ export function resolveClinicShellNavigation(
   patientsEnabled = false,
   workspaceHomeEnabled = false,
   pilot = false,
+  appointmentsEnabled = false,
 ): ClinicShellNavigationItem[] {
   const persona = clinicShellPersona(roles);
   const candidates = persona === 'multi-role'
@@ -53,7 +55,8 @@ export function resolveClinicShellNavigation(
   const permitted = new Map<string, ClinicShellNavigationItem>();
   if (workspaceHomeEnabled && workspaceCapabilities.some(hasCapability)) permitted.set('', homeNavigation);
   for (const item of candidates) {
-    if (pilot && (item.href === 'quality' || item.href === 'vet/visits')) continue;
+    if (pilot && item.href === 'quality') continue;
+    if (item.href === 'appointments' && !appointmentsEnabled) continue;
     if (item.href === 'patients' && !patientsEnabled) continue;
     if (hasCapability(item.capability) && !permitted.has(item.href)) {
       permitted.set(item.href, item);

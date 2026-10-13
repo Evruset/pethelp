@@ -1,0 +1,26 @@
+{
+  "status": "PREFLIGHT_PASS",
+  "parent": "16888e1a191bf410a6aeb8f611f5ce4af98282df",
+  "branch": "agent/v15-w4b-01-ocr-4svfycsv",
+  "verifiedCandidateFiles": 16,
+  "implementationByteIdentical": 13,
+  "acceptanceDocsAnnotated": 2,
+  "recordedTestsPassed": 46,
+  "runtimeTestsRepeated": 0,
+  "candidateChecksumsVerified": 54,
+  "original674Preserved": true,
+  "activeLegacyPetOCRWrites": false,
+  "staleWorkerOverwritePrevented": "lease+token+rowlock+uniqueimmutable result",
+  "sharingProductionChanged": false,
+  "OCR_SOURCE_BYTE_INTEGRITY": "DEFERRED_BLOCKING_VALIDATED_IMPORT",
+  "postPushReceipt": "external task-root publication-receipt.json",
+  "formattingOnlyChange": {
+    "path": "backend/src/auth/owner-ocr.controller.ts",
+    "change": "remove one blank line at EOF only",
+    "candidateSHA256": "7e3949adba5f27024a3ca3b50dcfbd2fff4a5e9308151c2184e81655fe6b7759",
+    "deliverySHA256": "64e86dfb8534b5b8e7a615856d2bdc71d0f08b8dde5ad4fb2c9d1f16c9b0579a",
+    "runtimeBehaviorChanged": false,
+    "acceptedRuntimeGatesRepeated": 0
+  },
+  "stagedDiffCheck": "PASS after EOF-only correction"
+}

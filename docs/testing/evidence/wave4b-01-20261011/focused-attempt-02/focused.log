@@ -1,0 +1,47 @@
+FAIL test/owner-ocr-foundation.e2e-spec.ts (17.643 s)
+  ● Owner OCR foundation (real isolated PostgreSQL/Nest) › real HTTP rejects unauthenticated/non-Owner/malformed scopes and applies no-store
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 401
+    Received: 404
+
+      57 |   });
+      58 |   it('real HTTP rejects unauthenticated/non-Owner/malformed scopes and applies no-store',async()=>{
+    > 59 |     const doc=await document();expect((await request(app.getHttpServer()).post(path(doc))).status).toBe(401);
+         |                                                                                                    ^
+      60 |     for(const roles of [[Role.CLINIC_ADMIN],[Role.CLINIC_RECEPTIONIST],[Role.CLINIC_VETERINARIAN]])expect((await request(app.getHttpServer()).post(path(doc)).set('Authorization',`Bearer ${await token(ownerId,roles)}`)).status).toBe(403);
+      61 |     expect((await request(app.getHttpServer()).post(path('forged')).set('Authorization',`Bearer ${await token()}`)).status).toBe(400);
+      62 |     expect((await request(app.getHttpServer()).post(path(doc)).set('Authorization',`Bearer ${await token()}`).send({ownerId:foreignOwner,petId:otherPet,documentId:randomUUID()})).status).toBe(400);
+
+      at Object.<anonymous> (test/owner-ocr-foundation.e2e-spec.ts:59:100)
+
+FAIL test/owner-ocr-migration.e2e-spec.ts
+  ● Test suite failed to run
+
+    [96mtest/owner-ocr-migration.e2e-spec.ts[0m:[93m16[0m:[93m110[0m - [91merror[0m[90m TS2769: [0mNo overload matches this call.
+      The last overload gave the following error.
+        Argument of type 'number' is not assignable to parameter of type '(err: Error, result: QueryResult<any>) => void'.
+
+    [7m16[0m       const prior=(await db.query('SELECT * FROM public.schema_migration_checksums WHERE file_name NOT LIKE '171974%' ORDER BY file_name')).rows;
+    [7m  [0m [91m                                                                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+      [96mnode_modules/@types/pg/index.d.ts[0m:[93m262[0m:[93m5[0m
+        [7m262[0m     query<R extends QueryResultRow = any, I = any[]>(
+        [7m   [0m [96m    ~~~~~[0m
+        The last overload is declared here.
+    [96mtest/owner-ocr-migration.e2e-spec.ts[0m:[93m16[0m:[93m117[0m - [91merror[0m[90m TS2363: [0mThe right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+
+    [7m16[0m       const prior=(await db.query('SELECT * FROM public.schema_migration_checksums WHERE file_name NOT LIKE '171974%' ORDER BY file_name')).rows;
+    [7m  [0m [91m                                                                                                                    ~~~~~~~~~~~~~~~~~~~~~[0m
+    [96mtest/owner-ocr-migration.e2e-spec.ts[0m:[93m16[0m:[93m110[0m - [91merror[0m[90m TS1005: [0m',' expected.
+
+    [7m16[0m       const prior=(await db.query('SELECT * FROM public.schema_migration_checksums WHERE file_name NOT LIKE '171974%' ORDER BY file_name')).rows;
+    [7m  [0m [91m                                                                                                             ~~~~~~[0m
+
+Test Suites: 2 failed, 2 total
+Tests:       1 failed, 24 passed, 25 total
+Snapshots:   0 total
+Time:        18.436 s
+Ran all test suites within paths "test/owner-ocr-foundation.e2e-spec.ts", "test/owner-ocr-migration.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4b-01-20261011/focused.json

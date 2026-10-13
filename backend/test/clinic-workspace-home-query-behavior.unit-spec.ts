@@ -12,8 +12,9 @@ const now = new Date('2026-07-31T10:00:00.000Z');
 
 describe('Clinic Workspace Home query behavior', () => {
   it('executes one authority query and zero operational SQL for a veterinarian', async () => {
-    const { service, queries } = harness();
+    const { service, queries, database } = harness();
     const result = await service.read({ clinicId, locationId, employee: { sub, roles: [Role.CLINIC_VETERINARIAN], clinicIds: [clinicId], locationIds: [locationId] } });
+    expect(database.withTransaction).toHaveBeenCalledWith(expect.any(Function), { isolationLevel: 'REPEATABLE READ' });
     expect(queries.filter((sql) => sql.includes('employee_location_memberships membership'))).toHaveLength(1);
     expect(queries.filter(isOperational)).toHaveLength(0);
     expect(result.sections.map((section) => section.availability)).toEqual(['NOT_AUTHORIZED','NOT_AUTHORIZED','NOT_AUTHORIZED','NOT_CONFIGURED','NOT_AUTHORIZED']);
@@ -39,7 +40,7 @@ describe('Clinic Workspace Home query behavior', () => {
   });
 });
 
-function harness(queueError?: string): { service: ClinicWorkspaceHomeService; queries: string[] } {
+function harness(queueError?: string): { service: ClinicWorkspaceHomeService; queries: string[]; database: DatabaseService } {
   const queries: string[] = [];
   const client = { query: jest.fn(async (sql: string) => {
     queries.push(sql.trim().replace(/\s+/g, ' '));
@@ -53,6 +54,6 @@ function harness(queueError?: string): { service: ClinicWorkspaceHomeService; qu
   }) } as unknown as PoolClient;
   const database = { withTransaction: jest.fn(async (work) => work(client)) } as unknown as DatabaseService;
   const telemetry = { record: jest.fn() } as unknown as ClinicWorkspaceHomeTelemetry;
-  return { service: new ClinicWorkspaceHomeService(database, new ClinicEmployeeAccessService(), telemetry), queries };
+  return { service: new ClinicWorkspaceHomeService(database, new ClinicEmployeeAccessService(), telemetry), queries, database };
 }
 function isOperational(sql: string): boolean { return sql.includes('booking_schema.booking_holds') || sql.includes('booking_schema.appointments'); }

@@ -1,6 +1,7 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, HttpStatus, Injectable } from '@nestjs/common';
 import type { PoolClient } from 'pg';
-import { JwtPayload } from '../auth/auth.types';
+import { createHash } from 'node:crypto';
+import { JwtPayload, Role } from '../auth/auth.types';
 import { DomainErrors } from '../common/domain-error';
 import { featureFlags } from '../config/feature-flags.config';
 import { DatabaseService } from '../database/database.service';
@@ -185,6 +186,15 @@ export interface ClinicSchedulePeriodItem {
   updatedAt: string;
 }
 
+export interface ClinicDoctorShift {
+  id: string;
+  doctor: { id: string; displayName: string };
+  staff: { id: string; displayName: string };
+  startsAt: string;
+  endsAt: string;
+  status: 'PUBLISHED' | 'CANCELLED';
+}
+
 export interface ClinicScheduleImportResult {
   imported: number;
   slots: ClinicScheduleSlot[];
@@ -198,6 +208,8 @@ export interface ClinicScheduleResult {
   staff: ClinicScheduleStaffItem[];
   resources: ClinicScheduleResourceItem[];
   periods: ClinicSchedulePeriodItem[];
+  doctorShifts: ClinicDoctorShift[];
+  timezone: string;
   workingHours: ClinicWorkingHoursDay[];
   slots: ClinicScheduleSlot[];
 }
@@ -281,6 +293,16 @@ export class ClinicScheduleService {
           AND period.ends_at > $2::timestamptz
         ORDER BY period.active DESC, period.starts_at ASC, period.id ASC
       `, [input.locationId, input.from, input.to]);
+      const timezone=await client.query<{timezone:string}>('SELECT timezone FROM clinic_schema.clinics WHERE id=$1',[input.clinicId]);
+      const shifts = await client.query<{ id: string; doctor_id: string; doctor_name: string; staff_id: string; staff_name: string; starts_at: Date; ends_at: Date; status: 'PUBLISHED' | 'CANCELLED' }>(`
+        SELECT shift.id,shift.doctor_id,doctor.full_name doctor_name,shift.staff_id,staff.display_name staff_name,
+               shift.starts_at,shift.ends_at,shift.status
+        FROM clinic_schema.doctor_shifts shift
+        JOIN catalog_schema.doctors doctor ON doctor.id=shift.doctor_id AND doctor.clinic_location_id=shift.clinic_location_id
+        JOIN clinic_schema.clinic_staff staff ON staff.id=shift.staff_id AND staff.clinic_location_id=shift.clinic_location_id
+        WHERE shift.clinic_location_id=$1 AND shift.starts_at<$3::timestamptz AND shift.ends_at>$2::timestamptz
+        ORDER BY shift.starts_at,doctor.full_name,shift.id
+      `,[input.locationId,input.from,input.to]);
       return {
         clinicId: input.clinicId,
         locationId: input.locationId,
@@ -289,6 +311,8 @@ export class ClinicScheduleService {
         staff: staff.rows.map((row) => this.toStaff(row)),
         resources: resources.rows.map((row) => this.toResource(row)),
         periods: periods.rows.map((row) => this.toPeriod(row)),
+        timezone: timezone.rows[0].timezone,
+        doctorShifts: shifts.rows.map(row=>({id:row.id,doctor:{id:row.doctor_id,displayName:row.doctor_name},staff:{id:row.staff_id,displayName:row.staff_name},startsAt:row.starts_at.toISOString(),endsAt:row.ends_at.toISOString(),status:row.status})),
         workingHours: await this.readWorkingHours(client, input.locationId),
         slots: result.rows.map((row) => this.toSlot(row, serverNow)),
       };
@@ -334,7 +358,7 @@ export class ClinicScheduleService {
         locationId: input.locationId,
         employeeId: input.employee.sub,
         workingHours: result,
-      }, 'clinic_location');
+      }, 'clinic_location', `${scope}:${input.idempotencyKey}`);
       await this.writeAudit(client, 'CLINIC_EMPLOYEE', input.employee.sub, 'clinic.schedule.working_hours.updated', input.locationId, input.correlationId, {
         clinicId: input.clinicId,
         locationId: input.locationId,
@@ -860,6 +884,39 @@ export class ClinicScheduleService {
     });
   }
 
+  /** Explicit scheduling inventory publication; never creates, reopens or changes slots. */
+  async importDoctorShifts(input: {
+    clinicId: string; locationId: string; employee: JwtPayload; idempotencyKey: string; correlationId: string;
+    source: string;
+    shifts: Array<{ id: string; doctorId: string; staffId: string; startsAt: string; endsAt: string; externalShiftId: string }>;
+  }): Promise<{ imported: number; shiftIds: string[] }> {
+    if (!input.employee.roles.some(role => role === Role.CLINIC_ADMIN || role === Role.CLINIC_RECEPTIONIST)) throw DomainErrors.clinicScopeMismatch();
+    if (!input.shifts.length || input.shifts.length > 50 || !input.source || input.source.length > 80) throw new BadRequestException({code:'INVALID_REQUEST'});
+    const digest=createHash('sha256').update(JSON.stringify({source:input.source,shifts:input.shifts})).digest('hex');
+    return this.database.withTransaction(async client=>{
+      await this.setInteractiveTransactionLimits(client);
+      await this.assertClinicLocation(client,input.employee,input.clinicId,input.locationId);
+      const scope=`clinic.schedule.doctor_shifts.import:${input.locationId}:${input.employee.sub}`;
+      const replay=await this.acquireIdempotency(client,scope,input.idempotencyKey);
+      if(replay){if(replay.inputDigest!==digest)throw new ConflictException({code:'IDEMPOTENCY_PAYLOAD_MISMATCH'});return replay.result as {imported:number;shiftIds:string[]};}
+      const now=await this.dbNow(client);
+      for(const shift of input.shifts){
+        const start=new Date(shift.startsAt),end=new Date(shift.endsAt);
+        if(!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime())||start<now||end<=start||end.getTime()-start.getTime()>86400000||!shift.externalShiftId||shift.externalShiftId.length>160)throw new BadRequestException({code:'INVALID_SHIFT_RANGE'});
+        await this.assertStaffBelongsToLocation(client,shift.staffId,input.locationId);
+        const doctor=await client.query('SELECT id FROM catalog_schema.doctors WHERE id=$1 AND clinic_location_id=$2 AND active=true FOR SHARE',[shift.doctorId,input.locationId]);
+        if(!doctor.rowCount)throw DomainErrors.staffNotFound();
+        await client.query(`INSERT INTO clinic_schema.doctor_shifts(id,clinic_location_id,staff_id,doctor_id,starts_at,ends_at,source,external_shift_id,created_by)
+          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,[shift.id,input.locationId,shift.staffId,shift.doctorId,start,end,input.source,shift.externalShiftId,input.employee.sub]);
+      }
+      const result={imported:input.shifts.length,shiftIds:input.shifts.map(s=>s.id)};
+      await this.writeOutbox(client,'clinic.schedule.doctor_shifts.imported.v1',input.correlationId,input.locationId,1,{clinicId:input.clinicId,locationId:input.locationId,shiftIds:result.shiftIds},'clinic_location',`${scope}:${input.idempotencyKey}`);
+      await this.writeAudit(client,'CLINIC_EMPLOYEE',input.employee.sub,'clinic.schedule.doctor_shifts.imported',input.locationId,input.correlationId,{shiftIds:result.shiftIds},'clinic_location');
+      await this.completeIdempotency(client,scope,input.idempotencyKey,{inputDigest:digest,result},HttpStatus.CREATED);
+      return result;
+    });
+  }
+
   async importManualSlots(input: {
     clinicId: string;
     locationId: string;
@@ -920,7 +977,7 @@ export class ClinicScheduleService {
         imported: result.imported,
         slotIds: imported.map((slot) => slot.id),
         employeeId: input.employee.sub,
-      }, 'clinic_location');
+      }, 'clinic_location', `${scope}:${input.idempotencyKey}`);
       await this.writeAudit(client, 'CLINIC_EMPLOYEE', input.employee.sub, 'clinic.schedule.import.completed', input.locationId, input.correlationId, {
         clinicId: input.clinicId,
         locationId: input.locationId,
@@ -1499,7 +1556,7 @@ export class ClinicScheduleService {
     `, [scope, key, status, JSON.stringify(body)]);
   }
 
-  private async writeOutbox(client: PoolClient, eventType: string, correlationId: string, aggregateId: string, aggregateVersion: number, payload: Record<string, unknown>, aggregateType = 'appointment_slot'): Promise<void> {
+  private async writeOutbox(client: PoolClient, eventType: string, correlationId: string, aggregateId: string, aggregateVersion: number, payload: Record<string, unknown>, aggregateType = 'appointment_slot', commandIdentity?: string): Promise<void> {
     await client.query(`
       INSERT INTO booking_schema.outbox_events (
         event_type, correlation_id, causation_id, traceparent,
@@ -1513,7 +1570,8 @@ export class ClinicScheduleService {
       aggregateId,
       aggregateVersion,
       JSON.stringify(payload),
-      `${eventType}:${aggregateId}:${aggregateVersion}`,
+      // Metadata and batch operations without aggregate revisions need command-scoped events.
+      `${eventType}:${aggregateId}:${commandIdentity ?? aggregateVersion}`,
       aggregateType,
     ]);
   }

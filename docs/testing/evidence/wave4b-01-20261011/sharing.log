@@ -1,0 +1,85 @@
+PASS test/appointment-medical-sharing-http.e2e-spec.ts (27.853 s)
+  Wave 4A medical sharing (Docker PostgreSQL and real Nest HTTP)
+    ✓ W4B unconfirmed OCR stays Owner-private while selected Document shares original bytes only (327 ms)
+    ○ skipped Document byte delivery returns private verified bytes and preserves Owner download
+    ○ skipped Document byte denial normalizes missing/unshared/foreign Owner/Pet/Clinic/Location before storage
+    ○ skipped Document bytes require active membership
+    ○ skipped Document bytes require active clinic
+    ○ skipped Document bytes require active location
+    ○ skipped Document bytes deny CLINIC_ADMIN even with grant
+    ○ skipped Document bytes deny CLINIC_RECEPTIONIST even with grant
+    ○ skipped Document bytes deny revoked/deleted/unavailable source with no success audit
+    ○ skipped Document stream closes and audit rolls back when audit/COMMIT fails (deferred=false)
+    ○ skipped Document stream closes and audit rolls back when audit/COMMIT fails (deferred=true)
+    ○ skipped Clinic workspace derives canonical Appointment without exposing shared content or Owner identifiers
+    ○ skipped Clinic shared Result does not implicitly include separately modeled Amendments
+    ○ skipped Clinic shared published Result rejects same-pet unselected future Result substitution
+    ○ skipped Owner sharing presentation is scoped, closed and excludes medical content
+    ○ skipped BP-11 truthful operational minimum without grant: CLINIC_ADMIN
+    ○ skipped BP-11 truthful operational minimum without grant: CLINIC_RECEPTIONIST
+    ○ skipped BP-11 absent identity/breed are null; inactive clinic blocks operational contact
+    ○ skipped appointment alone exposes no history; missing and unshared return identical denials
+    ○ skipped selected Result + Document only; replay, payload conflict, immutable resources and audit
+    ○ skipped current-history snapshot excludes future documents and cannot be extended
+    ○ skipped cross-owner, foreign resources and forged authority fields fail closed
+    ○ skipped Owner selected snapshot A/B remains exact after eligible C appears
+    ○ skipped Owner cannot select another Owner/Pet document or a DRAFT Result
+    ○ skipped only veterinarian with exact scope can read; admin/reception cannot
+    ○ skipped active authority guard: membership inactive
+    ○ skipped active authority guard: membership revoked
+    ○ skipped active authority guard: clinic inactive
+    ○ skipped active authority guard: location inactive
+    ○ skipped revoke replay is stable; stale/concurrent commands conflict; subsequent reads denied
+    ○ skipped concurrent identical grant commands create one grant; failure rolls back every effect
+    ○ skipped new grant eligibility CONFIRMED/CONFIRMED
+    ○ skipped new grant eligibility CONFIRMED/RESCHEDULE_PROPOSED
+    ○ skipped new grant eligibility COMPLETED/null
+    ○ skipped new grant eligibility CANCELLED/CANCELLED_BY_USER
+    ○ skipped new grant eligibility CLINIC_CANCELLED/CANCELLED_BY_CLINIC
+    ○ skipped new grant eligibility NO_SHOW/NO_SHOW
+    ○ skipped revoke/read ordering: authorized read can finish; new reads after revoke commit fail
+    ○ skipped soft-deleted document cannot be newly shared or read through an existing grant
+    ○ skipped final real race RESULT/revoke: read authorization wins; mutation waits; subsequent read denied
+    ○ skipped final real race RESULT/revoke: mutation commits first; new authorization denied
+    ○ skipped final real race RESULT/membership: read authorization wins; mutation waits; subsequent read denied
+    ○ skipped final real race RESULT/membership: mutation commits first; new authorization denied
+    ○ skipped final real race RESULT/clinic: read authorization wins; mutation waits; subsequent read denied
+    ○ skipped final real race RESULT/clinic: mutation commits first; new authorization denied
+    ○ skipped final real race RESULT/location: read authorization wins; mutation waits; subsequent read denied
+    ○ skipped final real race RESULT/location: mutation commits first; new authorization denied
+    ○ skipped final real race AMENDMENT/revoke: read authorization wins; mutation waits; subsequent read denied
+    ○ skipped final real race AMENDMENT/revoke: mutation commits first; new authorization denied
+    ○ skipped final real race AMENDMENT/membership: read authorization wins; mutation waits; subsequent read denied
+    ○ skipped final real race AMENDMENT/membership: mutation commits first; new authorization denied
+    ○ skipped final real race AMENDMENT/clinic: read authorization wins; mutation waits; subsequent read denied
+    ○ skipped final real race AMENDMENT/clinic: mutation commits first; new authorization denied
+    ○ skipped final real race AMENDMENT/location: read authorization wins; mutation waits; subsequent read denied
+    ○ skipped final real race AMENDMENT/location: mutation commits first; new authorization denied
+    ○ skipped final real race DOCUMENT_METADATA/revoke: read authorization wins; mutation waits; subsequent read denied
+    ○ skipped final real race DOCUMENT_METADATA/revoke: mutation commits first; new authorization denied
+    ○ skipped final real race DOCUMENT_METADATA/membership: read authorization wins; mutation waits; subsequent read denied
+    ○ skipped final real race DOCUMENT_METADATA/membership: mutation commits first; new authorization denied
+    ○ skipped final real race DOCUMENT_METADATA/clinic: read authorization wins; mutation waits; subsequent read denied
+    ○ skipped final real race DOCUMENT_METADATA/clinic: mutation commits first; new authorization denied
+    ○ skipped final real race DOCUMENT_METADATA/location: read authorization wins; mutation waits; subsequent read denied
+    ○ skipped final real race DOCUMENT_METADATA/location: mutation commits first; new authorization denied
+    ○ skipped final real race DOCUMENT_BYTES/revoke: read authorization wins; mutation waits; subsequent read denied
+    ○ skipped final real race DOCUMENT_BYTES/revoke: mutation commits first; new authorization denied
+    ○ skipped final real race DOCUMENT_BYTES/membership: read authorization wins; mutation waits; subsequent read denied
+    ○ skipped final real race DOCUMENT_BYTES/membership: mutation commits first; new authorization denied
+    ○ skipped final real race DOCUMENT_BYTES/clinic: read authorization wins; mutation waits; subsequent read denied
+    ○ skipped final real race DOCUMENT_BYTES/clinic: mutation commits first; new authorization denied
+    ○ skipped final real race DOCUMENT_BYTES/location: read authorization wins; mutation waits; subsequent read denied
+    ○ skipped final real race DOCUMENT_BYTES/location: mutation commits first; new authorization denied
+    ○ skipped final no-leak and role matrix for RESULT
+    ○ skipped final no-leak and role matrix for AMENDMENT
+    ○ skipped final no-leak and role matrix for DOCUMENT_METADATA
+    ○ skipped final no-leak and role matrix for DOCUMENT_BYTES
+    ○ skipped more than 200 historical resources does not block an explicitly selected resource
+
+Test Suites: 1 passed, 1 total
+Tests:       75 skipped, 1 passed, 76 total
+Snapshots:   0 total
+Time:        28.833 s
+Ran all test suites within paths "test/appointment-medical-sharing-http.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4b-01-20261011/sharing.json

@@ -739,3 +739,55 @@ html {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Product journeys: retain existing V50 tokens and native professional density. */
+.vh-product-quick-actions { display:flex; flex-wrap:wrap; gap:var(--vh-space-sm); margin:16px 0; }
+.vh-product-quick-actions a { display:inline-flex; align-items:center; min-height:var(--vh-min-target); padding:8px 14px; border:1px solid var(--vh-color-border-default); border-radius:var(--vh-radius-md); color:#17488a; background:var(--vh-color-surface-default); font-weight:600; }
+.vh-product-quick-actions a:hover { background:var(--vh-color-accent-soft); }
+.vh-product-quick-actions a:focus-visible { outline:3px solid var(--vh-color-accent-default); outline-offset:3px; }
+.vh-queue-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; min-width:230px; }
+.vh-queue-actions button { min-height:44px; padding:8px 10px; }
+.vh-schedule-legend { display:flex; align-items:center; flex-wrap:wrap; gap:8px 16px; padding:12px 16px; border-top:1px solid var(--vh-color-border-default); color:var(--vh-color-content-muted); font-size:13px; }
+.vh-schedule-legend span { padding-left:10px; border-left:3px solid var(--vh-color-accent-default); }
+.vh-schedule-legend strong { margin-left:auto; color:var(--vh-color-content-default); }
+.vh-workspace { padding:24px clamp(16px,3vw,32px); }
+.vh-workspace-card h3 { line-height:1.35; }
+@media(max-width:640px) { .vh-product-quick-actions a { flex:1 1 auto; justify-content:center; } .vh-schedule-legend strong { margin-left:0; } }
+
+/* Batch04: shared professional forms, mobile operational rows and complete navigation. */
+.vh-product-filters { display:grid; grid-template-columns:minmax(180px,1fr) minmax(170px,220px) auto; gap:12px; align-items:end; padding:16px; background:var(--vh-surface); border:1px solid var(--vh-border); border-radius:16px; }
+.vh-product-filters input, .vh-product-filters select { width:100%; min-width:0; background:var(--vh-surface); }
+.vh-product-filters label { display:grid; gap:6px; color:var(--vh-muted); font-size:14px; }
+.vh-product-vet button, .vh-product-vet textarea { border-radius:12px; }
+.vh-product-vet h1 { letter-spacing:-.025em; }
+.vh-product-vet #clinical-workflow, .vh-product-vet #shared-medical { scroll-margin-top:20px; }
+.vh-product-schedule-filters { display:flex; flex-wrap:wrap; align-items:end; gap:12px; }
+.vh-product-schedule-filters input, .vh-product-schedule-filters select { min-height:44px; }
+.vh-product-table td { padding-top:12px; padding-bottom:12px; }
+.vh-product-table tbody tr:nth-child(even):not([class*="bg-red"]) { background:#f8fafc; }
+@media(max-width:700px) {
+ .vh-v50-clinic-shell .vh-clinic-bottom-nav { grid-auto-columns:minmax(0,1fr); padding-left:4px; padding-right:4px; }
+ .vh-v50-clinic-shell .vh-clinic-bottom-nav-item { font-size:11px; padding-inline:2px; }
+ .vh-product-filters { grid-template-columns:minmax(0,1fr); }
+ .vh-product-schedule-filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .vh-product-schedule-filters > div { grid-column:1/-1; flex-wrap:wrap; }
+ .vh-product-schedule-filters label { min-width:0; }
+ .vh-product-schedule-filters input, .vh-product-schedule-filters select { width:100%; }
+ .vh-product-table { display:block; width:100%; min-width:0; }
+ .vh-product-table thead { position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+ .vh-product-table tbody { display:block; }
+ .vh-product-table tbody tr { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); padding:12px; gap:12px; }
+ .vh-product-table td { display:block; width:auto; min-width:0; padding:0; overflow-wrap:anywhere; }
+ .vh-product-table td::before { content:attr(data-label); display:block; margin-bottom:4px; font-size:11px; font-weight:600; color:var(--vh-muted); }
+ .vh-product-table td:last-child { grid-column:1/-1; }
+ .vh-queue-actions { min-width:0; }
+ .vh-product-table td:last-child > div { flex-wrap:wrap; }
+}
+
+.vh-product-period-nav { display:flex; gap:8px; }
+@media(max-width:700px) { .vh-product-period-nav button { flex:1; min-height:44px; } }
+
+/* Operational setup shares the live schedule's responsive row layout. */
+.vh-product-operations [id^="schedule-"] { scroll-margin-top:128px; }
+.vh-product-operations input, .vh-product-operations select { min-height:44px; }
+@media(max-width:700px) { .vh-product-edit-table td:nth-child(2) { grid-column:1/-1; } }

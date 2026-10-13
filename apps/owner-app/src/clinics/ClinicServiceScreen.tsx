@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { formatPrice } from '@/ui/format-price';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Text, View } from 'react-native';
 import { Button, Card, Screen, StateMessage } from '@/ui/primitives';
@@ -9,15 +10,16 @@ import type { ClinicCatalogHandoff } from './clinic-catalog-api';
 export function ClinicServiceScreen({clinic,onBack,onContinue}:{clinic:ClinicCatalogHandoff;onBack():void;onContinue(value:ClinicServiceHandoff):void}){
   const {session}=useSession(); const [selectedServiceId,setSelectedServiceId]=useState<string|null>(null); const [stale,setStale]=useState(false); const [refreshFailed,setRefreshFailed]=useState(false); const [checking,setChecking]=useState(false);
   const query=useQuery({queryKey:['owner',session?.cacheScope,'clinic-services',clinic.clinicId,clinic.locationId],enabled:Boolean(session),queryFn:({signal})=>clinicServiceApi.read(session!.opaqueCredential,clinic.clinicId,clinic.locationId,signal)});
+  const active=useRef(true); const flight=useRef(false); useEffect(()=>{active.current=true;return()=>{active.current=false;};},[]);
   const selectionMissing=Boolean(selectedServiceId&&query.data&&!query.data.services.some(service=>service.serviceId===selectedServiceId));
-  const proceed=async()=>{if(!selectedServiceId||checking)return;setChecking(true);setStale(false);setRefreshFailed(false);try{const refreshed=await query.refetch();if(refreshed.isError){setRefreshFailed(true);return;}const service=refreshed.data?.services.find(item=>item.serviceId===selectedServiceId);if(!service){setSelectedServiceId(null);setStale(true);return;}onContinue({clinicId:clinic.clinicId,locationId:clinic.locationId,serviceId:service.serviceId});}catch{setRefreshFailed(true);}finally{setChecking(false);}};
-  return <Screen title="Клиника и услуга">
+  const proceed=async()=>{if(!selectedServiceId||flight.current)return;flight.current=true;setChecking(true);setStale(false);setRefreshFailed(false);try{const refreshed=await query.refetch();if(!active.current)return;if(refreshed.isError){setRefreshFailed(true);return;}const service=refreshed.data?.services.find(item=>item.serviceId===selectedServiceId);if(!service){setSelectedServiceId(null);setStale(true);return;}onContinue({clinicId:clinic.clinicId,locationId:clinic.locationId,serviceId:service.serviceId});}catch{if(active.current)setRefreshFailed(true);}finally{flight.current=false;if(active.current)setChecking(false);}};
+  return <Screen title="Клиника и услуга" step="Запись · шаг 3 из 5" onBack={onBack} backLabel="Назад к каталогу" backDisabled={checking} footer={<Button label={checking?'Проверяем…':'Продолжить'} disabled={!selectedServiceId||selectionMissing||checking||query.isError} onPress={()=>{void proceed();}}/>}>
     {query.isPending?<StateMessage kind="loading" title="Загружаем услуги"/>:null}
     {query.isError?<StateMessage kind="error" title="Не удалось обновить карточку клиники" action={<Button label="Повторить" onPress={()=>{void query.refetch();}}/>}/>:null}
-    {!query.isError&&query.data?<><Card><View style={{gap:6}}><Text style={{fontWeight:'600'}}>{query.data.name}</Text><Text>{query.data.address}</Text>{query.data.phone?<Text>{query.data.phone}</Text>:null}</View></Card>{query.data.services.length===0?<StateMessage kind="empty" title="В этой клинике пока нет доступных услуг"/>:query.data.services.map(service=><Card key={service.serviceId} selected={service.serviceId===selectedServiceId} onPress={()=>{setSelectedServiceId(service.serviceId);setStale(false);}}><Text style={{fontWeight:'600'}}>{service.name}</Text><Text>Информационная цена: {service.price.amount} {service.price.currency}</Text></Card>)}</>:null}
+    {!query.isError&&query.data?<><Card><View style={{gap:6}}><Text style={{fontWeight:'600'}}>{query.data.name}</Text><Text>{query.data.address}</Text>{query.data.phone?<Text>{query.data.phone}</Text>:null}</View></Card>{query.data.services.length===0?<StateMessage kind="empty" title="В этой клинике пока нет доступных услуг"/>:query.data.services.map(service=><Card key={service.serviceId} disabled={checking} selected={service.serviceId===selectedServiceId} onPress={()=>{if(flight.current)return;setSelectedServiceId(service.serviceId);setStale(false);}}><Text style={{fontWeight:'600',fontSize:18}}>{service.name}</Text><Text style={{color:'#126b5b',fontWeight:'600'}}>Ориентировочная стоимость: {formatPrice(service.price.amount, service.price.currency)}</Text></Card>)}</>:null}
+    <Text style={{color:'#52616b'}}>Выбор услуги не резервирует время. На следующем шаге показаны доступные окна; статус подтверждения определяется сервером при отправке.</Text>
+    <Button label="Обновить услуги и цены" variant="secondary" disabled={checking||query.isFetching} onPress={()=>{void query.refetch();}}/>
     {stale||selectionMissing?<StateMessage kind="error" title="Выбранная услуга больше недоступна. Выберите другую."/>:null}
     {refreshFailed?<StateMessage kind="error" title="Не удалось проверить услугу. Повторите попытку."/>:null}
-    <Button label={checking?'Проверяем…':'Продолжить'} disabled={!selectedServiceId||selectionMissing||checking||query.isError} onPress={()=>{void proceed();}}/>
-    <Button label="Назад к каталогу" onPress={onBack}/>
   </Screen>;
 }

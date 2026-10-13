@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "sourceRevision": "a1c092ec695d0fb9945e324c96db30914e131830",
+  "baselineSuites": 64,
+  "baselineTests": 543,
+  "freshDistinctSuites": 56,
+  "freshSuiteExecutions": 57,
+  "freshPassed": 421,
+  "freshFailed": 0,
+  "freshTestIdentities": 421,
+  "stickySuites": 8,
+  "stickyPassed": 122,
+  "allUniqueAcceptedTests": 543,
+  "queuePilot": 42,
+  "queueLegacy": 10,
+  "queueUnion": 52,
+  "queueOverlap": 0,
+  "rawQueueSelectorPending": 52,
+  "mandatoryTestsMissingOrDisabled": 0,
+  "stickyIdentityPrecision": "105-case accepted log is aggregate-only; immutable test/source hashes bind reuse. No individual sticky names invented.9T044+5historical cases have raw prior JestJSON.",
+  "freshRemoteHead": "a1c092ec695d0fb9945e324c96db30914e131830"
+}

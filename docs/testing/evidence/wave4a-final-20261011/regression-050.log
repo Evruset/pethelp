@@ -1,0 +1,12 @@
+PASS src/booking-core/mvp-booking-semantics.spec.ts (6.906 s)
+  MVP booking semantics
+    ✓ routes the manual clinic contract through manual confirmation (4 ms)
+    ✓ routes the v1.5 clinic contract through automatic confirmation (1 ms)
+    ✓ projects internal states without renaming the state machine (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       3 passed, 3 total
+Snapshots:   0 total
+Time:        7.208 s
+Ran all test suites within paths "src/booking-core/mvp-booking-semantics.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-050.json

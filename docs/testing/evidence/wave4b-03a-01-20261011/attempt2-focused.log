@@ -1,0 +1,116 @@
+FAIL test/document-byte-authority.e2e-spec.ts (15.723 s)
+  ● Document byte DB/Owner authority actual PostgreSQL › B19 newly created same-TX job may bind; old worker claim fails without attempt
+
+    expect(received).rejects.toThrow()
+
+    Received promise resolved instead of rejected
+    Resolved to value: null
+
+      22 |  it.each(['bytes','metadata'] as const)('B08 legacy %s mutation during capture rejected',async kind=>{const {doc,key}=await legacyDoc(),real=storage.publishByteSnapshot;jest.spyOn(storage,'publishByteSnapshot').mockImplementationOnce(async(...args)=>{const s=await real(...args);if(kind==='bytes')await fs.writeFile(path.join(process.env.PET_DOCUMENT_STORAGE_DIR!,key),Buffer.alloc(bytes.length,1));else await db.query('UPDATE pet_schema.pet_documents SET storage_key=$2 WHERE id=$1',[doc,randomUUID()+'.legacy']);return s;});await expect(pets.captureExistingDocumentSource(owner,pet,doc)).rejects.toMatchObject({status:404});expect(await version(doc)).toBeUndefined();});
+      23 |  it('B09 verification rechecks Owner after filesystem read',async()=>{const u=await upload(),v=await version(u.documentId),real=storage.readVerifiedSnapshot;jest.spyOn(storage,'readVerifiedSnapshot').mockImplementationOnce(async(...args)=>{const b=await real(...args);await db.query('UPDATE pet_schema.pets SET owner_id=$2 WHERE id=$1',[pet,foreignId]);return b;});await expect(pets.verifyDocumentSnapshot(owner,pet,u.documentId,v.version_id)).rejects.toMatchObject({status:404});});
+    > 24 |  it('B19 newly created same-TX job may bind; old worker claim fails without attempt',async()=>{const u=await upload(),v=await version(u.documentId),job=await db.withTransaction(c=>bind(c,u.documentId,v));await expect(jobs.claim()).rejects.toThrow('Bound OCR claim');expect((await db.query('SELECT * FROM pet_schema.ocr_attempts WHERE job_id=$1',[job])).rows).toHaveLength(0);expect((await db.query('SELECT state FROM pet_schema.ocr_jobs WHERE id=$1',[job])).rows[0].state).toBe('QUEUED');});
+         |                                                                                                                                                                                                                   ^
+      25 |  it('B14 old queued attempt0 cannot rebind even after UPDATE or witness forgery',async()=>{const u=await upload(),v=await version(u.documentId),j=await jobs.enqueue(owner,pet,u.documentId);await expect(db.withTransaction(async c=>{await c.query('UPDATE pet_schema.ocr_jobs SET attempt_count=attempt_count WHERE id=$1',[j.jobId]);await source(c,j.jobId,u.documentId,v);})).rejects.toThrow();await expect(db.query('UPDATE pet_schema.ocr_jobs SET byte_source_creation_xid=pg_current_xact_id() WHERE id=$1',[j.jobId])).rejects.toThrow('witness immutable');});
+      26 |  it('B14 sequence-only observation cannot bind even new job',async()=>{const {doc}=await legacyDoc();await pets.captureExistingDocumentSource(owner,pet,doc);const v=await version(doc);await expect(db.withTransaction(c=>bind(c,doc,v))).rejects.toThrow('Byte source');});
+      27 |  it('B20 deferred bound success guard rolls back commit; no raw/bindings created',async()=>{const u=await upload(),v=await version(u.documentId),job=await db.withTransaction(c=>bind(c,u.documentId,v));await expect(db.withTransaction(async c=>{await c.query(`UPDATE pet_schema.ocr_jobs SET state='SUCCEEDED' WHERE id=$1`,[job]);})).rejects.toThrow('Bound OCR success');expect((await db.query('SELECT state FROM pet_schema.ocr_jobs WHERE id=$1',[job])).rows[0].state).toBe('QUEUED');expect((await db.query('SELECT * FROM pet_schema.ocr_result_byte_bindings')).rows).toHaveLength(0);});
+
+      at expect (node_modules/expect/build/index.js:2116:15)
+      at Object.<anonymous> (test/document-byte-authority.e2e-spec.ts:24:211)
+
+  ● Document byte DB/Owner authority actual PostgreSQL › B14 sequence-only observation cannot bind even new job
+
+    expect(received).rejects.toThrow(expected)
+
+    Expected substring: "Byte source"
+    Received message:   "Byte version unavailable"
+
+          10 |  const version=async(doc:string)=>(await db.query('SELECT * FROM pet_schema.document_byte_versions WHERE document_id=$1',[doc])).rows[0];
+          11 |  async function bind(client:any,doc:string,v:any,job=randomUUID()){await client.query(`INSERT INTO pet_schema.ocr_jobs(id,document_id,owner_id,pet_id,source_identity,source_snapshot) VALUES($1,$2,$3,$4,$5,'{}')`,[job,doc,ownerId,pet,hash('metadata')]);await source(client,job,doc,v);return job;}
+        > 12 |  async function source(client:any,job:string,doc:string,v:any){await client.query(`INSERT INTO pet_schema.ocr_job_byte_sources(job_id,document_id,owner_id,pet_id,version_id,sha256,byte_length) VALUES($1,$2,$3,$4,$5,$6,$7)`,[job,doc,ownerId,pet,v.version_id,v.sha256,v.byte_length]);}
+             |                                                                ^
+          13 |  beforeAll(async()=>{if(process.env.W4B03A01_ACCEPTANCE!=='true'||new URL(config.databaseUrl).hostname!=='postgres'||!new URL(config.databaseUrl).pathname.startsWith('/vethelp_w4b03a01_'))throw new Error('Exclusive owned DB required');app=await NestFactory.create(NestRoot,{logger:false});await app.init();db=app.get(DatabaseService);pets=app.get(OwnerPetService);jobs=app.get(OwnerOcrService);await db.query('INSERT INTO identity_schema.users(id) VALUES($1),($2)',[ownerId,foreignId]);await db.query(`INSERT INTO pet_schema.pets(id,owner_id,name,species,medical_history_ocr) VALUES($1,$2,'Bytes','DOG',$3),($4,$5,'Other','CAT',NULL)`,[pet,ownerId,JSON.stringify(legacy),otherPet,foreignId]);});
+          14 |  afterEach(async()=>{jest.restoreAllMocks();await db.query('UPDATE pet_schema.pets SET owner_id=$2,archived_at=NULL WHERE id=$1',[pet,ownerId]);await db.query(`UPDATE pet_schema.ocr_attempts SET status='FAILED',finished_at=clock_timestamp(),error_code='PROVIDER_FAILED' WHERE status='RUNNING'`);await db.query(`UPDATE pet_schema.ocr_jobs SET state='FAILED',claim_token=NULL,lease_until=NULL,error_code='PROVIDER_FAILED' WHERE state IN('QUEUED','RUNNING')`);});
+          15 |  afterAll(async()=>{await app?.close();});
+
+      at node_modules/pg/lib/client.js:652:17
+      at source (test/document-byte-authority.e2e-spec.ts:12:64)
+      at bind (test/document-byte-authority.e2e-spec.ts:11:253)
+      at DatabaseService.withTransaction (src/database/database.service.ts:52:22)
+      at Object.<anonymous> (test/document-byte-authority.e2e-spec.ts:26:185)
+      at Object.toThrow (node_modules/expect/build/index.js:2155:20)
+      at Object.<anonymous> (test/document-byte-authority.e2e-spec.ts:26:244)
+
+  ● Document byte DB/Owner authority actual PostgreSQL › B20 no forged ACTUAL_BYTE_INPUT receipt accepted
+
+    expect(received).rejects.toThrow(expected)
+
+    Expected substring: "disabled"
+    Received message:   "OCR input attestation is not enabled"
+
+          26 |  it('B14 sequence-only observation cannot bind even new job',async()=>{const {doc}=await legacyDoc();await pets.captureExistingDocumentSource(owner,pet,doc);const v=await version(doc);await expect(db.withTransaction(c=>bind(c,doc,v))).rejects.toThrow('Byte source');});
+          27 |  it('B20 deferred bound success guard rolls back commit; no raw/bindings created',async()=>{const u=await upload(),v=await version(u.documentId),job=await db.withTransaction(c=>bind(c,u.documentId,v));await expect(db.withTransaction(async c=>{await c.query(`UPDATE pet_schema.ocr_jobs SET state='SUCCEEDED' WHERE id=$1`,[job]);})).rejects.toThrow('Bound OCR success');expect((await db.query('SELECT state FROM pet_schema.ocr_jobs WHERE id=$1',[job])).rows[0].state).toBe('QUEUED');expect((await db.query('SELECT * FROM pet_schema.ocr_result_byte_bindings')).rows).toHaveLength(0);});
+        > 28 |  it.each(['ACTUAL_BYTE_INPUT','SIMULATED_METADATA_ONLY'])('B20 no forged %s receipt accepted',async evidence=>{await expect(db.query(`INSERT INTO pet_schema.ocr_attempt_byte_receipts(attempt_id,job_id,version_id,sha256,byte_length,invocation_id,verification_event_id,input_evidence_class,full_consumption,consumed_length,consumed_sha256,adapter_identity,started_at,finished_at) VALUES($1,$2,$3,$4,1,$5,$6,$7,true,1,$4,'FORGED',now(),now())`,[randomUUID(),randomUUID(),randomUUID(),hash('x'),randomUUID(),randomUUID(),evidence])).rejects.toThrow('disabled');});
+             |                                                                                                                ^
+          29 |  it('B20 no result binding insert accepted',async()=>{await expect(db.query(`INSERT INTO pet_schema.ocr_result_byte_bindings(result_id,job_id,attempt_id,version_id,sha256,byte_length,source_binding_identity) VALUES($1,$2,$3,$4,$5,1,$5)`,[randomUUID(),randomUUID(),randomUUID(),randomUUID(),hash('x')])).rejects.toThrow('disabled');});
+          30 |  it('B25 append-only versions/events/sources and all-table TRUNCATE denied',async()=>{const u=await upload(),v=await version(u.documentId);await db.withTransaction(c=>bind(c,u.documentId,v));for(const table of ['document_byte_versions','document_byte_events','ocr_job_byte_sources']){await expect(db.query(`UPDATE pet_schema.${table} SET ${table==='document_byte_versions'?'sha256=sha256':table==='document_byte_events'?'event_type=event_type':'sha256=sha256'}`)).rejects.toThrow();await expect(db.query(`DELETE FROM pet_schema.${table}`)).rejects.toThrow();}for(const table of ['document_byte_versions','document_byte_events','ocr_job_byte_sources','ocr_attempt_byte_receipts','ocr_result_byte_bindings'])await expect(db.query(`TRUNCATE pet_schema.${table}`)).rejects.toThrow();});
+          31 |  it('B25 forged context/version digest and foreign actor denied; negative event is terminal',async()=>{const u=await upload(),v=await version(u.documentId);await expect(db.withTransaction(c=>bind(c,u.documentId,{...v,sha256:hash('foreign')}))).rejects.toThrow();await expect(db.withTransaction(c=>bind(c,u.documentId,{...v,version_id:randomUUID()}))).rejects.toThrow();await expect(db.query(`INSERT INTO pet_schema.document_byte_events(version_id,event_type,actor_id,operation_id) VALUES($1,'CORRUPT',$2,$3)`,[v.version_id,foreignId,randomUUID()])).rejects.toThrow();await db.query(`INSERT INTO pet_schema.document_byte_events(version_id,event_type,actor_id,operation_id) VALUES($1,'CORRUPT',$2,$3)`,[v.version_id,ownerId,randomUUID()]);await expect(pets.verifyDocumentSnapshot(owner,pet,u.documentId,v.version_id)).rejects.toMatchObject({status:404});await expect(db.query(`INSERT INTO pet_schema.document_byte_events(version_id,event_type,actor_id,operation_id) VALUES($1,'VERIFIED_USE',$2,$3)`,[v.version_id,ownerId,randomUUID()])).rejects.toThrow();});
+
+      at node_modules/pg-pool/index.js:45:11
+      at test/document-byte-authority.e2e-spec.ts:28:112
+      at Object.toThrow (node_modules/expect/build/index.js:2155:20)
+      at test/document-byte-authority.e2e-spec.ts:28:538
+
+  ● Document byte DB/Owner authority actual PostgreSQL › B20 no forged SIMULATED_METADATA_ONLY receipt accepted
+
+    expect(received).rejects.toThrow(expected)
+
+    Expected substring: "disabled"
+    Received message:   "OCR input attestation is not enabled"
+
+          26 |  it('B14 sequence-only observation cannot bind even new job',async()=>{const {doc}=await legacyDoc();await pets.captureExistingDocumentSource(owner,pet,doc);const v=await version(doc);await expect(db.withTransaction(c=>bind(c,doc,v))).rejects.toThrow('Byte source');});
+          27 |  it('B20 deferred bound success guard rolls back commit; no raw/bindings created',async()=>{const u=await upload(),v=await version(u.documentId),job=await db.withTransaction(c=>bind(c,u.documentId,v));await expect(db.withTransaction(async c=>{await c.query(`UPDATE pet_schema.ocr_jobs SET state='SUCCEEDED' WHERE id=$1`,[job]);})).rejects.toThrow('Bound OCR success');expect((await db.query('SELECT state FROM pet_schema.ocr_jobs WHERE id=$1',[job])).rows[0].state).toBe('QUEUED');expect((await db.query('SELECT * FROM pet_schema.ocr_result_byte_bindings')).rows).toHaveLength(0);});
+        > 28 |  it.each(['ACTUAL_BYTE_INPUT','SIMULATED_METADATA_ONLY'])('B20 no forged %s receipt accepted',async evidence=>{await expect(db.query(`INSERT INTO pet_schema.ocr_attempt_byte_receipts(attempt_id,job_id,version_id,sha256,byte_length,invocation_id,verification_event_id,input_evidence_class,full_consumption,consumed_length,consumed_sha256,adapter_identity,started_at,finished_at) VALUES($1,$2,$3,$4,1,$5,$6,$7,true,1,$4,'FORGED',now(),now())`,[randomUUID(),randomUUID(),randomUUID(),hash('x'),randomUUID(),randomUUID(),evidence])).rejects.toThrow('disabled');});
+             |                                                                                                                ^
+          29 |  it('B20 no result binding insert accepted',async()=>{await expect(db.query(`INSERT INTO pet_schema.ocr_result_byte_bindings(result_id,job_id,attempt_id,version_id,sha256,byte_length,source_binding_identity) VALUES($1,$2,$3,$4,$5,1,$5)`,[randomUUID(),randomUUID(),randomUUID(),randomUUID(),hash('x')])).rejects.toThrow('disabled');});
+          30 |  it('B25 append-only versions/events/sources and all-table TRUNCATE denied',async()=>{const u=await upload(),v=await version(u.documentId);await db.withTransaction(c=>bind(c,u.documentId,v));for(const table of ['document_byte_versions','document_byte_events','ocr_job_byte_sources']){await expect(db.query(`UPDATE pet_schema.${table} SET ${table==='document_byte_versions'?'sha256=sha256':table==='document_byte_events'?'event_type=event_type':'sha256=sha256'}`)).rejects.toThrow();await expect(db.query(`DELETE FROM pet_schema.${table}`)).rejects.toThrow();}for(const table of ['document_byte_versions','document_byte_events','ocr_job_byte_sources','ocr_attempt_byte_receipts','ocr_result_byte_bindings'])await expect(db.query(`TRUNCATE pet_schema.${table}`)).rejects.toThrow();});
+          31 |  it('B25 forged context/version digest and foreign actor denied; negative event is terminal',async()=>{const u=await upload(),v=await version(u.documentId);await expect(db.withTransaction(c=>bind(c,u.documentId,{...v,sha256:hash('foreign')}))).rejects.toThrow();await expect(db.withTransaction(c=>bind(c,u.documentId,{...v,version_id:randomUUID()}))).rejects.toThrow();await expect(db.query(`INSERT INTO pet_schema.document_byte_events(version_id,event_type,actor_id,operation_id) VALUES($1,'CORRUPT',$2,$3)`,[v.version_id,foreignId,randomUUID()])).rejects.toThrow();await db.query(`INSERT INTO pet_schema.document_byte_events(version_id,event_type,actor_id,operation_id) VALUES($1,'CORRUPT',$2,$3)`,[v.version_id,ownerId,randomUUID()]);await expect(pets.verifyDocumentSnapshot(owner,pet,u.documentId,v.version_id)).rejects.toMatchObject({status:404});await expect(db.query(`INSERT INTO pet_schema.document_byte_events(version_id,event_type,actor_id,operation_id) VALUES($1,'VERIFIED_USE',$2,$3)`,[v.version_id,ownerId,randomUUID()])).rejects.toThrow();});
+
+      at node_modules/pg-pool/index.js:45:11
+      at test/document-byte-authority.e2e-spec.ts:28:112
+      at Object.toThrow (node_modules/expect/build/index.js:2155:20)
+      at test/document-byte-authority.e2e-spec.ts:28:538
+
+  ● Document byte DB/Owner authority actual PostgreSQL › B20 no result binding insert accepted
+
+    expect(received).rejects.toThrow(expected)
+
+    Expected substring: "disabled"
+    Received message:   "OCR input attestation is not enabled"
+
+          27 |  it('B20 deferred bound success guard rolls back commit; no raw/bindings created',async()=>{const u=await upload(),v=await version(u.documentId),job=await db.withTransaction(c=>bind(c,u.documentId,v));await expect(db.withTransaction(async c=>{await c.query(`UPDATE pet_schema.ocr_jobs SET state='SUCCEEDED' WHERE id=$1`,[job]);})).rejects.toThrow('Bound OCR success');expect((await db.query('SELECT state FROM pet_schema.ocr_jobs WHERE id=$1',[job])).rows[0].state).toBe('QUEUED');expect((await db.query('SELECT * FROM pet_schema.ocr_result_byte_bindings')).rows).toHaveLength(0);});
+          28 |  it.each(['ACTUAL_BYTE_INPUT','SIMULATED_METADATA_ONLY'])('B20 no forged %s receipt accepted',async evidence=>{await expect(db.query(`INSERT INTO pet_schema.ocr_attempt_byte_receipts(attempt_id,job_id,version_id,sha256,byte_length,invocation_id,verification_event_id,input_evidence_class,full_consumption,consumed_length,consumed_sha256,adapter_identity,started_at,finished_at) VALUES($1,$2,$3,$4,1,$5,$6,$7,true,1,$4,'FORGED',now(),now())`,[randomUUID(),randomUUID(),randomUUID(),hash('x'),randomUUID(),randomUUID(),evidence])).rejects.toThrow('disabled');});
+        > 29 |  it('B20 no result binding insert accepted',async()=>{await expect(db.query(`INSERT INTO pet_schema.ocr_result_byte_bindings(result_id,job_id,attempt_id,version_id,sha256,byte_length,source_binding_identity) VALUES($1,$2,$3,$4,$5,1,$5)`,[randomUUID(),randomUUID(),randomUUID(),randomUUID(),hash('x')])).rejects.toThrow('disabled');});
+             |                                                       ^
+          30 |  it('B25 append-only versions/events/sources and all-table TRUNCATE denied',async()=>{const u=await upload(),v=await version(u.documentId);await db.withTransaction(c=>bind(c,u.documentId,v));for(const table of ['document_byte_versions','document_byte_events','ocr_job_byte_sources']){await expect(db.query(`UPDATE pet_schema.${table} SET ${table==='document_byte_versions'?'sha256=sha256':table==='document_byte_events'?'event_type=event_type':'sha256=sha256'}`)).rejects.toThrow();await expect(db.query(`DELETE FROM pet_schema.${table}`)).rejects.toThrow();}for(const table of ['document_byte_versions','document_byte_events','ocr_job_byte_sources','ocr_attempt_byte_receipts','ocr_result_byte_bindings'])await expect(db.query(`TRUNCATE pet_schema.${table}`)).rejects.toThrow();});
+          31 |  it('B25 forged context/version digest and foreign actor denied; negative event is terminal',async()=>{const u=await upload(),v=await version(u.documentId);await expect(db.withTransaction(c=>bind(c,u.documentId,{...v,sha256:hash('foreign')}))).rejects.toThrow();await expect(db.withTransaction(c=>bind(c,u.documentId,{...v,version_id:randomUUID()}))).rejects.toThrow();await expect(db.query(`INSERT INTO pet_schema.document_byte_events(version_id,event_type,actor_id,operation_id) VALUES($1,'CORRUPT',$2,$3)`,[v.version_id,foreignId,randomUUID()])).rejects.toThrow();await db.query(`INSERT INTO pet_schema.document_byte_events(version_id,event_type,actor_id,operation_id) VALUES($1,'CORRUPT',$2,$3)`,[v.version_id,ownerId,randomUUID()]);await expect(pets.verifyDocumentSnapshot(owner,pet,u.documentId,v.version_id)).rejects.toMatchObject({status:404});await expect(db.query(`INSERT INTO pet_schema.document_byte_events(version_id,event_type,actor_id,operation_id) VALUES($1,'VERIFIED_USE',$2,$3)`,[v.version_id,ownerId,randomUUID()])).rejects.toThrow();});
+          32 |  it('B19/B28 unbound metadata-only job still claims/finishes without source-bound claim',async()=>{const {doc}=await legacyDoc(),j=await jobs.enqueue(owner,pet,doc),claim=await jobs.claim();expect(claim?.id).toBe(j.jobId);expect(await jobs.finish(claim!,{text:'SIMULATED',provider:'SIMULATED_OCR'})).toBe(true);expect((await jobs.read(owner,pet,doc)).state).toBe('SUCCEEDED');expect((await db.query('SELECT * FROM pet_schema.ocr_job_byte_sources WHERE job_id=$1',[j.jobId])).rows).toHaveLength(0);});
+
+      at node_modules/pg-pool/index.js:45:11
+      at Object.<anonymous> (test/document-byte-authority.e2e-spec.ts:29:55)
+      at Object.toThrow (node_modules/expect/build/index.js:2155:20)
+      at Object.<anonymous> (test/document-byte-authority.e2e-spec.ts:29:312)
+
+PASS src/common/document-byte-snapshots.spec.ts
+PASS test/document-byte-migration.e2e-spec.ts (5.942 s)
+
+Test Suites: 1 failed, 2 passed, 3 total
+Tests:       5 failed, 43 passed, 48 total
+Snapshots:   0 total
+Time:        23.011 s
+Ran all test suites within paths "src/common/document-byte-snapshots.spec.ts", "test/document-byte-authority.e2e-spec.ts", "test/document-byte-migration.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4b-03a-01-20261011/focused-results.json
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

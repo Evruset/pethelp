@@ -1,0 +1,14 @@
+# Dedicated Docker project/volumes; never attach this acceptance to the Pilot DB.
+services:
+  postgres:
+    ports: !reset []
+  backend:
+    ports: !reset []
+    environment:
+      WORKERS_ENABLED: "false"
+      MVP_SCOPE_PROFILE: PILOT_V1
+      WAVE4_ACCEPTANCE: "true"
+  mock-mis:
+    ports: !reset []
+  mock-cloud:
+    ports: !reset []

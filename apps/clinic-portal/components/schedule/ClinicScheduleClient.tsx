@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ClinicSchedule, ClinicSchedulePeriod, ClinicScheduleResource, ClinicScheduleService, ClinicScheduleSlot, ClinicScheduleStaff, ClinicWorkingHoursDay } from '@/lib/api/clinic-schedule';
+import { DoctorShiftInventory } from './DoctorShiftInventory';
 import { useBookingCoordinator } from './useBookingCoordinator';
 
 type Props = {
@@ -231,10 +232,26 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
   const [completionDialog, setCompletionDialog] = useState<{ slot: ClinicScheduleSlot; summary: string } | null>(null);
   const [blackoutDialog, setBlackoutDialog] = useState<ClinicScheduleSlot | null>(null);
 
-  const range = useMemo(() => ({
-    from: new Date().toISOString(),
-    to: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-  }), []);
+  const [viewDate, setViewDate] = useState(() => localInputValue(new Date(initialSchedule.serverNow)).slice(0, 10));
+  const [viewDays, setViewDays] = useState(14);
+  const [viewStaff, setViewStaff] = useState('');
+  const [viewResource, setViewResource] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [readFailed, setReadFailed] = useState(false);
+  const request = useRef<AbortController | null>(null);
+  const firstRange = useRef(true);
+  const range = useMemo(() => {
+    const from = new Date(`${viewDate}T00:00:00`);
+    const to = new Date(from); to.setDate(to.getDate() + viewDays);
+    return { from: from.toISOString(), to: to.toISOString() };
+  }, [viewDate, viewDays]);
+  const [loadedRange, setLoadedRange] = useState(range.from + range.to);
+  const loadingPeriod = refreshing || loadedRange !== range.from + range.to;
+  const visibleSlots = schedule.slots.filter(slot => (!viewStaff || slot.staff?.id === viewStaff) && (!viewResource || slot.resource?.id === viewResource));
+  const moveDate = (direction: number) => {
+    const next = new Date(`${viewDate}T12:00:00`); next.setDate(next.getDate() + direction * viewDays);
+    setViewDate(localInputValue(next).slice(0, 10));
+  };
   const activeServices = useMemo(() => schedule.services.filter((service) => service.active), [schedule.services]);
   const activeStaff = useMemo(() => schedule.staff.filter((staff) => staff.active), [schedule.staff]);
   const activeResources = useMemo(() => schedule.resources.filter((resource) => resource.active), [schedule.resources]);
@@ -275,30 +292,33 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
   }, [bookingCoordinator]);
 
   const refresh = useCallback(async () => {
-    const url = new URL(`/api/clinic/${clinicId}/locations/${locationId}/schedule/slots`, window.location.origin);
-    url.searchParams.set('from', range.from);
-    url.searchParams.set('to', range.to);
-    const response = await fetch(url, { cache: 'no-store' });
-    if (response.status === 403) {
-      window.location.assign('/forbidden');
-      return;
-    }
-    const payload = await response.json().catch(() => null) as ClinicSchedule | null;
-    if (!response.ok || !payload) {
-      setNotice('Не удалось обновить расписание.');
-      return;
-    }
-    setSchedule(payload);
-    setWorkingHours(payload.workingHours);
-    setServiceDrafts(initialServiceDrafts(payload.services));
-    setStaffDrafts(initialStaffDrafts(payload.staff));
-    setResourceDrafts(initialResourceDrafts(payload.resources));
-    if (!payload.services.some((service) => service.id === serviceId && service.active)) {
-      setServiceId(payload.services.find((service) => service.active)?.id ?? '');
-    }
-    if (staffId && !payload.staff.some((staff) => staff.id === staffId && staff.active)) setStaffId('');
-    if (resourceId && !payload.resources.some((resource) => resource.id === resourceId && resource.active)) setResourceId('');
-  }, [clinicId, locationId, range.from, range.to, resourceId, serviceId, staffId]);
+    request.current?.abort();
+    const controller = new AbortController(); request.current = controller;
+    setRefreshing(true); setReadFailed(false);
+    try {
+      const url = new URL(`/api/clinic/${clinicId}/locations/${locationId}/schedule/slots`, window.location.origin);
+      url.searchParams.set('from', range.from); url.searchParams.set('to', range.to);
+      const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
+      if (controller.signal.aborted) return;
+      if (response.status === 403) { window.location.assign('/forbidden'); return; }
+      const payload = await response.json().catch(() => null) as ClinicSchedule | null;
+      if (controller.signal.aborted) return;
+      if (!response.ok || !payload || payload.clinicId !== clinicId || payload.locationId !== locationId || !Array.isArray(payload.slots) || !Array.isArray(payload.services) || !Array.isArray(payload.staff) || !Array.isArray(payload.resources) || !Array.isArray(payload.workingHours) || !Array.isArray(payload.periods)) throw new Error('SCHEDULE_UNAVAILABLE');
+      setSchedule(payload); setLoadedRange(range.from + range.to); setWorkingHours(payload.workingHours);
+      setServiceDrafts(initialServiceDrafts(payload.services));
+      setStaffDrafts(initialStaffDrafts(payload.staff)); setResourceDrafts(initialResourceDrafts(payload.resources));
+      setServiceId(current => payload.services.some(service => service.id === current && service.active) ? current : payload.services.find(service => service.active)?.id ?? '');
+      setStaffId(current => payload.staff.some(staff => staff.id === current && staff.active) ? current : '');
+      setResourceId(current => payload.resources.some(resource => resource.id === current && resource.active) ? current : '');
+    } catch {
+      if (!controller.signal.aborted) { setReadFailed(true); }
+    } finally { if (!controller.signal.aborted) setRefreshing(false); }
+  }, [clinicId, locationId, range.from, range.to]);
+  useEffect(() => {
+    if (firstRange.current) { firstRange.current = false; return; }
+    void refresh();
+  }, [refresh]);
+  useEffect(() => () => { request.current?.abort(); }, []);
 
   const updateServiceDraft = useCallback((id: string, patch: Partial<ServiceForm>) => {
     setServiceDrafts((current) => ({
@@ -500,7 +520,7 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
       }
       setNotice('Не удалось создать услугу. Проверьте код, цену и длительность.');
     } catch {
-      setNotice('Нет связи с VetHelp. Услуга не создана.');
+      setNotice('Не удалось подтвердить создание услуги. Обновите список перед повторной отправкой.');
     } finally {
       setBusy(false);
     }
@@ -543,7 +563,7 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
       }
       setNotice('Не удалось обновить услугу.');
     } catch {
-      setNotice('Нет связи с VetHelp. Услуга не обновлена.');
+      setNotice('Не удалось подтвердить сохранение услуги. Обновите список перед повторной отправкой.');
     } finally {
       setBusy(false);
     }
@@ -700,7 +720,12 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
   }, [bookingCoordinator, busy, clinicId, locationId, refresh, resourceDrafts]);
 
   const createManualSlot = useCallback(async () => {
-    if (!serviceId || busy) return;
+    if (!serviceId || busy || readFailed || loadingPeriod) return;
+    const start = Date.parse(startsAt), end = Date.parse(endsAt);
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start <= Date.now() || end <= start || !Number.isInteger(capacity) || capacity < 1 || capacity > 50) {
+      setNotice('Укажите будущее начало, конец позже начала и вместимость от 1 до 50.');
+      return;
+    }
     setBusy(true);
     setNotice(null);
     try {
@@ -719,17 +744,17 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
         }),
       });
       if (!response.ok) {
-        setNotice('Не удалось создать окно. Проверьте время, услугу и доступ.');
+        setNotice(response.status === 403 ? 'Нет права создавать окна в этом филиале. Обновите доступ.' : response.status === 409 ? 'Окно конфликтует с текущими данными. Обновите расписание и проверьте доступность.' : 'Не удалось создать окно. Проверьте время, услугу и доступ.');
         return;
       }
       setNotice('Ручное окно создано и зафиксировано в audit.');
       await refresh();
     } catch {
-      setNotice('Нет связи с VetHelp. Окно не создано.');
+      setNotice('Не удалось подтвердить создание окна. Обновите расписание перед повторной отправкой.');
     } finally {
       setBusy(false);
     }
-  }, [bookingCoordinator, busy, capacity, clinicId, endsAt, locationId, refresh, resourceId, serviceId, staffId, startsAt]);
+  }, [bookingCoordinator, busy, capacity, clinicId, endsAt, locationId, refresh, resourceId, serviceId, staffId, startsAt, readFailed, loadingPeriod]);
 
   const blackout = useCallback(async (slot: ClinicScheduleSlot) => {
     if (busy) return;
@@ -788,7 +813,7 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
       );
       if (result.ok) {
         setSelectedSlotId(slot.id);
-        setNotice('Capacity обновлена. Расписание обновлено.');
+        setNotice('Вместимость обновлена. Расписание обновлено.');
         await refresh();
         return;
       }
@@ -886,14 +911,16 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
     }
   }, [bookingCoordinator, busy, clinicId, locationId, refresh, workingHours]);
 
+  if (schedule.clinicId !== clinicId || schedule.locationId !== locationId) return <main><p role="status">Обновляем контекст филиала…</p><button type="button" onClick={()=>void refresh()}>Повторить</button></main>;
+
   return (
-    <main className="min-h-screen px-4 py-6 sm:px-8 lg:px-12">
+    <main className="vh-product-operations min-h-screen px-4 py-6 sm:px-8 lg:px-12">
       <section className="mx-auto max-w-7xl">
         <header className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-blue-700">VetHelp · Schedule</p>
+            <p className="text-sm font-semibold text-blue-700">VetHelp · Клиника</p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">Расписание локации</h1>
-            <p className="mt-2 text-sm text-slate-600">Ручные окна и blackout проходят через backend, audit и outbox. Окна с удержаниями не закрываются локально.</p>
+            <p className="mt-2 text-sm text-slate-600">Просматривайте приёмы, свободное время и загрузку врачей. Занятые окна защищены от изменения.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => void exportJson()} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">JSON</button>
@@ -902,306 +929,43 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
           </div>
         </header>
 
+        <nav aria-label="Управление доступностью" className="vh-product-quick-actions my-4">
+          <a href="#schedule-view">Приёмы</a><a href="#schedule-shifts">Смены врачей</a><a href="#schedule-services">Услуги и цены</a><a href="#schedule-staff">Специалисты</a><a href="#schedule-resources">Ресурсы</a><a href="#schedule-hours">Рабочие часы</a><a href="#schedule-publish">Создать окно</a><a href="#schedule-periods">Ограничения</a>
+        </nav>
         {notice ? <div className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700" role="status">{notice}</div> : null}
 
-        <section className="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-950">Рабочие часы</h2>
-              <p className="mt-1 text-sm text-slate-600">Недельный график хранится на backend и используется как source metadata для ручного расписания.</p>
-            </div>
-            <button type="button" disabled={busy} onClick={() => void saveWorkingHours()} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
-              {busy ? 'Сохраняем...' : 'Сохранить'}
-            </button>
-          </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-7">
-            {workingHours.map((day) => (
-              <div key={day.weekday} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <label className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                  <input type="checkbox" checked={day.active} onChange={(event) => updateWorkingHour(day.weekday, { active: event.target.checked })} />
-                  {WEEKDAYS[day.weekday]}
-                </label>
-                <input type="time" disabled={!day.active} value={day.opensAt ?? '09:00'} onChange={(event) => updateWorkingHour(day.weekday, { opensAt: event.target.value })} className="mt-3 w-full rounded-lg border border-slate-300 px-2 py-1 text-sm disabled:bg-slate-100" />
-                <input type="time" disabled={!day.active} value={day.closesAt ?? '18:00'} onChange={(event) => updateWorkingHour(day.weekday, { closesAt: event.target.value })} className="mt-2 w-full rounded-lg border border-slate-300 px-2 py-1 text-sm disabled:bg-slate-100" />
-                <p className="mt-2 text-xs text-slate-500">{day.source}</p>
-              </div>
-            ))}
+        <section id="schedule-view" aria-label="Просмотр расписания" className="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-semibold">Приёмы и свободные окна</h2><p className="mt-1 text-sm text-slate-600">Дата и время показаны в часовом поясе устройства: {Intl.DateTimeFormat().resolvedOptions().timeZone}. Часовой пояс филиала уточняйте в клинике.</p>
+          <div className="vh-product-schedule-filters mt-4">
+            <label className="grid gap-1 text-sm">Начало периода<input aria-label="Дата расписания" type="date" value={viewDate} onChange={event => { if (event.target.value && Number.isFinite(Date.parse(event.target.value))) setViewDate(event.target.value); }} className="min-h-11 rounded-lg border border-slate-300 p-2"/></label>
+            <div className="flex gap-2" aria-label="Длительность периода">{[[1,'День'],[7,'Неделя'],[14,'14 дней']].map(([days,label]) => <button key={days} type="button" aria-pressed={viewDays === days} onClick={()=>setViewDays(Number(days))} className={`rounded-lg border px-3 py-2 text-sm ${viewDays === days ? 'bg-blue-700 text-white' : 'border-slate-300'}`}>{label}</button>)}</div>
+            <div className="vh-product-period-nav" aria-label="Навигация по периодам"><button type="button" aria-label="Предыдущий период" onClick={()=>moveDate(-1)} className="rounded-lg border border-slate-300 px-3 py-2">←</button>
+            <button type="button" onClick={()=>setViewDate(localInputValue(new Date()).slice(0,10))} className="rounded-lg border border-slate-300 px-3 py-2">Сегодня</button>
+            <button type="button" aria-label="Следующий период" onClick={()=>moveDate(1)} className="rounded-lg border border-slate-300 px-3 py-2">→</button></div>
+            <label className="grid gap-1 text-sm">Врач<select aria-label="Фильтр по врачу" value={viewStaff} onChange={event=>setViewStaff(event.target.value)} className="min-h-11 rounded-lg border border-slate-300 p-2"><option value="">Все врачи</option>{schedule.staff.map(staff=><option key={staff.id} value={staff.id}>{staff.displayName}</option>)}</select></label>
+            <label className="grid gap-1 text-sm">Ресурс<select aria-label="Фильтр по ресурсу" value={viewResource} onChange={event=>setViewResource(event.target.value)} className="min-h-11 rounded-lg border border-slate-300 p-2"><option value="">Все ресурсы</option>{schedule.resources.map(resource=><option key={resource.id} value={resource.id}>{resource.displayName}</option>)}</select></label>
           </div>
         </section>
-
-        <section className="mt-4 rounded-lg border border-slate-200 bg-white p-5">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-950">Услуги локации</h2>
-              <p className="mt-1 text-sm text-slate-600">Активные услуги доступны для новых ручных окон. Изменения проходят через backend, версию, audit и outbox.</p>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-7 lg:w-[860px]">
-              <input type="text" value={newService.code} onChange={(event) => setNewService((current) => ({ ...current, code: event.target.value }))} placeholder="code" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-              <input type="text" value={newService.displayName} onChange={(event) => setNewService((current) => ({ ...current, displayName: event.target.value }))} placeholder="Название" className="sm:col-span-2 rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-              <input type="number" min={5} max={480} value={newService.durationMinutes} onChange={(event) => setNewService((current) => ({ ...current, durationMinutes: Number(event.target.value) }))} aria-label="Длительность услуги" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-              <input type="text" value={newService.priceAmount} onChange={(event) => setNewService((current) => ({ ...current, priceAmount: event.target.value }))} placeholder="1000.00" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-              <input type="text" value={newService.currency} onChange={(event) => setNewService((current) => ({ ...current, currency: event.target.value.toUpperCase().slice(0, 3) }))} placeholder="RUB" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-              <button type="button" disabled={busy || !newService.code || !newService.displayName} onClick={() => void createService()} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
-                Добавить
-              </button>
-            </div>
-          </div>
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full table-fixed border-collapse text-left">
-              <thead className="border-y border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="w-36 px-3 py-3">Код</th>
-                  <th className="w-64 px-3 py-3">Название</th>
-                  <th className="w-32 px-3 py-3">Мин</th>
-                  <th className="w-36 px-3 py-3">Цена</th>
-                  <th className="w-28 px-3 py-3">Валюта</th>
-                  <th className="w-32 px-3 py-3">Активна</th>
-                  <th className="w-36 px-3 py-3">Версия</th>
-                  <th className="w-36 px-3 py-3">Действие</th>
-                </tr>
-              </thead>
-              <tbody>
-                {schedule.services.map((service) => {
-                  const draft = serviceDrafts[service.id] ?? serviceToForm(service);
-                  return (
-                    <tr key={service.id} className="border-b border-slate-200">
-                      <td className="px-3 py-3 align-top"><input type="text" value={draft.code} onChange={(event) => updateServiceDraft(service.id, { code: event.target.value })} className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" /></td>
-                      <td className="px-3 py-3 align-top"><input type="text" value={draft.displayName} onChange={(event) => updateServiceDraft(service.id, { displayName: event.target.value })} className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" /></td>
-                      <td className="px-3 py-3 align-top"><input type="number" min={5} max={480} value={draft.durationMinutes} onChange={(event) => updateServiceDraft(service.id, { durationMinutes: Number(event.target.value) })} className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" /></td>
-                      <td className="px-3 py-3 align-top"><input type="text" value={draft.priceAmount} onChange={(event) => updateServiceDraft(service.id, { priceAmount: event.target.value })} className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" /></td>
-                      <td className="px-3 py-3 align-top"><input type="text" value={draft.currency} onChange={(event) => updateServiceDraft(service.id, { currency: event.target.value.toUpperCase().slice(0, 3) })} className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" /></td>
-                      <td className="px-3 py-3 align-top">
-                        <label className="flex min-h-11 items-center gap-2 text-sm text-slate-700">
-                          <input type="checkbox" checked={draft.active} onChange={(event) => updateServiceDraft(service.id, { active: event.target.checked })} />
-                          {draft.active ? 'Да' : 'Нет'}
-                        </label>
-                      </td>
-                      <td className="px-3 py-3 align-top text-sm text-slate-600">v{service.version}</td>
-                      <td className="px-3 py-3 align-top"><button type="button" disabled={busy} onClick={() => void saveService(service)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Сохранить</button></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="mt-4 rounded-lg border border-slate-200 bg-white p-5">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-950">Специалисты</h2>
-              <p className="mt-1 text-sm text-slate-600">Врачи и сотрудники могут быть закреплены за ручным окном. Source и версия остаются на backend.</p>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-5 lg:w-[680px]">
-              <input type="text" value={newStaff.code} onChange={(event) => setNewStaff((current) => ({ ...current, code: event.target.value }))} placeholder="code" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-              <input type="text" value={newStaff.displayName} onChange={(event) => setNewStaff((current) => ({ ...current, displayName: event.target.value }))} placeholder="ФИО" className="sm:col-span-2 rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-              <input type="text" value={newStaff.role} onChange={(event) => setNewStaff((current) => ({ ...current, role: event.target.value.toUpperCase() }))} placeholder="VETERINARIAN" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-              <button type="button" disabled={busy || !newStaff.code || !newStaff.displayName} onClick={() => void createStaff()} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">Добавить</button>
-            </div>
-          </div>
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full table-fixed border-collapse text-left">
-              <thead className="border-y border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="w-36 px-3 py-3">Код</th>
-                  <th className="w-64 px-3 py-3">ФИО</th>
-                  <th className="w-44 px-3 py-3">Роль</th>
-                  <th className="w-32 px-3 py-3">Активен</th>
-                  <th className="w-36 px-3 py-3">Источник</th>
-                  <th className="w-36 px-3 py-3">Действие</th>
-                </tr>
-              </thead>
-              <tbody>
-                {schedule.staff.map((staff) => {
-                  const draft = staffDrafts[staff.id] ?? staffToForm(staff);
-                  return (
-                    <tr key={staff.id} className="border-b border-slate-200">
-                      <td className="px-3 py-3 align-top"><input type="text" value={draft.code} onChange={(event) => updateStaffDraft(staff.id, { code: event.target.value })} className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" /></td>
-                      <td className="px-3 py-3 align-top"><input type="text" value={draft.displayName} onChange={(event) => updateStaffDraft(staff.id, { displayName: event.target.value })} className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" /></td>
-                      <td className="px-3 py-3 align-top"><input type="text" value={draft.role} onChange={(event) => updateStaffDraft(staff.id, { role: event.target.value.toUpperCase() })} className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" /></td>
-                      <td className="px-3 py-3 align-top"><label className="flex min-h-11 items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={draft.active} onChange={(event) => updateStaffDraft(staff.id, { active: event.target.checked })} />{draft.active ? 'Да' : 'Нет'}</label></td>
-                      <td className="px-3 py-3 align-top text-sm text-slate-600">{staff.source} · v{staff.version}</td>
-                      <td className="px-3 py-3 align-top"><button type="button" disabled={busy} onClick={() => void saveStaff(staff)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Сохранить</button></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="mt-4 rounded-lg border border-slate-200 bg-white p-5">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-950">Кабинеты и ресурсы</h2>
-              <p className="mt-1 text-sm text-slate-600">Ресурс можно закрепить за ручным окном: кабинет, операционная, оборудование или duty-пул.</p>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-5 lg:w-[680px]">
-              <input type="text" value={newResource.code} onChange={(event) => setNewResource((current) => ({ ...current, code: event.target.value }))} placeholder="code" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-              <input type="text" value={newResource.displayName} onChange={(event) => setNewResource((current) => ({ ...current, displayName: event.target.value }))} placeholder="Название" className="sm:col-span-2 rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-              <input type="text" value={newResource.resourceType} onChange={(event) => setNewResource((current) => ({ ...current, resourceType: event.target.value.toUpperCase() }))} placeholder="CABINET" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-              <button type="button" disabled={busy || !newResource.code || !newResource.displayName} onClick={() => void createResource()} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">Добавить</button>
-            </div>
-          </div>
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full table-fixed border-collapse text-left">
-              <thead className="border-y border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="w-36 px-3 py-3">Код</th>
-                  <th className="w-64 px-3 py-3">Название</th>
-                  <th className="w-44 px-3 py-3">Тип</th>
-                  <th className="w-32 px-3 py-3">Активен</th>
-                  <th className="w-36 px-3 py-3">Источник</th>
-                  <th className="w-36 px-3 py-3">Действие</th>
-                </tr>
-              </thead>
-              <tbody>
-                {schedule.resources.map((resource) => {
-                  const draft = resourceDrafts[resource.id] ?? resourceToForm(resource);
-                  return (
-                    <tr key={resource.id} className="border-b border-slate-200">
-                      <td className="px-3 py-3 align-top"><input type="text" value={draft.code} onChange={(event) => updateResourceDraft(resource.id, { code: event.target.value })} className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" /></td>
-                      <td className="px-3 py-3 align-top"><input type="text" value={draft.displayName} onChange={(event) => updateResourceDraft(resource.id, { displayName: event.target.value })} className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" /></td>
-                      <td className="px-3 py-3 align-top"><input type="text" value={draft.resourceType} onChange={(event) => updateResourceDraft(resource.id, { resourceType: event.target.value.toUpperCase() })} className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" /></td>
-                      <td className="px-3 py-3 align-top"><label className="flex min-h-11 items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={draft.active} onChange={(event) => updateResourceDraft(resource.id, { active: event.target.checked })} />{draft.active ? 'Да' : 'Нет'}</label></td>
-                      <td className="px-3 py-3 align-top text-sm text-slate-600">{resource.source} · v{resource.version}</td>
-                      <td className="px-3 py-3 align-top"><button type="button" disabled={busy} onClick={() => void saveResource(resource)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Сохранить</button></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="mt-4 rounded-lg border border-slate-200 bg-white p-5">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-950">Периоды расписания</h2>
-              <p className="mt-1 text-sm text-slate-600">Blackout и отпуск закрывают пустые пересекающиеся слоты. Emergency duty фиксируется как активный duty-интервал.</p>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-7 lg:w-[960px]">
-              <select value={newPeriod.periodType} onChange={(event) => setNewPeriod((current) => ({ ...current, periodType: event.target.value as PeriodForm['periodType'] }))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                <option value="BLACKOUT">Blackout</option>
-                <option value="VACATION">Отпуск</option>
-                <option value="EMERGENCY_DUTY">Emergency duty</option>
-              </select>
-              <input type="datetime-local" value={newPeriod.startsAt} onChange={(event) => setNewPeriod((current) => ({ ...current, startsAt: event.target.value }))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-              <input type="datetime-local" value={newPeriod.endsAt} onChange={(event) => setNewPeriod((current) => ({ ...current, endsAt: event.target.value }))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-              <select value={newPeriod.staffId} onChange={(event) => setNewPeriod((current) => ({ ...current, staffId: event.target.value }))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                <option value="">Любой специалист</option>
-                {activeStaff.map((staff) => <option key={staff.id} value={staff.id}>{staff.displayName}</option>)}
-              </select>
-              <select value={newPeriod.resourceId} onChange={(event) => setNewPeriod((current) => ({ ...current, resourceId: event.target.value }))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                <option value="">Любой ресурс</option>
-                {activeResources.map((resource) => <option key={resource.id} value={resource.id}>{resource.displayName}</option>)}
-              </select>
-              <input type="text" value={newPeriod.reason} onChange={(event) => setNewPeriod((current) => ({ ...current, reason: event.target.value }))} placeholder="Причина" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-              <button type="button" disabled={busy || !newPeriod.startsAt || !newPeriod.endsAt || (newPeriod.periodType === 'VACATION' && !newPeriod.staffId)} onClick={() => void createPeriod()} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">Создать</button>
-            </div>
-          </div>
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full table-fixed border-collapse text-left">
-              <thead className="border-y border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="w-40 px-3 py-3">Тип</th>
-                  <th className="w-56 px-3 py-3">Период</th>
-                  <th className="w-56 px-3 py-3">Scope</th>
-                  <th className="w-64 px-3 py-3">Причина</th>
-                  <th className="w-36 px-3 py-3">Статус</th>
-                  <th className="w-36 px-3 py-3">Действие</th>
-                </tr>
-              </thead>
-              <tbody>
-                {schedule.periods.length === 0 ? (
-                  <tr><td colSpan={6} className="px-3 py-8 text-center text-sm text-slate-600">Периодов в выбранном диапазоне нет.</td></tr>
-                ) : schedule.periods.map((period) => (
-                  <tr key={period.id} className="border-b border-slate-200">
-                    <td className="px-3 py-3 align-top text-sm font-semibold text-slate-900">{periodLabel(period)}</td>
-                    <td className="px-3 py-3 align-top text-sm text-slate-700"><p>{dt(period.startsAt)}</p><p className="mt-1 text-xs text-slate-500">{dt(period.endsAt)}</p></td>
-                    <td className="px-3 py-3 align-top text-sm text-slate-700"><p>{period.staff?.displayName ?? 'Все специалисты'}</p><p className="mt-1 text-xs text-slate-500">{period.resource?.displayName ?? 'Все ресурсы'}</p></td>
-                    <td className="px-3 py-3 align-top text-sm text-slate-700">{period.reason ?? 'Не указана'}</td>
-                    <td className="px-3 py-3 align-top text-sm text-slate-600">{period.active ? 'Активен' : 'Отменен'} · v{period.version}</td>
-                    <td className="px-3 py-3 align-top"><button type="button" disabled={busy || !period.active} onClick={() => void cancelPeriod(period)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Отменить</button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Добавить ручное окно</h2>
-          <div className="mt-4 grid gap-3 md:grid-cols-6">
-            <label className="md:col-span-2">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Услуга</span>
-              <select value={serviceId} onChange={(event) => setServiceId(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                {activeServices.map((service) => <option key={service.id} value={service.id}>{service.displayName}</option>)}
-              </select>
-            </label>
-            <label>
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Специалист</span>
-              <select value={staffId} onChange={(event) => setStaffId(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                <option value="">Не задан</option>
-                {activeStaff.map((staff) => <option key={staff.id} value={staff.id}>{staff.displayName}</option>)}
-              </select>
-            </label>
-            <label>
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Ресурс</span>
-              <select value={resourceId} onChange={(event) => setResourceId(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                <option value="">Не задан</option>
-                {activeResources.map((resource) => <option key={resource.id} value={resource.id}>{resource.displayName}</option>)}
-              </select>
-            </label>
-            <label>
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Начало</span>
-              <input type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-            </label>
-            <label>
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Конец</span>
-              <input type="datetime-local" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-            </label>
-            <label>
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Capacity</span>
-              <input type="number" min={1} max={50} value={capacity} onChange={(event) => setCapacity(Number(event.target.value))} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-            </label>
-          </div>
-          {activeServices.length === 0 ? <p className="mt-3 text-sm text-amber-700">Сначала добавьте или включите услугу.</p> : null}
-          <button type="button" disabled={!serviceId || activeServices.length === 0 || busy} onClick={() => void createManualSlot()} className="mt-4 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
-            {busy ? 'Сохраняем...' : 'Создать окно'}
-          </button>
-        </section>
-
-        <section className="mt-4 rounded-lg border border-slate-200 bg-white p-5">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-950">Импорт расписания</h2>
-              <p className="mt-1 text-sm text-slate-600">Manual import создает Level-C окна через backend, audit и outbox.</p>
-            </div>
-            <button type="button" disabled={busy} onClick={() => void importManualSlots()} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">Импортировать</button>
-          </div>
-          <textarea value={importJson} onChange={(event) => setImportJson(event.target.value)} rows={8} spellCheck={false} className="mt-4 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm text-slate-800" />
-        </section>
-
         <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          {schedule.slots.length === 0 ? (
-            <div className="px-6 py-16 text-center text-sm text-slate-600">На ближайшие 14 дней слоты не найдены.</div>
+          {!loadingPeriod&&!readFailed?<div className="vh-schedule-legend" aria-label="Статусы окон"><span>Свободно — можно записаться</span><span>Есть заявки — время удерживается</span><span>Заполнен — подтверждённые записи</span><span>Закрыт — запись недоступна</span><strong>Показано окон: {visibleSlots.length}</strong></div>:null}
+          {loadingPeriod || readFailed ? <div className="px-6 py-12 text-center" aria-live="polite">{readFailed ? "Расписание недоступно. Нажмите «Обновить»." : "Обновляем расписание…"}</div> : visibleSlots.length === 0 ? (
+            <div className="px-6 py-16 text-center text-sm text-slate-600">В выбранном периоде и с этими фильтрами окон нет.</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full table-fixed border-collapse text-left">
+              <table aria-label="Приёмы и свободные окна" className="vh-product-table min-w-full table-fixed border-collapse text-left">
                 <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   <tr>
                     <th className="w-44 px-4 py-3">Время</th>
                     <th className="w-56 px-4 py-3">Услуга</th>
                     <th className="w-56 px-4 py-3">Специалист / ресурс</th>
                     <th className="w-36 px-4 py-3">Статус</th>
-                    <th className="w-36 px-4 py-3">Capacity</th>
+                    <th className="w-36 px-4 py-3">Вместимость</th>
                     <th className="w-44 px-4 py-3">Источник</th>
                     <th className="w-44 px-4 py-3">Действия</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {schedule.slots.map((slot) => {
+                  {visibleSlots.map((slot) => {
                     const activeSlotAction = slotAction?.slotId === slot.id ? slotAction : null;
                     const slotSelected = selectedSlotId === slot.id;
                     const slotBusy = activeSlotAction != null;
@@ -1211,22 +975,23 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
                       data-testid={`schedule-slot-${slot.id}`}
                       className={`vh-schedule-slot-row border-t border-slate-200 ${slotSelected ? 'vh-schedule-slot-row--selected' : ''} ${slotBusy ? 'vh-schedule-slot-row--busy' : ''}`}
                     >
-                      <td className="px-4 py-4 align-top"><p className="text-sm font-semibold text-slate-950">{dt(slot.startsAt)}</p><p className="mt-1 text-xs text-slate-600">{tm(slot.startsAt)}-{tm(slot.endsAt)}</p></td>
-                      <td className="px-4 py-4 align-top text-sm text-slate-700">{slot.service?.displayName ?? 'Услуга не указана'}</td>
-                      <td className="px-4 py-4 align-top text-sm text-slate-700"><p>{slot.staff?.displayName ?? 'Специалист не задан'}</p><p className="mt-1 text-xs text-slate-500">{slot.resource?.displayName ?? 'Ресурс не задан'}</p></td>
-                      <td className="px-4 py-4 align-top">
+                      <td data-label="Время" className="px-4 py-4 align-top"><p className="text-sm font-semibold text-slate-950">{dt(slot.startsAt)}</p><p className="mt-1 text-xs text-slate-600">{tm(slot.startsAt)}-{tm(slot.endsAt)}</p></td>
+                      <td data-label="Услуга" className="px-4 py-4 align-top text-sm text-slate-700">{slot.service?.displayName ?? 'Услуга не указана'}</td>
+                      <td data-label="Специалист / ресурс" className="px-4 py-4 align-top text-sm text-slate-700"><p>{slot.staff?.displayName ?? 'Специалист не задан'}</p><p className="mt-1 text-xs text-slate-500">{slot.resource?.displayName ?? 'Ресурс не задан'}</p></td>
+                      <td data-label="Статус" className="px-4 py-4 align-top">
                         {slotBusy ? (
                           <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800" role="status">
                             <span className="vh-cupertino-spinner" aria-hidden="true" />
                             {activeSlotAction.retryAttempt > 0 ? `Повтор ${activeSlotAction.retryAttempt}/3` : 'Отправляем'}
                           </span>
                         ) : (
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${slot.state === 'CLOSED' ? 'bg-slate-100 text-slate-700' : slot.status === 'LOCKED_BY_HOLD' ? 'bg-amber-50 text-amber-800' : 'bg-emerald-50 text-emerald-700'}`}>{statusLabel(slot)}</span>
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${slot.state === 'CLOSED' ? 'bg-slate-100 text-slate-700' : slot.status === 'LOCKED_BY_HOLD' ? 'bg-violet-50 text-violet-800' : 'bg-emerald-50 text-emerald-700'}`}>{statusLabel(slot)}</span>
                         )}
+                        {slot.bookingHold ? <p className="mt-2 text-xs text-slate-600">{slot.bookingHold.state === 'CONFIRMED' ? 'Запись подтверждена' : slot.bookingHold.state === 'MANUAL_CONFIRM_PENDING' ? 'Заявка ожидает решения' : slot.bookingHold.state === 'COMPLETED' ? 'Приём завершён' : slot.bookingHold.state === 'REJECTED' ? 'Заявка отклонена' : slot.bookingHold.state === 'EXPIRED' ? 'Срок заявки истёк' : slot.bookingHold.state === 'RELEASED' ? 'Заявка отменена' : 'Проверьте статус записи'}</p> : null}
                       </td>
-                      <td className="px-4 py-4 align-top text-sm text-slate-700">{slot.bookedCount} записей · {slot.heldCount} holds · cap {slot.capacity}</td>
-                      <td className="px-4 py-4 align-top text-sm text-slate-700"><p>{slot.source} · {slot.integrationMode}</p>{slot.stale ? <p className="mt-1 text-xs text-amber-700">Freshness устарел</p> : <p className="mt-1 text-xs text-slate-500">Fresh</p>}</td>
-                      <td className="px-4 py-4 align-top">
+                      <td data-label="Вместимость" className="px-4 py-4 align-top text-sm text-slate-700">{slot.bookedCount} записей · {slot.heldCount} заявок · мест {slot.capacity}</td>
+                      <td data-label="Источник" className="px-4 py-4 align-top text-sm text-slate-700"><p>Окно приёма</p>{slot.stale ? <p className="mt-1 text-xs text-violet-700">Требует обновления</p> : <p className="mt-1 text-xs text-slate-500">Данные загружены</p>}</td>
+                      <td data-label="Действия" className="px-4 py-4 align-top">
                         <div className={`flex flex-col gap-2 ${slotBusy ? 'vh-schedule-slot-actions--busy' : ''}`}>
                           <button
                             type="button"
@@ -1234,7 +999,7 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
                             onClick={() => setCapacityDialog({ slot, value: String(slot.capacity) })}
                             className="vh-schedule-slot-action w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                           >
-                            Capacity
+                            Вместимость
                           </button>
                           <button
                             type="button"
@@ -1242,7 +1007,7 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
                             onClick={() => setBlackoutDialog(slot)}
                             className="vh-schedule-slot-action w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                           >
-                            Blackout
+                            Закрыть окно
                           </button>
                           {canCompleteAppointments ? (
                             <button
@@ -1263,6 +1028,292 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
             </div>
           )}
         </div>
+        <h2 className="mt-8 text-xl font-semibold">Настройки расписания филиала</h2>
+        <p className="mt-2 text-sm text-slate-600">Порядок подготовки: услуга → специалист и ресурс при необходимости → будущее окно. Рабочие часы сами по себе не создают доступное время. Изменения доступны администратору и регистратору в разрешённом филиале.</p>
+        <fieldset disabled={busy || readFailed || loadingPeriod} className="min-w-0 disabled:opacity-60" aria-label="Настройки доступности">
+        {readFailed || loadingPeriod ? <p className="mt-3 text-violet-700">Настройки недоступны до успешного обновления расписания.</p> : null}
+        <DoctorShiftInventory shifts={schedule.doctorShifts} slots={visibleSlots} staffId={viewStaff} timezone={schedule.timezone} loading={loadingPeriod} failed={readFailed}/>
+
+        <section id="schedule-hours" aria-label="Рабочие часы" className="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-950">Рабочие часы</h2>
+              <p className="mt-1 text-sm text-slate-600">Укажите часы работы филиала. Доступные окна создаются отдельно: изменение часов не публикует и не отменяет их автоматически.</p>
+            </div>
+            <button type="button" disabled={busy} onClick={() => void saveWorkingHours()} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
+              {busy ? 'Сохраняем...' : 'Сохранить'}
+            </button>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {workingHours.map((day) => (
+              <div key={day.weekday} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <label className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                  <input type="checkbox" checked={day.active} onChange={(event) => updateWorkingHour(day.weekday, { active: event.target.checked })} />
+                  {WEEKDAYS[day.weekday]}
+                </label>
+                <input type="time" disabled={!day.active} aria-label={`Открытие: ${WEEKDAYS[day.weekday]}`} value={day.opensAt ?? '09:00'} onChange={(event) => updateWorkingHour(day.weekday, { opensAt: event.target.value })} className="mt-3 w-full rounded-lg border border-slate-300 px-2 py-1 text-sm disabled:bg-slate-100" />
+                <input type="time" disabled={!day.active} aria-label={`Закрытие: ${WEEKDAYS[day.weekday]}`} value={day.closesAt ?? '18:00'} onChange={(event) => updateWorkingHour(day.weekday, { closesAt: event.target.value })} className="mt-2 w-full rounded-lg border border-slate-300 px-2 py-1 text-sm disabled:bg-slate-100" />
+                <p className="mt-2 text-xs text-slate-500">{day.source === 'DEFAULT' ? 'Не настроено' : 'Сохранено'}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section id="schedule-services" aria-label="Услуги локации" className="mt-4 rounded-lg border border-slate-200 bg-white p-5">
+          <div className="grid gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-950">Услуги локации</h2>
+              <p className="mt-1 text-sm text-slate-600">Сохранённые активные услуги видны владельцам. Цена ориентировочная; публикация доступного времени выполняется отдельно.</p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-7 w-full">
+              <label className="min-w-0 grid gap-1 text-sm text-slate-700"><span>Код услуги</span><input type="text" aria-label="Код новой услуги" value={newService.code} onChange={(event) => setNewService((current) => ({ ...current, code: event.target.value }))} placeholder="code" className="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
+              <label className="sm:col-span-2 min-w-0 grid gap-1 text-sm text-slate-700"><span>Название услуги</span><input type="text" aria-label="Название новой услуги" value={newService.displayName} onChange={(event) => setNewService((current) => ({ ...current, displayName: event.target.value }))} placeholder="Название" className="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
+              <label className="min-w-0 grid gap-1 text-sm text-slate-700"><span>Длительность, мин</span><input type="number" min={5} max={480} value={newService.durationMinutes} onChange={(event) => setNewService((current) => ({ ...current, durationMinutes: Number(event.target.value) }))} aria-label="Длительность услуги" className="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
+              <label className="min-w-0 grid gap-1 text-sm text-slate-700"><span>Цена</span><input type="text" aria-label="Цена новой услуги" value={newService.priceAmount} onChange={(event) => setNewService((current) => ({ ...current, priceAmount: event.target.value }))} placeholder="1000.00" className="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
+              <label className="min-w-0 grid gap-1 text-sm text-slate-700"><span>Валюта</span><input type="text" aria-label="Валюта новой услуги" value={newService.currency} onChange={(event) => setNewService((current) => ({ ...current, currency: event.target.value.toUpperCase().slice(0, 3) }))} placeholder="RUB" className="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
+              <button type="button" disabled={busy || !newService.code || !newService.displayName} onClick={() => void createService()} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
+                Добавить
+              </button>
+            </div>
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <table aria-label="Услуги и цены" className="vh-product-table vh-product-edit-table min-w-full table-fixed border-collapse text-left">
+              <thead className="border-y border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="w-36 px-3 py-3">Код</th>
+                  <th className="w-64 px-3 py-3">Название</th>
+                  <th className="w-32 px-3 py-3">Мин</th>
+                  <th className="w-36 px-3 py-3">Цена</th>
+                  <th className="w-28 px-3 py-3">Валюта</th>
+                  <th className="w-32 px-3 py-3">Активна</th>
+                  <th className="w-36 px-3 py-3">Версия</th>
+                  <th className="w-36 px-3 py-3">Действие</th>
+                </tr>
+              </thead>
+              <tbody>
+                {schedule.services.map((service) => {
+                  const draft = serviceDrafts[service.id] ?? serviceToForm(service);
+                  return (
+                    <tr key={service.id} className="border-b border-slate-200">
+                      <td data-label="Код" className="px-3 py-3 align-top"><input type="text" aria-label={`Код: ${service.displayName}`} value={draft.code} onChange={(event) => updateServiceDraft(service.id, { code: event.target.value })} className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" /></td>
+                      <td data-label="Название" className="px-3 py-3 align-top"><input type="text" aria-label={`Название: ${service.displayName}`} value={draft.displayName} onChange={(event) => updateServiceDraft(service.id, { displayName: event.target.value })} className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" /></td>
+                      <td data-label="Минуты" className="px-3 py-3 align-top"><input type="number" min={5} max={480} aria-label={`Длительность: ${service.displayName}`} value={draft.durationMinutes} onChange={(event) => updateServiceDraft(service.id, { durationMinutes: Number(event.target.value) })} className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" /></td>
+                      <td data-label="Цена" className="px-3 py-3 align-top"><input type="text" aria-label={`Цена: ${service.displayName}`} value={draft.priceAmount} onChange={(event) => updateServiceDraft(service.id, { priceAmount: event.target.value })} className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" /></td>
+                      <td data-label="Валюта" className="px-3 py-3 align-top"><input type="text" aria-label={`Валюта: ${service.displayName}`} value={draft.currency} onChange={(event) => updateServiceDraft(service.id, { currency: event.target.value.toUpperCase().slice(0, 3) })} className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" /></td>
+                      <td data-label="Активна" className="px-3 py-3 align-top">
+                        <label className="flex min-h-11 items-center gap-2 text-sm text-slate-700">
+                          <input type="checkbox" checked={draft.active} onChange={(event) => updateServiceDraft(service.id, { active: event.target.checked })} />
+                          {draft.active ? 'Да' : 'Нет'}
+                        </label>
+                      </td>
+                      <td data-label="Версия" className="px-3 py-3 align-top text-sm text-slate-600">v{service.version}</td>
+                      <td data-label="Действие" className="px-3 py-3 align-top"><button type="button" disabled={busy} onClick={() => void saveService(service)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Сохранить</button></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="schedule-staff" aria-label="Специалисты" className="mt-4 rounded-lg border border-slate-200 bg-white p-5">
+          <div className="grid gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-950">Специалисты</h2>
+              <p className="mt-1 text-sm text-slate-600">Это справочник расписания, а не учётные записи и права сотрудников. Привязка к окну не назначает врача на клинический приём.</p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-5 w-full">
+              <label className="min-w-0 grid gap-1 text-sm text-slate-700"><span>Код специалиста</span><input type="text" aria-label="Код специалиста" value={newStaff.code} onChange={(event) => setNewStaff((current) => ({ ...current, code: event.target.value }))} placeholder="code" className="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
+              <label className="sm:col-span-2 min-w-0 grid gap-1 text-sm text-slate-700"><span>Имя специалиста</span><input type="text" aria-label="Имя специалиста" value={newStaff.displayName} onChange={(event) => setNewStaff((current) => ({ ...current, displayName: event.target.value }))} placeholder="ФИО" className="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
+              <label className="min-w-0 grid gap-1 text-sm text-slate-700"><span>Роль в справочнике</span><input type="text" aria-label="Роль в справочнике" value={newStaff.role} onChange={(event) => setNewStaff((current) => ({ ...current, role: event.target.value.toUpperCase() }))} placeholder="VETERINARIAN" className="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
+              <button type="button" disabled={busy || !newStaff.code || !newStaff.displayName} onClick={() => void createStaff()} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">Добавить</button>
+            </div>
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <table aria-label="Справочник специалистов" className="vh-product-table vh-product-edit-table min-w-full table-fixed border-collapse text-left">
+              <thead className="border-y border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="w-36 px-3 py-3">Код</th>
+                  <th className="w-64 px-3 py-3">ФИО</th>
+                  <th className="w-44 px-3 py-3">Роль</th>
+                  <th className="w-32 px-3 py-3">Активен</th>
+                  <th className="w-36 px-3 py-3">Источник</th>
+                  <th className="w-36 px-3 py-3">Действие</th>
+                </tr>
+              </thead>
+              <tbody>
+                {schedule.staff.map((staff) => {
+                  const draft = staffDrafts[staff.id] ?? staffToForm(staff);
+                  return (
+                    <tr key={staff.id} className="border-b border-slate-200">
+                      <td data-label="Код" className="px-3 py-3 align-top"><input type="text" aria-label={`Код: ${staff.displayName}`} value={draft.code} onChange={(event) => updateStaffDraft(staff.id, { code: event.target.value })} className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" /></td>
+                      <td data-label="Имя" className="px-3 py-3 align-top"><input type="text" aria-label={`Название: ${staff.displayName}`} value={draft.displayName} onChange={(event) => updateStaffDraft(staff.id, { displayName: event.target.value })} className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" /></td>
+                      <td data-label="Роль" className="px-3 py-3 align-top"><input type="text" aria-label={`Роль: ${staff.displayName}`} value={draft.role} onChange={(event) => updateStaffDraft(staff.id, { role: event.target.value.toUpperCase() })} className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" /></td>
+                      <td data-label="Активен" className="px-3 py-3 align-top"><label className="flex min-h-11 items-center gap-2 text-sm text-slate-700"><input type="checkbox" aria-label={`Активен: ${staff.displayName}`} checked={draft.active} onChange={(event) => updateStaffDraft(staff.id, { active: event.target.checked })} />{draft.active ? 'Да' : 'Нет'}</label></td>
+                      <td data-label="Источник" className="px-3 py-3 align-top text-sm text-slate-600">{staff.source} · v{staff.version}</td>
+                      <td data-label="Действие" className="px-3 py-3 align-top"><button type="button" disabled={busy} onClick={() => void saveStaff(staff)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Сохранить</button></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="schedule-resources" aria-label="Кабинеты и ресурсы" className="mt-4 rounded-lg border border-slate-200 bg-white p-5">
+          <div className="grid gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-950">Кабинеты и ресурсы</h2>
+              <p className="mt-1 text-sm text-slate-600">Ресурс можно закрепить за ручным окном: кабинет, операционная, оборудование или duty-пул.</p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-5 w-full">
+              <label className="min-w-0 grid gap-1 text-sm text-slate-700"><span>Код ресурса</span><input type="text" aria-label="Код ресурса" value={newResource.code} onChange={(event) => setNewResource((current) => ({ ...current, code: event.target.value }))} placeholder="code" className="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
+              <label className="sm:col-span-2 min-w-0 grid gap-1 text-sm text-slate-700"><span>Название ресурса</span><input type="text" aria-label="Название ресурса" value={newResource.displayName} onChange={(event) => setNewResource((current) => ({ ...current, displayName: event.target.value }))} placeholder="Название" className="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
+              <label className="min-w-0 grid gap-1 text-sm text-slate-700"><span>Тип ресурса</span><input type="text" aria-label="Тип ресурса" value={newResource.resourceType} onChange={(event) => setNewResource((current) => ({ ...current, resourceType: event.target.value.toUpperCase() }))} placeholder="CABINET" className="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
+              <button type="button" disabled={busy || !newResource.code || !newResource.displayName} onClick={() => void createResource()} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">Добавить</button>
+            </div>
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <table aria-label="Справочник ресурсов" className="vh-product-table vh-product-edit-table min-w-full table-fixed border-collapse text-left">
+              <thead className="border-y border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="w-36 px-3 py-3">Код</th>
+                  <th className="w-64 px-3 py-3">Название</th>
+                  <th className="w-44 px-3 py-3">Тип</th>
+                  <th className="w-32 px-3 py-3">Активен</th>
+                  <th className="w-36 px-3 py-3">Источник</th>
+                  <th className="w-36 px-3 py-3">Действие</th>
+                </tr>
+              </thead>
+              <tbody>
+                {schedule.resources.map((resource) => {
+                  const draft = resourceDrafts[resource.id] ?? resourceToForm(resource);
+                  return (
+                    <tr key={resource.id} className="border-b border-slate-200">
+                      <td data-label="Код" className="px-3 py-3 align-top"><input type="text" aria-label={`Код: ${resource.displayName}`} value={draft.code} onChange={(event) => updateResourceDraft(resource.id, { code: event.target.value })} className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" /></td>
+                      <td data-label="Название" className="px-3 py-3 align-top"><input type="text" aria-label={`Название: ${resource.displayName}`} value={draft.displayName} onChange={(event) => updateResourceDraft(resource.id, { displayName: event.target.value })} className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" /></td>
+                      <td data-label="Тип" className="px-3 py-3 align-top"><input type="text" aria-label={`Тип: ${resource.displayName}`} value={draft.resourceType} onChange={(event) => updateResourceDraft(resource.id, { resourceType: event.target.value.toUpperCase() })} className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" /></td>
+                      <td data-label="Активен" className="px-3 py-3 align-top"><label className="flex min-h-11 items-center gap-2 text-sm text-slate-700"><input type="checkbox" aria-label={`Активен: ${resource.displayName}`} checked={draft.active} onChange={(event) => updateResourceDraft(resource.id, { active: event.target.checked })} />{draft.active ? 'Да' : 'Нет'}</label></td>
+                      <td data-label="Источник" className="px-3 py-3 align-top text-sm text-slate-600">{resource.source} · v{resource.version}</td>
+                      <td data-label="Действие" className="px-3 py-3 align-top"><button type="button" disabled={busy} onClick={() => void saveResource(resource)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Сохранить</button></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="schedule-periods" aria-label="Периоды расписания" className="mt-4 rounded-lg border border-slate-200 bg-white p-5">
+          <div className="grid gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-950">Периоды расписания</h2>
+              <p className="mt-1 text-sm text-slate-600">Блокировка и отпуск закрывают пустые пересекающиеся окна. Отмена ограничения не означает автоматического открытия окна.</p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-7 w-full">
+              <select aria-label="Тип ограничения" value={newPeriod.periodType} onChange={(event) => setNewPeriod((current) => ({ ...current, periodType: event.target.value as PeriodForm['periodType'] }))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <option value="BLACKOUT">Blackout</option>
+                <option value="VACATION">Отпуск</option>
+                <option value="EMERGENCY_DUTY">Emergency duty</option>
+              </select>
+              <input aria-label="Начало ограничения" type="datetime-local" value={newPeriod.startsAt} onChange={(event) => setNewPeriod((current) => ({ ...current, startsAt: event.target.value }))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+              <input aria-label="Конец ограничения" type="datetime-local" value={newPeriod.endsAt} onChange={(event) => setNewPeriod((current) => ({ ...current, endsAt: event.target.value }))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+              <select aria-label="Специалист для ограничения" value={newPeriod.staffId} onChange={(event) => setNewPeriod((current) => ({ ...current, staffId: event.target.value }))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <option value="">Любой специалист</option>
+                {activeStaff.map((staff) => <option key={staff.id} value={staff.id}>{staff.displayName}</option>)}
+              </select>
+              <select aria-label="Ресурс для ограничения" value={newPeriod.resourceId} onChange={(event) => setNewPeriod((current) => ({ ...current, resourceId: event.target.value }))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <option value="">Любой ресурс</option>
+                {activeResources.map((resource) => <option key={resource.id} value={resource.id}>{resource.displayName}</option>)}
+              </select>
+              <input aria-label="Причина ограничения" type="text" value={newPeriod.reason} onChange={(event) => setNewPeriod((current) => ({ ...current, reason: event.target.value }))} placeholder="Причина" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+              <button type="button" disabled={busy || !newPeriod.startsAt || !newPeriod.endsAt || (newPeriod.periodType === 'VACATION' && !newPeriod.staffId)} onClick={() => void createPeriod()} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">Создать</button>
+            </div>
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <table aria-label="Ограничения расписания" className="vh-product-table vh-product-edit-table min-w-full table-fixed border-collapse text-left">
+              <thead className="border-y border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="w-40 px-3 py-3">Тип</th>
+                  <th className="w-56 px-3 py-3">Период</th>
+                  <th className="w-56 px-3 py-3">Scope</th>
+                  <th className="w-64 px-3 py-3">Причина</th>
+                  <th className="w-36 px-3 py-3">Статус</th>
+                  <th className="w-36 px-3 py-3">Действие</th>
+                </tr>
+              </thead>
+              <tbody>
+                {schedule.periods.length === 0 ? (
+                  <tr><td colSpan={6} className="px-3 py-8 text-center text-sm text-slate-600">Периодов в выбранном диапазоне нет.</td></tr>
+                ) : schedule.periods.map((period) => (
+                  <tr key={period.id} className="border-b border-slate-200">
+                    <td data-label="Тип" className="px-3 py-3 align-top text-sm font-semibold text-slate-900">{periodLabel(period)}</td>
+                    <td data-label="Период" className="px-3 py-3 align-top text-sm text-slate-700"><p>{dt(period.startsAt)}</p><p className="mt-1 text-xs text-slate-500">{dt(period.endsAt)}</p></td>
+                    <td data-label="Область действия" className="px-3 py-3 align-top text-sm text-slate-700"><p>{period.staff?.displayName ?? 'Все специалисты'}</p><p className="mt-1 text-xs text-slate-500">{period.resource?.displayName ?? 'Все ресурсы'}</p></td>
+                    <td data-label="Причина" className="px-3 py-3 align-top text-sm text-slate-700">{period.reason ?? 'Не указана'}</td>
+                    <td data-label="Статус" className="px-3 py-3 align-top text-sm text-slate-600">{period.active ? 'Активен' : 'Отменен'} · v{period.version}</td>
+                    <td data-label="Действие" className="px-3 py-3 align-top"><button type="button" disabled={busy || !period.active} onClick={() => void cancelPeriod(period)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400">Отменить</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="schedule-publish" aria-label="Добавить ручное окно" className="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-950">Добавить ручное окно</h2><p className="mt-2 text-sm text-slate-600">После сохранения окно проверяется сервером и становится доступным по правилам филиала. Время вводится в часовом поясе устройства. Не создавайте пересекающиеся окна для одного специалиста или ресурса.</p>
+          <div className="mt-4 grid gap-3 md:grid-cols-6">
+            <label className="md:col-span-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Услуга</span>
+              <select aria-label="Услуга" value={serviceId} onChange={(event) => setServiceId(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                {activeServices.map((service) => <option key={service.id} value={service.id}>{service.displayName}</option>)}
+              </select>
+            </label>
+            <label>
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Специалист</span>
+              <select aria-label="Специалист" value={staffId} onChange={(event) => setStaffId(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <option value="">Не задан</option>
+                {activeStaff.map((staff) => <option key={staff.id} value={staff.id}>{staff.displayName}</option>)}
+              </select>
+            </label>
+            <label>
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Ресурс</span>
+              <select aria-label="Ресурс" value={resourceId} onChange={(event) => setResourceId(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <option value="">Не задан</option>
+                {activeResources.map((resource) => <option key={resource.id} value={resource.id}>{resource.displayName}</option>)}
+              </select>
+            </label>
+            <label>
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Начало</span>
+              <input type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+            </label>
+            <label>
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Конец</span>
+              <input type="datetime-local" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+            </label>
+            <label>
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Вместимость</span>
+              <input type="number" min={1} max={50} value={capacity} onChange={(event) => setCapacity(Number(event.target.value))} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+            </label>
+          </div>
+          {activeServices.length === 0 ? <p className="mt-3 text-sm text-violet-700">Сначала добавьте или включите услугу.</p> : null}
+          <button type="button" disabled={!serviceId || activeServices.length === 0 || busy} onClick={() => void createManualSlot()} className="mt-4 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
+            {busy ? 'Сохраняем...' : 'Создать окно'}
+          </button>
+        </section>
+
+        <section className="mt-4 rounded-lg border border-slate-200 bg-white p-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-950">Импорт расписания</h2>
+              <p className="mt-1 text-sm text-slate-600">Manual import создает Level-C окна через backend, audit и outbox.</p>
+            </div>
+            <button type="button" disabled={busy} onClick={() => void importManualSlots()} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">Импортировать</button>
+          </div>
+          <textarea aria-label="JSON окон для импорта" value={importJson} onChange={(event) => setImportJson(event.target.value)} rows={8} spellCheck={false} className="mt-4 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm text-slate-800" />
+        </section>
+
+        </fieldset>
       </section>
       {capacityDialog ? (
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="capacity-dialog-title">
@@ -1275,11 +1326,11 @@ export function ClinicScheduleClient({ clinicId, locationId, initialSchedule, ca
           />
           <section className="absolute left-1/2 top-1/2 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white shadow-2xl">
             <header className="border-b border-slate-200 px-6 py-5">
-              <h2 id="capacity-dialog-title" className="text-xl font-semibold text-slate-950">Изменить capacity</h2>
+              <h2 id="capacity-dialog-title" className="text-xl font-semibold text-slate-950">Изменить вместимость</h2>
             </header>
             <div className="px-6 py-5">
               <label className="block">
-                <span className="text-sm font-semibold text-slate-700">Новая capacity</span>
+                <span className="text-sm font-semibold text-slate-700">Новая вместимость</span>
                 <input
                   type="number"
                   min={1}

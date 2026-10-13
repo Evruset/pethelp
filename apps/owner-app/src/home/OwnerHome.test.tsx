@@ -1,0 +1,16 @@
+import {fireEvent,render} from '@testing-library/react-native';
+import Home from '@/app/(app)/index';
+const mockStart=jest.fn(),mockCancel=jest.fn();let mockPets:Record<string,unknown>,mockAppointments:Record<string,unknown>;
+jest.mock('@tanstack/react-query',()=>({useQuery:(q:{queryKey:string[]})=>q.queryKey.at(-1)==='pets'?mockPets:mockAppointments}));
+jest.mock('@/session/SessionProvider',()=>({useSession:()=>({session:{cacheScope:'scope',opaqueCredential:'token'},logout:jest.fn()})}));
+jest.mock('@/auth/AuthJourneyProvider',()=>({useAuthJourney:()=>({resumedIntent:null,consumeResumedIntent:jest.fn()})}));
+jest.mock('@/pets/PetJourneyProvider',()=>({usePetJourney:()=>({active:false,continuedPetId:null,cancel:mockCancel,start:mockStart})}));
+jest.mock('@/appointments/OwnerAppointmentsScreen',()=>{const React=require('react'),{Text}=require('react-native');return{OwnerAppointmentsScreen:()=>React.createElement(Text,null,'MY_APPOINTMENTS'),AppointmentCard:({appointment}:{appointment:{presentation:{label:string}}})=>React.createElement(Text,null,appointment.presentation.label)};});
+jest.mock('@/pets/PetDiaryScreen',()=>{const React=require('react'),{Text}=require('react-native');return{PetDiaryScreen:({petName,species}:{petName:string;species:string})=>React.createElement(Text,null,`PROFILE ${petName} ${species}`)};});
+describe('Owner home product navigation',()=>{
+ beforeEach(()=>{mockStart.mockClear();mockCancel.mockClear();mockPets={isSuccess:true,isError:false,data:[{petId:'pet',name:'Барсик',species:'CAT',createdAt:'2026-01-01T00:00:00Z'}]};mockAppointments={isSuccess:true,isError:false,data:[]};});
+ it('opens the actual selected pet profile and starts booking explicitly',async()=>{const view=await render(<Home/>);await fireEvent.press(view.getByText('Записать питомца'));expect(mockStart).toHaveBeenCalledTimes(1);await fireEvent.press(view.getByText('Карточка и дневник: Барсик'));expect(view.getByText('PROFILE Барсик CAT')).toBeTruthy();});
+ it('highlights authoritative required actions and routes to appointments',async()=>{mockAppointments={isSuccess:true,isError:false,data:[{holdId:'hold',bucket:'REQUIRES_ACTION',startsAt:'2026-10-20T10:00:00Z',presentation:{label:'Требуется решение'}}]};const view=await render(<Home/>);expect(view.getByText('Есть записи, требующие внимания')).toBeTruthy();expect(view.getByText('Требуется решение')).toBeTruthy();await fireEvent.press(view.getByText('Посмотреть записи'));expect(view.getByText('MY_APPOINTMENTS')).toBeTruthy();});
+ it('never shows stale appointment facts on a failed read',async()=>{mockAppointments={isError:true,isSuccess:false,data:[{bucket:'REQUIRES_ACTION',presentation:{label:'STALE'}}],refetch:jest.fn()};const view=await render(<Home/>);expect(view.queryByText('STALE')).toBeNull();expect(view.queryByText('Есть записи, требующие внимания')).toBeNull();expect(view.getByText('Не удалось обновить ближайшую запись')).toBeTruthy();});
+ it('gives first-use guidance without invented pets',async()=>{mockPets={isSuccess:true,isError:false,data:[]};const view=await render(<Home/>);expect(view.getByText('Добавьте первого питомца, чтобы записаться в клинику')).toBeTruthy();expect(view.getByText('Предстоящих записей пока нет. Выберите клинику и удобное время.')).toBeTruthy();});
+});

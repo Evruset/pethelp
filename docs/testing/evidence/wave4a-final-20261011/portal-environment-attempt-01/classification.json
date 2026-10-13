@@ -1,0 +1,9 @@
+{
+  "classification": "ENVIRONMENT",
+  "testsExecuted": 0,
+  "attempts": [
+    "Default webServer npx failed resolving npm prefix under cached Node22; original log accidentally overwritten by subsequent shell redirect",
+    "Isolated configuration creation used wrong working directory, so config absent; preserved current log"
+  ],
+  "repair": "Direct verified Node22 in isolated Playwright config using absolute paths; production/accepted config unchanged."
+}

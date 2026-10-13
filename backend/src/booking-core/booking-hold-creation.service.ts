@@ -8,6 +8,7 @@ import { DatabaseService } from '../database/database.service';
 import { TraceContext } from '../observability/trace-context.context';
 import { canTransition } from './booking-state-machine';
 import { BookingRepository } from './booking.repository';
+import { BookingPolicyResolver } from './booking-policy.resolver';
 import { CreateHoldResult, HoldRow, HoldState, RequestCancellationResult, projectMvpBookingStatus } from './booking.types';
 
 interface IdempotencyRow {
@@ -29,6 +30,7 @@ interface ClinicMisRow {
   mis_type: string | null;
   clinic_status: string;
   location_status: string;
+  booking_contract_profile: string;
 }
 
 const ACTIVE_HOLD_STATES: HoldState[] = [
@@ -53,6 +55,7 @@ export class BookingHoldCreationService {
   constructor(
     private readonly database: DatabaseService,
     private readonly repository: BookingRepository,
+    private readonly policyResolver: BookingPolicyResolver,
   ) {}
 
   async createLocalHold(input: {
@@ -112,19 +115,23 @@ export class BookingHoldCreationService {
         }
         if (slot.state !== 'OPEN' || slot.starts_at <= now) throw DomainErrors.slotUnavailable();
         const clinic = await client.query<ClinicMisRow>(`
-          SELECT c.id AS clinic_id, c.mis_type, c.status AS clinic_status, l.status AS location_status
+          SELECT c.id AS clinic_id, c.mis_type, c.status AS clinic_status,
+                 l.status AS location_status, c.booking_contract_profile
           FROM clinic_schema.clinic_locations l
           JOIN clinic_schema.clinics c ON c.id = l.clinic_id
           WHERE l.id = $1::uuid
+          FOR SHARE OF c, l
         `, [slot.clinic_location_id]);
         if (!clinic.rows[0]) throw DomainErrors.slotNotFound();
         if (input.clinicId !== undefined && clinic.rows[0].clinic_id !== input.clinicId) throw DomainErrors.slotNotFound();
         if (input.expectedSlotVersion !== undefined && slot.version !== input.expectedSlotVersion) {
           throw mvpScope.pilot ? DomainErrors.bookingStateConflict() : DomainErrors.slotVersionStale();
         }
-        if (clinic.rows[0].clinic_status !== 'ACTIVE' || clinic.rows[0].location_status !== 'ACTIVE') {
-          throw DomainErrors.slotUnavailable();
-        }
+        const policy = this.policyResolver.resolve({
+          contractProfile: clinic.rows[0].booking_contract_profile,
+          clinicStatus: clinic.rows[0].clinic_status,
+          locationStatus: clinic.rows[0].location_status,
+        });
 
         const service = await client.query<{ active: boolean; clinic_location_id: string; supported_species: string[] | null }>(`
           SELECT active, clinic_location_id::text, supported_species
@@ -166,12 +173,11 @@ export class BookingHoldCreationService {
           );
         }
 
-        const initialState = resolveOwnerCreateInitialState(mvpScope.pilot, requiresMisReservation);
+        const initialState = mvpScope.pilot
+          ? resolveOwnerCreateInitialState(policy.confirmationMode)
+          : resolveLegacyOwnerCreateInitialState(requiresMisReservation);
 
-        /*
-         * PILOT_V1 reuses the existing manual-confirmation lifecycle. Legacy
-         * non-MIS behavior remains atomic auto-confirmation.
-         */
+        // PILOT_V1 resolves confirmation per clinic; LEGACY_COMPAT keeps its established path.
         const hold = await client.query<HoldRow>(`
           INSERT INTO booking_schema.booking_holds (
             slot_id, owner_id, pet_id, state, expires_at, confirmation_sla_expires_at
@@ -235,6 +241,8 @@ export class BookingHoldCreationService {
           integrationMode,
           expiresAt: result.expiresAt,
           confirmationSlaExpiresAt: hold.rows[0].confirmation_sla_expires_at?.toISOString() ?? null,
+          bookingContractProfile: policy.contractProfile,
+          bookingConfirmationMode: policy.confirmationMode,
         });
 
         if (initialState === 'CONFIRMED') {
@@ -266,6 +274,7 @@ export class BookingHoldCreationService {
             petId: input.petId,
             clinicLocationId: slot.clinic_location_id,
             autoApproved: true,
+            bookingContractProfile: policy.contractProfile,
           });
         }
 
@@ -303,6 +312,8 @@ export class BookingHoldCreationService {
             state: initialState,
             integrationMode,
             confirmationSlaExpiresAt: hold.rows[0].confirmation_sla_expires_at?.toISOString() ?? null,
+            bookingContractProfile: policy.contractProfile,
+            bookingConfirmationMode: policy.confirmationMode,
           }),
         ]);
 
@@ -540,7 +551,12 @@ export class BookingHoldCreationService {
   }
 }
 
-export function resolveOwnerCreateInitialState(pilot: boolean, requiresMisReservation: boolean): HoldState {
-  if (pilot) return 'MANUAL_CONFIRM_PENDING';
+export function resolveOwnerCreateInitialState(
+  confirmationMode: 'MANUAL_REQUEST' | 'AUTO_CONFIRM_PUBLISHED_SLOT',
+): HoldState {
+  return confirmationMode === 'MANUAL_REQUEST' ? 'MANUAL_CONFIRM_PENDING' : 'CONFIRMED';
+}
+
+function resolveLegacyOwnerCreateInitialState(requiresMisReservation: boolean): HoldState {
   return requiresMisReservation ? 'MIS_RESERVATION_PENDING' : 'CONFIRMED';
 }

@@ -39,6 +39,7 @@ type DetailRow = {
   appointment_version: number;
   appointment_status: string;
   appointment_created_at: Date;
+  slot_id:string; service_id:string|null; lifecycle_state:string|null; cancellation_reason_text:string|null;
   slot_starts_at: Date;
   slot_ends_at: Date;
   slot_source: string;
@@ -46,6 +47,8 @@ type DetailRow = {
   pet_id: string;
   pet_name: string;
   pet_species: string;
+  pet_breed: string | null;
+  owner_phone: string | null;
   service_name: string | null;
   veterinarian_name: string | null;
   resource_name: string | null;
@@ -144,14 +147,17 @@ export class ClinicAppointmentsRegistryService {
       await this.clinicAccess.assertAppointmentRegistryReadAccess(client, input.employee, input.clinicId, input.locationId);
       await this.assertLocationBelongsToClinic(client, input.clinicId, input.locationId);
 
+      await this.clinicAccess.assertExactClinicLocationMembership(client, input.employee, input.clinicId, input.locationId);
       const [serverNow, result] = await Promise.all([
         this.dbNow(client),
         client.query<DetailRow>(`
           SELECT a.id AS appointment_id, a.version AS appointment_version,
                  a.status AS appointment_status, a.created_at AS appointment_created_at,
+                 a.slot_id, s.service_id, a.lifecycle_state, a.cancellation_reason_text,
                  s.starts_at AS slot_starts_at, s.ends_at AS slot_ends_at,
                  s.source AS slot_source, clinic.timezone,
-                 p.id AS pet_id, p.name AS pet_name, p.species AS pet_species,
+                 p.id AS pet_id, p.name AS pet_name, p.species AS pet_species, p.breed AS pet_breed,
+                 owner_identity.phone_e164 AS owner_phone,
                  service.display_name AS service_name,
                  staff.display_name AS veterinarian_name,
                  resource.display_name AS resource_name
@@ -165,6 +171,7 @@ export class ClinicAppointmentsRegistryService {
              AND location.status = 'ACTIVE'
           JOIN clinic_schema.clinics clinic ON clinic.id = location.clinic_id
           JOIN pet_schema.pets p ON p.id = a.pet_id
+          LEFT JOIN identity_schema.owner_identities owner_identity ON owner_identity.user_id = a.owner_id
           LEFT JOIN clinic_schema.clinic_services service
             ON service.id = s.service_id AND service.clinic_location_id = $2::uuid
           LEFT JOIN clinic_schema.clinic_staff staff
@@ -179,6 +186,8 @@ export class ClinicAppointmentsRegistryService {
       const row = result.rows[0];
       if (!row) throw DomainErrors.clinicScopeMismatch();
       const status = this.detailStatus(row.appointment_status);
+      const events = await client.query<{event_type:string;occurred_at:Date}>('SELECT event_type,occurred_at FROM booking_schema.appointment_events WHERE appointment_id=$1 ORDER BY occurred_at DESC,id DESC LIMIT 50',[row.appointment_id]);
+      const reception = input.employee.roles.some(role=>['CLINIC_ADMIN','CLINIC_RECEPTIONIST'].includes(role));
       return {
         clinicId: input.clinicId,
         locationId: input.locationId,
@@ -196,16 +205,18 @@ export class ClinicAppointmentsRegistryService {
           timezone: row.timezone,
           sourceLabel: SOURCE_LABELS[row.slot_source.toUpperCase()] ?? 'Источник не указан',
         },
-        owner: null,
+        owner: { displayName: null, phone: row.owner_phone },
         pet: {
           id: row.pet_id,
           displayName: row.pet_name,
           speciesLabel: SPECIES_LABELS[row.pet_species.toUpperCase()] ?? 'Другой вид',
+          breed: row.pet_breed,
         },
         service: row.service_name ? { displayName: row.service_name } : null,
         veterinarian: row.veterinarian_name ? { displayName: row.veterinarian_name } : null,
         resource: row.resource_name ? { displayName: row.resource_name } : null,
         availableActions: [],
+        operations: {slotId:row.slot_id,serviceId:row.service_id,lifecycle:row.lifecycle_state ?? 'UNKNOWN',canCancel:reception && row.appointment_status==='CONFIRMED' && ['CONFIRMED','RESCHEDULE_PROPOSED'].includes(row.lifecycle_state ?? ''),canPropose:reception && row.appointment_status==='CONFIRMED' && row.lifecycle_state==='CONFIRMED',cancellationReason:row.cancellation_reason_text,events:events.rows.map(event=>({type:event.event_type,at:strictIsoTimestamp(event.occurred_at)}))},
       };
     });
   }

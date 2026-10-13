@@ -135,6 +135,7 @@ async function createExpiredPaymentFixture(database: DatabaseService, service: P
 }
 
 async function resetDatabase(database: DatabaseService): Promise<void> {
+  // Do not TRUNCATE users/pets: CASCADE reaches immutable OCR review history.
   await database.query(`
     TRUNCATE TABLE
       payment_schema.provider_webhook_events,
@@ -146,8 +147,6 @@ async function resetDatabase(database: DatabaseService): Promise<void> {
       booking_schema.appointments,
       booking_schema.idempotency_records,
       booking_schema.booking_holds,
-      pet_schema.pets,
-      identity_schema.users,
       clinic_schema.clinics
     RESTART IDENTITY CASCADE
   `);

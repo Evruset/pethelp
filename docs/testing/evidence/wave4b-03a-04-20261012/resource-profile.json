@@ -1,0 +1,14 @@
+{
+  "prefix": "v15-w4b03a04-wdlk821n",
+  "postgres": "16-alpine",
+  "node": "22-bookworm",
+  "uid": 1000,
+  "gid": 1000,
+  "cpuset": "0-3",
+  "storage": "private tmpfs nosuid/nodev/noexec; workerRO/publisherRW",
+  "priorBackupSHA256": "787a69debc0bd401900cc2e3cac88084f7bb3d197876f96b9ede1c903959ffaf",
+  "priorSnapshotsSHA256": "e225216eb7fe4853e0ca3b2ede72b4add36f990c2c4e9599f046a6c706e0c30c",
+  "acceptedRuntimeGates": "REUSED_STICKY_PASS",
+  "newFixtureJobs": 1,
+  "productionProvider": false
+}

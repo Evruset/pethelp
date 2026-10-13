@@ -1,0 +1,14 @@
+PASS src/observability/trace-context.context.spec.ts (6.518 s)
+  TraceContext correlation input
+    ✓ preserves one valid correlation ID (3 ms)
+    ✓ replaces malformed input (1 ms)
+    ✓ replaces duplicated array input (1 ms)
+    ✓ replaces duplicated distinct array input
+    ✓ replaces combined duplicate string input (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       5 passed, 5 total
+Snapshots:   0 total
+Time:        6.824 s
+Ran all test suites within paths "src/observability/trace-context.context.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-055.json

@@ -1,0 +1,53 @@
+{
+  "case": "blocked",
+  "PASS": true,
+  "syncStage": "PROVIDER_ACTIVE",
+  "observedStageAt": 1791803930796,
+  "beforeSignal": {
+    "state": "RUNNING",
+    "attemptCount": 1,
+    "results": 0,
+    "candidates": 0,
+    "receipts": 0,
+    "bindings": 0,
+    "successAudits": 0,
+    "legacyPreserved": true,
+    "receiptOrigin": null,
+    "resultIdentity": null
+  },
+  "outcome": "B_PROVIDER_TIMEOUT_THEN_BOUNDED_RETRY",
+  "signalToFinalObservationSeconds": 45.729,
+  "shutdownBudgetSeconds": 40,
+  "initialExit": 0,
+  "final": {
+    "state": "SUCCEEDED",
+    "attemptCount": 2,
+    "results": 1,
+    "candidates": 1,
+    "receipts": 1,
+    "bindings": 1,
+    "successAudits": 1,
+    "legacyPreserved": true,
+    "receiptOrigin": "TEST_CONSUMER",
+    "resultIdentity": "4d491a4e21d75d3139b8bc3ae0dcc3d32a42f528ef05c49f1e5c4d6c6050006e"
+  },
+  "attemptHistory": [
+    {
+      "status": "FAILED",
+      "error": "PROVIDER_FAILED",
+      "startedAt": "2026-10-12T11:18:50.77186+00:00",
+      "finishedAt": "2026-10-12T11:19:20.857908+00:00"
+    },
+    {
+      "status": "SUCCEEDED",
+      "error": null,
+      "startedAt": "2026-10-12T11:19:35.439324+00:00",
+      "finishedAt": "2026-10-12T11:19:35.623496+00:00"
+    }
+  ],
+  "acceptedLeaseSeconds": 60,
+  "acceptedProviderTimeoutMs": 30000,
+  "acceptedRetryCap": 3,
+  "testConsumerOnly": true,
+  "injectedProductionChanges": false
+}

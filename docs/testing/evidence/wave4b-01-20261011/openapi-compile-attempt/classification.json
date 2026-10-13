@@ -1,0 +1,6 @@
+{
+  "classification": "TEST_CONTRACT_TYPING",
+  "error": "Swagger properties union includes ReferenceObject; closed builder return annotation must retain concrete property type",
+  "businessTestsExecuted": 0,
+  "scope": "typed OpenAPI helper only; no runtime logic change"
+}

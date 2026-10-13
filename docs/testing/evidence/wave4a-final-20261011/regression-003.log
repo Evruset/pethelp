@@ -1,0 +1,22 @@
+PASS test/v15-appointment-lifecycle.integration-spec.ts (28.449 s)
+  v1.5 appointment lifecycle (real PostgreSQL)
+    ✓ requires and persists an auditable clinic cancellation reason with scope and replay safety (1413 ms)
+    ✓ keeps original authoritative until Owner ACCEPT and resolves atomically (838 ms)
+    ✓ keeps original authoritative until Owner DECLINE and resolves atomically (861 ms)
+    ✓ serializes clinic cancel versus Owner accept without split capacity (880 ms)
+    ✓ allows only one proposal to reserve the final target capacity for two Owners (984 ms)
+    ✓ allows one authoritative Owner decision in an accept-versus-reject race (912 ms)
+    ✓ rolls back the confirmed appointment switch when an intermediate event write fails (954 ms)
+    ✓ rejects target drift on accept but still permits Owner rejection (837 ms)
+    ✓ expires a confirmed proposal without losing the original booking or version fence (1266 ms)
+    ✓ Owner cancellation closes a pending proposal and releases both capacities (852 ms)
+    ✓ terminal completed and no-show appointments cannot be owner-cancelled or rewritten (1419 ms)
+    ✓ serializes Owner accept versus expiry and restores the original booking (780 ms)
+    ✓ marks no-show only after authoritative start time, exact scope and replays idempotently (1204 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       13 passed, 13 total
+Snapshots:   0 total
+Time:        28.955 s
+Ran all test suites within paths "test/v15-appointment-lifecycle.integration-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-003.json

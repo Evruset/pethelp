@@ -1,0 +1,14 @@
+PASS src/auth/owner-pet-mvp.controller.spec.ts (7.7 s)
+  ✓ returns the closed invalid-species contract before service execution (5 ms)
+  ✓ rejects mature fields with safe 400 (14 ms)
+  ✓ uses a deterministic domain key independent from OTP/JWT rotation (1 ms)
+  ✓ rejects malformed body null with safe 400 (1 ms)
+  ✓ rejects malformed body [] with safe 400 (1 ms)
+  ✓ rejects malformed body ["bad"] with safe 400 (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       6 passed, 6 total
+Snapshots:   0 total
+Time:        7.979 s
+Ran all test suites within paths "src/auth/owner-pet-mvp.controller.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-044.json

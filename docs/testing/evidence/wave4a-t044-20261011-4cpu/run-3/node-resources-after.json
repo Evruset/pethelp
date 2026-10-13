@@ -1,0 +1,20 @@
+{
+  "at": "2026-10-11T08:40:28.724Z",
+  "node": "v22.23.1",
+  "cpuCount": 4,
+  "availableParallelism": 4,
+  "memoryBytes": 8221097984,
+  "diagnosticsModule": null,
+  "diagnosticsDirectory": null,
+  "cgroup": {
+    "cpu.max": "max 100000",
+    "cpu.stat": "usage_usec 27580277\nuser_usec 19400173\nsystem_usec 8180104\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0",
+    "cpu.pressure": "some avg10=2.15 avg60=1.02 avg300=0.25 total=886116\nfull avg10=0.61 avg60=0.26 avg300=0.06 total=325454",
+    "cpuset.cpus.effective": "0-3",
+    "memory.max": "max",
+    "memory.current": "20606976",
+    "memory.peak": "642854912",
+    "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+    "io.stat": "254:16 rbytes=45056 wbytes=0 rios=2 wios=0 dbytes=0 dios=0\n254:0 rbytes=0 wbytes=1138688 rios=0 wios=44 dbytes=0 dios=0"
+  }
+}

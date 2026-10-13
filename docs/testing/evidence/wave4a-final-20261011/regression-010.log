@@ -1,0 +1,10 @@
+PASS test/clinical-result-readback-http.e2e-spec.ts (17.21 s)
+  Wave 3 canonical clinical Result readback (real PostgreSQL HTTP)
+    ✓ restores no Result, unique DRAFT, PUBLISHED Result and immutable Amendments without read mutation or scope leakage (650 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        17.606 s
+Ran all test suites within paths "test/clinical-result-readback-http.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-010.json

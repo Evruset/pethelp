@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "originalSnapshotEntries": 674,
+  "originalSnapshotUnchanged": true,
+  "localHead": "a1c092ec695d0fb9945e324c96db30914e131830",
+  "freshFetchedRemoteHead": "a1c092ec695d0fb9945e324c96db30914e131830",
+  "detachedIndexEmpty": true,
+  "gitDiffCheck": "PASS",
+  "productionMigrationDependencyGeneratedDiff": false,
+  "detachedWorktreeStatus": " M apps/clinic-portal/tests/e2e/shared-medical.spec.ts\n M apps/owner-app/src/medical-sharing/MedicalSharingScreen.test.tsx\n M docs/ai/current-state.md\n?? apps/clinic-portal/closure.playwright.config.mjs\n?? docs/testing/evidence/wave4a-final-20261011/\n",
+  "postgresIdleInTransaction": 0,
+  "postgresDeadlocks": 0
+}

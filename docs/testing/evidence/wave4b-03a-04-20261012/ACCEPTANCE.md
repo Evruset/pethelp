@@ -1,0 +1,45 @@
+# W4B-03A-04 — Isolated technical acceptance and OCR freeze
+
+Explicit Product Owner decision: “VetHelp — Close W4B-03A-04 and Freeze OCR”,2026-10-12. Approval conditional on evidence reconciliation; all named conditions verified before this record. Human approval applies solely to isolated technical scope.
+
+Parent23653ebb69690171d27b7fdbbe9646a914b3c435.
+Existingisolatedbranch agent/v15-w4b-03a-04-drain-wdlk821n.
+Frozenmachinecommit 921c5f17f6df5dd847605995b041edfc983261da.
+MachineMANIFEST SHA256 e7c0516d677bbc37a3b2e3e0f8c3b1aab6f29b43599d7bdeb2ed4b701583c885.
+
+## Accepted evidence and boundaries
+
+10 unique isolatedoperationalchecksPASS (5activeworkerdrain/recovery+5restore),0unresolvedFAIL;73migrationchecksumrows andunchangedmigrationchain; backendbuildPASS; freshDB/DataAuthority,Security/Privacy andOperations NO VETO. Original674dirtyentries byte-identical, digest f4fe840760b5c771ac774d252cea85b2303dc535872bf255450900dbbdb9fbb5. Runtimegates not rerun.
+
+Accepted actualworker SIGTERM/SIGKILL isolatedmechanics and recovery, logicalgenerationrestore, source-backeddeploymentgap plan, retentiondecisionmaterial and realadapterchecklist. TEST_CONSUMER only, notrealproductionOCR. Blocked40sinitialshutdown differsfrom45.729stotalrecovery; SIGSTOPresume provesoldprocessnonoverwrite, notfreshstalecompletionDBfence. Persistentrestart iscontrolledrehash only: fulloperationalpreflight denied missingmountflags, no verifiedprocessingeligibility. No power-lossproof orproductionrestoreacceptance.
+
+Productionstorageisolation, productionwriter/workerprincipalseparation, realadapter, retentionpolicy, physicaldurability/productionrestore and Pilot/productionenablement remain open. No validatedimport, clinicalvalidation, medicalhistorypromotion, OwnerUI, OCRaccuracy,UAT orPilotacceptance implied.
+
+## Recorded status
+
+WAVE4B_03A_04_MACHINE_CANDIDATE=YES
+WAVE4B_03A_04_HUMAN_ACCEPTANCE=APPROVED_ISOLATED_ONLY
+WAVE4B_03A_04_ISOLATED_SCOPE_COMPLETE=YES
+WAVE4B_03A_COMPLETE=NO
+WAVE4B_03B_READY=NO
+OCR_SOURCE_BYTE_INTEGRITY=DEFERRED_BLOCKING_VALIDATED_IMPORT
+
+OPERATIONAL_ACTIVE_DRAIN=PASS_ISOLATED_ONLY
+DB_RECOVERY_ROLLBACK=PASS_ISOLATED_ONLY
+RESTORE_DURABILITY=PASS_LOGICAL_RESTORE_ONLY
+PERSISTENT_FILESYSTEM_RESTART=PASS_CONTROLLED_RESTART_REHASH_ONLY
+PERSISTENT_VERIFIED_PROCESSING_RESUMPTION=DENIED_UNSAFE_MOUNT_PROFILE
+PRODUCTION_STORAGE_ISOLATION=NOT_VERIFIED
+PRODUCTION_WRITER_WORKER_SEPARATION=NOT_VERIFIED
+PHYSICAL_DURABILITY_AND_PRODUCTION_RESTORE=NOT_VERIFIED
+RETENTION_POLICY=PENDING_PRODUCT_OWNER_DECISION
+REAL_OCR_ADAPTER_ACCEPTANCE=NOT_ACCEPTED
+
+## OCR freeze and publication contract
+
+OCR_DEVELOPMENT=FROZEN_PENDING_PRODUCT_DECISION
+After authorizedpublication, stop all furtherOCRdevelopment until an explicitProductOwnerdecision. Do notstartW4B-03A-05,W4B-03B,newaudits or infrastructurework. Existing futurechecklists/plans do notauthorizeexecution. No main/transitionmerge,deployment,JiraorConfluencechanges.
+
+Publicationauthorized only for verifiedmachinefiles/evidence and minimalacceptance/freeze supplements onexistingisolatedbranch, ordinarypush, thenfreshfetch andlocal/remoteshaequality. The firstcommit preservesoriginal8source/docs+89machineevidencefiles exactly. This secondcommit addsacceptance/verification/checksum supplements andappendscurrent-statefreeze only.
+
+MachineMANIFEST/SHA256SUMS bind the firstcommit, including originalcurrent-state; alloriginalmachineevidence remains unchanged. PUBLICATION-SHA256SUMS binds finalcurrent-state andacceptancesupplements. HistoricalNOT_RECORDED/no-commitstatements remain provenance ofthemachinecheckpoint and are supersededbythisPOdecision, notrewritten.

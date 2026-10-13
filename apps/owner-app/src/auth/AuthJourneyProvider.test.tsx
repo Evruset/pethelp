@@ -57,7 +57,7 @@ function RaceProbe() {
 async function setup(api = mockApi()) {
   const store = mockStore();
   const view = await render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })}>
       <SessionProvider store={store} authority={authority} now={() => Date.now()}>
         <AuthJourneyProvider api={api}><PetJourneyProvider api={petApi}><Flow /></PetJourneyProvider></AuthJourneyProvider>
       </SessionProvider>
@@ -70,7 +70,7 @@ async function setup(api = mockApi()) {
 async function setupRace(api = mockApi()) {
   const store = mockStore();
   const view = await render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })}>
       <SessionProvider store={store} authority={authority} now={() => Date.now()}>
         <AuthJourneyProvider api={api}><RaceProbe /></AuthJourneyProvider>
       </SessionProvider>
@@ -112,7 +112,8 @@ it('direct login uses the canonical authenticated landing without synthetic resu
   await act(async () => { fireEvent.press(view.getByText('Получить код')); });
   await act(async () => { fireEvent.changeText(view.getByLabelText('Код из сообщения'), '123456'); });
   await act(async () => { fireEvent.press(view.getByText('Подтвердить')); });
-  await waitFor(() => expect(view.getByLabelText('Личный кабинет')).toBeTruthy());
+  // Direct login lands on the current authenticated Owner Home, not the retired account shell.
+  await waitFor(() => expect(view.getByLabelText('Записать питомца')).toBeTruthy());
   expect(view.queryByText('Продолжить запись')).toBeNull();
 });
 

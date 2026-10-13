@@ -1,0 +1,20 @@
+PASS test/owner-auth-core.integration-spec.ts (9.272 s)
+  T018 Owner OTP and opaque session core (PostgreSQL)
+    ✓ creates, cools down, resends and supersedes old verifier material (156 ms)
+    ✓ uses DB expiry, bounds attempts at five and hides absent challenges (86 ms)
+    ✓ allows one concurrent verify winner, one session and rejects replay (120 ms)
+    ✓ never reports success for a delayed delivery superseded by a newer request (59 ms)
+    ✓ does not verify or create a session after PROVIDER_REJECTED (35 ms)
+    ✓ does not verify or create a session after PROVIDER_UNAVAILABLE (34 ms)
+    ✓ does not verify or create a session after PROVIDER_RETRYABLE_FAILURE (33 ms)
+    ✓ does not verify or create a session after PROVIDER_FINAL_FAILURE (35 ms)
+    ✓ does not verify or create a session after PROVIDER_TIMEOUT (34 ms)
+    ✓ does not verify or create a session after OUTCOME_UNKNOWN (32 ms)
+    ✓ validates and idempotently revokes only the hashed opaque session (76 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       11 passed, 11 total
+Snapshots:   0 total
+Time:        9.632 s
+Ran all test suites within paths "test/owner-auth-core.integration-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-015.json

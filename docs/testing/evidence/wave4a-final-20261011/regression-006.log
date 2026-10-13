@@ -1,0 +1,15 @@
+PASS test/owner-clinic-catalog-http.e2e-spec.ts (16.747 s)
+  Owner clinic catalog HTTP authority
+    ✓ exposes bounded booking-expiration health without identifiers or payloads (117 ms)
+    ✓ requires an authenticated Owner and returns only the bounded shape (159 ms)
+    ✓ protects and validates the clinic service route with masked not-found (37 ms)
+    ✓ returns the exact Owner public service shape (70 ms)
+    ✓ protects Owner availability and returns the exact empty shape (59 ms)
+    ✓ protects and executes the closed PILOT booking request contract (247 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       6 passed, 6 total
+Snapshots:   0 total
+Time:        17.126 s
+Ran all test suites within paths "test/owner-clinic-catalog-http.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-006.json

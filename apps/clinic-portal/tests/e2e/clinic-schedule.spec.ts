@@ -126,8 +126,50 @@ test('shows an actionable message and refreshes when appointment state is no lon
   });
 });
 
+test('product batch: day/week browsing, filtering and mobile keyboard controls', async ({page,context,baseURL})=>{
+ await addClinicSession(context,baseURL,['CLINIC_ADMIN']);
+ schedule.staff.push({...schedule.staff[0],id:'99999999-9999-4999-8999-999999999999',displayName:'Другой врач'});
+ await page.setViewportSize({width:390,height:844});
+ await page.goto(`/clinics/${clinicId}/locations/${locationId}/schedule`);
+ const list=page.getByRole('table',{name:'Приёмы и свободные окна'});const settings=page.getByRole('heading',{name:'Настройки расписания филиала'});
+ expect((await list.boundingBox())!.y).toBeLessThan((await settings.boundingBox())!.y);
+ await page.getByLabel('Фильтр по врачу').selectOption('99999999-9999-4999-8999-999999999999');
+ await expect(page.getByText('В выбранном периоде и с этими фильтрами окон нет.')).toBeVisible();
+ await page.getByLabel('Фильтр по врачу').selectOption('');
+ const dayRequest=page.waitForRequest(request=>request.url().includes('/schedule/slots?') && request.method()==='GET');
+ await page.getByRole('button',{name:'День',exact:true}).click();
+ const dayUrl=new URL((await dayRequest).url());
+ expect(Date.parse(dayUrl.searchParams.get('to')!)-Date.parse(dayUrl.searchParams.get('from')!)).toBe(86400000);
+ await expect(page.getByRole('table',{name:'Приёмы и свободные окна'})).toBeVisible();
+ await page.getByRole('button',{name:'Неделя',exact:true}).focus();
+ await expect(page.getByRole('button',{name:'Неделя',exact:true})).toBeFocused();
+ await page.keyboard.press('Enter');await expect(page.getByRole('button',{name:'Неделя',exact:true})).toHaveAttribute('aria-pressed','true');
+});
+test('product batch: failed refresh hides old actionable slots and safely recovers', async ({page,context,baseURL})=>{
+ await addClinicSession(context,baseURL,['CLINIC_ADMIN']);await page.goto(`/clinics/${clinicId}/locations/${locationId}/schedule`);
+ await page.route('**/api/clinic/**/schedule/slots?**',route=>route.abort());
+ await page.getByRole('button',{name:'Обновить',exact:true}).click();
+ await expect(page.getByText('Расписание недоступно. Нажмите «Обновить».')).toBeVisible();
+ await expect(page.getByRole('button',{name:'Закрыть приём'})).toHaveCount(0);
+ await page.unroute('**/api/clinic/**/schedule/slots?**');await page.getByRole('button',{name:'Обновить',exact:true}).click();
+ await expect(page.getByRole('table',{name:'Приёмы и свободные окна'})).toBeVisible();
+});
+
+test('product batch: rejects a foreign-scope refresh without retaining actionable rows',async({page,context,baseURL})=>{
+ await addClinicSession(context,baseURL,['CLINIC_ADMIN']);await page.goto(`/clinics/${clinicId}/locations/${locationId}/schedule`);
+ await page.route('**/api/clinic/**/schedule/slots?**',route=>route.fulfill({json:{...schedule,locationId:'99999999-9999-4999-8999-999999999999'}}));
+ await page.getByRole('button',{name:'Обновить',exact:true}).click();await expect(page.getByText('Расписание недоступно. Нажмите «Обновить».')).toBeVisible();await expect(page.getByTestId(`schedule-slot-${slotId}`)).toHaveCount(0);
+});
+test('product batch: an older date response cannot overwrite the current week',async({page,context,baseURL})=>{
+ await addClinicSession(context,baseURL,['CLINIC_ADMIN']);await page.goto(`/clinics/${clinicId}/locations/${locationId}/schedule`);
+ let release!:()=>void,started!:()=>void,done!:()=>void;const blocked=new Promise<void>(resolve=>{release=resolve;}),oldStarted=new Promise<void>(resolve=>{started=resolve;}),oldDone=new Promise<void>(resolve=>{done=resolve;});let reads=0;
+ await page.route('**/api/clinic/**/schedule/slots?**',async route=>{const old=++reads===1;if(old){started();await blocked;}const payload={...schedule,slots:schedule.slots.map(slot=>({...slot,service:slot.service?{...slot.service,displayName:old?'Старый день':'Текущая неделя'}:null}))};try{await route.fulfill({json:payload});}catch{/* The superseded request was aborted. */}finally{if(old)done();}});
+ await page.getByRole('button',{name:'День',exact:true}).click();await oldStarted;await expect(page.getByTestId(`schedule-slot-${slotId}`)).toHaveCount(0);
+ await page.getByRole('button',{name:'Неделя',exact:true}).click();await expect(page.getByText('Текущая неделя',{exact:true})).toBeVisible();release();await oldDone;await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));await expect(page.getByText('Старый день',{exact:true})).toHaveCount(0);await expect(page.getByText('Текущая неделя',{exact:true})).toBeVisible();
+});
+
 function slotRow(page: Page) {
-  return page.getByRole('row').filter({ hasText: '1 записей · 0 holds · cap 1' });
+  return page.getByRole('row').filter({ hasText: '1 записей · 0 заявок · мест 1' });
 }
 
 async function addClinicSession(

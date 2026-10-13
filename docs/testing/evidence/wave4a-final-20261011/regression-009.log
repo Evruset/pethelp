@@ -1,0 +1,30 @@
+PASS test/veterinarian-visit-read.e2e-spec.ts (17.929 s)
+  veterinarian visit read HTTP matrix
+    ✓ lists only allowed scoped states with the eight-field projection (75 ms)
+    ✓ normalizes list denial for clinic admin (16 ms)
+    ✓ normalizes list denial for non-veterinarian (11 ms)
+    ✓ normalizes list denial for inactive membership (11 ms)
+    ✓ normalizes list denial for revoked membership (12 ms)
+    ✓ normalizes list denial for clinic scope mismatch (10 ms)
+    ✓ normalizes list denial for location scope mismatch (9 ms)
+    ✓ normalizes list denial for capability-shaped JWT claim without grant (10 ms)
+    ✓ returns allowed detail with the same projection (21 ms)
+    ✓ normalizes non-readable detail 70000000-0000-4000-8000-000000000006 (15 ms)
+    ✓ normalizes non-readable detail 70000000-0000-4000-8000-000000000005 (13 ms)
+    ✓ normalizes non-readable detail 70000000-0000-4000-8000-000000000007 (13 ms)
+    ✓ normalizes non-readable detail 70000000-0000-4000-8000-000000000003 (13 ms)
+    ✓ normalizes non-readable detail 70000000-0000-4000-8000-000000000004 (13 ms)
+    ✓ normalizes detail denial for clinic admin (9 ms)
+    ✓ normalizes detail denial for non-veterinarian (8 ms)
+    ✓ normalizes detail denial for inactive membership (10 ms)
+    ✓ normalizes detail denial for revoked membership (9 ms)
+    ✓ normalizes detail denial for clinic scope mismatch (7 ms)
+    ✓ normalizes detail denial for location scope mismatch (14 ms)
+    ✓ normalizes detail denial for capability-shaped JWT claim without grant (8 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       21 passed, 21 total
+Snapshots:   0 total
+Time:        18.249 s
+Ran all test suites within paths "test/veterinarian-visit-read.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-009.json

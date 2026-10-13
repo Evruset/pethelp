@@ -1,0 +1,25 @@
+PASS src/medical-sharing/MedicalSharingScreen.test.tsx (9.67 s)
+  Owner medical sharing workflow and accessibility
+    ✓ closure: session removal suppresses late initial context readback (5998 ms)
+    ○ skipped requires explicit selection/confirmation, then server readback and explicit revoke
+    ○ skipped single-flights requests without optimistic success and retries the identical uncertain command
+    ○ skipped terminal appointment CANCELLED_BY_USER may view/revoke an old grant but never select new resources
+    ○ skipped terminal appointment CANCELLED_BY_CLINIC may view/revoke an old grant but never select new resources
+    ○ skipped terminal appointment NO_SHOW may view/revoke an old grant but never select new resources
+    ○ skipped eligible appointment CONFIRMED has the explicit create entry
+    ○ skipped eligible appointment RESCHEDULE_PROPOSED has the explicit create entry
+    ○ skipped eligible appointment COMPLETED has the explicit create entry
+    ○ skipped fails BOOKING_STATE_CONFLICT closed and refreshes server authority
+    ○ skipped fails MEDICAL_SHARE_NOT_FOUND closed and refreshes server authority
+    ○ skipped fails IDEMPOTENCY_CONFLICT closed and refreshes server authority
+    ○ skipped refresh may add selectable resources but never widens existing grant readback
+    ○ skipped rejects foreign context without displaying pet data
+    ○ skipped accessibility escape cancels confirmation without submitting
+    ○ skipped session change discards old scope and ignores late mutation success
+
+Test Suites: 1 passed, 1 total
+Tests:       15 skipped, 1 passed, 16 total
+Snapshots:   0 total
+Time:        10.782 s
+Ran all test suites within paths "src/medical-sharing/MedicalSharingScreen.test.tsx".
+Test results written to: ../../docs/testing/evidence/wave4a-final-20261011/owner-closure.json

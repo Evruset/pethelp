@@ -1,0 +1,14 @@
+{
+  "testOwnedPrefix": "v15-w4b02-2ajw4xh6",
+  "testDatabase": "vethelp_w4b02_base",
+  "retainedContainerCount": 119,
+  "retainedContainerIdsStatesUnchanged": true,
+  "dependencySourceMountedReadOnlyForCopy": true,
+  "sourceRemoteSha": "57f0a54d82df34322542c874f309bc687c66fb7b",
+  "postgres": {
+    "appliedMigrations": 71,
+    "checksumRows": 71,
+    "idleInTransaction": 0,
+    "deadlocks": 0
+  }
+}

@@ -1,0 +1,17 @@
+/workspace/backend/dist/src/auth/ocr-operational-preflight.js:13
+const operationalDenied = () => new Error('OCR_OPERATIONAL_PREFLIGHT_DENIED');
+                                ^
+
+Error: OCR_OPERATIONAL_PREFLIGHT_DENIED
+    at operationalDenied (/workspace/backend/dist/src/auth/ocr-operational-preflight.js:13:33)
+    at bootstrap (/workspace/backend/dist/src/main.js:28:65)
+    at Object.<anonymous> (/workspace/backend/dist/src/main.js:60:6)
+    at Module._compile (node:internal/modules/cjs/loader:1781:14)
+    at Object..js (node:internal/modules/cjs/loader:1913:10)
+    at Module.load (node:internal/modules/cjs/loader:1505:32)
+    at Function._load (node:internal/modules/cjs/loader:1309:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+    at node:internal/main/run_main_module:36:49
+
+Node.js v22.23.2

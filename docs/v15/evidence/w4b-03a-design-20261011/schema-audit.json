@@ -1,0 +1,904 @@
+{
+  "source": "retained exclusive W4B02 test-owned PostgreSQL, catalog read only; no production DB accessed",
+  "data": {
+    "columns": [
+      {
+        "table_name": "ocr_attempts",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_attempts",
+        "column_name": "job_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_attempts",
+        "column_name": "attempt_number",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_attempts",
+        "column_name": "status",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_attempts",
+        "column_name": "started_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO",
+        "column_default": "clock_timestamp()"
+      },
+      {
+        "table_name": "ocr_attempts",
+        "column_name": "finished_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_attempts",
+        "column_name": "error_code",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_attempts",
+        "column_name": "provider_identity",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_attempts",
+        "column_name": "provider_version",
+        "data_type": "character varying",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_candidates",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": "gen_random_uuid()"
+      },
+      {
+        "table_name": "ocr_candidates",
+        "column_name": "result_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_candidates",
+        "column_name": "job_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_candidates",
+        "column_name": "schema_version",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "1"
+      },
+      {
+        "table_name": "ocr_candidates",
+        "column_name": "kind",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": "'EXTRACTED_TEXT'::text"
+      },
+      {
+        "table_name": "ocr_candidates",
+        "column_name": "extracted_text",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_candidates",
+        "column_name": "review_state",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": "'PENDING_OWNER_REVIEW'::text"
+      },
+      {
+        "table_name": "ocr_candidates",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO",
+        "column_default": "clock_timestamp()"
+      },
+      {
+        "table_name": "ocr_jobs",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": "gen_random_uuid()"
+      },
+      {
+        "table_name": "ocr_jobs",
+        "column_name": "document_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_jobs",
+        "column_name": "owner_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_jobs",
+        "column_name": "pet_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_jobs",
+        "column_name": "source_identity",
+        "data_type": "character",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_jobs",
+        "column_name": "source_snapshot",
+        "data_type": "jsonb",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_jobs",
+        "column_name": "state",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": "'QUEUED'::text"
+      },
+      {
+        "table_name": "ocr_jobs",
+        "column_name": "attempt_count",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": "0"
+      },
+      {
+        "table_name": "ocr_jobs",
+        "column_name": "claim_token",
+        "data_type": "uuid",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_jobs",
+        "column_name": "lease_until",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_jobs",
+        "column_name": "available_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO",
+        "column_default": "clock_timestamp()"
+      },
+      {
+        "table_name": "ocr_jobs",
+        "column_name": "error_code",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_jobs",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO",
+        "column_default": "clock_timestamp()"
+      },
+      {
+        "table_name": "ocr_jobs",
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO",
+        "column_default": "clock_timestamp()"
+      },
+      {
+        "table_name": "ocr_results",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": "gen_random_uuid()"
+      },
+      {
+        "table_name": "ocr_results",
+        "column_name": "job_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_results",
+        "column_name": "attempt_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_results",
+        "column_name": "document_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_results",
+        "column_name": "owner_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_results",
+        "column_name": "pet_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_results",
+        "column_name": "source_identity",
+        "data_type": "character",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_results",
+        "column_name": "result_identity",
+        "data_type": "character",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_results",
+        "column_name": "extraction",
+        "data_type": "jsonb",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_results",
+        "column_name": "extracted_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO",
+        "column_default": "clock_timestamp()"
+      },
+      {
+        "table_name": "ocr_results",
+        "column_name": "authority",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": "'UNCONFIRMED'::text"
+      },
+      {
+        "table_name": "ocr_review_revisions",
+        "column_name": "candidate_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_review_revisions",
+        "column_name": "revision",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_review_revisions",
+        "column_name": "expected_revision",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_review_revisions",
+        "column_name": "job_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_review_revisions",
+        "column_name": "result_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_review_revisions",
+        "column_name": "document_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_review_revisions",
+        "column_name": "owner_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_review_revisions",
+        "column_name": "pet_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_review_revisions",
+        "column_name": "actor_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_review_revisions",
+        "column_name": "action",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_review_revisions",
+        "column_name": "review_state",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_review_revisions",
+        "column_name": "text_version",
+        "data_type": "integer",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_review_revisions",
+        "column_name": "corrected_text",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_review_revisions",
+        "column_name": "original_text_identity",
+        "data_type": "character",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_review_revisions",
+        "column_name": "text_identity",
+        "data_type": "character",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_review_revisions",
+        "column_name": "source_identity",
+        "data_type": "character",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_review_revisions",
+        "column_name": "result_identity",
+        "data_type": "character",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_review_revisions",
+        "column_name": "idempotency_key",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_review_revisions",
+        "column_name": "payload_identity",
+        "data_type": "character",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "ocr_review_revisions",
+        "column_name": "authority",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": "'OWNER_DECISION_ONLY'::text"
+      },
+      {
+        "table_name": "ocr_review_revisions",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO",
+        "column_default": "clock_timestamp()"
+      },
+      {
+        "table_name": "pet_documents",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": "gen_random_uuid()"
+      },
+      {
+        "table_name": "pet_documents",
+        "column_name": "pet_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "pet_documents",
+        "column_name": "owner_id",
+        "data_type": "uuid",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "pet_documents",
+        "column_name": "file_url",
+        "data_type": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "pet_documents",
+        "column_name": "doc_type",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "pet_documents",
+        "column_name": "status",
+        "data_type": "character varying",
+        "is_nullable": "NO",
+        "column_default": "'PROCESSING'::character varying"
+      },
+      {
+        "table_name": "pet_documents",
+        "column_name": "ocr_result",
+        "data_type": "jsonb",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "pet_documents",
+        "column_name": "error_message",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "pet_documents",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO",
+        "column_default": "clock_timestamp()"
+      },
+      {
+        "table_name": "pet_documents",
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO",
+        "column_default": "clock_timestamp()"
+      },
+      {
+        "table_name": "pet_documents",
+        "column_name": "processed_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "pet_documents",
+        "column_name": "file_name",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "pet_documents",
+        "column_name": "mime_type",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "pet_documents",
+        "column_name": "file_size_bytes",
+        "data_type": "integer",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "pet_documents",
+        "column_name": "storage_key",
+        "data_type": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "pet_documents",
+        "column_name": "deleted_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES",
+        "column_default": null
+      }
+    ],
+    "constraints": [
+      {
+        "relation": "pet_schema.ocr_attempts",
+        "conname": "ocr_attempts_attempt_number_check",
+        "definition": "CHECK (((attempt_number >= 1) AND (attempt_number <= 3)))"
+      },
+      {
+        "relation": "pet_schema.ocr_attempts",
+        "conname": "ocr_attempts_check",
+        "definition": "CHECK (((status = 'RUNNING'::text) = (finished_at IS NULL)))"
+      },
+      {
+        "relation": "pet_schema.ocr_attempts",
+        "conname": "ocr_attempts_error_code_check",
+        "definition": "CHECK ((error_code = ANY (ARRAY['PROVIDER_FAILED'::text, 'INVALID_RESULT'::text, 'LEASE_EXPIRED'::text, 'SOURCE_UNAVAILABLE'::text, 'SOURCE_CHANGED'::text])))"
+      },
+      {
+        "relation": "pet_schema.ocr_attempts",
+        "conname": "ocr_attempts_id_job_id_key",
+        "definition": "UNIQUE (id, job_id)"
+      },
+      {
+        "relation": "pet_schema.ocr_attempts",
+        "conname": "ocr_attempts_job_id_attempt_number_key",
+        "definition": "UNIQUE (job_id, attempt_number)"
+      },
+      {
+        "relation": "pet_schema.ocr_attempts",
+        "conname": "ocr_attempts_job_id_fkey",
+        "definition": "FOREIGN KEY (job_id) REFERENCES pet_schema.ocr_jobs(id)"
+      },
+      {
+        "relation": "pet_schema.ocr_attempts",
+        "conname": "ocr_attempts_pkey",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "relation": "pet_schema.ocr_attempts",
+        "conname": "ocr_attempts_status_check",
+        "definition": "CHECK ((status = ANY (ARRAY['RUNNING'::text, 'SUCCEEDED'::text, 'FAILED'::text, 'ABANDONED'::text])))"
+      },
+      {
+        "relation": "pet_schema.ocr_candidates",
+        "conname": "ocr_candidate_result_context",
+        "definition": "UNIQUE (id, job_id, result_id)"
+      },
+      {
+        "relation": "pet_schema.ocr_candidates",
+        "conname": "ocr_candidates_extracted_text_check",
+        "definition": "CHECK ((octet_length(extracted_text) <= 32768))"
+      },
+      {
+        "relation": "pet_schema.ocr_candidates",
+        "conname": "ocr_candidates_kind_check",
+        "definition": "CHECK ((kind = 'EXTRACTED_TEXT'::text))"
+      },
+      {
+        "relation": "pet_schema.ocr_candidates",
+        "conname": "ocr_candidates_pkey",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "relation": "pet_schema.ocr_candidates",
+        "conname": "ocr_candidates_result_id_job_id_fkey",
+        "definition": "FOREIGN KEY (result_id, job_id) REFERENCES pet_schema.ocr_results(id, job_id)"
+      },
+      {
+        "relation": "pet_schema.ocr_candidates",
+        "conname": "ocr_candidates_result_id_key",
+        "definition": "UNIQUE (result_id)"
+      },
+      {
+        "relation": "pet_schema.ocr_candidates",
+        "conname": "ocr_candidates_review_state_check",
+        "definition": "CHECK ((review_state = 'PENDING_OWNER_REVIEW'::text))"
+      },
+      {
+        "relation": "pet_schema.ocr_candidates",
+        "conname": "ocr_candidates_schema_version_check",
+        "definition": "CHECK ((schema_version = 1))"
+      },
+      {
+        "relation": "pet_schema.ocr_jobs",
+        "conname": "ocr_jobs_attempt_count_check",
+        "definition": "CHECK (((attempt_count >= 0) AND (attempt_count <= 3)))"
+      },
+      {
+        "relation": "pet_schema.ocr_jobs",
+        "conname": "ocr_jobs_check",
+        "definition": "CHECK (((state = 'RUNNING'::text) = ((claim_token IS NOT NULL) AND (lease_until IS NOT NULL))))"
+      },
+      {
+        "relation": "pet_schema.ocr_jobs",
+        "conname": "ocr_jobs_check1",
+        "definition": "CHECK (((state <> 'RUNNING'::text) OR (attempt_count > 0)))"
+      },
+      {
+        "relation": "pet_schema.ocr_jobs",
+        "conname": "ocr_jobs_document_id_key",
+        "definition": "UNIQUE (document_id)"
+      },
+      {
+        "relation": "pet_schema.ocr_jobs",
+        "conname": "ocr_jobs_document_id_owner_id_pet_id_fkey",
+        "definition": "FOREIGN KEY (document_id, owner_id, pet_id) REFERENCES pet_schema.pet_documents(id, owner_id, pet_id)"
+      },
+      {
+        "relation": "pet_schema.ocr_jobs",
+        "conname": "ocr_jobs_error_code_check",
+        "definition": "CHECK ((error_code = ANY (ARRAY['PROVIDER_FAILED'::text, 'INVALID_RESULT'::text, 'LEASE_EXPIRED'::text, 'SOURCE_UNAVAILABLE'::text, 'SOURCE_CHANGED'::text])))"
+      },
+      {
+        "relation": "pet_schema.ocr_jobs",
+        "conname": "ocr_jobs_id_document_id_owner_id_pet_id_key",
+        "definition": "UNIQUE (id, document_id, owner_id, pet_id)"
+      },
+      {
+        "relation": "pet_schema.ocr_jobs",
+        "conname": "ocr_jobs_pkey",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "relation": "pet_schema.ocr_jobs",
+        "conname": "ocr_jobs_source_identity_check",
+        "definition": "CHECK ((source_identity ~ '^[0-9a-f]{64}$'::text))"
+      },
+      {
+        "relation": "pet_schema.ocr_jobs",
+        "conname": "ocr_jobs_source_snapshot_check",
+        "definition": "CHECK ((octet_length((source_snapshot)::text) <= 8192))"
+      },
+      {
+        "relation": "pet_schema.ocr_jobs",
+        "conname": "ocr_jobs_state_check",
+        "definition": "CHECK ((state = ANY (ARRAY['QUEUED'::text, 'RUNNING'::text, 'SUCCEEDED'::text, 'FAILED'::text])))"
+      },
+      {
+        "relation": "pet_schema.ocr_results",
+        "conname": "ocr_results_attempt_id_job_id_fkey",
+        "definition": "FOREIGN KEY (attempt_id, job_id) REFERENCES pet_schema.ocr_attempts(id, job_id)"
+      },
+      {
+        "relation": "pet_schema.ocr_results",
+        "conname": "ocr_results_authority_check",
+        "definition": "CHECK ((authority = 'UNCONFIRMED'::text))"
+      },
+      {
+        "relation": "pet_schema.ocr_results",
+        "conname": "ocr_results_extraction_check",
+        "definition": "CHECK (((jsonb_typeof(extraction) = 'object'::text) AND (octet_length((extraction)::text) <= 65536)))"
+      },
+      {
+        "relation": "pet_schema.ocr_results",
+        "conname": "ocr_results_id_job_id_key",
+        "definition": "UNIQUE (id, job_id)"
+      },
+      {
+        "relation": "pet_schema.ocr_results",
+        "conname": "ocr_results_job_id_document_id_owner_id_pet_id_fkey",
+        "definition": "FOREIGN KEY (job_id, document_id, owner_id, pet_id) REFERENCES pet_schema.ocr_jobs(id, document_id, owner_id, pet_id)"
+      },
+      {
+        "relation": "pet_schema.ocr_results",
+        "conname": "ocr_results_job_id_key",
+        "definition": "UNIQUE (job_id)"
+      },
+      {
+        "relation": "pet_schema.ocr_results",
+        "conname": "ocr_results_pkey",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "relation": "pet_schema.ocr_results",
+        "conname": "ocr_results_result_identity_check",
+        "definition": "CHECK ((result_identity ~ '^[0-9a-f]{64}$'::text))"
+      },
+      {
+        "relation": "pet_schema.ocr_review_revisions",
+        "conname": "ocr_review_revisions_action_check",
+        "definition": "CHECK ((action = ANY (ARRAY['START'::text, 'CORRECT'::text, 'CONFIRM'::text, 'REJECT'::text])))"
+      },
+      {
+        "relation": "pet_schema.ocr_review_revisions",
+        "conname": "ocr_review_revisions_actor_id_fkey",
+        "definition": "FOREIGN KEY (actor_id) REFERENCES identity_schema.users(id)"
+      },
+      {
+        "relation": "pet_schema.ocr_review_revisions",
+        "conname": "ocr_review_revisions_authority_check",
+        "definition": "CHECK ((authority = 'OWNER_DECISION_ONLY'::text))"
+      },
+      {
+        "relation": "pet_schema.ocr_review_revisions",
+        "conname": "ocr_review_revisions_candidate_id_job_id_result_id_fkey",
+        "definition": "FOREIGN KEY (candidate_id, job_id, result_id) REFERENCES pet_schema.ocr_candidates(id, job_id, result_id)"
+      },
+      {
+        "relation": "pet_schema.ocr_review_revisions",
+        "conname": "ocr_review_revisions_check",
+        "definition": "CHECK (((expected_revision >= 0) AND (revision = (expected_revision + 1))))"
+      },
+      {
+        "relation": "pet_schema.ocr_review_revisions",
+        "conname": "ocr_review_revisions_check1",
+        "definition": "CHECK (((text_version >= 0) AND (text_version <= revision)))"
+      },
+      {
+        "relation": "pet_schema.ocr_review_revisions",
+        "conname": "ocr_review_revisions_corrected_text_check",
+        "definition": "CHECK (((octet_length(corrected_text) >= 0) AND (octet_length(corrected_text) <= 32768)))"
+      },
+      {
+        "relation": "pet_schema.ocr_review_revisions",
+        "conname": "ocr_review_revisions_job_id_document_id_owner_id_pet_id_fkey",
+        "definition": "FOREIGN KEY (job_id, document_id, owner_id, pet_id) REFERENCES pet_schema.ocr_jobs(id, document_id, owner_id, pet_id)"
+      },
+      {
+        "relation": "pet_schema.ocr_review_revisions",
+        "conname": "ocr_review_revisions_original_text_identity_check",
+        "definition": "CHECK ((original_text_identity ~ '^[0-9a-f]{64}$'::text))"
+      },
+      {
+        "relation": "pet_schema.ocr_review_revisions",
+        "conname": "ocr_review_revisions_owner_id_idempotency_key_key",
+        "definition": "UNIQUE (owner_id, idempotency_key)"
+      },
+      {
+        "relation": "pet_schema.ocr_review_revisions",
+        "conname": "ocr_review_revisions_payload_identity_check",
+        "definition": "CHECK ((payload_identity ~ '^[0-9a-f]{64}$'::text))"
+      },
+      {
+        "relation": "pet_schema.ocr_review_revisions",
+        "conname": "ocr_review_revisions_pkey",
+        "definition": "PRIMARY KEY (candidate_id, revision)"
+      },
+      {
+        "relation": "pet_schema.ocr_review_revisions",
+        "conname": "ocr_review_revisions_review_state_check",
+        "definition": "CHECK ((review_state = ANY (ARRAY['IN_REVIEW'::text, 'CONFIRMED'::text, 'REJECTED'::text])))"
+      },
+      {
+        "relation": "pet_schema.ocr_review_revisions",
+        "conname": "ocr_review_revisions_revision_check",
+        "definition": "CHECK ((revision > 0))"
+      },
+      {
+        "relation": "pet_schema.ocr_review_revisions",
+        "conname": "ocr_review_revisions_text_identity_check",
+        "definition": "CHECK ((text_identity ~ '^[0-9a-f]{64}$'::text))"
+      },
+      {
+        "relation": "pet_schema.pet_documents",
+        "conname": "documents_medical_owner_key",
+        "definition": "UNIQUE (id, owner_id, pet_id)"
+      },
+      {
+        "relation": "pet_schema.pet_documents",
+        "conname": "pet_documents_doc_type_check",
+        "definition": "CHECK (((doc_type)::text = ANY ((ARRAY['PASSPORT'::character varying, 'HISTORY'::character varying, 'PET_PHOTO'::character varying])::text[])))"
+      },
+      {
+        "relation": "pet_schema.pet_documents",
+        "conname": "pet_documents_file_size_check",
+        "definition": "CHECK (((file_size_bytes IS NULL) OR (file_size_bytes > 0)))"
+      },
+      {
+        "relation": "pet_schema.pet_documents",
+        "conname": "pet_documents_owner_id_fkey",
+        "definition": "FOREIGN KEY (owner_id) REFERENCES identity_schema.users(id)"
+      },
+      {
+        "relation": "pet_schema.pet_documents",
+        "conname": "pet_documents_pet_id_fkey",
+        "definition": "FOREIGN KEY (pet_id) REFERENCES pet_schema.pets(id) ON DELETE CASCADE"
+      },
+      {
+        "relation": "pet_schema.pet_documents",
+        "conname": "pet_documents_pkey",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "relation": "pet_schema.pet_documents",
+        "conname": "pet_documents_status_check",
+        "definition": "CHECK (((status)::text = ANY ((ARRAY['PROCESSING'::character varying, 'PROCESSED'::character varying, 'FAILED'::character varying])::text[])))"
+      }
+    ],
+    "triggers": [
+      {
+        "relation": "pet_schema.ocr_attempts",
+        "tgname": "ocr_attempts_immutable",
+        "definition": "CREATE TRIGGER ocr_attempts_immutable BEFORE DELETE OR UPDATE ON pet_schema.ocr_attempts FOR EACH ROW EXECUTE FUNCTION pet_schema.guard_ocr_immutable()"
+      },
+      {
+        "relation": "pet_schema.ocr_attempts",
+        "tgname": "ocr_attempts_no_truncate",
+        "definition": "CREATE TRIGGER ocr_attempts_no_truncate BEFORE TRUNCATE ON pet_schema.ocr_attempts FOR EACH STATEMENT EXECUTE FUNCTION pet_schema.guard_ocr_immutable()"
+      },
+      {
+        "relation": "pet_schema.ocr_candidates",
+        "tgname": "ocr_candidates_immutable",
+        "definition": "CREATE TRIGGER ocr_candidates_immutable BEFORE DELETE OR UPDATE ON pet_schema.ocr_candidates FOR EACH ROW EXECUTE FUNCTION pet_schema.guard_ocr_immutable()"
+      },
+      {
+        "relation": "pet_schema.ocr_candidates",
+        "tgname": "ocr_candidates_no_truncate",
+        "definition": "CREATE TRIGGER ocr_candidates_no_truncate BEFORE TRUNCATE ON pet_schema.ocr_candidates FOR EACH STATEMENT EXECUTE FUNCTION pet_schema.guard_ocr_immutable()"
+      },
+      {
+        "relation": "pet_schema.ocr_jobs",
+        "tgname": "ocr_jobs_immutable",
+        "definition": "CREATE TRIGGER ocr_jobs_immutable BEFORE DELETE OR UPDATE ON pet_schema.ocr_jobs FOR EACH ROW EXECUTE FUNCTION pet_schema.guard_ocr_immutable()"
+      },
+      {
+        "relation": "pet_schema.ocr_jobs",
+        "tgname": "ocr_jobs_no_truncate",
+        "definition": "CREATE TRIGGER ocr_jobs_no_truncate BEFORE TRUNCATE ON pet_schema.ocr_jobs FOR EACH STATEMENT EXECUTE FUNCTION pet_schema.guard_ocr_immutable()"
+      },
+      {
+        "relation": "pet_schema.ocr_results",
+        "tgname": "ocr_results_immutable",
+        "definition": "CREATE TRIGGER ocr_results_immutable BEFORE DELETE OR UPDATE ON pet_schema.ocr_results FOR EACH ROW EXECUTE FUNCTION pet_schema.guard_ocr_immutable()"
+      },
+      {
+        "relation": "pet_schema.ocr_results",
+        "tgname": "ocr_results_no_truncate",
+        "definition": "CREATE TRIGGER ocr_results_no_truncate BEFORE TRUNCATE ON pet_schema.ocr_results FOR EACH STATEMENT EXECUTE FUNCTION pet_schema.guard_ocr_immutable()"
+      },
+      {
+        "relation": "pet_schema.ocr_review_revisions",
+        "tgname": "ocr_review_no_mutation",
+        "definition": "CREATE TRIGGER ocr_review_no_mutation BEFORE DELETE OR UPDATE ON pet_schema.ocr_review_revisions FOR EACH ROW EXECUTE FUNCTION pet_schema.ocr_review_append_only()"
+      },
+      {
+        "relation": "pet_schema.ocr_review_revisions",
+        "tgname": "ocr_review_no_truncate",
+        "definition": "CREATE TRIGGER ocr_review_no_truncate BEFORE TRUNCATE ON pet_schema.ocr_review_revisions FOR EACH STATEMENT EXECUTE FUNCTION pet_schema.ocr_review_append_only()"
+      },
+      {
+        "relation": "pet_schema.ocr_review_revisions",
+        "tgname": "ocr_review_revision_integrity",
+        "definition": "CREATE TRIGGER ocr_review_revision_integrity BEFORE INSERT ON pet_schema.ocr_review_revisions FOR EACH ROW EXECUTE FUNCTION pet_schema.enforce_ocr_review_revision()"
+      }
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+> Migrating files:
+> - 1719770000000_verified_ocr_execution
+> Rolling back attempted migration ...
+Error: OCR execution provenance retained; stop ALL claimers. Destructive DOWN unsupported.
+    at exports.down (/workspace/backend/migrations/node-pg/1719770000000_verified_ocr_execution.js:84:25)
+    at Migration._apply (file:///workspace/backend/node_modules/node-pg-migrate/dist/bundle/index.js:3029:13)
+    at Migration.apply (file:///workspace/backend/node_modules/node-pg-migrate/dist/bundle/index.js:3083:17)
+    at file:///workspace/backend/node_modules/node-pg-migrate/dist/bundle/index.js:3726:65
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async runner (file:///workspace/backend/node_modules/node-pg-migrate/dist/bundle/index.js:3806:9)

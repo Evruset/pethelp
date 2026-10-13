@@ -1,0 +1,11 @@
+ retained_audit_rows 
+---------------------
+                  36
+(1 row)
+
+                          tgname                           | tgenabled 
+-----------------------------------------------------------+-----------
+ clinic_booking_contract_profile_audit_reject_row_mutation | O
+ clinic_booking_contract_profile_audit_reject_truncate     | O
+(2 rows)
+

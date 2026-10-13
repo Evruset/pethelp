@@ -1,0 +1,11 @@
+{
+  "backend/migrations/node-pg/1719760000000_document_byte_authority.js": "270a1bde03308ff0f2fc56bf75b22acf4680c12bcfef2cd7b4747fb11909b1c0",
+  "backend/src/auth/owner-pet.service.ts": "53ff71bfff8d9e58d2d6af8656585fa3e787f91bc8da94112988d610cd3f10d7",
+  "backend/src/common/document-byte-snapshots.spec.ts": "da1edabb9ca8d6945f8410b9d5e067b4f06d65c85c699507cb47089eac3a7397",
+  "backend/src/common/document-byte-snapshots.ts": "8c9a3a99145a28e26d0c059c9c69ac982658de8a60c64ee2dcdbb387ae380a81",
+  "backend/test/appointment-medical-sharing-http.e2e-spec.ts": "8d3f06be2a44e39d7fd2ad5042a1594cb9a50c396d01ce88ce30e681c31a158b",
+  "backend/test/document-byte-authority.e2e-spec.ts": "1c12078d2672d1cdfa58bac4be939a28ca7c77d204e40ccac5618f7f5dd1266f",
+  "backend/test/document-byte-migration.e2e-spec.ts": "52aa6472df15513a5a9e136a85623848fa49a9e65dd15c830bd6197e820e0355",
+  "docs/ai/current-state.md": "a87cf3c4f41b12af186fa75b741c9fe48a3314609dc6ccd6f57aba27bd1ff544",
+  "docs/v15/19-wave4b-03a-01-storage-authority.md": "b952b5997348dde7898f86412a85eb63ca9efe3c34a11336f78a5bdf24d8f026"
+}

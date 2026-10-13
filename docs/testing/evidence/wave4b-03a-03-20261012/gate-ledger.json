@@ -1,0 +1,260 @@
+{
+  "baseline": "06da28daf36ce51cd53cbe0a4f53c06c128cafa9",
+  "uniqueFocusedPASS": 31,
+  "unresolvedFAIL": 0,
+  "publisher": {
+    "PASS": 11,
+    "evidence": "publisher-tests-v2.log",
+    "jsonExport": "ENVIRONMENT_FAILURE_AFTER_PASS"
+  },
+  "latestAssertions": [
+    {
+      "test": "Operational worker/rollback compatibility kernel read-only mount blocks write and chmod while canonical bytes remain readable",
+      "status": "passed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility reader identity has no executor membership or Pet medical-history update privilege",
+      "status": "passed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility missing writer membership fails closed at startup",
+      "status": "passed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility bad writer credentials fail closed without processing queued jobs",
+      "status": "passed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility application membership in executor is rejected even with NOINHERIT",
+      "status": "passed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility column-only write privilege on reader is rejected",
+      "status": "passed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility missing executor insert privilege fails startup and is restored only by owned test admin",
+      "status": "passed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility rejects disabled-trigger protocol/privilege drift before any claim",
+      "status": "passed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility rejects changed-function protocol/privilege drift before any claim",
+      "status": "passed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility rejects changed-checksum protocol/privilege drift before any claim",
+      "status": "passed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility rejects extra-writer-column protocol/privilege drift before any claim",
+      "status": "passed",
+      "evidence": "worker-final-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility rejects extra-writer-role protocol/privilege drift before any claim",
+      "status": "passed",
+      "evidence": "worker-final-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility actual older binary cannot claim bound jobs or finish a valid newer claim",
+      "status": "passed",
+      "evidence": "worker-final-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility separated worker preserves simulation and actual evidence classifications",
+      "status": "passed",
+      "evidence": "worker-final-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility EXTRA direct writer-login grants are rejected before SET ROLE",
+      "status": "passed",
+      "evidence": "worker-final-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility EXTRA altered Owner review function is rejected at reconciliation",
+      "status": "passed",
+      "evidence": "worker-final-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility FINAL SELECT grant outside accepted allowlist to ocr_byte_test is rejected",
+      "status": "passed",
+      "evidence": "privilege-final-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility FINAL SELECT grant outside accepted allowlist to vethelp_ocr_byte_executor is rejected",
+      "status": "passed",
+      "evidence": "privilege-final-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility FINAL writer CREATE schema privilege is rejected",
+      "status": "passed",
+      "evidence": "privilege-final-results.json"
+    },
+    {
+      "test": "Operational immutable confirmation fixture records exact Owner correction/CONFIRM without rewriting results or legacy history",
+      "status": "passed",
+      "evidence": "confirmation-results.json"
+    }
+  ],
+  "allObservations": [
+    {
+      "test": "Operational worker/rollback compatibility kernel read-only mount blocks write and chmod while canonical bytes remain readable",
+      "status": "passed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility reader identity has no executor membership or Pet medical-history update privilege",
+      "status": "passed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility missing writer membership fails closed at startup",
+      "status": "passed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility bad writer credentials fail closed without processing queued jobs",
+      "status": "passed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility application membership in executor is rejected even with NOINHERIT",
+      "status": "passed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility column-only write privilege on reader is rejected",
+      "status": "passed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility missing executor insert privilege fails startup and is restored only by owned test admin",
+      "status": "passed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility rejects disabled-trigger protocol/privilege drift before any claim",
+      "status": "passed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility rejects changed-function protocol/privilege drift before any claim",
+      "status": "passed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility rejects changed-checksum protocol/privilege drift before any claim",
+      "status": "passed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility rejects extra-writer-column protocol/privilege drift before any claim",
+      "status": "passed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility rejects extra-writer-role protocol/privilege drift before any claim",
+      "status": "passed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility actual older binary cannot claim bound jobs or finish a valid newer claim",
+      "status": "failed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility separated worker preserves simulation and actual evidence classifications",
+      "status": "failed",
+      "evidence": "worker-initial-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility rejects extra-writer-column protocol/privilege drift before any claim",
+      "status": "passed",
+      "evidence": "worker-final-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility rejects extra-writer-role protocol/privilege drift before any claim",
+      "status": "passed",
+      "evidence": "worker-final-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility EXTRA direct writer-login grants are rejected before SET ROLE",
+      "status": "passed",
+      "evidence": "worker-final-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility EXTRA altered Owner review function is rejected at reconciliation",
+      "status": "passed",
+      "evidence": "worker-final-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility actual older binary cannot claim bound jobs or finish a valid newer claim",
+      "status": "passed",
+      "evidence": "worker-final-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility separated worker preserves simulation and actual evidence classifications",
+      "status": "passed",
+      "evidence": "worker-final-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility FINAL SELECT grant outside accepted allowlist to ocr_byte_test is rejected",
+      "status": "passed",
+      "evidence": "privilege-final-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility FINAL SELECT grant outside accepted allowlist to vethelp_ocr_byte_executor is rejected",
+      "status": "passed",
+      "evidence": "privilege-final-results.json"
+    },
+    {
+      "test": "Operational worker/rollback compatibility FINAL writer CREATE schema privilege is rejected",
+      "status": "passed",
+      "evidence": "privilege-final-results.json"
+    },
+    {
+      "test": "Operational immutable confirmation fixture records exact Owner correction/CONFIRM without rewriting results or legacy history",
+      "status": "passed",
+      "evidence": "confirmation-results.json"
+    }
+  ],
+  "operationalDrills": {
+    "PASS": 14,
+    "FAIL": 0,
+    "evidence": "operational-drill-results.json"
+  },
+  "gates": [
+    {
+      "gate": "fresh73migrations",
+      "status": "PASS",
+      "fresh_or_reused": "FRESH",
+      "evidence": "fresh-migrations.log"
+    },
+    {
+      "gate": "backendbuild",
+      "status": "PASS",
+      "fresh_or_reused": "FRESH",
+      "evidence": "backend-build-release.log"
+    },
+    {
+      "gate": "accepted141/coreatomicfencing/OpenAPI7/populatedupgrade",
+      "status": "REUSED_STICKY_PASS",
+      "fresh_or_reused": "REUSED",
+      "dependency_surface": "unchanged core protocol/migrations/routes; affected startup/membership checked by focused31",
+      "evidence": "../wave4b-03a-02-20261011/"
+    }
+  ]
+}

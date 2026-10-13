@@ -1,0 +1,58 @@
+{
+  "PASS": true,
+  "observations": [
+    {
+      "case": "active",
+      "exitCode": 0,
+      "synchronizedStageToInitialExitSecondsUpperBound": 2.203,
+      "interpretation": "40sinitialshutdown excludes laterrecovery; SIGSTOPincludes60slease wait"
+    },
+    {
+      "case": "blocked",
+      "exitCode": 0,
+      "synchronizedStageToInitialExitSecondsUpperBound": 30.228,
+      "interpretation": "40sinitialshutdown excludes laterrecovery; SIGSTOPincludes60slease wait"
+    },
+    {
+      "case": "commit",
+      "exitCode": 0,
+      "synchronizedStageToInitialExitSecondsUpperBound": 1.026,
+      "interpretation": "40sinitialshutdown excludes laterrecovery; SIGSTOPincludes60slease wait"
+    },
+    {
+      "case": "expired",
+      "exitCode": 0,
+      "synchronizedStageToInitialExitSecondsUpperBound": 66.281,
+      "interpretation": "40sinitialshutdown excludes laterrecovery; SIGSTOPincludes60slease wait"
+    },
+    {
+      "case": "kill",
+      "exitCode": 137,
+      "synchronizedStageToInitialExitSecondsUpperBound": 2.251,
+      "interpretation": "40sinitialshutdown excludes laterrecovery; SIGSTOPincludes60slease wait"
+    },
+    {
+      "case": "blocked-recovery",
+      "exitCode": 0
+    },
+    {
+      "case": "expired-recovery",
+      "exitCode": 0
+    },
+    {
+      "case": "kill-recovery",
+      "exitCode": 0
+    }
+  ],
+  "expiredCaseCoverage": "oldprocessnonoverwrite, not freshstalecompletionfence; accepted141fencing reused",
+  "blockedBudget": "initialexit40s, separate recovery25s; observed combined45.729s",
+  "killBudget": "80s boundedlease-recovery observation; observed65.546s",
+  "persistentMountObservation": {
+    "rootUid": 1000,
+    "rootGid": 1000,
+    "rootMode": "700",
+    "mountOptions": "ro,relatime",
+    "sameFilesystemWritableAliasCount": 0,
+    "denialCause": "missingnosuid/nodev/noexec; processingnoteligible"
+  }
+}

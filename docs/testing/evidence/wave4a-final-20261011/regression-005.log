@@ -1,0 +1,22 @@
+PASS test/clinic-appointment-detail.e2e-spec.ts (27.13 s)
+  Clinic appointment detail HTTP authority and privacy
+    ✓ returns the exact administrative projection for CLINIC_RECEPTIONIST (1117 ms)
+    ✓ returns the exact administrative projection for CLINIC_ADMIN (870 ms)
+    ✓ is default-off and cannot be bypassed through the backend route (681 ms)
+    ✓ requires authentication, allowed role, exact claims and active membership (825 ms)
+    ✓ normalizes malformed, absent and foreign resources without data leakage (843 ms)
+    ✓ normalizes malformed, absent and foreign resources without data leakage (880 ms)
+    ✓ normalizes malformed, absent and foreign resources without data leakage (736 ms)
+    ✓ normalizes malformed, absent and foreign resources without data leakage (857 ms)
+    ✓ returns authoritative nulls for absent optional display projections (716 ms)
+    ✓ uses a safe presentation for unknown stored status without leaking the raw enum (855 ms)
+    ✓ strictly validates UTC, offset, microseconds and impossible calendar timestamps (697 ms)
+    ✓ is stable, reflects authoritative status/version changes and creates no side effects (968 ms)
+    ✓ keeps technical failures distinct from empty, missing or successful reads (1115 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       13 passed, 13 total
+Snapshots:   0 total
+Time:        27.422 s
+Ran all test suites within paths "test/clinic-appointment-detail.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-005.json

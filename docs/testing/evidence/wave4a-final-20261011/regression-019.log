@@ -1,0 +1,10 @@
+PASS test/clinical-result-owner-diary-http.e2e-spec.ts (12.797 s)
+  Wave 3 published clinical result Owner diary (real PostgreSQL)
+    ✓ hides drafts, exposes immutable publication plus ordered amendments, and enforces ownership (383 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        13.073 s
+Ran all test suites within paths "test/clinical-result-owner-diary-http.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-019.json

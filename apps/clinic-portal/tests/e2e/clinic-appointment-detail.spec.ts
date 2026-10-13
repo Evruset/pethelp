@@ -13,8 +13,8 @@ const petId = '33333333-3333-4333-8333-333333333333';
 const jwtSecret = process.env.VETHELP_CLINIC_JWT_SECRET ?? 'clinic-e2e-secret-at-least-32-bytes';
 const rolloutEnabled = process.env.VETHELP_CLINIC_APPOINTMENTS_REGISTRY === 'true';
 
-type Mode = 'normal' | 'nullable' | 'unknown' | 'not-found' | 'forbidden' | 'error' | 'malformed'
-  | 'impossible-date' | 'wrong-clinic' | 'wrong-location' | 'wrong-appointment' | 'actions' | 'delayed';
+type Mode = 'normal' | 'bp11' | 'nullable' | 'unknown' | 'not-found' | 'forbidden' | 'error' | 'malformed'
+  | 'impossible-date' | 'wrong-clinic' | 'wrong-location' | 'wrong-appointment' | 'actions' | 'delayed' | 'operations';
 
 let server: Server;
 let mode: Mode = 'normal';
@@ -23,6 +23,7 @@ let version = 7;
 let statusCode = 'COMPLETED';
 let releaseDelayed: (() => void) | null = null;
 let detailRequests = 0;
+let commands:Array<{headers:import('node:http').IncomingHttpHeaders;body:string}>=[];let commandMode:'success'|'lost'|'conflict'|'malformed'='success';
 
 test.beforeAll(async () => {
   server = createServer(async (request, response) => {
@@ -35,6 +36,7 @@ test.beforeAll(async () => {
         clinicScopes: [{ clinicId, locationId }],
       });
     }
+    if(request.method==='POST'&&url.pathname.endsWith('/cancel')){let body='';for await(const part of request)body+=part;commands.push({headers:request.headers,body});if(commandMode==='lost'){response.destroy();return;}if(commandMode==='conflict')return json(response,409,{code:'BOOKING_STATE_CONFLICT'});return json(response,200,{appointmentId,aggregateVersion:commandMode==='malformed'?version:version+1,lifecycle:'CANCELLED_BY_CLINIC',private:'do not expose'});}
     if (url.pathname.endsWith('/appointments')) {
       return json(response, 200, {
         clinicId, locationId, serverNow: '2026-07-23T09:00:00.123456Z', nextCursor: null,
@@ -74,7 +76,7 @@ test.afterAll(async () => {
 });
 
 test.beforeEach(async ({ context }) => {
-  mode = 'normal';
+  mode = 'normal';commands=[];commandMode='success';
   authority = 'allowed';
   version = 7;
   statusCode = 'COMPLETED';
@@ -105,14 +107,23 @@ test.describe('enabled appointment detail', () => {
   test('supports direct URL and safe owner-null projection', async ({ page }) => {
     await open(page);
     await expect(page.getByText('Барни')).toBeVisible();
-    await expect(page.getByText('Владелец не указан')).toBeVisible();
+    await expect(page.getByText('Не указано', { exact: true })).toBeVisible();
+  });
+
+  test('BP-11 shows truthful phone/breed without inventing an owner name or medical context',async({page})=>{
+    mode='bp11';await open(page);
+    await expect(page.getByText('+15551234567',{exact:true})).toBeVisible();
+    await expect(page.getByText('Бигль',{exact:true})).toBeVisible();
+    await expect(page.getByText('Не указано',{exact:true})).toBeVisible();
+    await expect(page.getByText('private diagnosis')).toHaveCount(0);
+    await expect(page.getByText('+7-private')).toHaveCount(0);
   });
 
   test('renders nullable service, veterinarian and resource placeholders', async ({ page }) => {
     mode = 'nullable';
     await open(page);
-    await expect(page.getByText('Не указана', { exact: true })).toBeVisible();
-    await expect(page.getByText('Не указан', { exact: true })).toHaveCount(2);
+    await expect(page.getByText('Не указана', { exact: true })).toHaveCount(2);
+    await expect(page.getByText('Не указан', { exact: true })).toHaveCount(3);
   });
 
   test('unknown backend and unexpected status are safe and textual', async ({ page }) => {
@@ -242,9 +253,17 @@ test.describe('enabled appointment detail', () => {
     await attachScreenshot(page, testInfo, 'appointment-detail-desktop');
     await page.setViewportSize({ width: 375, height: 812 });
     await expect(page.getByRole('heading', { name: 'Карточка записи' })).toBeVisible();
-    await expect(page.getByText('Владелец не указан')).toBeVisible();
+    await expect(page.getByText('Не указано', { exact: true })).toBeVisible();
     await attachScreenshot(page, testInfo, 'appointment-detail-mobile');
   });
+});
+
+test.describe('bounded appointment mutations',()=>{
+ test.skip(!rolloutEnabled,'enabled-only checks');
+ async function cancel(page:Page){await page.getByRole('button',{name:'Отменить приём клиникой'}).click();await page.getByLabel('Причина отмены',{exact:true}).fill('Synthetic operational reason');await page.getByRole('button',{name:'Подтвердить отмену',exact:true}).click();}
+ test('retains exact unknown command through failed readback and full reload',async({page})=>{mode='operations';commandMode='lost';await open(page);await cancel(page);await expect(page.getByText('Ответ не получен.',{exact:false})).toBeVisible();mode='error';await page.getByRole('button',{name:'Обновить запись'}).click();await expect(page.getByRole('button',{name:'Повторить тот же запрос'})).toHaveCount(0);mode='operations';await page.reload();await expect(page.getByRole('button',{name:'Повторить тот же запрос'})).toBeVisible();commandMode='success';await page.getByRole('button',{name:'Повторить тот же запрос'}).click();await expect(page.getByText('Отмена подтверждена сервером.')).toBeVisible();expect(commands).toHaveLength(2);expect(commands[0].body).toBe(commands[1].body);for(const h of ['idempotency-key','if-match','x-correlation-id'])expect(commands[0].headers[h]).toBe(commands[1].headers[h]);});
+ test('known conflict clears the old command and requires authoritative reload',async({page})=>{mode='operations';commandMode='conflict';await open(page);await cancel(page);await expect(page.getByText('Запись изменилась или операция недоступна. Данные обновляются.')).toBeVisible();expect(commands).toHaveLength(1);await expect(page.getByRole('button',{name:'Повторить тот же запрос'})).toHaveCount(0);});
+ test('BFF denies unknown fields and invalid match, and masks malformed success',async({page})=>{mode='operations';await open(page);const headers={'Idempotency-Key':appointmentId,'X-Correlation-ID':appointmentId,'If-Match':'7'};expect((await page.request.post(`${bff()}/cancel`,{headers,data:{reasonText:'Demo',medicalData:'forged'}})).status()).toBe(400);expect((await page.request.post(`${bff()}/cancel`,{headers:{...headers,'If-Match':'"7'},data:{reasonText:'Demo'}})).status()).toBe(400);commandMode='malformed';const result=await page.request.post(`${bff()}/cancel`,{headers,data:{reasonText:'Demo'}});expect(result.status()).toBe(502);expect(await result.json()).toEqual({code:'INVALID_RESPONSE'});});
 });
 
 function detailPayload(url: URL) {
@@ -267,11 +286,12 @@ function detailPayload(url: URL) {
       timezone: 'Europe/Moscow',
       sourceLabel: 'Вручную',
     },
-    owner: null,
-    pet: { id: petId, displayName: isOther ? 'Луна' : 'Барни', speciesLabel: 'Собака' },
+    owner: mode==='bp11'?{displayName:null,phone:'+15551234567'}:null,
+    pet: { id: petId, displayName: isOther ? 'Луна' : 'Барни', speciesLabel: 'Собака', breed: mode==='bp11'?'Бигль':null },
     service: mode === 'nullable' ? null : { displayName: 'Терапевтический приём' },
     veterinarian: mode === 'nullable' ? null : { displayName: 'Доктор Айболит' },
     resource: mode === 'nullable' ? null : { displayName: 'Кабинет 1' },
+    ...(mode==='operations'?{operations:{slotId:petId,serviceId:petId,lifecycle:'CONFIRMED',canCancel:true,canPropose:true,cancellationReason:null,events:[{type:'APPOINTMENT_PROPOSE',at:'2026-07-23T08:00:00Z'}]}}:{}),
     availableActions: [] as string[],
     ownerPhone: '+7-private',
     clinicalSummary: 'private diagnosis',

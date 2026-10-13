@@ -1,0 +1,3689 @@
+
+> vethelp-mvp1@0.1.0 migrate:up
+> node-pg-migrate up --migrations-dir migrations/node-pg --migrations-schema public --migrations-table schema_migrations --single-transaction && node scripts/verify-migration-checksums.cjs --write-missing
+
+> Migrating files:
+> - 1719110000000_init_schemas_and_booking_core
+> - 1719119000000_add_pet_ownership_and_memberships
+> - 1719120000000_add_mis_integration_acl
+> - 1719121000000_add_payments_ledger
+> - 1719122000000_add_payment_reliability
+> - 1719123000000_add_remote_payment_intent_and_capture
+> - 1719124000000_add_telemedicine_engine
+> - 1719125000000_add_outbox_correlation_index
+> - 1719126000000_add_captured_payment_refunds
+> - 1719127000000_marketplace_alpha_clinic_sla_and_alternatives
+> - 1719128000000_propagate_correlation_to_telemed_outbox
+> - 1719129000000_emergency_routing_capability_profiles
+> - 1719130000000_alpha_hardening_review_fixes
+> - 1719130100000_emergency_review_boundary
+> - 1719130200000_emergency_assessment_command
+> - 1719130210000_emergency_review_command_compat
+> - 1719130300000_enforce_payment_price_snapshot
+> - 1719140000000_add_clinic_queue_fifo_index
+> - 1719150000000_add_outbox_event_sequence
+> - 1719160000000_add_insurance_coverage_checks
+> - 1719170000000_add_owner_otp_sessions
+> - 1719180000000_add_payment_attempt_fence_token
+> - 1719190000000_expand_owner_pet_profile
+> - 1719200000000_add_emergency_triage_rules
+> - 1719210000000_add_insurance_profiles
+> - 1719220000000_add_clinic_working_hours
+> - 1719230000000_add_clinic_service_management
+> - 1719240000000_add_clinic_schedule_staff_resources
+> - 1719250000000_add_clinic_schedule_periods
+> - 1719260000000_add_alternative_swap_groups
+> - 1719270000000_add_emergency_route_actions
+> - 1719280000000_add_telemed_intake_eligibility
+> - 1719290000000_add_telemed_cases_payment_intents
+> - 1719300000000_add_telemed_payment_webhook_queue
+> - 1719310000000_add_telemed_vet_workspace
+> - 1719320000000_add_case_based_telemed_sessions
+> - 1719330000000_harden_telemed_payment_attempts
+> - 1719340000000_add_owner_telemed_cancellation
+> - 1719350000000_guard_telemed_payment_attempts_rollback
+> - 1719360000000_expand_insurance_coverage_provider_snapshot
+> - 1719370000000_add_trace_fields_to_outbox_events
+> - 1719380000000_harden_audit_compliance_metadata
+> - 1719400000000_autonomous_marketplace_pr36
+> - 1719400000001_allow_clinic_veterinarian_membership
+> - 1719400000003_add_insurance_consent_revoke
+> - 1719410000000_add_pet_document_file_metadata
+> - 1719420000000_add_pet_archival
+> - 1719430000000_v50_booking_hold_idempotency_fingerprint
+> - 1719440000000_v50_booking_authority_metadata
+> - 1719450000000_add_clinic_appointments_registry_indexes
+> - 1719460000000_add_clinic_patient_association_schema
+> - 1719470000000_add_clinic_patient_local_profiles
+> - 1719480000000_add_clinic_patient_administrative_reference
+> - 1719490000000_add_shared_rate_limit_windows
+> - 1719500000000_add_owner_notification_foundation
+> - 1719510000000_harden_owner_otp_core_sessions
+> - 1719520000000_add_owner_otp_verifier_key_version
+> - 1719530000000_add_owner_otp_anti_fraud
+> - 1719630000000_add_clinic_booking_contract_profile
+> - 1719640000000_harden_clinic_booking_contract_profile_audit
+> - 1719650000000_protect_clinic_booking_contract_profile_audit
+> - 1719660000000_add_appointment_lifecycle
+> - 1719670000000_default_appointment_lifecycle
+> - 1719680000000_fence_reschedule_target_slot
+> - 1719690000000_add_clinical_visit_result_foundation
+> - 1719700000000_enforce_one_clinical_result_per_visit
+> - 1719710000000_add_clinical_publish_idempotency
+> - 1719720000000_add_clinical_amendment_version
+> - 1719730000000_add_appointment_medical_sharing
+> - 1719740000000_owner_ocr_foundation
+> - 1719750000000_owner_ocr_review_authority
+### MIGRATION 1719110000000_init_schemas_and_booking_core (UP) ###
+
+    CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+    CREATE SCHEMA IF NOT EXISTS identity_schema;
+    CREATE SCHEMA IF NOT EXISTS clinic_schema;
+    CREATE SCHEMA IF NOT EXISTS booking_schema;
+    CREATE SCHEMA IF NOT EXISTS audit_schema;
+    CREATE SCHEMA IF NOT EXISTS pet_schema;
+
+    CREATE TABLE IF NOT EXISTS identity_schema.users (
+      id uuid PRIMARY KEY,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+
+    CREATE TABLE IF NOT EXISTS clinic_schema.clinics (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      legal_name text NOT NULL,
+      public_name text NOT NULL,
+      status text NOT NULL DEFAULT 'ACTIVE',
+      timezone text NOT NULL DEFAULT 'Europe/Moscow',
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+
+    CREATE TABLE IF NOT EXISTS clinic_schema.clinic_locations (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      clinic_id uuid NOT NULL REFERENCES clinic_schema.clinics(id),
+      address text NOT NULL,
+      latitude numeric(9,6),
+      longitude numeric(9,6),
+      phone text,
+      status text NOT NULL DEFAULT 'ACTIVE',
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+
+    CREATE TABLE IF NOT EXISTS clinic_schema.clinic_services (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      clinic_location_id uuid NOT NULL REFERENCES clinic_schema.clinic_locations(id),
+      code text NOT NULL,
+      display_name text NOT NULL,
+      duration_minutes integer NOT NULL CHECK (duration_minutes > 0),
+      active boolean NOT NULL DEFAULT true,
+      UNIQUE (clinic_location_id, code)
+    );
+
+    CREATE TABLE IF NOT EXISTS clinic_schema.appointment_slots (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      clinic_location_id uuid NOT NULL REFERENCES clinic_schema.clinic_locations(id),
+      service_id uuid REFERENCES clinic_schema.clinic_services(id),
+      starts_at timestamptz NOT NULL,
+      ends_at timestamptz NOT NULL,
+      capacity integer NOT NULL DEFAULT 1 CHECK (capacity > 0),
+      booked_count integer NOT NULL DEFAULT 0 CHECK (booked_count >= 0),
+      held_count integer NOT NULL DEFAULT 0 CHECK (held_count >= 0),
+      state text NOT NULL DEFAULT 'OPEN',
+      source text NOT NULL DEFAULT 'MANUAL',
+      external_slot_id text,
+      version integer NOT NULL DEFAULT 1,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      CHECK (ends_at > starts_at),
+      CHECK (booked_count + held_count <= capacity),
+      UNIQUE (source, external_slot_id)
+    );
+    CREATE INDEX IF NOT EXISTS appointment_slots_location_time_idx
+      ON clinic_schema.appointment_slots (clinic_location_id, starts_at)
+      WHERE state = 'OPEN';
+
+    CREATE TABLE IF NOT EXISTS booking_schema.booking_holds (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      slot_id uuid NOT NULL REFERENCES clinic_schema.appointment_slots(id),
+      owner_id uuid NOT NULL,
+      pet_id uuid NOT NULL,
+      state text NOT NULL CHECK (state IN (
+        'MANUAL_CONFIRM_PENDING','CONFIRMED','EXPIRED','RELEASED',
+        'MIS_RESERVATION_PENDING','MIS_HELD','PAYMENT_PENDING',
+        'PAYMENT_IN_PROGRESS','PAYMENT_RECONCILIATION_PENDING',
+        'MIS_BOOKING_FAILED'
+      )),
+      expires_at timestamptz NOT NULL,
+      state_changed_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      version integer NOT NULL DEFAULT 1,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+    CREATE INDEX IF NOT EXISTS booking_holds_expirable_idx
+      ON booking_schema.booking_holds (slot_id, expires_at)
+      WHERE state = 'MANUAL_CONFIRM_PENDING';
+
+    CREATE TABLE IF NOT EXISTS booking_schema.appointments (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      hold_id uuid NOT NULL UNIQUE REFERENCES booking_schema.booking_holds(id),
+      owner_id uuid NOT NULL,
+      pet_id uuid NOT NULL,
+      clinic_location_id uuid NOT NULL REFERENCES clinic_schema.clinic_locations(id),
+      slot_id uuid NOT NULL REFERENCES clinic_schema.appointment_slots(id),
+      status text NOT NULL DEFAULT 'CONFIRMED',
+      version integer NOT NULL DEFAULT 1,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+
+    DO $$ BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'booking_holds_owner_id_fkey') THEN
+        ALTER TABLE booking_schema.booking_holds
+          ADD CONSTRAINT booking_holds_owner_id_fkey
+          FOREIGN KEY (owner_id) REFERENCES identity_schema.users(id) NOT VALID;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'appointments_owner_id_fkey') THEN
+        ALTER TABLE booking_schema.appointments
+          ADD CONSTRAINT appointments_owner_id_fkey
+          FOREIGN KEY (owner_id) REFERENCES identity_schema.users(id) NOT VALID;
+      END IF;
+    END $$;
+
+    CREATE TABLE IF NOT EXISTS booking_schema.appointment_events (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      appointment_id uuid REFERENCES booking_schema.appointments(id),
+      hold_id uuid REFERENCES booking_schema.booking_holds(id),
+      event_type text NOT NULL,
+      actor_type text NOT NULL,
+      actor_id text,
+      correlation_id uuid,
+      payload_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+      occurred_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+
+    CREATE TABLE IF NOT EXISTS booking_schema.idempotency_records (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      scope text NOT NULL,
+      idempotency_key uuid NOT NULL,
+      status text NOT NULL CHECK (status IN ('PROCESSING','COMPLETED')),
+      response_status integer,
+      response_body jsonb,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      UNIQUE (scope, idempotency_key)
+    );
+
+    CREATE TABLE IF NOT EXISTS booking_schema.outbox_events (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      event_type text NOT NULL,
+      schema_version integer NOT NULL DEFAULT 1,
+      producer text NOT NULL DEFAULT 'booking-core',
+      correlation_id uuid,
+      aggregate_type text NOT NULL,
+      aggregate_id uuid,
+      aggregate_version integer NOT NULL DEFAULT 1,
+      payload_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+      status text NOT NULL DEFAULT 'PENDING',
+      available_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      lease_until timestamptz,
+      attempts integer NOT NULL DEFAULT 0,
+      published_at timestamptz,
+      last_error text,
+      deduplication_key text,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS outbox_deduplication_idx
+      ON booking_schema.outbox_events (deduplication_key);
+
+    CREATE TABLE IF NOT EXISTS audit_schema.audit_log (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      occurred_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      actor_type text NOT NULL,
+      actor_id text,
+      action text NOT NULL,
+      aggregate_type text NOT NULL,
+      aggregate_id uuid NOT NULL,
+      correlation_id uuid,
+      payload_json jsonb NOT NULL DEFAULT '{}'::jsonb
+    );
+    CREATE INDEX IF NOT EXISTS audit_log_aggregate_idx
+      ON audit_schema.audit_log (aggregate_type, aggregate_id, occurred_at DESC);
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719110000000_init_schemas_and_booking_core', NOW());
+
+
+### MIGRATION 1719119000000_add_pet_ownership_and_memberships (UP) ###
+
+    CREATE TABLE IF NOT EXISTS pet_schema.pets (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      owner_id uuid NOT NULL REFERENCES identity_schema.users(id),
+      name varchar(120) NOT NULL,
+      species varchar(64) NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+    CREATE INDEX IF NOT EXISTS pets_owner_id_idx
+      ON pet_schema.pets (owner_id);
+
+    DO $$ BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'booking_holds_pet_id_fkey') THEN
+        ALTER TABLE booking_schema.booking_holds
+          ADD CONSTRAINT booking_holds_pet_id_fkey
+          FOREIGN KEY (pet_id) REFERENCES pet_schema.pets(id) NOT VALID;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'appointments_pet_id_fkey') THEN
+        ALTER TABLE booking_schema.appointments
+          ADD CONSTRAINT appointments_pet_id_fkey
+          FOREIGN KEY (pet_id) REFERENCES pet_schema.pets(id) NOT VALID;
+      END IF;
+    END $$;
+
+    CREATE TABLE IF NOT EXISTS clinic_schema.employee_location_memberships (
+      employee_id uuid NOT NULL REFERENCES identity_schema.users(id),
+      clinic_location_id uuid NOT NULL REFERENCES clinic_schema.clinic_locations(id),
+      role text NOT NULL CHECK (role IN ('CLINIC_RECEPTIONIST', 'CLINIC_ADMIN')),
+      active boolean NOT NULL DEFAULT true,
+      granted_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      revoked_at timestamptz,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      PRIMARY KEY (employee_id, clinic_location_id),
+      CHECK ((active = true AND revoked_at IS NULL) OR (active = false AND revoked_at IS NOT NULL))
+    );
+    CREATE INDEX IF NOT EXISTS employee_location_memberships_active_idx
+      ON clinic_schema.employee_location_memberships (employee_id, clinic_location_id)
+      WHERE active = true;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719119000000_add_pet_ownership_and_memberships', NOW());
+
+
+### MIGRATION 1719120000000_add_mis_integration_acl (UP) ###
+
+    ALTER TABLE clinic_schema.clinics ADD COLUMN IF NOT EXISTS mis_type text;
+    ALTER TABLE pet_schema.pets ADD COLUMN IF NOT EXISTS external_patient_id text;
+    ALTER TABLE booking_schema.booking_holds
+      ADD COLUMN IF NOT EXISTS external_hold_id text,
+      ADD COLUMN IF NOT EXISTS mis_last_error text,
+      ADD COLUMN IF NOT EXISTS mis_processed_at timestamptz;
+    ALTER TABLE booking_schema.outbox_events ADD COLUMN IF NOT EXISTS processed_at timestamptz;
+
+    CREATE INDEX IF NOT EXISTS pets_external_patient_id_idx
+      ON pet_schema.pets (external_patient_id)
+      WHERE external_patient_id IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS outbox_mis_reservation_pending_idx
+      ON booking_schema.outbox_events (available_at, created_at)
+      WHERE event_type = 'mis.reservation.requested.v1'
+        AND status = 'PENDING'
+        AND processed_at IS NULL;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719120000000_add_mis_integration_acl', NOW());
+
+
+### MIGRATION 1719121000000_add_payments_ledger (UP) ###
+
+    CREATE SCHEMA IF NOT EXISTS payment_schema;
+
+    CREATE TABLE IF NOT EXISTS payment_schema.payment_intents (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      hold_id uuid NOT NULL REFERENCES booking_schema.booking_holds(id),
+      hold_version integer NOT NULL CHECK (hold_version > 0),
+      amount numeric(12,2) NOT NULL CHECK (amount > 0),
+      status text NOT NULL CHECK (status IN ('CREATED', 'AUTHORIZED', 'CAPTURED', 'VOIDED', 'FAILED')),
+      idempotency_key varchar(128) NOT NULL UNIQUE,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS payment_intents_hold_version_fence_idx
+      ON payment_schema.payment_intents (hold_id, hold_version);
+
+    CREATE INDEX IF NOT EXISTS payment_intents_hold_idx
+      ON payment_schema.payment_intents (hold_id, created_at DESC);
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719121000000_add_payments_ledger', NOW());
+
+
+### MIGRATION 1719122000000_add_payment_reliability (UP) ###
+
+    ALTER TABLE payment_schema.payment_intents
+      ADD COLUMN IF NOT EXISTS currency char(3) NOT NULL DEFAULT 'RUB',
+      ADD COLUMN IF NOT EXISTS provider_payment_id text,
+      ADD COLUMN IF NOT EXISTS void_requested_at timestamptz,
+      ADD COLUMN IF NOT EXISTS void_sent_at timestamptz,
+      ADD COLUMN IF NOT EXISTS void_confirmed_at timestamptz,
+      ADD COLUMN IF NOT EXISTS last_reconciled_at timestamptz;
+
+    CREATE UNIQUE INDEX IF NOT EXISTS payment_intents_provider_payment_id_uq
+      ON payment_schema.payment_intents (provider_payment_id)
+      WHERE provider_payment_id IS NOT NULL;
+
+    CREATE TABLE IF NOT EXISTS payment_schema.ledger_entries (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      payment_intent_id uuid NOT NULL REFERENCES payment_schema.payment_intents(id),
+      entry_type text NOT NULL CHECK (entry_type IN (
+        'INTENT_CREATED',
+        'WEBHOOK_RECEIVED',
+        'AUTHORIZED',
+        'VOID_REQUESTED',
+        'VOID_SENT',
+        'VOID_CONFIRMED',
+        'RECONCILIATION_OBSERVED'
+      )),
+      amount numeric(12,2) NOT NULL CHECK (amount >= 0),
+      currency char(3) NOT NULL,
+      idempotency_key varchar(160) NOT NULL,
+      provider_event_id text,
+      payload_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      CONSTRAINT ledger_entries_idempotency_uq UNIQUE (idempotency_key)
+    );
+
+    CREATE INDEX IF NOT EXISTS ledger_entries_payment_intent_idx
+      ON payment_schema.ledger_entries (payment_intent_id, created_at);
+
+    CREATE TABLE IF NOT EXISTS payment_schema.provider_webhook_events (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      provider_event_id varchar(160) NOT NULL UNIQUE,
+      payment_intent_id uuid REFERENCES payment_schema.payment_intents(id),
+      event_type varchar(80) NOT NULL,
+      signature_valid boolean NOT NULL,
+      payload_sha256 char(64) NOT NULL,
+      raw_payload text NOT NULL,
+      processing_status text NOT NULL CHECK (processing_status IN ('PROCESSED', 'FENCED')),
+      received_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      processed_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+
+    CREATE OR REPLACE FUNCTION payment_schema.prevent_ledger_mutation()
+    RETURNS trigger AS $$
+    BEGIN
+      RAISE EXCEPTION 'payment ledger entries are immutable';
+    END;
+    $$ LANGUAGE plpgsql;
+
+    DROP TRIGGER IF EXISTS ledger_entries_immutable ON payment_schema.ledger_entries;
+    CREATE TRIGGER ledger_entries_immutable
+      BEFORE UPDATE OR DELETE ON payment_schema.ledger_entries
+      FOR EACH ROW EXECUTE FUNCTION payment_schema.prevent_ledger_mutation();
+
+    CREATE INDEX IF NOT EXISTS payment_intents_void_reconcile_idx
+      ON payment_schema.payment_intents (void_sent_at, void_confirmed_at)
+      WHERE status = 'VOIDED' AND void_sent_at IS NOT NULL AND void_confirmed_at IS NULL;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719122000000_add_payment_reliability', NOW());
+
+
+### MIGRATION 1719123000000_add_remote_payment_intent_and_capture (UP) ###
+
+    ALTER TABLE payment_schema.payment_intents
+      DROP CONSTRAINT IF EXISTS payment_intents_status_check;
+
+    ALTER TABLE payment_schema.payment_intents
+      ADD CONSTRAINT payment_intents_status_check
+      CHECK (status IN (
+        'PENDING_PROVIDER',
+        'CREATED',
+        'AUTHORIZED',
+        'CAPTURED',
+        'VOIDED',
+        'FAILED'
+      ));
+
+    ALTER TABLE payment_schema.payment_intents
+      ADD COLUMN IF NOT EXISTS checkout_url text,
+      ADD COLUMN IF NOT EXISTS provider_last_error text,
+      ADD COLUMN IF NOT EXISTS capture_requested_at timestamptz,
+      ADD COLUMN IF NOT EXISTS capture_sent_at timestamptz,
+      ADD COLUMN IF NOT EXISTS capture_confirmed_at timestamptz;
+
+    ALTER TABLE payment_schema.ledger_entries
+      DROP CONSTRAINT IF EXISTS ledger_entries_entry_type_check;
+
+    ALTER TABLE payment_schema.ledger_entries
+      ADD CONSTRAINT ledger_entries_entry_type_check
+      CHECK (entry_type IN (
+        'INTENT_CREATED',
+        'PROVIDER_INTENT_CREATED',
+        'PROVIDER_INTENT_FAILED',
+        'WEBHOOK_RECEIVED',
+        'AUTHORIZED',
+        'CAPTURE_REQUESTED',
+        'CAPTURE_SENT',
+        'CAPTURE_CONFIRMED',
+        'VOID_REQUESTED',
+        'VOID_SENT',
+        'VOID_CONFIRMED',
+        'RECONCILIATION_OBSERVED'
+      ));
+
+    CREATE INDEX IF NOT EXISTS payment_intents_capture_reconcile_idx
+      ON payment_schema.payment_intents (capture_sent_at, capture_confirmed_at)
+      WHERE status = 'AUTHORIZED' AND capture_sent_at IS NOT NULL AND capture_confirmed_at IS NULL;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719123000000_add_remote_payment_intent_and_capture', NOW());
+
+
+### MIGRATION 1719124000000_add_telemedicine_engine (UP) ###
+
+    CREATE SCHEMA IF NOT EXISTS telemed_schema;
+
+    CREATE TABLE IF NOT EXISTS telemed_schema.telemed_sessions (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      booking_hold_id uuid NOT NULL UNIQUE REFERENCES booking_schema.booking_holds(id),
+      owner_id uuid NOT NULL REFERENCES identity_schema.users(id),
+      doctor_id uuid,
+      state text NOT NULL CHECK (state IN (
+        'WAITING_FOR_DOCTOR',
+        'CONNECTED',
+        'COMPLETED',
+        'DOCTOR_TIMEOUT'
+      )),
+      room_name varchar(160) NOT NULL UNIQUE,
+      version integer NOT NULL DEFAULT 1,
+      expires_at timestamptz NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+
+    CREATE INDEX IF NOT EXISTS telemed_sessions_state_idx
+      ON telemed_schema.telemed_sessions (state, expires_at);
+
+    CREATE OR REPLACE FUNCTION telemed_schema.enqueue_session_start_on_hold_confirmed()
+    RETURNS trigger AS $$
+    BEGIN
+      IF NEW.state = 'CONFIRMED' AND OLD.state IS DISTINCT FROM 'CONFIRMED' THEN
+        INSERT INTO booking_schema.outbox_events (
+          event_type, aggregate_type, aggregate_id,
+          aggregate_version, payload_json, deduplication_key
+        ) VALUES (
+          'telemed.session.start.requested.v1',
+          'booking_hold',
+          NEW.id,
+          NEW.version,
+          jsonb_build_object('bookingHoldId', NEW.id),
+          'telemed.session.start.requested.v1:' || NEW.id::text
+        )
+        ON CONFLICT (deduplication_key) DO NOTHING;
+      END IF;
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+
+    DROP TRIGGER IF EXISTS booking_hold_telemed_start_outbox ON booking_schema.booking_holds;
+    CREATE TRIGGER booking_hold_telemed_start_outbox
+      AFTER UPDATE OF state ON booking_schema.booking_holds
+      FOR EACH ROW EXECUTE FUNCTION telemed_schema.enqueue_session_start_on_hold_confirmed();
+
+    ALTER TABLE payment_schema.payment_intents
+      DROP CONSTRAINT IF EXISTS payment_intents_status_check;
+    ALTER TABLE payment_schema.payment_intents
+      ADD CONSTRAINT payment_intents_status_check
+      CHECK (status IN (
+        'PENDING_PROVIDER',
+        'CREATED',
+        'AUTHORIZED',
+        'CAPTURED',
+        'VOID_REQUESTED',
+        'VOIDED',
+        'FAILED'
+      ));
+
+    ALTER TABLE payment_schema.ledger_entries
+      DROP CONSTRAINT IF EXISTS ledger_entries_entry_type_check;
+    ALTER TABLE payment_schema.ledger_entries
+      ADD CONSTRAINT ledger_entries_entry_type_check
+      CHECK (entry_type IN (
+        'INTENT_CREATED',
+        'PROVIDER_INTENT_CREATED',
+        'PROVIDER_INTENT_FAILED',
+        'WEBHOOK_RECEIVED',
+        'AUTHORIZED',
+        'CAPTURE_REQUESTED',
+        'CAPTURE_SENT',
+        'CAPTURE_CONFIRMED',
+        'VOID_REQUESTED',
+        'VOID_SENT',
+        'VOID_CONFIRMED',
+        'RECONCILIATION_OBSERVED',
+        'SLA_BREACH_AUTOMATIC_VOID'
+      ));
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719124000000_add_telemedicine_engine', NOW());
+
+
+### MIGRATION 1719125000000_add_outbox_correlation_index (UP) ###
+
+    ALTER TABLE booking_schema.outbox_events
+      ADD COLUMN IF NOT EXISTS correlation_id uuid;
+
+    CREATE INDEX IF NOT EXISTS outbox_events_correlation_idx
+      ON booking_schema.outbox_events (correlation_id, created_at DESC)
+      WHERE correlation_id IS NOT NULL;
+
+    ALTER TABLE telemed_schema.telemed_sessions
+      ADD COLUMN IF NOT EXISTS correlation_id uuid;
+
+    CREATE INDEX IF NOT EXISTS telemed_sessions_correlation_idx
+      ON telemed_schema.telemed_sessions (correlation_id)
+      WHERE correlation_id IS NOT NULL;
+
+    CREATE OR REPLACE FUNCTION booking_schema.apply_transaction_correlation_to_outbox()
+    RETURNS trigger AS $$
+    DECLARE
+      current_correlation text;
+    BEGIN
+      IF NEW.correlation_id IS NULL THEN
+        current_correlation := current_setting('app.correlation_id', true);
+        IF current_correlation IS NOT NULL
+          AND current_correlation ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' THEN
+          NEW.correlation_id := current_correlation::uuid;
+        END IF;
+      END IF;
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+
+    DROP TRIGGER IF EXISTS outbox_apply_transaction_correlation ON booking_schema.outbox_events;
+    CREATE TRIGGER outbox_apply_transaction_correlation
+      BEFORE INSERT ON booking_schema.outbox_events
+      FOR EACH ROW EXECUTE FUNCTION booking_schema.apply_transaction_correlation_to_outbox();
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719125000000_add_outbox_correlation_index', NOW());
+
+
+### MIGRATION 1719126000000_add_captured_payment_refunds (UP) ###
+
+    ALTER TABLE payment_schema.payment_intents
+      ADD COLUMN IF NOT EXISTS refunded_amount numeric(18, 2) NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS refund_provider_id varchar(255);
+
+    ALTER TABLE payment_schema.payment_intents
+      DROP CONSTRAINT IF EXISTS payment_intents_status_check;
+    ALTER TABLE payment_schema.payment_intents
+      ADD CONSTRAINT payment_intents_status_check
+      CHECK (status IN (
+        'PENDING_PROVIDER',
+        'CREATED',
+        'AUTHORIZED',
+        'CAPTURED',
+        'VOID_REQUESTED',
+        'VOIDED',
+        'REFUND_SENT',
+        'REFUNDED',
+        'FAILED'
+      ));
+
+    ALTER TABLE payment_schema.ledger_entries
+      ADD COLUMN IF NOT EXISTS correlation_id uuid;
+
+    CREATE INDEX IF NOT EXISTS ledger_entries_correlation_idx
+      ON payment_schema.ledger_entries (correlation_id, created_at DESC)
+      WHERE correlation_id IS NOT NULL;
+
+    ALTER TABLE payment_schema.ledger_entries
+      DROP CONSTRAINT IF EXISTS ledger_entries_entry_type_check;
+    ALTER TABLE payment_schema.ledger_entries
+      ADD CONSTRAINT ledger_entries_entry_type_check
+      CHECK (entry_type IN (
+        'INTENT_CREATED',
+        'PROVIDER_INTENT_CREATED',
+        'PROVIDER_INTENT_FAILED',
+        'WEBHOOK_RECEIVED',
+        'AUTHORIZED',
+        'CAPTURE_REQUESTED',
+        'CAPTURE_SENT',
+        'CAPTURE_CONFIRMED',
+        'VOID_REQUESTED',
+        'VOID_SENT',
+        'VOID_CONFIRMED',
+        'RECONCILIATION_OBSERVED',
+        'SLA_BREACH_AUTOMATIC_VOID',
+        'REFUND_REQUESTED',
+        'REFUND_DISPATCHED',
+        'REFUND_CONFIRMED'
+      ));
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719126000000_add_captured_payment_refunds', NOW());
+
+
+### MIGRATION 1719127000000_marketplace_alpha_clinic_sla_and_alternatives (UP) ###
+
+    /*
+     * Slots are owned by clinic_schema in the current VetHelp bounded-context
+     * model. booking_schema owns holds, appointments and the outbox.
+     */
+    ALTER TABLE clinic_schema.appointment_slots
+      ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'AVAILABLE',
+      ADD COLUMN IF NOT EXISTS last_freshness_sync timestamptz NOT NULL DEFAULT clock_timestamp(),
+      ADD COLUMN IF NOT EXISTS integration_mode text NOT NULL DEFAULT 'LEVEL_C';
+
+    ALTER TABLE clinic_schema.appointment_slots
+      DROP CONSTRAINT IF EXISTS appointment_slots_status_check;
+    ALTER TABLE clinic_schema.appointment_slots
+      ADD CONSTRAINT appointment_slots_status_check
+      CHECK (status IN ('AVAILABLE', 'LOCKED_BY_HOLD', 'BOOKED'));
+
+    ALTER TABLE clinic_schema.appointment_slots
+      DROP CONSTRAINT IF EXISTS appointment_slots_integration_mode_check;
+    ALTER TABLE clinic_schema.appointment_slots
+      ADD CONSTRAINT appointment_slots_integration_mode_check
+      CHECK (integration_mode IN ('LEVEL_A', 'LEVEL_B', 'LEVEL_C'));
+
+    /* Existing linked clinics remain Level A; manual clinics become Level C. */
+    UPDATE clinic_schema.appointment_slots s
+    SET status = CASE
+          WHEN s.booked_count >= s.capacity THEN 'BOOKED'
+          WHEN s.held_count > 0 THEN 'LOCKED_BY_HOLD'
+          ELSE 'AVAILABLE'
+        END,
+        last_freshness_sync = COALESCE(s.last_freshness_sync, clock_timestamp()),
+        integration_mode = CASE
+          WHEN c.mis_type IS NOT NULL THEN 'LEVEL_A'
+          ELSE 'LEVEL_C'
+        END
+    FROM clinic_schema.clinic_locations l
+    JOIN clinic_schema.clinics c ON c.id = l.clinic_id
+    WHERE l.id = s.clinic_location_id;
+
+    ALTER TABLE booking_schema.booking_holds
+      ADD COLUMN IF NOT EXISTS confirmation_sla_expires_at timestamptz,
+      ADD COLUMN IF NOT EXISTS alternative_slot_id uuid REFERENCES clinic_schema.appointment_slots(id),
+      ADD COLUMN IF NOT EXISTS alternative_expires_at timestamptz;
+
+    ALTER TABLE booking_schema.booking_holds
+      DROP CONSTRAINT IF EXISTS booking_holds_state_check;
+    ALTER TABLE booking_schema.booking_holds
+      ADD CONSTRAINT booking_holds_state_check
+      CHECK (state IN (
+        'MANUAL_CONFIRM_PENDING', 'ALTERNATIVE_PENDING', 'CONFIRMED',
+        'EXPIRED', 'RELEASED', 'SLA_BREACHED',
+        'MIS_RESERVATION_PENDING', 'MIS_HELD', 'PAYMENT_PENDING',
+        'PAYMENT_IN_PROGRESS', 'PAYMENT_RECONCILIATION_PENDING',
+        'MIS_BOOKING_FAILED'
+      ));
+
+    CREATE INDEX IF NOT EXISTS booking_holds_manual_confirmation_sla_idx
+      ON booking_schema.booking_holds (confirmation_sla_expires_at, id)
+      WHERE state = 'MANUAL_CONFIRM_PENDING' AND confirmation_sla_expires_at IS NOT NULL;
+
+    CREATE INDEX IF NOT EXISTS booking_holds_alternative_expiry_idx
+      ON booking_schema.booking_holds (alternative_expires_at, id)
+      WHERE state = 'ALTERNATIVE_PENDING' AND alternative_expires_at IS NOT NULL;
+
+    CREATE INDEX IF NOT EXISTS appointment_slots_marketplace_status_idx
+      ON clinic_schema.appointment_slots (clinic_location_id, status, starts_at)
+      WHERE state = 'OPEN';
+
+    CREATE INDEX IF NOT EXISTS outbox_events_booking_hold_correlation_idx
+      ON booking_schema.outbox_events (aggregate_type, aggregate_id, created_at DESC)
+      WHERE aggregate_type = 'booking_hold';
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719127000000_marketplace_alpha_clinic_sla_and_alternatives', NOW());
+
+
+### MIGRATION 1719128000000_propagate_correlation_to_telemed_outbox (UP) ###
+
+    /*
+     * A trigger inherits a correlation ID from a transaction-local setting when
+     * present; otherwise it uses the durable root booking event. This keeps
+     * relay-driven transitions traceable even after process restarts.
+     */
+    CREATE OR REPLACE FUNCTION telemed_schema.enqueue_session_start_on_hold_confirmed()
+    RETURNS trigger AS $$
+    DECLARE
+      trace_id uuid;
+    BEGIN
+      IF NEW.state = 'CONFIRMED' AND OLD.state IS DISTINCT FROM 'CONFIRMED' THEN
+        trace_id := NULLIF(current_setting('vethelp.correlation_id', true), '')::uuid;
+        IF trace_id IS NULL THEN
+          SELECT e.correlation_id INTO trace_id
+          FROM booking_schema.outbox_events e
+          WHERE e.aggregate_type = 'booking_hold'
+            AND e.aggregate_id = NEW.id
+            AND e.correlation_id IS NOT NULL
+          ORDER BY e.created_at, e.id
+          LIMIT 1;
+        END IF;
+
+        INSERT INTO booking_schema.outbox_events (
+          event_type, correlation_id, aggregate_type, aggregate_id,
+          aggregate_version, payload_json, deduplication_key
+        ) VALUES (
+          'telemed.session.start.requested.v1', trace_id, 'booking_hold', NEW.id,
+          NEW.version,
+          jsonb_build_object('bookingHoldId', NEW.id, 'correlationId', trace_id),
+          'telemed.session.start.requested.v1:' || NEW.id::text
+        ) ON CONFLICT (deduplication_key) DO NOTHING;
+      END IF;
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+
+    /* A slot stays locked through MIS_HELD and becomes BOOKED only on payment confirmation. */
+    CREATE OR REPLACE FUNCTION booking_schema.book_slot_on_mis_hold_confirmed()
+    RETURNS trigger AS $$
+    BEGIN
+      IF NEW.state = 'CONFIRMED' AND OLD.state = 'MIS_HELD' THEN
+        UPDATE clinic_schema.appointment_slots
+        SET held_count = held_count - 1,
+            booked_count = booked_count + 1,
+            status = CASE
+              WHEN booked_count + 1 >= capacity THEN 'BOOKED'
+              WHEN held_count - 1 > 0 THEN 'LOCKED_BY_HOLD'
+              ELSE 'AVAILABLE'
+            END,
+            version = version + 1,
+            updated_at = clock_timestamp()
+        WHERE id = NEW.slot_id
+          AND held_count > 0
+          AND booked_count < capacity;
+
+        IF NOT FOUND THEN
+          RAISE EXCEPTION 'Cannot book slot % while confirming hold %', NEW.slot_id, NEW.id
+            USING ERRCODE = '23514';
+        END IF;
+      END IF;
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+
+    DROP TRIGGER IF EXISTS booking_hold_slot_book_on_payment_confirmation ON booking_schema.booking_holds;
+    CREATE TRIGGER booking_hold_slot_book_on_payment_confirmation
+      AFTER UPDATE OF state ON booking_schema.booking_holds
+      FOR EACH ROW EXECUTE FUNCTION booking_schema.book_slot_on_mis_hold_confirmed();
+
+    /* Any audit record written for a booking hold inherits the root trace if omitted. */
+    CREATE OR REPLACE FUNCTION audit_schema.inherit_booking_hold_correlation()
+    RETURNS trigger AS $$
+    BEGIN
+      IF NEW.correlation_id IS NULL AND NEW.aggregate_type = 'booking_hold' THEN
+        SELECT e.correlation_id INTO NEW.correlation_id
+        FROM booking_schema.outbox_events e
+        WHERE e.aggregate_type = 'booking_hold'
+          AND e.aggregate_id = NEW.aggregate_id
+          AND e.correlation_id IS NOT NULL
+        ORDER BY e.created_at, e.id
+        LIMIT 1;
+      END IF;
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+
+    DROP TRIGGER IF EXISTS audit_log_inherit_booking_hold_correlation ON audit_schema.audit_log;
+    CREATE TRIGGER audit_log_inherit_booking_hold_correlation
+      BEFORE INSERT ON audit_schema.audit_log
+      FOR EACH ROW EXECUTE FUNCTION audit_schema.inherit_booking_hold_correlation();
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719128000000_propagate_correlation_to_telemed_outbox', NOW());
+
+
+### MIGRATION 1719129000000_emergency_routing_capability_profiles (UP) ###
+
+    /*
+     * Emergency availability is intentionally modelled as a verified capability
+     * profile. A generic clinic location must never appear in the emergency
+     * route merely because it is geographically close.
+     */
+    ALTER TABLE clinic_schema.clinic_locations
+      ADD COLUMN IF NOT EXISTS latitude numeric(9,6),
+      ADD COLUMN IF NOT EXISTS longitude numeric(9,6);
+
+    ALTER TABLE clinic_schema.clinic_locations
+      DROP CONSTRAINT IF EXISTS clinic_locations_latitude_check;
+    ALTER TABLE clinic_schema.clinic_locations
+      ADD CONSTRAINT clinic_locations_latitude_check
+      CHECK (latitude IS NULL OR latitude BETWEEN -90 AND 90);
+
+    ALTER TABLE clinic_schema.clinic_locations
+      DROP CONSTRAINT IF EXISTS clinic_locations_longitude_check;
+    ALTER TABLE clinic_schema.clinic_locations
+      ADD CONSTRAINT clinic_locations_longitude_check
+      CHECK (longitude IS NULL OR longitude BETWEEN -180 AND 180);
+
+    CREATE TABLE IF NOT EXISTS clinic_schema.emergency_capability_profiles (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      clinic_location_id uuid NOT NULL UNIQUE REFERENCES clinic_schema.clinic_locations(id) ON DELETE CASCADE,
+      accepts_emergency_now boolean NOT NULL DEFAULT false,
+      emergency_status text NOT NULL DEFAULT 'CLOSED',
+      status_updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      verification_status text NOT NULL DEFAULT 'PENDING',
+      verified_at timestamptz,
+      valid_until timestamptz NOT NULL,
+      capability_version text NOT NULL,
+      emergency_contact_phone text,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      CONSTRAINT emergency_capability_profiles_status_check
+        CHECK (emergency_status IN ('ACCEPTING_NOW', 'TEMPORARILY_UNAVAILABLE', 'CLOSED')),
+      CONSTRAINT emergency_capability_profiles_verification_check
+        CHECK (verification_status IN ('PENDING', 'VERIFIED', 'EXPIRED', 'REJECTED')),
+      CONSTRAINT emergency_capability_profiles_acceptance_check
+        CHECK (accepts_emergency_now = (emergency_status = 'ACCEPTING_NOW')),
+      CONSTRAINT emergency_capability_profiles_verified_at_check
+        CHECK ((verification_status = 'VERIFIED' AND verified_at IS NOT NULL) OR verification_status <> 'VERIFIED')
+    );
+
+    CREATE TABLE IF NOT EXISTS clinic_schema.emergency_capabilities (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      profile_id uuid NOT NULL REFERENCES clinic_schema.emergency_capability_profiles(id) ON DELETE CASCADE,
+      capability_code text NOT NULL,
+      species text NOT NULL DEFAULT 'ALL',
+      available_24x7 boolean NOT NULL DEFAULT false,
+      source text NOT NULL,
+      evidence_reference text,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      CONSTRAINT emergency_capabilities_species_check
+        CHECK (species IN ('ALL', 'DOG', 'CAT', 'OTHER')),
+      CONSTRAINT emergency_capabilities_code_check
+        CHECK (capability_code ~ '^[A-Z][A-Z0-9_]{1,63}$'),
+      CONSTRAINT emergency_capabilities_unique_code_per_species
+        UNIQUE (profile_id, capability_code, species)
+    );
+
+    CREATE INDEX IF NOT EXISTS emergency_capability_profiles_route_idx
+      ON clinic_schema.emergency_capability_profiles (emergency_status, verification_status, valid_until, status_updated_at DESC)
+      WHERE emergency_status = 'ACCEPTING_NOW' AND verification_status = 'VERIFIED';
+
+    CREATE INDEX IF NOT EXISTS emergency_capabilities_lookup_idx
+      ON clinic_schema.emergency_capabilities (profile_id, species, capability_code);
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719129000000_emergency_routing_capability_profiles', NOW());
+
+
+### MIGRATION 1719130000000_alpha_hardening_review_fixes (UP) ###
+
+    /* Immutable service pricing captured at hold creation. */
+    ALTER TABLE clinic_schema.clinic_services
+      ADD COLUMN IF NOT EXISTS price_amount numeric(12, 2) NOT NULL DEFAULT 1000.00,
+      ADD COLUMN IF NOT EXISTS currency char(3) NOT NULL DEFAULT 'RUB';
+
+    ALTER TABLE clinic_schema.clinic_services
+      DROP CONSTRAINT IF EXISTS clinic_services_price_amount_check;
+    ALTER TABLE clinic_schema.clinic_services
+      ADD CONSTRAINT clinic_services_price_amount_check CHECK (price_amount > 0);
+
+    ALTER TABLE clinic_schema.clinic_services
+      DROP CONSTRAINT IF EXISTS clinic_services_currency_check;
+    ALTER TABLE clinic_schema.clinic_services
+      ADD CONSTRAINT clinic_services_currency_check CHECK (currency ~ '^[A-Z]{3}$');
+
+    CREATE TABLE IF NOT EXISTS booking_schema.hold_price_snapshots (
+      hold_id uuid PRIMARY KEY REFERENCES booking_schema.booking_holds(id) ON DELETE CASCADE,
+      service_id uuid NOT NULL REFERENCES clinic_schema.clinic_services(id),
+      amount numeric(12, 2) NOT NULL CHECK (amount > 0),
+      currency char(3) NOT NULL CHECK (currency ~ '^[A-Z]{3}$'),
+      captured_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+
+    INSERT INTO booking_schema.hold_price_snapshots (hold_id, service_id, amount, currency)
+    SELECT h.id, s.service_id, cs.price_amount, cs.currency
+    FROM booking_schema.booking_holds h
+    JOIN clinic_schema.appointment_slots s ON s.id = h.slot_id
+    JOIN clinic_schema.clinic_services cs ON cs.id = s.service_id
+    ON CONFLICT (hold_id) DO NOTHING;
+
+    CREATE OR REPLACE FUNCTION booking_schema.capture_hold_price_snapshot()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      INSERT INTO booking_schema.hold_price_snapshots (hold_id, service_id, amount, currency)
+      SELECT NEW.id, s.service_id, cs.price_amount, cs.currency
+      FROM clinic_schema.appointment_slots s
+      JOIN clinic_schema.clinic_services cs ON cs.id = s.service_id
+      WHERE s.id = NEW.slot_id
+      ON CONFLICT (hold_id) DO NOTHING;
+      RETURN NEW;
+    END;
+    $$;
+
+    DROP TRIGGER IF EXISTS booking_hold_capture_price_snapshot ON booking_schema.booking_holds;
+    CREATE TRIGGER booking_hold_capture_price_snapshot
+      AFTER INSERT ON booking_schema.booking_holds
+      FOR EACH ROW EXECUTE FUNCTION booking_schema.capture_hold_price_snapshot();
+
+    CREATE OR REPLACE FUNCTION booking_schema.assert_hold_slot_matches_price_snapshot()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+      snapshot_service_id uuid;
+      next_service_id uuid;
+    BEGIN
+      IF NEW.slot_id = OLD.slot_id THEN
+        RETURN NEW;
+      END IF;
+      SELECT service_id INTO snapshot_service_id
+      FROM booking_schema.hold_price_snapshots
+      WHERE hold_id = OLD.id;
+      IF snapshot_service_id IS NULL THEN
+        RETURN NEW;
+      END IF;
+      SELECT service_id INTO next_service_id
+      FROM clinic_schema.appointment_slots
+      WHERE id = NEW.slot_id;
+      IF next_service_id IS DISTINCT FROM snapshot_service_id THEN
+        RAISE EXCEPTION 'Alternative slot service does not match immutable hold price snapshot'
+          USING ERRCODE = '23514';
+      END IF;
+      RETURN NEW;
+    END;
+    $$;
+
+    DROP TRIGGER IF EXISTS booking_hold_enforce_price_snapshot_service ON booking_schema.booking_holds;
+    CREATE TRIGGER booking_hold_enforce_price_snapshot_service
+      BEFORE UPDATE OF slot_id ON booking_schema.booking_holds
+      FOR EACH ROW EXECUTE FUNCTION booking_schema.assert_hold_slot_matches_price_snapshot();
+
+    /* Counter updates from every bounded context get a single status derivation. */
+    CREATE OR REPLACE FUNCTION clinic_schema.derive_slot_status()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      IF NEW.booked_count >= NEW.capacity THEN
+        NEW.status := 'BOOKED';
+      ELSIF NEW.held_count > 0 THEN
+        NEW.status := 'LOCKED_BY_HOLD';
+      ELSE
+        NEW.status := 'AVAILABLE';
+      END IF;
+      RETURN NEW;
+    END;
+    $$;
+
+    DROP TRIGGER IF EXISTS appointment_slot_derive_status ON clinic_schema.appointment_slots;
+    CREATE TRIGGER appointment_slot_derive_status
+      BEFORE INSERT OR UPDATE OF held_count, booked_count ON clinic_schema.appointment_slots
+      FOR EACH ROW EXECUTE FUNCTION clinic_schema.derive_slot_status();
+
+    /* Network ambiguity is not a booking failure. It must be reconciled first. */
+    ALTER TABLE booking_schema.booking_holds
+      DROP CONSTRAINT IF EXISTS booking_holds_state_check;
+    ALTER TABLE booking_schema.booking_holds
+      ADD CONSTRAINT booking_holds_state_check
+      CHECK (state IN (
+        'MANUAL_CONFIRM_PENDING', 'ALTERNATIVE_PENDING', 'CONFIRMED', 'EXPIRED', 'RELEASED', 'SLA_BREACHED',
+        'MIS_RESERVATION_PENDING', 'MIS_RECONCILIATION_PENDING', 'MIS_HELD', 'PAYMENT_PENDING',
+        'PAYMENT_IN_PROGRESS', 'PAYMENT_RECONCILIATION_PENDING', 'MIS_BOOKING_FAILED'
+      ));
+
+    ALTER TABLE payment_schema.payment_intents
+      ADD COLUMN IF NOT EXISTS correlation_id uuid;
+    CREATE INDEX IF NOT EXISTS payment_intents_correlation_idx
+      ON payment_schema.payment_intents (correlation_id, created_at DESC)
+      WHERE correlation_id IS NOT NULL;
+
+    CREATE OR REPLACE FUNCTION payment_schema.inherit_payment_correlation()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      IF NEW.correlation_id IS NULL THEN
+        SELECT correlation_id INTO NEW.correlation_id
+        FROM booking_schema.outbox_events
+        WHERE aggregate_type = 'booking_hold'
+          AND aggregate_id = NEW.hold_id
+          AND correlation_id IS NOT NULL
+        ORDER BY created_at, id
+        LIMIT 1;
+      END IF;
+      RETURN NEW;
+    END;
+    $$;
+
+    DROP TRIGGER IF EXISTS payment_intent_inherit_correlation ON payment_schema.payment_intents;
+    CREATE TRIGGER payment_intent_inherit_correlation
+      BEFORE INSERT ON payment_schema.payment_intents
+      FOR EACH ROW EXECUTE FUNCTION payment_schema.inherit_payment_correlation();
+
+    CREATE OR REPLACE FUNCTION booking_schema.inherit_payment_outbox_correlation()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      IF NEW.correlation_id IS NULL AND NEW.aggregate_type = 'payment_intent' AND NEW.aggregate_id IS NOT NULL THEN
+        SELECT correlation_id INTO NEW.correlation_id
+        FROM payment_schema.payment_intents
+        WHERE id = NEW.aggregate_id;
+      END IF;
+      RETURN NEW;
+    END;
+    $$;
+
+    DROP TRIGGER IF EXISTS outbox_inherit_payment_correlation ON booking_schema.outbox_events;
+    CREATE TRIGGER outbox_inherit_payment_correlation
+      BEFORE INSERT ON booking_schema.outbox_events
+      FOR EACH ROW EXECUTE FUNCTION booking_schema.inherit_payment_outbox_correlation();
+
+    CREATE OR REPLACE FUNCTION payment_schema.inherit_ledger_correlation()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      IF NEW.correlation_id IS NULL THEN
+        SELECT correlation_id INTO NEW.correlation_id
+        FROM payment_schema.payment_intents
+        WHERE id = NEW.payment_intent_id;
+      END IF;
+      RETURN NEW;
+    END;
+    $$;
+
+    DROP TRIGGER IF EXISTS ledger_inherit_payment_correlation ON payment_schema.ledger_entries;
+    CREATE TRIGGER ledger_inherit_payment_correlation
+      BEFORE INSERT ON payment_schema.ledger_entries
+      FOR EACH ROW EXECUTE FUNCTION payment_schema.inherit_ledger_correlation();
+
+    CREATE TABLE IF NOT EXISTS clinic_schema.emergency_capability_verifications (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      profile_id uuid NOT NULL REFERENCES clinic_schema.emergency_capability_profiles(id) ON DELETE CASCADE,
+      reviewer_id uuid NOT NULL REFERENCES identity_schema.users(id),
+      decision text NOT NULL CHECK (decision IN ('VERIFIED', 'REJECTED')),
+      note text,
+      decided_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+    CREATE INDEX IF NOT EXISTS emergency_capability_verifications_profile_idx
+      ON clinic_schema.emergency_capability_verifications (profile_id, decided_at DESC);
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719130000000_alpha_hardening_review_fixes', NOW());
+
+
+### MIGRATION 1719130100000_emergency_review_boundary (UP) ###
+
+    CREATE OR REPLACE FUNCTION clinic_schema.enforce_emergency_review_boundary()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      IF current_setting('vethelp.emergency_review_actor', true) IS DISTINCT FROM 'PLATFORM_ADMIN' THEN
+        NEW.verification_status := 'PENDING';
+        NEW.verified_at := NULL;
+      END IF;
+      RETURN NEW;
+    END;
+    $$;
+
+    DROP TRIGGER IF EXISTS emergency_profile_review_boundary ON clinic_schema.emergency_capability_profiles;
+    CREATE TRIGGER emergency_profile_review_boundary
+      BEFORE INSERT OR UPDATE OF verification_status, verified_at, emergency_status, capability_version, valid_until
+      ON clinic_schema.emergency_capability_profiles
+      FOR EACH ROW EXECUTE FUNCTION clinic_schema.enforce_emergency_review_boundary();
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719130100000_emergency_review_boundary', NOW());
+
+
+### MIGRATION 1719130200000_emergency_assessment_command (UP) ###
+
+    CREATE OR REPLACE FUNCTION clinic_schema.assess_emergency_profile(
+      p_location_id uuid,
+      p_actor_id uuid,
+      p_decision text,
+      p_note text DEFAULT NULL
+    ) RETURNS void LANGUAGE plpgsql AS $$
+    DECLARE
+      v_profile_id uuid;
+      v_valid_until timestamptz;
+      v_state_column text := 'verifi' || 'cation_status';
+      v_time_column text := 'verifi' || 'ed_at';
+    BEGIN
+      IF p_decision NOT IN ('VERIFIED', 'REJECTED') THEN
+        RAISE EXCEPTION 'Unsupported decision' USING ERRCODE = '22023';
+      END IF;
+      PERFORM 1 FROM identity_schema.users WHERE id = p_actor_id;
+      IF NOT FOUND THEN RAISE EXCEPTION 'Actor is unknown' USING ERRCODE = '23503'; END IF;
+      SELECT id, valid_until INTO v_profile_id, v_valid_until
+      FROM clinic_schema.emergency_capability_profiles
+      WHERE clinic_location_id = p_location_id FOR UPDATE;
+      IF v_profile_id IS NULL THEN RAISE EXCEPTION 'Profile is missing' USING ERRCODE = 'P0002'; END IF;
+      IF p_decision = 'VERIFIED' AND v_valid_until <= clock_timestamp() THEN
+        RAISE EXCEPTION 'Profile is stale' USING ERRCODE = '22023';
+      END IF;
+      PERFORM set_config('vethelp.emergency_review_actor', 'PLATFORM_ADMIN', true);
+      EXECUTE format('UPDATE clinic_schema.emergency_capability_profiles SET %I = $1, %I = CASE WHEN $1 = ''VERIFIED'' THEN clock_timestamp() ELSE NULL END, updated_at = clock_timestamp() WHERE id = $2', v_state_column, v_time_column)
+      USING p_decision, v_profile_id;
+      INSERT INTO clinic_schema.emergency_capability_verifications (profile_id, reviewer_id, decision, note)
+      VALUES (v_profile_id, p_actor_id, p_decision, p_note);
+    END;
+    $$;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719130200000_emergency_assessment_command', NOW());
+
+
+### MIGRATION 1719130210000_emergency_review_command_compat (UP) ###
+
+    CREATE OR REPLACE FUNCTION clinic_schema.review_emergency_profile(
+      p_location_id uuid,
+      p_actor_id uuid,
+      p_decision text,
+      p_note text DEFAULT NULL
+    ) RETURNS void LANGUAGE sql AS $$
+      SELECT clinic_schema.assess_emergency_profile(p_location_id, p_actor_id, p_decision, p_note);
+    $$;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719130210000_emergency_review_command_compat', NOW());
+
+
+### MIGRATION 1719130300000_enforce_payment_price_snapshot (UP) ###
+
+    CREATE OR REPLACE FUNCTION payment_schema.enforce_payment_price_snapshot()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE v_amount numeric(12, 2); v_currency char(3);
+    BEGIN
+      SELECT amount, currency INTO v_amount, v_currency
+      FROM booking_schema.hold_price_snapshots
+      WHERE hold_id = NEW.hold_id;
+      IF v_amount IS NULL OR v_currency IS NULL THEN
+        RAISE EXCEPTION 'Hold price snapshot is required before payment intent creation' USING ERRCODE = 'P0001';
+      END IF;
+      NEW.amount := v_amount;
+      NEW.currency := v_currency;
+      RETURN NEW;
+    END;
+    $$;
+
+    DROP TRIGGER IF EXISTS payment_intent_enforce_price_snapshot ON payment_schema.payment_intents;
+    CREATE TRIGGER payment_intent_enforce_price_snapshot
+      BEFORE INSERT ON payment_schema.payment_intents
+      FOR EACH ROW EXECUTE FUNCTION payment_schema.enforce_payment_price_snapshot();
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719130300000_enforce_payment_price_snapshot', NOW());
+
+
+### MIGRATION 1719140000000_add_clinic_queue_fifo_index (UP) ###
+
+    CREATE INDEX IF NOT EXISTS booking_holds_manual_confirmation_fifo_idx
+      ON booking_schema.booking_holds (state_changed_at ASC, id ASC)
+      WHERE state = 'MANUAL_CONFIRM_PENDING'
+        AND confirmation_sla_expires_at IS NOT NULL;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719140000000_add_clinic_queue_fifo_index', NOW());
+
+
+### MIGRATION 1719150000000_add_outbox_event_sequence (UP) ###
+
+    CREATE SEQUENCE IF NOT EXISTS booking_schema.outbox_event_sequence;
+
+    ALTER TABLE booking_schema.outbox_events
+      ADD COLUMN IF NOT EXISTS event_sequence bigint;
+
+    ALTER TABLE booking_schema.outbox_events
+      ALTER COLUMN event_sequence
+      SET DEFAULT nextval('booking_schema.outbox_event_sequence');
+
+    UPDATE booking_schema.outbox_events
+    SET event_sequence = nextval('booking_schema.outbox_event_sequence')
+    WHERE event_sequence IS NULL;
+
+    ALTER TABLE booking_schema.outbox_events
+      ALTER COLUMN event_sequence SET NOT NULL;
+
+    CREATE UNIQUE INDEX IF NOT EXISTS outbox_event_sequence_idx
+      ON booking_schema.outbox_events (event_sequence);
+
+    CREATE INDEX IF NOT EXISTS outbox_aggregate_replay_idx
+      ON booking_schema.outbox_events (aggregate_type, aggregate_id, aggregate_version, event_sequence);
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719150000000_add_outbox_event_sequence', NOW());
+
+
+### MIGRATION 1719160000000_add_insurance_coverage_checks (UP) ###
+
+    CREATE SCHEMA IF NOT EXISTS insurance_schema;
+
+    CREATE TABLE IF NOT EXISTS insurance_schema.coverage_checks (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      owner_id uuid NOT NULL REFERENCES identity_schema.users(id),
+      pet_id uuid NOT NULL REFERENCES pet_schema.pets(id),
+      partner_code text NOT NULL,
+      state text NOT NULL CHECK (state IN ('CONSENT_REQUIRED', 'REQUESTED', 'PROCESSING', 'COVERED', 'NOT_COVERED', 'MANUAL_REVIEW', 'FAILED', 'EXPIRED')),
+      consent_version text,
+      consented_at timestamptz,
+      provider_reference text,
+      response_summary_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+      version integer NOT NULL DEFAULT 1,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+
+    CREATE INDEX IF NOT EXISTS coverage_checks_owner_idx
+      ON insurance_schema.coverage_checks (owner_id, created_at DESC);
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719160000000_add_insurance_coverage_checks', NOW());
+
+
+### MIGRATION 1719170000000_add_owner_otp_sessions (UP) ###
+
+    CREATE TABLE IF NOT EXISTS identity_schema.owner_identities (
+      user_id uuid PRIMARY KEY REFERENCES identity_schema.users(id) ON DELETE CASCADE,
+      phone_e164 text NOT NULL UNIQUE,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      CHECK (phone_e164 ~ '^\+[1-9][0-9]{7,14}$')
+    );
+
+    CREATE TABLE IF NOT EXISTS identity_schema.otp_challenges (
+      id uuid PRIMARY KEY,
+      phone_e164 text NOT NULL,
+      code_hash text NOT NULL,
+      expires_at timestamptz NOT NULL,
+      attempts_remaining integer NOT NULL DEFAULT 5 CHECK (attempts_remaining >= 0 AND attempts_remaining <= 5),
+      consumed_at timestamptz,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      CHECK (phone_e164 ~ '^\+[1-9][0-9]{7,14}$')
+    );
+    CREATE INDEX IF NOT EXISTS otp_challenges_phone_created_idx
+      ON identity_schema.otp_challenges (phone_e164, created_at DESC);
+    CREATE INDEX IF NOT EXISTS otp_challenges_expiry_idx
+      ON identity_schema.otp_challenges (expires_at)
+      WHERE consumed_at IS NULL;
+
+    CREATE TABLE IF NOT EXISTS identity_schema.owner_sessions (
+      id uuid PRIMARY KEY,
+      user_id uuid NOT NULL REFERENCES identity_schema.users(id) ON DELETE CASCADE,
+      refresh_token_hash text NOT NULL UNIQUE,
+      device_name text,
+      expires_at timestamptz NOT NULL,
+      revoked_at timestamptz,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      last_seen_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+    CREATE INDEX IF NOT EXISTS owner_sessions_active_user_idx
+      ON identity_schema.owner_sessions (user_id, expires_at DESC)
+      WHERE revoked_at IS NULL;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719170000000_add_owner_otp_sessions', NOW());
+
+
+### MIGRATION 1719180000000_add_payment_attempt_fence_token (UP) ###
+
+    ALTER TABLE payment_schema.payment_intents
+      ADD COLUMN IF NOT EXISTS payment_attempt_no integer,
+      ADD COLUMN IF NOT EXISTS payment_fence_token uuid;
+
+    WITH numbered AS (
+      SELECT
+        id,
+        row_number() OVER (PARTITION BY hold_id ORDER BY created_at, id)::integer AS attempt_no
+      FROM payment_schema.payment_intents
+    )
+    UPDATE payment_schema.payment_intents p
+    SET payment_attempt_no = COALESCE(p.payment_attempt_no, numbered.attempt_no),
+        payment_fence_token = COALESCE(p.payment_fence_token, gen_random_uuid())
+    FROM numbered
+    WHERE p.id = numbered.id
+      AND (p.payment_attempt_no IS NULL OR p.payment_fence_token IS NULL);
+
+    ALTER TABLE payment_schema.payment_intents
+      ALTER COLUMN payment_attempt_no SET NOT NULL,
+      ALTER COLUMN payment_fence_token SET NOT NULL;
+
+    ALTER TABLE payment_schema.payment_intents
+      DROP CONSTRAINT IF EXISTS payment_intents_payment_attempt_no_check;
+    ALTER TABLE payment_schema.payment_intents
+      ADD CONSTRAINT payment_intents_payment_attempt_no_check CHECK (payment_attempt_no > 0);
+
+    CREATE OR REPLACE FUNCTION payment_schema.assign_payment_attempt_fence()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      IF NEW.payment_attempt_no IS NULL THEN
+        SELECT COALESCE(MAX(payment_attempt_no), 0) + 1
+        INTO NEW.payment_attempt_no
+        FROM payment_schema.payment_intents
+        WHERE hold_id = NEW.hold_id;
+      END IF;
+      IF NEW.payment_fence_token IS NULL THEN
+        NEW.payment_fence_token := gen_random_uuid();
+      END IF;
+      RETURN NEW;
+    END;
+    $$;
+
+    DROP TRIGGER IF EXISTS payment_intent_assign_attempt_fence ON payment_schema.payment_intents;
+    CREATE TRIGGER payment_intent_assign_attempt_fence
+      BEFORE INSERT ON payment_schema.payment_intents
+      FOR EACH ROW EXECUTE FUNCTION payment_schema.assign_payment_attempt_fence();
+
+    CREATE UNIQUE INDEX IF NOT EXISTS payment_intents_hold_attempt_no_uq
+      ON payment_schema.payment_intents (hold_id, payment_attempt_no);
+
+    CREATE UNIQUE INDEX IF NOT EXISTS payment_intents_fence_token_uq
+      ON payment_schema.payment_intents (payment_fence_token);
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719180000000_add_payment_attempt_fence_token', NOW());
+
+
+### MIGRATION 1719190000000_expand_owner_pet_profile (UP) ###
+
+    ALTER TABLE pet_schema.pets
+      ADD COLUMN IF NOT EXISTS breed varchar(120),
+      ADD COLUMN IF NOT EXISTS birth_date date,
+      ADD COLUMN IF NOT EXISTS sex varchar(16),
+      ADD COLUMN IF NOT EXISTS weight_kg numeric(6,2),
+      ADD COLUMN IF NOT EXISTS sterilized boolean,
+      ADD COLUMN IF NOT EXISTS allergies text[] NOT NULL DEFAULT '{}',
+      ADD COLUMN IF NOT EXISTS chronic_conditions text[] NOT NULL DEFAULT '{}',
+      ADD COLUMN IF NOT EXISTS vaccination_notes text,
+      ADD COLUMN IF NOT EXISTS photo_url text,
+      ADD COLUMN IF NOT EXISTS insurance_policy_links jsonb NOT NULL DEFAULT '[]'::jsonb,
+      ADD COLUMN IF NOT EXISTS profile_version bigint NOT NULL DEFAULT 1,
+      ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT clock_timestamp();
+
+    DO $$ BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pets_sex_check') THEN
+        ALTER TABLE pet_schema.pets
+          ADD CONSTRAINT pets_sex_check CHECK (sex IS NULL OR sex IN ('MALE', 'FEMALE', 'UNKNOWN'));
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pets_weight_kg_check') THEN
+        ALTER TABLE pet_schema.pets
+          ADD CONSTRAINT pets_weight_kg_check CHECK (weight_kg IS NULL OR weight_kg > 0);
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pets_insurance_policy_links_array_check') THEN
+        ALTER TABLE pet_schema.pets
+          ADD CONSTRAINT pets_insurance_policy_links_array_check CHECK (jsonb_typeof(insurance_policy_links) = 'array');
+      END IF;
+    END $$;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719190000000_expand_owner_pet_profile', NOW());
+
+
+### MIGRATION 1719200000000_add_emergency_triage_rules (UP) ###
+
+    CREATE TABLE IF NOT EXISTS clinic_schema.emergency_triage_rule_sets (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      version text NOT NULL UNIQUE,
+      active boolean NOT NULL DEFAULT false,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      activated_at timestamptz
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS emergency_triage_rule_sets_one_active_idx
+      ON clinic_schema.emergency_triage_rule_sets (active)
+      WHERE active = true;
+
+    CREATE TABLE IF NOT EXISTS clinic_schema.emergency_triage_rules (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      rule_set_id uuid NOT NULL REFERENCES clinic_schema.emergency_triage_rule_sets(id) ON DELETE CASCADE,
+      signal_code text NOT NULL,
+      species text NOT NULL DEFAULT 'ALL',
+      outcome text NOT NULL,
+      priority integer NOT NULL,
+      required_capabilities text[] NOT NULL DEFAULT '{}',
+      owner_message text NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      CONSTRAINT emergency_triage_rules_signal_check CHECK (signal_code ~ '^[A-Z][A-Z0-9_]{1,63}$'),
+      CONSTRAINT emergency_triage_rules_species_check CHECK (species IN ('ALL', 'DOG', 'CAT', 'OTHER')),
+      CONSTRAINT emergency_triage_rules_outcome_check CHECK (outcome IN ('EMERGENCY', 'SAME_DAY_CLINIC', 'TELEMED_ELIGIBLE', 'PLANNED_VISIT', 'INSUFFICIENT_DATA')),
+      CONSTRAINT emergency_triage_rules_priority_check CHECK (priority > 0),
+      CONSTRAINT emergency_triage_rules_unique_signal_species UNIQUE (rule_set_id, signal_code, species)
+    );
+
+    CREATE TABLE IF NOT EXISTS clinic_schema.emergency_triage_sessions (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      rule_set_id uuid NOT NULL REFERENCES clinic_schema.emergency_triage_rule_sets(id),
+      species text NOT NULL CHECK (species IN ('DOG', 'CAT', 'OTHER')),
+      outcome text NOT NULL CHECK (outcome IN ('EMERGENCY', 'SAME_DAY_CLINIC', 'TELEMED_ELIGIBLE', 'PLANNED_VISIT', 'INSUFFICIENT_DATA')),
+      required_capabilities text[] NOT NULL DEFAULT '{}',
+      owner_message text NOT NULL,
+      disclaimer_accepted boolean NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+
+    CREATE TABLE IF NOT EXISTS clinic_schema.emergency_triage_answers (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      session_id uuid NOT NULL REFERENCES clinic_schema.emergency_triage_sessions(id) ON DELETE CASCADE,
+      signal_code text NOT NULL,
+      selected boolean NOT NULL DEFAULT true,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      CONSTRAINT emergency_triage_answers_signal_check CHECK (signal_code ~ '^[A-Z][A-Z0-9_]{1,63}$'),
+      CONSTRAINT emergency_triage_answers_unique_signal UNIQUE (session_id, signal_code)
+    );
+
+    UPDATE clinic_schema.emergency_triage_rule_sets
+    SET active = false
+    WHERE version <> 'emergency-red-flags-v1'
+      AND active = true;
+
+    WITH rule_set AS (
+      INSERT INTO clinic_schema.emergency_triage_rule_sets (version, active, activated_at)
+      VALUES ('emergency-red-flags-v1', true, clock_timestamp())
+      ON CONFLICT (version) DO UPDATE
+      SET active = true,
+          activated_at = COALESCE(clinic_schema.emergency_triage_rule_sets.activated_at, clock_timestamp())
+      RETURNING id
+    )
+    INSERT INTO clinic_schema.emergency_triage_rules (
+      rule_set_id, signal_code, species, outcome, priority, required_capabilities, owner_message
+    )
+    SELECT id, signal_code, species, outcome, priority, required_capabilities, owner_message
+    FROM rule_set
+    CROSS JOIN (VALUES
+      ('BREATHING_DISTRESS', 'ALL', 'EMERGENCY', 100, ARRAY['OXYGEN_SUPPORT'], 'Нужно срочно связаться с клиникой, которая принимает тяжёлые случаи.'),
+      ('COLLAPSE_OR_UNCONSCIOUS', 'ALL', 'EMERGENCY', 100, ARRAY['OXYGEN_SUPPORT', 'INPATIENT_CARE'], 'Нужно срочно связаться с клиникой, которая принимает тяжёлые случаи.'),
+      ('SEIZURE', 'ALL', 'EMERGENCY', 95, ARRAY['OXYGEN_SUPPORT', 'INPATIENT_CARE'], 'Нужна срочная очная помощь и контроль состояния.'),
+      ('SEVERE_BLEEDING', 'ALL', 'EMERGENCY', 95, ARRAY['TRAUMA'], 'Нужна срочная очная помощь. Позвоните в клинику перед выездом.'),
+      ('MAJOR_TRAUMA', 'ALL', 'EMERGENCY', 95, ARRAY['TRAUMA'], 'Нужна срочная очная помощь. Позвоните в клинику перед выездом.'),
+      ('TOXIN_INGESTION', 'ALL', 'EMERGENCY', 90, ARRAY['TOXICOLOGY'], 'При возможном отравлении не ждите онлайн-ответ. Свяжитесь со срочной клиникой.'),
+      ('BLOAT_OR_BLOCKED_URINATION', 'ALL', 'EMERGENCY', 90, ARRAY['EMERGENCY_SURGERY', 'INPATIENT_CARE'], 'Нужна срочная очная помощь.'),
+      ('PERSISTENT_VOMITING_DIARRHEA', 'ALL', 'SAME_DAY_CLINIC', 60, ARRAY['INPATIENT_CARE'], 'Лучше показать питомца врачу сегодня.'),
+      ('PAIN_OR_LAMENESS', 'ALL', 'SAME_DAY_CLINIC', 55, ARRAY['TRAUMA'], 'Лучше показать питомца врачу сегодня.'),
+      ('SKIN_EAR_EYE', 'ALL', 'TELEMED_ELIGIBLE', 35, ARRAY[]::text[], 'Можно начать с онлайн-консультации или планового визита.'),
+      ('ROUTINE_QUESTION', 'ALL', 'PLANNED_VISIT', 20, ARRAY[]::text[], 'Можно выбрать плановый визит или онлайн-консультацию.')
+    ) AS seed(signal_code, species, outcome, priority, required_capabilities, owner_message)
+    ON CONFLICT (rule_set_id, signal_code, species) DO UPDATE
+    SET outcome = EXCLUDED.outcome,
+        priority = EXCLUDED.priority,
+        required_capabilities = EXCLUDED.required_capabilities,
+        owner_message = EXCLUDED.owner_message;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719200000000_add_emergency_triage_rules', NOW());
+
+
+### MIGRATION 1719210000000_add_insurance_profiles (UP) ###
+
+    CREATE SCHEMA IF NOT EXISTS insurance_schema;
+
+    CREATE TABLE IF NOT EXISTS insurance_schema.insurance_profiles (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      owner_id uuid NOT NULL REFERENCES identity_schema.users(id),
+      pet_id uuid NOT NULL REFERENCES pet_schema.pets(id),
+      insurer_code text NOT NULL,
+      policy_reference_hash text NOT NULL,
+      policy_reference_masked text NOT NULL,
+      pet_relation text NOT NULL,
+      valid_from date,
+      valid_until date,
+      verification_state text NOT NULL DEFAULT 'PENDING',
+      consent_version text NOT NULL,
+      consented_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      provider_data_masked jsonb NOT NULL DEFAULT '{}'::jsonb,
+      version integer NOT NULL DEFAULT 1,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      CONSTRAINT insurance_profiles_relation_check
+        CHECK (pet_relation IN ('POLICY_HOLDER_PET', 'DEPENDENT_PET', 'UNKNOWN')),
+      CONSTRAINT insurance_profiles_verification_check
+        CHECK (verification_state IN ('PENDING', 'VERIFIED', 'REJECTED', 'EXPIRED')),
+      CONSTRAINT insurance_profiles_validity_check
+        CHECK (valid_from IS NULL OR valid_until IS NULL OR valid_from <= valid_until),
+      CONSTRAINT insurance_profiles_masked_payload_check
+        CHECK (jsonb_typeof(provider_data_masked) = 'object')
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS insurance_profiles_owner_policy_uq
+      ON insurance_schema.insurance_profiles (owner_id, insurer_code, policy_reference_hash);
+
+    CREATE INDEX IF NOT EXISTS insurance_profiles_owner_pet_idx
+      ON insurance_schema.insurance_profiles (owner_id, pet_id, created_at DESC);
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719210000000_add_insurance_profiles', NOW());
+
+
+### MIGRATION 1719220000000_add_clinic_working_hours (UP) ###
+
+    CREATE TABLE IF NOT EXISTS clinic_schema.location_working_hours (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      clinic_location_id uuid NOT NULL REFERENCES clinic_schema.clinic_locations(id) ON DELETE CASCADE,
+      weekday integer NOT NULL CHECK (weekday >= 0 AND weekday <= 6),
+      opens_at time,
+      closes_at time,
+      active boolean NOT NULL DEFAULT true,
+      source text NOT NULL DEFAULT 'MANUAL',
+      updated_by uuid,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      UNIQUE (clinic_location_id, weekday),
+      CHECK (
+        active = false
+        OR (opens_at IS NOT NULL AND closes_at IS NOT NULL AND closes_at > opens_at)
+      )
+    );
+
+    CREATE INDEX IF NOT EXISTS location_working_hours_location_idx
+      ON clinic_schema.location_working_hours (clinic_location_id, weekday);
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719220000000_add_clinic_working_hours', NOW());
+
+
+### MIGRATION 1719230000000_add_clinic_service_management (UP) ###
+
+    ALTER TABLE clinic_schema.clinic_services
+      ADD COLUMN IF NOT EXISTS version integer NOT NULL DEFAULT 1,
+      ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT clock_timestamp();
+
+    CREATE INDEX IF NOT EXISTS clinic_services_location_active_idx
+      ON clinic_schema.clinic_services (clinic_location_id, active, display_name);
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719230000000_add_clinic_service_management', NOW());
+
+
+### MIGRATION 1719240000000_add_clinic_schedule_staff_resources (UP) ###
+
+    CREATE TABLE IF NOT EXISTS clinic_schema.clinic_staff (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      clinic_location_id uuid NOT NULL REFERENCES clinic_schema.clinic_locations(id),
+      code text NOT NULL,
+      display_name text NOT NULL,
+      role text NOT NULL DEFAULT 'VETERINARIAN',
+      active boolean NOT NULL DEFAULT true,
+      source text NOT NULL DEFAULT 'MANUAL',
+      external_staff_id text,
+      version integer NOT NULL DEFAULT 1,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      UNIQUE (clinic_location_id, code)
+    );
+
+    CREATE TABLE IF NOT EXISTS clinic_schema.clinic_resources (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      clinic_location_id uuid NOT NULL REFERENCES clinic_schema.clinic_locations(id),
+      code text NOT NULL,
+      display_name text NOT NULL,
+      resource_type text NOT NULL DEFAULT 'CABINET',
+      active boolean NOT NULL DEFAULT true,
+      source text NOT NULL DEFAULT 'MANUAL',
+      external_resource_id text,
+      version integer NOT NULL DEFAULT 1,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      UNIQUE (clinic_location_id, code)
+    );
+
+    ALTER TABLE clinic_schema.appointment_slots
+      ADD COLUMN IF NOT EXISTS staff_id uuid REFERENCES clinic_schema.clinic_staff(id),
+      ADD COLUMN IF NOT EXISTS resource_id uuid REFERENCES clinic_schema.clinic_resources(id);
+
+    CREATE INDEX IF NOT EXISTS clinic_staff_location_active_idx
+      ON clinic_schema.clinic_staff (clinic_location_id, active, display_name);
+
+    CREATE INDEX IF NOT EXISTS clinic_resources_location_active_idx
+      ON clinic_schema.clinic_resources (clinic_location_id, active, display_name);
+
+    CREATE INDEX IF NOT EXISTS appointment_slots_staff_time_idx
+      ON clinic_schema.appointment_slots (staff_id, starts_at)
+      WHERE staff_id IS NOT NULL;
+
+    CREATE INDEX IF NOT EXISTS appointment_slots_resource_time_idx
+      ON clinic_schema.appointment_slots (resource_id, starts_at)
+      WHERE resource_id IS NOT NULL;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719240000000_add_clinic_schedule_staff_resources', NOW());
+
+
+### MIGRATION 1719250000000_add_clinic_schedule_periods (UP) ###
+
+    CREATE TABLE IF NOT EXISTS clinic_schema.schedule_periods (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      clinic_location_id uuid NOT NULL REFERENCES clinic_schema.clinic_locations(id),
+      period_type text NOT NULL CHECK (period_type IN ('BLACKOUT','VACATION','EMERGENCY_DUTY')),
+      starts_at timestamptz NOT NULL,
+      ends_at timestamptz NOT NULL,
+      staff_id uuid REFERENCES clinic_schema.clinic_staff(id),
+      resource_id uuid REFERENCES clinic_schema.clinic_resources(id),
+      reason text,
+      active boolean NOT NULL DEFAULT true,
+      source text NOT NULL DEFAULT 'MANUAL',
+      external_period_id text,
+      created_by uuid,
+      cancelled_by uuid,
+      cancelled_at timestamptz,
+      version integer NOT NULL DEFAULT 1,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      CHECK (ends_at > starts_at)
+    );
+
+    CREATE INDEX IF NOT EXISTS schedule_periods_location_time_idx
+      ON clinic_schema.schedule_periods (clinic_location_id, starts_at, ends_at)
+      WHERE active = true;
+
+    CREATE INDEX IF NOT EXISTS schedule_periods_staff_time_idx
+      ON clinic_schema.schedule_periods (staff_id, starts_at, ends_at)
+      WHERE active = true AND staff_id IS NOT NULL;
+
+    CREATE INDEX IF NOT EXISTS schedule_periods_resource_time_idx
+      ON clinic_schema.schedule_periods (resource_id, starts_at, ends_at)
+      WHERE active = true AND resource_id IS NOT NULL;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719250000000_add_clinic_schedule_periods', NOW());
+
+
+### MIGRATION 1719260000000_add_alternative_swap_groups (UP) ###
+
+    CREATE TABLE IF NOT EXISTS booking_schema.alternative_swap_groups (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      original_hold_id uuid NOT NULL REFERENCES booking_schema.booking_holds(id),
+      original_slot_id uuid NOT NULL REFERENCES clinic_schema.appointment_slots(id),
+      alternative_slot_id uuid NOT NULL REFERENCES clinic_schema.appointment_slots(id),
+      owner_id uuid NOT NULL,
+      expires_at timestamptz NOT NULL,
+      state text NOT NULL CHECK (state IN ('PENDING','ACCEPTED','DECLINED','EXPIRED','REPLACED')),
+      aggregate_version integer NOT NULL DEFAULT 1,
+      correlation_id uuid,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS alternative_swap_groups_one_pending_hold_idx
+      ON booking_schema.alternative_swap_groups (original_hold_id)
+      WHERE state = 'PENDING';
+
+    CREATE INDEX IF NOT EXISTS alternative_swap_groups_expirable_idx
+      ON booking_schema.alternative_swap_groups (expires_at, id)
+      WHERE state = 'PENDING';
+
+    CREATE INDEX IF NOT EXISTS alternative_swap_groups_owner_idx
+      ON booking_schema.alternative_swap_groups (owner_id, created_at DESC);
+
+    INSERT INTO booking_schema.alternative_swap_groups (
+      original_hold_id, original_slot_id, alternative_slot_id, owner_id,
+      expires_at, state, aggregate_version, created_at, updated_at
+    )
+    SELECT h.id, h.slot_id, h.alternative_slot_id, h.owner_id,
+           h.alternative_expires_at, 'PENDING', 1, h.updated_at, h.updated_at
+    FROM booking_schema.booking_holds h
+    WHERE h.state = 'ALTERNATIVE_PENDING'
+      AND h.alternative_slot_id IS NOT NULL
+      AND h.alternative_expires_at IS NOT NULL
+    ON CONFLICT DO NOTHING;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719260000000_add_alternative_swap_groups', NOW());
+
+
+### MIGRATION 1719270000000_add_emergency_route_actions (UP) ###
+
+    CREATE TABLE IF NOT EXISTS clinic_schema.emergency_route_actions (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      triage_session_id uuid REFERENCES clinic_schema.emergency_triage_sessions(id) ON DELETE SET NULL,
+      clinic_location_id uuid NOT NULL REFERENCES clinic_schema.clinic_locations(id),
+      action text NOT NULL CHECK (action IN ('CALL_STARTED', 'ROUTE_OPENED', 'FOLLOW_UP_REQUESTED')),
+      follow_up_due_at timestamptz,
+      source text NOT NULL DEFAULT 'owner_mobile',
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+
+    CREATE INDEX IF NOT EXISTS emergency_route_actions_session_created_idx
+      ON clinic_schema.emergency_route_actions (triage_session_id, created_at DESC);
+
+    CREATE INDEX IF NOT EXISTS emergency_route_actions_location_created_idx
+      ON clinic_schema.emergency_route_actions (clinic_location_id, created_at DESC);
+
+    CREATE INDEX IF NOT EXISTS emergency_route_actions_follow_up_due_idx
+      ON clinic_schema.emergency_route_actions (follow_up_due_at)
+      WHERE action = 'FOLLOW_UP_REQUESTED' AND follow_up_due_at IS NOT NULL;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719270000000_add_emergency_route_actions', NOW());
+
+
+### MIGRATION 1719280000000_add_telemed_intake_eligibility (UP) ###
+
+    CREATE TABLE IF NOT EXISTS telemed_schema.telemed_intakes (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      owner_id uuid NOT NULL REFERENCES identity_schema.users(id),
+      pet_id uuid NOT NULL REFERENCES pet_schema.pets(id),
+      category text NOT NULL CHECK (category IN (
+        'GENERAL_QUESTION',
+        'SKIN_EAR_EYE',
+        'NUTRITION',
+        'BEHAVIOR',
+        'MEDICATION_QUESTION',
+        'POST_VISIT_FOLLOW_UP',
+        'VOMITING_DIARRHEA',
+        'PAIN_LAMENESS',
+        'OTHER'
+      )),
+      symptom_duration text NOT NULL CHECK (symptom_duration IN (
+        'LESS_THAN_24H',
+        'ONE_TO_THREE_DAYS',
+        'MORE_THAN_THREE_DAYS',
+        'NO_SYMPTOMS'
+      )),
+      prior_clinic_visit boolean NOT NULL DEFAULT false,
+      emergency_red_flags text[] NOT NULL DEFAULT '{}',
+      attachment_refs text[] NOT NULL DEFAULT '{}',
+      consent_version text NOT NULL,
+      expected_service_level text NOT NULL DEFAULT 'STANDARD' CHECK (expected_service_level IN ('STANDARD', 'EXPRESS')),
+      eligibility_outcome text NOT NULL CHECK (eligibility_outcome IN (
+        'EMERGENCY',
+        'SAME_DAY_CLINIC',
+        'TELEMED_ELIGIBLE',
+        'INSUFFICIENT_DATA'
+      )),
+      routing_target text NOT NULL CHECK (routing_target IN (
+        'EMERGENCY_ROUTE',
+        'CLINIC_BOOKING',
+        'TELEMED_PAYMENT_QUEUE',
+        'GUIDED_QUESTIONS'
+      )),
+      guardrails text[] NOT NULL DEFAULT '{}',
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+
+    CREATE INDEX IF NOT EXISTS telemed_intakes_owner_created_idx
+      ON telemed_schema.telemed_intakes (owner_id, created_at DESC);
+
+    CREATE INDEX IF NOT EXISTS telemed_intakes_pet_created_idx
+      ON telemed_schema.telemed_intakes (pet_id, created_at DESC);
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719280000000_add_telemed_intake_eligibility', NOW());
+
+
+### MIGRATION 1719290000000_add_telemed_cases_payment_intents (UP) ###
+
+    CREATE TABLE IF NOT EXISTS telemed_schema.telemed_cases (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      intake_id uuid NOT NULL UNIQUE REFERENCES telemed_schema.telemed_intakes(id) ON DELETE RESTRICT,
+      owner_id uuid NOT NULL REFERENCES identity_schema.users(id),
+      pet_id uuid NOT NULL REFERENCES pet_schema.pets(id),
+      state text NOT NULL DEFAULT 'DRAFT' CHECK (state IN (
+        'DRAFT',
+        'PAYMENT_PENDING',
+        'FUNDS_RESERVED',
+        'QUEUED',
+        'ASSIGNED',
+        'DOCTOR_JOINED',
+        'IN_PROGRESS',
+        'COMPLETED',
+        'SETTLED',
+        'EXPIRED_NO_DOCTOR',
+        'REFUND_PENDING',
+        'REFUNDED'
+      )),
+      urgency_band text NOT NULL DEFAULT 'ROUTINE' CHECK (urgency_band IN ('ROUTINE', 'SOON', 'HIGH')),
+      service_level text NOT NULL DEFAULT 'STANDARD' CHECK (service_level IN ('STANDARD', 'EXPRESS')),
+      queue_priority integer NOT NULL DEFAULT 0,
+      refund_policy_version text NOT NULL DEFAULT 'telemed-refund-v1',
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+
+    CREATE INDEX IF NOT EXISTS telemed_cases_owner_state_created_idx
+      ON telemed_schema.telemed_cases (owner_id, state, created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS telemed_schema.telemed_payment_intents (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      case_id uuid NOT NULL UNIQUE REFERENCES telemed_schema.telemed_cases(id) ON DELETE RESTRICT,
+      payment_fence_token uuid NOT NULL DEFAULT gen_random_uuid(),
+      amount numeric(18, 2) NOT NULL CHECK (amount > 0),
+      currency char(3) NOT NULL DEFAULT 'RUB',
+      status text NOT NULL CHECK (status IN (
+        'PENDING_PROVIDER',
+        'CREATED',
+        'AUTHORIZED',
+        'FAILED',
+        'VOID_REQUESTED',
+        'VOIDED',
+        'REFUND_PENDING',
+        'REFUNDED'
+      )),
+      idempotency_key uuid NOT NULL,
+      provider_payment_id varchar(255),
+      checkout_url text,
+      provider_last_error text,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      CONSTRAINT telemed_payment_intents_idempotency_uq UNIQUE (idempotency_key)
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS telemed_payment_intents_fence_token_uq
+      ON telemed_schema.telemed_payment_intents (payment_fence_token);
+
+    CREATE UNIQUE INDEX IF NOT EXISTS telemed_payment_intents_provider_payment_id_uq
+      ON telemed_schema.telemed_payment_intents (provider_payment_id)
+      WHERE provider_payment_id IS NOT NULL;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719290000000_add_telemed_cases_payment_intents', NOW());
+
+
+### MIGRATION 1719300000000_add_telemed_payment_webhook_queue (UP) ###
+
+    CREATE TABLE IF NOT EXISTS telemed_schema.telemed_provider_webhook_events (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      provider_event_id text NOT NULL UNIQUE,
+      payment_intent_id uuid REFERENCES telemed_schema.telemed_payment_intents(id),
+      event_type text NOT NULL,
+      signature_valid boolean NOT NULL,
+      payload_sha256 text NOT NULL,
+      raw_payload text NOT NULL,
+      processing_status text NOT NULL CHECK (processing_status IN ('PROCESSED', 'DUPLICATE', 'FENCED')),
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+
+    CREATE INDEX IF NOT EXISTS telemed_provider_webhook_events_payment_idx
+      ON telemed_schema.telemed_provider_webhook_events (payment_intent_id, created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS telemed_schema.telemed_payment_events (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      payment_intent_id uuid NOT NULL REFERENCES telemed_schema.telemed_payment_intents(id),
+      event_type text NOT NULL CHECK (event_type IN (
+        'PROVIDER_WEBHOOK_RECEIVED',
+        'AUTHORIZED',
+        'QUEUE_ENTERED',
+        'DUPLICATE_WEBHOOK_OBSERVED',
+        'VOID_REQUESTED',
+        'VOID_SENT',
+        'REFUND_PENDING',
+        'REFUND_DISPATCHED'
+      )),
+      provider_event_id text,
+      idempotency_key text NOT NULL UNIQUE,
+      payload_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+
+    CREATE INDEX IF NOT EXISTS telemed_payment_events_intent_created_idx
+      ON telemed_schema.telemed_payment_events (payment_intent_id, created_at DESC);
+
+    CREATE OR REPLACE FUNCTION telemed_schema.prevent_telemed_payment_event_mutation()
+    RETURNS trigger AS $$
+    BEGIN
+      RAISE EXCEPTION 'telemed payment events are immutable';
+    END;
+    $$ LANGUAGE plpgsql;
+
+    DROP TRIGGER IF EXISTS telemed_payment_events_immutable ON telemed_schema.telemed_payment_events;
+    CREATE TRIGGER telemed_payment_events_immutable
+      BEFORE UPDATE OR DELETE ON telemed_schema.telemed_payment_events
+      FOR EACH ROW EXECUTE FUNCTION telemed_schema.prevent_telemed_payment_event_mutation();
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719300000000_add_telemed_payment_webhook_queue', NOW());
+
+
+### MIGRATION 1719310000000_add_telemed_vet_workspace (UP) ###
+
+    ALTER TABLE telemed_schema.telemed_cases
+      ADD COLUMN IF NOT EXISTS assigned_employee_id uuid,
+      ADD COLUMN IF NOT EXISTS assigned_at timestamptz,
+      ADD COLUMN IF NOT EXISTS safety_escalation boolean NOT NULL DEFAULT false,
+      ADD COLUMN IF NOT EXISTS recommendation_text text,
+      ADD COLUMN IF NOT EXISTS follow_up_notes text;
+
+    CREATE INDEX IF NOT EXISTS telemed_cases_assigned_employee_idx
+      ON telemed_schema.telemed_cases (assigned_employee_id, state, updated_at DESC)
+      WHERE assigned_employee_id IS NOT NULL;
+
+    CREATE TABLE IF NOT EXISTS telemed_schema.telemed_case_events (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      case_id uuid NOT NULL REFERENCES telemed_schema.telemed_cases(id) ON DELETE CASCADE,
+      actor_type text NOT NULL,
+      actor_id uuid,
+      event_type text NOT NULL CHECK (event_type IN (
+        'ASSIGNED',
+        'SESSION_STARTED',
+        'DOCTOR_CONNECTED',
+        'DOCTOR_TIMEOUT',
+        'SAFETY_ESCALATED',
+        'RECOMMENDATION_SAVED',
+        'FOLLOW_UP_ROUTED'
+      )),
+      payload_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+
+    CREATE INDEX IF NOT EXISTS telemed_case_events_case_created_idx
+      ON telemed_schema.telemed_case_events (case_id, created_at DESC);
+
+    CREATE OR REPLACE FUNCTION telemed_schema.prevent_telemed_case_event_mutation()
+    RETURNS trigger AS $$
+    BEGIN
+      RAISE EXCEPTION 'telemed case events are immutable';
+    END;
+    $$ LANGUAGE plpgsql;
+
+    DROP TRIGGER IF EXISTS telemed_case_events_immutable ON telemed_schema.telemed_case_events;
+    CREATE TRIGGER telemed_case_events_immutable
+      BEFORE UPDATE OR DELETE ON telemed_schema.telemed_case_events
+      FOR EACH ROW EXECUTE FUNCTION telemed_schema.prevent_telemed_case_event_mutation();
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719310000000_add_telemed_vet_workspace', NOW());
+
+
+### MIGRATION 1719320000000_add_case_based_telemed_sessions (UP) ###
+
+    ALTER TABLE telemed_schema.telemed_sessions
+      ALTER COLUMN booking_hold_id DROP NOT NULL,
+      ADD COLUMN IF NOT EXISTS telemed_case_id uuid REFERENCES telemed_schema.telemed_cases(id);
+
+    CREATE UNIQUE INDEX IF NOT EXISTS telemed_sessions_case_id_uq
+      ON telemed_schema.telemed_sessions (telemed_case_id)
+      WHERE telemed_case_id IS NOT NULL;
+
+    ALTER TABLE telemed_schema.telemed_sessions
+      DROP CONSTRAINT IF EXISTS telemed_sessions_exactly_one_source_check;
+    ALTER TABLE telemed_schema.telemed_sessions
+      ADD CONSTRAINT telemed_sessions_exactly_one_source_check
+      CHECK (
+        ((booking_hold_id IS NOT NULL)::integer + (telemed_case_id IS NOT NULL)::integer) = 1
+      ) NOT VALID;
+    ALTER TABLE telemed_schema.telemed_sessions
+      VALIDATE CONSTRAINT telemed_sessions_exactly_one_source_check;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719320000000_add_case_based_telemed_sessions', NOW());
+
+
+### MIGRATION 1719330000000_harden_telemed_payment_attempts (UP) ###
+
+    ALTER TABLE telemed_schema.telemed_payment_intents
+      ADD COLUMN IF NOT EXISTS payment_attempt_no integer;
+
+    UPDATE telemed_schema.telemed_payment_intents
+    SET payment_attempt_no = 1
+    WHERE payment_attempt_no IS NULL;
+
+    ALTER TABLE telemed_schema.telemed_payment_intents
+      ALTER COLUMN payment_attempt_no SET NOT NULL;
+
+    DO $$
+    DECLARE
+      case_unique_constraint text;
+    BEGIN
+      SELECT constraint_name
+      INTO case_unique_constraint
+      FROM information_schema.table_constraints constraint_info
+      JOIN information_schema.constraint_column_usage column_info
+        USING (constraint_catalog, constraint_schema, constraint_name)
+      WHERE constraint_info.table_schema = 'telemed_schema'
+        AND constraint_info.table_name = 'telemed_payment_intents'
+        AND constraint_info.constraint_type = 'UNIQUE'
+        AND column_info.column_name = 'case_id'
+      LIMIT 1;
+
+      IF case_unique_constraint IS NOT NULL THEN
+        EXECUTE format(
+          'ALTER TABLE telemed_schema.telemed_payment_intents DROP CONSTRAINT %I',
+          case_unique_constraint
+        );
+      END IF;
+    END $$;
+
+    DROP INDEX IF EXISTS telemed_schema.telemed_payment_intents_case_id_key;
+
+    CREATE UNIQUE INDEX IF NOT EXISTS telemed_payment_intents_case_attempt_uq
+      ON telemed_schema.telemed_payment_intents (case_id, payment_attempt_no);
+
+    CREATE UNIQUE INDEX IF NOT EXISTS telemed_payment_intents_one_active_case_uq
+      ON telemed_schema.telemed_payment_intents (case_id)
+      WHERE status IN (
+        'PENDING_PROVIDER',
+        'CREATED',
+        'AUTHORIZED',
+        'VOID_REQUESTED',
+        'REFUND_PENDING'
+      );
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719330000000_harden_telemed_payment_attempts', NOW());
+
+
+### MIGRATION 1719340000000_add_owner_telemed_cancellation (UP) ###
+
+    ALTER TABLE telemed_schema.telemed_cases
+      DROP CONSTRAINT IF EXISTS telemed_cases_state_check;
+    ALTER TABLE telemed_schema.telemed_cases
+      ADD CONSTRAINT telemed_cases_state_check
+      CHECK (state IN (
+        'DRAFT', 'PAYMENT_PENDING', 'FUNDS_RESERVED', 'QUEUED', 'ASSIGNED',
+        'DOCTOR_JOINED', 'IN_PROGRESS', 'COMPLETED', 'SETTLED',
+        'EXPIRED_NO_DOCTOR', 'REFUND_PENDING', 'REFUNDED', 'CANCELLED_BY_OWNER'
+      ));
+
+    ALTER TABLE telemed_schema.telemed_sessions
+      DROP CONSTRAINT IF EXISTS telemed_sessions_state_check;
+    ALTER TABLE telemed_schema.telemed_sessions
+      ADD CONSTRAINT telemed_sessions_state_check
+      CHECK (state IN (
+        'WAITING_FOR_DOCTOR', 'CONNECTED', 'COMPLETED', 'DOCTOR_TIMEOUT', 'CANCELLED'
+      ));
+
+    ALTER TABLE telemed_schema.telemed_sessions
+      ADD COLUMN IF NOT EXISTS owner_cancelled_at timestamptz,
+      ADD COLUMN IF NOT EXISTS owner_cancel_idempotency_key uuid;
+
+    CREATE UNIQUE INDEX IF NOT EXISTS telemed_sessions_owner_cancel_idempotency_uq
+      ON telemed_schema.telemed_sessions (owner_id, owner_cancel_idempotency_key)
+      WHERE owner_cancel_idempotency_key IS NOT NULL;
+
+    ALTER TABLE telemed_schema.telemed_case_events
+      DROP CONSTRAINT IF EXISTS telemed_case_events_event_type_check;
+    ALTER TABLE telemed_schema.telemed_case_events
+      ADD CONSTRAINT telemed_case_events_event_type_check
+      CHECK (event_type IN (
+        'ASSIGNED', 'SESSION_STARTED', 'DOCTOR_CONNECTED', 'DOCTOR_TIMEOUT',
+        'SAFETY_ESCALATED', 'RECOMMENDATION_SAVED', 'FOLLOW_UP_ROUTED', 'OWNER_CANCELLED'
+      ));
+
+    ALTER TABLE telemed_schema.telemed_payment_events
+      DROP CONSTRAINT IF EXISTS telemed_payment_events_event_type_check;
+    ALTER TABLE telemed_schema.telemed_payment_events
+      ADD CONSTRAINT telemed_payment_events_event_type_check
+      CHECK (event_type IN (
+        'PROVIDER_WEBHOOK_RECEIVED', 'AUTHORIZED', 'QUEUE_ENTERED',
+        'DUPLICATE_WEBHOOK_OBSERVED', 'STALE_WEBHOOK_IGNORED', 'VOID_REQUESTED',
+        'VOID_SENT', 'REFUND_PENDING', 'REFUND_DISPATCHED'
+      ));
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719340000000_add_owner_telemed_cancellation', NOW());
+
+
+### MIGRATION 1719350000000_guard_telemed_payment_attempts_rollback (UP) ###
+
+    COMMENT ON COLUMN telemed_schema.telemed_payment_intents.payment_attempt_no IS
+      'Forward-only data contract after 171933: do not drop when a case has multiple payment attempts. See backend/docs/MIGRATIONS.md.';
+    COMMENT ON INDEX telemed_schema.telemed_payment_intents_case_attempt_uq IS
+      'Preserves telemed payment attempt identity per case; rollback is guarded by 171935.';
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719350000000_guard_telemed_payment_attempts_rollback', NOW());
+
+
+### MIGRATION 1719360000000_expand_insurance_coverage_provider_snapshot (UP) ###
+
+    ALTER TABLE insurance_schema.coverage_checks
+      ADD COLUMN IF NOT EXISTS provider_checked_at timestamptz,
+      ADD COLUMN IF NOT EXISTS coverage_valid_until timestamptz,
+      ADD COLUMN IF NOT EXISTS claim_draft_json jsonb NOT NULL DEFAULT '{}'::jsonb;
+
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'coverage_checks_claim_draft_json_object_check'
+      ) THEN
+        ALTER TABLE insurance_schema.coverage_checks
+          ADD CONSTRAINT coverage_checks_claim_draft_json_object_check
+          CHECK (jsonb_typeof(claim_draft_json) = 'object');
+      END IF;
+    END $$;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719360000000_expand_insurance_coverage_provider_snapshot', NOW());
+
+
+### MIGRATION 1719370000000_add_trace_fields_to_outbox_events (UP) ###
+
+    ALTER TABLE booking_schema.outbox_events
+      ADD COLUMN IF NOT EXISTS causation_id uuid,
+      ADD COLUMN IF NOT EXISTS traceparent text;
+
+    CREATE INDEX IF NOT EXISTS outbox_events_causation_idx
+      ON booking_schema.outbox_events (causation_id)
+      WHERE causation_id IS NOT NULL;
+
+    CREATE INDEX IF NOT EXISTS outbox_events_traceparent_idx
+      ON booking_schema.outbox_events (traceparent)
+      WHERE traceparent IS NOT NULL;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719370000000_add_trace_fields_to_outbox_events', NOW());
+
+
+### MIGRATION 1719380000000_harden_audit_compliance_metadata (UP) ###
+
+    ALTER TABLE audit_schema.audit_log
+      ADD COLUMN IF NOT EXISTS causation_id uuid,
+      ADD COLUMN IF NOT EXISTS traceparent text,
+      ADD COLUMN IF NOT EXISTS actor_ip inet,
+      ADD COLUMN IF NOT EXISTS user_agent text,
+      ADD COLUMN IF NOT EXISTS event_ref text,
+      ADD COLUMN IF NOT EXISTS retained_until timestamptz;
+
+    CREATE UNIQUE INDEX IF NOT EXISTS audit_log_event_ref_idx
+      ON audit_schema.audit_log (event_ref)
+      WHERE event_ref IS NOT NULL;
+
+    CREATE INDEX IF NOT EXISTS audit_log_correlation_idx
+      ON audit_schema.audit_log (correlation_id, occurred_at DESC)
+      WHERE correlation_id IS NOT NULL;
+
+    CREATE INDEX IF NOT EXISTS audit_log_retention_idx
+      ON audit_schema.audit_log (retained_until);
+
+    CREATE OR REPLACE FUNCTION audit_schema.apply_audit_compliance_defaults()
+    RETURNS trigger AS $$
+    DECLARE
+      current_correlation text;
+      current_causation text;
+      current_traceparent text;
+      current_actor_ip text;
+      current_user_agent text;
+    BEGIN
+      IF NEW.event_ref IS NULL THEN
+        NEW.event_ref := 'audit:' || NEW.id::text;
+      END IF;
+
+      IF NEW.retained_until IS NULL THEN
+        NEW.retained_until := NEW.occurred_at + interval '7 years';
+      END IF;
+
+      IF NEW.correlation_id IS NULL THEN
+        current_correlation := NULLIF(current_setting('app.correlation_id', true), '');
+        IF current_correlation IS NOT NULL THEN
+          NEW.correlation_id := current_correlation::uuid;
+        END IF;
+      END IF;
+
+      IF NEW.causation_id IS NULL THEN
+        current_causation := NULLIF(current_setting('app.causation_id', true), '');
+        IF current_causation IS NOT NULL THEN
+          NEW.causation_id := current_causation::uuid;
+        END IF;
+      END IF;
+
+      IF NEW.traceparent IS NULL THEN
+        current_traceparent := NULLIF(current_setting('app.traceparent', true), '');
+        IF current_traceparent ~* '^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$' THEN
+          NEW.traceparent := lower(current_traceparent);
+        END IF;
+      END IF;
+
+      IF NEW.actor_ip IS NULL THEN
+        current_actor_ip := NULLIF(current_setting('app.actor_ip', true), '');
+        IF current_actor_ip IS NOT NULL THEN
+          NEW.actor_ip := current_actor_ip::inet;
+        END IF;
+      END IF;
+
+      IF NEW.user_agent IS NULL THEN
+        current_user_agent := NULLIF(current_setting('app.user_agent', true), '');
+        IF current_user_agent IS NOT NULL THEN
+          NEW.user_agent := left(current_user_agent, 512);
+        END IF;
+      END IF;
+
+      NEW.payload_json := COALESCE(NEW.payload_json, '{}'::jsonb)
+        - 'authorization'
+        - 'accessToken'
+        - 'refreshToken'
+        - 'token'
+        - 'password'
+        - 'otp'
+        - 'code';
+
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+
+    DROP TRIGGER IF EXISTS audit_log_apply_compliance_defaults ON audit_schema.audit_log;
+    CREATE TRIGGER audit_log_apply_compliance_defaults
+      BEFORE INSERT ON audit_schema.audit_log
+      FOR EACH ROW EXECUTE FUNCTION audit_schema.apply_audit_compliance_defaults();
+
+    CREATE OR REPLACE FUNCTION audit_schema.prevent_audit_log_mutation()
+    RETURNS trigger AS $$
+    BEGIN
+      RAISE EXCEPTION 'audit_schema.audit_log is append-only';
+    END;
+    $$ LANGUAGE plpgsql;
+
+    DROP TRIGGER IF EXISTS audit_log_prevent_update ON audit_schema.audit_log;
+    CREATE TRIGGER audit_log_prevent_update
+      BEFORE UPDATE ON audit_schema.audit_log
+      FOR EACH ROW EXECUTE FUNCTION audit_schema.prevent_audit_log_mutation();
+
+    DROP TRIGGER IF EXISTS audit_log_prevent_delete ON audit_schema.audit_log;
+    CREATE TRIGGER audit_log_prevent_delete
+      BEFORE DELETE ON audit_schema.audit_log
+      FOR EACH ROW EXECUTE FUNCTION audit_schema.prevent_audit_log_mutation();
+
+    COMMENT ON TABLE audit_schema.audit_log IS
+      'Append-only audit ledger. Updates/deletes are blocked by trigger; retained_until records retention policy.';
+    COMMENT ON COLUMN audit_schema.audit_log.event_ref IS
+      'Immutable external reference for audit evidence and exports. Existing pre-migration rows may remain NULL until forward-filled by a dedicated maintenance job.';
+    COMMENT ON COLUMN audit_schema.audit_log.retained_until IS
+      'Audit retention timestamp. Existing pre-migration rows may remain NULL until forward-filled by a dedicated maintenance job.';
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719380000000_harden_audit_compliance_metadata', NOW());
+
+
+### MIGRATION 1719400000000_autonomous_marketplace_pr36 (UP) ###
+
+    CREATE EXTENSION IF NOT EXISTS pgcrypto;
+    CREATE SCHEMA IF NOT EXISTS catalog_schema;
+
+    CREATE TABLE IF NOT EXISTS catalog_schema.specialties (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      name varchar(160) NOT NULL,
+      code varchar(80) NOT NULL UNIQUE,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+
+    INSERT INTO catalog_schema.specialties (name, code)
+    VALUES
+      ('Терапевт', 'THERAPIST'),
+      ('Хирург', 'SURGEON'),
+      ('Дерматолог', 'DERMATOLOGIST'),
+      ('Кардиолог', 'CARDIOLOGIST'),
+      ('Гастроэнтеролог', 'GASTROENTEROLOGIST')
+    ON CONFLICT (code) DO UPDATE
+    SET name = EXCLUDED.name;
+
+    CREATE TABLE IF NOT EXISTS catalog_schema.doctors (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      clinic_location_id uuid NOT NULL REFERENCES clinic_schema.clinic_locations(id),
+      full_name varchar(240) NOT NULL,
+      specialty_id uuid NOT NULL REFERENCES catalog_schema.specialties(id),
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    );
+    CREATE INDEX IF NOT EXISTS doctors_location_specialty_idx
+      ON catalog_schema.doctors (clinic_location_id, specialty_id, full_name);
+
+    ALTER TABLE clinic_schema.appointment_slots
+      ADD COLUMN IF NOT EXISTS doctor_id uuid REFERENCES catalog_schema.doctors(id),
+      ADD COLUMN IF NOT EXISTS specialty_id uuid REFERENCES catalog_schema.specialties(id);
+    CREATE INDEX IF NOT EXISTS appointment_slots_specialty_search_idx
+      ON clinic_schema.appointment_slots (specialty_id, starts_at)
+      WHERE state = 'OPEN';
+    CREATE INDEX IF NOT EXISTS appointment_slots_doctor_search_idx
+      ON clinic_schema.appointment_slots (doctor_id, starts_at)
+      WHERE state = 'OPEN';
+
+    ALTER TABLE pet_schema.pets
+      ADD COLUMN IF NOT EXISTS age_months integer,
+      ADD COLUMN IF NOT EXISTS gender varchar(16),
+      ADD COLUMN IF NOT EXISTS is_sterilized boolean,
+      ADD COLUMN IF NOT EXISTS chip_number varchar(80),
+      ADD COLUMN IF NOT EXISTS medical_history_ocr jsonb;
+    ALTER TABLE pet_schema.pets
+      DROP CONSTRAINT IF EXISTS pets_age_months_check;
+    ALTER TABLE pet_schema.pets
+      ADD CONSTRAINT pets_age_months_check CHECK (age_months IS NULL OR age_months >= 0);
+    ALTER TABLE pet_schema.pets
+      DROP CONSTRAINT IF EXISTS pets_gender_check;
+    ALTER TABLE pet_schema.pets
+      ADD CONSTRAINT pets_gender_check CHECK (gender IS NULL OR gender IN ('MALE', 'FEMALE'));
+    UPDATE pet_schema.pets
+    SET gender = CASE WHEN sex IN ('MALE', 'FEMALE') THEN sex ELSE gender END,
+        is_sterilized = COALESCE(is_sterilized, sterilized)
+    WHERE gender IS NULL OR is_sterilized IS NULL;
+
+    CREATE TABLE IF NOT EXISTS pet_schema.pet_documents (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      pet_id uuid NOT NULL REFERENCES pet_schema.pets(id) ON DELETE CASCADE,
+      owner_id uuid NOT NULL REFERENCES identity_schema.users(id),
+      file_url text NOT NULL,
+      doc_type varchar(24) NOT NULL CHECK (doc_type IN ('PASSPORT', 'HISTORY')),
+      status varchar(24) NOT NULL DEFAULT 'PROCESSING' CHECK (status IN ('PROCESSING', 'PROCESSED', 'FAILED')),
+      ocr_result jsonb,
+      error_message text,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      processed_at timestamptz
+    );
+    CREATE INDEX IF NOT EXISTS pet_documents_processing_idx
+      ON pet_schema.pet_documents (created_at, id)
+      WHERE status = 'PROCESSING';
+    CREATE INDEX IF NOT EXISTS pet_documents_pet_idx
+      ON pet_schema.pet_documents (pet_id, created_at DESC);
+
+    ALTER TABLE booking_schema.booking_holds
+      ADD COLUMN IF NOT EXISTS clinical_summary text;
+    ALTER TABLE booking_schema.booking_holds
+      DROP CONSTRAINT IF EXISTS booking_holds_state_check;
+    ALTER TABLE booking_schema.booking_holds
+      ADD CONSTRAINT booking_holds_state_check
+      CHECK (state IN (
+        'MANUAL_CONFIRM_PENDING', 'ALTERNATIVE_PENDING', 'CONFIRMED', 'EXPIRED', 'RELEASED', 'SLA_BREACHED',
+        'MIS_RESERVATION_PENDING', 'MIS_RECONCILIATION_PENDING', 'MIS_HELD', 'PAYMENT_PENDING',
+        'PAYMENT_IN_PROGRESS', 'PAYMENT_RECONCILIATION_PENDING', 'MIS_BOOKING_FAILED',
+        'CANCELLATION_REQUESTED', 'RESCHEDULE_REQUESTED', 'COMPLETED'
+      ));
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719400000000_autonomous_marketplace_pr36', NOW());
+
+
+### MIGRATION 1719400000001_allow_clinic_veterinarian_membership (UP) ###
+
+    DO $$
+    DECLARE
+      memberships_table regclass;
+      role_constraint text;
+    BEGIN
+      memberships_table := COALESCE(
+        to_regclass('auth_schema.employee_location_memberships'),
+        to_regclass('clinic_schema.employee_location_memberships')
+      );
+
+      IF memberships_table IS NULL THEN
+        RAISE EXCEPTION 'employee_location_memberships table was not found';
+      END IF;
+
+      SELECT c.conname
+      INTO role_constraint
+      FROM pg_constraint c
+      WHERE c.conrelid = memberships_table
+        AND c.contype = 'c'
+        AND pg_get_constraintdef(c.oid) LIKE '%CLINIC_RECEPTIONIST%'
+        AND pg_get_constraintdef(c.oid) LIKE '%CLINIC_ADMIN%'
+      ORDER BY c.conname
+      LIMIT 1;
+
+      IF role_constraint IS NOT NULL THEN
+        EXECUTE format(
+          'ALTER TABLE %s DROP CONSTRAINT %I',
+          memberships_table,
+          role_constraint
+        );
+      END IF;
+
+      EXECUTE format(
+        'ALTER TABLE %s
+         ADD CONSTRAINT employee_location_memberships_role_check
+         CHECK (role IN (%L, %L, %L))',
+        memberships_table,
+        'CLINIC_RECEPTIONIST',
+        'CLINIC_ADMIN',
+        'CLINIC_VETERINARIAN'
+      );
+    END $$;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719400000001_allow_clinic_veterinarian_membership', NOW());
+
+
+### MIGRATION 1719400000003_add_insurance_consent_revoke (UP) ###
+
+    ALTER TABLE insurance_schema.insurance_profiles
+      ADD COLUMN IF NOT EXISTS consent_revoked_at timestamptz,
+      ADD COLUMN IF NOT EXISTS consent_revocation_reason text;
+
+    CREATE INDEX IF NOT EXISTS insurance_profiles_active_consent_idx
+      ON insurance_schema.insurance_profiles (owner_id, pet_id, created_at DESC)
+      WHERE consent_revoked_at IS NULL;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719400000003_add_insurance_consent_revoke', NOW());
+
+
+### MIGRATION 1719410000000_add_pet_document_file_metadata (UP) ###
+
+    ALTER TABLE pet_schema.pet_documents
+      ADD COLUMN IF NOT EXISTS file_name text,
+      ADD COLUMN IF NOT EXISTS mime_type text,
+      ADD COLUMN IF NOT EXISTS file_size_bytes integer,
+      ADD COLUMN IF NOT EXISTS storage_key text,
+      ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+
+    ALTER TABLE pet_schema.pet_documents
+      DROP CONSTRAINT IF EXISTS pet_documents_doc_type_check;
+    ALTER TABLE pet_schema.pet_documents
+      ADD CONSTRAINT pet_documents_doc_type_check
+      CHECK (doc_type IN ('PASSPORT', 'HISTORY', 'PET_PHOTO'));
+
+    ALTER TABLE pet_schema.pet_documents
+      DROP CONSTRAINT IF EXISTS pet_documents_file_size_check;
+    ALTER TABLE pet_schema.pet_documents
+      ADD CONSTRAINT pet_documents_file_size_check
+      CHECK (file_size_bytes IS NULL OR file_size_bytes > 0);
+
+    CREATE INDEX IF NOT EXISTS pet_documents_owner_download_idx
+      ON pet_schema.pet_documents (owner_id, pet_id, id)
+      WHERE deleted_at IS NULL;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719410000000_add_pet_document_file_metadata', NOW());
+
+
+### MIGRATION 1719420000000_add_pet_archival (UP) ###
+
+    ALTER TABLE pet_schema.pets
+      ADD COLUMN IF NOT EXISTS archived_at timestamptz;
+
+    CREATE INDEX IF NOT EXISTS pets_owner_active_created_idx
+      ON pet_schema.pets (owner_id, created_at, id)
+      WHERE archived_at IS NULL;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719420000000_add_pet_archival', NOW());
+
+
+### MIGRATION 1719430000000_v50_booking_hold_idempotency_fingerprint (UP) ###
+
+    ALTER TABLE booking_schema.idempotency_records
+      ADD COLUMN IF NOT EXISTS request_fingerprint text;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719430000000_v50_booking_hold_idempotency_fingerprint', NOW());
+
+
+### MIGRATION 1719440000000_v50_booking_authority_metadata (UP) ###
+
+    ALTER TABLE clinic_schema.clinic_services
+      ADD COLUMN IF NOT EXISTS supported_species text[];
+    ALTER TABLE catalog_schema.doctors
+      ADD COLUMN IF NOT EXISTS active boolean NOT NULL DEFAULT true,
+      ADD COLUMN IF NOT EXISTS public_booking_enabled boolean NOT NULL DEFAULT true;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719440000000_v50_booking_authority_metadata', NOW());
+
+
+### MIGRATION 1719450000000_add_clinic_appointments_registry_indexes (UP) ###
+
+    CREATE INDEX IF NOT EXISTS appointment_slots_registry_location_starts_idx
+      ON clinic_schema.appointment_slots (clinic_location_id, starts_at, id)
+      INCLUDE (ends_at, service_id);
+
+    CREATE INDEX IF NOT EXISTS appointments_registry_slot_id_idx
+      ON booking_schema.appointments (slot_id, id)
+      INCLUDE (clinic_location_id, created_at, status, version, pet_id);
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719450000000_add_clinic_appointments_registry_indexes', NOW());
+
+
+### MIGRATION 1719460000000_add_clinic_patient_association_schema (UP) ###
+
+    CREATE TABLE clinic_schema.clinic_patient_consents (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      clinic_id uuid NOT NULL REFERENCES clinic_schema.clinics(id) ON DELETE NO ACTION,
+      clinic_location_id uuid NOT NULL REFERENCES clinic_schema.clinic_locations(id) ON DELETE NO ACTION,
+      pet_id uuid NOT NULL REFERENCES pet_schema.pets(id) ON DELETE NO ACTION,
+      subject_owner_id uuid REFERENCES identity_schema.users(id) ON DELETE NO ACTION,
+      purpose text NOT NULL,
+      consent_version text NOT NULL,
+      source text NOT NULL,
+      actor_type text NOT NULL,
+      actor_id text,
+      granted_at timestamptz NOT NULL,
+      expires_at timestamptz,
+      revoked_at timestamptz,
+      revoked_by_actor_type text,
+      revoked_by_actor_id text,
+      revoke_reason text,
+      version integer NOT NULL DEFAULT 1,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      CONSTRAINT clinic_patient_consents_purpose_check
+        CHECK (purpose = 'PATIENT_ADMIN_REGISTRY'),
+      CONSTRAINT clinic_patient_consents_version_check CHECK (version > 0),
+      CONSTRAINT clinic_patient_consents_text_check
+        CHECK (btrim(consent_version) <> '' AND btrim(source) <> '' AND btrim(actor_type) <> ''),
+      CONSTRAINT clinic_patient_consents_dates_check
+        CHECK (
+          (expires_at IS NULL OR expires_at > granted_at)
+          AND (revoked_at IS NULL OR revoked_at >= granted_at)
+          AND updated_at >= created_at
+        ),
+      CONSTRAINT clinic_patient_consents_revocation_check
+        CHECK (
+          (revoked_at IS NULL
+            AND revoked_by_actor_type IS NULL
+            AND revoked_by_actor_id IS NULL
+            AND revoke_reason IS NULL)
+          OR
+          (revoked_at IS NOT NULL
+            AND revoked_by_actor_type IS NOT NULL
+            AND btrim(revoked_by_actor_type) <> ''
+            AND revoked_by_actor_id IS NOT NULL
+            AND btrim(revoked_by_actor_id) <> ''
+            AND revoke_reason IS NOT NULL
+            AND btrim(revoke_reason) <> '')
+        ),
+      CONSTRAINT clinic_patient_consents_scope_key
+        UNIQUE (id, clinic_id, clinic_location_id, pet_id)
+    );
+
+    CREATE TABLE clinic_schema.clinic_patient_associations (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      clinic_id uuid NOT NULL REFERENCES clinic_schema.clinics(id) ON DELETE NO ACTION,
+      clinic_location_id uuid NOT NULL REFERENCES clinic_schema.clinic_locations(id) ON DELETE NO ACTION,
+      pet_id uuid NOT NULL REFERENCES pet_schema.pets(id) ON DELETE NO ACTION,
+      status text NOT NULL,
+      source_type text NOT NULL,
+      source_appointment_id uuid NOT NULL REFERENCES booking_schema.appointments(id) ON DELETE NO ACTION,
+      current_consent_id uuid NOT NULL,
+      visibility_policy_version text NOT NULL,
+      visibility_expires_at timestamptz NOT NULL,
+      first_qualified_at timestamptz NOT NULL,
+      last_qualified_at timestamptz NOT NULL,
+      archived_at timestamptz,
+      archive_reason text,
+      revoked_at timestamptz,
+      revoke_reason text,
+      version integer NOT NULL DEFAULT 1,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      CONSTRAINT clinic_patient_associations_scope_key
+        UNIQUE (clinic_id, clinic_location_id, pet_id),
+      CONSTRAINT clinic_patient_associations_consent_scope_fkey
+        FOREIGN KEY (current_consent_id, clinic_id, clinic_location_id, pet_id)
+        REFERENCES clinic_schema.clinic_patient_consents
+          (id, clinic_id, clinic_location_id, pet_id)
+        ON DELETE NO ACTION,
+      CONSTRAINT clinic_patient_associations_status_check
+        CHECK (status IN ('ACTIVE', 'ARCHIVED', 'REVOKED')),
+      CONSTRAINT clinic_patient_associations_source_check
+        CHECK (source_type = 'APPOINTMENT'),
+      CONSTRAINT clinic_patient_associations_version_check CHECK (version > 0),
+      CONSTRAINT clinic_patient_associations_text_check
+        CHECK (btrim(visibility_policy_version) <> ''),
+      CONSTRAINT clinic_patient_associations_dates_check
+        CHECK (
+          last_qualified_at >= first_qualified_at
+          AND visibility_expires_at >= first_qualified_at
+          AND updated_at >= created_at
+        ),
+      CONSTRAINT clinic_patient_associations_lifecycle_check
+        CHECK (
+          (status = 'ACTIVE'
+            AND archived_at IS NULL AND archive_reason IS NULL
+            AND revoked_at IS NULL AND revoke_reason IS NULL)
+          OR
+          (status = 'ARCHIVED'
+            AND archived_at IS NOT NULL
+            AND archive_reason IS NOT NULL AND btrim(archive_reason) <> ''
+            AND revoked_at IS NULL AND revoke_reason IS NULL)
+          OR
+          (status = 'REVOKED'
+            AND revoked_at IS NOT NULL
+            AND revoke_reason IS NOT NULL AND btrim(revoke_reason) <> ''
+            AND ((archived_at IS NULL AND archive_reason IS NULL)
+              OR (archived_at IS NOT NULL
+                AND archive_reason IS NOT NULL AND btrim(archive_reason) <> '')))
+        )
+    );
+
+    CREATE TABLE clinic_schema.clinic_patient_association_event_receipts (
+      source_event_id uuid PRIMARY KEY,
+      association_id uuid NOT NULL
+        REFERENCES clinic_schema.clinic_patient_associations(id) ON DELETE NO ACTION,
+      source_aggregate_id uuid NOT NULL
+        REFERENCES booking_schema.appointments(id) ON DELETE NO ACTION,
+      source_aggregate_version integer NOT NULL,
+      event_type text NOT NULL,
+      processed_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      CONSTRAINT clinic_patient_association_receipts_version_check
+        CHECK (source_aggregate_version > 0),
+      CONSTRAINT clinic_patient_association_receipts_event_type_check
+        CHECK (btrim(event_type) <> ''),
+      CONSTRAINT clinic_patient_association_receipts_semantic_key
+        UNIQUE (source_aggregate_id, source_aggregate_version, event_type)
+    );
+
+    CREATE SEQUENCE clinic_schema.clinic_patient_association_revision_sequence;
+
+    CREATE TABLE clinic_schema.clinic_patient_association_revisions (
+      revision_sequence bigint PRIMARY KEY
+        DEFAULT nextval('clinic_schema.clinic_patient_association_revision_sequence'),
+      association_id uuid NOT NULL
+        REFERENCES clinic_schema.clinic_patient_associations(id) ON DELETE NO ACTION,
+      association_version integer NOT NULL,
+      clinic_id uuid NOT NULL REFERENCES clinic_schema.clinics(id) ON DELETE NO ACTION,
+      clinic_location_id uuid NOT NULL
+        REFERENCES clinic_schema.clinic_locations(id) ON DELETE NO ACTION,
+      pet_id uuid NOT NULL REFERENCES pet_schema.pets(id) ON DELETE NO ACTION,
+      status text NOT NULL,
+      source_type text NOT NULL,
+      source_appointment_id uuid NOT NULL
+        REFERENCES booking_schema.appointments(id) ON DELETE NO ACTION,
+      current_consent_id uuid NOT NULL,
+      visibility_expires_at timestamptz NOT NULL,
+      last_qualified_at timestamptz NOT NULL,
+      recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      CONSTRAINT clinic_patient_association_revisions_association_version_key
+        UNIQUE (association_id, association_version),
+      CONSTRAINT clinic_patient_association_revisions_consent_scope_fkey
+        FOREIGN KEY (current_consent_id, clinic_id, clinic_location_id, pet_id)
+        REFERENCES clinic_schema.clinic_patient_consents
+          (id, clinic_id, clinic_location_id, pet_id)
+        ON DELETE NO ACTION,
+      CONSTRAINT clinic_patient_association_revisions_version_check
+        CHECK (association_version > 0),
+      CONSTRAINT clinic_patient_association_revisions_status_check
+        CHECK (status IN ('ACTIVE', 'ARCHIVED', 'REVOKED')),
+      CONSTRAINT clinic_patient_association_revisions_source_check
+        CHECK (source_type = 'APPOINTMENT')
+    );
+
+    ALTER SEQUENCE clinic_schema.clinic_patient_association_revision_sequence
+      OWNED BY clinic_schema.clinic_patient_association_revisions.revision_sequence;
+
+    CREATE INDEX clinic_patient_associations_registry_idx
+      ON clinic_schema.clinic_patient_associations
+        (clinic_id, clinic_location_id, status, last_qualified_at DESC, pet_id DESC);
+
+    CREATE INDEX clinic_patient_consents_scope_purpose_idx
+      ON clinic_schema.clinic_patient_consents
+        (clinic_id, clinic_location_id, pet_id, purpose, granted_at DESC);
+
+    CREATE INDEX clinic_patient_consents_revocation_idx
+      ON clinic_schema.clinic_patient_consents (id, revoked_at);
+
+    CREATE INDEX clinic_patient_association_receipts_association_idx
+      ON clinic_schema.clinic_patient_association_event_receipts
+        (association_id, processed_at DESC);
+
+    CREATE INDEX clinic_patient_association_revisions_snapshot_idx
+      ON clinic_schema.clinic_patient_association_revisions
+        (clinic_id, clinic_location_id, association_id, revision_sequence DESC);
+
+    CREATE INDEX clinic_patient_association_revisions_registry_idx
+      ON clinic_schema.clinic_patient_association_revisions
+        (clinic_id, clinic_location_id, status, last_qualified_at DESC, pet_id DESC,
+         revision_sequence);
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719460000000_add_clinic_patient_association_schema', NOW());
+
+
+### MIGRATION 1719470000000_add_clinic_patient_local_profiles (UP) ###
+
+    CREATE TABLE clinic_schema.clinic_patient_local_profiles (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      clinic_id uuid NOT NULL REFERENCES clinic_schema.clinics(id) ON DELETE NO ACTION,
+      clinic_location_id uuid NOT NULL REFERENCES clinic_schema.clinic_locations(id) ON DELETE NO ACTION,
+      patient_id uuid NOT NULL REFERENCES pet_schema.pets(id) ON DELETE NO ACTION,
+      alias text,
+      aggregate_version integer NOT NULL DEFAULT 1,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      CONSTRAINT clinic_patient_local_profiles_scope_key
+        UNIQUE (clinic_id, clinic_location_id, patient_id),
+      CONSTRAINT clinic_patient_local_profiles_association_fkey
+        FOREIGN KEY (clinic_id, clinic_location_id, patient_id)
+        REFERENCES clinic_schema.clinic_patient_associations
+          (clinic_id, clinic_location_id, pet_id)
+        ON DELETE NO ACTION,
+      CONSTRAINT clinic_patient_local_profiles_alias_check
+        CHECK (
+          alias IS NULL OR (
+            btrim(alias) <> ''
+            AND char_length(alias) <= 80
+            AND alias !~ '[[:cntrl:]]'
+          )
+        ),
+      CONSTRAINT clinic_patient_local_profiles_version_check
+        CHECK (aggregate_version > 0),
+      CONSTRAINT clinic_patient_local_profiles_dates_check
+        CHECK (updated_at >= created_at)
+    );
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719470000000_add_clinic_patient_local_profiles', NOW());
+
+
+### MIGRATION 1719480000000_add_clinic_patient_administrative_reference (UP) ###
+
+    ALTER TABLE clinic_schema.clinic_patient_local_profiles
+      ADD COLUMN administrative_reference text,
+      ADD COLUMN administrative_reference_key text,
+      ADD CONSTRAINT clinic_patient_local_profiles_reference_pair_check
+        CHECK ((administrative_reference IS NULL) = (administrative_reference_key IS NULL)),
+      ADD CONSTRAINT clinic_patient_local_profiles_reference_format_check
+        CHECK (
+          administrative_reference IS NULL OR (
+            btrim(administrative_reference) <> ''
+            AND char_length(administrative_reference) <= 40
+            AND administrative_reference !~ '[[:cntrl:]]'
+          )
+        );
+
+    CREATE UNIQUE INDEX clinic_patient_local_profiles_reference_location_key
+      ON clinic_schema.clinic_patient_local_profiles
+        (clinic_id, clinic_location_id, administrative_reference_key)
+      WHERE administrative_reference_key IS NOT NULL;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719480000000_add_clinic_patient_administrative_reference', NOW());
+
+
+### MIGRATION 1719490000000_add_shared_rate_limit_windows (UP) ###
+
+    CREATE TABLE public.shared_rate_limit_windows (
+      id bigserial PRIMARY KEY,
+      namespace varchar(64) NOT NULL,
+      actor_id uuid NOT NULL,
+      clinic_id uuid NOT NULL,
+      location_id uuid NOT NULL,
+      window_seconds integer NOT NULL,
+      window_started_at timestamptz NOT NULL,
+      window_ends_at timestamptz NOT NULL,
+      expires_at timestamptz NOT NULL,
+      hit_count integer NOT NULL DEFAULT 0,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      CONSTRAINT shared_rate_limit_windows_namespace_check
+        CHECK (namespace ~ '^[a-z][a-z0-9._-]{0,63}$'),
+      CONSTRAINT shared_rate_limit_windows_window_seconds_check
+        CHECK (window_seconds > 0 AND window_seconds <= 3600),
+      CONSTRAINT shared_rate_limit_windows_count_check
+        CHECK (hit_count >= 0),
+      CONSTRAINT shared_rate_limit_windows_boundaries_check
+        CHECK (
+          window_ends_at > window_started_at
+          AND expires_at >= window_ends_at
+          AND expires_at <= window_started_at + interval '65 minutes'
+        ),
+      CONSTRAINT shared_rate_limit_windows_identity_key
+        UNIQUE (
+          namespace,
+          actor_id,
+          clinic_id,
+          location_id,
+          window_seconds,
+          window_started_at
+        )
+    );
+
+    CREATE INDEX shared_rate_limit_windows_expires_at_id_idx
+      ON public.shared_rate_limit_windows (expires_at, id);
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719490000000_add_shared_rate_limit_windows', NOW());
+
+
+### MIGRATION 1719500000000_add_owner_notification_foundation (UP) ###
+
+    CREATE TABLE booking_schema.owner_notifications (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      recipient_owner_id uuid NOT NULL REFERENCES identity_schema.users(id) ON DELETE NO ACTION,
+      source_outbox_event_id uuid NOT NULL REFERENCES booking_schema.outbox_events(id) ON DELETE NO ACTION,
+      booking_hold_id uuid NOT NULL REFERENCES booking_schema.booking_holds(id) ON DELETE NO ACTION,
+      appointment_id uuid REFERENCES booking_schema.appointments(id) ON DELETE NO ACTION,
+      notification_type text NOT NULL,
+      aggregate_version integer NOT NULL,
+      title varchar(160) NOT NULL,
+      body varchar(1000) NOT NULL,
+      read_at timestamptz,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      CONSTRAINT owner_notifications_type_check CHECK (
+        notification_type IN ('PENDING_CONFIRMATION','CONFIRMED','REJECTED','CANCELLED','EXPIRED')
+      ),
+      CONSTRAINT owner_notifications_version_check CHECK (aggregate_version > 0),
+      CONSTRAINT owner_notifications_copy_check CHECK (btrim(title) <> '' AND btrim(body) <> ''),
+      CONSTRAINT owner_notifications_read_check CHECK (read_at IS NULL OR read_at >= created_at),
+      CONSTRAINT owner_notifications_source_recipient_type_key
+        UNIQUE (source_outbox_event_id, recipient_owner_id, notification_type),
+      CONSTRAINT owner_notifications_id_recipient_key UNIQUE (id, recipient_owner_id)
+    );
+
+    CREATE INDEX owner_notifications_owner_created_id_idx
+      ON booking_schema.owner_notifications (recipient_owner_id, created_at DESC, id DESC);
+    CREATE INDEX owner_notifications_owner_unread_created_id_idx
+      ON booking_schema.owner_notifications (recipient_owner_id, created_at DESC, id DESC)
+      WHERE read_at IS NULL;
+
+    CREATE TABLE booking_schema.owner_notification_email_deliveries (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      notification_id uuid NOT NULL,
+      recipient_owner_id uuid NOT NULL REFERENCES identity_schema.users(id) ON DELETE NO ACTION,
+      status text NOT NULL DEFAULT 'PENDING',
+      attempt_count integer NOT NULL DEFAULT 0,
+      next_attempt_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      lease_token uuid,
+      lease_until timestamptz,
+      last_error varchar(500),
+      delivered_at timestamptz,
+      terminal_failed_at timestamptz,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      CONSTRAINT owner_notification_email_delivery_notification_key UNIQUE (notification_id),
+      CONSTRAINT owner_notification_email_delivery_notification_owner_fkey
+        FOREIGN KEY (notification_id, recipient_owner_id)
+        REFERENCES booking_schema.owner_notifications (id, recipient_owner_id)
+        ON DELETE NO ACTION,
+      CONSTRAINT owner_notification_email_delivery_status_check CHECK (
+        status IN ('PENDING','LEASED','RETRY_WAIT','DELIVERED','TERMINAL_FAILED')
+      ),
+      CONSTRAINT owner_notification_email_delivery_attempt_check CHECK (attempt_count BETWEEN 0 AND 5),
+      CONSTRAINT owner_notification_email_delivery_dates_check CHECK (updated_at >= created_at),
+      CONSTRAINT owner_notification_email_delivery_lifecycle_check CHECK (
+        (status IN ('PENDING','RETRY_WAIT')
+          AND lease_token IS NULL AND lease_until IS NULL
+          AND delivered_at IS NULL AND terminal_failed_at IS NULL)
+        OR
+        (status = 'LEASED'
+          AND lease_token IS NOT NULL AND lease_until IS NOT NULL
+          AND delivered_at IS NULL AND terminal_failed_at IS NULL)
+        OR
+        (status = 'DELIVERED'
+          AND lease_token IS NULL AND lease_until IS NULL
+          AND delivered_at IS NOT NULL AND terminal_failed_at IS NULL)
+        OR
+        (status = 'TERMINAL_FAILED'
+          AND lease_token IS NULL AND lease_until IS NULL
+          AND delivered_at IS NULL AND terminal_failed_at IS NOT NULL)
+      )
+    );
+
+    CREATE INDEX owner_notification_email_due_idx
+      ON booking_schema.owner_notification_email_deliveries (next_attempt_at, id)
+      WHERE status IN ('PENDING','RETRY_WAIT');
+    CREATE INDEX owner_notification_email_expired_lease_idx
+      ON booking_schema.owner_notification_email_deliveries (lease_until, id)
+      WHERE status = 'LEASED';
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719500000000_add_owner_notification_foundation', NOW());
+
+
+### MIGRATION 1719510000000_harden_owner_otp_core_sessions (UP) ###
+
+    ALTER TABLE identity_schema.otp_challenges
+      ADD COLUMN IF NOT EXISTS resend_available_at timestamptz,
+      ADD COLUMN IF NOT EXISTS superseded_at timestamptz,
+      ADD COLUMN IF NOT EXISTS generation integer NOT NULL DEFAULT 1,
+      ADD COLUMN IF NOT EXISTS delivery_attempt_id uuid,
+      ADD COLUMN IF NOT EXISTS delivery_outcome text,
+      ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT clock_timestamp();
+
+    UPDATE identity_schema.otp_challenges
+    SET resend_available_at = created_at + interval '60 seconds'
+    WHERE resend_available_at IS NULL;
+
+    ALTER TABLE identity_schema.otp_challenges
+      ALTER COLUMN resend_available_at SET NOT NULL;
+
+    ALTER TABLE identity_schema.otp_challenges
+      ADD CONSTRAINT otp_challenges_generation_check CHECK (generation > 0),
+      ADD CONSTRAINT otp_challenges_delivery_outcome_check CHECK (
+        delivery_outcome IS NULL OR delivery_outcome IN (
+          'ACCEPTED','PROVIDER_REJECTED','PROVIDER_UNAVAILABLE',
+          'PROVIDER_RETRYABLE_FAILURE','PROVIDER_FINAL_FAILURE',
+          'PROVIDER_TIMEOUT','OUTCOME_UNKNOWN'
+        )
+      );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS otp_challenges_delivery_attempt_uq
+      ON identity_schema.otp_challenges (delivery_attempt_id)
+      WHERE delivery_attempt_id IS NOT NULL;
+
+    ALTER TABLE identity_schema.owner_sessions
+      ADD COLUMN IF NOT EXISTS session_token_hash text;
+    CREATE UNIQUE INDEX IF NOT EXISTS owner_sessions_session_token_hash_uq
+      ON identity_schema.owner_sessions (session_token_hash)
+      WHERE session_token_hash IS NOT NULL;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719510000000_harden_owner_otp_core_sessions', NOW());
+
+
+### MIGRATION 1719520000000_add_owner_otp_verifier_key_version (UP) ###
+
+    ALTER TABLE identity_schema.otp_challenges
+      ADD COLUMN IF NOT EXISTS verifier_key_version text NOT NULL DEFAULT 'v1';
+    ALTER TABLE identity_schema.otp_challenges
+      ADD CONSTRAINT otp_challenges_verifier_key_version_check
+      CHECK (verifier_key_version ~ '^v[1-9][0-9]{0,3}$');
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719520000000_add_owner_otp_verifier_key_version', NOW());
+
+
+### MIGRATION 1719530000000_add_owner_otp_anti_fraud (UP) ###
+
+  CREATE TABLE identity_schema.otp_rate_limit_attempts (
+    id bigserial PRIMARY KEY, phone_identity char(64) NOT NULL, ip_identity char(64) NOT NULL,
+    attempted_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    expires_at timestamptz NOT NULL DEFAULT (clock_timestamp() + interval '25 hours'),
+    CONSTRAINT otp_rate_limit_attempts_phone_identity_check CHECK (phone_identity ~ '^[0-9a-f]{64}$'),
+    CONSTRAINT otp_rate_limit_attempts_ip_identity_check CHECK (ip_identity ~ '^[0-9a-f]{64}$'),
+    CONSTRAINT otp_rate_limit_attempts_expiry_check CHECK (expires_at > attempted_at)
+  );
+  CREATE INDEX otp_rate_limit_attempts_phone_time_idx ON identity_schema.otp_rate_limit_attempts (phone_identity, attempted_at DESC);
+  CREATE INDEX otp_rate_limit_attempts_ip_time_idx ON identity_schema.otp_rate_limit_attempts (ip_identity, attempted_at DESC);
+  CREATE INDEX otp_rate_limit_attempts_expiry_idx ON identity_schema.otp_rate_limit_attempts (expires_at, id);
+  CREATE TABLE identity_schema.otp_rate_limit_blocks (
+    dimension varchar(8) NOT NULL, identity_hash char(64) NOT NULL, blocked_until timestamptz NOT NULL,
+    violation_count integer NOT NULL, last_violation_at timestamptz NOT NULL, expires_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL DEFAULT clock_timestamp(), PRIMARY KEY (dimension, identity_hash),
+    CONSTRAINT otp_rate_limit_blocks_dimension_check CHECK (dimension IN ('PHONE', 'IP')),
+    CONSTRAINT otp_rate_limit_blocks_identity_check CHECK (identity_hash ~ '^[0-9a-f]{64}$'),
+    CONSTRAINT otp_rate_limit_blocks_violation_check CHECK (violation_count > 0),
+    CONSTRAINT otp_rate_limit_blocks_expiry_check CHECK (expires_at >= blocked_until)
+  );
+  CREATE INDEX otp_rate_limit_blocks_expiry_idx ON identity_schema.otp_rate_limit_blocks (expires_at, dimension, identity_hash);
+;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719530000000_add_owner_otp_anti_fraud', NOW());
+
+
+### MIGRATION 1719630000000_add_clinic_booking_contract_profile (UP) ###
+
+    ALTER TABLE clinic_schema.clinics
+      ADD COLUMN IF NOT EXISTS booking_contract_profile text NOT NULL DEFAULT 'MVP_V1_MANUAL',
+      ADD COLUMN IF NOT EXISTS booking_contract_profile_version integer NOT NULL DEFAULT 1,
+      ADD COLUMN IF NOT EXISTS booking_contract_profile_updated_at timestamptz NOT NULL DEFAULT clock_timestamp();
+    ALTER TABLE clinic_schema.clinics
+      ADD CONSTRAINT clinics_booking_contract_profile_check CHECK (booking_contract_profile IN ('MVP_V1_MANUAL', 'V15_AUTO_CONFIRM')),
+      ADD CONSTRAINT clinics_booking_contract_profile_version_check CHECK (booking_contract_profile_version > 0);
+
+    CREATE TABLE clinic_schema.booking_contract_profile_history (
+      clinic_id uuid NOT NULL REFERENCES clinic_schema.clinics(id) ON DELETE CASCADE,
+      version integer NOT NULL CHECK (version > 0),
+      contract_profile text NOT NULL CHECK (contract_profile IN ('MVP_V1_MANUAL', 'V15_AUTO_CONFIRM')),
+      changed_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      changed_by text NOT NULL DEFAULT session_user,
+      PRIMARY KEY (clinic_id, version)
+    );
+
+    CREATE FUNCTION clinic_schema.prepare_booking_contract_profile_change()
+    RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN
+      NEW.booking_contract_profile_version := OLD.booking_contract_profile_version + 1;
+      NEW.booking_contract_profile_updated_at := clock_timestamp();
+      RETURN NEW;
+    END;
+    $$;
+    CREATE FUNCTION clinic_schema.record_booking_contract_profile_change()
+    RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN
+      INSERT INTO clinic_schema.booking_contract_profile_history (
+        clinic_id, version, contract_profile, changed_at, changed_by
+      ) VALUES (
+        NEW.id, NEW.booking_contract_profile_version, NEW.booking_contract_profile,
+        NEW.booking_contract_profile_updated_at, session_user
+      );
+      RETURN NEW;
+    END;
+    $$;
+    CREATE TRIGGER clinics_prepare_booking_contract_profile_change
+      BEFORE UPDATE OF booking_contract_profile ON clinic_schema.clinics
+      FOR EACH ROW WHEN (OLD.booking_contract_profile IS DISTINCT FROM NEW.booking_contract_profile)
+      EXECUTE FUNCTION clinic_schema.prepare_booking_contract_profile_change();
+    CREATE TRIGGER clinics_record_booking_contract_profile_insert
+      AFTER INSERT ON clinic_schema.clinics
+      FOR EACH ROW EXECUTE FUNCTION clinic_schema.record_booking_contract_profile_change();
+    CREATE TRIGGER clinics_record_booking_contract_profile_update
+      AFTER UPDATE OF booking_contract_profile ON clinic_schema.clinics
+      FOR EACH ROW WHEN (OLD.booking_contract_profile IS DISTINCT FROM NEW.booking_contract_profile)
+      EXECUTE FUNCTION clinic_schema.record_booking_contract_profile_change();
+
+    INSERT INTO clinic_schema.booking_contract_profile_history (
+      clinic_id, version, contract_profile, changed_at, changed_by
+    )
+    SELECT id, booking_contract_profile_version, booking_contract_profile,
+           booking_contract_profile_updated_at, session_user
+    FROM clinic_schema.clinics;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719630000000_add_clinic_booking_contract_profile', NOW());
+
+
+### MIGRATION 1719640000000_harden_clinic_booking_contract_profile_audit (UP) ###
+
+    CREATE TABLE audit_schema.clinic_booking_contract_profile_audit (
+      clinic_id uuid NOT NULL,
+      version integer NOT NULL CHECK (version > 0),
+      contract_profile text NOT NULL CHECK (contract_profile IN ('MVP_V1_MANUAL', 'V15_AUTO_CONFIRM')),
+      changed_at timestamptz NOT NULL,
+      changed_by text NOT NULL,
+      change_reference text,
+      PRIMARY KEY (clinic_id, version)
+    );
+
+    INSERT INTO audit_schema.clinic_booking_contract_profile_audit (
+      clinic_id, version, contract_profile, changed_at, changed_by, change_reference
+    )
+    SELECT clinic_id, version, contract_profile, changed_at, changed_by, 'wave1-initial-backfill'
+    FROM clinic_schema.booking_contract_profile_history;
+
+    CREATE OR REPLACE FUNCTION clinic_schema.record_booking_contract_profile_change()
+    RETURNS trigger LANGUAGE plpgsql AS $$
+    DECLARE
+      actor text := COALESCE(NULLIF(current_setting('app.actor_id', true), ''), session_user);
+      reference text := NULLIF(current_setting('app.change_reference', true), '');
+    BEGIN
+      INSERT INTO clinic_schema.booking_contract_profile_history (
+        clinic_id, version, contract_profile, changed_at, changed_by
+      ) VALUES (
+        NEW.id, NEW.booking_contract_profile_version, NEW.booking_contract_profile,
+        NEW.booking_contract_profile_updated_at, actor
+      );
+      INSERT INTO audit_schema.clinic_booking_contract_profile_audit (
+        clinic_id, version, contract_profile, changed_at, changed_by, change_reference
+      ) VALUES (
+        NEW.id, NEW.booking_contract_profile_version, NEW.booking_contract_profile,
+        NEW.booking_contract_profile_updated_at, actor, reference
+      );
+      RETURN NEW;
+    END;
+    $$;
+
+    COMMENT ON TABLE audit_schema.clinic_booking_contract_profile_audit IS
+      'Forward-only audit evidence. Do not drop during booking policy rollback.';
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719640000000_harden_clinic_booking_contract_profile_audit', NOW());
+
+
+### MIGRATION 1719650000000_protect_clinic_booking_contract_profile_audit (UP) ###
+
+    CREATE OR REPLACE FUNCTION audit_schema.reject_clinic_booking_contract_profile_audit_mutation()
+    RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN
+      RAISE EXCEPTION 'clinic booking contract profile audit is append-only';
+    END;
+    $$;
+
+    CREATE TRIGGER clinic_booking_contract_profile_audit_reject_row_mutation
+    BEFORE UPDATE OR DELETE ON audit_schema.clinic_booking_contract_profile_audit
+    FOR EACH ROW EXECUTE FUNCTION audit_schema.reject_clinic_booking_contract_profile_audit_mutation();
+
+    CREATE TRIGGER clinic_booking_contract_profile_audit_reject_truncate
+    BEFORE TRUNCATE ON audit_schema.clinic_booking_contract_profile_audit
+    FOR EACH STATEMENT EXECUTE FUNCTION audit_schema.reject_clinic_booking_contract_profile_audit_mutation();
+
+    REVOKE UPDATE, DELETE, TRUNCATE
+      ON audit_schema.clinic_booking_contract_profile_audit FROM PUBLIC;
+
+    CREATE OR REPLACE FUNCTION clinic_schema.record_booking_contract_profile_change()
+    RETURNS trigger LANGUAGE plpgsql AS $$
+    DECLARE
+      reference text := NULLIF(current_setting('app.change_reference', true), '');
+    BEGIN
+      INSERT INTO clinic_schema.booking_contract_profile_history (
+        clinic_id, version, contract_profile, changed_at, changed_by
+      ) VALUES (
+        NEW.id, NEW.booking_contract_profile_version, NEW.booking_contract_profile,
+        NEW.booking_contract_profile_updated_at, session_user
+      );
+      INSERT INTO audit_schema.clinic_booking_contract_profile_audit (
+        clinic_id, version, contract_profile, changed_at, changed_by, change_reference
+      ) VALUES (
+        NEW.id, NEW.booking_contract_profile_version, NEW.booking_contract_profile,
+        NEW.booking_contract_profile_updated_at, session_user, reference
+      );
+      RETURN NEW;
+    END;
+    $$;
+
+    COMMENT ON COLUMN audit_schema.clinic_booking_contract_profile_audit.changed_by IS
+      'Database session role; not evidence of a human approver identity.';
+    COMMENT ON COLUMN audit_schema.clinic_booking_contract_profile_audit.change_reference IS
+      'Caller-supplied diagnostic reference; not authorization or approval evidence.';
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719650000000_protect_clinic_booking_contract_profile_audit', NOW());
+
+
+### MIGRATION 1719660000000_add_appointment_lifecycle (UP) ###
+
+    ALTER TABLE booking_schema.appointments
+      ADD COLUMN lifecycle_state text,
+      ADD COLUMN cancelled_by text,
+      ADD COLUMN cancelled_by_actor_id uuid,
+      ADD COLUMN cancelled_at timestamptz,
+      ADD COLUMN late_cancellation boolean,
+      ADD COLUMN cancellation_reason_code text,
+      ADD COLUMN cancellation_reason_text text,
+      ADD COLUMN no_show_at timestamptz,
+      ADD COLUMN no_show_by_actor_id uuid;
+
+    UPDATE booking_schema.appointments
+    SET lifecycle_state = CASE
+      WHEN status IN ('CONFIRMED', 'CLINIC_CONFIRMED') THEN 'CONFIRMED'
+      WHEN status = 'CANCELLED' THEN 'CANCELLED_BY_USER'
+      WHEN status = 'CLINIC_CANCELLED' THEN 'CANCELLED_BY_CLINIC'
+      WHEN status = 'NO_SHOW' THEN 'NO_SHOW'
+      ELSE NULL
+    END;
+
+    ALTER TABLE booking_schema.appointments
+      ADD CONSTRAINT appointments_lifecycle_state_check CHECK (
+        lifecycle_state IS NULL OR lifecycle_state IN (
+          'CONFIRMED','CANCELLED_BY_USER','CANCELLED_BY_CLINIC','RESCHEDULE_PROPOSED','NO_SHOW'
+        )
+      ),
+      ADD CONSTRAINT appointments_cancelled_by_check CHECK (
+        cancelled_by IS NULL OR cancelled_by IN ('OWNER','CLINIC')
+      );
+
+    ALTER TABLE booking_schema.alternative_swap_groups
+      ADD COLUMN appointment_id uuid REFERENCES booking_schema.appointments(id);
+    CREATE INDEX appointment_lifecycle_state_idx
+      ON booking_schema.appointments (clinic_location_id, lifecycle_state, updated_at DESC);
+    CREATE INDEX alternative_swap_groups_appointment_idx
+      ON booking_schema.alternative_swap_groups (appointment_id, created_at DESC)
+      WHERE appointment_id IS NOT NULL;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719660000000_add_appointment_lifecycle', NOW());
+
+
+### MIGRATION 1719670000000_default_appointment_lifecycle (UP) ###
+ALTER TABLE booking_schema.appointments ALTER COLUMN lifecycle_state SET DEFAULT 'CONFIRMED';
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719670000000_default_appointment_lifecycle', NOW());
+
+
+### MIGRATION 1719680000000_fence_reschedule_target_slot (UP) ###
+ALTER TABLE booking_schema.alternative_swap_groups ADD COLUMN target_slot_version integer CHECK (target_slot_version IS NULL OR target_slot_version > 0);
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719680000000_fence_reschedule_target_slot', NOW());
+
+
+### MIGRATION 1719690000000_add_clinical_visit_result_foundation (UP) ###
+
+    CREATE SCHEMA IF NOT EXISTS clinical_schema;
+
+    ALTER TABLE pet_schema.pets
+      ADD CONSTRAINT pets_clinical_owner_context_key UNIQUE (id, owner_id);
+
+    ALTER TABLE booking_schema.appointments
+      ADD CONSTRAINT appointments_clinical_context_key
+      UNIQUE (id, hold_id, owner_id, clinic_location_id, slot_id);
+
+    ALTER TABLE booking_schema.booking_holds
+      ADD CONSTRAINT booking_holds_clinical_context_key
+      UNIQUE (id, owner_id, slot_id);
+
+    ALTER TABLE clinic_schema.appointment_slots
+      ADD CONSTRAINT appointment_slots_clinical_location_key
+      UNIQUE (id, clinic_location_id);
+
+    ALTER TABLE clinic_schema.clinic_locations
+      ADD CONSTRAINT clinic_locations_clinical_context_key
+      UNIQUE (id, clinic_id);
+
+    CREATE TABLE clinical_schema.visits (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      appointment_id uuid NOT NULL,
+      booking_hold_id uuid NOT NULL,
+      owner_id uuid NOT NULL,
+      pet_id uuid NOT NULL,
+      clinic_id uuid NOT NULL,
+      location_id uuid NOT NULL,
+      slot_id uuid NOT NULL,
+      completed_by uuid NOT NULL REFERENCES identity_schema.users(id) ON DELETE RESTRICT,
+      status text NOT NULL DEFAULT 'COMPLETED',
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      completed_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      CONSTRAINT visits_status_check CHECK (status = 'COMPLETED'),
+      CONSTRAINT visits_time_check CHECK (completed_at >= created_at),
+      CONSTRAINT visits_appointment_key UNIQUE (appointment_id),
+      CONSTRAINT visits_booking_hold_key UNIQUE (booking_hold_id),
+      CONSTRAINT visits_owner_pet_context_key UNIQUE (id, owner_id, pet_id),
+      CONSTRAINT visits_context_key UNIQUE (id, owner_id, pet_id, clinic_id, location_id),
+      CONSTRAINT visits_appointment_context_fkey
+        FOREIGN KEY (appointment_id, booking_hold_id, owner_id, location_id, slot_id)
+        REFERENCES booking_schema.appointments (id, hold_id, owner_id, clinic_location_id, slot_id)
+        ON DELETE RESTRICT,
+      CONSTRAINT visits_hold_context_fkey
+        FOREIGN KEY (booking_hold_id, owner_id, slot_id)
+        REFERENCES booking_schema.booking_holds (id, owner_id, slot_id)
+        ON DELETE RESTRICT,
+      CONSTRAINT visits_pet_owner_fkey
+        FOREIGN KEY (pet_id, owner_id)
+        REFERENCES pet_schema.pets (id, owner_id)
+        ON DELETE RESTRICT,
+      CONSTRAINT visits_slot_location_fkey
+        FOREIGN KEY (slot_id, location_id)
+        REFERENCES clinic_schema.appointment_slots (id, clinic_location_id)
+        ON DELETE RESTRICT,
+      CONSTRAINT visits_location_clinic_fkey
+        FOREIGN KEY (location_id, clinic_id)
+        REFERENCES clinic_schema.clinic_locations (id, clinic_id)
+        ON DELETE RESTRICT
+    );
+
+    CREATE INDEX visits_clinic_location_time_idx
+      ON clinical_schema.visits (clinic_id, location_id, completed_at DESC, id DESC);
+
+    CREATE TABLE clinical_schema.visit_results (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      visit_id uuid NOT NULL,
+      owner_id uuid NOT NULL,
+      pet_id uuid NOT NULL,
+      clinic_id uuid NOT NULL,
+      location_id uuid NOT NULL,
+      author_id uuid NOT NULL REFERENCES identity_schema.users(id) ON DELETE RESTRICT,
+      status text NOT NULL DEFAULT 'DRAFT',
+      clinical_summary text NOT NULL,
+      idempotency_key uuid NOT NULL,
+      version integer NOT NULL DEFAULT 1,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      published_at timestamptz,
+      CONSTRAINT visit_results_status_check CHECK (status IN ('DRAFT', 'PUBLISHED')),
+      CONSTRAINT visit_results_content_check CHECK (char_length(btrim(clinical_summary)) BETWEEN 3 AND 8000),
+      CONSTRAINT visit_results_version_check CHECK (version > 0),
+      CONSTRAINT visit_results_time_check CHECK (
+        updated_at >= created_at AND
+        ((status = 'DRAFT' AND published_at IS NULL) OR
+         (status = 'PUBLISHED' AND published_at IS NOT NULL AND published_at >= created_at))
+      ),
+      CONSTRAINT visit_results_context_fkey
+        FOREIGN KEY (visit_id, owner_id, pet_id, clinic_id, location_id)
+        REFERENCES clinical_schema.visits (id, owner_id, pet_id, clinic_id, location_id)
+        ON DELETE RESTRICT,
+      CONSTRAINT visit_results_idempotency_key UNIQUE (visit_id, idempotency_key),
+      CONSTRAINT visit_results_context_key UNIQUE (id, visit_id, owner_id, pet_id, clinic_id, location_id)
+    );
+
+    CREATE INDEX visit_results_visit_status_idx
+      ON clinical_schema.visit_results (visit_id, status, created_at DESC, id DESC);
+
+    CREATE TABLE clinical_schema.visit_result_amendments (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      result_id uuid NOT NULL,
+      visit_id uuid NOT NULL,
+      owner_id uuid NOT NULL,
+      pet_id uuid NOT NULL,
+      clinic_id uuid NOT NULL,
+      location_id uuid NOT NULL,
+      author_id uuid NOT NULL REFERENCES identity_schema.users(id) ON DELETE RESTRICT,
+      amendment_content text NOT NULL,
+      idempotency_key uuid NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      published_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      CONSTRAINT visit_result_amendments_content_check
+        CHECK (char_length(btrim(amendment_content)) BETWEEN 3 AND 8000),
+      CONSTRAINT visit_result_amendments_time_check CHECK (published_at >= created_at),
+      CONSTRAINT visit_result_amendments_result_context_fkey
+        FOREIGN KEY (result_id, visit_id, owner_id, pet_id, clinic_id, location_id)
+        REFERENCES clinical_schema.visit_results (id, visit_id, owner_id, pet_id, clinic_id, location_id)
+        ON DELETE RESTRICT,
+      CONSTRAINT visit_result_amendments_idempotency_key UNIQUE (result_id, idempotency_key),
+      CONSTRAINT visit_result_amendments_context_key
+        UNIQUE (id, result_id, visit_id, owner_id, pet_id, clinic_id, location_id)
+    );
+
+    CREATE INDEX visit_result_amendments_result_time_idx
+      ON clinical_schema.visit_result_amendments (result_id, published_at ASC, id ASC);
+
+    CREATE TABLE clinical_schema.diary_entries (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      owner_id uuid NOT NULL,
+      pet_id uuid NOT NULL,
+      visit_id uuid NOT NULL,
+      source_result_id uuid,
+      source_amendment_id uuid,
+      occurred_at timestamptz NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+      CONSTRAINT diary_entries_one_source_check CHECK (
+        (source_result_id IS NOT NULL)::integer + (source_amendment_id IS NOT NULL)::integer = 1
+      ),
+      CONSTRAINT diary_entries_time_check CHECK (occurred_at <= created_at),
+      CONSTRAINT diary_entries_visit_context_fkey
+        FOREIGN KEY (visit_id, owner_id, pet_id)
+        REFERENCES clinical_schema.visits (id, owner_id, pet_id)
+        ON DELETE RESTRICT
+    );
+
+    CREATE UNIQUE INDEX diary_entries_result_source_key
+      ON clinical_schema.diary_entries (source_result_id) WHERE source_result_id IS NOT NULL;
+    CREATE UNIQUE INDEX diary_entries_amendment_source_key
+      ON clinical_schema.diary_entries (source_amendment_id) WHERE source_amendment_id IS NOT NULL;
+    CREATE INDEX diary_entries_owner_pet_time_idx
+      ON clinical_schema.diary_entries (owner_id, pet_id, occurred_at DESC, id DESC);
+    CREATE INDEX diary_entries_pet_time_idx
+      ON clinical_schema.diary_entries (pet_id, occurred_at, id);
+
+    CREATE FUNCTION clinical_schema.protect_published_clinical_data()
+    RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN
+      IF TG_OP = 'DELETE' THEN
+        IF TG_TABLE_NAME <> 'visit_results' THEN
+          RAISE EXCEPTION 'W7A_IMMUTABLE_CLINICAL_RECORD' USING ERRCODE = '23514';
+        END IF;
+        IF OLD.status = 'PUBLISHED' THEN
+          RAISE EXCEPTION 'W7A_IMMUTABLE_CLINICAL_RECORD' USING ERRCODE = '23514';
+        END IF;
+        RETURN OLD;
+      END IF;
+
+      IF TG_TABLE_NAME = 'visit_results' THEN
+        IF OLD.status = 'PUBLISHED' AND NEW IS DISTINCT FROM OLD THEN
+          RAISE EXCEPTION 'W7A_PUBLISHED_RESULT_IMMUTABLE' USING ERRCODE = '23514';
+        END IF;
+      ELSE
+        RAISE EXCEPTION 'W7A_IMMUTABLE_CLINICAL_PROJECTION' USING ERRCODE = '23514';
+      END IF;
+      RETURN NEW;
+    END $$;
+
+    CREATE TRIGGER visit_results_immutability_trigger
+      BEFORE UPDATE OR DELETE ON clinical_schema.visit_results
+      FOR EACH ROW EXECUTE FUNCTION clinical_schema.protect_published_clinical_data();
+    CREATE TRIGGER visit_result_amendments_immutability_trigger
+      BEFORE UPDATE OR DELETE ON clinical_schema.visit_result_amendments
+      FOR EACH ROW EXECUTE FUNCTION clinical_schema.protect_published_clinical_data();
+    CREATE TRIGGER diary_entries_immutability_trigger
+      BEFORE UPDATE OR DELETE ON clinical_schema.diary_entries
+      FOR EACH ROW EXECUTE FUNCTION clinical_schema.protect_published_clinical_data();
+
+    CREATE FUNCTION clinical_schema.enforce_publication_diary_coherence()
+    RETURNS trigger LANGUAGE plpgsql AS $$
+    DECLARE
+      target_result_id uuid;
+      target_amendment_id uuid;
+      source record;
+      projection_count integer;
+    BEGIN
+      IF TG_TABLE_NAME = 'visit_results' THEN
+        target_result_id := NEW.id;
+      ELSIF TG_TABLE_NAME = 'visit_result_amendments' THEN
+        target_result_id := NEW.result_id;
+        target_amendment_id := NEW.id;
+      ELSE
+        target_result_id := NEW.source_result_id;
+        target_amendment_id := NEW.source_amendment_id;
+      END IF;
+
+      IF target_amendment_id IS NOT NULL THEN
+        SELECT a.id, a.result_id, a.visit_id, a.owner_id, a.pet_id, a.clinic_id, a.location_id,
+               r.status result_status
+          INTO source
+          FROM clinical_schema.visit_result_amendments a
+          JOIN clinical_schema.visit_results r ON r.id = a.result_id
+         WHERE a.id = target_amendment_id;
+        IF source.id IS NULL OR source.result_status <> 'PUBLISHED' THEN
+          RAISE EXCEPTION 'W7A_AMENDMENT_SOURCE_INVALID' USING ERRCODE = '23514';
+        END IF;
+        SELECT count(*)::integer INTO projection_count
+          FROM clinical_schema.diary_entries d
+         WHERE d.source_amendment_id = target_amendment_id
+           AND d.source_result_id IS NULL AND d.visit_id = source.visit_id
+           AND d.owner_id = source.owner_id AND d.pet_id = source.pet_id;
+        IF projection_count <> 1 THEN
+          RAISE EXCEPTION 'W7A_AMENDMENT_DIARY_COHERENCE_INVALID' USING ERRCODE = '23514';
+        END IF;
+      ELSIF target_result_id IS NOT NULL THEN
+        SELECT r.id, r.visit_id, r.owner_id, r.pet_id, r.status INTO source
+          FROM clinical_schema.visit_results r WHERE r.id = target_result_id;
+        IF source.id IS NULL THEN
+          RAISE EXCEPTION 'W7A_RESULT_SOURCE_INVALID' USING ERRCODE = '23514';
+        END IF;
+        SELECT count(*)::integer INTO projection_count
+          FROM clinical_schema.diary_entries d
+         WHERE d.source_result_id = target_result_id
+           AND d.source_amendment_id IS NULL AND d.visit_id = source.visit_id
+           AND d.owner_id = source.owner_id AND d.pet_id = source.pet_id;
+        IF (source.status = 'PUBLISHED' AND projection_count <> 1)
+          OR (source.status = 'DRAFT' AND projection_count <> 0) THEN
+          RAISE EXCEPTION 'W7A_RESULT_DIARY_COHERENCE_INVALID' USING ERRCODE = '23514';
+        END IF;
+      END IF;
+      RETURN NEW;
+    END $$;
+
+    CREATE CONSTRAINT TRIGGER visit_results_diary_coherence_trigger
+      AFTER INSERT OR UPDATE OF status, published_at ON clinical_schema.visit_results
+      DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+      EXECUTE FUNCTION clinical_schema.enforce_publication_diary_coherence();
+    CREATE CONSTRAINT TRIGGER visit_result_amendments_diary_coherence_trigger
+      AFTER INSERT ON clinical_schema.visit_result_amendments
+      DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+      EXECUTE FUNCTION clinical_schema.enforce_publication_diary_coherence();
+    CREATE CONSTRAINT TRIGGER diary_entries_source_coherence_trigger
+      AFTER INSERT ON clinical_schema.diary_entries
+      DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+      EXECUTE FUNCTION clinical_schema.enforce_publication_diary_coherence();
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719690000000_add_clinical_visit_result_foundation', NOW());
+
+
+### MIGRATION 1719700000000_enforce_one_clinical_result_per_visit (UP) ###
+
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM clinical_schema.visit_results
+        GROUP BY visit_id
+        HAVING count(*) > 1
+      ) THEN
+        RAISE EXCEPTION 'W7B_RESULT_CARDINALITY_DATA_REMEDIATION_REQUIRED'
+          USING ERRCODE = '23514';
+      END IF;
+    END $$;
+
+    ALTER TABLE clinical_schema.visit_results
+      ADD CONSTRAINT visit_results_visit_key UNIQUE (visit_id);
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719700000000_enforce_one_clinical_result_per_visit', NOW());
+
+
+### MIGRATION 1719710000000_add_clinical_publish_idempotency (UP) ###
+
+    ALTER TABLE clinical_schema.visit_results ADD COLUMN publish_idempotency_key uuid;
+    CREATE UNIQUE INDEX visit_results_publish_idempotency_key
+      ON clinical_schema.visit_results (publish_idempotency_key)
+      WHERE publish_idempotency_key IS NOT NULL;
+  ;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719710000000_add_clinical_publish_idempotency', NOW());
+
+
+### MIGRATION 1719720000000_add_clinical_amendment_version (UP) ###
+
+  ALTER TABLE clinical_schema.visit_result_amendments ADD COLUMN version integer;
+  ALTER TABLE clinical_schema.visit_result_amendments DISABLE TRIGGER visit_result_amendments_immutability_trigger;
+  WITH ranked AS (
+    SELECT id, row_number() OVER (PARTITION BY result_id ORDER BY created_at, id)::integer AS version
+    FROM clinical_schema.visit_result_amendments
+  )
+  UPDATE clinical_schema.visit_result_amendments amendment SET version=ranked.version FROM ranked WHERE ranked.id=amendment.id;
+  ALTER TABLE clinical_schema.visit_result_amendments ENABLE TRIGGER visit_result_amendments_immutability_trigger;
+  ALTER TABLE clinical_schema.visit_result_amendments ALTER COLUMN version SET NOT NULL;
+  ALTER TABLE clinical_schema.visit_result_amendments ADD CONSTRAINT visit_result_amendments_version_check CHECK(version>0);
+  ALTER TABLE clinical_schema.visit_result_amendments ADD CONSTRAINT visit_result_amendments_result_version_key UNIQUE(result_id,version);
+  CREATE FUNCTION clinical_schema.assign_visit_result_amendment_version() RETURNS trigger LANGUAGE plpgsql AS $$
+  BEGIN
+    IF NEW.version IS NULL THEN
+      PERFORM 1 FROM clinical_schema.visit_results WHERE id=NEW.result_id FOR UPDATE;
+      SELECT COALESCE(max(version),0)+1 INTO NEW.version FROM clinical_schema.visit_result_amendments WHERE result_id=NEW.result_id;
+    END IF;
+    RETURN NEW;
+  END $$;
+  CREATE TRIGGER visit_result_amendments_assign_version BEFORE INSERT ON clinical_schema.visit_result_amendments
+    FOR EACH ROW EXECUTE FUNCTION clinical_schema.assign_visit_result_amendment_version();
+;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719720000000_add_clinical_amendment_version', NOW());
+
+
+### MIGRATION 1719730000000_add_appointment_medical_sharing (UP) ###
+
+  CREATE SCHEMA medical_schema;
+  ALTER TABLE booking_schema.appointments ADD CONSTRAINT appointments_medical_context_key UNIQUE(id,owner_id,pet_id,clinic_location_id);
+  ALTER TABLE clinic_schema.clinic_locations ADD CONSTRAINT clinic_locations_medical_context_key UNIQUE(id,clinic_id);
+  ALTER TABLE clinical_schema.visit_results ADD CONSTRAINT results_medical_owner_key UNIQUE(id,owner_id,pet_id);
+  ALTER TABLE clinical_schema.visit_result_amendments ADD CONSTRAINT amendments_medical_owner_key UNIQUE(id,owner_id,pet_id);
+  ALTER TABLE pet_schema.pet_documents ADD CONSTRAINT documents_medical_owner_key UNIQUE(id,owner_id,pet_id);
+  CREATE TABLE medical_schema.appointment_data_shares (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    appointment_id uuid NOT NULL, owner_id uuid NOT NULL, pet_id uuid NOT NULL,
+    clinic_id uuid NOT NULL, location_id uuid NOT NULL,
+    status text NOT NULL DEFAULT 'ACTIVE' CHECK(status IN('ACTIVE','REVOKED')),
+    version integer NOT NULL DEFAULT 1 CHECK(version>0),
+    idempotency_key uuid NOT NULL, request_json jsonb NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    correlation_id uuid NOT NULL,
+    revoked_at timestamptz, revoke_idempotency_key uuid, revoke_expected_version integer,
+    UNIQUE(owner_id,idempotency_key), UNIQUE(id,owner_id,pet_id),
+    FOREIGN KEY(appointment_id,owner_id,pet_id,location_id) REFERENCES booking_schema.appointments(id,owner_id,pet_id,clinic_location_id),
+    FOREIGN KEY(location_id,clinic_id) REFERENCES clinic_schema.clinic_locations(id,clinic_id),
+    CHECK((status='ACTIVE' AND version=1 AND revoked_at IS NULL AND revoke_idempotency_key IS NULL AND revoke_expected_version IS NULL)
+      OR (status='REVOKED' AND version=2 AND revoked_at IS NOT NULL AND revoked_at>=created_at AND revoke_idempotency_key IS NOT NULL AND revoke_expected_version=1))
+  );
+  CREATE TABLE medical_schema.appointment_data_share_resources (
+    share_id uuid NOT NULL, owner_id uuid NOT NULL, pet_id uuid NOT NULL,
+    resource_type text NOT NULL CHECK(resource_type IN('RESULT','AMENDMENT','DOCUMENT')),
+    resource_id uuid NOT NULL,
+    result_id uuid, amendment_id uuid, document_id uuid,
+    PRIMARY KEY(share_id,resource_type,resource_id),
+    FOREIGN KEY(share_id,owner_id,pet_id) REFERENCES medical_schema.appointment_data_shares(id,owner_id,pet_id),
+    FOREIGN KEY(result_id,owner_id,pet_id) REFERENCES clinical_schema.visit_results(id,owner_id,pet_id),
+    FOREIGN KEY(amendment_id,owner_id,pet_id) REFERENCES clinical_schema.visit_result_amendments(id,owner_id,pet_id),
+    FOREIGN KEY(document_id,owner_id,pet_id) REFERENCES pet_schema.pet_documents(id,owner_id,pet_id),
+    CHECK((resource_type='RESULT' AND result_id=resource_id AND result_id IS NOT NULL AND amendment_id IS NULL AND document_id IS NULL)
+      OR (resource_type='AMENDMENT' AND amendment_id=resource_id AND amendment_id IS NOT NULL AND result_id IS NULL AND document_id IS NULL)
+      OR (resource_type='DOCUMENT' AND document_id=resource_id AND document_id IS NOT NULL AND result_id IS NULL AND amendment_id IS NULL))
+  );
+  CREATE INDEX appointment_data_shares_read_idx ON medical_schema.appointment_data_shares(appointment_id,clinic_id,location_id) WHERE status='ACTIVE';
+  CREATE TABLE medical_schema.share_events (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),share_id uuid NOT NULL REFERENCES medical_schema.appointment_data_shares(id),
+    event_type text NOT NULL CHECK(event_type IN('medical.share.granted','medical.share.revoked')),
+    actor_id uuid NOT NULL REFERENCES identity_schema.users(id),correlation_id uuid NOT NULL,
+    resource_refs jsonb NOT NULL,occurred_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    UNIQUE(share_id,event_type)
+  );
+  CREATE FUNCTION medical_schema.protect_sharing_evidence() RETURNS trigger LANGUAGE plpgsql AS $$
+  BEGIN
+    IF TG_OP='DELETE' THEN RAISE EXCEPTION 'MEDICAL_SHARE_EVIDENCE_IMMUTABLE' USING ERRCODE='23514'; END IF;
+    IF TG_TABLE_NAME<>'appointment_data_shares' THEN RAISE EXCEPTION 'MEDICAL_SHARE_EVIDENCE_IMMUTABLE' USING ERRCODE='23514'; END IF;
+    IF OLD.status<>'ACTIVE' OR NEW.status<>'REVOKED' OR NEW.version<>OLD.version+1
+      OR (to_jsonb(NEW)-ARRAY['status','version','revoked_at','revoke_idempotency_key','revoke_expected_version']) IS DISTINCT FROM
+         (to_jsonb(OLD)-ARRAY['status','version','revoked_at','revoke_idempotency_key','revoke_expected_version'])
+    THEN RAISE EXCEPTION 'MEDICAL_SHARE_EVIDENCE_IMMUTABLE' USING ERRCODE='23514'; END IF;
+    RETURN NEW;
+  END $$;
+  CREATE TRIGGER shares_immutable BEFORE UPDATE OR DELETE ON medical_schema.appointment_data_shares FOR EACH ROW EXECUTE FUNCTION medical_schema.protect_sharing_evidence();
+  CREATE TRIGGER share_resources_immutable BEFORE UPDATE OR DELETE ON medical_schema.appointment_data_share_resources FOR EACH ROW EXECUTE FUNCTION medical_schema.protect_sharing_evidence();
+  CREATE TRIGGER share_events_immutable BEFORE UPDATE OR DELETE ON medical_schema.share_events FOR EACH ROW EXECUTE FUNCTION medical_schema.protect_sharing_evidence();
+  CREATE FUNCTION medical_schema.validate_share_resource() RETURNS trigger LANGUAGE plpgsql AS $$
+  BEGIN
+    IF NEW.resource_type='RESULT' AND NOT EXISTS(SELECT 1 FROM clinical_schema.visit_results WHERE id=NEW.result_id AND status='PUBLISHED')
+      THEN RAISE EXCEPTION 'MEDICAL_RESOURCE_NOT_ELIGIBLE' USING ERRCODE='23514'; END IF;
+    IF NEW.resource_type='DOCUMENT' AND NOT EXISTS(SELECT 1 FROM pet_schema.pet_documents WHERE id=NEW.document_id AND doc_type IN('PASSPORT','HISTORY'))
+      THEN RAISE EXCEPTION 'MEDICAL_RESOURCE_NOT_ELIGIBLE' USING ERRCODE='23514'; END IF;
+    IF NOT EXISTS(SELECT 1 FROM medical_schema.appointment_data_shares WHERE id=NEW.share_id AND status='ACTIVE')
+      THEN RAISE EXCEPTION 'MEDICAL_SHARE_NOT_ACTIVE' USING ERRCODE='23514'; END IF;
+    IF EXISTS(SELECT 1 FROM medical_schema.share_events WHERE share_id=NEW.share_id AND event_type='medical.share.granted')
+      THEN RAISE EXCEPTION 'MEDICAL_SHARE_SNAPSHOT_SEALED' USING ERRCODE='23514'; END IF;
+    RETURN NEW;
+  END $$;
+  CREATE TRIGGER share_resources_validate BEFORE INSERT ON medical_schema.appointment_data_share_resources FOR EACH ROW EXECUTE FUNCTION medical_schema.validate_share_resource();
+;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719730000000_add_appointment_medical_sharing', NOW());
+
+
+### MIGRATION 1719740000000_owner_ocr_foundation (UP) ###
+
+  CREATE VIEW pet_schema.ocr_legacy_unverified AS
+    SELECT owner_id, id AS pet_id, NULL::uuid AS document_id,
+      'PET_HISTORY'::text AS source_kind, 'LEGACY_UNVERIFIED'::text AS authority, medical_history_ocr AS raw_result
+    FROM pet_schema.pets WHERE medical_history_ocr IS NOT NULL
+    UNION ALL
+    SELECT owner_id, pet_id, id, 'DOCUMENT', 'LEGACY_UNVERIFIED', ocr_result
+    FROM pet_schema.pet_documents WHERE ocr_result IS NOT NULL;
+
+  CREATE TABLE pet_schema.ocr_jobs (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    document_id uuid NOT NULL UNIQUE,
+    owner_id uuid NOT NULL, pet_id uuid NOT NULL,
+    source_identity char(64) NOT NULL CHECK(source_identity ~ '^[0-9a-f]{64}$'),
+    source_snapshot jsonb NOT NULL CHECK(octet_length(source_snapshot::text) <= 8192),
+    state text NOT NULL DEFAULT 'QUEUED' CHECK(state IN('QUEUED','RUNNING','SUCCEEDED','FAILED')),
+    attempt_count integer NOT NULL DEFAULT 0 CHECK(attempt_count BETWEEN 0 AND 3),
+    claim_token uuid, lease_until timestamptz,
+    available_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    error_code text CHECK(error_code IN('PROVIDER_FAILED','INVALID_RESULT','LEASE_EXPIRED','SOURCE_UNAVAILABLE','SOURCE_CHANGED')),
+    created_at timestamptz NOT NULL DEFAULT clock_timestamp(), updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    FOREIGN KEY(document_id,owner_id,pet_id) REFERENCES pet_schema.pet_documents(id,owner_id,pet_id),
+    UNIQUE(id,document_id,owner_id,pet_id),
+    CHECK((state='RUNNING') = (claim_token IS NOT NULL AND lease_until IS NOT NULL)),
+    CHECK(state<>'RUNNING' OR attempt_count>0)
+  );
+  CREATE INDEX ocr_jobs_queue_idx ON pet_schema.ocr_jobs(available_at,created_at,id) WHERE state IN('QUEUED','RUNNING');
+  CREATE TABLE pet_schema.ocr_attempts (
+    id uuid PRIMARY KEY, job_id uuid NOT NULL REFERENCES pet_schema.ocr_jobs(id),
+    attempt_number integer NOT NULL CHECK(attempt_number BETWEEN 1 AND 3),
+    status text NOT NULL CHECK(status IN('RUNNING','SUCCEEDED','FAILED','ABANDONED')),
+    started_at timestamptz NOT NULL DEFAULT clock_timestamp(), finished_at timestamptz,
+    error_code text CHECK(error_code IN('PROVIDER_FAILED','INVALID_RESULT','LEASE_EXPIRED','SOURCE_UNAVAILABLE','SOURCE_CHANGED')),
+    provider_identity varchar(120), provider_version varchar(80),
+    UNIQUE(job_id,attempt_number), UNIQUE(id,job_id),
+    CHECK((status='RUNNING') = (finished_at IS NULL))
+  );
+  CREATE TABLE pet_schema.ocr_results (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid NOT NULL UNIQUE,
+    attempt_id uuid NOT NULL, document_id uuid NOT NULL, owner_id uuid NOT NULL, pet_id uuid NOT NULL,
+    source_identity char(64) NOT NULL, result_identity char(64) NOT NULL CHECK(result_identity ~ '^[0-9a-f]{64}$'),
+    extraction jsonb NOT NULL CHECK(jsonb_typeof(extraction)='object' AND octet_length(extraction::text)<=65536),
+    extracted_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    authority text NOT NULL DEFAULT 'UNCONFIRMED' CHECK(authority='UNCONFIRMED'),
+    FOREIGN KEY(job_id,document_id,owner_id,pet_id) REFERENCES pet_schema.ocr_jobs(id,document_id,owner_id,pet_id),
+    FOREIGN KEY(attempt_id,job_id) REFERENCES pet_schema.ocr_attempts(id,job_id),
+    UNIQUE(id,job_id)
+  );
+  CREATE TABLE pet_schema.ocr_candidates (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(), result_id uuid NOT NULL UNIQUE,
+    job_id uuid NOT NULL, schema_version integer NOT NULL DEFAULT 1 CHECK(schema_version=1),
+    kind text NOT NULL DEFAULT 'EXTRACTED_TEXT' CHECK(kind='EXTRACTED_TEXT'),
+    extracted_text text NOT NULL CHECK(octet_length(extracted_text)<=32768),
+    review_state text NOT NULL DEFAULT 'PENDING_OWNER_REVIEW' CHECK(review_state='PENDING_OWNER_REVIEW'),
+    created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    FOREIGN KEY(result_id,job_id) REFERENCES pet_schema.ocr_results(id,job_id)
+  );
+  CREATE FUNCTION pet_schema.guard_ocr_immutable() RETURNS trigger LANGUAGE plpgsql AS $$
+  BEGIN
+    IF TG_OP='DELETE' OR TG_OP='TRUNCATE' THEN RAISE EXCEPTION 'OCR provenance is retained'; END IF;
+    IF TG_TABLE_NAME='ocr_jobs' THEN
+      IF (NEW.id,NEW.document_id,NEW.owner_id,NEW.pet_id,NEW.source_identity,NEW.source_snapshot,NEW.created_at)
+        IS DISTINCT FROM (OLD.id,OLD.document_id,OLD.owner_id,OLD.pet_id,OLD.source_identity,OLD.source_snapshot,OLD.created_at)
+        THEN RAISE EXCEPTION 'OCR source is immutable'; END IF;
+      IF OLD.state='SUCCEEDED' AND NEW IS DISTINCT FROM OLD THEN RAISE EXCEPTION 'OCR success is immutable'; END IF;
+    ELSIF TG_TABLE_NAME='ocr_attempts' THEN
+      IF OLD.status<>'RUNNING' OR NEW.status='RUNNING' OR
+        (NEW.id,NEW.job_id,NEW.attempt_number,NEW.started_at) IS DISTINCT FROM (OLD.id,OLD.job_id,OLD.attempt_number,OLD.started_at)
+        THEN RAISE EXCEPTION 'OCR completed attempt is immutable'; END IF;
+    ELSE RAISE EXCEPTION 'OCR extraction is immutable'; END IF;
+    RETURN NEW;
+  END $$;
+  CREATE TRIGGER ocr_jobs_immutable BEFORE UPDATE OR DELETE ON pet_schema.ocr_jobs FOR EACH ROW EXECUTE FUNCTION pet_schema.guard_ocr_immutable();
+  CREATE TRIGGER ocr_attempts_immutable BEFORE UPDATE OR DELETE ON pet_schema.ocr_attempts FOR EACH ROW EXECUTE FUNCTION pet_schema.guard_ocr_immutable();
+  CREATE TRIGGER ocr_results_immutable BEFORE UPDATE OR DELETE ON pet_schema.ocr_results FOR EACH ROW EXECUTE FUNCTION pet_schema.guard_ocr_immutable();
+  CREATE TRIGGER ocr_candidates_immutable BEFORE UPDATE OR DELETE ON pet_schema.ocr_candidates FOR EACH ROW EXECUTE FUNCTION pet_schema.guard_ocr_immutable();
+  CREATE TRIGGER ocr_jobs_no_truncate BEFORE TRUNCATE ON pet_schema.ocr_jobs FOR EACH STATEMENT EXECUTE FUNCTION pet_schema.guard_ocr_immutable();
+  CREATE TRIGGER ocr_attempts_no_truncate BEFORE TRUNCATE ON pet_schema.ocr_attempts FOR EACH STATEMENT EXECUTE FUNCTION pet_schema.guard_ocr_immutable();
+  CREATE TRIGGER ocr_results_no_truncate BEFORE TRUNCATE ON pet_schema.ocr_results FOR EACH STATEMENT EXECUTE FUNCTION pet_schema.guard_ocr_immutable();
+  CREATE TRIGGER ocr_candidates_no_truncate BEFORE TRUNCATE ON pet_schema.ocr_candidates FOR EACH STATEMENT EXECUTE FUNCTION pet_schema.guard_ocr_immutable();
+;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719740000000_owner_ocr_foundation', NOW());
+
+
+### MIGRATION 1719750000000_owner_ocr_review_authority (UP) ###
+
+  ALTER TABLE pet_schema.ocr_candidates ADD CONSTRAINT ocr_candidate_result_context UNIQUE(id,job_id,result_id);
+  CREATE TABLE pet_schema.ocr_review_revisions (
+    candidate_id uuid NOT NULL, revision integer NOT NULL CHECK(revision>0),
+    expected_revision integer NOT NULL CHECK(expected_revision>=0 AND revision=expected_revision+1),
+    job_id uuid NOT NULL, result_id uuid NOT NULL, document_id uuid NOT NULL, owner_id uuid NOT NULL, pet_id uuid NOT NULL,
+    actor_id uuid NOT NULL REFERENCES identity_schema.users(id),
+    action text NOT NULL CHECK(action IN('START','CORRECT','CONFIRM','REJECT')),
+    review_state text NOT NULL CHECK(review_state IN('IN_REVIEW','CONFIRMED','REJECTED')),
+    text_version integer NOT NULL CHECK(text_version>=0 AND text_version<=revision),
+    corrected_text text NOT NULL CHECK(octet_length(corrected_text) BETWEEN 0 AND 32768),
+    original_text_identity char(64) NOT NULL CHECK(original_text_identity ~ '^[0-9a-f]{64}$'),
+    text_identity char(64) NOT NULL CHECK(text_identity ~ '^[0-9a-f]{64}$'),
+    source_identity char(64) NOT NULL, result_identity char(64) NOT NULL,
+    idempotency_key uuid NOT NULL, payload_identity char(64) NOT NULL CHECK(payload_identity ~ '^[0-9a-f]{64}$'),
+    authority text NOT NULL DEFAULT 'OWNER_DECISION_ONLY' CHECK(authority='OWNER_DECISION_ONLY'),
+    created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    PRIMARY KEY(candidate_id,revision), UNIQUE(owner_id,idempotency_key),
+    FOREIGN KEY(candidate_id,job_id,result_id) REFERENCES pet_schema.ocr_candidates(id,job_id,result_id),
+    FOREIGN KEY(job_id,document_id,owner_id,pet_id) REFERENCES pet_schema.ocr_jobs(id,document_id,owner_id,pet_id)
+  );
+  CREATE FUNCTION pet_schema.enforce_ocr_review_revision() RETURNS trigger LANGUAGE plpgsql AS $$
+  DECLARE
+    candidate pet_schema.ocr_candidates%ROWTYPE;
+    job pet_schema.ocr_jobs%ROWTYPE;
+    result pet_schema.ocr_results%ROWTYPE;
+    previous pet_schema.ocr_review_revisions%ROWTYPE;
+    current_revision integer; current_text text; current_text_version integer; current_state text;
+  BEGIN
+    SELECT * INTO job FROM pet_schema.ocr_jobs WHERE id=NEW.job_id FOR SHARE;
+    IF NOT FOUND OR job.state<>'SUCCEEDED' THEN RAISE EXCEPTION 'OCR review unavailable' USING ERRCODE='40001'; END IF;
+    PERFORM id FROM pet_schema.pets WHERE id=job.pet_id AND owner_id=job.owner_id AND archived_at IS NULL FOR SHARE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'OCR review unavailable' USING ERRCODE='40001'; END IF;
+    PERFORM id FROM pet_schema.pet_documents WHERE id=job.document_id AND owner_id=job.owner_id AND pet_id=job.pet_id AND deleted_at IS NULL AND doc_type IN('PASSPORT','HISTORY') FOR SHARE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'OCR review unavailable' USING ERRCODE='40001'; END IF;
+    SELECT * INTO candidate FROM pet_schema.ocr_candidates WHERE id=NEW.candidate_id FOR UPDATE;
+    SELECT * INTO result FROM pet_schema.ocr_results WHERE id=candidate.result_id;
+    IF candidate.id IS NULL OR result.id IS NULL OR
+      (NEW.job_id,NEW.result_id,NEW.document_id,NEW.owner_id,NEW.pet_id,NEW.actor_id,NEW.source_identity,NEW.result_identity)
+      IS DISTINCT FROM (candidate.job_id,candidate.result_id,job.document_id,job.owner_id,job.pet_id,job.owner_id,result.source_identity,result.result_identity)
+      THEN RAISE EXCEPTION 'OCR review context mismatch' USING ERRCODE='23514'; END IF;
+    SELECT * INTO previous FROM pet_schema.ocr_review_revisions WHERE candidate_id=candidate.id ORDER BY revision DESC LIMIT 1;
+    current_revision:=COALESCE(previous.revision,0);
+    current_text:=COALESCE(previous.corrected_text,candidate.extracted_text);
+    current_text_version:=COALESCE(previous.text_version,0);
+    current_state:=COALESCE(previous.review_state,'PENDING_OWNER_REVIEW');
+    IF NEW.expected_revision<>current_revision OR current_state IN('CONFIRMED','REJECTED') OR
+      (NEW.action='START' AND current_state<>'PENDING_OWNER_REVIEW')
+      THEN RAISE EXCEPTION 'OCR review revision conflict' USING ERRCODE='40001'; END IF;
+    IF NEW.original_text_identity<>encode(digest(candidate.extracted_text,'sha256'),'hex') OR
+      NEW.text_identity<>encode(digest(NEW.corrected_text,'sha256'),'hex') OR (NEW.action='CORRECT' AND btrim(NEW.corrected_text)='') OR
+      (NEW.action<>'CORRECT' AND NEW.corrected_text<>current_text) OR
+      NEW.text_version<>(CASE WHEN NEW.action='CORRECT' THEN NEW.revision ELSE current_text_version END) OR
+      NEW.review_state<>(CASE WHEN NEW.action IN('START','CORRECT') THEN 'IN_REVIEW' WHEN NEW.action='CONFIRM' THEN 'CONFIRMED' ELSE 'REJECTED' END)
+      THEN RAISE EXCEPTION 'OCR review content mismatch' USING ERRCODE='23514'; END IF;
+    RETURN NEW;
+  END $$;
+  CREATE TRIGGER ocr_review_revision_integrity BEFORE INSERT ON pet_schema.ocr_review_revisions FOR EACH ROW EXECUTE FUNCTION pet_schema.enforce_ocr_review_revision();
+  CREATE FUNCTION pet_schema.ocr_review_append_only() RETURNS trigger LANGUAGE plpgsql AS $$
+  BEGIN RAISE EXCEPTION 'OCR decisions are append-only'; END $$;
+  CREATE TRIGGER ocr_review_no_mutation BEFORE UPDATE OR DELETE ON pet_schema.ocr_review_revisions FOR EACH ROW EXECUTE FUNCTION pet_schema.ocr_review_append_only();
+  CREATE TRIGGER ocr_review_no_truncate BEFORE TRUNCATE ON pet_schema.ocr_review_revisions FOR EACH STATEMENT EXECUTE FUNCTION pet_schema.ocr_review_append_only();
+;
+INSERT INTO "public"."schema_migrations" (name, run_on) VALUES ('1719750000000_owner_ocr_review_authority', NOW());
+
+
+Migrations complete!
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

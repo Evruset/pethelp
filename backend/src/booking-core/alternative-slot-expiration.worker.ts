@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { AlternativeSlotService } from './alternative-slot.service';
 import { ContextLoggerService } from '../observability/context-logger.service';
+import { AppointmentLifecycleService } from './appointment-lifecycle.service';
 
 /** Releases both source and proposed slot when the owner does not respond. */
 @Injectable()
@@ -10,6 +11,7 @@ export class AlternativeSlotExpirationWorker {
 
   constructor(
     private readonly alternatives: AlternativeSlotService,
+    private readonly appointmentLifecycle: AppointmentLifecycleService,
     private readonly logger: ContextLoggerService,
   ) {}
 
@@ -19,8 +21,9 @@ export class AlternativeSlotExpirationWorker {
     this.running = true;
     try {
       const expired = await this.alternatives.expireAlternativeHolds();
-      if (expired > 0) {
-        this.logger.event('warn', AlternativeSlotExpirationWorker.name, 'Expired unaccepted alternative booking slot proposal(s)', { expired });
+      const expiredAppointments = await this.appointmentLifecycle.expireRescheduleProposals();
+      if (expired + expiredAppointments > 0) {
+        this.logger.event('warn', AlternativeSlotExpirationWorker.name, 'Expired unaccepted alternative booking slot proposal(s)', { expired, expiredAppointments });
       }
     } catch (error) {
       this.logger.event('error', AlternativeSlotExpirationWorker.name, 'Alternative slot expiration worker failed', {

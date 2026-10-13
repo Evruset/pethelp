@@ -1,0 +1,22 @@
+FAIL test/ocr-byte-execution.e2e-spec.ts
+  ● Test suite failed to run
+
+    [96msrc/auth/ocr-byte-execution.service.ts[0m:[93m28[0m:[93m87[0m - [91merror[0m[90m TS2349: [0mThis expression is not callable.
+      Each member of the union type '{ <T extends Submittable>(queryStream: T): T; <R extends any[] = any[], I = any[]>(queryConfig: QueryArrayConfig<I>, values?: QueryConfigValues<I> | undefined): Promise<...>; <R extends QueryResultRow = any, I = any>(queryConfig: QueryConfig<...>): Promise<...>; <R extends QueryResultRow = any, I = any[]>(queryTextO...' has signatures, but none of those signatures are compatible with each other.
+
+    [7m28[0m  async isBound(jobId:string,client?:PoolClient){return (await (client??this.database).query('SELECT 1 FROM pet_schema.ocr_job_byte_sources WHERE job_id=$1',[jobId])).rowCount!==0;}
+    [7m  [0m [91m                                                                                      ~~~~~[0m
+
+PASS test/ocr-byte-execution-migration.e2e-spec.ts (5.142 s)
+
+Test Suites: 1 failed, 1 passed, 2 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        12.535 s
+Ran all test suites within paths "test/ocr-byte-execution.e2e-spec.ts", "test/ocr-byte-execution-migration.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4b-03a-02-20261011/focused-results.json
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

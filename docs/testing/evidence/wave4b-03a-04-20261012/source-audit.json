@@ -1,0 +1,49 @@
+{
+  "base": "23653ebb69690171d27b7fdbbe9646a914b3c435",
+  "runtimeTestsExecuted": 0,
+  "deploymentApplied": false,
+  "sources": [
+    {
+      "path": "backend/Dockerfile",
+      "sha256": "3c0247b1783c4e6ea5e7295f35c1154753146608db456ad1602f3efdc7e7f59d"
+    },
+    {
+      "path": "backend/docker-compose.yml",
+      "sha256": "59e44d0c554e83124700c51f196e269ff77e4c4a0b729104d4a24a500db2da08"
+    },
+    {
+      "path": "backend/k8s/alpha/deployment.yaml",
+      "sha256": "d6d7a7e7a77d788e4ae46df1cf67abdad65de618aa8c8060dc42988ba13e3a79"
+    },
+    {
+      "path": "backend/k8s/alpha/deployment.template.yaml",
+      "sha256": "bd821b0d0dbc45c01740eca8acfcdb468837eeef377aa7ff61d84615b02051d4"
+    },
+    {
+      "path": "backend/k8s/alpha/secrets.yaml",
+      "sha256": "9f2f4d95446bd3584416353769ac59b764f9c3e3888295e6ef7501c4e2da1e09"
+    },
+    {
+      "path": "backend/src/common/document-byte-snapshots.ts",
+      "sha256": "8c9a3a99145a28e26d0c059c9c69ac982658de8a60c64ee2dcdbb387ae380a81"
+    },
+    {
+      "path": "backend/src/auth/ocr-operational-preflight.ts",
+      "sha256": "5068c0a32045ee0f3ef0d4423adece0622544cb59414596bbd48aed2a71cca3e"
+    },
+    {
+      "path": "backend/src/auth/ocr-byte-execution.service.ts",
+      "sha256": "0b1030e6c15512ca06399c849d5833bf09eedc0ef156a8bfd212831237de2b27"
+    },
+    {
+      "path": "backend/src/ocr-byte-worker-main.ts",
+      "sha256": "a848a5ec660b3ae1349ec878cd54076b8c7791b40553dd425441d184abeedb92"
+    }
+  ],
+  "absentPaths": [
+    "backend/docker-compose.local.yml",
+    "backend/k8s/alpha/configmap.yaml"
+  ],
+  "configMapActualLocation": "backend/k8s/alpha/secrets.yaml",
+  "status": "DRAFT_AWAITING_REQUEST_REMAINDER"
+}

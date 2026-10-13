@@ -111,7 +111,7 @@ describe('VetHelp platform smoke: owner → Level C clinic → payment → telem
     await app.init();
 
     database = app.get(DatabaseService);
-    await resetFixtures(database);
+    await ensureSmokeFixtures(database);
 
     const jwt = app.get(JwtService);
     ownerToken = await jwt.signAsync(
@@ -431,7 +431,7 @@ describe('Clinic quality dashboard quality.read HTTP matrix', () => {
 
     database = app.get(DatabaseService);
     jwt = app.get(JwtService);
-    await resetQualityFixtures(database);
+    await ensureQualityFixtures(database);
   });
 
   afterAll(async () => {
@@ -603,7 +603,7 @@ describe('Clinic schedule slots schedule.read HTTP matrix', () => {
     await app.init();
     database = app.get(DatabaseService);
     jwt = app.get(JwtService);
-    await resetQualityFixtures(database);
+    await ensureQualityFixtures(database);
   });
 
   afterAll(async () => {
@@ -718,7 +718,7 @@ describe('Booking hold events booking.replay.read HTTP matrix', () => {
     await app.init();
     database = app.get(DatabaseService);
     jwt = app.get(JwtService);
-    await resetReplayFixtures(database);
+    await ensureReplayFixtures(database);
   });
 
   afterAll(async () => {
@@ -827,7 +827,7 @@ describe('Booking hold booking.hold.read HTTP matrix', () => {
     await app.init();
     database = app.get(DatabaseService);
     jwt = app.get(JwtService);
-    await resetReplayFixtures(database);
+    await ensureReplayFixtures(database);
   });
 
   afterAll(async () => {
@@ -989,7 +989,7 @@ describe('Telemed veterinarian audit trail assignment/data-category HTTP matrix'
     app = await NestFactory.create(NestRoot, { logger: false });
     await app.init();
     database = app.get(DatabaseService);
-    await resetFixtures(database);
+    await ensureSmokeFixtures(database);
     jwt = app.get(JwtService);
     await database.query(`
       INSERT INTO telemed_schema.telemed_intakes (id, owner_id, pet_id, category, symptom_duration, consent_version, eligibility_outcome, routing_target)
@@ -1147,10 +1147,12 @@ async function expectOutboxCorrelation(database: DatabaseServiceType, eventType:
   expect(result.rows[0]?.correlation_id).toBe(IDS.trace);
 }
 
-async function resetFixtures(database: DatabaseServiceType): Promise<void> {
-  await database.query('TRUNCATE clinic_schema.clinics CASCADE');
-  await database.query('TRUNCATE pet_schema.pets, identity_schema.users CASCADE');
-  await database.query('TRUNCATE booking_schema.outbox_events, booking_schema.idempotency_records, audit_schema.audit_log CASCADE');
+async function ensureSmokeFixtures(database: DatabaseServiceType): Promise<void> {
+  // Fresh CI database; only seed this fixed-ID fixture once per Jest run.
+  // TRUNCATE CASCADE reaches pet_schema.ocr_review_revisions and is forbidden
+  // by the append-only OCR retention guard even when the target is empty.
+  const existing = await database.query('SELECT 1 FROM identity_schema.users WHERE id = $1::uuid', [IDS.owner]);
+  if (existing.rowCount) return;
 
   await database.query('INSERT INTO identity_schema.users (id) VALUES ($1::uuid), ($2::uuid)', [IDS.owner, IDS.receptionist]);
   await database.query(`INSERT INTO pet_schema.pets (id, owner_id, name, species) VALUES ($1::uuid, $2::uuid, 'Platform smoke pet', 'DOG')`, [IDS.pet, IDS.owner]);
@@ -1187,10 +1189,11 @@ async function resetFixtures(database: DatabaseServiceType): Promise<void> {
   `, [IDS.manualHold, IDS.manualSlot, IDS.owner, IDS.pet]);
 }
 
-async function resetQualityFixtures(database: DatabaseService): Promise<void> {
-  await database.query('TRUNCATE clinic_schema.clinics CASCADE');
-  await database.query('TRUNCATE pet_schema.pets, identity_schema.users CASCADE');
-  await database.query('TRUNCATE booking_schema.outbox_events, booking_schema.idempotency_records, audit_schema.audit_log CASCADE');
+async function ensureQualityFixtures(database: DatabaseService): Promise<void> {
+  // Other describe blocks reuse the fixed QUALITY IDs in the same CI DB.
+  // Reuse these fixtures without destroying unrelated/append-only histories.
+  const existing = await database.query('SELECT 1 FROM identity_schema.users WHERE id = $1::uuid', [QUALITY.allowed]);
+  if (existing.rowCount) return;
 
   await database.query(`
     INSERT INTO identity_schema.users (id) VALUES
@@ -1235,8 +1238,10 @@ async function resetQualityFixtures(database: DatabaseService): Promise<void> {
   ]);
 }
 
-async function resetReplayFixtures(database: DatabaseService): Promise<void> {
-  await resetQualityFixtures(database);
+async function ensureReplayFixtures(database: DatabaseService): Promise<void> {
+  await ensureQualityFixtures(database);
+  const existing = await database.query('SELECT 1 FROM booking_schema.booking_holds WHERE id = $1::uuid', [REPLAY.hold]);
+  if (existing.rowCount) return;
   await database.query('INSERT INTO identity_schema.users (id) VALUES ($1::uuid)', [REPLAY.owner]);
   await database.query(`INSERT INTO pet_schema.pets (id, owner_id, name, species) VALUES ($1::uuid, $2::uuid, 'Replay pet', 'DOG')`, [REPLAY.pet, REPLAY.owner]);
   await database.query(`INSERT INTO clinic_schema.clinic_services (id, clinic_location_id, code, display_name, duration_minutes) VALUES ($1::uuid, $2::uuid, 'REPLAY', 'Replay service', 30)`, [REPLAY.service, QUALITY.location]);

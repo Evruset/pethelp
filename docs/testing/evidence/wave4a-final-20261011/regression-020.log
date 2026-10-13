@@ -1,0 +1,14 @@
+PASS test/owner-auth-http.e2e-spec.ts (18.177 s)
+  T018 Owner auth HTTP contract
+    ✓ creates and verifies a challenge, reads effective session and revokes it idempotently (248 ms)
+    ✓ returns stable safe errors without raw provider details or session success (63 ms)
+    ✓ blocks the sixth external request before challenge/provider side effects (206 ms)
+    ✓ ignores spoofed forwarding headers and enforces the direct-peer IP limit (521 ms)
+    ✓ keeps rate-limit response contract enumeration-neutral for known and unknown phones (543 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       5 passed, 5 total
+Snapshots:   0 total
+Time:        18.471 s
+Ran all test suites within paths "test/owner-auth-http.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-020.json

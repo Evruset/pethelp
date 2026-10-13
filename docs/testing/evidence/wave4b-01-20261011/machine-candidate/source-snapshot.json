@@ -1,0 +1,86 @@
+{
+  "base": "16888e1a191bf410a6aeb8f611f5ce4af98282df",
+  "branch": "agent/v15-w4b-01-ocr-4svfycsv",
+  "files": [
+    {
+      "path": "backend/artifacts/openapi/swagger.json",
+      "bytes": 305889,
+      "sha256": "c89d5d898e8cc4b316501665560ae29890504b7f0964b398a405a609675fe2a9"
+    },
+    {
+      "path": "backend/migrations/node-pg/1719740000000_owner_ocr_foundation.js",
+      "bytes": 6405,
+      "sha256": "fd4e645ba6e2ec79374b70ad2f3b9d747d91438705ce57ab406dc9c25433aef3"
+    },
+    {
+      "path": "backend/scripts/assert-owner-ocr-openapi.cjs",
+      "bytes": 1864,
+      "sha256": "213673a5adb2048f1622bc3691d794a08d2a41320b6a0029c4d269a989b1fdfc"
+    },
+    {
+      "path": "backend/src/auth/auth.module.ts",
+      "bytes": 2316,
+      "sha256": "51ea75449cea5063b4e352b4344857e21719df5551ab6b29e21e635afe13c603"
+    },
+    {
+      "path": "backend/src/auth/ocr-document.worker.ts",
+      "bytes": 1619,
+      "sha256": "df6c97835d9c09703ed227bef379ae10746db9f24ad435e9a8f79c6b4d3eac8c"
+    },
+    {
+      "path": "backend/src/auth/ocr-provider.ts",
+      "bytes": 683,
+      "sha256": "4104ea556ca9b29805708c5181881a1afcd3d425e1720ab65f3bef00ab88872b"
+    },
+    {
+      "path": "backend/src/auth/owner-ocr.controller.ts",
+      "bytes": 2713,
+      "sha256": "7e3949adba5f27024a3ca3b50dcfbd2fff4a5e9308151c2184e81655fe6b7759"
+    },
+    {
+      "path": "backend/src/auth/owner-ocr.openapi.ts",
+      "bytes": 2020,
+      "sha256": "c897cf9142570b646ba215059625ab5f59653221ce068eea19c6031cc64490f6"
+    },
+    {
+      "path": "backend/src/auth/owner-ocr.service.ts",
+      "bytes": 11739,
+      "sha256": "532ac5e4de40f68e29acc2124d66ee584379c215f50aabfb50d49637b4f92d33"
+    },
+    {
+      "path": "backend/src/config/mvp-product-scope.guard.spec.ts",
+      "bytes": 3376,
+      "sha256": "f6c0cbac99f116afe058499250b9f6da2e3f71301eaa6ca4d10a0c5c42512264"
+    },
+    {
+      "path": "backend/src/config/mvp-product-scope.guard.ts",
+      "bytes": 2049,
+      "sha256": "a3a83116063ddc736ce649dfdf500b305c2711353831c68179063f2f28a2006a"
+    },
+    {
+      "path": "backend/test/appointment-medical-sharing-http.e2e-spec.ts",
+      "bytes": 53497,
+      "sha256": "b5d5a7fd19b169675238cf60576d4819f643d04cd150066084263f96ea32f039"
+    },
+    {
+      "path": "backend/test/owner-ocr-foundation.e2e-spec.ts",
+      "bytes": 15683,
+      "sha256": "188bad7b32d6ccf6cd809728f145d099b0c23966f45b324f8e17be32d84859ce"
+    },
+    {
+      "path": "backend/test/owner-ocr-migration.e2e-spec.ts",
+      "bytes": 3631,
+      "sha256": "d510d20207e90965ca69f45054ec8f60bffb41d5833675aef22bc92b1ea1ce64"
+    },
+    {
+      "path": "docs/ai/current-state.md",
+      "bytes": 309085,
+      "sha256": "33702612676d2bbf4664b391247dad7fa715a2019642d326fd7234693e2f5490"
+    },
+    {
+      "path": "docs/v15/14-wave4b-01-ocr-foundation.md",
+      "bytes": 4480,
+      "sha256": "c4f9bbc62b8ad797ad7af2d279a8821d7fc8c1b4164a9d9a54463e1c035e9837"
+    }
+  ]
+}

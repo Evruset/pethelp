@@ -1,0 +1,37 @@
+PASS test/ocr-operational.e2e-spec.ts (18.253 s)
+  Operational publisher/configuration
+    ✓ isolated publisher starts with private RW mount and no writer credentials/membership (10 ms)
+    ✓ publishes three immutable snapshots and new bound queued jobs without enabling claimers (128 ms)
+    ✓ rejects unsafe NODE_ENV startup configuration (23 ms)
+    ✓ rejects unsafe OCR_OPERATIONAL_PROFILE startup configuration (2 ms)
+    ✓ rejects unsafe OCR_PROCESS_ROLE startup configuration (1 ms)
+    ✓ rejects unsafe WORKERS_ENABLED startup configuration (1 ms)
+    ✓ rejects writable mount for worker role (5 ms)
+    ✓ rejects missing writer credentials before worker activation (7 ms)
+    ✓ publisher rejects access to writer credentials (8 ms)
+    ✓ disabled verifier is compatible and has no startup storage/DB requirement (1 ms)
+    ✓ unsafe root configuration fails without changing filesystem permissions (9 ms)
+  Operational worker/rollback compatibility
+    ○ skipped kernel read-only mount blocks write and chmod while canonical bytes remain readable
+    ○ skipped reader identity has no executor membership or Pet medical-history update privilege
+    ○ skipped missing writer membership fails closed at startup
+    ○ skipped bad writer credentials fail closed without processing queued jobs
+    ○ skipped application membership in executor is rejected even with NOINHERIT
+    ○ skipped column-only write privilege on reader is rejected
+    ○ skipped missing executor insert privilege fails startup and is restored only by owned test admin
+    ○ skipped actual older binary cannot claim bound jobs or finish a valid newer claim
+    ○ skipped separated worker preserves simulation and actual evidence classifications
+  Operational immutable confirmation fixture
+    ○ skipped records exact Owner correction/CONFIRM without rewriting results or legacy history
+
+Test Suites: 1 passed, 1 total
+Tests:       10 skipped, 11 passed, 21 total
+Snapshots:   0 total
+Time:        18.647 s
+Ran all test suites within paths "test/ocr-operational.e2e-spec.ts".
+Test results written to: ../../tmp/results.json
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

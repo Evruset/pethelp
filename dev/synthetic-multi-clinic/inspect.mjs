@@ -1,0 +1,13 @@
+import {createRequire} from 'node:module';import {syntheticEnv} from './env.mjs';
+Object.assign(process.env,syntheticEnv);
+const {account,credential}=await import('./identity.mjs');
+const login=process.argv[2];if(!login)throw Error('Usage: node dev/synthetic-multi-clinic/inspect.mjs LOGIN@example.test');
+const a=await account(login),session=await credential(a);
+const require=createRequire(new URL('../../apps/clinic-portal/package.json',import.meta.url));const {chromium}=require('@playwright/test');
+const browser=await chromium.launch({headless:false});const context=await browser.newContext({viewport:a.role==='OWNER'?{width:390,height:844}:{width:1440,height:1000}});
+if(a.role==='OWNER')await context.addInitScript(s=>sessionStorage.setItem('vethelp.owner.session.v1',JSON.stringify({opaqueCredential:s.token,cacheScope:'synthetic-local:'+s.userId,expiresAtEpochMs:Date.parse(s.expiresAt)})),session);
+else await context.addCookies([{name:'vethelp_clinic_session',value:session.token,url:'http://127.0.0.1:3320',httpOnly:true,sameSite:'Lax'}]);
+const path=a.role==='VETERINARIAN'?'vet/visits':a.role==='RECEPTIONIST'?'queue':'schedule';
+await(await context.newPage()).goto(a.role==='OWNER'?'http://localhost:8090':`http://127.0.0.1:3320/clinics/${a.clinic_id}/locations/${a.location_id}/${path}`);
+console.log(`Local fixture identity ${a.login}; ${a.role}; close browser to end. No token printed.`);
+await new Promise(resolve=>browser.on('disconnected',resolve));

@@ -1,0 +1,18 @@
+[32m[Nest] 1  - [39m10/11/2026, 12:59:13 PM [32m    LOG[39m [38;5;3m[OutboxRelayService] [39m[32m{"outbox":"published","eventType":"booking.confirmed.v1","eventId":"6e5175cb-84c1-4410-922c-2c8d0027c805","correlationId":"513d8551-e7d3-4b74-abc2-cd6b5554cdb1"}[39m
+[32m[Nest] 1  - [39m10/11/2026, 12:59:13 PM [32m    LOG[39m [38;5;3m[OutboxRelayService] [39m[32m{"outbox":"published","eventType":"booking.notes.requested.v1","eventId":"9c1c2b9f-7ffa-4663-bda5-de70d2af95ee","correlationId":"ded3c4ff-5274-4189-a894-15715d18d7ae"}[39m
+[32m[Nest] 1  - [39m10/11/2026, 12:59:13 PM [32m    LOG[39m [38;5;3m[OutboxRelayService] [39m[32m{"outbox":"published","eventType":"booking.confirmed.v1","eventId":"84d2723b-f1cf-489a-adc1-d6c82dc52437","correlationId":"6242f56d-4c29-4749-afa8-7cdefd308c4d"}[39m
+[31m[Nest] 1  - [39m10/11/2026, 12:59:14 PM [31m  ERROR[39m [38;5;3m[OutboxRelayService] [39m[31m{"outbox":"terminal_failure","eventType":"booking.notes.requested.v1","eventId":"80bec8fb-8152-41f6-a945-b66fd22d11b7","correlationId":"418cefdd-9768-4046-9888-0e96723ca12a","attempts":5}[39m
+PASS test/booking-outbox-replay.integration-spec.ts (10.082 s)
+  Booking outbox replay reliability
+    ✓ publishes once and never selects the completed record again (213 ms)
+    ✓ persists retry metadata across relay restart and succeeds once after recovery (107 ms)
+    ✓ allows only one of two workers to claim a record and recovers an abandoned lease (117 ms)
+    ✓ isolates poison events, stops them at the terminal limit and keeps errors free of payload data (139 ms)
+    ✓ rolls an outbox insert back with its transaction (117 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       5 passed, 5 total
+Snapshots:   0 total
+Time:        10.528 s
+Ran all test suites within paths "test/booking-outbox-replay.integration-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-021.json

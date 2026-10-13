@@ -101,6 +101,7 @@ export interface RequestCancellationResult {
 }
 
 export interface CompleteAppointmentResult {
+  visitId: string;
   holdId: string;
   state: 'COMPLETED';
   slotId: string;

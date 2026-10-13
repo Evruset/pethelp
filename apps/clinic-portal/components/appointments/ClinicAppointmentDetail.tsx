@@ -8,6 +8,9 @@ import {
   type ClinicAppointmentDetail as Detail,
 } from '@/lib/api/clinic-appointments';
 
+import { AppointmentOperations } from './AppointmentOperations';
+import {useEffectiveSession} from '@/components/auth/EffectiveSessionProvider';
+
 type Props = { clinicId: string; locationId: string; appointmentId: string };
 type Phase = 'loading' | 'ready' | 'not-found' | 'error' | 'degraded';
 
@@ -30,7 +33,13 @@ function Fact({ label, value }: { label: string; value: string }) {
   return <div className="min-w-0"><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</dt><dd className="mt-1 break-words text-sm text-slate-800">{value}</dd></div>;
 }
 
-export function ClinicAppointmentDetail({ clinicId, locationId, appointmentId }: Props) {
+export function ClinicAppointmentDetail(props:Props){
+ const {session,loading,error,hasCapability,hasClinicScope}=useEffectiveSession();
+ if(loading)return <p role="status">Проверяем доступ к записи…</p>;
+ if(error||!hasCapability('appointment.registry.read')||!hasClinicScope(props.clinicId,props.locationId))return <p role="alert">Запись недоступна</p>;
+ return <ScopedAppointmentDetail key={`${session?.subjectId}:${props.clinicId}:${props.locationId}:${props.appointmentId}`} {...props}/>;
+}
+function ScopedAppointmentDetail({ clinicId, locationId, appointmentId }: Props) {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [phase, setPhase] = useState<Phase>('loading');
   const [refreshKey, setRefreshKey] = useState(0);
@@ -54,7 +63,8 @@ export function ClinicAppointmentDetail({ clinicId, locationId, appointmentId }:
     } catch (error) {
       if (current !== generation.current || controller.signal.aborted) return;
       const notFound = error instanceof ClinicAppointmentsResponseError && (error.status === 403 || error.status === 404);
-      setPhase(detailRef.current ? 'degraded' : notFound ? 'not-found' : 'error');
+      if(notFound){detailRef.current=null;setDetail(null);}
+      setPhase(notFound?'not-found':detailRef.current?'degraded':'error');
     } finally {
       if (request.current === controller) request.current = null;
     }
@@ -127,13 +137,16 @@ export function ClinicAppointmentDetail({ clinicId, locationId, appointmentId }:
                 <dl className="mt-5 grid gap-5 sm:grid-cols-2">
                   <Fact label="Питомец" value={detail.pet.displayName} />
                   <Fact label="Вид" value={detail.pet.speciesLabel} />
-                  <Fact label="Владелец" value={detail.owner?.displayName ?? 'Владелец не указан'} />
+                  <Fact label="Порода" value={detail.pet.breed ?? 'Не указана'} />
+                  <Fact label="Имя владельца" value={detail.owner?.displayName ?? 'Не указано'} />
+                  <Fact label="Телефон владельца" value={detail.owner?.phone ?? 'Не указан'} />
                   <Fact label="Статус" value={status?.label ?? 'Статус уточняется'} />
                 </dl>
               </section>
             </div>
           )}
         </div>
+        {detail && phase === 'ready' ? <AppointmentOperations detail={detail} onChanged={refresh}/> : null}
       </div>
     </main>
   );

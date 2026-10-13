@@ -58,6 +58,2007 @@
         ]
       }
     },
+    "/v1/owner/pets/{petId}/documents/{documentId}/ocr/candidates/{candidateId}/review": {
+      "get": {
+        "operationId": "OwnerOcrReview_read",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "candidateId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 10
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "candidateId",
+                    "jobId",
+                    "resultId",
+                    "documentId",
+                    "petId",
+                    "schemaVersion",
+                    "kind",
+                    "reviewState",
+                    "revision",
+                    "textVersion",
+                    "text",
+                    "textIdentity",
+                    "originalText",
+                    "originalTextIdentity",
+                    "sourceIdentity",
+                    "resultIdentity",
+                    "authority",
+                    "sourceByteIntegrity",
+                    "decision",
+                    "history",
+                    "page"
+                  ],
+                  "properties": {
+                    "candidateId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "jobId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "resultId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "documentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "petId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "schemaVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "EXTRACTED_TEXT"
+                      ]
+                    },
+                    "reviewState": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_OWNER_REVIEW",
+                        "IN_REVIEW",
+                        "CONFIRMED",
+                        "REJECTED"
+                      ]
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    },
+                    "textVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 32768
+                    },
+                    "textIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "originalText": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 32768
+                    },
+                    "originalTextIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "sourceIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "resultIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "authority": {
+                      "type": "string",
+                      "enum": [
+                        "OWNER_DECISION_ONLY"
+                      ]
+                    },
+                    "sourceByteIntegrity": {
+                      "type": "string",
+                      "enum": [
+                        "DEFERRED_BLOCKING_VALIDATED_IMPORT"
+                      ]
+                    },
+                    "decision": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "revision",
+                        "expectedRevision",
+                        "action",
+                        "reviewState",
+                        "textVersion",
+                        "text",
+                        "textIdentity",
+                        "actorId",
+                        "createdAt"
+                      ],
+                      "properties": {
+                        "revision": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "expectedRevision": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "action": {
+                          "type": "string",
+                          "enum": [
+                            "START",
+                            "CORRECT",
+                            "CONFIRM",
+                            "REJECT"
+                          ]
+                        },
+                        "reviewState": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING_OWNER_REVIEW",
+                            "IN_REVIEW",
+                            "CONFIRMED",
+                            "REJECTED"
+                          ]
+                        },
+                        "textVersion": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 32768
+                        },
+                        "textIdentity": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "actorId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "nullable": true
+                    },
+                    "history": {
+                      "type": "array",
+                      "maxItems": 20,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "revision",
+                          "expectedRevision",
+                          "action",
+                          "reviewState",
+                          "textVersion",
+                          "text",
+                          "textIdentity",
+                          "actorId",
+                          "createdAt"
+                        ],
+                        "properties": {
+                          "revision": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 2147483647
+                          },
+                          "expectedRevision": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 2147483647
+                          },
+                          "action": {
+                            "type": "string",
+                            "enum": [
+                              "START",
+                              "CORRECT",
+                              "CONFIRM",
+                              "REJECT"
+                            ]
+                          },
+                          "reviewState": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING_OWNER_REVIEW",
+                              "IN_REVIEW",
+                              "CONFIRMED",
+                              "REJECTED"
+                            ]
+                          },
+                          "textVersion": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 2147483647
+                          },
+                          "text": {
+                            "type": "string",
+                            "minLength": 0,
+                            "maxLength": 32768
+                          },
+                          "textIdentity": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$"
+                          },
+                          "actorId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "page": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "limit",
+                        "offset",
+                        "total",
+                        "nextOffset"
+                      ],
+                      "properties": {
+                        "limit": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 20
+                        },
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "nextOffset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647,
+                          "nullable": true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or concurrency headers"
+          },
+          "403": {
+            "description": "Owner role required"
+          },
+          "404": {
+            "description": "Exact current Owner/Pet/Document/candidate unavailable"
+          },
+          "409": {
+            "description": "Revision, terminal decision or idempotency conflict"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Owner OCR review"
+        ]
+      }
+    },
+    "/v1/owner/pets/{petId}/documents/{documentId}/ocr/candidates/{candidateId}/review/start": {
+      "post": {
+        "operationId": "OwnerOcrReview_start",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "candidateId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"(0|[1-9][0-9]{0,9})\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "candidateId",
+                    "jobId",
+                    "resultId",
+                    "documentId",
+                    "petId",
+                    "schemaVersion",
+                    "kind",
+                    "reviewState",
+                    "revision",
+                    "textVersion",
+                    "text",
+                    "textIdentity",
+                    "originalText",
+                    "originalTextIdentity",
+                    "sourceIdentity",
+                    "resultIdentity",
+                    "authority",
+                    "sourceByteIntegrity",
+                    "decision"
+                  ],
+                  "properties": {
+                    "candidateId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "jobId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "resultId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "documentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "petId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "schemaVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "EXTRACTED_TEXT"
+                      ]
+                    },
+                    "reviewState": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_OWNER_REVIEW",
+                        "IN_REVIEW",
+                        "CONFIRMED",
+                        "REJECTED"
+                      ]
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    },
+                    "textVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 32768
+                    },
+                    "textIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "originalText": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 32768
+                    },
+                    "originalTextIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "sourceIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "resultIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "authority": {
+                      "type": "string",
+                      "enum": [
+                        "OWNER_DECISION_ONLY"
+                      ]
+                    },
+                    "sourceByteIntegrity": {
+                      "type": "string",
+                      "enum": [
+                        "DEFERRED_BLOCKING_VALIDATED_IMPORT"
+                      ]
+                    },
+                    "decision": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "revision",
+                        "expectedRevision",
+                        "action",
+                        "reviewState",
+                        "textVersion",
+                        "text",
+                        "textIdentity",
+                        "actorId",
+                        "createdAt"
+                      ],
+                      "properties": {
+                        "revision": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "expectedRevision": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "action": {
+                          "type": "string",
+                          "enum": [
+                            "START",
+                            "CORRECT",
+                            "CONFIRM",
+                            "REJECT"
+                          ]
+                        },
+                        "reviewState": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING_OWNER_REVIEW",
+                            "IN_REVIEW",
+                            "CONFIRMED",
+                            "REJECTED"
+                          ]
+                        },
+                        "textVersion": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 32768
+                        },
+                        "textIdentity": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "actorId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or concurrency headers"
+          },
+          "403": {
+            "description": "Owner role required"
+          },
+          "404": {
+            "description": "Exact current Owner/Pet/Document/candidate unavailable"
+          },
+          "409": {
+            "description": "Revision, terminal decision or idempotency conflict"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Owner OCR review"
+        ]
+      }
+    },
+    "/v1/owner/pets/{petId}/documents/{documentId}/ocr/candidates/{candidateId}/review/corrections": {
+      "post": {
+        "operationId": "OwnerOcrReview_correct",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "candidateId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"(0|[1-9][0-9]{0,9})\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "text"
+                ],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 32768
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "candidateId",
+                    "jobId",
+                    "resultId",
+                    "documentId",
+                    "petId",
+                    "schemaVersion",
+                    "kind",
+                    "reviewState",
+                    "revision",
+                    "textVersion",
+                    "text",
+                    "textIdentity",
+                    "originalText",
+                    "originalTextIdentity",
+                    "sourceIdentity",
+                    "resultIdentity",
+                    "authority",
+                    "sourceByteIntegrity",
+                    "decision"
+                  ],
+                  "properties": {
+                    "candidateId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "jobId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "resultId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "documentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "petId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "schemaVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "EXTRACTED_TEXT"
+                      ]
+                    },
+                    "reviewState": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_OWNER_REVIEW",
+                        "IN_REVIEW",
+                        "CONFIRMED",
+                        "REJECTED"
+                      ]
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    },
+                    "textVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 32768
+                    },
+                    "textIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "originalText": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 32768
+                    },
+                    "originalTextIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "sourceIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "resultIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "authority": {
+                      "type": "string",
+                      "enum": [
+                        "OWNER_DECISION_ONLY"
+                      ]
+                    },
+                    "sourceByteIntegrity": {
+                      "type": "string",
+                      "enum": [
+                        "DEFERRED_BLOCKING_VALIDATED_IMPORT"
+                      ]
+                    },
+                    "decision": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "revision",
+                        "expectedRevision",
+                        "action",
+                        "reviewState",
+                        "textVersion",
+                        "text",
+                        "textIdentity",
+                        "actorId",
+                        "createdAt"
+                      ],
+                      "properties": {
+                        "revision": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "expectedRevision": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "action": {
+                          "type": "string",
+                          "enum": [
+                            "START",
+                            "CORRECT",
+                            "CONFIRM",
+                            "REJECT"
+                          ]
+                        },
+                        "reviewState": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING_OWNER_REVIEW",
+                            "IN_REVIEW",
+                            "CONFIRMED",
+                            "REJECTED"
+                          ]
+                        },
+                        "textVersion": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 32768
+                        },
+                        "textIdentity": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "actorId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or concurrency headers"
+          },
+          "403": {
+            "description": "Owner role required"
+          },
+          "404": {
+            "description": "Exact current Owner/Pet/Document/candidate unavailable"
+          },
+          "409": {
+            "description": "Revision, terminal decision or idempotency conflict"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Owner OCR review"
+        ]
+      }
+    },
+    "/v1/owner/pets/{petId}/documents/{documentId}/ocr/candidates/{candidateId}/review/confirm": {
+      "post": {
+        "operationId": "OwnerOcrReview_confirm",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "candidateId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"(0|[1-9][0-9]{0,9})\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "candidateId",
+                    "jobId",
+                    "resultId",
+                    "documentId",
+                    "petId",
+                    "schemaVersion",
+                    "kind",
+                    "reviewState",
+                    "revision",
+                    "textVersion",
+                    "text",
+                    "textIdentity",
+                    "originalText",
+                    "originalTextIdentity",
+                    "sourceIdentity",
+                    "resultIdentity",
+                    "authority",
+                    "sourceByteIntegrity",
+                    "decision"
+                  ],
+                  "properties": {
+                    "candidateId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "jobId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "resultId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "documentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "petId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "schemaVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "EXTRACTED_TEXT"
+                      ]
+                    },
+                    "reviewState": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_OWNER_REVIEW",
+                        "IN_REVIEW",
+                        "CONFIRMED",
+                        "REJECTED"
+                      ]
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    },
+                    "textVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 32768
+                    },
+                    "textIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "originalText": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 32768
+                    },
+                    "originalTextIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "sourceIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "resultIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "authority": {
+                      "type": "string",
+                      "enum": [
+                        "OWNER_DECISION_ONLY"
+                      ]
+                    },
+                    "sourceByteIntegrity": {
+                      "type": "string",
+                      "enum": [
+                        "DEFERRED_BLOCKING_VALIDATED_IMPORT"
+                      ]
+                    },
+                    "decision": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "revision",
+                        "expectedRevision",
+                        "action",
+                        "reviewState",
+                        "textVersion",
+                        "text",
+                        "textIdentity",
+                        "actorId",
+                        "createdAt"
+                      ],
+                      "properties": {
+                        "revision": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "expectedRevision": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "action": {
+                          "type": "string",
+                          "enum": [
+                            "START",
+                            "CORRECT",
+                            "CONFIRM",
+                            "REJECT"
+                          ]
+                        },
+                        "reviewState": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING_OWNER_REVIEW",
+                            "IN_REVIEW",
+                            "CONFIRMED",
+                            "REJECTED"
+                          ]
+                        },
+                        "textVersion": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 32768
+                        },
+                        "textIdentity": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "actorId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or concurrency headers"
+          },
+          "403": {
+            "description": "Owner role required"
+          },
+          "404": {
+            "description": "Exact current Owner/Pet/Document/candidate unavailable"
+          },
+          "409": {
+            "description": "Revision, terminal decision or idempotency conflict"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Owner OCR review"
+        ]
+      }
+    },
+    "/v1/owner/pets/{petId}/documents/{documentId}/ocr/candidates/{candidateId}/review/reject": {
+      "post": {
+        "operationId": "OwnerOcrReview_reject",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "candidateId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"(0|[1-9][0-9]{0,9})\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "candidateId",
+                    "jobId",
+                    "resultId",
+                    "documentId",
+                    "petId",
+                    "schemaVersion",
+                    "kind",
+                    "reviewState",
+                    "revision",
+                    "textVersion",
+                    "text",
+                    "textIdentity",
+                    "originalText",
+                    "originalTextIdentity",
+                    "sourceIdentity",
+                    "resultIdentity",
+                    "authority",
+                    "sourceByteIntegrity",
+                    "decision"
+                  ],
+                  "properties": {
+                    "candidateId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "jobId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "resultId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "documentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "petId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "schemaVersion": {
+                      "type": "integer",
+                      "enum": [
+                        1
+                      ]
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "EXTRACTED_TEXT"
+                      ]
+                    },
+                    "reviewState": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_OWNER_REVIEW",
+                        "IN_REVIEW",
+                        "CONFIRMED",
+                        "REJECTED"
+                      ]
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    },
+                    "textVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2147483647
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 32768
+                    },
+                    "textIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "originalText": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 32768
+                    },
+                    "originalTextIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "sourceIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "resultIdentity": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "authority": {
+                      "type": "string",
+                      "enum": [
+                        "OWNER_DECISION_ONLY"
+                      ]
+                    },
+                    "sourceByteIntegrity": {
+                      "type": "string",
+                      "enum": [
+                        "DEFERRED_BLOCKING_VALIDATED_IMPORT"
+                      ]
+                    },
+                    "decision": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "revision",
+                        "expectedRevision",
+                        "action",
+                        "reviewState",
+                        "textVersion",
+                        "text",
+                        "textIdentity",
+                        "actorId",
+                        "createdAt"
+                      ],
+                      "properties": {
+                        "revision": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "expectedRevision": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "action": {
+                          "type": "string",
+                          "enum": [
+                            "START",
+                            "CORRECT",
+                            "CONFIRM",
+                            "REJECT"
+                          ]
+                        },
+                        "reviewState": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING_OWNER_REVIEW",
+                            "IN_REVIEW",
+                            "CONFIRMED",
+                            "REJECTED"
+                          ]
+                        },
+                        "textVersion": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 32768
+                        },
+                        "textIdentity": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "actorId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or concurrency headers"
+          },
+          "403": {
+            "description": "Owner role required"
+          },
+          "404": {
+            "description": "Exact current Owner/Pet/Document/candidate unavailable"
+          },
+          "409": {
+            "description": "Revision, terminal decision or idempotency conflict"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Owner OCR review"
+        ]
+      }
+    },
+    "/v1/owner/pets/{petId}/documents/{documentId}/ocr": {
+      "post": {
+        "operationId": "OwnerOcr_enqueue",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "documentId",
+                    "petId",
+                    "state",
+                    "attemptCount",
+                    "maxAttempts",
+                    "errorCode",
+                    "authority"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "documentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "petId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "QUEUED",
+                        "RUNNING",
+                        "SUCCEEDED",
+                        "FAILED"
+                      ]
+                    },
+                    "attemptCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 3
+                    },
+                    "maxAttempts": {
+                      "type": "integer",
+                      "enum": [
+                        3
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        "PROVIDER_FAILED",
+                        "INVALID_RESULT",
+                        "LEASE_EXPIRED",
+                        "SOURCE_UNAVAILABLE",
+                        "SOURCE_CHANGED"
+                      ]
+                    },
+                    "authority": {
+                      "type": "string",
+                      "enum": [
+                        "UNCONFIRMED"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Idempotently queue non-authoritative OCR for an owned document",
+        "tags": [
+          "Owner OCR candidates"
+        ]
+      },
+      "get": {
+        "operationId": "OwnerOcr_read",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "documentId",
+                    "petId",
+                    "state",
+                    "attemptCount",
+                    "maxAttempts",
+                    "errorCode",
+                    "authority",
+                    "attempts",
+                    "result"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "documentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "petId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "QUEUED",
+                        "RUNNING",
+                        "SUCCEEDED",
+                        "FAILED"
+                      ]
+                    },
+                    "attemptCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 3
+                    },
+                    "maxAttempts": {
+                      "type": "integer",
+                      "enum": [
+                        3
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        "PROVIDER_FAILED",
+                        "INVALID_RESULT",
+                        "LEASE_EXPIRED",
+                        "SOURCE_UNAVAILABLE",
+                        "SOURCE_CHANGED"
+                      ]
+                    },
+                    "authority": {
+                      "type": "string",
+                      "enum": [
+                        "UNCONFIRMED"
+                      ]
+                    },
+                    "attempts": {
+                      "type": "array",
+                      "maxItems": 3,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "attemptNumber",
+                          "status",
+                          "startedAt",
+                          "finishedAt",
+                          "errorCode"
+                        ],
+                        "properties": {
+                          "attemptNumber": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 3
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "RUNNING",
+                              "SUCCEEDED",
+                              "FAILED",
+                              "ABANDONED"
+                            ]
+                          },
+                          "startedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "finishedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          },
+                          "errorCode": {
+                            "type": "string",
+                            "nullable": true,
+                            "enum": [
+                              "PROVIDER_FAILED",
+                              "INVALID_RESULT",
+                              "LEASE_EXPIRED",
+                              "SOURCE_UNAVAILABLE",
+                              "SOURCE_CHANGED"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "resultId",
+                        "sourceIdentity",
+                        "resultIdentity",
+                        "authority",
+                        "extraction",
+                        "extractedAt",
+                        "provider",
+                        "providerVersion",
+                        "startedAt",
+                        "finishedAt",
+                        "candidate"
+                      ],
+                      "properties": {
+                        "resultId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "sourceIdentity": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "resultIdentity": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "authority": {
+                          "type": "string",
+                          "enum": [
+                            "UNCONFIRMED"
+                          ]
+                        },
+                        "extraction": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "text"
+                          ],
+                          "properties": {
+                            "text": {
+                              "type": "string",
+                              "maxLength": 32768
+                            },
+                            "provider": {
+                              "type": "string",
+                              "maxLength": 120
+                            },
+                            "providerVersion": {
+                              "type": "string",
+                              "maxLength": 80
+                            }
+                          }
+                        },
+                        "extractedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "provider": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "providerVersion": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "startedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "finishedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "candidate": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "candidateId",
+                            "schemaVersion",
+                            "kind",
+                            "text",
+                            "reviewState"
+                          ],
+                          "properties": {
+                            "candidateId": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "schemaVersion": {
+                              "type": "integer",
+                              "enum": [
+                                1
+                              ]
+                            },
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "EXTRACTED_TEXT"
+                              ]
+                            },
+                            "text": {
+                              "type": "string",
+                              "maxLength": 32768
+                            },
+                            "reviewState": {
+                              "type": "string",
+                              "enum": [
+                                "PENDING_OWNER_REVIEW",
+                                "IN_REVIEW",
+                                "CONFIRMED",
+                                "REJECTED"
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Read private unconfirmed OCR and text candidate; no medical promotion",
+        "tags": [
+          "Owner OCR candidates"
+        ]
+      }
+    },
+    "/v1/owner/pets/{petId}/documents/{documentId}/ocr/retry": {
+      "post": {
+        "operationId": "OwnerOcr_retry",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "documentId",
+                    "petId",
+                    "state",
+                    "attemptCount",
+                    "maxAttempts",
+                    "errorCode",
+                    "authority"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "documentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "petId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "QUEUED",
+                        "RUNNING",
+                        "SUCCEEDED",
+                        "FAILED"
+                      ]
+                    },
+                    "attemptCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 3
+                    },
+                    "maxAttempts": {
+                      "type": "integer",
+                      "enum": [
+                        3
+                      ]
+                    },
+                    "errorCode": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        "PROVIDER_FAILED",
+                        "INVALID_RESULT",
+                        "LEASE_EXPIRED",
+                        "SOURCE_UNAVAILABLE",
+                        "SOURCE_CHANGED"
+                      ]
+                    },
+                    "authority": {
+                      "type": "string",
+                      "enum": [
+                        "UNCONFIRMED"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Retry failed owned OCR within its lifetime three-attempt budget",
+        "tags": [
+          "Owner OCR candidates"
+        ]
+      }
+    },
     "/v1/auth/otp/request": {
       "post": {
         "operationId": "requestOtp",
@@ -443,7 +2444,83 @@
         ],
         "responses": {
           "200": {
-            "description": "Статус, клиника, питомец, услуга, timeline и доступные действия."
+            "description": "Статус, клиника, питомец, услуга, timeline и доступные действия.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "holdId",
+                    "version",
+                    "appointmentLifecycle"
+                  ],
+                  "properties": {
+                    "holdId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "appointmentLifecycle": {
+                      "type": "object",
+                      "required": [
+                        "state",
+                        "cancelledBy",
+                        "cancelledAt",
+                        "lateCancellation",
+                        "reasonCode",
+                        "reasonText",
+                        "noShowAt"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": [
+                            "CONFIRMED",
+                            "CANCELLED_BY_USER",
+                            "CANCELLED_BY_CLINIC",
+                            "RESCHEDULE_PROPOSED",
+                            "NO_SHOW"
+                          ]
+                        },
+                        "cancelledBy": {
+                          "type": "string",
+                          "nullable": true,
+                          "enum": [
+                            "OWNER",
+                            "CLINIC"
+                          ]
+                        },
+                        "cancelledAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "lateCancellation": {
+                          "type": "boolean",
+                          "nullable": true
+                        },
+                        "reasonCode": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "reasonText": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "noShowAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -713,6 +2790,335 @@
         ]
       }
     },
+    "/v1/owner/pets/{petId}/diary": {
+      "get": {
+        "operationId": "OwnerPet_readDiary",
+        "parameters": [
+          {
+            "name": "petId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "petId",
+                    "entries",
+                    "clinicalEntries",
+                    "page"
+                  ],
+                  "properties": {
+                    "petId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "type",
+                          "sourceId",
+                          "occurredAt",
+                          "endsAt",
+                          "title",
+                          "summary",
+                          "lifecycleStatus",
+                          "downloadUrl"
+                        ],
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "DOCUMENT",
+                              "VISIT",
+                              "TELEMED",
+                              "RESULT",
+                              "RESULT_AMENDMENT"
+                            ]
+                          },
+                          "sourceId": {
+                            "type": "string"
+                          },
+                          "occurredAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "endsAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "summary": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "lifecycleStatus": {
+                            "type": "string"
+                          },
+                          "downloadUrl": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    },
+                    "clinicalEntries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "visit",
+                          "result",
+                          "amendments"
+                        ],
+                        "properties": {
+                          "visit": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "visitId",
+                              "occurredAt",
+                              "clinic",
+                              "location",
+                              "service",
+                              "doctor"
+                            ],
+                            "properties": {
+                              "visitId": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "occurredAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "clinic": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "name"
+                                ],
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "location": {
+                                "type": "object",
+                                "nullable": true,
+                                "additionalProperties": false,
+                                "required": [
+                                  "address"
+                                ],
+                                "properties": {
+                                  "address": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "service": {
+                                "type": "object",
+                                "nullable": true,
+                                "additionalProperties": false,
+                                "required": [
+                                  "name"
+                                ],
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "doctor": {
+                                "type": "object",
+                                "nullable": true,
+                                "additionalProperties": false,
+                                "required": [
+                                  "name"
+                                ],
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "result": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "resultId",
+                              "publishedAt",
+                              "content"
+                            ],
+                            "properties": {
+                              "resultId": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "publishedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "content": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "amendments": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "amendmentId",
+                                "version",
+                                "createdAt",
+                                "publishedAt",
+                                "content"
+                              ],
+                              "properties": {
+                                "amendmentId": {
+                                  "type": "string",
+                                  "format": "uuid"
+                                },
+                                "version": {
+                                  "type": "integer",
+                                  "minimum": 1
+                                },
+                                "createdAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "publishedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "content": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "page": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "limit",
+                        "offset",
+                        "nextOffset",
+                        "total"
+                      ],
+                      "properties": {
+                        "limit": {
+                          "type": "integer"
+                        },
+                        "offset": {
+                          "type": "integer"
+                        },
+                        "nextOffset": {
+                          "type": "integer",
+                          "nullable": true
+                        },
+                        "total": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Published clinical diary for the current owner pet",
+        "tags": [
+          "Owner pets"
+        ]
+      }
+    },
     "/v1/auth/session": {
       "get": {
         "operationId": "EffectiveSession_read",
@@ -757,6 +3163,2369 @@
         "summary": "Authoritative effective session read for opaque Owner session or legacy staff JWT",
         "tags": [
           "Authentication"
+        ]
+      }
+    },
+    "/v1/owner/appointments/{appointmentId}/medical-shares": {
+      "get": {
+        "operationId": "MedicalShare_ownerContext",
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "appointmentId",
+                    "petId",
+                    "clinicId",
+                    "locationId",
+                    "eligible",
+                    "resources",
+                    "resourcesTruncated",
+                    "shares",
+                    "clinic",
+                    "pet",
+                    "appointment",
+                    "resourceDetails"
+                  ],
+                  "properties": {
+                    "appointmentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "petId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "clinicId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "locationId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "eligible": {
+                      "type": "boolean"
+                    },
+                    "resourcesTruncated": {
+                      "type": "boolean"
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "type",
+                          "id"
+                        ],
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "RESULT",
+                              "AMENDMENT",
+                              "DOCUMENT"
+                            ]
+                          },
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          }
+                        }
+                      }
+                    },
+                    "shares": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "appointmentId",
+                          "petId",
+                          "clinicId",
+                          "locationId",
+                          "status",
+                          "version",
+                          "createdAt",
+                          "revokedAt",
+                          "resources"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "appointmentId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "petId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "clinicId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "locationId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "ACTIVE",
+                              "REVOKED"
+                            ]
+                          },
+                          "version": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "revokedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          },
+                          "resources": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "type",
+                                "id"
+                              ],
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "RESULT",
+                                    "AMENDMENT",
+                                    "DOCUMENT"
+                                  ]
+                                },
+                                "id": {
+                                  "type": "string",
+                                  "format": "uuid"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "clinic": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "displayName",
+                        "locationAddress"
+                      ],
+                      "properties": {
+                        "displayName": {
+                          "type": "string"
+                        },
+                        "locationAddress": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "pet": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "displayName"
+                      ],
+                      "properties": {
+                        "displayName": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "appointment": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "startsAt",
+                        "endsAt",
+                        "timezone"
+                      ],
+                      "properties": {
+                        "startsAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "endsAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "timezone": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "resourceDetails": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "type",
+                          "id",
+                          "label",
+                          "createdAt"
+                        ],
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "RESULT",
+                              "AMENDMENT",
+                              "DOCUMENT"
+                            ]
+                          },
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Appointment medical sharing"
+        ]
+      },
+      "post": {
+        "operationId": "MedicalShare_create",
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "mode"
+                    ],
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "enum": [
+                          "ALL_CURRENT"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "mode",
+                      "resources"
+                    ],
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "enum": [
+                          "SELECTED"
+                        ]
+                      },
+                      "resources": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 200,
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "type",
+                            "id"
+                          ],
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "RESULT",
+                                "AMENDMENT",
+                                "DOCUMENT"
+                              ]
+                            },
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "appointmentId",
+                    "petId",
+                    "clinicId",
+                    "locationId",
+                    "status",
+                    "version",
+                    "createdAt",
+                    "revokedAt",
+                    "resources"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "appointmentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "petId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "clinicId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "locationId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ACTIVE",
+                        "REVOKED"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "revokedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "type",
+                          "id"
+                        ],
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "RESULT",
+                              "AMENDMENT",
+                              "DOCUMENT"
+                            ]
+                          },
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Appointment medical sharing"
+        ]
+      }
+    },
+    "/v1/owner/appointments/{appointmentId}/medical-shares/{shareId}/revoke": {
+      "post": {
+        "operationId": "MedicalShare_revoke",
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "shareId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "\"1\""
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "maxProperties": 0
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "appointmentId",
+                    "petId",
+                    "clinicId",
+                    "locationId",
+                    "status",
+                    "version",
+                    "createdAt",
+                    "revokedAt",
+                    "resources"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "appointmentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "petId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "clinicId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "locationId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ACTIVE",
+                        "REVOKED"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "revokedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "type",
+                          "id"
+                        ],
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "RESULT",
+                              "AMENDMENT",
+                              "DOCUMENT"
+                            ]
+                          },
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Appointment medical sharing"
+        ]
+      }
+    },
+    "/v1/clinic/appointments/{appointmentId}/medical-shares": {
+      "get": {
+        "operationId": "MedicalShare_clinicList",
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "appointmentId",
+                    "status",
+                    "resources"
+                  ],
+                  "properties": {
+                    "appointmentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "SHARED",
+                        "NOT_SHARED"
+                      ]
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "type",
+                          "id"
+                        ],
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "RESULT",
+                              "AMENDMENT",
+                              "DOCUMENT"
+                            ]
+                          },
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Appointment medical sharing"
+        ]
+      }
+    },
+    "/v1/clinic/appointments/{appointmentId}/medical-shares/resources/{resourceType}/{resourceId}": {
+      "get": {
+        "operationId": "MedicalShare_clinicRead",
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resourceType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resourceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "type",
+                        "id",
+                        "content",
+                        "publishedAt"
+                      ],
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "RESULT"
+                          ]
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "content": {
+                          "type": "string"
+                        },
+                        "publishedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "type",
+                        "id",
+                        "content",
+                        "publishedAt",
+                        "version"
+                      ],
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "AMENDMENT"
+                          ]
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "content": {
+                          "type": "string"
+                        },
+                        "publishedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "version": {
+                          "type": "integer",
+                          "minimum": 1
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "type",
+                        "id",
+                        "fileName",
+                        "mimeType",
+                        "createdAt"
+                      ],
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "DOCUMENT"
+                          ]
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "fileName": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "mimeType": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Appointment medical sharing"
+        ]
+      }
+    },
+    "/v1/clinic/appointments/{appointmentId}/medical-shares/resources/DOCUMENT/{documentId}/download": {
+      "get": {
+        "operationId": "MedicalShare_clinicDocumentDownload",
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized stored document bytes. No permanent storage URL.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            },
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Authoritative stored MIME type"
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer"
+                },
+                "description": "Verified stored file size"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Safe attachment filename"
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "private, no-store"
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Appointment medical sharing"
+        ]
+      }
+    },
+    "/v1/clinic/visits/{visitId}/results": {
+      "get": {
+        "operationId": "ClinicalResult_readCurrent",
+        "parameters": [
+          {
+            "name": "visitId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "visitId",
+                    "result",
+                    "amendments"
+                  ],
+                  "properties": {
+                    "visitId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "result": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "visitId",
+                        "authorId",
+                        "status",
+                        "clinicalSummary",
+                        "version",
+                        "createdAt",
+                        "updatedAt",
+                        "publishedAt"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "visitId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "authorId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "DRAFT",
+                            "PUBLISHED"
+                          ]
+                        },
+                        "clinicalSummary": {
+                          "type": "string",
+                          "minLength": 3,
+                          "maxLength": 8000
+                        },
+                        "version": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "publishedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        }
+                      },
+                      "nullable": true
+                    },
+                    "amendments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "amendmentId",
+                          "resultId",
+                          "visitId",
+                          "authorId",
+                          "version",
+                          "content",
+                          "createdAt",
+                          "publishedAt"
+                        ],
+                        "properties": {
+                          "amendmentId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "resultId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "visitId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "authorId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "version": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "content": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 8000
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "publishedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Clinical results"
+        ]
+      },
+      "post": {
+        "operationId": "ClinicalResult_createDraft",
+        "parameters": [
+          {
+            "name": "visitId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "clinicalSummary"
+                ],
+                "properties": {
+                  "clinicalSummary": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 8000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "visitId",
+                    "authorId",
+                    "status",
+                    "clinicalSummary",
+                    "version",
+                    "createdAt",
+                    "updatedAt",
+                    "publishedAt"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "visitId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "authorId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "PUBLISHED"
+                      ]
+                    },
+                    "clinicalSummary": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 8000
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "publishedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Clinical results"
+        ]
+      }
+    },
+    "/v1/clinic/visits/{visitId}/results/{resultId}": {
+      "get": {
+        "operationId": "ClinicalResult_read",
+        "parameters": [
+          {
+            "name": "visitId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resultId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "visitId",
+                    "authorId",
+                    "status",
+                    "clinicalSummary",
+                    "version",
+                    "createdAt",
+                    "updatedAt",
+                    "publishedAt"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "visitId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "authorId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "PUBLISHED"
+                      ]
+                    },
+                    "clinicalSummary": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 8000
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "publishedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Clinical results"
+        ]
+      },
+      "patch": {
+        "operationId": "ClinicalResult_updateDraft",
+        "parameters": [
+          {
+            "name": "visitId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resultId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "\"1\""
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "clinicalSummary"
+                ],
+                "properties": {
+                  "clinicalSummary": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 8000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "visitId",
+                    "authorId",
+                    "status",
+                    "clinicalSummary",
+                    "version",
+                    "createdAt",
+                    "updatedAt",
+                    "publishedAt"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "visitId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "authorId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "PUBLISHED"
+                      ]
+                    },
+                    "clinicalSummary": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 8000
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "publishedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Clinical results"
+        ]
+      }
+    },
+    "/v1/clinic/visits/{visitId}/results/{resultId}/publish": {
+      "post": {
+        "operationId": "ClinicalResult_publish",
+        "parameters": [
+          {
+            "name": "visitId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resultId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "\"2\""
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "visitId",
+                    "authorId",
+                    "status",
+                    "clinicalSummary",
+                    "version",
+                    "createdAt",
+                    "updatedAt",
+                    "publishedAt"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "visitId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "authorId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "PUBLISHED"
+                      ]
+                    },
+                    "clinicalSummary": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 8000
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "publishedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Clinical results"
+        ]
+      }
+    },
+    "/v1/clinic/visits/{visitId}/results/{resultId}/amendments": {
+      "post": {
+        "operationId": "ClinicalResult_createAmendment",
+        "parameters": [
+          {
+            "name": "visitId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resultId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "content"
+                ],
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 8000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "amendmentId",
+                    "resultId",
+                    "visitId",
+                    "authorId",
+                    "version",
+                    "content",
+                    "createdAt",
+                    "publishedAt"
+                  ],
+                  "properties": {
+                    "amendmentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "resultId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "visitId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "authorId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "content": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 8000
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "publishedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "Clinical results"
         ]
       }
     },
@@ -810,7 +5579,7 @@
     },
     "/v1/booking-holds": {
       "post": {
-        "description": "Owner authority извлекается только из Bearer credential. В PILOT_V1 сервер повторно проверяет полный clinic/location/service/slot context и создаёт заявку с ручным подтверждением клиникой.",
+        "description": "Owner authority извлекается только из Bearer credential. Сервер повторно проверяет полный clinic/location/service/slot context и определяет confirmation semantics по server-authoritative clinic contract profile.",
         "operationId": "createHold",
         "parameters": [
           {
@@ -881,7 +5650,7 @@
         },
         "responses": {
           "201": {
-            "description": "PILOT_V1 returns the canonical status without internal state.",
+            "description": "Returns authoritative PENDING_CONFIRMATION or CONFIRMED according to the clinic contract profile.",
             "content": {
               "application/json": {
                 "schema": {
@@ -985,7 +5754,7 @@
             "bearerAuth": []
           }
         ],
-        "summary": "Отправить заявку владельца на выбранное время",
+        "summary": "Создать запись владельца на выбранное время",
         "tags": [
           "Booking Core"
         ]
@@ -1846,6 +6615,608 @@
         ],
         "tags": [
           "Owner bookings"
+        ]
+      }
+    },
+    "/v1/clinic/{clinicId}/locations/{locationId}/appointments/{appointmentId}/cancel": {
+      "post": {
+        "operationId": "AppointmentLifecycle_cancel",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-correlation-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "reasonCode": {
+                    "type": "string"
+                  },
+                  "reasonText": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "CANCELLED_BY_CLINIC with persisted reason.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "appointmentId",
+                    "lifecycle",
+                    "aggregateVersion"
+                  ],
+                  "properties": {
+                    "appointmentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "lifecycle": {
+                      "type": "string",
+                      "enum": [
+                        "CANCELLED_BY_CLINIC",
+                        "RESCHEDULE_PROPOSED",
+                        "NO_SHOW"
+                      ]
+                    },
+                    "aggregateVersion": {
+                      "type": "integer"
+                    },
+                    "proposalId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "originalSlotId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "targetSlotId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "cancelledAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "noShowAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "reasonCode": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "reasonText": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "nextAction": {
+                      "type": "string",
+                      "enum": [
+                        "SELECT_ALTERNATIVE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Cancel a confirmed appointment as the authoritative clinic",
+        "tags": [
+          "Clinic Appointments"
+        ]
+      }
+    },
+    "/v1/clinic/{clinicId}/locations/{locationId}/appointments/{appointmentId}/reschedule-proposals": {
+      "post": {
+        "operationId": "propose",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-correlation-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "targetSlotId",
+                  "expectedTargetSlotVersion"
+                ],
+                "properties": {
+                  "targetSlotId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "expectedTargetSlotVersion": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "RESCHEDULE_PROPOSED; original appointment remains authoritative.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "appointmentId",
+                    "lifecycle",
+                    "aggregateVersion"
+                  ],
+                  "properties": {
+                    "appointmentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "lifecycle": {
+                      "type": "string",
+                      "enum": [
+                        "CANCELLED_BY_CLINIC",
+                        "RESCHEDULE_PROPOSED",
+                        "NO_SHOW"
+                      ]
+                    },
+                    "aggregateVersion": {
+                      "type": "integer"
+                    },
+                    "proposalId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "originalSlotId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "targetSlotId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "cancelledAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "noShowAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "reasonCode": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "reasonText": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "nextAction": {
+                      "type": "string",
+                      "enum": [
+                        "SELECT_ALTERNATIVE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Propose, but do not apply, another slot",
+        "tags": [
+          "Clinic Appointments"
+        ]
+      }
+    },
+    "/v1/clinic/{clinicId}/locations/{locationId}/appointments/{appointmentId}/no-show": {
+      "post": {
+        "operationId": "noShow",
+        "parameters": [
+          {
+            "name": "clinicId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-correlation-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "NO_SHOW with authoritative actor and timestamp.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "appointmentId",
+                    "lifecycle",
+                    "aggregateVersion"
+                  ],
+                  "properties": {
+                    "appointmentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "lifecycle": {
+                      "type": "string",
+                      "enum": [
+                        "CANCELLED_BY_CLINIC",
+                        "RESCHEDULE_PROPOSED",
+                        "NO_SHOW"
+                      ]
+                    },
+                    "aggregateVersion": {
+                      "type": "integer"
+                    },
+                    "proposalId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "originalSlotId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "targetSlotId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "cancelledAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "noShowAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "reasonCode": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "reasonText": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "nextAction": {
+                      "type": "string",
+                      "enum": [
+                        "SELECT_ALTERNATIVE"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Mark an eligible past confirmed appointment as no-show",
+        "tags": [
+          "Clinic Appointments"
         ]
       }
     },
@@ -4156,7 +9527,71 @@
         ],
         "responses": {
           "200": {
-            "description": "A confirmed or completed visit in the scoped clinic location."
+            "description": "A confirmed or completed visit in the scoped clinic location.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "holdId",
+                    "clinicId",
+                    "locationId",
+                    "scheduledStart",
+                    "scheduledEnd",
+                    "status",
+                    "petDisplayName",
+                    "species",
+                    "visitId",
+                    "appointmentId"
+                  ],
+                  "properties": {
+                    "holdId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "clinicId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "locationId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "appointmentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "visitId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "nullable": true
+                    },
+                    "scheduledStart": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "scheduledEnd": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "CONFIRMED",
+                        "COMPLETED"
+                      ]
+                    },
+                    "petDisplayName": {
+                      "type": "string"
+                    },
+                    "species": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
             "description": "Normalized authorization or resource denial."
@@ -5413,10 +10848,16 @@
             "format": "uuid",
             "example": "7f04cd21-642a-4c48-8a82-5650ca5ce06c"
           },
+          "appointmentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Present when the authoritative booking result is CONFIRMED."
+          },
           "status": {
             "type": "string",
             "enum": [
-              "PENDING_CONFIRMATION"
+              "PENDING_CONFIRMATION",
+              "CONFIRMED"
             ]
           },
           "slotId": {
@@ -5449,6 +10890,7 @@
           "confirmationMode": {
             "type": "string",
             "enum": [
+              "AUTOMATIC",
               "MANUAL"
             ]
           },
@@ -5776,7 +11218,8 @@
           "statusCode",
           "statusLabel",
           "createdAt"
-        ]
+        ],
+        "additionalProperties": false
       },
       "ClinicAppointmentDetailScheduleDto": {
         "type": "object",
@@ -5801,18 +11244,28 @@
           "endsAt",
           "timezone",
           "sourceLabel"
-        ]
+        ],
+        "additionalProperties": false
       },
-      "ClinicAppointmentDetailDisplayNameDto": {
+      "ClinicAppointmentDetailOwnerDto": {
         "type": "object",
         "properties": {
           "displayName": {
-            "type": "string"
+            "type": "string",
+            "nullable": true,
+            "description": "Null when no authoritative Owner name exists."
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true,
+            "description": "Authoritative Owner identity phone, if available."
           }
         },
         "required": [
-          "displayName"
-        ]
+          "displayName",
+          "phone"
+        ],
+        "additionalProperties": false
       },
       "ClinicAppointmentDetailPetDto": {
         "type": "object",
@@ -5826,13 +11279,31 @@
           },
           "speciesLabel": {
             "type": "string"
+          },
+          "breed": {
+            "type": "string",
+            "nullable": true
           }
         },
         "required": [
           "id",
           "displayName",
-          "speciesLabel"
-        ]
+          "speciesLabel",
+          "breed"
+        ],
+        "additionalProperties": false
+      },
+      "ClinicAppointmentDetailDisplayNameDto": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "displayName"
+        ],
+        "additionalProperties": false
       },
       "ClinicAppointmentDetailDto": {
         "type": "object",
@@ -5860,7 +11331,7 @@
             "type": "object",
             "allOf": [
               {
-                "$ref": "#/components/schemas/ClinicAppointmentDetailDisplayNameDto"
+                "$ref": "#/components/schemas/ClinicAppointmentDetailOwnerDto"
               }
             ]
           },
@@ -5914,7 +11385,8 @@
           "veterinarian",
           "resource",
           "availableActions"
-        ]
+        ],
+        "additionalProperties": false
       },
       "ClinicPatientPetDto": {
         "type": "object",

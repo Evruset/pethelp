@@ -1,0 +1,18 @@
+{
+  "base": "23653ebb69690171d27b7fdbbe9646a914b3c435",
+  "branch": "agent/v15-w4b-03a-04-drain-wdlk821n",
+  "sourceFiles": 8,
+  "machineEvidenceFiles": 89,
+  "uniqueOperationalPASS": 10,
+  "unresolvedFAIL": 0,
+  "migrationChecksums": 73,
+  "build": "PASS_RECONCILED",
+  "reviews": "3NO_VETO_ISOLATED_ONLY",
+  "manifestSHA256": "e7c0516d677bbc37a3b2e3e0f8c3b1aab6f29b43599d7bdeb2ed4b701583c885",
+  "original674ByteIdentical": true,
+  "originalDigest": "f4fe840760b5c771ac774d252cea85b2303dc535872bf255450900dbbdb9fbb5",
+  "runtimeReruns": 0,
+  "diffCheck": "PASS",
+  "indexEmpty": true,
+  "classification": "C1R2 complex ceiling; rootonly; no newaudits/infra/development"
+}

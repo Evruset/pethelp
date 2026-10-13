@@ -1,0 +1,27 @@
+PASS src/config/mvp-product-scope.guard.spec.ts (6.109 s)
+  MVP product route containment
+    ✓ classifies /v1/booking-holds/hold-1/alternative as outside the pilot surface (3 ms)
+    ✓ classifies /v1/booking-holds/hold-1/alternative/accept as outside the pilot surface (1 ms)
+    ✓ classifies /v1/booking-holds/hold-1/release as outside the pilot surface (1 ms)
+    ✓ classifies /v1/booking-holds/hold-1/cancellation-requests as outside the pilot surface (2 ms)
+    ✓ classifies /v1/clinic/booking-holds/hold-1/alternative-slot as outside the pilot surface (1 ms)
+    ✓ classifies /v1/clinic/clinic-1/locations/location-1/quality-dashboard as outside the pilot surface (1 ms)
+    ✓ classifies /v1/clinic/clinic-1/locations/location-1/booking-holds/hold-1/audit-trail as outside the pilot surface (1 ms)
+    ✓ keeps /v1/clinic/clinic-1/locations/location-1/booking-queue in the pilot surface
+    ✓ keeps /v1/clinic/clinic-1/locations/location-1/schedule/slots in the pilot surface (1 ms)
+    ✓ keeps /v1/clinic/clinic-1/locations/location-1/patients in the pilot surface (2 ms)
+    ✓ keeps /v1/clinic/clinic-1/locations/location-1/vet/visits in the pilot surface (1 ms)
+    ✓ keeps /v1/owner/appointments in the pilot surface
+    ✓ keeps /v1/owner/pets/pet-id/diary in the pilot surface (1 ms)
+    ✓ keeps /v1/clinic/booking-holds/hold-1/complete in the pilot surface
+    ✓ keeps /v1/catalog/clinics in the pilot surface (1 ms)
+    ✓ admits the Wave 3 visit completion route in PILOT (1 ms)
+    ✓ preserves legacy cancellation routes outside PILOT_V1 (1 ms)
+    ✓ contains mature Pet mutations while preserving the minimal read route (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       18 passed, 18 total
+Snapshots:   0 total
+Time:        6.422 s
+Ran all test suites within paths "src/config/mvp-product-scope.guard.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-035.json

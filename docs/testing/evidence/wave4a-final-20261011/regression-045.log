@@ -1,0 +1,17 @@
+PASS src/booking-core/booking-policy.resolver.spec.ts (5.985 s)
+  BookingPolicyResolver
+    ✓ resolves both server-authoritative clinic contracts (5 ms)
+    ✓ fails closed for missing or unknown profile undefined (13 ms)
+    ✓ fails closed for missing or unknown profile null (1 ms)
+    ✓ fails closed for missing or unknown profile "" (2 ms)
+    ✓ fails closed for missing or unknown profile "UNKNOWN" (2 ms)
+    ✓ rejects clinic status INACTIVE (2 ms)
+    ✓ rejects clinic status SUSPENDED (1 ms)
+    ✓ rejects clinic status TERMINATED (2 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       8 passed, 8 total
+Snapshots:   0 total
+Time:        6.484 s
+Ran all test suites within paths "src/booking-core/booking-policy.resolver.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-045.json

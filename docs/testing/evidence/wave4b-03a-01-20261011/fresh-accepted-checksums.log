@@ -1,0 +1,4 @@
+
+> vethelp-mvp1@0.1.0 migrate:verify
+> node scripts/verify-migration-checksums.cjs
+

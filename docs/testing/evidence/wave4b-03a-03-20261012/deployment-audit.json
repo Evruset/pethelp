@@ -1,0 +1,35 @@
+{
+  "reviewed": [
+    {
+      "path": "backend/Dockerfile",
+      "sha256": "3c0247b1783c4e6ea5e7295f35c1154753146608db456ad1602f3efdc7e7f59d",
+      "verdict": "DOES_NOT_ESTABLISH_PRODUCTION_STORAGE_OR_ROLE_ISOLATION"
+    },
+    {
+      "path": "backend/docker-compose.yml",
+      "sha256": "59e44d0c554e83124700c51f196e269ff77e4c4a0b729104d4a24a500db2da08",
+      "verdict": "DOES_NOT_ESTABLISH_PRODUCTION_STORAGE_OR_ROLE_ISOLATION"
+    },
+    {
+      "path": "backend/k8s/alpha/deployment.yaml",
+      "sha256": "d6d7a7e7a77d788e4ae46df1cf67abdad65de618aa8c8060dc42988ba13e3a79",
+      "verdict": "DOES_NOT_ESTABLISH_PRODUCTION_STORAGE_OR_ROLE_ISOLATION"
+    },
+    {
+      "path": "backend/k8s/alpha/deployment.template.yaml",
+      "sha256": "bd821b0d0dbc45c01740eca8acfcdb468837eeef377aa7ff61d84615b02051d4",
+      "verdict": "DOES_NOT_ESTABLISH_PRODUCTION_STORAGE_OR_ROLE_ISOLATION"
+    }
+  ],
+  "storagePrimitive": "backend/src/common/document-byte-snapshots.ts",
+  "canonicalRoot": "private700 currentUID; protected ancestors; immutable API publication but not OS create-only",
+  "boundaries": [
+    "publisher filesystem owner canchmod/replace",
+    "worker separate mountnamespaceRO sameUID1000",
+    "Docker daemon/host privileges outside test proof",
+    "DB trusted executor not ordinary app role",
+    "simulation not actual extraction",
+    "Owner confirmation not clinical validation"
+  ],
+  "productionIsolation": "NOT_VERIFIED"
+}

@@ -1,0 +1,9 @@
+{
+  "classification": "RUNTIME_PROFILE_MISMATCH",
+  "actualLane": "LEGACY_COMPAT",
+  "requiredLane": "PILOT_V1",
+  "passed": 5,
+  "failed": 1,
+  "reviewer": "independent_qa_review confirmed docs13 PhaseA and BookingHoldReadService117-124",
+  "repair": "Launch only failed suite in new owned DB under Pilot; source/assertions unchanged; prior17 PASS reused"
+}

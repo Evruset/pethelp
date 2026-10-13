@@ -43,6 +43,7 @@ export class ClinicEmployeeAccessService {
       WHERE membership.employee_id = $1::uuid
         AND membership.active = true
         AND membership.revoked_at IS NULL
+      FOR SHARE OF membership, location, clinic
     `, [employee.sub, locationId, clinicId]);
     if (!authority.rows[0]) throw DomainErrors.clinicScopeMismatch();
     return { serverNow: authority.rows[0].server_now, timezone: authority.rows[0].timezone };
@@ -113,9 +114,11 @@ export class ClinicEmployeeAccessService {
   async assertClinicalVisitCompletionAccess(
     client: PoolClient,
     employee: JwtPayload,
+    clinicId: string,
     clinicLocationId: string,
   ): Promise<void> {
-    await this.capabilities.assertAllowed(client, { actor: employee, capability: Capability.CLINICAL_VISIT_COMPLETE, resource: { aggregateType: 'clinical.visit', locationId: clinicLocationId } });
+    await this.capabilities.assertAllowed(client, { actor: employee, capability: Capability.CLINICAL_VISIT_COMPLETE, resource: { aggregateType: 'clinical.visit', clinicId, locationId: clinicLocationId } });
+    await this.assertExactClinicLocationMembership(client, employee, clinicId, clinicLocationId);
   }
 
   async assertClinicalVisitWorkspaceReadAccess(client: PoolClient, employee: JwtPayload, clinicId: string, clinicLocationId: string): Promise<void> {

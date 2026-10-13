@@ -1,0 +1,12 @@
+PASS src/booking-core/veterinarian-visit-read.service.spec.ts (8.176 s)
+  VeterinarianVisitReadService list projection
+    ✓ returns only the allow-listed visit fields after centralized authorization (7 ms)
+  VeterinarianVisitReadService detail projection
+    ✓ uses the same bounded projection and normalizes an absent or out-of-scope row (2 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       2 passed, 2 total
+Snapshots:   0 total
+Time:        8.445 s
+Ran all test suites within paths "src/booking-core/veterinarian-visit-read.service.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-031.json

@@ -1,0 +1,10 @@
+PASS test/clinical-amendment-replay-http.e2e-spec.ts (13.231 s)
+  Wave 3 immutable Amendment idempotent replay (real PostgreSQL HTTP)
+    ✓ replays by immutable readback without duplicate row, projection, audit or outbox (124 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        13.514 s
+Ran all test suites within paths "test/clinical-amendment-replay-http.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-024.json

@@ -1,0 +1,12 @@
+PASS test/owner-clinic-catalog.integration-spec.ts (8.54 s)
+  Owner clinic catalog PostgreSQL projection
+    ✓ returns only active future-capacity locations in deterministic order (469 ms)
+    ✓ reads the exact active clinic/location service projection without availability or payment state (42 ms)
+    ✓ projects bounded server-time availability from shared slots and live capacity (74 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       3 passed, 3 total
+Snapshots:   0 total
+Time:        8.877 s
+Ran all test suites within paths "test/owner-clinic-catalog.integration-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-012.json

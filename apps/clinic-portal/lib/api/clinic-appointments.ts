@@ -17,7 +17,9 @@ export type ClinicAppointmentsSnapshot = {
   nextCursor: string | null;
 };
 
+export type AppointmentOperations = {slotId:string;serviceId:string|null;lifecycle:string;canCancel:boolean;canPropose:boolean;cancellationReason:string|null;events:{type:string;at:string}[]};
 export type ClinicAppointmentDetail = {
+  operations: AppointmentOperations | null;
   clinicId: string;
   locationId: string;
   serverNow: string;
@@ -33,8 +35,8 @@ export type ClinicAppointmentDetail = {
     timezone: string;
     sourceLabel: string;
   };
-  owner: { displayName: string } | null;
-  pet: { id: string; displayName: string; speciesLabel: string };
+  owner: { displayName: string | null; phone: string | null } | null;
+  pet: { id: string; displayName: string; speciesLabel: string; breed: string | null };
   service: { displayName: string } | null;
   veterinarian: { displayName: string } | null;
   resource: { displayName: string } | null;
@@ -73,6 +75,13 @@ function display(value: unknown): { displayName: string } | null | undefined {
   return { displayName: value.displayName };
 }
 
+function ownerContact(value: unknown): ClinicAppointmentDetail['owner'] | undefined {
+  if (value === null) return null;
+  if (!record(value) || !(value.displayName === null || text(value.displayName))
+    || !(value.phone === undefined || value.phone === null || (typeof value.phone === 'string' && /^\+[1-9][0-9]{7,14}$/.test(value.phone)))) return undefined;
+  return { displayName: value.displayName, phone: typeof value.phone === 'string' ? value.phone : null };
+}
+
 export function parseClinicAppointmentDetail(
   payload: unknown,
   expected: { clinicId: string; locationId: string; appointmentId: string },
@@ -82,10 +91,16 @@ export function parseClinicAppointmentDetail(
     || !record(payload.pet) || !Array.isArray(payload.availableActions) || payload.availableActions.length !== 0) {
     throw new ClinicAppointmentsResponseError('malformed');
   }
+  const rawOps = payload.operations;
+  let operations:AppointmentOperations|null=null;
+  if(rawOps!==undefined){
+    if(!record(rawOps)||!UUID.test(String(rawOps.slotId))||!(rawOps.serviceId===null||UUID.test(String(rawOps.serviceId)))||typeof rawOps.lifecycle!=='string'||typeof rawOps.canCancel!=='boolean'||typeof rawOps.canPropose!=='boolean'||!(rawOps.cancellationReason===null||typeof rawOps.cancellationReason==='string')||!Array.isArray(rawOps.events)||rawOps.events.length>50||!rawOps.events.every(e=>record(e)&&text(e.type)&&strictTimestamp(e.at)))throw new ClinicAppointmentsResponseError('malformed');
+    operations=rawOps as AppointmentOperations;
+  }
   const appointment = payload.appointment;
   const schedule = payload.schedule;
   const pet = payload.pet;
-  const owner = display(payload.owner);
+  const owner = ownerContact(payload.owner);
   const service = display(payload.service);
   const veterinarian = display(payload.veterinarian);
   const resource = display(payload.resource);
@@ -96,12 +111,14 @@ export function parseClinicAppointmentDetail(
     || Date.parse(schedule.endsAt) <= Date.parse(schedule.startsAt)
     || !text(schedule.timezone) || !text(schedule.sourceLabel)
     || !UUID.test(String(pet.id)) || !text(pet.displayName) || !text(pet.speciesLabel)
+    || !(pet.breed === undefined || pet.breed === null || text(pet.breed))
     || owner === undefined || service === undefined || veterinarian === undefined || resource === undefined) {
     throw new ClinicAppointmentsResponseError('malformed');
   }
   const known = new Set(['SCHEDULED', 'COMPLETED', 'NO_SHOW', 'CANCELLED', 'UNKNOWN']);
   const statusCode = known.has(appointment.statusCode) ? appointment.statusCode : 'UNKNOWN';
   return {
+    operations,
     clinicId: payload.clinicId,
     locationId: payload.locationId,
     serverNow: payload.serverNow,
@@ -118,7 +135,7 @@ export function parseClinicAppointmentDetail(
       sourceLabel: schedule.sourceLabel,
     },
     owner,
-    pet: { id: String(pet.id), displayName: pet.displayName, speciesLabel: pet.speciesLabel },
+    pet: { id: String(pet.id), displayName: pet.displayName, speciesLabel: pet.speciesLabel, breed: typeof pet.breed === 'string' ? pet.breed : null },
     service,
     veterinarian,
     resource,

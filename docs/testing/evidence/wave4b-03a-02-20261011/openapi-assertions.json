@@ -1,0 +1,47 @@
+{
+  "passed": 7,
+  "failed": 0,
+  "generatedSha256": "61cb1d9169eeda76ca233db13d20eedb4e18d71094418bff3be4074dcf683e95",
+  "assertions": [
+    {
+      "path": "/v1/owner/pets/{petId}/documents/{documentId}/ocr",
+      "method": "post",
+      "authenticated": true,
+      "pass": true
+    },
+    {
+      "path": "/v1/owner/pets/{petId}/documents/{documentId}/ocr/retry",
+      "method": "post",
+      "authenticated": true,
+      "pass": true
+    },
+    {
+      "path": "/v1/owner/pets/{petId}/documents/{documentId}/ocr/candidates/{candidateId}/review",
+      "method": "get",
+      "authenticated": true,
+      "pass": true
+    },
+    {
+      "path": "/v1/owner/pets/{petId}/documents/{documentId}/ocr/candidates/{candidateId}/review/corrections",
+      "method": "post",
+      "authenticated": true,
+      "pass": true
+    },
+    {
+      "path": "/v1/owner/pets/{petId}/documents/{documentId}/ocr/candidates/{candidateId}/review/confirm",
+      "method": "post",
+      "authenticated": true,
+      "pass": true
+    },
+    {
+      "path": "/v1/owner/pets/{petId}/documents/{documentId}/ocr/candidates/{candidateId}/review/reject",
+      "method": "post",
+      "authenticated": true,
+      "pass": true
+    },
+    {
+      "internalProofNotExposed": true,
+      "pass": true
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "classification": "TEST_EXPECTATION",
+  "failed": 1,
+  "notRun": 3,
+  "reason": "CLINIC_ADMIN correctly loses veterinarian workspace; test incorrectly required Milo heading",
+  "repair": "Assert old content clearance and actual pending-request abort/completion, not veterinarian heading after role change. Two new late-response tests strengthened per independent QA; production unchanged."
+}

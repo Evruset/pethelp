@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "canonicalSourceDiffSha256": "5ff2a9893f481212f4174457a4cdfb795ac692ff58b3e919800d948c7f27b9f2",
+  "approvedSelectionPatchSha256": "5ff2a9893f481212f4174457a4cdfb795ac692ff58b3e919800d948c7f27b9f2",
+  "selectedFileCount": 34,
+  "unchangedRuntimeSource": true,
+  "diagnosticHooksAbsent": true
+}

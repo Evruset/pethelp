@@ -1,0 +1,11 @@
+{
+  "classification": "EVIDENCE_METADATA_COUNT_CORRECTION",
+  "originalStickyHttpTranscription": 71,
+  "correctStickyHttp": 75,
+  "basis": "Accepted105=75HTTP+26contract+3storage+1upgrade,0skipped; unchanged hashes. Fresh upgrade counted separately in fresh421, excluded from reused122.",
+  "freshTests": 421,
+  "stickyTests": 122,
+  "consolidatedUnique": 543,
+  "noTestRerun": true,
+  "recordedLauncherCaveat": "As-executed launcher has obsolete71 sticky metadata; affects reporting only, not selected suites/tests/thresholds or actual execution."
+}

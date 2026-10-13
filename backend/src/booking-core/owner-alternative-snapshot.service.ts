@@ -63,7 +63,7 @@ export class OwnerAlternativeSnapshotService {
       SELECT
         h.id::text AS hold_id,
         h.state,
-        h.version,
+        COALESCE(appointment.version,h.version) AS version,
         swap.original_slot_id::text AS original_slot_id,
         original_slot.starts_at AS original_starts_at,
         original_slot.ends_at AS original_ends_at,
@@ -84,6 +84,7 @@ export class OwnerAlternativeSnapshotService {
         WHERE candidate.original_hold_id=h.id
         ORDER BY candidate.updated_at DESC LIMIT 1
       ) swap ON true
+      LEFT JOIN booking_schema.appointments appointment ON appointment.id=swap.appointment_id
       JOIN clinic_schema.appointment_slots original_slot ON original_slot.id = swap.original_slot_id
       JOIN clinic_schema.appointment_slots alternative_slot ON alternative_slot.id = swap.alternative_slot_id
       JOIN clinic_schema.clinic_locations location ON location.id=original_slot.clinic_location_id

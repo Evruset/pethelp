@@ -1,0 +1,94 @@
+{
+  "database": "vethelp_w4b03a01_accepted_slice",
+  "migrations": 72,
+  "checksums": 72,
+  "byte_versions": 24,
+  "events": 25,
+  "job_sources": 3,
+  "receipts": 0,
+  "result_bindings": 0,
+  "deadlocks": 0,
+  "other_idle_in_transaction": 0,
+  "provenance_triggers": [
+    {
+      "table": "document_byte_events",
+      "trigger": "byte_event_context",
+      "enabled": "O"
+    },
+    {
+      "table": "document_byte_events",
+      "trigger": "byte_no_mutation",
+      "enabled": "O"
+    },
+    {
+      "table": "document_byte_events",
+      "trigger": "byte_no_truncate",
+      "enabled": "O"
+    },
+    {
+      "table": "document_byte_versions",
+      "trigger": "byte_no_mutation",
+      "enabled": "O"
+    },
+    {
+      "table": "document_byte_versions",
+      "trigger": "byte_no_truncate",
+      "enabled": "O"
+    },
+    {
+      "table": "document_byte_versions",
+      "trigger": "byte_version_context",
+      "enabled": "O"
+    },
+    {
+      "table": "ocr_attempt_byte_receipts",
+      "trigger": "byte_no_mutation",
+      "enabled": "O"
+    },
+    {
+      "table": "ocr_attempt_byte_receipts",
+      "trigger": "byte_no_truncate",
+      "enabled": "O"
+    },
+    {
+      "table": "ocr_attempt_byte_receipts",
+      "trigger": "byte_receipt_disabled",
+      "enabled": "O"
+    },
+    {
+      "table": "ocr_job_byte_sources",
+      "trigger": "byte_no_mutation",
+      "enabled": "O"
+    },
+    {
+      "table": "ocr_job_byte_sources",
+      "trigger": "byte_no_truncate",
+      "enabled": "O"
+    },
+    {
+      "table": "ocr_job_byte_sources",
+      "trigger": "byte_source_context",
+      "enabled": "O"
+    },
+    {
+      "table": "ocr_job_byte_sources",
+      "trigger": "ocr_bound_source_guard",
+      "enabled": "O"
+    },
+    {
+      "table": "ocr_result_byte_bindings",
+      "trigger": "byte_no_mutation",
+      "enabled": "O"
+    },
+    {
+      "table": "ocr_result_byte_bindings",
+      "trigger": "byte_no_truncate",
+      "enabled": "O"
+    },
+    {
+      "table": "ocr_result_byte_bindings",
+      "trigger": "byte_result_binding_disabled",
+      "enabled": "O"
+    }
+  ]
+}

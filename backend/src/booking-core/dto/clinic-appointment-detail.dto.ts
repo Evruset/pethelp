@@ -19,20 +19,36 @@ export class ClinicAppointmentDetailDisplayNameDto {
   @ApiProperty() displayName!: string;
 }
 
+export class ClinicAppointmentDetailOwnerDto {
+  @ApiProperty({ type: String, nullable: true, description: 'Null when no authoritative Owner name exists.' }) displayName!: string | null;
+  @ApiProperty({ type: String, nullable: true, description: 'Authoritative Owner identity phone, if available.' }) phone!: string | null;
+}
+
 export class ClinicAppointmentDetailPetDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty() displayName!: string;
   @ApiProperty() speciesLabel!: string;
+  @ApiProperty({ type: String, nullable: true }) breed!: string | null;
 }
 
+export class ClinicAppointmentOperationsDto {
+  @ApiProperty({format:'uuid'}) slotId!:string;
+  @ApiProperty({type:String,nullable:true,format:'uuid'}) serviceId!:string|null;
+  @ApiProperty() lifecycle!:string;
+  @ApiProperty() canCancel!:boolean;
+  @ApiProperty() canPropose!:boolean;
+  @ApiProperty({type:String,nullable:true}) cancellationReason!:string|null;
+  @ApiProperty({type:'array',items:{type:'object',properties:{type:{type:'string'},at:{type:'string',format:'date-time'}}}}) events!:{type:string;at:string}[];
+}
 export class ClinicAppointmentDetailDto {
+  @ApiProperty({type:ClinicAppointmentOperationsDto}) operations!:ClinicAppointmentOperationsDto;
   @ApiProperty({ format: 'uuid' }) clinicId!: string;
   @ApiProperty({ format: 'uuid' }) locationId!: string;
   @ApiProperty({ format: 'date-time' }) serverNow!: string;
   @ApiProperty({ type: ClinicAppointmentDetailAppointmentDto }) appointment!: ClinicAppointmentDetailAppointmentDto;
   @ApiProperty({ type: ClinicAppointmentDetailScheduleDto }) schedule!: ClinicAppointmentDetailScheduleDto;
-  @ApiProperty({ type: ClinicAppointmentDetailDisplayNameDto, nullable: true })
-  owner!: ClinicAppointmentDetailDisplayNameDto | null;
+  @ApiProperty({ type: ClinicAppointmentDetailOwnerDto, nullable: true })
+  owner!: ClinicAppointmentDetailOwnerDto | null;
   @ApiProperty({ type: ClinicAppointmentDetailPetDto }) pet!: ClinicAppointmentDetailPetDto;
   @ApiProperty({ type: ClinicAppointmentDetailDisplayNameDto, nullable: true })
   service!: ClinicAppointmentDetailDisplayNameDto | null;

@@ -1,0 +1,48 @@
+FAIL test/owner-ocr-foundation.e2e-spec.ts
+  ● Test suite failed to run
+
+    [96mtest/owner-ocr-foundation.e2e-spec.ts[0m:[93m55[0m:[93m181[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ sub: `${string}-${string}-${string}-${string}-${string}`; roles: Role[]; } | { readonly sub: `${string}-${string}-${string}-${string}-${string}`; readonly roles: readonly [Role.OWNER]; }' is not assignable to parameter of type 'JwtPayload'.
+      Type '{ readonly sub: `${string}-${string}-${string}-${string}-${string}`; readonly roles: readonly [Role.OWNER]; }' is not assignable to type 'JwtPayload'.
+        Types of property 'roles' are incompatible.
+          The type 'readonly [Role.OWNER]' is 'readonly' and cannot be assigned to the mutable type 'Role[]'.
+
+    [7m55[0m     for(const [actor,p,d] of [[{sub:foreignOwner,roles:[Role.OWNER]},pet,doc],[owner,pet,foreign],[owner,otherPet,doc],[owner,pet,randomUUID()]] as const)await expect(jobs[method](actor,p,d)).rejects.toMatchObject({status:404});
+    [7m  [0m [91m                                                                                                                                                                                    ~~~~~[0m
+
+FAIL test/owner-ocr-migration.e2e-spec.ts (6.218 s)
+  ● OCR append-only populated legacy upgrade › preserves exact legacy rows and checksums, classifies old values unverified, and refuses destructive rollback
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 5
+    + Received  + 0
+
+    @@ -342,11 +342,6 @@
+        Object {
+          "file_name": "1719730000000_add_appointment_medical_sharing.js",
+          "recorded_at": 2026-10-11T14:20:44.007Z,
+          "sha256": "759ab33c13a41b3afbb235754b32ac09cc0ef0920c43989e3f0b34ef26e02ff9",
+        },
+    -   Object {
+    -     "file_name": "1719740000000_owner_ocr_foundation.js",
+    -     "recorded_at": 2026-10-11T14:20:44.014Z,
+    -     "sha256": "fd4e645ba6e2ec79374b70ad2f3b9d747d91438705ce57ab406dc9c25433aef3",
+    -   },
+      ]
+
+      19 |       expect((await db.query("SELECT authority,raw_result FROM pet_schema.ocr_legacy_unverified ORDER BY source_kind")).rows).toEqual([{authority:'LEGACY_UNVERIFIED',raw_result:ocr},{authority:'LEGACY_UNVERIFIED',raw_result:history}]);
+      20 |       expect((await db.query('SELECT count(*)::int n FROM pet_schema.ocr_jobs')).rows[0].n).toBe(0);
+    > 21 |       expect((await db.query('SELECT * FROM public.schema_migration_checksums WHERE file_name NOT LIKE $1 ORDER BY file_name',['171974%'])).rows).toEqual(prior);
+         |                                                                                                                                                   ^
+      22 |       expect(()=>migrate(['down','1'])).toThrow();expect((await db.query("SELECT * FROM schema_migrations WHERE name LIKE '171974%'")).rows).toHaveLength(1);
+      23 |     }finally{await db?.end();await admin.query(`DROP DATABASE IF EXISTS "${name}"`);await admin.end();}
+      24 |   });
+
+      at Object.<anonymous> (test/owner-ocr-migration.e2e-spec.ts:21:147)
+
+Test Suites: 2 failed, 2 total
+Tests:       1 failed, 1 total
+Snapshots:   0 total
+Time:        13.736 s
+Ran all test suites within paths "test/owner-ocr-foundation.e2e-spec.ts", "test/owner-ocr-migration.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4b-01-20261011/focused.json

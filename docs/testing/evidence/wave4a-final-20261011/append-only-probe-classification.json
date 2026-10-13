@@ -1,0 +1,6 @@
+{
+  "classification": "DIAGNOSTIC_SQL_NAME_ERROR",
+  "query": "Read-only probe used nonexistent guessed table; no mutation",
+  "actualTable": "audit_schema.clinic_booking_contract_profile_audit",
+  "reviewerSource": "migrations171964/171965"
+}

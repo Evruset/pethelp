@@ -1,0 +1,10 @@
+PASS src/booking-core/clinic-contract-profile-audit-migration.spec.ts (6.938 s)
+  clinic booking contract profile audit hardening migration
+    ✓ creates a forward-only audit archive with trusted change metadata (6 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        7.253 s
+Ran all test suites within paths "src/booking-core/clinic-contract-profile-audit-migration.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-056.json

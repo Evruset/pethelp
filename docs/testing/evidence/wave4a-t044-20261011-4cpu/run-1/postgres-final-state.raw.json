@@ -1,0 +1,5 @@
+{
+  "encoding": "utf8",
+  "originalSha256": "9c459e5db25aeab7de85135c53c51f7207e5adca2f4c154f311a93125b6c0647",
+  "raw": "        datname        | deadlocks | temp_files | temp_bytes | numbackends \n-----------------------+-----------+------------+------------+-------------\n t044_control_11a_run1 |         0 |          0 |          0 |           1\n(1 row)\n\n state  | count \n--------+-------\n active |     1\n(1 row)\n\n"
+}

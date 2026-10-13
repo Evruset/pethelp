@@ -1,0 +1,5 @@
+OpenAPI exported to /workspace/backend/artifacts/openapi/swagger.json
+OpenAPI contract assertion passed
+BP-11 closed minimum OpenAPI contract PASS
+Owner medical sharing closed OpenAPI contract PASS
+Clinic shared read model and binary Document OpenAPI contract PASS

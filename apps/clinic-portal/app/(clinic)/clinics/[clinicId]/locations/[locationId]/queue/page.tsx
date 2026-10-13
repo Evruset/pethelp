@@ -1,3 +1,4 @@
+import {isProductSurfaceEnabled,resolveMvpProductScope} from '@/lib/config/mvp-product-scope';
 import { ClinicQueueClientV2 } from '@/components/queue/ClinicQueueClientV2';
 import { ClinicBackendError, getManualConfirmationQueue } from '@/lib/api/clinic-queue';
 import { canAccessClinicLocation, getClinicSession } from '@/lib/auth/clinic-session';
@@ -59,7 +60,7 @@ export default async function ClinicQueuePage({ params }: PageProps) {
     const canReplayHold = hasCapability(effectiveSession, 'booking.replay.read') && hasClinicScope(effectiveSession, clinicId, locationId);
     try {
       const queue = await getManualConfirmationQueue(session, clinicId, locationId);
-      return <ClinicQueueClientV2 clinicId={clinicId} locationId={locationId} initialQueue={queue} canInspectHold={canInspectHold} canReplayHold={canReplayHold} />;
+      return <ClinicQueueClientV2 clinicId={clinicId} locationId={locationId} initialQueue={queue} canInspectHold={canInspectHold} canReplayHold={canReplayHold} canProposeAlternative={isProductSurfaceEnabled('alternative-time')} canViewAudit={resolveMvpProductScope()==='LEGACY_COMPAT'} />;
     } catch (error) {
       if (error instanceof ClinicBackendError && error.status === 403) return <AccessDenied />;
       return <ServiceUnavailable />;

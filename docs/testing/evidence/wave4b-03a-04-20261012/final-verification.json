@@ -1,0 +1,21 @@
+{
+  "HEAD": "23653ebb69690171d27b7fdbbe9646a914b3c435",
+  "branch": "agent/v15-w4b-03a-04-drain-wdlk821n",
+  "diffCheck": "PASS",
+  "indexEmpty": true,
+  "original674ByteIdentical": true,
+  "originalDigest": "f4fe840760b5c771ac774d252cea85b2303dc535872bf255450900dbbdb9fbb5",
+  "productionImplementationChanged": false,
+  "migrationChanged": false,
+  "publicAPIChanged": false,
+  "noCommitPush": true,
+  "activeDrainScenariosPASS": 5,
+  "restoreChecksPASS": 5,
+  "unresolvedFAIL": 0,
+  "reviews": [
+    "DB NO VETO",
+    "Security NO VETO",
+    "Operations NO VETO"
+  ],
+  "humanAcceptance": "NOT_RECORDED"
+}

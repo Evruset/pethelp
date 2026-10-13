@@ -1,0 +1,19 @@
+PASS src/owner-home/owner-home.service.spec.ts (8.49 s)
+  OwnerHomeService
+    ✓ returns deterministic no-pet state without reading care aggregates (10 ms)
+    ✓ selects the first pet deterministically and honors an owned requested hint (10 ms)
+    ✓ rejects invalid syntax but treats a foreign or stale UUID only as a hint (4 ms)
+    ✓ falls back to an active owned pet when a previously selected pet is archived (3 ms)
+    ✓ uses owner authority for all sources and filters every aggregate to the selected pet (4 ms)
+    ✓ applies safety escalation then alternative-slot precedence (3 ms)
+    ✓ never promotes a historical telemed safety flag over current care (2 ms)
+    ✓ maps doctor-late telemed and returns one allow-listed active care object (2 ms)
+    ✓ maps owner-action and confirmed bookings, and ignores unknown source states (2 ms)
+    ✓ returns only the minimal pet projection (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       10 passed, 10 total
+Snapshots:   0 total
+Time:        8.768 s
+Ran all test suites within paths "src/owner-home/owner-home.service.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-016.json

@@ -7,11 +7,9 @@ test.describe('PILOT_V1 product route containment', () => {
     '/telemed/vet',
     '/clinics/clinic-1/locations/location-1/telemed',
     '/clinics/clinic-1/locations/location-1/quality',
-    '/clinics/clinic-1/locations/location-1/vet/visits',
     '/api/telemed/vet/queue',
     '/api/clinic/clinic-1/locations/location-1/quality-dashboard',
     '/api/clinic/booking-holds/hold-1/alternative-slot?profile=LEGACY_COMPAT',
-    '/api/clinic/booking-holds/hold-1/complete',
   ]) {
     test(`returns 404 for ${path}`, async ({ request }) => {
       const response = await request.fetch(path, { method: path.endsWith('complete') ? 'POST' : 'GET' });

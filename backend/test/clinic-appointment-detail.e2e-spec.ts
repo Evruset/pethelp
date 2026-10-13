@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { resetBookingPersistence } from './helpers/booking-test-reset';
+import {randomUUID} from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
@@ -97,17 +97,18 @@ describe('Clinic appointment detail HTTP authority and privacy', () => {
         timezone: 'Europe/Moscow',
         sourceLabel: 'Вручную',
       },
-      owner: null,
-      pet: { id: IDS.pet, displayName: 'Барсик', speciesLabel: 'Кошка' },
+      owner: { displayName: null, phone: null },
+      pet: { id: IDS.pet, displayName: 'Барсик', speciesLabel: 'Кошка', breed: null },
       service: { displayName: 'Первичный приём' },
       veterinarian: { displayName: 'Доктор Айболит' },
       resource: { displayName: 'Кабинет 1' },
       availableActions: [],
+      operations:{slotId:IDS.slot,serviceId:IDS.service,lifecycle:expect.any(String),canCancel:expect.any(Boolean),canPropose:expect.any(Boolean),cancellationReason:null,events:[]},
     });
     for (const timestamp of [response.body.serverNow, response.body.appointment.createdAt, response.body.schedule.startsAt, response.body.schedule.endsAt]) {
       expect(new Date(timestamp).toISOString()).toBe(timestamp);
     }
-    expect(JSON.stringify(response.body)).not.toMatch(/hold|clinical|diagnos|prescription|phone|email|price|payment|audit/i);
+    expect(JSON.stringify(response.body)).not.toMatch(/hold|clinical|diagnos|prescription|email|price|payment|audit/i);
   });
 
   it('is default-off and cannot be bypassed through the backend route', async () => {
@@ -143,7 +144,8 @@ describe('Clinic appointment detail HTTP authority and privacy', () => {
     await database.query(`UPDATE clinic_schema.appointment_slots SET service_id = NULL, staff_id = NULL, resource_id = NULL WHERE id = $1`, [IDS.slot]);
     const response = await detail(actor());
     expect(response.status).toBe(200);
-    expect(response.body).toMatchObject({ owner: null, service: null, veterinarian: null, resource: null });
+    // BP-11 preserves the Owner projection with truthful unavailable fields.
+    expect(response.body).toMatchObject({ owner: { displayName: null, phone: null }, service: null, veterinarian: null, resource: null });
   });
 
   it('uses a safe presentation for unknown stored status without leaking the raw enum', async () => {
@@ -189,8 +191,8 @@ describe('Clinic appointment detail HTTP authority and privacy', () => {
 });
 
 async function resetFixtures(database: DatabaseService) {
-  await database.query('TRUNCATE clinic_schema.clinics, pet_schema.pets, identity_schema.users CASCADE');
-  await resetBookingPersistence(database);
+  if(process.env.NODE_ENV!=='test'||!config.databaseUrl.endsWith('/product_batch02_tests'))throw Error('BATCH02_TEST_DATABASE_REQUIRED');
+  for(const key of Object.keys(IDS) as (keyof typeof IDS)[])IDS[key]=randomUUID();
   await database.query('INSERT INTO identity_schema.users (id) SELECT unnest($1::uuid[])', [[IDS.owner, IDS.employee, IDS.admin, IDS.revoked, IDS.missingMembership, IDS.veterinarian]]);
   await database.query(`INSERT INTO clinic_schema.clinics (id, legal_name, public_name) VALUES ($1, 'Detail LLC', 'Detail'), ($2, 'Other LLC', 'Other')`, [IDS.clinic, IDS.otherClinic]);
   await database.query(`INSERT INTO clinic_schema.clinic_locations (id, clinic_id, address) VALUES ($1, $2, 'Detail'), ($3, $2, 'Other location'), ($4, $5, 'Other clinic')`, [IDS.location, IDS.clinic, IDS.otherLocation, IDS.otherClinicLocation, IDS.otherClinic]);

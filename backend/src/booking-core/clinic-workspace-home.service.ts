@@ -61,7 +61,9 @@ export class ClinicWorkspaceHomeService {
           freshness: { state: WorkspaceFreshnessState.FRESH, maxAgeSeconds: 30 },
           sections: [queue, schedule, appointments, veterinarian, quality],
         } as ClinicWorkspaceHomeDto;
-      }, { isolationLevel: 'REPEATABLE READ', readOnly: true });
+      // The authority gate takes FOR SHARE locks; PostgreSQL forbids those
+      // in READ ONLY transactions. Projection queries still perform no writes.
+      }, { isolationLevel: 'REPEATABLE READ' });
       this.recordTelemetry(result, input.employee.roles, performance.now() - startedAt);
       return result;
     } catch (error) {

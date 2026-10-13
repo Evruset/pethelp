@@ -3,6 +3,8 @@ import { ClinicScheduleBackendError, getClinicSchedule } from '@/lib/api/clinic-
 import { canAccessClinicLocation, getClinicSession } from '@/lib/auth/clinic-session';
 import { getEffectiveSession, hasCapability, hasClinicScope } from '@/lib/auth/effective-session';
 
+import { resolveMvpProductScope } from '@/lib/config/mvp-product-scope';
+
 export const dynamic = 'force-dynamic';
 
 type PageProps = {
@@ -53,8 +55,8 @@ export default async function ClinicSchedulePage({ params }: PageProps) {
 
   const from = new Date().toISOString();
   const to = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
-  const canCompleteAppointments = session.roles.includes('CLINIC_ADMIN')
-    || session.roles.includes('CLINIC_VETERINARIAN');
+  const canCompleteAppointments = resolveMvpProductScope() === 'LEGACY_COMPAT'
+    && (session.roles.includes('CLINIC_ADMIN') || session.roles.includes('CLINIC_VETERINARIAN'));
 
   try {
     const schedule = await getClinicSchedule(session, clinicId, locationId, from, to);

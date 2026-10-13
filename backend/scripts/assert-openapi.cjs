@@ -138,12 +138,20 @@ async function main() {
   const ownerPetList = document.paths?.['/v1/owner/pets']?.get;
   const ownerPetCreate = document.paths?.['/v1/owner/pets']?.post;
   const ownerPetRead = document.paths?.['/v1/owner/pets/{petId}']?.get;
+  const ownerPetDiary = document.paths?.['/v1/owner/pets/{petId}/diary']?.get;
   required(ownerPetList && ownerPetCreate && ownerPetRead, 'Owner Pet MVP routes are incomplete');
   for (const [path, method] of [
     ['/v1/owner/pets/{petId}', 'patch'], ['/v1/owner/pets/{petId}/archive', 'post'], ['/v1/owner/pets/{petId}/restore', 'post'],
-    ['/v1/owner/pets/{petId}/diary', 'get'], ['/v1/owner/pets/{petId}/care-summary', 'get'], ['/v1/owner/pets/{petId}/documents', 'post'],
+    ['/v1/owner/pets/{petId}/care-summary', 'get'], ['/v1/owner/pets/{petId}/documents', 'post'],
     ['/v1/owner/pets/{petId}/photo', 'post'], ['/v1/owner/pets/{petId}/photo', 'delete'],
   ]) required(!document.paths?.[path]?.[method], `PILOT_V1 must not advertise ${method.toUpperCase()} ${path}`);
+  required(ownerPetDiary, 'Wave 3 Owner Pet diary route is missing');
+  requireBearerAuth(ownerPetDiary, 'Owner pet diary');
+  requireStatuses(ownerPetDiary, ['200', '400', '401', '404', '500'], 'Owner pet diary');
+  requireErrorSchemas(ownerPetDiary, ['400', '401', '404', '500'], 'Owner pet diary');
+  const diarySchema = ownerPetDiary.responses?.['200']?.content?.['application/json']?.schema;
+  required(diarySchema?.additionalProperties === false, 'Owner pet diary response must be closed');
+  required(diarySchema?.properties?.clinicalEntries?.items?.additionalProperties === false, 'Owner pet clinical diary entries must be closed');
   for (const [operation, label] of [[ownerPetList, 'Owner pet list'], [ownerPetCreate, 'Owner pet create'], [ownerPetRead, 'Owner pet read']]) requireBearerAuth(operation, label);
   requireStatuses(ownerPetList, ['200', '401', '500'], 'Owner pet list');
   requireStatuses(ownerPetCreate, ['201', '400', '401', '409', '500'], 'Owner pet create');
@@ -196,6 +204,32 @@ async function main() {
       && completeVisit['x-required-capabilities'][0] === 'clinical.visit.complete',
     'Complete visit must require only clinical.visit.complete',
   );
+
+  const clinicalBase = '/v1/clinic/visits/{visitId}/results';
+  const clinicalResult = '/v1/clinic/visits/{visitId}/results/{resultId}';
+  const clinicalOperations = [
+    document.paths?.[clinicalBase]?.get,
+    document.paths?.[clinicalBase]?.post,
+    document.paths?.[clinicalResult]?.get,
+    document.paths?.[clinicalResult]?.patch,
+    document.paths?.[`${clinicalResult}/publish`]?.post,
+    document.paths?.[`${clinicalResult}/amendments`]?.post,
+  ];
+  required(clinicalOperations.every(Boolean), 'Clinical Result route matrix is incomplete');
+  required(clinicalOperations.every((operation) => operation.security?.some((item) => item.bearerAuth)), 'Every Clinical Result route must require bearerAuth');
+  required(clinicalOperations.every((operation) => operation.operationId), 'Every Clinical Result route must have an operationId');
+  const createClinical = document.paths?.[clinicalBase]?.post;
+  const editClinical = document.paths?.[clinicalResult]?.patch;
+  const publishClinical = document.paths?.[`${clinicalResult}/publish`]?.post;
+  const amendClinical = document.paths?.[`${clinicalResult}/amendments`]?.post;
+  const hasRequiredHeader = (operation, name) => operation.parameters?.some((parameter) => parameter.in === 'header' && parameter.name === name && parameter.required);
+  required(hasRequiredHeader(createClinical, 'Idempotency-Key') && hasRequiredHeader(createClinical, 'X-Correlation-ID'), 'Clinical draft create fencing headers are incomplete');
+  required(hasRequiredHeader(editClinical, 'If-Match') && hasRequiredHeader(editClinical, 'X-Correlation-ID'), 'Clinical draft edit fencing headers are incomplete');
+  required(['Idempotency-Key','If-Match','X-Correlation-ID'].every((name) => hasRequiredHeader(publishClinical, name)), 'Clinical publish fencing headers are incomplete');
+  required(['Idempotency-Key','X-Correlation-ID'].every((name) => hasRequiredHeader(amendClinical, name)), 'Clinical amendment fencing headers are incomplete');
+  required(amendClinical.responses?.['201']?.content?.['application/json']?.schema?.properties?.version?.minimum === 1, 'Clinical amendment response must expose a positive immutable version');
+  required([createClinical,editClinical,amendClinical].every((operation) => operation.requestBody?.content?.['application/json']?.schema?.additionalProperties === false), 'Clinical command bodies must be closed');
+  required([createClinical,editClinical,publishClinical,amendClinical].every((operation) => ['400','401','403','404','409','500'].every((status) => operation.responses?.[status])), 'Clinical command error matrices are incomplete');
 
   const alternativeSnapshot = document.paths?.['/v1/booking-holds/{holdId}/alternative']?.get;
   required(alternativeSnapshot, 'GET owner alternative slot snapshot is missing');
@@ -260,11 +294,11 @@ async function main() {
   }
   required(schemas.BookingHoldReadDto.properties.lastUpdatedAt?.format === 'date-time', 'BookingHoldReadDto.lastUpdatedAt must be date-time');
   required(schemas.HoldDto.properties.lastUpdatedAt?.format === 'date-time', 'HoldDto.lastUpdatedAt must be date-time');
-  required(!schemas.HoldDto.properties.appointmentId, 'PILOT_V1 create hold must not imply an appointment');
-  required(schemas.HoldDto.properties.confirmationMode?.enum?.join() === 'MANUAL', 'PILOT_V1 create hold must be manual confirmation only');
+  required(schemas.HoldDto.properties.appointmentId?.format === 'uuid' && !schemas.HoldDto.required?.includes('appointmentId'), 'PILOT_V1 create hold appointmentId must be optional and authoritative');
+  required(schemas.HoldDto.properties.confirmationMode?.enum?.join() === 'AUTOMATIC,MANUAL', 'PILOT_V1 create hold must advertise both clinic contract confirmation modes');
   required(schemas.HoldDto.additionalProperties === false, 'PILOT_V1 create response must be closed');
-  required(Object.keys(schemas.HoldDto.properties).sort().join() === ['aggregateVersion','confirmationMode','correlationId','expiresAt','holdId','lastUpdatedAt','nextAction','serverNow','slotId','status'].sort().join(), 'PILOT_V1 create response keys must be exact');
-  required(schemas.HoldDto.properties.status?.enum?.join() === 'PENDING_CONFIRMATION', 'PILOT_V1 create response status must be pending confirmation');
+  required(Object.keys(schemas.HoldDto.properties).sort().join() === ['aggregateVersion','appointmentId','confirmationMode','correlationId','expiresAt','holdId','lastUpdatedAt','nextAction','serverNow','slotId','status'].sort().join(), 'PILOT_V1 create response keys must be exact');
+  required(schemas.HoldDto.properties.status?.enum?.join() === 'PENDING_CONFIRMATION,CONFIRMED', 'PILOT_V1 create response status must expose both authoritative create outcomes');
   required(schemas.HoldDto.properties.aggregateVersion?.type === 'integer' && schemas.HoldDto.properties.aggregateVersion.minimum === 1, 'HoldDto aggregateVersion must be a positive integer');
   required(schemas.BookingHistoryCursorDto?.properties?.occurredAt?.format === 'date-time', 'Booking history cursor occurredAt must be date-time');
   required(schemas.BookingHistoryCursorDto?.properties?.eventId?.format === 'uuid', 'Booking history cursor eventId must be UUID');

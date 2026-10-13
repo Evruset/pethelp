@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { resetBookingPersistence } from './helpers/booking-test-reset';
+import { renewRegressionClinicIds } from './helpers/regression-fixture-isolation';
 import type { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
@@ -151,15 +152,15 @@ describe('Clinic appointments registry HTTP authority and cursor matrix', () => 
   });
 
   it.each([
-    ['missing membership', { sub: IDS.noMembership, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic], locationIds: [IDS.location] }],
-    ['revoked membership', { sub: IDS.revoked, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic], locationIds: [IDS.location] }],
-    ['role denied', { sub: IDS.vet, roles: [Role.CLINIC_VETERINARIAN], clinicIds: [IDS.clinic], locationIds: [IDS.location] }],
-    ['missing clinic scope', { sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], locationIds: [IDS.location] }],
-    ['incompatible clinic scope', { sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.otherClinic], locationIds: [IDS.location] }],
-    ['missing location scope', { sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic] }],
-    ['incompatible location scope', { sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic], locationIds: [IDS.otherLocation] }],
-  ] as Array<[string, Actor]>)('denies %s without projection leakage', async (_name, actor) => {
-    const response = await registry(actor, { bucket: 'upcoming' });
+    ['missing membership', () => ({ sub: IDS.noMembership, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic], locationIds: [IDS.location] })],
+    ['revoked membership', () => ({ sub: IDS.revoked, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic], locationIds: [IDS.location] })],
+    ['role denied', () => ({ sub: IDS.vet, roles: [Role.CLINIC_VETERINARIAN], clinicIds: [IDS.clinic], locationIds: [IDS.location] })],
+    ['missing clinic scope', () => ({ sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], locationIds: [IDS.location] })],
+    ['incompatible clinic scope', () => ({ sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.otherClinic], locationIds: [IDS.location] })],
+    ['missing location scope', () => ({ sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic] })],
+    ['incompatible location scope', () => ({ sub: IDS.allowed, roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [IDS.clinic], locationIds: [IDS.otherLocation] })],
+  ] as Array<[string, () => Actor]>)('denies %s without projection leakage', async (_name, actorFactory) => {
+    const response = await registry(actorFactory(), { bucket: 'upcoming' });
     expect(response.status).toBe(403);
     expect(['CLINIC_SCOPE_MISMATCH', 'ROLE_FORBIDDEN']).toContain(response.body.code);
     expect(response.body.items).toBeUndefined();
@@ -232,6 +233,7 @@ function decodeCursor(cursor: string): Record<string, unknown> {
 }
 
 async function resetFixtures(database: DatabaseService) {
+  renewRegressionClinicIds(IDS, config.databaseUrl);
   await database.query('TRUNCATE clinic_schema.clinics, pet_schema.pets, identity_schema.users CASCADE');
   await resetBookingPersistence(database);
   await database.query('INSERT INTO identity_schema.users (id) SELECT unnest($1::uuid[])', [[IDS.owner, IDS.allowed, IDS.admin, IDS.revoked, IDS.noMembership, IDS.vet]]);

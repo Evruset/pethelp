@@ -1,0 +1,17 @@
+[32m[Nest] 1  - [39m10/11/2026, 1:02:02 PM [32m    LOG[39m [38;5;3m[HoldExpirationService] [39m[32mExpired 1 hold(s)[39m
+[32m[Nest] 1  - [39m10/11/2026, 1:01:32 PM [32m    LOG[39m [38;5;3m[HoldExpirationService] [39m[32mExpired 1 hold(s)[39m
+[32m[Nest] 1  - [39m10/11/2026, 1:01:32 PM [32m    LOG[39m [38;5;3m[HoldExpirationService] [39m[32mExpired 2 hold(s)[39m
+PASS src/workers/hold-expiration.service.spec.ts (8.092 s)
+  HoldExpirationService lifecycle
+    ✓ runs one shared interval and retries after a failed scheduled cycle (104 ms)
+    ✓ does not overlap cycles and waits for the active cycle during shutdown (4 ms)
+    ✓ keeps direct run failures observable to callers (2 ms)
+    ✓ resets lifecycle state after a synchronous booking failure (10 ms)
+    ✓ exposes bounded success, processed, failure and backlog health signals (17 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       5 passed, 5 total
+Snapshots:   0 total
+Time:        8.514 s
+Ran all test suites within paths "src/workers/hold-expiration.service.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-029.json

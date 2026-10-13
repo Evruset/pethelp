@@ -18,7 +18,7 @@ it('renders a true empty state', async () => {
 
 it('creates from the zero state and leaves selection authoritative to the provider', async () => {
   const screen=await render(<PetJourneyScreen />); await act(async()=>fireEvent.press(screen.getByText('Добавить питомца')));
-  await act(async()=>fireEvent.changeText(screen.getByLabelText('Имя питомца'),'  Мурка  ')); await act(async()=>fireEvent.press(screen.getByText('CAT'))); await act(async()=>fireEvent.press(screen.getByText('Сохранить питомца')));
+  await act(async()=>fireEvent.changeText(screen.getByLabelText('Имя питомца'),'  Мурка  ')); await act(async()=>fireEvent.press(screen.getByText('Кошка'))); await act(async()=>fireEvent.press(screen.getByText('Сохранить питомца')));
   await waitFor(() => expect(mockJourney.create).toHaveBeenCalledWith({ name:'Мурка', species:'CAT' }));
 });
 

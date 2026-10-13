@@ -5,6 +5,7 @@ import { DatabaseService } from '../database/database.service';
 import { ClinicEmployeeAccessService } from './clinic-employee-access.service';
 
 export type VeterinarianVisitView = { holdId: string; clinicId: string; locationId: string; scheduledStart: string; scheduledEnd: string; status: string; petDisplayName: string; species: string };
+export type VeterinarianVisitDetailView = VeterinarianVisitView & { visitId: string | null; appointmentId: string };
 @Injectable()
 export class VeterinarianVisitReadService {
   constructor(private readonly database: DatabaseService, private readonly access: ClinicEmployeeAccessService) {}
@@ -14,38 +15,50 @@ export class VeterinarianVisitReadService {
       const result = await client.query<VeterinarianVisitRow>(`
         SELECT h.id::text AS hold_id, l.clinic_id::text AS clinic_id,
                s.clinic_location_id::text AS location_id, s.starts_at, s.ends_at,
-               h.state, p.name AS pet_name, p.species
+               CASE WHEN v.id IS NULL THEN 'CONFIRMED' ELSE 'COMPLETED' END AS state,
+               p.name AS pet_name, p.species
         FROM booking_schema.booking_holds h
+        JOIN booking_schema.appointments a ON a.hold_id = h.id AND a.owner_id = h.owner_id AND a.pet_id = h.pet_id AND a.slot_id = h.slot_id
         JOIN clinic_schema.appointment_slots s ON s.id = h.slot_id
         JOIN clinic_schema.clinic_locations l ON l.id = s.clinic_location_id
         JOIN pet_schema.pets p ON p.id = h.pet_id
+        LEFT JOIN clinical_schema.visits v ON v.appointment_id = a.id AND v.booking_hold_id = h.id
+          AND v.owner_id = a.owner_id AND v.pet_id = a.pet_id
+          AND v.clinic_id = l.clinic_id AND v.location_id = s.clinic_location_id AND v.slot_id = h.slot_id
         WHERE l.clinic_id = $1::uuid
           AND s.clinic_location_id = $2::uuid
-          AND h.state IN ('CONFIRMED', 'COMPLETED')
+          AND ((h.state = 'CONFIRMED' AND a.status = 'CONFIRMED' AND a.lifecycle_state = 'CONFIRMED' AND v.id IS NULL)
+            OR (h.state = 'COMPLETED' AND a.status = 'COMPLETED' AND a.lifecycle_state IS NULL AND v.id IS NOT NULL))
         ORDER BY s.starts_at
       `, [clinicId, locationId]);
       return result.rows.map(toView);
     });
   }
 
-  async detail(clinicId: string, locationId: string, holdId: string, employee: JwtPayload): Promise<VeterinarianVisitView> {
+  async detail(clinicId: string, locationId: string, holdId: string, employee: JwtPayload): Promise<VeterinarianVisitDetailView> {
     return this.database.withTransaction(async (client) => {
       await this.access.assertClinicalVisitWorkspaceReadAccess(client, employee, clinicId, locationId);
-      const result = await client.query<VeterinarianVisitRow>(`
+      const result = await client.query<VeterinarianVisitDetailRow>(`
         SELECT h.id::text AS hold_id, l.clinic_id::text AS clinic_id,
                s.clinic_location_id::text AS location_id, s.starts_at, s.ends_at,
-               h.state, p.name AS pet_name, p.species
+               CASE WHEN v.id IS NULL THEN 'CONFIRMED' ELSE 'COMPLETED' END AS state,
+               p.name AS pet_name, p.species, v.id::text AS visit_id, a.id::text AS appointment_id
         FROM booking_schema.booking_holds h
+        JOIN booking_schema.appointments a ON a.hold_id = h.id AND a.owner_id = h.owner_id AND a.pet_id = h.pet_id AND a.slot_id = h.slot_id
         JOIN clinic_schema.appointment_slots s ON s.id = h.slot_id
         JOIN clinic_schema.clinic_locations l ON l.id = s.clinic_location_id
         JOIN pet_schema.pets p ON p.id = h.pet_id
+        LEFT JOIN clinical_schema.visits v ON v.appointment_id = a.id AND v.booking_hold_id = h.id
+          AND v.owner_id = a.owner_id AND v.pet_id = a.pet_id
+          AND v.clinic_id = l.clinic_id AND v.location_id = s.clinic_location_id AND v.slot_id = h.slot_id
         WHERE h.id = $1::uuid
           AND l.clinic_id = $2::uuid
           AND s.clinic_location_id = $3::uuid
-          AND h.state IN ('CONFIRMED', 'COMPLETED')
+          AND ((h.state = 'CONFIRMED' AND a.status = 'CONFIRMED' AND a.lifecycle_state = 'CONFIRMED' AND v.id IS NULL)
+            OR (h.state = 'COMPLETED' AND a.status = 'COMPLETED' AND a.lifecycle_state IS NULL AND v.id IS NOT NULL))
       `, [holdId, clinicId, locationId]);
       if (!result.rows[0]) throw DomainErrors.clinicScopeMismatch();
-      return toView(result.rows[0]);
+      return { ...toView(result.rows[0]), visitId: result.rows[0].visit_id, appointmentId: result.rows[0].appointment_id };
     });
   }
 }
@@ -54,6 +67,7 @@ type VeterinarianVisitRow = {
   hold_id: string; clinic_id: string; location_id: string; starts_at: Date; ends_at: Date;
   state: 'CONFIRMED' | 'COMPLETED'; pet_name: string; species: string;
 };
+type VeterinarianVisitDetailRow = VeterinarianVisitRow & { visit_id: string | null; appointment_id: string };
 
 function toView(row: VeterinarianVisitRow): VeterinarianVisitView {
   return {

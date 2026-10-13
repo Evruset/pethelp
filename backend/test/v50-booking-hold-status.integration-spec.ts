@@ -10,12 +10,13 @@ import { DatabaseService } from '../src/database/database.service';
 import { ClinicQueueService } from '../src/booking-core/clinic-queue.service';
 import { BookingSecurityService } from '../src/booking-core/booking-security.service';
 import { HoldExpirationService } from '../src/workers/hold-expiration.service';
+import { BookingPolicyResolver } from '../src/booking-core/booking-policy.resolver';
 
 jest.setTimeout(45_000);
 
 describe('V50 owner booking hold/status (real PostgreSQL)', () => {
   const database = new DatabaseService();
-  const creation = new BookingHoldCreationService(database, new BookingRepository());
+  const creation = new BookingHoldCreationService(database, new BookingRepository(), new BookingPolicyResolver());
   const clinicAccess = { assertBookingHoldReadAccess: jest.fn(), assertLocationAccess: jest.fn() } as never;
   const read = new BookingHoldReadService(database, clinicAccess);
   const queueAccess = { assertBookingQueueReadAccess: jest.fn() } as never;
@@ -107,6 +108,166 @@ describe('V50 owner booking hold/status (real PostgreSQL)', () => {
       expect(confirmed).toMatchObject({ status: 'CONFIRMED', statusCode: 'CONFIRMED', confirmationMode: 'MANUAL' });
       expect(confirmed).not.toHaveProperty('state');
     }
+  });
+
+  it('supports manual and v1.5 auto-confirm contracts in one PILOT runtime', async () => {
+    if (process.env.MVP_SCOPE_PROFILE !== 'PILOT_V1') return;
+
+    let fixture = await seedFixture(database, 1);
+    const manual = await creation.createLocalHold(command(fixture, fixture.owners[0], fixture.pets[0], randomUUID()));
+    expect(manual).toMatchObject({ status: 'PENDING_CONFIRMATION', confirmationMode: 'MANUAL' });
+    expect(manual).not.toHaveProperty('appointmentId');
+
+    fixture = await seedFixture(database, 2);
+    await database.query("UPDATE clinic_schema.clinics SET booking_contract_profile='V15_AUTO_CONFIRM' WHERE id=$1", [fixture.clinicId]);
+    const autoKey = randomUUID();
+    const autoInput = command(fixture, fixture.owners[0], fixture.pets[0], autoKey);
+    const confirmed = await creation.createLocalHold(autoInput);
+    expect(confirmed).toMatchObject({ status: 'CONFIRMED', confirmationMode: 'AUTOMATIC' });
+    expect(confirmed.appointmentId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(await creation.createLocalHold(autoInput)).toEqual(confirmed);
+    await expect(creation.createLocalHold({ ...autoInput, serviceId: randomUUID() }))
+      .rejects.toMatchObject({ status: 409, response: { code: 'IDEMPOTENCY_CONFLICT' } });
+
+    const effects = await database.query<{
+      state: string; held_count: number; booked_count: number; appointments: string; confirmed_events: string; audits: string;
+    }>(`
+      SELECT h.state, s.held_count, s.booked_count,
+        (SELECT COUNT(*)::text FROM booking_schema.appointments WHERE hold_id=h.id) appointments,
+        (SELECT COUNT(*)::text FROM booking_schema.outbox_events WHERE aggregate_id=h.id AND event_type='booking.confirmed.v1') confirmed_events,
+        (SELECT COUNT(*)::text FROM audit_schema.audit_log WHERE aggregate_id=h.id AND action='booking.hold.created') audits
+      FROM booking_schema.booking_holds h
+      JOIN clinic_schema.appointment_slots s ON s.id=h.slot_id
+      WHERE h.id=$1::uuid
+    `, [confirmed.holdId]);
+    expect(effects.rows[0]).toEqual({ state: 'CONFIRMED', held_count: 0, booked_count: 1, appointments: '1', confirmed_events: '1', audits: '1' });
+    const visible = await queue.listManualConfirmationQueue({
+      clinicId: fixture.clinicId,
+      locationId: fixture.locationId,
+      employee: { sub: randomUUID(), roles: [Role.CLINIC_RECEPTIONIST], clinicIds: [fixture.clinicId] },
+      limit: 50,
+    });
+    expect(visible.items).toEqual([]);
+
+    fixture = await seedFixture(database, 2);
+    await database.query("UPDATE clinic_schema.clinics SET booking_contract_profile='V15_AUTO_CONFIRM' WHERE id=$1", [fixture.clinicId]);
+    const outcomes = await Promise.allSettled([
+      creation.createLocalHold(command(fixture, fixture.owners[0], fixture.pets[0], randomUUID())),
+      creation.createLocalHold(command(fixture, fixture.owners[1], fixture.pets[1], randomUUID())),
+    ]);
+    expect(outcomes.filter((outcome) => outcome.status === 'fulfilled')).toHaveLength(1);
+    expect(outcomes.filter((outcome) => outcome.status === 'rejected')).toHaveLength(1);
+    const concurrent = await database.query<{ booked_count: number; held_count: number; appointments: string }>(`
+      SELECT booked_count, held_count,
+        (SELECT COUNT(*)::text FROM booking_schema.appointments WHERE slot_id=$1) appointments
+      FROM clinic_schema.appointment_slots WHERE id=$1
+    `, [fixture.slotId]);
+    expect(concurrent.rows[0]).toEqual({ booked_count: 1, held_count: 0, appointments: '1' });
+
+    fixture = await seedFixture(database, 1);
+    await database.query("UPDATE clinic_schema.clinics SET booking_contract_profile='V15_AUTO_CONFIRM' WHERE id=$1", [fixture.clinicId]);
+    await database.query('UPDATE clinic_schema.appointment_slots SET version=version+1 WHERE id=$1', [fixture.slotId]);
+    await expect(creation.createLocalHold(command(fixture, fixture.owners[0], fixture.pets[0], randomUUID())))
+      .rejects.toMatchObject({ status: 409, response: { code: 'BOOKING_STATE_CONFLICT' } });
+  });
+
+  it('serializes clinic suspension against booking and rejects every non-active state', async () => {
+    if (process.env.MVP_SCOPE_PROFILE !== 'PILOT_V1') return;
+    const fixture = await seedFixture(database, 1);
+    await database.query("UPDATE clinic_schema.clinics SET booking_contract_profile='V15_AUTO_CONFIRM' WHERE id=$1", [fixture.clinicId]);
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    let statusLocked!: () => void;
+    const locked = new Promise<void>((resolve) => { statusLocked = resolve; });
+    const suspend = database.withTransaction(async (client) => {
+      await client.query("UPDATE clinic_schema.clinics SET status='SUSPENDED' WHERE id=$1", [fixture.clinicId]);
+      statusLocked();
+      await gate;
+    });
+    await locked;
+    await expect(creation.createLocalHold(command(fixture, fixture.owners[0], fixture.pets[0], randomUUID())))
+      .rejects.toMatchObject({ status: 409, response: { code: 'SLOT_LOCKED_RETRY' } });
+    release();
+    await suspend;
+    await expect(creation.createLocalHold(command(fixture, fixture.owners[0], fixture.pets[0], randomUUID())))
+      .rejects.toMatchObject({ status: 422, response: { code: 'SLOT_UNAVAILABLE' } });
+    const effects = await database.query<{ holds: string; booked: number; held: number }>(`
+      SELECT (SELECT COUNT(*)::text FROM booking_schema.booking_holds WHERE slot_id=$1) holds,
+             booked_count booked, held_count held
+      FROM clinic_schema.appointment_slots WHERE id=$1
+    `, [fixture.slotId]);
+    expect(effects.rows[0]).toEqual({ holds: '0', booked: 0, held: 0 });
+  });
+
+  it('serializes profile changes and applies rollback only to new booking attempts', async () => {
+    if (process.env.MVP_SCOPE_PROFILE !== 'PILOT_V1') return;
+    const fixture = await seedFixture(database, 2);
+    await database.query("UPDATE clinic_schema.clinics SET booking_contract_profile='V15_AUTO_CONFIRM' WHERE id=$1", [fixture.clinicId]);
+    const confirmed = await creation.createLocalHold(command(fixture, fixture.owners[0], fixture.pets[0], randomUUID()));
+    expect(confirmed).toMatchObject({ status: 'CONFIRMED', confirmationMode: 'AUTOMATIC' });
+
+    const nextSlot = randomUUID();
+    await database.query(`
+      INSERT INTO clinic_schema.appointment_slots (
+        id, clinic_location_id, service_id, starts_at, ends_at, capacity, integration_mode
+      ) VALUES ($1,$2,$3,clock_timestamp()+interval '4 hours',clock_timestamp()+interval '270 minutes',1,'LEVEL_C')
+    `, [nextSlot, fixture.locationId, fixture.serviceId]);
+    const nextFixture = { ...fixture, slotId: nextSlot };
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    let profileLocked!: () => void;
+    const locked = new Promise<void>((resolve) => { profileLocked = resolve; });
+    const rollback = database.withTransaction(async (client) => {
+      await client.query("SELECT set_config('app.actor_id','product-owner:test',true), set_config('app.change_reference','WAVE1-ROLLBACK',true)");
+      await client.query("UPDATE clinic_schema.clinics SET booking_contract_profile='MVP_V1_MANUAL' WHERE id=$1", [fixture.clinicId]);
+      profileLocked();
+      await gate;
+    });
+    await locked;
+    await expect(creation.createLocalHold(command(nextFixture, fixture.owners[1], fixture.pets[1], randomUUID())))
+      .rejects.toMatchObject({ status: 409, response: { code: 'SLOT_LOCKED_RETRY' } });
+    release();
+    await rollback;
+
+    const pending = await creation.createLocalHold(command(nextFixture, fixture.owners[1], fixture.pets[1], randomUUID()));
+    expect(pending).toMatchObject({ status: 'PENDING_CONFIRMATION', confirmationMode: 'MANUAL' });
+    const state = await database.query<{ confirmed_state: string; confirmed_appointments: string; new_state: string }>(`
+      SELECT old.state confirmed_state,
+        (SELECT COUNT(*)::text FROM booking_schema.appointments WHERE hold_id=old.id) confirmed_appointments,
+        fresh.state new_state
+      FROM booking_schema.booking_holds old
+      JOIN booking_schema.booking_holds fresh ON fresh.id=$2::uuid
+      WHERE old.id=$1::uuid
+    `, [confirmed.holdId, pending.holdId]);
+    expect(state.rows[0]).toEqual({ confirmed_state: 'CONFIRMED', confirmed_appointments: '1', new_state: 'MANUAL_CONFIRM_PENDING' });
+  });
+
+  it('rolls back the complete v1.5 effect set after an intermediate failure', async () => {
+    if (process.env.MVP_SCOPE_PROFILE !== 'PILOT_V1') return;
+    const fixture = await seedFixture(database, 1);
+    await database.query("UPDATE clinic_schema.clinics SET booking_contract_profile='V15_AUTO_CONFIRM' WHERE id=$1", [fixture.clinicId]);
+    await database.query(`
+      CREATE OR REPLACE FUNCTION booking_schema.test_fail_v15_appointment() RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN RAISE EXCEPTION 'injected v15 appointment failure'; END; $$;
+      CREATE TRIGGER test_fail_v15_appointment BEFORE INSERT ON booking_schema.appointments
+      FOR EACH ROW EXECUTE FUNCTION booking_schema.test_fail_v15_appointment();
+    `);
+    try {
+      await expect(creation.createLocalHold(command(fixture, fixture.owners[0], fixture.pets[0], randomUUID())))
+        .rejects.toMatchObject({ status: 503, response: { code: 'BOOKING_TEMPORARILY_UNAVAILABLE' } });
+    } finally {
+      await database.query('DROP TRIGGER IF EXISTS test_fail_v15_appointment ON booking_schema.appointments; DROP FUNCTION IF EXISTS booking_schema.test_fail_v15_appointment()');
+    }
+    const effects = await database.query<{ holds: string; appointments: string; outbox: string; audits: string; booked: number; held: number }>(`
+      SELECT
+        (SELECT COUNT(*)::text FROM booking_schema.booking_holds WHERE slot_id=$1) holds,
+        (SELECT COUNT(*)::text FROM booking_schema.appointments WHERE slot_id=$1) appointments,
+        (SELECT COUNT(*)::text FROM booking_schema.outbox_events WHERE payload_json->>'slotId'=$1::text) outbox,
+        (SELECT COUNT(*)::text FROM audit_schema.audit_log WHERE payload_json->>'slotId'=$1::text) audits,
+        booked_count booked, held_count held
+      FROM clinic_schema.appointment_slots WHERE id=$1
+    `, [fixture.slotId]);
+    expect(effects.rows[0]).toEqual({ holds: '0', appointments: '0', outbox: '0', audits: '0', booked: 0, held: 0 });
   });
 
   it('preserves the LEGACY_COMPAT create contract when expectedSlotVersion is omitted', async () => {

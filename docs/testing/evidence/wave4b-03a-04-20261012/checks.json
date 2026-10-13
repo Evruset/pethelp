@@ -1,0 +1,15 @@
+{
+  "activeScenariosPASS": 5,
+  "restoreChecksPASS": 5,
+  "uniqueOperationalChecks": 10,
+  "unresolvedFAIL": 0,
+  "sourceSyntax": "3CJS node--check +2PythonAST PASS",
+  "backendBuild": "build.log PASS",
+  "productionTrackedFilesByteIdentical": 342,
+  "newMigration": false,
+  "publicAPIChange": false,
+  "accepted31and141": "REUSED_STICKY_PASS_NOT_RERUN",
+  "acceptedMigrationChain73": "REUSED_CHECKSUM_AND_SOURCE_PRESERVATION",
+  "persistentInitialOperationalPreflightDenial": "EXPECTED_UNSAFE_MOUNT; retainedlog; readonlyrestartrehashnarrowerproof",
+  "original674Digest": "f4fe840760b5c771ac774d252cea85b2303dc535872bf255450900dbbdb9fbb5"
+}

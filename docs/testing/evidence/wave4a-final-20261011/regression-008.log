@@ -1,0 +1,15 @@
+PASS test/clinic-appointments-registry-index.integration-spec.ts (20.211 s)
+  clinic appointments registry query indexes
+    ✓ applies the exact covering index definitions (18 ms)
+    ✓ uses bounded indexed access for upcoming (10 ms)
+    ✓ uses bounded indexed access for history (7 ms)
+    ✓ preserves keyset page two, ties, tenant isolation and output order for upcoming (51 ms)
+    ✓ preserves keyset page two, ties, tenant isolation and output order for history (11 ms)
+    ✓ supports rollback/reapply without data loss and keeps writes healthy (130 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       6 passed, 6 total
+Snapshots:   0 total
+Time:        20.505 s
+Ran all test suites within paths "test/clinic-appointments-registry-index.integration-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-008.json

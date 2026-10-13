@@ -1,0 +1,7 @@
+{
+  "backend/test/booking-core-performance.integration-spec.ts": "7cf3c680872f0493a6d429aa41a8395df73268c6fe2678d81f75d37f581d13d3",
+  "backend/src/booking-core/booking-hold-creation.service.ts": "502f68c34ecc02d16d7430bb09c54ca16f2597dd3d37b8fd67202c01155cbdbe",
+  "backend/src/booking-core/booking-security.service.ts": "492faf9cd6f1957fd05c67cd3366200fb721a99d739b0bf9ff5d396766feb9bc",
+  "backend/src/booking-core/booking.service.ts": "ada9b5e6720e86cf5045da64e7b89e1e876fd72669fa30bcd52f5752e8674952",
+  "backend/src/workers/hold-expiration.service.ts": "19ab51615aff167061b077df77e4ea828355c31d7a8aae2ef6879185de15a2e7"
+}

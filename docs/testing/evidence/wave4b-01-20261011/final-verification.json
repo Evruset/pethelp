@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "baseAndFreshOrigin": "16888e1a191bf410a6aeb8f611f5ce4af98282df",
+  "indexEmpty": true,
+  "diffCheck": "PASS",
+  "original674EntriesBytePreserved": true,
+  "prior69MigrationsBytePreserved": true,
+  "oldOpenapiOperationsAndAllOtherMetadataUnchanged": true,
+  "newOpenapiPaths": [
+    "/v1/owner/pets/{petId}/documents/{documentId}/ocr",
+    "/v1/owner/pets/{petId}/documents/{documentId}/ocr/retry"
+  ],
+  "commitPushPerformed": false
+}

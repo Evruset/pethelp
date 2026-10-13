@@ -1,14 +1,15 @@
-import { BadRequestException, Injectable, NotFoundException, PreconditionFailedException } from '@nestjs/common';
-import { createHmac, randomUUID } from 'node:crypto';
-import { createReadStream } from 'node:fs';
-import { mkdir, stat, writeFile } from 'node:fs/promises';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException, PreconditionFailedException } from '@nestjs/common';
+import { createHash, createHmac, randomUUID } from 'node:crypto';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { ReadStream } from 'node:fs';
 import type { PoolClient } from 'pg';
 import { DatabaseService } from '../database/database.service';
 import { config } from '../config';
+import { openStoredPetDocument, petDocumentStoragePath, safePetDocumentName } from '../common/pet-document-storage';
+import { publishByteSnapshot, readObservedLegacyBytes, readVerifiedSnapshot, snapshotObjectInventory, type ByteSnapshot } from '../common/document-byte-snapshots';
 import { DomainException } from '../common/domain-error';
-import { JwtPayload } from './auth.types';
+import { JwtPayload, Role } from './auth.types';
 import { CreateOwnerPetDto, UpdateOwnerPetDto } from './dto/owner-pet.dto';
 import { ownerAppointmentPresentation, OwnerAppointmentPresentation } from './owner-appointments.service';
 
@@ -137,7 +138,7 @@ export type OwnerPetCareSummary = {
 };
 
 export type OwnerPetDiaryEntry = {
-  type: 'DOCUMENT' | 'VISIT' | 'TELEMED';
+  type: 'DOCUMENT' | 'VISIT' | 'TELEMED' | 'RESULT' | 'RESULT_AMENDMENT';
   sourceId: string;
   occurredAt: string;
   endsAt: string | null;
@@ -150,7 +151,14 @@ export type OwnerPetDiaryEntry = {
 export type OwnerPetDiaryPage = {
   petId: string;
   entries: OwnerPetDiaryEntry[];
+  clinicalEntries: OwnerPetClinicalDiaryEntry[];
   page: { limit: number; offset: number; nextOffset: number | null; total: number };
+};
+
+export type OwnerPetClinicalDiaryEntry = {
+  visit: { visitId:string;occurredAt:string;clinic:{name:string};location:{address:string}|null;service:{name:string}|null;doctor:{name:string}|null };
+  result: { resultId:string;publishedAt:string;content:string };
+  amendments: { amendmentId:string;version:number;createdAt:string;publishedAt:string;content:string }[];
 };
 
 type OwnerPetRow = {
@@ -458,16 +466,29 @@ export class OwnerPetService {
           AND document.deleted_at IS NULL AND document.doc_type IN ('PASSPORT', 'HISTORY')
         UNION ALL
         SELECT 'VISIT', hold.id::text, slot.starts_at, slot.ends_at,
-          COALESCE(service.display_name, 'Визит в клинику'), hold.clinical_summary,
+          COALESCE(service.display_name, 'Визит в клинику'), NULL::text,
           hold.state, NULL::text, 2
         FROM booking_schema.booking_holds hold
         JOIN clinic_schema.appointment_slots slot ON slot.id = hold.slot_id
         LEFT JOIN clinic_schema.clinic_services service ON service.id = slot.service_id
         WHERE hold.owner_id = $1::uuid AND hold.pet_id = $2::uuid
         UNION ALL
+        SELECT CASE WHEN diary.source_result_id IS NOT NULL THEN 'RESULT' ELSE 'RESULT_AMENDMENT' END,
+          COALESCE(diary.source_result_id, diary.source_amendment_id)::text,
+          diary.occurred_at, NULL::timestamptz,
+          CASE WHEN diary.source_result_id IS NOT NULL THEN 'Заключение врача' ELSE 'Дополнение к заключению' END,
+          COALESCE(result.clinical_summary, amendment.amendment_content),
+          'PUBLISHED', NULL::text, 3
+        FROM clinical_schema.diary_entries diary
+        LEFT JOIN clinical_schema.visit_results result ON result.id = diary.source_result_id AND result.status = 'PUBLISHED'
+        LEFT JOIN clinical_schema.visit_result_amendments amendment ON amendment.id = diary.source_amendment_id
+        WHERE diary.owner_id = $1::uuid AND diary.pet_id = $2::uuid
+          AND ((diary.source_result_id IS NOT NULL AND result.id IS NOT NULL)
+            OR (diary.source_amendment_id IS NOT NULL AND amendment.id IS NOT NULL))
+        UNION ALL
         SELECT 'TELEMED', session.id::text, COALESCE(slot.starts_at, session.created_at), slot.ends_at,
           COALESCE(service.display_name, 'Онлайн-консультация'), NULL::text,
-          session.state, NULL::text, 3
+          session.state, NULL::text, 4
         FROM telemed_schema.telemed_sessions session
         LEFT JOIN booking_schema.booking_holds hold ON hold.id = session.booking_hold_id
         LEFT JOIN telemed_schema.telemed_cases telemed_case ON telemed_case.id = session.telemed_case_id
@@ -480,6 +501,31 @@ export class OwnerPetService {
       ORDER BY occurred_at DESC, type_rank ASC, source_id ASC
       LIMIT $3::integer OFFSET $4::integer
     `, [owner.sub, petId, limit, offset]);
+    const clinical = await this.database.query<{
+      visit_id:string;occurred_at:Date;clinic_name:string;location_address:string|null;service_name:string|null;
+      result_id:string;result_published_at:Date;result_content:string;
+      amendments:{amendmentId:string;version:number;createdAt:string;publishedAt:string;content:string}[];
+    }>(`
+      SELECT visit.id::text AS visit_id,visit.completed_at AS occurred_at,clinic.public_name AS clinic_name,
+        location.address AS location_address,service.display_name AS service_name,result.id::text AS result_id,
+        result.published_at AS result_published_at,result.clinical_summary AS result_content,
+        COALESCE(jsonb_agg(jsonb_build_object('amendmentId',amendment.id::text,'version',amendment.version,
+          'createdAt',amendment.created_at,'publishedAt',amendment.published_at,'content',amendment.amendment_content)
+          ORDER BY amendment.version ASC)
+          FILTER(WHERE amendment.id IS NOT NULL AND amendment_diary.id IS NOT NULL),'[]'::jsonb) AS amendments
+      FROM clinical_schema.visit_results result
+      JOIN clinical_schema.visits visit ON visit.id=result.visit_id AND visit.owner_id=result.owner_id AND visit.pet_id=result.pet_id AND visit.clinic_id=result.clinic_id AND visit.location_id=result.location_id
+      JOIN clinical_schema.diary_entries result_diary ON result_diary.source_result_id=result.id AND result_diary.source_amendment_id IS NULL AND result_diary.visit_id=visit.id AND result_diary.owner_id=result.owner_id AND result_diary.pet_id=result.pet_id
+      JOIN clinic_schema.clinics clinic ON clinic.id=visit.clinic_id
+      JOIN clinic_schema.clinic_locations location ON location.id=visit.location_id AND location.clinic_id=visit.clinic_id
+      JOIN clinic_schema.appointment_slots slot ON slot.id=visit.slot_id AND slot.clinic_location_id=visit.location_id
+      LEFT JOIN clinic_schema.clinic_services service ON service.id=slot.service_id AND service.clinic_location_id=visit.location_id
+      LEFT JOIN clinical_schema.visit_result_amendments amendment ON amendment.result_id=result.id AND amendment.visit_id=result.visit_id AND amendment.owner_id=result.owner_id AND amendment.pet_id=result.pet_id AND amendment.clinic_id=result.clinic_id AND amendment.location_id=result.location_id
+      LEFT JOIN clinical_schema.diary_entries amendment_diary ON amendment_diary.source_amendment_id=amendment.id AND amendment_diary.source_result_id IS NULL AND amendment_diary.visit_id=visit.id AND amendment_diary.owner_id=result.owner_id AND amendment_diary.pet_id=result.pet_id
+      WHERE result.owner_id=$1::uuid AND result.pet_id=$2::uuid AND result.status='PUBLISHED'
+      GROUP BY visit.id,visit.completed_at,clinic.public_name,location.address,service.display_name,result.id,result.published_at,result.clinical_summary
+      ORDER BY visit.completed_at DESC,result.id ASC LIMIT $3::integer OFFSET $4::integer
+    `,[owner.sub,petId,limit,offset]);
     const total = Number(result.rows[0]?.total_count ?? 0);
     return {
       petId,
@@ -493,6 +539,7 @@ export class OwnerPetService {
         lifecycleStatus: this.publicDiaryLifecycle(row.entry_type, row.lifecycle_status),
         downloadUrl: row.download_url,
       })),
+      clinicalEntries: clinical.rows.map(row=>({visit:{visitId:row.visit_id,occurredAt:row.occurred_at.toISOString(),clinic:{name:row.clinic_name},location:row.location_address===null?null:{address:row.location_address},service:row.service_name===null?null:{name:row.service_name},doctor:null},result:{resultId:row.result_id,publishedAt:row.result_published_at.toISOString(),content:row.result_content},amendments:row.amendments.map(amendment=>({...amendment,createdAt:new Date(amendment.createdAt).toISOString(),publishedAt:new Date(amendment.publishedAt).toISOString()}))})),
       page: { limit, offset, nextOffset: offset + result.rows.length < total ? offset + result.rows.length : null, total },
     };
   }
@@ -768,11 +815,13 @@ export class OwnerPetService {
     if (docType !== 'PASSPORT' && docType !== 'HISTORY') {
       throw new BadRequestException({ code: 'INVALID_PET_DOCUMENT_TYPE', message: 'Document type is not supported.' });
     }
+    this.assertByteOwner(owner);
     this.validateUploadedFile(file, { allowPdf: true });
     await this.ensurePetActive(owner, petId);
-    const stored = await this.storeUploadedFile(owner.sub, petId, file!);
-
+    const started=new Date(),snapshot=await publishByteSnapshot(file!.buffer!,file!.size),ended=new Date();
+    const stored={documentId:randomUUID(),storageKey:snapshot.storageKey,fileName:this.safeDownloadName(file!.originalname),mimeType:file!.mimetype,fileSizeBytes:snapshot.byteLength};
     return this.database.withTransaction(async (client) => {
+      await this.lockByteOwner(client,owner,petId);
       const document = await client.query<PetDocumentRow>(`
         INSERT INTO pet_schema.pet_documents (
           id, pet_id, owner_id, file_url, doc_type, status,
@@ -797,6 +846,7 @@ export class OwnerPetService {
         stored.storageKey,
       ]);
 
+      await this.persistByteVersion(client,owner.sub,petId,stored.documentId,snapshot,'UPLOAD_BYTES',started,ended);
       await this.writePetAudit(client, owner.sub, petId, 'pet.document.uploaded', {
         documentId: document.rows[0].id,
         docType,
@@ -806,6 +856,50 @@ export class OwnerPetService {
 
       return this.toDocumentUpload(document.rows[0]);
     });
+  }
+
+  private assertByteOwner(owner:JwtPayload){if(!owner.roles.includes(Role.OWNER))throw new ForbiddenException({code:'ROLE_FORBIDDEN'});}
+  private async lockByteOwner(client:PoolClient,owner:JwtPayload,petId:string){
+    this.assertByteOwner(owner);
+    const current=await client.query('SELECT id FROM pet_schema.pets WHERE id=$1 AND owner_id=$2 AND archived_at IS NULL FOR SHARE',[petId,owner.sub]);
+    if(!current.rowCount)throw new NotFoundException({code:'OWNER_PET_NOT_FOUND',message:'Pet was not found.'});
+  }
+  private async persistByteVersion(client:PoolClient,ownerId:string,petId:string,documentId:string,snapshot:ByteSnapshot,kind:'UPLOAD_BYTES'|'OBSERVED_EXISTING_AT_CAPTURE',start:Date,end:Date){
+    await client.query(`INSERT INTO pet_schema.document_byte_versions(version_id,document_id,owner_id,pet_id,storage_object_id,sha256,byte_length,capture_operation_id,capture_kind,capture_coherence,observation_started_at,observation_ended_at)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,[snapshot.versionId,documentId,ownerId,petId,snapshot.storageObjectId,snapshot.sha256,snapshot.byteLength,randomUUID(),kind,kind==='UPLOAD_BYTES'?'UPLOAD_BUFFER':'OBSERVED_SEQUENCE_ONLY',start,end]);
+    await client.query(`INSERT INTO pet_schema.document_byte_events(version_id,event_type,actor_id,operation_id) VALUES($1,'VERIFIED_CAPTURE',$2,$3)`,[snapshot.versionId,ownerId,randomUUID()]);
+  }
+  /** Internal existing-source observation; no new Pilot route or historical original assertion. */
+  async captureExistingDocumentSource(owner:JwtPayload,petId:string,documentId:string){
+    this.assertByteOwner(owner);await this.ensurePetActive(owner,petId);const source=await this.readOwnedDocument(owner,petId,documentId);
+    if(!['PASSPORT','HISTORY'].includes(source.doc_type)||!source.storage_key||!source.file_size_bytes)throw new NotFoundException({code:'OWNER_PET_DOCUMENT_NOT_FOUND'});
+    const started=new Date(),input=await readObservedLegacyBytes(source.storage_key,source.file_size_bytes),snapshot=await publishByteSnapshot(input),ended=new Date();
+    const again=await readObservedLegacyBytes(source.storage_key,source.file_size_bytes);
+    if(createHash('sha256').update(again).digest('hex')!==snapshot.sha256)throw new NotFoundException({code:'OWNER_PET_DOCUMENT_NOT_FOUND'});
+    return this.database.withTransaction(async client=>{
+      await this.lockByteOwner(client,owner,petId);
+      const current=(await client.query(`SELECT storage_key,file_size_bytes,doc_type FROM pet_schema.pet_documents WHERE id=$1 AND owner_id=$2 AND pet_id=$3 AND deleted_at IS NULL FOR SHARE`,[documentId,owner.sub,petId])).rows[0];
+      if(!current||current.storage_key!==source.storage_key||current.file_size_bytes!==source.file_size_bytes||current.doc_type!==source.doc_type)throw new NotFoundException({code:'OWNER_PET_DOCUMENT_NOT_FOUND'});
+      await this.persistByteVersion(client,owner.sub,petId,documentId,snapshot,'OBSERVED_EXISTING_AT_CAPTURE',started,ended);
+      return {versionId:snapshot.versionId,authority:'OBSERVED_SEQUENCE_ONLY'};
+    });
+  }
+  /** Internal/private verification. Never an authorization token or public download API. */
+  async verifyDocumentSnapshot(owner:JwtPayload,petId:string,documentId:string,versionId:string){
+    const version=await this.database.withTransaction(async client=>{
+      await this.lockByteOwner(client,owner,petId);
+      const row=(await client.query(`SELECT v.storage_object_id,v.sha256,v.byte_length,v.capture_coherence FROM pet_schema.document_byte_versions v JOIN pet_schema.pet_documents d ON d.id=v.document_id AND d.owner_id=v.owner_id AND d.pet_id=v.pet_id
+        WHERE v.version_id=$1 AND v.document_id=$2 AND v.owner_id=$3 AND v.pet_id=$4 AND d.deleted_at IS NULL AND d.doc_type IN('PASSPORT','HISTORY') AND (v.capture_coherence<>'UPLOAD_BUFFER' OR (d.storage_key=v.storage_object_id::text||'.blob' AND d.file_size_bytes=v.byte_length)) AND NOT EXISTS(SELECT 1 FROM pet_schema.document_byte_events e WHERE e.version_id=v.version_id AND e.event_type IN('UNAVAILABLE','CORRUPT','REPLACED','RETIRED'))`,[versionId,documentId,owner.sub,petId])).rows[0];
+      if(!row)throw new NotFoundException({code:'OWNER_PET_DOCUMENT_NOT_FOUND'});return row;
+    });
+    // Storage integrity only; byte use/adapter binding is not implemented here.
+    await readVerifiedSnapshot({storageObjectId:version.storage_object_id,sha256:version.sha256,byteLength:Number(version.byte_length)});
+    await this.database.withTransaction(async client=>{await this.lockByteOwner(client,owner,petId);const valid=await client.query(`SELECT d.id FROM pet_schema.pet_documents d JOIN pet_schema.document_byte_versions v ON v.document_id=d.id WHERE d.id=$1 AND d.owner_id=$2 AND d.pet_id=$3 AND v.version_id=$4 AND d.deleted_at IS NULL AND d.doc_type IN('PASSPORT','HISTORY') AND (v.capture_coherence<>'UPLOAD_BUFFER' OR (d.storage_key=v.storage_object_id::text||'.blob' AND d.file_size_bytes=v.byte_length)) FOR SHARE OF d`,[documentId,owner.sub,petId,versionId]);if(!valid.rowCount|| (await client.query(`SELECT 1 FROM pet_schema.document_byte_events WHERE version_id=$1 AND event_type IN('UNAVAILABLE','CORRUPT','REPLACED','RETIRED')`,[versionId])).rowCount)throw new NotFoundException({code:'OWNER_PET_DOCUMENT_NOT_FOUND'});});
+    return {versionId,storageIntegrity:'SNAPSHOT_BYTES_VERIFIED',captureCoherence:version.capture_coherence,sourceBytesVerified:version.capture_coherence==='UPLOAD_BUFFER'};
+  }
+  async reconcilePrivateSnapshotObjects(){
+    const objects=await snapshotObjectInventory(),published=new Set((await this.database.query('SELECT storage_object_id::text FROM pet_schema.document_byte_versions WHERE storage_object_id=ANY($1::uuid[])',[objects])).rows.map(row=>row.storage_object_id));
+    return objects.filter(id=>!published.has(id)); // Operator-only call; no deletion and no HTTP projection.
   }
 
   async uploadPetPhoto(owner: JwtPayload, petId: string, file: UploadedPetFile | undefined): Promise<OwnerPet> {
@@ -885,21 +979,11 @@ export class OwnerPetService {
 
   async downloadDocument(owner: JwtPayload, petId: string, documentId: string): Promise<OwnerPetDocumentDownload> {
     const document = await this.readOwnedDocument(owner, petId, documentId);
-    if (!document.storage_key || !document.mime_type || !document.file_size_bytes) {
-      throw new NotFoundException({ code: 'OWNER_PET_DOCUMENT_NOT_FOUND', message: 'Document was not found.' });
-    }
-    const filePath = this.storagePath(document.storage_key);
-    const fileStat = await stat(filePath).catch(() => null);
-    if (!fileStat?.isFile()) {
-      throw new NotFoundException({ code: 'OWNER_PET_DOCUMENT_NOT_FOUND', message: 'Document was not found.' });
-    }
-    await this.writeDocumentAccessAudit(owner.sub, petId, documentId, 'pet.document.content.read');
-    return {
-      stream: createReadStream(filePath),
-      safeFileName: this.safeDownloadName(document.file_name ?? 'pet-document'),
-      mimeType: document.mime_type,
-      fileSizeBytes: document.file_size_bytes,
-    };
+    let download:OwnerPetDocumentDownload;
+    try { download=await openStoredPetDocument(document); }
+    catch(error){if(error instanceof BadRequestException)throw error;throw new NotFoundException({ code:'OWNER_PET_DOCUMENT_NOT_FOUND',message:'Document was not found.' });}
+    try {await this.writeDocumentAccessAudit(owner.sub,petId,documentId,'pet.document.content.read');return download;}
+    catch(error){download.stream.destroy();throw error;}
   }
 
   async deleteDocument(owner: JwtPayload, petId: string, documentId: string): Promise<void> {
@@ -1114,6 +1198,7 @@ export class OwnerPetService {
   private publicDiaryLifecycle(type: OwnerPetDiaryEntry['type'], persistedState: string): string {
     if (type === 'DOCUMENT') return persistedState;
     if (type === 'VISIT') return ownerAppointmentPresentation(persistedState, 'HISTORY').code;
+    if (type === 'RESULT' || type === 'RESULT_AMENDMENT') return 'PUBLISHED';
     const telemedStates: Record<string, string> = {
       WAITING_FOR_DOCTOR: 'WAITING', CONNECTED: 'IN_PROGRESS', COMPLETED: 'COMPLETED',
       CANCELLED: 'CANCELLED', EXPIRED: 'EXPIRED', NO_SHOW: 'NO_SHOW',
@@ -1126,19 +1211,11 @@ export class OwnerPetService {
   }
 
   private storagePath(storageKey: string): string {
-    const root = process.env.PET_DOCUMENT_STORAGE_DIR ?? path.resolve(process.cwd(), '.storage', 'pet-documents');
-    const resolved = path.resolve(root, storageKey);
-    const rootResolved = path.resolve(root);
-    const relative = path.relative(rootResolved, resolved);
-    if (relative.startsWith('..') || path.isAbsolute(relative)) {
-      throw new BadRequestException({ code: 'INVALID_PET_DOCUMENT_STORAGE_KEY', message: 'Invalid document storage key.' });
-    }
-    return resolved;
+    return petDocumentStoragePath(storageKey);
   }
 
   private safeDownloadName(value: string): string {
-    const normalized = path.basename(value).replace(/[\r\n"]/g, '').trim();
-    return normalized.slice(0, 180) || 'pet-document';
+    return safePetDocumentName(value);
   }
 
   private blankToNull(value: string | undefined | null): string | null {

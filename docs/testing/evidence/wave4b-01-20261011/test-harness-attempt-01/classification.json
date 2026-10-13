@@ -1,0 +1,7 @@
+{
+  "classification": "TEST_EXPECTATION",
+  "foundation": "TypeScript readonly roles fixture did not compile; zero business cases executed",
+  "migration": "checksum registry covers source files including unapplied171974; prior comparison must filter the69 historical files on both sides",
+  "productionChanged": false,
+  "repair": "mutable JwtPayload fixture type and symmetric historical checksum filter"
+}

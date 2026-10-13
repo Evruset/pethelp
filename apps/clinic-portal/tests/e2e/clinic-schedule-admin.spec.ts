@@ -240,14 +240,14 @@ test('creates a manual slot with selected staff and resource', async ({ page, co
   await uiStep(page, testInfo, 'Задать сотрудника, ресурс и время ручного окна', async () => {
     await form.getByLabel('Специалист').selectOption(staffId);
     await form.getByLabel('Ресурс').selectOption(resourceId);
-    await form.getByLabel('Начало').fill('2026-06-30T10:00');
-    await form.getByLabel('Конец').fill('2026-06-30T10:30');
-    await form.getByLabel('Capacity').fill('2');
+    await form.getByLabel('Начало').fill(new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().slice(0,16));
+    await form.getByLabel('Конец').fill(new Date(Date.now() + 48 * 60 * 60 * 1000 + 30 * 60 * 1000).toISOString().slice(0,16));
+    await form.getByLabel('Вместимость').fill('2');
   });
   await uiStep(page, testInfo, 'Создать ручное окно и проверить readback', async () => {
     await form.getByRole('button', { name: 'Создать окно' }).click();
     await expect(page.getByRole('status')).toContainText('Ручное окно создано и зафиксировано в audit.');
-    const row = page.getByRole('row').filter({ hasText: '2 записей · 0 holds · cap 2' });
+    const row = page.getByRole('row').filter({ hasText: '2 записей · 0 заявок · мест 2' });
     await expect(row).toContainText('Доктор Айболит');
     await expect(row).toContainText('Кабинет 1');
   });
@@ -279,7 +279,7 @@ test('imports valid JSON and avoids partial UI changes on business validation er
     }, null, 2));
     await importer.getByRole('button', { name: 'Импортировать' }).click();
     await expect(page.getByRole('status')).toContainText('Импортировано окон: 1.');
-    await expect(page.getByRole('row').filter({ hasText: '0 записей · 0 holds · cap 3' })).toBeVisible();
+    await expect(page.getByRole('row').filter({ hasText: '0 записей · 0 заявок · мест 3' })).toBeVisible();
   });
 
   backendMode = 'import-business-error';
@@ -317,28 +317,28 @@ test('updates free slot capacity, handles stale conflict and blocks booked slot 
   await uiStep(page, testInfo, 'Открыть расписание со свободным и занятым окном', () => page.goto(route()));
 
   await uiStep(page, testInfo, 'Изменить capacity свободного окна', async () => {
-    await page.getByRole('row').filter({ hasText: '0 записей · 0 holds · cap 1' }).getByRole('button', { name: 'Capacity' }).click();
-    const dialog = page.getByRole('dialog', { name: 'Изменить capacity' });
-    await dialog.getByLabel('Новая capacity').fill('4');
+    await page.getByRole('row').filter({ hasText: '0 записей · 0 заявок · мест 1' }).getByRole('button', { name: 'Вместимость' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Изменить вместимость' });
+    await dialog.getByLabel('Новая вместимость').fill('4');
     await dialog.getByRole('button', { name: 'Сохранить' }).click();
-    await expect(page.getByRole('status').filter({ hasText: 'Capacity обновлена. Расписание обновлено.' })).toBeVisible();
-    await expect(page.getByRole('row').filter({ hasText: '0 записей · 0 holds · cap 4' })).toBeVisible();
+    await expect(page.getByRole('status').filter({ hasText: 'Вместимость обновлена. Расписание обновлено.' })).toBeVisible();
+    await expect(page.getByRole('row').filter({ hasText: '0 записей · 0 заявок · мест 4' })).toBeVisible();
   });
 
   backendMode = 'capacity-stale';
   await uiStep(page, testInfo, 'Получить stale conflict и authoritative refresh', async () => {
-    await page.getByRole('row').filter({ hasText: '0 записей · 0 holds · cap 4' }).getByRole('button', { name: 'Capacity' }).click();
-    const dialog = page.getByRole('dialog', { name: 'Изменить capacity' });
-    await dialog.getByLabel('Новая capacity').fill('5');
+    await page.getByRole('row').filter({ hasText: '0 записей · 0 заявок · мест 4' }).getByRole('button', { name: 'Вместимость' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Изменить вместимость' });
+    await dialog.getByLabel('Новая вместимость').fill('5');
     await dialog.getByRole('button', { name: 'Сохранить' }).click();
     await expect(page.getByRole('status').filter({ hasText: 'Окно уже изменилось. Расписание обновлено.' })).toBeVisible();
-    await expect(page.getByRole('row').filter({ hasText: '0 записей · 0 holds · cap 4' })).toBeVisible();
+    await expect(page.getByRole('row').filter({ hasText: '0 записей · 0 заявок · мест 4' })).toBeVisible();
   });
 
   await uiStep(page, testInfo, 'Проверить запрет capacity/blackout у занятого окна', async () => {
-    const row = page.getByRole('row').filter({ hasText: '1 записей · 0 holds · cap 1' });
-    await expect(row.getByRole('button', { name: 'Capacity' })).toBeDisabled();
-    await expect(row.getByRole('button', { name: 'Blackout' })).toBeDisabled();
+    const row = page.getByRole('row').filter({ hasText: '1 записей · 0 заявок · мест 1' });
+    await expect(row.getByRole('button', { name: 'Вместимость' })).toBeDisabled();
+    await expect(row.getByRole('button', { name: 'Закрыть окно' })).toBeDisabled();
   });
 
   expectRequest('POST', `${prefix()}/slots/${freeSlotId}/capacity`, expect.objectContaining({ capacity: 4 }), 'versioned');
@@ -349,17 +349,17 @@ test('creates blackout for a free slot and refreshes after stale conflict', asyn
   await uiStep(page, testInfo, 'Открыть расписание со свободным окном', () => page.goto(route()));
 
   await uiStep(page, testInfo, 'Закрыть свободное окно через blackout', async () => {
-    await page.getByRole('row').filter({ hasText: '0 записей · 0 holds · cap 1' }).getByRole('button', { name: 'Blackout' }).click();
+    await page.getByRole('row').filter({ hasText: '0 записей · 0 заявок · мест 1' }).getByRole('button', { name: 'Закрыть окно' }).click();
     await page.getByRole('dialog', { name: 'Закрыть окно' }).getByRole('button', { name: 'Закрыть окно' }).click();
     await expect(page.getByRole('status').filter({ hasText: 'Окно закрыто. Расписание обновлено.' })).toBeVisible();
-    await expect(page.getByRole('row').filter({ hasText: '0 записей · 0 holds · cap 1' })).toContainText('Закрыт');
+    await expect(page.getByRole('row').filter({ hasText: '0 записей · 0 заявок · мест 1' })).toContainText('Закрыт');
   });
 
   schedule.slots = schedule.slots.map((slot: any) => slot.id === freeSlotId ? { ...slot, state: 'OPEN', version: 2 } : slot);
   backendMode = 'blackout-stale';
   await uiStep(page, testInfo, 'Обновить и получить stale conflict blackout', async () => {
     await page.getByRole('button', { name: 'Обновить' }).click();
-    await page.getByRole('row').filter({ hasText: '0 записей · 0 holds · cap 1' }).getByRole('button', { name: 'Blackout' }).click();
+    await page.getByRole('row').filter({ hasText: '0 записей · 0 заявок · мест 1' }).getByRole('button', { name: 'Закрыть окно' }).click();
     await page.getByRole('dialog', { name: 'Закрыть окно' }).getByRole('button', { name: 'Закрыть окно' }).click();
     await expect(page.getByRole('status').filter({ hasText: 'Окно уже изменилось. Расписание обновлено.' })).toBeVisible();
   });

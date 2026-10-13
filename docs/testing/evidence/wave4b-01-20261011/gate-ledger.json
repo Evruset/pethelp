@@ -1,0 +1,82 @@
+[
+  {
+    "gate": "fresh70migrations/checksums",
+    "status": "PASS",
+    "evidence": "fresh-migrations.log+fresh-checksums.log",
+    "evidence_revision": "16888e1+source-snapshot.json",
+    "fresh_or_reused": "fresh",
+    "invalidated_by": null
+  },
+  {
+    "gate": "populatedlegacyupgrade",
+    "status": "PASS",
+    "evidence": "repair.json",
+    "evidence_revision": "16888e1+source-snapshot.json",
+    "fresh_or_reused": "fresh",
+    "invalidated_by": null
+  },
+  {
+    "gate": "OwnerPetDocumentauthority/lifecycle/provenance",
+    "status": "PASS",
+    "evidence": "covered-test-identities.json",
+    "evidence_revision": "16888e1+source-snapshot.json",
+    "fresh_or_reused": "fresh",
+    "invalidated_by": null
+  },
+  {
+    "gate": "sharingnoOCR/originalbytes",
+    "status": "PASS",
+    "evidence": "sharing.json",
+    "evidence_revision": "16888e1+source-snapshot.json",
+    "fresh_or_reused": "fresh",
+    "invalidated_by": null
+  },
+  {
+    "gate": "affectedguard",
+    "status": "PASS",
+    "evidence": "guard.json",
+    "evidence_revision": "16888e1+source-snapshot.json",
+    "fresh_or_reused": "fresh",
+    "invalidated_by": null
+  },
+  {
+    "gate": "build/OpenAPI5",
+    "status": "PASS",
+    "evidence": "backend-build-contract.log+openapi-assert-1..5.log",
+    "evidence_revision": "16888e1+source-snapshot.json",
+    "fresh_or_reused": "fresh",
+    "invalidated_by": null
+  },
+  {
+    "gate": "DBreview",
+    "status": "NO VETO",
+    "evidence": "review-db-data-authority.md",
+    "evidence_revision": "16888e1+source-snapshot.json",
+    "fresh_or_reused": "fresh",
+    "invalidated_by": null
+  },
+  {
+    "gate": "Securityreview",
+    "status": "NO VETO",
+    "evidence": "review-security-privacy.md",
+    "evidence_revision": "16888e1+source-snapshot.json",
+    "fresh_or_reused": "fresh",
+    "invalidated_by": null
+  },
+  {
+    "gate": "original674/resourceprotection",
+    "status": "PASS",
+    "evidence": "final-verification.json",
+    "evidence_revision": "16888e1+source-snapshot.json",
+    "fresh_or_reused": "fresh",
+    "invalidated_by": null
+  },
+  {
+    "gate": "unaffectedWave1to4A",
+    "status": "REUSED_STICKY_PASS",
+    "evidence": "../wave4a-final-20261011/ACCEPTANCE.md",
+    "evidence_revision": "16888e1+source-snapshot.json",
+    "fresh_or_reused": "reused",
+    "invalidated_by": null
+  }
+]

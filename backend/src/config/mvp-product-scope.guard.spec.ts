@@ -9,9 +9,7 @@ describe('MVP product route containment', () => {
     '/v1/booking-holds/hold-1/release',
     '/v1/booking-holds/hold-1/cancellation-requests',
     '/v1/clinic/booking-holds/hold-1/alternative-slot',
-    '/v1/clinic/booking-holds/hold-1/complete',
     '/v1/clinic/clinic-1/locations/location-1/quality-dashboard',
-    '/v1/clinic/clinic-1/locations/location-1/vet/visits',
     '/v1/clinic/clinic-1/locations/location-1/booking-holds/hold-1/audit-trail',
   ])('classifies %s as outside the pilot surface', (path) => {
     expect(isPilotBackendRouteAllowed(path)).toBe(false);
@@ -21,15 +19,18 @@ describe('MVP product route containment', () => {
     '/v1/clinic/clinic-1/locations/location-1/booking-queue',
     '/v1/clinic/clinic-1/locations/location-1/schedule/slots',
     '/v1/clinic/clinic-1/locations/location-1/patients',
+    '/v1/clinic/clinic-1/locations/location-1/vet/visits',
     '/v1/owner/appointments',
+    '/v1/owner/pets/pet-id/diary',
+    '/v1/clinic/booking-holds/hold-1/complete',
     '/v1/catalog/clinics',
   ])('keeps %s in the pilot surface', (path) => {
     expect(isPilotBackendRouteAllowed(path)).toBe(true);
   });
 
-  it('returns a normalized 404 before a blocked handler can execute', () => {
+  it('admits the Wave 3 visit completion route in PILOT', () => {
     const pilot = resolveMvpScope({ MVP_SCOPE_PROFILE: 'PILOT_V1' } as NodeJS.ProcessEnv);
-    expect(() => assertMvpProductRoute(pilot, '/v1/clinic/booking-holds/hold-1/complete')).toThrow(NotFoundException);
+    expect(assertMvpProductRoute(pilot, '/v1/clinic/booking-holds/hold-1/complete')).toBe(true);
   });
 
   it('preserves legacy cancellation routes outside PILOT_V1', () => {
@@ -44,6 +45,27 @@ describe('MVP product route containment', () => {
     expect(isPilotBackendRouteAllowed('/v1/owner/pets/pet-id', 'PATCH')).toBe(false);
     expect(isPilotBackendRouteAllowed('/v1/owner/pets/pet-id/archive', 'POST')).toBe(false);
     expect(isPilotBackendRouteAllowed('/v1/owner/pets/pet-id/documents', 'POST')).toBe(false);
+    expect(isPilotBackendRouteAllowed('/v1/owner/pets/pet-id/diary', 'GET')).toBe(true);
     expect(assertMvpProductRoute(legacy, '/v1/owner/pets/pet-id', 'PATCH')).toBe(true);
+  });
+});
+
+// BP-15 backend foundation: no reopening legacy document operations.
+describe('OCR exact Pilot route allowance',()=>{
+  it('allows only OCR enqueue/read and retry with their exact methods',()=>{
+    const path='/v1/owner/pets/pet-id/documents/document-id/ocr';
+    for(const method of ['GET','POST'])expect(isPilotBackendRouteAllowed(path,method)).toBe(true);
+    expect(isPilotBackendRouteAllowed(path+'/retry','POST')).toBe(true);
+    for(const [p,m] of [[path,'DELETE'],[path,'PATCH'],[path+'/retry','GET'],[path+'/confirm','POST'],[path+'/extra','GET'],['/v1/owner/pets/pet-id/documents','POST'],['/v1/owner/pets/pet-id/documents/document-id/download','GET']])expect(isPilotBackendRouteAllowed(p,m)).toBe(false);
+  });
+});
+
+describe('OCR review exact Pilot allowance',()=>{
+  it('opens only read and four explicit mutation methods, preserving job/retry and legacy blocks',()=>{
+    const path='/v1/owner/pets/pet/documents/doc/ocr/candidates/candidate/review';
+    expect(isPilotBackendRouteAllowed(path,'GET')).toBe(true);
+    for(const action of ['start','corrections','confirm','reject'])expect(isPilotBackendRouteAllowed(path+'/'+action,'POST')).toBe(true);
+    for(const [p,method] of [[path,'POST'],[path,'PATCH'],[path+'/confirm','GET'],[path+'/confirm/extra','POST'],[path+'/validated-import','POST'],['/v1/owner/pets/pet/documents/doc/download','GET']])expect(isPilotBackendRouteAllowed(p,method)).toBe(false);
+    expect(isPilotBackendRouteAllowed('/v1/owner/pets/pet/documents/doc/ocr','POST')).toBe(true);expect(isPilotBackendRouteAllowed('/v1/owner/pets/pet/documents/doc/ocr/retry','POST')).toBe(true);
   });
 });

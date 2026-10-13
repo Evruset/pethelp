@@ -1,0 +1,16 @@
+[33m[Nest] 1  - [39m10/11/2026, 12:58:20 PM [33m   WARN[39m [38;5;3m[CapabilityEvaluatorService] [39m[33mcapability_denied reason=location-scope[39m
+PASS test/clinic-queue.integration-spec.ts (13.087 s)
+  ClinicQueueService
+    ✓ returns only the requested Level-C location in strict FIFO order with PostgreSQL server time (943 ms)
+    ✓ rejects confirmation of a later pending hold until the earlier queue item is resolved (1051 ms)
+    ✓ publishes a manual clinic confirmation as the authoritative owner status (1448 ms)
+    ✓ allows the next actionable hold after the queue head SLA has expired (1014 ms)
+    ✓ rejects manual confirmation with a stale aggregate version (908 ms)
+    ✓ rejects a URL location outside the employee locationIds scope (812 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       6 passed, 6 total
+Snapshots:   0 total
+Time:        13.365 s
+Ran all test suites within paths "test/clinic-queue.integration-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-018.json

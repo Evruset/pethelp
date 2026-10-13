@@ -1,0 +1,10 @@
+PASS test/booking-history.integration-spec.ts (8.812 s)
+  T060 public booking history (real PostgreSQL)
+    ✓ pages same-timestamp events deterministically and hides raw evidence (774 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        9.103 s
+Ran all test suites within paths "test/booking-history.integration-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-030.json

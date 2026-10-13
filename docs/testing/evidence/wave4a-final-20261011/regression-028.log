@@ -1,0 +1,19 @@
+PASS src/booking-core/booking-event-replay.service.spec.ts (8.188 s)
+  BookingEventReplayService public history
+    ✓ projects MANUAL_CONFIRM_PENDING to false without raw state or payload leakage (7 ms)
+    ✓ projects CONFIRMED to false without raw state or payload leakage (1 ms)
+    ✓ projects RELEASED to true without raw state or payload leakage (2 ms)
+    ✓ projects RELEASED to false without raw state or payload leakage (1 ms)
+    ✓ projects EXPIRED to false without raw state or payload leakage (1 ms)
+    ✓ normalizes a foreign Owner to not found before reading history (1 ms)
+    ✓ delegates clinic tenant authority to the existing membership boundary (1 ms)
+    ✓ uses a stable timestamp/event-id cursor and never exposes correlation evidence (7 ms)
+    ✓ propagates a clinic tenant denial without reading history (2 ms)
+    ✓ scopes decline evidence to booking_hold aggregates (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       10 passed, 10 total
+Snapshots:   0 total
+Time:        8.546 s
+Ran all test suites within paths "src/booking-core/booking-event-replay.service.spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-028.json

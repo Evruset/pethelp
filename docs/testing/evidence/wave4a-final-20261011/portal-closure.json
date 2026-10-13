@@ -1,0 +1,284 @@
+{
+  "config": {
+    "argv": [
+      "/Users/evrusetskiy/.npm/_npx/56b7e88bf8a51914/node_modules/node/bin/node",
+      "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/apps/clinic-portal/node_modules/@playwright/test/cli.js",
+      "test",
+      "-c",
+      "closure.playwright.config.mjs",
+      "tests/e2e/shared-medical.spec.ts",
+      "--grep",
+      "closure:",
+      "--reporter=list,json"
+    ],
+    "configFile": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/apps/clinic-portal/closure.playwright.config.mjs",
+    "rootDir": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/apps/clinic-portal/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/apps/clinic-portal/tests/e2e/support/allure-global-setup.ts",
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/docs/testing/evidence/wave4a-final-20261011/browser",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/apps/clinic-portal/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.1",
+    "workers": 1,
+    "webServer": {
+      "command": "/Users/evrusetskiy/.npm/_npx/56b7e88bf8a51914/node_modules/node/bin/node node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3411",
+      "url": "http://127.0.0.1:3411",
+      "reuseExistingServer": false,
+      "timeout": 120000,
+      "env": {
+        "VETHELP_API_BASE_URL": "http://127.0.0.1:3412",
+        "VETHELP_CLINIC_JWT_SECRET": "clinic-e2e-secret-at-least-32-bytes",
+        "NEXT_TELEMETRY_DISABLED": "1",
+        "PORTAL_V50_SHELL": "true",
+        "PORTAL_V51_SHELL": "true",
+        "VETHELP_CLINIC_APPOINTMENTS_REGISTRY": "false",
+        "VETHELP_CLINIC_PATIENTS_REGISTRY": "false",
+        "VETHELP_CLINIC_PATIENT_ADMIN_MUTATIONS": "false",
+        "VETHELP_CLINIC_PATIENT_ADMIN_REFERENCE_SEARCH": "false",
+        "CLINIC_V50_WORKSPACE_HOME": "false"
+      }
+    }
+  },
+  "suites": [
+    {
+      "title": "shared-medical.spec.ts",
+      "file": "shared-medical.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "closure: late resource response cannot survive session capability removal",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1505,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-11T12:51:41.083Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/docs/testing/evidence/wave4a-final-20261011/browser/shared-medical-closure-lat-4165d--session-capability-removal-chromium/test-finished-1.png"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/docs/testing/evidence/wave4a-final-20261011/browser/shared-medical-closure-lat-4165d--session-capability-removal-chromium/trace.zip"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8c2328a2baf9f17c2a6a-ee141bae79db58f3b97c",
+          "file": "shared-medical.spec.ts",
+          "line": 38,
+          "column": 5
+        },
+        {
+          "title": "closure: scope removal aborts an outstanding document and clears medical content",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1011,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-11T12:51:43.903Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/docs/testing/evidence/wave4a-final-20261011/browser/shared-medical-closure-sco-31e9d--and-clears-medical-content-chromium/test-finished-1.png"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/docs/testing/evidence/wave4a-final-20261011/browser/shared-medical-closure-sco-31e9d--and-clears-medical-content-chromium/trace.zip"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8c2328a2baf9f17c2a6a-71949ea4f854c496b0fe",
+          "file": "shared-medical.spec.ts",
+          "line": 44,
+          "column": 5
+        },
+        {
+          "title": "closure: responsive keyboard medical path at 375px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1835,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-11T12:51:44.969Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/docs/testing/evidence/wave4a-final-20261011/browser/shared-medical-closure-res-61cd4-board-medical-path-at-375px-chromium/test-finished-1.png"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/docs/testing/evidence/wave4a-final-20261011/browser/shared-medical-closure-res-61cd4-board-medical-path-at-375px-chromium/trace.zip"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8c2328a2baf9f17c2a6a-aea1afc3786fc9dca5a5",
+          "file": "shared-medical.spec.ts",
+          "line": 51,
+          "column": 35
+        },
+        {
+          "title": "closure: responsive keyboard medical path at 1280px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1774,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-11T12:51:47.171Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/docs/testing/evidence/wave4a-final-20261011/browser/shared-medical-closure-res-3cdb0-oard-medical-path-at-1280px-chromium/test-finished-1.png"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/private/tmp/v15-w4a-final-20261011-v88ucbla/worktree/docs/testing/evidence/wave4a-final-20261011/browser/shared-medical-closure-res-3cdb0-oard-medical-path-at-1280px-chromium/trace.zip"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8c2328a2baf9f17c2a6a-6175e9b73754f6c84acf",
+          "file": "shared-medical.spec.ts",
+          "line": 51,
+          "column": 35
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-11T12:51:37.004Z",
+    "duration": 12383.571,
+    "expected": 4,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

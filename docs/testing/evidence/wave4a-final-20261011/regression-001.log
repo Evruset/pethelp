@@ -1,0 +1,61 @@
+PASS test/clinic-queue-http-authority.e2e-spec.ts (64.422 s)
+  Clinic Queue HTTP authority matrix
+    ✓ blocks legacy cancellation mutations in PILOT before authentication or state change (1032 ms)
+    ✓ allows the scoped receptionist to read only its queue (964 ms)
+    ✓ returns a repeatable authoritative FIFO snapshot with stable tie-breaker and no read side effects (649 ms)
+    ✓ applies the documented default 50 and maximum 100 snapshot limits without duplicates (885 ms)
+    ✓ removes confirmed and declined terminal holds from the next poll and preserves owner readback (1939 ms)
+    ✓ returns only a transactionally consistent snapshot during concurrent confirm (1077 ms)
+    ✓ returns only a transactionally consistent snapshot during concurrent request-notes (964 ms)
+    ✓ does not normalize a technical read failure into a successful empty queue (1214 ms)
+    ✓ denies queue read for role denied without leaking queue data (953 ms)
+    ✓ denies queue read for revoked membership without leaking queue data (893 ms)
+    ✓ denies queue read for claims without membership without leaking queue data (832 ms)
+    ✓ denies queue read for missing clinic scope without leaking queue data (740 ms)
+    ✓ denies queue read for incompatible clinic scope without leaking queue data (915 ms)
+    ✓ denies queue read for missing location scope without leaking queue data (856 ms)
+    ✓ denies queue read for incompatible location scope without leaking queue data (761 ms)
+    ✓ denies cross-clinic and cross-location queue reads without payload disclosure (633 ms)
+    ✓ denies confirm for role denied without state, appointment, audit or outbox effects (938 ms)
+    ✓ denies confirm for missing membership without state, appointment, audit or outbox effects (1013 ms)
+    ✓ denies confirm for revoked membership without state, appointment, audit or outbox effects (707 ms)
+    ✓ denies confirm for missing clinic scope without state, appointment, audit or outbox effects (840 ms)
+    ✓ denies confirm for incompatible clinic scope without state, appointment, audit or outbox effects (863 ms)
+    ✓ denies confirm for missing location scope without state, appointment, audit or outbox effects (838 ms)
+    ✓ denies confirm for incompatible location scope without state, appointment, audit or outbox effects (710 ms)
+    ✓ confirms idempotently and publishes the authoritative owner readback (925 ms)
+    ✓ denies decline across the authority matrix without side effects (7430 ms)
+    ✓ denies request-notes across the authority matrix without side effects (6348 ms)
+    ✓ declines idempotently with authoritative release, reason, audit, outbox and owner readback (843 ms)
+    ✓ requests notes idempotently while preserving the pending hold and publishing the request text (813 ms)
+    ✓ rejects decline from terminal CONFIRMED without side effects (667 ms)
+    ✓ rejects request-notes from terminal CONFIRMED without side effects (806 ms)
+    ✓ requires If-Match for confirm without side effects (681 ms)
+    ✓ requires If-Match for decline without side effects (658 ms)
+    ✓ requires If-Match for request-notes without side effects (808 ms)
+    ✓ rejects impossible future version for confirm without side effects (781 ms)
+    ✓ rejects impossible future version for decline without side effects (680 ms)
+    ✓ rejects impossible future version for request-notes without side effects (769 ms)
+    ✓ rejects a stale confirm after request-notes advances the authoritative version (905 ms)
+    ✓ replays the first request-notes result for the same key without overwriting a changed payload (855 ms)
+    ✓ rejects a different-key replay after terminal confirm without duplicate effects (950 ms)
+    ✓ rejects a different-key replay after terminal decline without duplicate effects (801 ms)
+    ✓ serializes duplicate concurrent confirm delivery to one business transition (961 ms)
+    ✓ serializes confirm-vs-decline with one winner, controlled loser and one effect set (923 ms)
+    ○ skipped polls the authoritative version after a missed non-terminal update and converges after multiple missed updates
+    ○ skipped proposes an alternative idempotently with exact clinic scope, reserved capacity and owner readback
+    ○ skipped denies clinic proposal across role, membership and exact scope without alternative effects
+    ○ skipped normalizes foreign owner read and rejects staff or unauthenticated access without disclosure
+    ○ skipped accepts once, replays the same key, and rejects a second key without duplicate effects
+    ○ skipped denies foreign-owner accept without proposal, capacity, appointment, audit or outbox effects
+    ○ skipped rejects expired, stale and conflicted accepts while preserving capacity and effects
+    ○ skipped requires If-Match for propose-alternative without side effects
+    ○ skipped rejects impossible future version for propose-alternative without side effects
+    ○ skipped serializes request-notes-vs-propose with one winner, controlled loser and one effect set
+
+Test Suites: 1 passed, 1 total
+Tests:       10 skipped, 42 passed, 52 total
+Snapshots:   0 total
+Time:        64.752 s
+Ran all test suites within paths "test/clinic-queue-http-authority.e2e-spec.ts".
+Test results written to: ../docs/testing/evidence/wave4a-final-20261011/regression-001.json

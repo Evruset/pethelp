@@ -5,6 +5,7 @@ import { ClinicEmployeeAccessService } from './clinic-employee-access.service';
 
 const EMPLOYEE_ID = '00000000-0000-4000-8000-000000000001';
 const LOCATION_ID = '00000000-0000-4000-8000-000000000002';
+const CLINIC_ID = '00000000-0000-4000-8000-000000000003';
 
 function clientWithMembership(active: boolean): Pick<PoolClient, 'query'> {
   return {
@@ -22,10 +23,12 @@ describe('ClinicEmployeeAccessService clinical completion', () => {
 
     await expect(service.assertClinicalVisitCompletionAccess(
       client as PoolClient,
-      { sub: EMPLOYEE_ID, roles: [Role.CLINIC_VETERINARIAN], locationIds: [LOCATION_ID] },
+      { sub: EMPLOYEE_ID, roles: [Role.CLINIC_VETERINARIAN], clinicIds: [CLINIC_ID], locationIds: [LOCATION_ID] },
+      CLINIC_ID,
       LOCATION_ID,
     )).resolves.toBeUndefined();
-    expect(client.query).toHaveBeenCalledTimes(1);
+    expect(client.query).toHaveBeenCalledTimes(2);
+    expect((client.query as jest.Mock).mock.calls[1][0]).toContain('FOR SHARE OF membership, location, clinic');
   });
 
   it('denies a clinic administrator before querying membership', async () => {
@@ -33,7 +36,8 @@ describe('ClinicEmployeeAccessService clinical completion', () => {
 
     await expect(service.assertClinicalVisitCompletionAccess(
       client as PoolClient,
-      { sub: EMPLOYEE_ID, roles: [Role.CLINIC_ADMIN], locationIds: [LOCATION_ID] },
+      { sub: EMPLOYEE_ID, roles: [Role.CLINIC_ADMIN], clinicIds: [CLINIC_ID], locationIds: [LOCATION_ID] },
+      CLINIC_ID,
       LOCATION_ID,
     )).rejects.toBeInstanceOf(DomainException);
     expect(client.query).not.toHaveBeenCalled();
@@ -44,7 +48,8 @@ describe('ClinicEmployeeAccessService clinical completion', () => {
 
     await expect(service.assertClinicalVisitCompletionAccess(
       client as PoolClient,
-      { sub: EMPLOYEE_ID, roles: [Role.CLINIC_VETERINARIAN], locationIds: [LOCATION_ID] },
+      { sub: EMPLOYEE_ID, roles: [Role.CLINIC_VETERINARIAN], clinicIds: [CLINIC_ID], locationIds: [LOCATION_ID] },
+      CLINIC_ID,
       LOCATION_ID,
     )).rejects.toBeInstanceOf(DomainException);
   });

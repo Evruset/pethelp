@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { AvailabilityScreen } from "./AvailabilityScreen";
 const C = "11111111-1111-4111-8111-111111111111",
   L = "22222222-2222-4222-8222-222222222222",
@@ -31,6 +31,12 @@ jest.mock("@/session/SessionProvider", () => ({
   }),
 }));
 describe("AvailabilityScreen", () => {
+  it("does not offer cached slots while a background authority refresh is active", async () => {
+    mockUseQuery.mockReturnValue({isPending:false,isError:false,isFetching:true,data,refetch:jest.fn()});
+    const screen=await render(<AvailabilityScreen context={context} onBack={jest.fn()} onContinue={jest.fn()}/>);
+    expect(screen.getByText("Обновляем доступное время")).toBeTruthy();expect(screen.queryByText("11:00")).toBeNull();
+    expect(screen.getByRole("button",{name:"Продолжить"}).props.accessibilityState.disabled).toBe(true);
+  });
   it("shows clinic-local time, selects exactly one and refreshes before handoff", async () => {
     const onContinue = jest.fn(),
       refetch = jest.fn().mockResolvedValue({ isError: false, data });
@@ -47,11 +53,11 @@ describe("AvailabilityScreen", () => {
         onContinue={onContinue}
       />,
     );
-    fireEvent.press(screen.getByText("11:00"));
+    await fireEvent.press(screen.getByText("11:00"));
     await waitFor(() =>
       expect(screen.getByText("Выбрано: 14.08.2026 в 11:00")).toBeTruthy(),
     );
-    fireEvent.press(screen.getByText("Продолжить"));
+    await fireEvent.press(screen.getByText("Продолжить"));
     await waitFor(() =>
       expect(onContinue).toHaveBeenCalledWith({
         ...context,
@@ -82,11 +88,11 @@ describe("AvailabilityScreen", () => {
         onContinue={onContinue}
       />,
     );
-    fireEvent.press(screen.getByText("11:00"));
+    await fireEvent.press(screen.getByText("11:00"));
     await waitFor(() =>
       expect(screen.getByText("Выбрано: 14.08.2026 в 11:00")).toBeTruthy(),
     );
-    fireEvent.press(screen.getByText("Продолжить"));
+    await fireEvent.press(screen.getByText("Продолжить"));
     await waitFor(() =>
       expect(
         screen.getByText("Выбранное время больше недоступно. Выберите другое."),
@@ -113,11 +119,11 @@ describe("AvailabilityScreen", () => {
         onContinue={onContinue}
       />,
     );
-    fireEvent.press(screen.getByText("11:00"));
+    await fireEvent.press(screen.getByText("11:00"));
     await waitFor(() =>
       expect(screen.getByText("Выбрано: 14.08.2026 в 11:00")).toBeTruthy(),
     );
-    fireEvent.press(screen.getByText("Продолжить"));
+    await fireEvent.press(screen.getByText("Продолжить"));
     await waitFor(() =>
       expect(
         screen.getByText("Не удалось проверить время. Повторите попытку."),
@@ -177,12 +183,12 @@ describe("AvailabilityScreen", () => {
         onContinue={onContinue}
       />,
     );
-    fireEvent.press(screen.getByText("11:00"));
+    await fireEvent.press(screen.getByText("11:00"));
     await waitFor(() =>
       expect(screen.getByText("Выбрано: 14.08.2026 в 11:00")).toBeTruthy(),
     );
-    fireEvent.press(screen.getByText("Продолжить"));
-    fireEvent.press(screen.getByText("Продолжить"));
+    await fireEvent.press(screen.getByText("Продолжить"));
+    await fireEvent.press(screen.getByText("Продолжить"));
     await waitFor(() =>
       expect(
         screen
@@ -190,13 +196,13 @@ describe("AvailabilityScreen", () => {
           .every((item) => item.props.accessibilityState.disabled),
       ).toBe(true),
     );
-    fireEvent.press(screen.getByText("12:00"));
+    await fireEvent.press(screen.getByText("12:00"));
     expect(refetch).toHaveBeenCalledTimes(1);
     expect(screen.queryByText("Выбрано: 14.08.2026 в 12:00")).toBeNull();
     expect(
       screen.getByLabelText("Выбор доступного времени").props.accessibilityRole,
     ).toBe("radiogroup");
-    screen.rerender(
+    await screen.rerender(
       <AvailabilityScreen
         authorityGeneration="session-b"
         context={context}
@@ -204,7 +210,29 @@ describe("AvailabilityScreen", () => {
         onContinue={onContinue}
       />,
     );
-    resolve({ isError: false, data: both });
+    await act(async () => { resolve({ isError: false, data: both }); });
     await waitFor(() => expect(onContinue).not.toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Назад к услугам' }).props.accessibilityState.disabled).toBe(false));
+    refetch.mockResolvedValue({ isError: false, data: both });
+    await fireEvent.press(screen.getByText('11:00'));
+    await fireEvent.press(screen.getByText('Продолжить'));
+    await waitFor(() => expect(onContinue).toHaveBeenCalledTimes(1));
+  });
+});
+
+
+describe("date picker authority", () => {
+  it("shows only the chosen day's slots and clears selection when the day changes", async () => {
+    const later = { ...slot, slotId: '55555555-5555-4555-8555-555555555555', startsAt: '2026-08-15T09:00:00Z', endsAt: '2026-08-15T09:30:00Z', localDate: '2026-08-15', localTime: '12:00' };
+    mockUseQuery.mockReturnValue({ isPending: false, isError: false, data: { ...data, slots: [later, slot] }, refetch: jest.fn() });
+    const screen = await render(<AvailabilityScreen context={context} onBack={jest.fn()} onContinue={jest.fn()}/>);
+    await waitFor(()=>expect(screen.getAllByRole('radio')).toHaveLength(1));
+    expect(screen.queryByText('12:00')).toBeNull();
+    await fireEvent.press(screen.getByText('11:00'));
+    await waitFor(()=>expect(screen.getByRole('button', { name: 'Продолжить' }).props.accessibilityState.disabled).toBe(false));
+    await fireEvent.press(screen.getByText('15.08.2026'));
+    await waitFor(()=>expect(screen.queryByText('11:00')).toBeNull());
+    expect(screen.getByText('12:00')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Продолжить' }).props.accessibilityState.disabled).toBe(true);
   });
 });
