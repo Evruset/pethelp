@@ -112,7 +112,8 @@ async function seed(database: DatabaseService, count: number): Promise<void> {
 }
 
 async function cleanupFixtures(database: DatabaseService): Promise<void> {
-  await database.query('TRUNCATE clinic_schema.clinics, pet_schema.pets, identity_schema.users CASCADE');
+  // Preserve immutable OCR review history while dropping the isolated workspace clinic fixtures.
+  await database.query('TRUNCATE clinic_schema.clinics CASCADE');
   await resetBookingPersistence(database);
 }
 

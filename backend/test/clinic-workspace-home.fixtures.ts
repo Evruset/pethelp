@@ -24,7 +24,8 @@ export const WORKSPACE_IDS = {
 
 export async function resetWorkspaceFixtures(database: DatabaseService): Promise<void> {
   const id = WORKSPACE_IDS;
-  await database.query('TRUNCATE clinic_schema.clinics, pet_schema.pets, identity_schema.users CASCADE');
+  // Fixture uses a fresh test database; never cascade TRUNCATE into append-only OCR decisions.
+  await database.query('TRUNCATE clinic_schema.clinics CASCADE');
   await resetBookingPersistence(database);
   await database.query('INSERT INTO identity_schema.users (id) SELECT unnest($1::uuid[])', [[id.owner, id.receptionist, id.admin, id.veterinarian, id.revoked, id.noMembership, id.inactive]]);
   await database.query(`INSERT INTO clinic_schema.clinics (id, legal_name, public_name, timezone) VALUES ($1, 'Workspace LLC', 'Workspace', 'Europe/Moscow'), ($2, 'Other LLC', 'Other', 'UTC')`, [id.clinic, id.otherClinic]);
