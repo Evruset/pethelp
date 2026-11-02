@@ -1,56 +1,95 @@
-# Unified sparse routing contract (ORCH-MOE-01)
+# GPT-6.1 Sol routing contract (AO-61)
 
-Routing order is fixed: classify -> allocate context -> choose the minimum roles
--> resolve model availability -> choose reasoning -> execute -> run deterministic
-checks -> independently validate -> repair or fall back. Agent role, model, and
-reasoning effort are separate fields; legacy role suffixes are compatibility
-names, not model bindings.
+Routing is based on complexity + risk + independence + reasoning effort + tool
+requirements + write ownership. Agent profile suffixes are legacy
+compatibility identifiers and never select the model.
 
-## Classification and total budget rule
+## Classification and context budget
 
-- C0 deterministic; C1 bounded one-module; C2 cross-module/integration; C3 architecture/security/concurrency/broad refactor.
-- R0 cosmetic/docs; R1 local behavior; R2 public contract/authorization/persistent business state; R3 destructive/security/concurrency/irreversible.
-- `small`: C0 with R0/R1.
-- `standard`: C1, or C2 with R0/R1.
-- `complex`: any R2/R3 or C3. Risk overrides complexity, covering every C/R pair.
+- C0: deterministic or cosmetic.
+- C1: bounded one-module work.
+- C2: multi-module or integration work with known boundaries.
+- C3: architectural uncertainty, security, concurrency, or broad refactor.
+- R0: cosmetic or documentation-only.
+- R1: local behavior with bounded rollback.
+- R2: public contract, authorization, or persistent business state.
+- R3: destructive, security-critical, concurrent, or irreversible.
 
-Uncertainty can raise complexity. Specialization tags activate experts only for
-evidence-backed needs: browser, external docs, unknown tests, architecture,
-security/authorization/data loss, concurrency/transaction/idempotency, or
-integration of disjoint slices.
+Budget selection:
 
-## Sparse routes
+- `small`: C0 with R0/R1;
+- `standard`: C1, or C2 with R0/R1;
+- `complex`: any C3 or R2/R3.
 
-| Class | Minimum route | Model/reasoning | Validation |
+Risk overrides complexity. Budgets limit expansion; they are not consumption
+targets.
+
+## Root-first routes
+
+| Class | Default execution | Reasoning | Optional escalation |
 |---|---|---|---|
-| C0/R0 | root | Luna/low if delegated | deterministic checks; no validator by default |
-| C1/R0-R1 | root or implementer_terra | Terra low/medium | targeted tests; at most one matched validator |
-| C2 or R2 | planner only for a real dependency graph; bounded Terra implementer | Terra medium/high | one matched independent validator; domain reviewer only for veto risk |
-| C3 or R3 | architect only for ambiguous invariants; hard-core implementer only where needed | Astra high/xhigh when eligible, otherwise Sol | one independent reviewer plus mandatory applicable domain reviewer |
+| C0 | root only | LOW | none unless a check reveals risk |
+| C1 | root only | LOW or MEDIUM | one isolated specialist when the delegation gate passes |
+| C2 | root first | MEDIUM | bounded independent workstream or one material-risk reviewer |
+| C3/R3 | root architecture/risk pass first | HIGH | bounded specialist or distinct veto-domain review |
 
-More votes never replace tests. Integrator activation requires independently
-completed slices. Validator invocation must differ from implementation and be
-read-only; repair is a separate implementer action.
+The default root model is `gpt-6.1-sol` with MEDIUM reasoning. LOW is preferred
+for deterministic edits, known continuation slices, targeted discovery,
+routine tests, and trivial repairs. HIGH is reserved for architecture,
+security/authorization, migrations, concurrency, persistent-state invariants,
+hard cross-module debugging, or conflicting evidence.
 
-## Availability and fallback
+Do not escalate reasoning merely because a command failed. First classify the
+failure as ENVIRONMENT, TEST_EXPECTATION, IMPLEMENTATION, CONTRACT,
+ARCHITECTURE, SECURITY, or UNKNOWN. Only materially ambiguous CONTRACT,
+ARCHITECTURE, SECURITY, and hard UNKNOWN justify HIGH.
 
-`.codex/policies/model-catalog.toml` lists candidates and capabilities, not
-availability. Every decision requires a current runtime inventory. An empty
-inventory blocks routing. Astra is eligible only when runtime-confirmed and the
-selected work is C3/R3 with hard architectural risk or uncertainty.
+## Delegation and parallelism
 
-Fallback is Astra -> Sol -> Terra -> gpt-5.5 and Sol -> Terra -> gpt-5.5.
-Reasoning must be supported by the selected model. If fallback removes a
-required capability or independent veto-domain reviewer, return a blocked
-result rather than weakening assurance.
+Delegate only when the objective and output are bounded, context is independent
+or isolated, write ownership is safe, and expected benefit exceeds coordination
+cost. Complexity or available capacity alone is insufficient.
 
-## Failure and sticky evidence
+Parallelize A and B only when neither consumes the other's intermediate
+decision. Serialize A -> decision -> B. Parallel writers require disjoint
+owned paths. Children do not spawn children.
 
-- Required test failure is a veto and routes only to targeted repair.
-- Rerun failed or dependency-affected checks; keep other PASS evidence.
-- PASS is sticky only while check, scoped-input/diff, command/config, and environment fingerprints match.
-- Relevant change makes only dependent evidence stale.
-- At most two repair rounds; an unresolved failure stays blocked.
+Legacy profiles such as `explorer_luna`, `implementer_terra`, and
+`reviewer_sol` retain their names for compatibility. Their suffixes do not
+bind current model families. Profiles without `model` inherit the
+runtime-selected model. Role intent is LOW for deterministic/explorer helpers,
+MEDIUM for normal implementation/testing/integration, and HIGH for
+architecture/security/high-risk review.
 
-The executable reference is `scripts/orchestrator-route.py`; fixtures are in
-`scripts/test-orchestrator-routing.py`.
+## Tool routing
+
+- repository search/map/RAG: escalate only after the prior narrower discovery
+  step fails;
+- external documentation: use a bounded docs specialist or official docs tool
+  only for version-sensitive facts;
+- browser reproduction: use a browser specialist only for evidence requiring a
+  real browser;
+- planner: only for a real dependency graph;
+- integrator: only for completed disjoint slices;
+- reviewer: only for material residual risk not deterministically proven.
+
+## Validation and sticky evidence
+
+Prefer deterministic evidence, then root diff-first review, then one matched
+independent specialist. Multiple reviewers are allowed only for distinct veto
+domains. Vetoes are non-votable.
+
+A PASS is sticky. Reuse it as `REUSED_STICKY_PASS` while its dependency surface
+is unchanged and no contract, shared-infrastructure, contradictory-runtime, or
+downstream-failure evidence invalidates it. Never label reused evidence as a
+fresh run.
+
+The Gate Ledger records `gate`, `status`, `evidence_revision`,
+`dependency_surface`, `fresh_or_reused`, and `invalidated_by`.
+
+## Efficiency
+
+Judge efficiency by absence of duplicate discovery, unnecessary delegation,
+unnecessary HIGH reasoning, repeated sticky PASS, unbounded tools/files, and
+avoidable pipeline stages. Direct root implementation plus targeted validation
+may be EFFICIENT for C2. Historical model names are never verdict criteria.

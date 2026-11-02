@@ -10,7 +10,9 @@ Acceptance: <observable result>
 Constraints: <what must not change>
 ```
 
-You may omit technical paths; the orchestrator should find them through repo map and targeted search.
+You may omit technical paths; the orchestrator should start with targeted search
+and use the repo map only when narrower discovery is insufficient. The root is
+the default implementer; delegation requires a bounded independent workstream.
 
 ## Exact small fix
 

@@ -5,8 +5,11 @@ describe('OwnerClinicCatalogController',()=>{
   it('requests only online-bookable locations and exposes the bounded projection',async()=>{
     const listClinicLocations=jest.fn().mockResolvedValue({observedAt:'2026-08-12T12:00:00.000Z',locations:[{clinic:{id:'11111111-1111-4111-8111-111111111111',name:'Clinic'},location:{id:'22222222-2222-4222-8222-222222222222',address:'Address',phone:'+7000',latitude:1,longitude:2},availability:{mode:'READ_ONLY_SNAPSHOT',hasOpenSlots:true,observedAt:'2026-08-12T12:00:00.000Z'}}]});
     const controller=new OwnerClinicCatalogController({listClinicLocations} as unknown as PublicCatalogService);
-    await expect(controller.list()).resolves.toEqual({observedAt:'2026-08-12T12:00:00.000Z',clinics:[{clinicId:'11111111-1111-4111-8111-111111111111',locationId:'22222222-2222-4222-8222-222222222222',name:'Clinic',address:'Address',phone:'+7000'}]});
-    expect(listClinicLocations).toHaveBeenCalledWith({limit:50,openNow:true});
+    await expect(controller.list('  Clinic   Address  ')).resolves.toEqual({observedAt:'2026-08-12T12:00:00.000Z',clinics:[{clinicId:'11111111-1111-4111-8111-111111111111',locationId:'22222222-2222-4222-8222-222222222222',name:'Clinic',address:'Address',phone:'+7000'}]});
+    expect(listClinicLocations).toHaveBeenCalledWith({query:'Clinic Address',limit:50,openNow:true});
+    await controller.list('   ');
+    expect(listClinicLocations).toHaveBeenLastCalledWith({query:undefined,limit:50,openNow:true});
+    await expect(controller.list('x'.repeat(121))).rejects.toMatchObject({status:400,response:{code:'INVALID_REQUEST'}});
   });
   it('returns the bounded service projection and masks a mismatched location',async()=>{
     const readOwnerClinicServices=jest.fn().mockResolvedValueOnce({observedAt:'2026-08-13T08:00:00.000Z',clinicId:'11111111-1111-4111-8111-111111111111',locationId:'22222222-2222-4222-8222-222222222222',name:'Clinic',address:'Address',phone:null,services:[]}).mockResolvedValueOnce(undefined);

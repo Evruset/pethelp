@@ -313,6 +313,7 @@ export function AvailabilityScreen({
                           key={slot.slotId}
                           accessibilityRole="radio"
                           accessibilityState={{ selected: active, disabled: refreshing }}
+                          aria-checked={active}
                           disabled={refreshing}
                           onPress={() => choose(slot)}
                           style={({ pressed }) => ({

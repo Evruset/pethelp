@@ -11,10 +11,12 @@ it('renders the V50 Home composition and keeps authoritative workflow actions', 
   expect(view.getByLabelText('Основная навигация')).toBeTruthy();
   expect(view.getByRole('header',{name:'Здравствуйте!'})).toBeTruthy();
   expect(view.queryByText(/Доброе утро/)).toBeNull();
-  expect(view.getByText('Что нужно Барни сейчас?')).toBeTruthy();
+  expect(view.getByText('Найти клинику для Барни')).toBeTruthy();
   expect(view.getByText('Польза сразу')).toBeTruthy();
   expect(view.getByText('Сравните варианты для Барни без звонка')).toBeTruthy();
-  expect(view.getByText('Выбрать клинику')).toBeTruthy();
+  expect(view.getByLabelText('Клиника, услуга или симптом')).toBeTruthy();
+  expect(view.getByText('Найти клинику')).toBeTruthy();
+  expect(view.getAllByText('Клиники').length).toBeGreaterThan(0);
   expect(view.getByText('Найти время')).toBeTruthy();
   expect(view.getByText('Следующий шаг')).toBeTruthy();
   expect(view.getAllByText('Барни').length).toBeGreaterThan(0);
@@ -25,7 +27,7 @@ it('renders the V50 Home composition and keeps authoritative workflow actions', 
   expect(view.queryByText(/подтверждённый профиль/)).toBeNull();
   expect(view.queryByText(/API|backend|authoritative|V50 референс/)).toBeNull();
   fireEvent.press(view.getAllByText('Записаться')[0]);
-  fireEvent.press(view.getAllByText('Выбрать клинику')[0]);
+  fireEvent.press(view.getByText('Найти клинику'));
   fireEvent.press(view.getAllByText('Найти время')[0]);
   fireEvent.press(view.getByRole('button', { name: /Питомцы/ }));
   fireEvent.press(view.getAllByText('Дневник')[0]);

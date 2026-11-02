@@ -307,3 +307,167 @@ Prototype parity now includes action-first SLA/queue presentation, clean mobile 
 ## V50-CLINIC-MVP1-02-R5-C parity note
 
 Prototype parity now includes one contextual booking draft across global, free-slot, client and request entry; desktop/tablet and three-step mobile presentation; validation/submitting/readback/conflict/terminal states; capability-filtered entry; canonical calendar/free-slot semantics; and keyboard/focus/reduced-motion behavior. Evidence `V50-CLINIC-MVP1-02-R5-C-RESPONSIVE` is 299/299 PASS across 10 viewports and 4 roles. Creation and readback remain deterministic prototype presentation; backend/runtime authority is unchanged. The one next slice is `V50-CLINIC-MVP1-02-R5-D / Views, filters and communication`.
+
+## 2026-09-21 — OWN-002 Owner Catalog server-search closure
+
+Product Owner explicitly amended S09 to add server-side search; the original
+S09 revision did not include it. Contract:
+`docs/v50/OWNER-V50-CATALOG-SEARCH-CONTRACT.md`.
+
+| V50 screen | Runtime route | Mismatch | Classification | Fix | Evidence |
+|---|---|---|---|---|---|
+| `#catalog` search panel | `/` → `ClinicCatalogScreen` | V50 search previously filtered only the already bounded client snapshot, then was removed because Owner API had no query | `CONTRACT_DELTA` resolved | Optional server `q`, normalized name/address predicate before `LIMIT 50`; input, Enter and separate CTA restored | Backend unit `3/3`, focused PostgreSQL `1/1`, HTTP `1/1`; Owner adapter `3/3`, screen `12/12`, Web bridge/client `10/10` |
+| `#catalog` responsive search | same | Search result state required equal viewport proof | `VISUAL_DEFECT` resolved | Desktop inline input/CTA and mobile stacked controls use existing tokens; no overflow and targets >=44 | `docs/ai/artifacts/owner-v50-catalog-live-closure/` at 390x844 and 1440x900 |
+| `#catalog` clinic cards | same | V50 shows media, rating, distance, price and nearest slots unavailable in Owner list DTO | `DATA_GAP` | Omit unsupported facts; retain one `Посмотреть услуги` CTA and exact clinic/location handoff | Live search → result → service selection PASS at both viewports |
+| `#catalog` filters | same | V50 presents distance/date/24x7/specialty/species/insurance/price controls without current Owner authority | `DATA_GAP` | Render only authoritative `Онлайн-запись` and name/address search | OpenAPI optional `q` PASS; unsupported controls absent |
+
+Acceptance: `CATALOG_SEARCH_CONTRACT=PASS`, `CATALOG_SERVER_SEARCH=PASS`,
+`CATALOG_SEARCH_BEFORE_LIMIT=PASS`, `CATALOG_ELIGIBILITY_PRESERVED=PASS`,
+`CATALOG_OWNER_SEARCH=PASS`, `CATALOG_CLINIC_HANDOFF=PASS`,
+`CATALOG_RESPONSIVE=PASS`, `CATALOG_ACCESSIBILITY=PASS`,
+`CATALOG_RUNTIME_ERRORS=0`, `CATALOG_VISUAL_PARITY=PARTIAL` because the listed
+non-search data gaps remain.
+
+## 2026-09-17 — OWN-001 Owner Home parity restoration
+
+| V50 screen | Runtime route | Component | Confirmed mismatch | Severity | Fix | Evidence |
+|---|---|---|---|---|---|---|
+| `prototype-v50/index.html#home` | `/` | `OwnerHome` / `SearchHero` | Banner-led hero and generic stacked paths displaced the V50 search-led decision composition | Critical | Restored search-led title/control and the V50 desktop action rail/mobile action stack with only current-Pilot routes | `docs/ai/evidence/v50-ui-parity-restoration/` |
+| `#home` | `/` | `OwnerHome` | `ImmediateValue` separated the hero from authoritative Pet/next-care context | High | Moved the strip below Pet/next-care so the V50 decision → care hierarchy is preserved | same package |
+| `#home` | `/` | Home shell | Full-width desktop shell and tall mobile chrome changed the reference geometry | High | Bounded desktop shell to the V50 1120px rail and reduced mobile header height while preserving logout and four truthful routes | same package |
+
+`OWN-001_VISUAL_PARITY=PARTIAL`; the earlier visual PASS is withdrawn after
+direct review of the stored 390×844 and 1440×900 pairs. Functional parity,
+responsive execution, touch-target and runtime-error evidence remain PASS.
+
+| Classification | Remaining mismatch in the stored pair | Required disposition |
+|---|---|---|
+| `VISUAL_DEFECT` | Search control and CTA are merged; action substitutions, Pet card, next-action card and mobile navigation differ materially in geometry/hierarchy | Repair and recapture |
+| `APPROVED_PILOT_DELTA` | Emergency and telemedicine actions are excluded by `PILOT_V1` | Preserve the exclusion and identify it explicitly |
+| `DATA_GAP` | Owner display name/time greeting, Pet photo, breed/age/weight and a real upcoming booking are not present in the current Home projection | Use neutral/fallback design-system states; never fabricate |
+| `UNRESOLVED` | None at repair start | — |
+
+### Repair closure
+
+| Classification | Final result |
+|---|---|
+| `VISUAL_DEFECT` | Closed: standalone search field and CTA, V50 hero/action geometry, mobile topbar and navigation order, desktop media/copy Pet Card, and text-first nearest-action card are restored. |
+| `APPROVED_PILOT_DELTA` | Preserved and visible: the two excluded emergency/telemedicine cards are represented by truthful Pilot clinic/time paths in the same action-rail geometry; this is not literal prototype content identity. |
+| `DATA_GAP` | Remains open: neutral greeting, large no-photo placeholder, available species only and server-authored next action are truthful fallbacks, but the prototype has no equivalent state for an identical-state pair. |
+| `UNRESOLVED` | Product/UX must decide whether the truthful no-photo / no-active-booking Home state is an accepted parity variant or requires a new canonical V50 state. |
+
+Final verdict: `OWN-001_VISUAL_PARITY=PARTIAL`. The repair closes the confirmed
+presentation defects, but the required identical-state comparison cannot be
+produced from the current fixed prototype without fabricating runtime data.
+Functional parity remains PASS. Evidence:
+`docs/ai/evidence/v50-home-parity-repair/`.
+
+Source audit confirms the blocker: `v47-test-fixtures.js` has no Home fixture
+for one Pet + no photo + no active booking, and the canonical `#home` markup
+hard-codes both the Barney media treatment and a confirming appointment.
+
+## 2026-09-21 — OWN-003 Clinic Detail → Service → Availability
+
+| V50 screen | Runtime route | Component | Mismatch | Classification | Fix / disposition | Evidence |
+|---|---|---|---|---|---|---|
+| `#clinic` | Catalog handoff | `ClinicServiceScreen` | Selected clinic identity was duplicated and one copy used a generic reference interior unrelated to the selected clinic | `VISUAL_DEFECT` | One authoritative identity/location/phone/facts panel; generic image removed | Fresh mobile/desktop runtime captures and live clinic/location response |
+| `#clinic` services | same | `ClinicServiceScreen` | V50 assumes duration, add-on, clinic media/capabilities/reviews and doctor-bound selection beyond current DTO/handoff | `DATA_GAP` / `UNRESOLVED` | Render active services, informational price and truthful doctor discovery only; exact service handoff revalidated | Focused Jest plus live service → availability transition |
+| `#booking` | Service handoff | `AvailabilityScreen` | V50 includes demo pet/insurance/photo/cost composition; runtime slot radio missed explicit web `aria-checked` | `APPROVED_PILOT_DELTA` / `DATA_GAP` / resolved accessibility defect | Preserve Pilot composition and server-authored local slots; add explicit radio state | Axe, >=44px targets, no overflow, authoritative availability response |
+| `#booking` continuation | Availability handoff | `AvailabilityScreen` → pet/review flow | Exact slot/version must survive handoff | Functional contract | Revalidate and forward existing clinic/location/service/slot/version tuple | Live `Кого записываем?` transition at 390x844 and 1440x900 |
+
+Acceptance: `CLINIC_DETAIL=PARTIAL`, `SERVICE_SELECTION=PARTIAL`,
+`AVAILABILITY=PARTIAL`, `BOOKING_HANDOFF=PASS`, `VISUAL_PARITY=PARTIAL`,
+`RESPONSIVE=PASS`, `ACCESSIBILITY=PASS`, `RUNTIME_ERRORS=0`. Evidence:
+`docs/ai/artifacts/owner-v50-clinic-service-parity/`. Partial statuses reflect
+the explicit data/contract/Pilot gaps above; no unsupported values or media
+were fabricated.
+
+## 2026-09-21 — OWN-018 Doctor booking continuity
+
+| V50 screen | Runtime route/component | Mismatch | Classification | Disposition | Evidence |
+|---|---|---|---|---|---|
+| `#doctor-select` | `ClinicServiceScreen` doctor discovery | V50 selects a named doctor; Pilot runtime exposes the same identity class as read-only clinic/location discovery | `APPROVED_PILOT_DELTA` / `CONTRACT_DELTA` | Do not add a selectable control without a Product/API amendment | Live four-doctor response; zero doctor button/radio controls |
+| `#booking` | `AvailabilityScreen` | V50 availability is downstream of selected doctor; Owner availability is service-scoped and intentionally omits doctor/staff fields | `CONTRACT_DELTA` | Preserve authoritative slot/version; server retains slot doctor binding | Live service/slot response plus PostgreSQL slot inspection |
+| Booking command/read | `BookingReviewScreen` / Booking Core | Pilot command rejects `doctorId`; hold read derives doctor from locked slot | `APPROVED_PILOT_DELTA` | No navigation/adapter repair is valid under the current closed six-field body | Controller/DTO and slot identity trace |
+
+`DOCTOR_SELECTION_CONTRACT=VERIFIED`,
+`DOCTOR_SERVICE_COMPATIBILITY=PASS`, `DOCTOR_AVAILABILITY=PASS`,
+`BOOKING_IDENTITY_CONTINUITY=DOCUMENTED_SCOPE_GAP`,
+`VISUAL_PARITY=PARTIAL`, `RESPONSIVE=PASS`, `ACCESSIBILITY=PASS`,
+`RUNTIME_ERRORS=0`. The exact residual requirement is a Product-approved
+doctor-selection contract spanning doctor/service compatibility, filtered
+availability and Booking input. Evidence:
+`docs/ai/artifacts/owner-v50-doctor-booking-continuity/`.
+
+## 2026-09-22 — OWN-007/OWN-008 R2K live closure
+
+| V50 screen | Runtime route/component | Live result | Classification | Evidence |
+|---|---|---|---|---|
+| `#appointments` | `OwnerBookingsScreen` | Authoritative active/history buckets open exact hold detail and refresh from server after cancellation | Functional parity `PASS`; visual `PARTIAL` | `bookings_before_*`, `bookings_after_*` |
+| `#appointment-detail` eligible | `OwnerBookingDetailScreen` | Server status, pet/clinic/service/time/price/history and cancel authority render without raw enum/version | Functional parity `PASS`; visual `PARTIAL` | `eligible_detail_*` |
+| cancellation confirmation | `ConfirmationModal` | Explicit destructive confirmation; controlled network failure keeps confirmed truth and retry | Functional parity `PASS` | `confirmation_*`, harness assertions |
+| cancelled detail | same | Canonical command returns public `CANCELLED`; detail refetch renders `Отменена`; cancel action disappears | Functional parity `PASS` | `cancelled_detail_*`, replay `200`, stale `409` |
+| terminal detail | same | Existing terminal booking never exposes cancellation | Functional parity `PASS` | `terminal_detail_*` |
+
+Residual V50 differences are data/scope backed: clinic and pet photography,
+richer appointment metadata and prototype-only actions are not present in the
+authoritative Pilot detail DTO. They are omitted rather than fabricated.
+`VISUAL_PARITY=PARTIAL` independently of functional closure.
+
+`OWNER_BOOKING_DETAIL_LIVE=PASS`, `OWNER_CANCELLATION_LIVE=PASS`,
+`OWNER_CANCELLATION_READBACK=PASS`,
+`OWNER_CANCELLATION_R2J_REFRESH=PASS`,
+`OWNER_CANCELLATION_TERMINAL_GUARD=PASS`,
+`OWNER_CANCELLATION_STALE_SAFE=PASS`, `RESPONSIVE=PASS`,
+`ACCESSIBILITY=PASS`, `RUNTIME_ERRORS=0`, `OWNER_V50_R2K_COMPLETE=YES`.
+Persistent evidence: `docs/ai/artifacts/owner-v50-r2k-live/`.
+
+## 2026-09-22 — OWN-007/OWN-008 appointments structural restoration
+
+| V50 screen | Runtime component | Confirmed mismatch | Classification | Repair / disposition | Comparable evidence |
+|---|---|---|---|---|---|
+| `#appointments` | `OwnerBookingsScreen` | Desktop reused vertically stacked mobile cards across the content rail, weakening status/facts/action hierarchy | `STRUCTURAL_DEFECT` | Responsive desktop row with grouped content, status priority and fixed detail CTA; mobile remains stacked | `{prototype_appointments,bookings_before}_{mobile,desktop}.png` |
+| `#appointments` | same | V50 includes clinic media and a separate quick-action rail unsupported by the Pilot projection/scope | `DATA_GAP` / `APPROVED_PILOT_DELTA` | Do not fabricate images or reintroduce telemedicine/emergency/insurance paths | same pair |
+| `#appointment-detail` | `OwnerBookingDetailScreen` | Shared phone-width shell left excessive unused desktop space and flattened status/action/fact hierarchy | `STRUCTURAL_DEFECT` | Wide 1120px rail, status/action hero, responsive facts/history columns and mobile stacking | `{prototype_appointment-detail,eligible_detail}_{mobile,desktop}.png` |
+| `#appointment-detail` | same | Prototype is pending confirmation and exposes richer management choices; live fixture is authoritative confirmed state | `UNRESOLVED` state comparability / `APPROVED_PILOT_DELTA` | Compare common structural regions only; retain server-authorized cancellation and omit unsupported actions | same pair plus structural harness assertions |
+| both | same | Clinic/pet imagery and richer provider/service metadata are absent from current authoritative DTOs | `DATA_GAP` | Omit absent fields; no fake media or metadata | live runtime payload/render |
+
+Acceptance: `MY_BOOKINGS_STRUCTURAL_PARITY=PARTIAL`,
+`BOOKING_DETAIL_STRUCTURAL_PARITY=PARTIAL`, `FUNCTIONAL_REGRESSION=NONE`,
+`RESPONSIVE=PASS`, `ACCESSIBILITY=PASS`, `RUNTIME_ERRORS=0`,
+`VISUAL_PARITY=PARTIAL`. All confirmed data-independent layout defects are
+closed; Partial records the remaining data, Pilot-scope and exact-state gaps.
+Evidence: `docs/ai/artifacts/owner-v50-appointments-structural-parity/`.
+
+## 2026-09-22 — OWN-007 My Bookings parity repair
+
+| V50 area | Runtime component | Mismatch | Classification | Final disposition | Evidence |
+|---|---|---|---|---|---|
+| Active / History control | `OwnerBookingsScreen` | Server groups were rendered simultaneously instead of through the V50 switch | `STRUCTURAL_DEFECT` | Active maps only `REQUIRES_ACTION + ACTIVE`; History maps only `HISTORY`; selected tab has semantic accessibility state | `bookings_before_*`, `bookings_history_*`, 8 browser assertions per viewport |
+| Booking card hierarchy | same | Clinic identity dominated; time, pet and status were less scannable and cards were taller than V50 | `STRUCTURAL_DEFECT` | Compact card prioritizes time/status/pet, then clinic/address and server presentation, with one detail CTA | mobile/desktop pairs |
+| Desktop composition | same | No bounded secondary action area | `STRUCTURAL_DEFECT` / `APPROVED_PILOT_DELTA` | Primary list plus a catalog-only new-booking panel; no telemedicine/emergency/insurance actions | desktop pair |
+| Service title and media | same | V50 cards include service and photography absent from the list DTO | `DATA_GAP` | Omitted; no inferred service or fake media | DTO inspection and runtime pair |
+| Booking Detail history | `OwnerAppointmentsService.timeline` → `OwnerBookingDetailScreen` | Repeated public fallback text looked like possible UI duplication | Read-only verification | `REAL_EVENTS`: separate persisted audit/appointment-event rows; UI maps each returned row once | timeline SQL unions and detail mapper |
+
+`MY_BOOKINGS_STRUCTURAL_PARITY=PASS`,
+`BOOKING_HISTORY_DUPLICATION=REAL_EVENTS`,
+`R2J_R2K_FUNCTIONAL_REGRESSION=NONE`, `RESPONSIVE=PASS`,
+`ACCESSIBILITY=PASS`, `RUNTIME_ERRORS=0`, `VISUAL_PARITY=PARTIAL`.
+Structural PASS covers data-independent composition; service/media gaps and
+Pilot exclusions remain explicit. Evidence:
+`docs/ai/artifacts/owner-v50-my-bookings-parity-repair/`.
+
+## 2026-09-22 — OWN-008 Booking Detail structural closure
+
+| Metric | Status | Evidence / residual |
+|---|---|---|
+| `BOOKING_DETAIL_STRUCTURAL_PARITY` | `PASS` | Existing `prototype_appointment-detail_{mobile,desktop}.png` ↔ `eligible_detail_{mobile,desktop}.png` pairs prove container, status/action hero, facts, history, responsive columns/stack and action placement |
+| `EXACT_STATE_COMPARABILITY` | `NO` | Canonical prototype is `PENDING_CONFIRMATION`; authoritative rich-demo runtime is `CONFIRMED` |
+| `REMAINING_STRUCTURAL_DEFECTS` | `NONE` | No data-independent mismatch remains in the evaluated regions |
+| `DATA_GAPS` | Open | Clinic/pet media and richer provider/appointment metadata are absent from the detail DTO and remain omitted |
+| `R2K_FUNCTIONAL_STATUS` | `UNCHANGED` | Existing R2K functional closure remains sticky; cancellation acceptance was not rerun |
+
+Evidence: `docs/ai/artifacts/owner-v50-appointments-structural-parity/`.
+Overall `VISUAL_PARITY=PARTIAL` remains independent from structural closure
+because exact state comparability is unavailable and the listed DTO/Pilot gaps
+remain.

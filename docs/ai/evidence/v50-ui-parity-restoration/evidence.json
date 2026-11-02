@@ -1,0 +1,43 @@
+{
+  "generatedAt": "2026-09-17T06:06:24.364Z",
+  "records": [
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "screenshot": "/Users/evrusetskiy/work/pethelp-alpha/docs/ai/evidence/v50-ui-parity-restoration/runtime-home-after-390x844.png",
+      "metrics": {
+        "documentWidth": 390,
+        "scrollWidth": 390,
+        "scrollHeight": 844,
+        "targetsBelow44": [],
+        "unnamedInteractive": 0,
+        "petTop": 683
+      },
+      "bookingTransition": true,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "screenshot": "/Users/evrusetskiy/work/pethelp-alpha/docs/ai/evidence/v50-ui-parity-restoration/runtime-home-after-1440x900.png",
+      "metrics": {
+        "documentWidth": 1440,
+        "scrollWidth": 1440,
+        "scrollHeight": 900,
+        "targetsBelow44": [],
+        "unnamedInteractive": 0,
+        "petTop": 488
+      },
+      "bookingTransition": true,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    }
+  ]
+}

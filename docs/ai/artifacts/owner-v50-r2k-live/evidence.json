@@ -1,0 +1,20 @@
+[
+  {
+    "viewport": "390x844",
+    "holdId": "97000000-0000-4000-8000-000000000001",
+    "pet": "Барни",
+    "commandStatus": "CANCELLED",
+    "replayStatus": 200,
+    "staleStatus": 409,
+    "runtimeErrors": 0
+  },
+  {
+    "viewport": "1440x900",
+    "holdId": "97000000-0000-4000-8000-000000000001",
+    "pet": "Барни",
+    "commandStatus": "CANCELLED",
+    "replayStatus": 200,
+    "staleStatus": 409,
+    "runtimeErrors": 0
+  }
+]

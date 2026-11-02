@@ -3281,10 +3281,11 @@ Batch stop: exactly three checkpoints were processed (T085 continuation, T140, T
 - Eligible server-authored actions expose one destructive cancellation CTA behind explicit confirmation. The client sends only canonical `POST /v1/owner/bookings/:holdId/cancel` with a stable idempotency key and authoritative `If-Match`, prevents duplicate in-flight submission, performs no optimistic mutation, reads the detail again, and invalidates My Bookings so its server projection determines the resulting bucket. Conflict refresh and network retry copy preserve server truth; terminal readback suppresses the action.
 - No backend, Booking Core, migration, dependency, R2I/R2J implementation or Clinic Portal file was changed. The unrelated `apps/clinic-portal/next-env.d.ts` modification remains untouched.
 - Focused Jest verdict PASS `5 suites / 13 tests` (ordinary runner retained the existing open-handle/React `act()` diagnostics); Owner typecheck PASS; targeted ESLint PASS with one repaired style warning; `git diff --check` PASS. Live two-viewport acceptance was not completed in this run, so R2K remains `PARTIAL` and no responsive/accessibility/runtime PASS is claimed yet.
-- R2K live closure reuses the canonical `LOCAL_RICH_DEMO_V1` reset, local OTP/BFF/backend runtime and Owner 1 scenarios: one future `CONFIRMED` booking plus one terminal `RELEASED` booking. The ephemeral local phone mapping was scoped to acceptance and restored afterward; the deterministic fixture was reset after the run.
-- Real Chromium at `390×844` and `1440×900` passes My Bookings → confirmed authoritative detail → explicit cancellation confirmation → canonical backend command → authoritative public `Отменена` (`CANCELLED`) readback → My Bookings server refresh. The existing terminal detail exposes no cancel action. An injected cancel-network failure leaves the confirmed snapshot unchanged and retryable; a post-cancellation stale `If-Match: 1` replay returns controlled `409` and leaves terminal truth intact.
-- Bounded evidence is in `/tmp/pethelp-owner-r2k-live/`: each viewport records bookings before, eligible detail, terminal detail, confirmation, network-safe state, cancelled readback and bookings after. Across all 14 captures horizontal overflow is `0`, measured interactive targets below 44 px are `0`, axe serious/critical violations are `0`, console errors are `0`, page errors are `0`, and unexpected failed requests are `0`. No product repair was required.
-- Closure flags: `OWNER_BOOKING_DETAIL_LIVE=PASS`, `OWNER_CANCELLATION_LIVE=PASS`, `OWNER_CANCELLATION_READBACK=PASS`, `OWNER_CANCELLATION_R2J_REFRESH=PASS`, `OWNER_CANCELLATION_TERMINAL_GUARD=PASS`, `OWNER_CANCELLATION_STALE_SAFE=PASS`, `RESPONSIVE=PASS`, `ACCESSIBILITY=PASS`, `RUNTIME_ERRORS=0`, `OWNER_V50_R2K_COMPLETE=YES`.
+- R2K live closure reuses the canonical `LOCAL_RICH_DEMO_V1` reset, local OTP/BFF/backend runtime in normative `PILOT_V1`, and Owner 1 scenarios: one future `CONFIRMED` booking plus one terminal `RELEASED` booking. Each viewport receives an isolated fixture reset. Local acceptance phone aliases are mapped only for the run and the original identity mapping is restored in `finally`; no fixture or production test hook was added.
+- Real Chromium at `390×844` and `1440×900` passes My Bookings → confirmed authoritative detail → explicit cancellation confirmation → canonical backend command → authoritative public `Отменена` (`CANCELLED`) readback → My Bookings server refresh. The existing terminal detail exposes no cancel action. An injected cancel-network failure leaves the confirmed snapshot unchanged and retryable; replay with the same Idempotency-Key returns the same public `CANCELLED` result with `200`; a new-key stale `If-Match: 1` command returns controlled `409` and leaves terminal truth intact. Pet identity remains `Барни` before, during and after cancellation.
+- Persistent evidence is in `docs/ai/artifacts/owner-v50-r2k-live/`: each viewport records My Bookings before, eligible detail, terminal detail, confirmation, cancelled readback and My Bookings after, plus matching V50 `#appointments` / `#appointment-detail` captures and machine-readable `evidence.json`. All 12 mandatory runtime screenshots are non-empty. Horizontal overflow is `0`, measured interactive targets below 44 px are `0`, axe serious/critical violations are `0`, raw backend statuses are absent, and unexpected post-control console/page/request errors are `0`.
+- Functional R2K is closed independently from visual parity. `VISUAL_PARITY=PARTIAL`: runtime preserves the truthful Pilot status/detail/cancel hierarchy, but V50 includes clinic/pet photography, richer appointment metadata and prototype actions unsupported by the current authoritative detail DTO/Pilot. No data or media was fabricated and no product repair was required.
+- Closure flags: `OWNER_BOOKING_DETAIL_LIVE=PASS`, `OWNER_CANCELLATION_LIVE=PASS`, `OWNER_CANCELLATION_READBACK=PASS`, `OWNER_CANCELLATION_R2J_REFRESH=PASS`, `OWNER_CANCELLATION_TERMINAL_GUARD=PASS`, `OWNER_CANCELLATION_STALE_SAFE=PASS`, `RESPONSIVE=PASS`, `ACCESSIBILITY=PASS`, `RUNTIME_ERRORS=0`, `VISUAL_PARITY=PARTIAL`, `OWNER_V50_R2K_COMPLETE=YES`.
 
 ## 2026-09-16 — ORCH-MOE-01 adaptive orchestrator routing upgrade
 
@@ -3310,3 +3311,601 @@ Batch stop: exactly three checkpoints were processed (T085 continuation, T140, T
 - Two and only two isolated `--ephemeral`, read-only pilots ran outside the worktree. Pilot 1 exited `0` with four JSONL events. Pilot 2 exited `0`, measured `14,543.675003 ms`, emitted seven events and one unique command tool call. Raw JSONL, prompts, responses, command content and temporary directories were deleted. Pilot run IDs/token values were intentionally not retained; observed model, agent invocations and repair cycles remain `NOT_OBSERVED`.
 - Validation: telemetry tests PASS `10/10`; routing regression PASS `16/16`; unchanged eight benchmark fixtures PASS `8/8`; generated telemetry envelopes PASS `8/8`; Python compilation and `git diff --check` PASS. Independent validator: `PASS / NO VETO` after exactly two targeted repair rounds.
 - ORCH-MOE-04 readiness is `CONDITIONAL_READY`: schema, privacy, clocks, deduplication and supported JSONL ingestion are ready, but a trustworthy end-to-end benchmark requires user-level OTel collection/export or another officially supported per-invocation source for observed model, agent invocation boundaries and repair-cycle lifecycle events. Do not infer those fields from text or internal logs.
+
+## 2026-09-17 — V50-UI-PARITY-RESTORATION Owner Home
+
+- Baseline: branch `agent/owner-v50-r2h-v50-experience-restoration`, HEAD
+  `ba98a52e11a74f69da31b934785b773afe17a8c9`. The pre-existing
+  `apps/clinic-portal/next-env.d.ts` change remains untouched. The physical
+  `prototype-v50/index.html`, styles, media and icon assets were present.
+  Sticky R2I/R2J functional evidence was preserved and not rerun because their
+  implementation did not change.
+- Scope/classification: exactly one screen, Owner App Home (`#home` → `/`),
+  C1/R1 with the `standard` context budget. Clinic Portal was treated as a
+  separate contour and was not audited or edited.
+
+| Экран V50 | Route | Компонент | Расхождение | Критичность | Способ исправления |
+|---|---|---|---|---|---|
+| `#home` | `/` | `OwnerHome` / `SearchHero` | Tall generic clinic banner and three generic paths displaced the V50 search-led hero | Critical | Restored V50 title/search hierarchy and responsive action rail using only current-Pilot routes |
+| `#home` | `/` | `OwnerHome` | `ImmediateValue` interrupted hero → Pet/next-care sequence | High | Moved it below authoritative Pet and next-care surfaces |
+| `#home` | `/` | `DesktopShell`, `MobileHeader` | Desktop rail was full-width; mobile header consumed excess height | High | Bounded rail to 1120px and reduced mobile header while retaining truthful navigation/logout |
+| `#home` | `/` | `PetHero`, `HomeHeader` | Prototype photo and named/time-based greeting have no current Home authority | Data gap | Kept neutral greeting and initial avatar; no business data was fabricated |
+| `#home` | `/` | Hero actions | V50 emergency/telemedicine actions are outside Pilot | Scope gap | Kept only Booking, Clinics and Time; no excluded capability was reintroduced |
+
+- Real Chromium structure/render comparison used
+  `prototype-v50/index.html#home` and the current Expo Web runtime at
+  `390x844` and `1440x900`. Before/reference/after PNGs and machine metrics are
+  stored in `docs/ai/evidence/v50-ui-parity-restoration/`. The runtime state
+  used exact current parser-valid session/Home/Pet responses; no application
+  route or production source was mocked or modified.
+- Final metrics at both viewports: horizontal overflow `0`; interactive targets
+  below 44px `0`; unnamed interactives `0`; console errors `0`; page errors
+  `0`; failed requests `0`. The primary `Записаться` action reached
+  `Кого записываем?` at both widths. Existing loading, no-Pet, hard-error and
+  authoritative-care state tests remained present and passed.
+- Focused Jest: `5 suites / 6 tests` PASS. Owner typecheck PASS. Targeted ESLint
+  for the three changed TSX files PASS. `git diff --check` PASS. Existing React
+  Testing Library overlapping-`act()` diagnostics and the Expo Web `shadow*`
+  deprecation warning remain non-failing pre-existing debt.
+- Superseded visual verdict: stored 390×844 and 1440×900 pairs prove material
+  composition differences, so `VISUAL_PARITY=PARTIAL`. The prior visual PASS
+  is withdrawn. `FUNCTIONAL_PARITY=PASS`, `RESPONSIVE=PASS`, `TOUCH_TARGETS=PASS`,
+  `ACCESSIBILITY=PASS`, `LINT_AND_TYPES=PASS`, `RUNTIME_ERRORS=0`.
+  No Booking Core, API, backend, state management, dependency, migration,
+  Clinic Portal, push, merge or deploy change was made.
+- Clinic Catalog must not start until the Owner Home repair is closed.
+
+## 2026-09-17 — V50-HOME-PARITY-REPAIR visual closure
+
+- The prior Owner Home `VISUAL_PARITY=PASS` was first corrected to `PARTIAL`
+  after direct inspection of the stored prototype/runtime pairs. Functional,
+  responsive, touch-target and runtime evidence stayed valid; Backend and
+  R2I/R2J were not rerun.
+- Exactly one screen was repaired: `prototype-v50/index.html#home` → Expo
+  runtime `/` → `OwnerHome`. No Clinic Catalog work was started.
+
+| Classification | Stored-pair finding | Closure |
+|---|---|---|
+| `VISUAL_DEFECT` | Search field and CTA were merged | Real `TextInput` and separate primary CTA now reproduce the V50 form geometry on mobile and desktop |
+| `VISUAL_DEFECT` | Mobile brand bar and navigation order differed | Removed the extra brand bar; logout moved into the Home topbar; bottom order is now Главная / Питомцы / Мои записи / Клиники |
+| `VISUAL_DEFECT` | Pet Card used a small avatar instead of the V50 media/copy split | Restored a 46% desktop media region and stacked mobile media region with a truthful no-photo placeholder |
+| `VISUAL_DEFECT` | Nearest action was dominated by an unrelated clinic-room image | Removed the decorative image and restored a text/status/action-first card aligned with the V50 pair |
+| `VISUAL_DEFECT` | Hero/card proportions and hierarchy diverged | Restored two-column desktop hero, stacked mobile hero, action rail, and immediate Pet/next-action row |
+| `APPROVED_PILOT_DELTA` | V50 emergency and telemedicine actions are excluded | No excluded capability was restored; truthful Clinic/Time actions retain the reference rail geometry |
+| `DATA_GAP` | Owner name/time greeting, authoritative Pet photo, breed/age/weight and a prototype-like booked visit are unavailable | Neutral greeting, no-photo media placeholder, available species and server-authored next action are used; nothing is fabricated; the gap remains residual |
+| `UNRESOLVED` | The fixed prototype exposes no no-photo / no-active-booking Home state matching current runtime authority | Product/UX must accept this truthful variant or add an authoritative canonical V50 state before strict visual PASS |
+
+- New paired artifacts are stored in
+  `docs/ai/evidence/v50-home-parity-repair/`: prototype, pre-repair runtime and
+  final runtime at `390x844` and `1440x900`, plus `evidence.json`.
+- Pair comparison is intentionally non-identical in business state: prototype
+  shows multiple pets, a real Pet photo and a confirming appointment; runtime
+  truthfully shows one Pet, `photoUrl:null` and `START_PLANNED_CARE`. Desktop
+  hero title is at y=262 versus prototype y=238;
+  the 24px difference is non-material and the structure/visual hierarchy now
+  matches. Mobile hero title is y=179 versus prototype y=222; the difference
+  is explained by removal of prototype-only demo chrome and the excluded
+  Pilot actions, while the visible field/CTA/action-card geometry matches.
+  Desktop Pet/nearest-action begins at y=470 versus prototype y=508 and keeps
+  the same two-card row and relative sizing. Mobile retains the same stacked
+  hero/action sequence and fixed four-item bottom navigation.
+- Final browser metrics at both viewports: `scrollWidth == documentWidth`,
+  targets below 44px `0`, unnamed interactives `0`, console errors `0`, page
+  errors `0`, failed requests `0`; `Записаться` reaches `Кого записываем?`.
+- Focused Owner Home Jest `5 suites / 6 tests` PASS; typecheck PASS; targeted
+  ESLint PASS; `git diff --check` PASS. Existing non-failing overlapping
+  React `act()` diagnostics and Expo Web `shadow*` deprecation warning remain
+  pre-existing debt.
+- Independent Tier-B validation: `VETO / NEEDS_CORRECTION` for a strict visual
+  PASS because identical-state evidence is unavailable and the prototype-side
+  metrics are not generated by the runtime harness. The implementation and
+  functional contract changes have no veto.
+- Final flags: `VISUAL_PARITY=PARTIAL`,
+  `FUNCTIONAL_PARITY=PASS`, `RESPONSIVE=PASS`, `TOUCH_TARGETS=PASS`,
+  `ACCESSIBILITY=PASS`, `LINT_AND_TYPES=PASS`, `RUNTIME_ERRORS=0`,
+  `UNRESOLVED=CANONICAL_NO_PHOTO_NO_ACTIVE_BOOKING_STATE`. No push, merge or
+  deploy was performed.
+- Canonical-state audit: `prototype-v50/v47-test-fixtures.js` defines persona
+  and booking/telemedicine scenarios, but no Home scenario combines one Pet,
+  absent photography and no active booking. `prototype-v50/index.html#home`
+  hard-codes the Barney photograph and confirming-appointment card; available
+  `data-prototype-state` controls target booking/telemedicine states rather
+  than Home. Therefore an identical-state Home pair requires either a new
+  approved canonical V50 state or fabricated runtime data; fabrication remains
+  prohibited.
+
+## 2026-09-17 — V50-HOME-VARIANTS-AND-CATALOG
+
+- Product prerequisite: no explicit Product Owner approval was found for the
+  Owner Home no-photo / no-active-booking variant. Existing Product Owner
+  visual veto/partial findings and `PRODUCT_OWNER_VISUAL_REVIEW_REQUIRED`
+  remain authoritative. No approval was inferred.
+- Home green gates were not rerun. Independent metrics are now:
+  `HOME_STRUCTURAL_PARITY=PASS`, `HOME_DATA_STATE_PARITY=PARTIAL`, and
+  `HOME_EXACT_SCREENSHOT_COMPARABILITY=BLOCKED_CANONICAL_STATE`. Existing
+  functional, responsive, touch-target and runtime PASS evidence remains
+  sticky and unchanged.
+- Exactly one new implementation slice was performed:
+  `OWNER-V50-CATALOG-PARITY`, mapping `prototype-v50/index.html#catalog` to the
+  existing `ClinicCatalogScreen` and existing Owner catalog API/eligibility
+  path. No parallel catalog, API, Booking Core or state-management path was
+  introduced.
+
+| Catalog structural area | Prototype | Runtime before | Implemented result |
+|---|---|---|---|
+| Search/filter composition | One search panel with search and filter row | Separate explanatory panel and detached input | Search, eligibility facts and guidance are one bounded panel |
+| Results layout | One-column results list; each desktop card is an internal media / clinic / action row | One long image-heavy explanatory row per clinic | One-column list with fluid clinic content and bounded action column; media column is omitted because the API has no authoritative image |
+| Clinic media | Prototype-specific clinic photography | Rotating decorative V50 images unrelated to returned clinic | Removed; no image is shown without authoritative clinic media |
+| Card hierarchy | Clinic identity → facts → slots/action | Image → repeated address → marketing explanation → action | Identity/status → bounded facts → explicit data-gap copy → one action |
+| Navigation | Clinic selection opens clinic/service flow | Existing opaque clinic/location handoff | Preserved unchanged |
+
+- Catalog data gaps remain explicit: ratings/reviews, distance/travel time,
+  open-now/24×7 status, service/specialty/species/insurance filters, clinic
+  photography, catalog-level price and catalog-level nearest availability.
+  No filters or values for those fields are rendered or fabricated. The only
+  displayed eligibility fact is `Онлайн-запись`, because the existing catalog
+  projection already returns only locations eligible for the online booking
+  discovery path; exact price/time remain deferred until service selection.
+- Style inspection: card/input widths are `100%`; desktop cards use a fluid
+  content column plus a 190px action column and collapse to one column on
+  mobile. The search field is 48px high with a separate shared-Button CTA; no
+  fixed outer card width can create horizontal overflow. Existing catalog
+  actions use the shared Button touch target; unavailable prototype filters
+  are not emitted as dead controls.
+- Validation after the layout repair: focused Catalog Jest `2 suites / 14
+  tests` PASS, including explicit no-fake-media/data-gap and separate search
+  CTA assertions. Typecheck PASS, targeted ESLint PASS and `git diff --check`
+  PASS. Clinic Portal's unrelated
+  `next-env.d.ts` worktree modification remains untouched. No push, merge or
+  deploy was performed.
+
+## 2026-09-17 — OWNER-V50-CATALOG-AUTOMATION-FINALIZE
+
+- The host-side Playwright harness now runs under Node `22.22.2`, waits for the
+  Expo `#root` plus explicit auth/catalog UI states instead of `networkidle`,
+  completes the local Owner OTP flow, opens Catalog through the visible
+  `Клиники` navigation label, and waits for `Клиника или адрес` plus the
+  `Клиники VetHelp` heading. Local evidence used the existing development
+  fixture phone `+79990000991` and `AUTH_DEV_OTP_CODE=246810`; both remain
+  overridable through `OWNER_CAPTURE_PHONE` / `OWNER_CAPTURE_OTP`.
+- Fresh equal-viewport evidence was generated under
+  `docs/ai/artifacts/owner-v50-catalog-live-closure/`:
+  `prototype_mobile.png` (620719 bytes), `runtime_mobile.png` (74429 bytes),
+  `prototype_desktop.png` (1356922 bytes), and `runtime_desktop.png` (114798
+  bytes). Viewports are respectively `390x844` and `1440x900`.
+- Pairwise inspection found one independent layout defect in the runtime card:
+  the same branch address was rendered both in the emphasized branch line and
+  again as a separate muted line. The redundant line was removed. Fluid card
+  width, mobile stacking, desktop content/action columns, search/input sizing,
+  outer gutters, and fixed mobile navigation showed no horizontal overflow in
+  either fresh runtime capture.
+
+| V50 area | Runtime evidence | Classification | Closure |
+|---|---|---|---|
+| Search composition | One bounded search panel, 48px input and separate `Найти` CTA | `VISUAL_DEFECT` resolved structurally; backend search remains absent | Keep UI honest; `SEARCH_FUNCTIONAL=FAIL` |
+| Filter row | V50 shows distance/date/24x7/specialty/species/insurance/price filters; Owner DTO exposes none of their authority | `DATA_GAP` | Do not render dead or fabricated filters |
+| Clinic identity/card spacing | Runtime repeated the exact address twice | `VISUAL_DEFECT` | Removed the redundant muted address line |
+| Media, rating and distance | Present in V50; absent from current Owner catalog DTO and live response | `DATA_GAP` | Omitted rather than fabricated |
+| Price, service context and next availability | Present in V50 cards; price exists only in location detail and availability only after service selection | `DATA_GAP` | Deferred to authoritative downstream screens |
+| Clinic-to-service handoff | Both mobile and desktop automation clicked the first `Посмотреть услуги` action and observed `Выберите услугу` | Functional contract | `CLINIC_HANDOFF=PASS` |
+
+- Fresh automation verdict: `VISUAL_PARITY=PARTIAL` (material V50 card facts and
+  media remain authoritative data gaps, not visual identity),
+  `SEARCH_FUNCTIONAL=FAIL` (the Owner `GET /v1/owner/clinic-catalog` contract
+  accepts no query parameter; local filtering is not accepted as API search),
+  `CLINIC_HANDOFF=PASS`, `RESPONSIVE=PASS`, and `RUNTIME_ERRORS=0` for the
+  measured Catalog render and clinic-to-service handoff at both viewports.
+- Existing focused Catalog Jest `2 suites / 14 tests`, Owner typecheck and
+  targeted ESLint PASS evidence remains sticky: no search, API, state or
+  handoff logic changed in this closure. Final `git diff --check` is the only
+  repeated static gate. No backend/R2I/R2J tests were rerun, and no push, merge
+  or deploy was performed.
+
+## 2026-09-17 — OWNER-V50-CATALOG-FUNCTIONAL-RESTORATION
+
+- Branching gate verdict: **Variant B / server search is outside the approved
+  S09 Owner MVP contract**. The canonical S09 record (Confluence page `3702794`
+  v1, preserved in the repository execution overlay) defines authenticated
+  `GET /v1/owner/clinic-catalog` as a deterministic, eligibility-filtered,
+  maximum-50 discovery snapshot with no query input. The generated OpenAPI path
+  likewise declares no query parameter. `PublicCatalogService.listClinicLocations`
+  has an internal optional `query`, but the approved Owner controller never
+  accepts or forwards it; that reusable implementation detail is not authority
+  to expand a closed Owner API contract.
+- `CONTRACT_DELTA`: V50 presents a text-search control, while the approved S09
+  Owner contract exposes no server-side text search. Backend, authorization,
+  eligibility, DTO and OpenAPI were therefore left unchanged. The catalog must
+  not be marked complete while this product/API decision remains unresolved.
+- The previous bounded client-side filter and its `Найти` CTA were removed from
+  `ClinicCatalogScreen`: filtering only the first 50 eligible locations was not
+  equivalent to catalog search. The screen now renders the complete
+  authoritative snapshot, one supported eligibility fact (`Онлайн-запись`),
+  and exactly one clinic action (`Посмотреть услуги`). The hierarchy heading is
+  `Выберите подходящий филиал`; unsupported search/filter controls are not
+  emitted as dead UI.
+- Fresh focused behavior evidence: Catalog screen suite `11/11` PASS, including
+  the explicit absence of a fake search control, deterministic loading/empty/
+  error/retry states and exact clinic/location handoff. The unchanged API
+  parser suite passed `3/3` in the initial focused run. Owner typecheck and
+  targeted ESLint PASS. The first screen run exposed one stale assertion for
+  the already-removed duplicated address; the assertion was corrected and only
+  the failed screen suite was rerun.
+- Fresh Playwright capture PASS at `390x844` and `1440x900`; all four files in
+  `docs/ai/artifacts/owner-v50-catalog-live-closure/` are non-empty. The harness
+  asserts that no unsupported `Найти` CTA is rendered, document width does not
+  exceed viewport width, every visible role=button target is at least 44px,
+  both clinic-to-service handoffs reach `Выберите услугу`, and Catalog/handoff
+  console plus page errors equal zero.
+
+| Catalog metric | Verdict | Evidence |
+|---|---|---|
+| `CATALOG_SEARCH_FUNCTIONAL` | `FAIL` | Approved Owner endpoint and OpenAPI accept no query; bounded client filtering removed |
+| `CATALOG_HANDOFF` | `PASS` | Focused RN assertion plus live mobile/desktop transition to service selection |
+| `CATALOG_VISUAL_PARITY` | `PARTIAL` | Structure is responsive and truthful, but V50 search/filter/card facts cannot be reproduced under current contract/data |
+| `CATALOG_RUNTIME_ERRORS` | `0` | Playwright console/page instrumentation after Catalog render through handoff |
+| `CATALOG_COMPLETE` | **NOT SET** | Prohibited while `CATALOG_SEARCH_FUNCTIONAL=FAIL` |
+
+- Data gaps remain unchanged and explicit: clinic photography, ratings/reviews,
+  distance/travel time, open-now/24x7 presentation, service/specialty/species/
+  insurance filters, catalog-level informational price, catalog-level service
+  context, and catalog-level nearest availability. No placeholder business
+  facts were added. Backend/R2I/R2J suites were not rerun; Clinic Portal's
+  unrelated dirty file remains untouched; no push, merge or deploy occurred.
+
+## 2026-09-21 — OWNER-V50-CATALOG-SEARCH-CLOSE
+
+- Product Owner explicitly amended S09 to include server-side Owner catalog
+  search. This supersedes the 2026-09-17 `SEARCH_OUT_OF_CURRENT_SCOPE` decision;
+  it does not rewrite history or imply that the original S09 contract included
+  search. The repository contract amendment is
+  `docs/v50/OWNER-V50-CATALOG-SEARCH-CONTRACT.md`.
+- Existing `GET /v1/owner/clinic-catalog` now accepts optional `q`. The
+  controller trims and collapses whitespace, rejects normalized input longer
+  than 120 characters with `400 / INVALID_REQUEST`, and forwards the query to
+  the existing parameterized catalog service. Empty/whitespace-only `q`
+  preserves the default catalog. The searchable authoritative fields are
+  clinic public name and branch address; the schema has no separate branch-name
+  field. The response DTO and `{clinicId, locationId}` handoff are unchanged.
+- PostgreSQL semantics remain eligibility first (active clinic/location/service
+  plus future OPEN slot with remaining capacity), then case-insensitive name or
+  address filtering, existing deterministic ordering, then `LIMIT 50`. Focused
+  real-PostgreSQL evidence inserts a uniquely named eligible clinic beyond the
+  first 50 unfiltered rows, proves it is absent from that snapshot and present
+  in the filtered result, while inactive/no-slot/full/closed rows remain
+  excluded. Empty match returns `clinics: []`.
+- Owner RN restores the V50 search input and separate `Найти` CTA. CTA and Enter
+  share the same normalized submitted query; clearing input returns to the
+  default cache key. TanStack Query fetches the server URL rather than filtering
+  the bounded response. Search loading (`Ищем…`), `Ничего не найдено`, technical
+  error/retry and clinic handoff remain distinct. Owner Web allowlists exactly
+  one encoded `q` and the BFF preserves it on the authenticated upstream GET;
+  additional query parameters remain rejected.
+- Focused deterministic evidence: backend controller `3/3` PASS; PostgreSQL
+  search/before-limit/eligibility case `1/1` PASS; HTTP search/address/empty/
+  oversized case `1/1` PASS; backend TypeScript build PASS. Owner API adapter
+  `3/3` and screen `12/12` remain sticky; after the Web integration repair,
+  client allowlist/BFF suites `10/10` PASS, Owner typecheck PASS and targeted
+  ESLint PASS. PILOT_V1 OpenAPI export/assert PASS and records optional string
+  `q`, `maxLength: 120`, plus 200/400/401/403/500 responses.
+- Live Playwright performs OTP authentication and, at both `390x844` and
+  `1440x900`, submits `Большая Полянка`, waits for a 200 Owner BFF search
+  response, asserts every returned address matches, observes the result card,
+  opens `Посмотреть услуги`, and reaches `Выберите услугу`. It executed 12
+  explicit assertions, found no horizontal overflow, no visible button target
+  below 44px, zero axe serious/critical violations, and zero Catalog/handoff
+  console, page or unexpected Owner-request errors. Four non-empty equal-state
+  screenshots are stored in
+  `docs/ai/artifacts/owner-v50-catalog-live-closure/`.
+
+| Catalog search acceptance | Verdict |
+|---|---|
+| `CATALOG_SEARCH_CONTRACT` | `PASS` |
+| `BACKEND_SEARCH` / `CATALOG_SERVER_SEARCH` | `PASS` |
+| `SEARCH_BEFORE_LIMIT` / `CATALOG_SEARCH_BEFORE_LIMIT` | `PASS` |
+| `CATALOG_ELIGIBILITY_PRESERVED` | `PASS` |
+| `OWNER_LIVE_SEARCH` / `CATALOG_OWNER_SEARCH` | `PASS` |
+| `CLINIC_HANDOFF` / `CATALOG_CLINIC_HANDOFF` | `PASS` |
+| `RESPONSIVE` / `CATALOG_RESPONSIVE` | `PASS` |
+| `ACCESSIBILITY` / `CATALOG_ACCESSIBILITY` | `PASS` |
+| `RUNTIME_ERRORS` / `CATALOG_RUNTIME_ERRORS` | `0` |
+| `OPENAPI` | `PASS` |
+| `CATALOG_VISUAL_PARITY` | `PARTIAL` |
+| `CATALOG_SEARCH_COMPLETE` | `YES` |
+
+- Visual parity remains separate and `PARTIAL`: clinic photography,
+  ratings/reviews, distance/travel time, catalog-level price, service context,
+  nearest availability and unsupported specialty/species/insurance/24x7
+  filters remain authoritative data gaps and are not fabricated. R2I/R2J were
+  not reopened. Clinic Portal's unrelated dirty change remains untouched. No
+  push, merge or deploy was performed.
+
+## 2026-09-21 — OWNER-V50-CLINIC-SERVICE-PARITY
+
+- Bounded slice: the existing Catalog → Clinic Detail / Service Selection →
+  Availability → pet/booking handoff. Catalog Search, R2I/R2J and Booking Core
+  were not reopened. The unrelated Clinic Portal worktree change remains
+  untouched.
+- Pairwise references are the canonical V50 `#clinic` and `#booking` states and
+  fresh runtime captures at `390x844` and `1440x900`. Evidence is stored in
+  `docs/ai/artifacts/owner-v50-clinic-service-parity/` as
+  `prototype_clinic_{mobile,desktop}.png`,
+  `runtime_clinic_{mobile,desktop}.png`,
+  `prototype_booking_{mobile,desktop}.png`, and
+  `runtime_availability_{mobile,desktop}.png`.
+
+| V50 area | Runtime route/component | Mismatch and classification | Resolution / evidence |
+|---|---|---|---|
+| Clinic identity and location | `ClinicServiceScreen` | Identity was rendered twice and the second card used a generic V50 interior image not supplied for the selected clinic (`VISUAL_DEFECT`) | Consolidated name, authoritative address, optional phone, eligibility facts and doctor discovery into one leading panel; removed the non-authoritative image |
+| Service list and price | `ClinicServiceScreen` | V50 includes duration, add-on and doctor-selection assumptions not present in the location-detail/service DTO (`DATA_GAP`) | Active backend services and `INFORMATIONAL` prices remain visible; one radio selection revalidates before exact `{clinicId, locationId, serviceId}` handoff |
+| Clinic media, ratings, capabilities and reviews | `ClinicServiceScreen` | V50 contains clinic-specific photos, rating/reviews, distance and capability proofs absent from the authoritative DTO (`DATA_GAP`) | Blocks are omitted, not replaced with reference assets or fabricated facts |
+| Veterinarian discovery | `ClinicServiceScreen` | Current doctor API returns identity/title and optional current next availability, but the service/availability handoff has no doctor selector/id (`UNRESOLVED` contract gap) | Existing truthful discovery remains informational; no fake doctor-to-slot binding was added |
+| Date and slot geometry | `AvailabilityScreen` | V50 mixes demo insurance, pet, photo and cost summary into slot selection (`APPROVED_PILOT_DELTA` / `DATA_GAP`); runtime slot radios lacked required web `aria-checked` (`VISUAL_DEFECT` / accessibility) | Runtime keeps the Pilot booking progression and authoritative clinic/service/local-date/slot data; explicit `aria-checked` added to every slot radio |
+| Booking handoff | `AvailabilityScreen` → `PetJourneyScreen` / review flow | Must preserve the exact selected slot/version without deriving availability locally | Live mobile and desktop runs selected a returned slot, revalidated it, and reached `Кого записываем?` with the clinic/location/service context retained |
+
+- Live responses at both viewports returned clinic
+  `90000000-0000-4000-8000-000000000001`, location
+  `91000000-0000-4000-8000-000000000001`, service `Вакцинация` and one
+  authoritative slot. The harness found no horizontal overflow, no visible
+  button/radio target below 44px, no serious/critical axe violation after the
+  slot-radio repair, and no post-auth console/page/Owner-request errors.
+- Focused Jest for the two touched journey screens: `2 suites / 16 tests PASS`.
+  Owner typecheck and targeted ESLint PASS. Existing unrelated Jest `act(...)`
+  warnings remain non-failing test-harness noise. `git diff --check` PASS.
+
+| Acceptance metric | Verdict | Exact residual gap |
+|---|---|---|
+| `CLINIC_DETAIL` | `PARTIAL` | Authoritative media, ratings, distance, capabilities and reviews are absent |
+| `SERVICE_SELECTION` | `PARTIAL` | Service and price work; duration/add-on and a contractual doctor selection are absent |
+| `AVAILABILITY` | `PARTIAL` | Authoritative slots work; V50 insurance/pet/photo/cost composition is outside available data/Pilot scope |
+| `BOOKING_HANDOFF` | `PASS` | Exact slot and version revalidated before transition |
+| `VISUAL_PARITY` | `PARTIAL` | Core hierarchy and geometry are restored, but material V50 data-backed modules cannot be reproduced truthfully |
+| `RESPONSIVE` | `PASS` | Live `390x844` and `1440x900`, no overflow |
+| `ACCESSIBILITY` | `PASS` | 44px target check and axe serious/critical scan at both journey screens/viewports |
+| `RUNTIME_ERRORS` | `0` | Post-auth journey instrumentation at both viewports |
+
+- No push, merge or deploy was performed.
+
+## 2026-09-21 — OWNER-V50-DOCTOR-BOOKING-CONTINUITY
+
+- Contract verdict: **specific doctor selection is not part of `PILOT_V1`**.
+  V50 `#doctor-select` presents a selectable specialist and carries that choice
+  to `#booking`, but the active Owner journey intentionally exposes doctors as
+  read-only discovery. `ClinicDoctor.id` is the authoritative
+  `clinic_staff.id`; no competing Owner-side doctor identity exists.
+- The Owner availability route is keyed only by
+  `{clinicId, locationId, serviceId}` and returns
+  `{slotId, startsAt, endsAt, localDate, localTime, expectedVersion}`. It does
+  not accept a doctor filter or expose `doctorId`/`staffId`. The Pilot booking
+  command is the closed six-field
+  `{petId, clinicId, locationId, serviceId, slotId, expectedSlotVersion}` body;
+  `doctorId` is explicitly rejected as `INVALID_REQUEST`. Booking Core derives
+  the assigned doctor from the locked authoritative slot and later exposes it
+  in the hold read model when present.
+- `LOCAL_RICH_DEMO_V1` proof used the live slot
+  `96000000-0000-4000-8000-000000000049` for service
+  `92000000-0000-4000-8000-000000000003`. PostgreSQL confirms active service,
+  active `VETERINARIAN`, location
+  `91000000-0000-4000-8000-000000000001`, and
+  `staff_id == doctor_id == 92500000-0000-4000-8000-000000000001`. That same
+  doctor id is present in the four-item live Doctor Discovery response. Thus
+  service/doctor/slot compatibility is authoritative and no substitution occurs
+  inside the tested slot handoff; there is simply no user-selected doctor
+  context to preserve.
+
+| Continuity checkpoint | Result | Evidence |
+|---|---|---|
+| User selects a doctor | Not supported in Pilot | Runtime doctor cards are informational and expose no button/radio; V50 has selectable provider cards |
+| Authoritative identity | Verified | `ClinicDoctor.id` = `clinic_staff.id`; rich-demo slot has equal `staff_id` and `doctor_id` |
+| Doctor ↔ service compatibility | PASS | Selected future OPEN slot references an active service and active veterinarian at the selected location |
+| Doctor availability | PASS at slot authority level | Owner Availability returned the same service and authoritative slot/version; doctor binding remains server-side on that slot |
+| Booking input | Verified | Closed Pilot request excludes and rejects `doctorId`; exact clinic/location/service/slot/version continues to Pet/Booking |
+| User-selected identity continuity | `DOCUMENTED_SCOPE_GAP` | Supporting this V50 behavior requires an explicit Product/API amendment, doctor-filtered availability and a revised booking contract |
+
+- Live Chromium ran at `390x844` and `1440x900`: Doctor Discovery returned the
+  same four authoritative ids; no doctor was rendered as a selectable control;
+  `Вакцинация` produced the same authoritative slot; slot selection reached
+  `Кого записываем?`. No horizontal overflow, sub-44px interactive target,
+  serious/critical axe violation, post-auth console/page error or unexpected
+  Owner request error was found. Equal-viewport V50/runtime screenshots and
+  `evidence.json` are stored in
+  `docs/ai/artifacts/owner-v50-doctor-booking-continuity/`.
+- Green gates stayed sticky because no Owner/backend production or contract code
+  changed: Doctor adapter `2/2`, Clinic Service/Availability `16/16`, and
+  existing Booking Review focused evidence were not rerun. Backend/R2I/R2J
+  were not reopened. New validation was limited to the live harness, read-only
+  PostgreSQL identity query, script syntax and `git diff --check`.
+
+| Acceptance metric | Verdict |
+|---|---|
+| `DOCTOR_SELECTION_CONTRACT` | `VERIFIED` |
+| `DOCTOR_SERVICE_COMPATIBILITY` | `PASS` |
+| `DOCTOR_AVAILABILITY` | `PASS` |
+| `BOOKING_IDENTITY_CONTINUITY` | `DOCUMENTED_SCOPE_GAP` |
+| `VISUAL_PARITY` | `PARTIAL` |
+| `RESPONSIVE` | `PASS` |
+| `ACCESSIBILITY` | `PASS` |
+| `RUNTIME_ERRORS` | `0` |
+
+- No production screen, adapter, backend, Booking Core, fixture or API contract
+  was changed. Clinic Portal remained untouched. No push, merge or deploy was
+  performed.
+
+## 2026-09-22 — OWNER-V50-APPOINTMENTS-STRUCTURAL-PARITY
+
+- Scope was limited to `OwnerBookingsScreen`, `OwnerBookingDetailScreen` and a
+  read-only mode in the existing R2K browser harness. R2J grouping, R2K
+  cancellation behavior, Booking API/Core and the unrelated Clinic Portal
+  change were not modified.
+- My Bookings now uses a desktop card row instead of stretching the mobile
+  stack: authoritative clinic/status/content remain grouped, date/pet facts
+  remain scannable, and the single detail CTA has a stable action column.
+  Mobile keeps the same information order and a full-width action.
+- Booking Detail no longer inherits the phone-width desktop shell. Its status,
+  service and permitted action form a wide leading panel; authoritative facts
+  and history use a responsive two-column desktop composition and stack on
+  mobile. Confirmation and all cancellation/readback states are unchanged.
+
+| Pair / viewport | Confirmed structural result | Evidence |
+|---|---|---|
+| My Bookings, `390x844` | Mobile hierarchy, status, facts and action remain readable with no horizontal overflow | `docs/ai/artifacts/owner-v50-appointments-structural-parity/{prototype_appointments,bookings_before}_mobile.png` |
+| My Bookings, `1440x900` | Wide content rail and horizontal cards remove the former stretched mobile composition | `docs/ai/artifacts/owner-v50-appointments-structural-parity/{prototype_appointments,bookings_before}_desktop.png` |
+| Booking Detail, `390x844` | Status/action precede facts; facts and history stack in a single readable column | `docs/ai/artifacts/owner-v50-appointments-structural-parity/{prototype_appointment-detail,eligible_detail}_mobile.png` |
+| Booking Detail, `1440x900` | 1120px detail rail, wide status/action hero and facts/history columns replace the narrow phone panel | `docs/ai/artifacts/owner-v50-appointments-structural-parity/{prototype_appointment-detail,eligible_detail}_desktop.png` |
+
+| Classification | Exact residual / disposition |
+|---|---|
+| `STRUCTURAL_DEFECT` | Resolved for the confirmed runtime defects: list card desktop geometry, detail desktop width, status/action priority, facts/history responsive layout and mobile stacking. |
+| `DATA_GAP` | The Pilot list/detail DTOs do not provide V50 clinic/pet media or all richer service/provider metadata. These blocks remain absent rather than fabricated. |
+| `APPROVED_PILOT_DELTA` | V50 quick actions include telemedicine/emergency/insurance-adjacent paths and extra appointment-management actions outside `PILOT_V1`; they were not reintroduced. |
+| `UNRESOLVED` | The fixed prototype detail capture is a pending-confirmation state while the authoritative runtime fixture is confirmed. Exact state/pixel comparability is therefore unavailable; only common structural regions were accepted. |
+
+- Focused Owner Jest remained `5 suites / 13 tests PASS` (with existing
+  non-failing React `act(...)`/open-handle diagnostics). Owner typecheck,
+  targeted ESLint, harness syntax and `git diff --check` pass. The read-only
+  Playwright journey executed List → terminal detail → eligible detail at both
+  viewports, asserted non-zero interactions/screenshots, zero horizontal
+  overflow, all visible button targets >=44px, zero axe serious/critical
+  violations and no unexpected console/page/Owner 5xx errors. It did not issue
+  a cancellation command.
+
+| Acceptance metric | Verdict |
+|---|---|
+| `MY_BOOKINGS_STRUCTURAL_PARITY` | `PARTIAL` |
+| `BOOKING_DETAIL_STRUCTURAL_PARITY` | `PARTIAL` |
+| `FUNCTIONAL_REGRESSION` | `NONE` |
+| `RESPONSIVE` | `PASS` |
+| `ACCESSIBILITY` | `PASS` |
+| `RUNTIME_ERRORS` | `0` |
+| `VISUAL_PARITY` | `PARTIAL` |
+
+- `PARTIAL` is intentional: the data-independent defects are repaired, but the
+  explicit data/Pilot/state-comparability gaps above prevent an honest claim of
+  complete V50 identity. No push, merge or deploy was performed.
+
+## 2026-09-22 — OWNER-V50-MY-BOOKINGS-PARITY-REPAIR
+
+- The existing authoritative R2J buckets now drive a V50-style segmented view:
+  `Активные` renders `REQUIRES_ACTION` followed by `ACTIVE`; `История` renders
+  only `HISTORY`. No state is inferred or regrouped by the client.
+- Cards are compact and prioritize authoritative time, status and pet, followed
+  by clinic/location and the server presentation. The list DTO has no service
+  name, so a V50 service title is not fabricated. Desktop uses a primary list
+  panel plus one secondary supported action (`Найти клинику`); mobile keeps a
+  single-column card and full-width detail action.
+- Read-only timeline inspection found two physical server sources in
+  `OwnerAppointmentsService.timeline`: `audit_schema.audit_log` and
+  `booking_schema.appointment_events`, plus the hold-created source. Repeated
+  `Статус записи обновлён` entries therefore represent distinct persisted
+  events mapped through the public fallback label, not duplicated React
+  rendering. No database or history transformation was changed.
+
+| Classification | Result |
+|---|---|
+| `STRUCTURAL_DEFECT` | Closed: functional Active/History tabs, compact cards, V50 information priority, desktop list/secondary split and mobile stacking. |
+| `DATA_GAP` | List DTO lacks service name and clinic/pet media; exact V50 service/photo content remains unavailable. |
+| `APPROVED_PILOT_DELTA` | Secondary area exposes only catalog booking; telemedicine, emergency and insurance actions remain excluded. |
+| `UNRESOLVED` | None for data-independent My Bookings structure. |
+
+- Fresh evidence at `390x844` and `1440x900` is stored in
+  `docs/ai/artifacts/owner-v50-my-bookings-parity-repair/`:
+  `prototype_appointments_*`, `bookings_before_*`, `bookings_history_*`,
+  `eligible_detail_*`, and machine-readable `evidence_{mobile,desktop}.json`.
+  Each browser run executed eight assertions covering tab isolation,
+  List → Detail, screenshots, overflow, touch targets, axe and runtime errors.
+- Focused Owner tests: `2 suites / 5 tests PASS`; existing non-failing React
+  `act(...)` diagnostics remain test-harness noise. Typecheck, targeted ESLint,
+  harness syntax and `git diff --check` pass. R2J/R2K cancellation acceptance
+  and Booking Core were not rerun.
+
+| Acceptance metric | Verdict |
+|---|---|
+| `MY_BOOKINGS_STRUCTURAL_PARITY` | `PASS` |
+| `BOOKING_HISTORY_DUPLICATION` | `REAL_EVENTS` |
+| `R2J_R2K_FUNCTIONAL_REGRESSION` | `NONE` |
+| `RESPONSIVE` | `PASS` |
+| `ACCESSIBILITY` | `PASS` |
+| `RUNTIME_ERRORS` | `0` |
+| `VISUAL_PARITY` | `PARTIAL` |
+
+- Structural PASS is limited to truthful data-independent composition. Overall
+  visual parity remains Partial for the explicit service/media data gaps and
+  approved Pilot exclusions. Clinic Portal remained untouched. No push, merge
+  or deploy was performed.
+
+## 2026-09-22 — OWNER-V50-BOOKING-DETAIL-ONLY closure
+
+- Latest active Booking Detail evidence was re-evaluated independently from
+  My Bookings. No new runtime or production change was required.
+- Comparable screenshots already exist for V50 `PENDING_CONFIRMATION` and the
+  authoritative runtime `CONFIRMED` state at both required viewports:
+  `docs/ai/artifacts/owner-v50-appointments-structural-parity/`
+  (`prototype_appointment-detail_{mobile,desktop}.png` and
+  `eligible_detail_{mobile,desktop}.png`). Machine evidence is retained in
+  `evidence_{mobile,desktop}.json`.
+- State-independent structure is closed: the runtime has a bounded wide
+  desktop container, status/action hero, authoritative fact grid, timeline
+  region, desktop facts/history columns, mobile stacking, and server-authorized
+  action placement. The earlier `PARTIAL` combined these structural results
+  with state/data/Pilot differences; separating the metrics yields structural
+  `PASS` without claiming exact visual identity.
+- Exact state comparison remains unavailable: the fixed prototype is pending
+  clinic confirmation while the existing live fixture is confirmed. No status
+  was fabricated and no cancellation acceptance was repeated.
+
+| Required metric | Verdict / exact residual |
+|---|---|
+| `BOOKING_DETAIL_STRUCTURAL_PARITY` | `PASS` |
+| `EXACT_STATE_COMPARABILITY` | `NO` — V50 `PENDING_CONFIRMATION` versus runtime `CONFIRMED` |
+| `REMAINING_STRUCTURAL_DEFECTS` | `NONE` in the state-independent regions listed above |
+| `DATA_GAPS` | Clinic/pet media and richer provider/appointment metadata used by V50 are absent from the authoritative detail DTO |
+| `R2K_FUNCTIONAL_STATUS` | `UNCHANGED` |
+
+- Overall screenshot-level `VISUAL_PARITY` remains `PARTIAL`; structural PASS
+  does not convert data gaps, unsupported Pilot actions, or unequal states into
+  identity. Clinic Portal remained untouched. No push, merge or deploy was
+  performed.
+
+## 2026-10-05 — AO-61 GPT-6.1 Sol adaptive-orchestrator upgrade
+
+- Machine status: `COMPLETE`. This is an orchestrator/configuration change;
+  VetHelp product behavior, Booking Core, migrations, and application
+  dependencies were not changed.
+- The default root is `gpt-6.1-sol` with `medium` reasoning. Runtime routing
+  selects LOW, MEDIUM, or HIGH from complexity, risk, independence, tool need,
+  and write ownership; it does not treat `_luna`, `_terra`, or `_sol` profile
+  suffixes as model bindings.
+- Root-only execution is the default for C0/C1 and the first path for C2.
+  Delegation requires a bounded objective, clear output, isolated context,
+  safe write ownership, and benefit greater than coordination cost. C3/R3
+  begins with a root HIGH architecture/risk pass. Children must not spawn
+  children.
+- Continuation fast path 6.1 preserves targeted current-state/status reads and
+  direct implementation with zero default subagents. Context budgets now cap
+  files, searches, tool calls, subagents, parallel writers, validators, and
+  repair cycles; 80% freezes discovery expansion and 100% prevents new
+  workstreams.
+- GREEN GATES ARE STICKY. Reused evidence is recorded as
+  `REUSED_STICKY_PASS`; only dependency-intersecting production changes,
+  public/shared contract changes, contradictory runtime evidence, or a
+  downstream regression invalidate it.
+- Validation order is deterministic evidence, root diff-first review, one
+  matched independent specialist, then multiple reviewers only for distinct
+  veto domains. Vetoes remain non-votable.
+- Official OpenAI documentation checked on 2026-10-05 confirms model ID
+  `gpt-6.1-sol`, default `medium` reasoning, and support for low/medium/high
+  (plus xhigh/max). AO-61 intentionally routes only low/medium/high by default.
+
+### AO-61 Gate Ledger
+
+| gate | status | evidence revision | dependency surface | fresh/reused | invalidated_by |
+|---|---|---|---|---|---|
+| TOML parse | PASS | AO-61 working tree | `.codex/**/*.toml` | FRESH | none |
+| referenced agent profiles | PASS | AO-61 working tree | current skill/routing and `.codex/agents/*.toml` | FRESH | profile rename/removal |
+| root configuration | PASS | AO-61 working tree | `.codex/config.toml` | FRESH | model/reasoning/features edit |
+| context budget schema | PASS | AO-61 working tree | `.codex/policies/context-budgets.toml` | FRESH | budget-key edit |
+| legacy model-tier hard rules | PASS | AO-61 working tree | current `SKILL.md` and `routing.md` | FRESH | routing-text edit |
+| continuation/sticky/veto semantics | PASS | AO-61 working tree | current `SKILL.md` and `routing.md` | FRESH | orchestrator contract edit |
+| VetHelp product/runtime behavior | NOT_AFFECTED | AO-61 scoped diff | product, Booking Core, migrations, dependencies | REUSED_STICKY_PASS | product/runtime diff |
+
+- No subagents, parallel writers, or validators were used. The root performed
+  the diff-first contract review. No commit, push, PR, or deploy was performed.

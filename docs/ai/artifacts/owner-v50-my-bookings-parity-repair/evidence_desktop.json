@@ -1,0 +1,10 @@
+{
+  "viewport": "1440x900",
+  "assertions": 8,
+  "tabs": "PASS",
+  "listToDetail": "PASS",
+  "horizontalOverflow": 0,
+  "touchTargets": "PASS",
+  "axeSeriousCritical": 0,
+  "runtimeErrors": 0
+}

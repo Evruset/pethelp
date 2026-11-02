@@ -32,7 +32,7 @@ describe('OwnerHome V50 navigation', () => {
     expect(onClinics).not.toHaveBeenCalled();
     expect(onFindTime).not.toHaveBeenCalled();
 
-    fireEvent.press(screen.getAllByText('Выбрать клинику')[0]);
+    fireEvent.press(screen.getByText('Найти клинику'));
     expect(onClinics).toHaveBeenCalledTimes(1);
     expect(onBook).toHaveBeenCalledTimes(1);
     expect(onFindTime).not.toHaveBeenCalled();
@@ -40,7 +40,7 @@ describe('OwnerHome V50 navigation', () => {
     fireEvent.press(screen.getAllByText('Найти время')[0]);
     expect(onFindTime).toHaveBeenCalledTimes(1);
 
-    fireEvent.press(screen.getByRole('button', { name: /Записи/ }));
+    fireEvent.press(screen.getByRole('button', { name: /Мои записи/ }));
     expect(onBookings).toHaveBeenCalledTimes(1);
 
     fireEvent.press(screen.getByRole('button', { name: /Питомцы/ }));

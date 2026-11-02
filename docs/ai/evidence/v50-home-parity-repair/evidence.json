@@ -1,0 +1,68 @@
+{
+  "generatedAt": "2026-09-17T06:17:16.758Z",
+  "prototype": "prototype-v50/index.html#home",
+  "runtime": "/",
+  "stateComparison": {
+    "identical": false,
+    "prototype": "multiple pets, Pet photo present, confirming appointment",
+    "runtime": "one Pet, photoUrl null, START_PLANNED_CARE",
+    "reason": "The fixed prototype provides no matching no-photo/no-active-booking Home state; runtime data was not fabricated.",
+    "visualVerdict": "PARTIAL"
+  },
+  "prototypeMetrics": {
+    "390x844": {
+      "documentWidth": 390,
+      "scrollWidth": 390,
+      "heroTitleTop": 222,
+      "source": "prototype-home-390x844.png; original Chromium capture metrics"
+    },
+    "1440x900": {
+      "documentWidth": 1440,
+      "scrollWidth": 1440,
+      "heroTitleTop": 238,
+      "source": "prototype-home-1440x900.png; original Chromium capture metrics"
+    }
+  },
+  "records": [
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "screenshot": "/Users/evrusetskiy/work/pethelp-alpha/docs/ai/evidence/v50-home-parity-repair/runtime-home-after-390x844.png",
+      "metrics": {
+        "documentWidth": 390,
+        "scrollWidth": 390,
+        "targetsBelow44": [],
+        "unnamedInteractive": 0,
+        "heroTitleTop": 179.078125,
+        "petTitleTop": 858,
+        "nextActionTop": 1077
+      },
+      "bookingTransition": true,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "screenshot": "/Users/evrusetskiy/work/pethelp-alpha/docs/ai/evidence/v50-home-parity-repair/runtime-home-after-1440x900.png",
+      "metrics": {
+        "documentWidth": 1440,
+        "scrollWidth": 1440,
+        "targetsBelow44": [],
+        "unnamedInteractive": 0,
+        "heroTitleTop": 262,
+        "petTitleTop": 525,
+        "nextActionTop": 494
+      },
+      "bookingTransition": true,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    }
+  ]
+}

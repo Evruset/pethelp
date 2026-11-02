@@ -107,4 +107,13 @@ describe('Expo Owner Web session bridge', () => {
     expect(String(url)).toBe(`http://backend.test/v1/owner/home?selectedPetId=${OWNER_ID}`);
     expect(init.method).toBe('GET'); expect(init.headers.authorization).toBe(`Bearer ${TOKEN}`);
   });
+  it('preserves the encoded Owner catalog search query for the authenticated upstream request', async () => {
+    jest.spyOn(global, 'fetch').mockResolvedValue(new Response(JSON.stringify({ observedAt: '2026-09-21T06:00:00.000Z', clinics: [] }), { status: 200 }));
+    const cookie = Buffer.from(JSON.stringify({ credential: TOKEN, expiresAt: EXPIRES_AT }), 'utf8').toString('base64url');
+    const response = await ownerWebBridge(request('v1/owner/clinic-catalog?q=%D0%90%D1%80%D0%B1%D0%B0%D1%82', { headers: { cookie: `__Host-vethelp_owner_session=${cookie}` } }), ['v1', 'owner', 'clinic-catalog']);
+    expect(response.status).toBe(200);
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(String(url)).toBe('http://backend.test/v1/owner/clinic-catalog?q=%D0%90%D1%80%D0%B1%D0%B0%D1%82');
+    expect(init.method).toBe('GET'); expect(init.headers.authorization).toBe(`Bearer ${TOKEN}`);
+  });
 });

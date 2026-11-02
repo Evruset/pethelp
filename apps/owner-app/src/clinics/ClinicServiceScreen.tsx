@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Image,
   Platform,
   Pressable,
   Text,
@@ -10,7 +9,6 @@ import {
 } from "react-native";
 import { Button, StateMessage } from "@/ui/primitives";
 import { uiTokens as t } from "@/ui/tokens";
-import { v50ReferenceAssets } from "@/ui/v50-reference-assets";
 import { BookingProgress } from "@/booking/BookingProgress";
 import { formatMoney } from "@/ui/formatters";
 import { useSession } from "@/session/SessionProvider";
@@ -133,9 +131,39 @@ export function ClinicServiceScreen({
       ) : null}
       {!query.isError && query.data ? (
         <DecisionPanel>
-          <DecisionHeading kicker="Карточка филиала" title={query.data.name} detail={query.data.address} />
-          {query.data.phone ? <Text style={{ ...t.typography.secondaryBody, color: decisionColors.muted }}>{query.data.phone}</Text> : null}
-          <Text style={{ ...t.typography.caption, color: decisionColors.muted, fontWeight: "800" }}>Ветеринарные врачи</Text>
+          <View
+            style={{
+              flexDirection: desktop ? "row" : "column",
+              justifyContent: "space-between",
+              alignItems: desktop ? "center" : "flex-start",
+              gap: 8,
+            }}
+          >
+            <DecisionHeading
+              kicker="Выбранная клиника"
+              title={query.data.name}
+              detail={query.data.address}
+            />
+            <FactRow>
+              <Fact tone="positive">Онлайн-запись</Fact>
+              <Fact>{query.data.services.length} услуг</Fact>
+              <Fact>Время — следующим шагом</Fact>
+            </FactRow>
+          </View>
+          {query.data.phone ? (
+            <Text style={{ ...t.typography.secondaryBody, color: decisionColors.muted }}>
+              {query.data.phone}
+            </Text>
+          ) : null}
+          <Text
+            style={{
+              ...t.typography.caption,
+              color: decisionColors.muted,
+              fontWeight: "800",
+            }}
+          >
+            Ветеринарные врачи
+          </Text>
           {doctorsQuery.isPending ? <Text style={{ ...t.typography.secondaryBody, color: decisionColors.muted }}>Загружаем специалистов…</Text> : null}
           {doctorsQuery.data?.doctors?.map((doctor) => (
             <View key={doctor.id} style={{ padding: 12, gap: 3, borderRadius: 14, backgroundColor: decisionColors.blueSoft }}>
@@ -150,73 +178,6 @@ export function ClinicServiceScreen({
 
       {!query.isError && query.data ? (
         <>
-          <View
-            style={{
-              minHeight: desktop ? 154 : undefined,
-              padding: 14,
-              borderWidth: 1,
-              borderColor: "rgba(20,154,87,.20)",
-              borderRadius: 18,
-              backgroundColor: decisionColors.surface,
-              flexDirection: desktop ? "row" : "column",
-              gap: 14,
-              ...t.shadow.card,
-            }}
-          >
-            <View
-              style={{
-                width: desktop ? 260 : "100%",
-                height: desktop ? 150 : 154,
-                borderRadius: 16,
-                overflow: "hidden",
-                backgroundColor: decisionColors.blueSoft,
-              }}
-            >
-              <Image
-                accessibilityLabel="Интерьер ветеринарной клиники"
-                source={v50ReferenceAssets.clinicReception}
-                resizeMode="cover"
-                style={{ width: "100%", height: "100%" }}
-              />
-              <View
-                style={{
-                  position: "absolute",
-                  left: 7,
-                  bottom: 7,
-                  paddingHorizontal: 7,
-                  paddingVertical: 4,
-                  borderRadius: 9,
-                  backgroundColor: "rgba(24,37,65,.82)",
-                }}
-              >
-                <Text style={{ fontSize: 9, color: "#fff", fontWeight: "700" }}>
-                  Интерьер клиники
-                </Text>
-              </View>
-            </View>
-
-            <View style={{ flex: 1, minWidth: 0, justifyContent: "center", gap: 8 }}>
-              <DecisionHeading
-                kicker="Выбранная клиника"
-                title={query.data.name}
-                detail={query.data.address}
-              />
-              <FactRow>
-                <Fact tone="positive">Онлайн-запись</Fact>
-                <Fact>{query.data.services.length} услуг</Fact>
-                <Fact>Время — следующим шагом</Fact>
-              </FactRow>
-              {query.data.phone ? (
-                <Text style={{ ...t.typography.caption, color: decisionColors.muted }}>
-                  {query.data.phone}
-                </Text>
-              ) : null}
-              <Text style={{ ...t.typography.caption, color: decisionColors.muted }}>
-                Изображение помогает сориентироваться и может отличаться от интерьера клиники.
-              </Text>
-            </View>
-          </View>
-
           <ResponsiveColumns
             primary={
               <DecisionPanel>
