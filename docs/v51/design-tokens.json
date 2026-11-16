@@ -1,8 +1,0 @@
-{
-  "compatibility": "V51_RUNTIME_ALIAS_ONLY",
-  "deprecated": true,
-  "canonical": "../v50/design-tokens.json",
-  "canonicalSha256": "8d78140645f9dd38450440bde9a46f910672ebbe63b6e72d099708266865d559",
-  "sourceManifestSha256": "245e092941dcd11f590423e9c8d54929fe7b6adfa2abcb6c2168fd56ba79ff42",
-  "removalCondition": "Remove after all V51-named runtime consumers and deployment keys complete one compatibility release on V50 aliases."
-}

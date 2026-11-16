@@ -1,8 +1,0 @@
-node_modules/
-.next/
-.env.local
-tsconfig.tsbuildinfo
-allure-report/
-allure-results/
-playwright-report/
-test-results/
