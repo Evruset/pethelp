@@ -1,0 +1,55 @@
+[
+  {
+    "id": "galkina-anna-aleksandrovna",
+    "name": "Галкина Анна Александровна",
+    "title": "Гастроэнтеролог, врач УЗИ",
+    "categories": [
+      "therapy",
+      "diagnostic"
+    ],
+    "clinicId": "sd-kuzminki",
+    "url": "https://www.svoydoctor.ru/vladeltsam/spetsialisty/galkina-anna-aleksandrovna/",
+    "image": "assets/doctor-galkina-anna-aleksandrovna.jpg",
+    "imageSource": "https://www.svoydoctor.ru/upload/iblock/366/s86lomo95g50ym6o3yf04968osr1gzk8.jpg",
+    "verifiedAt": "2026-11-08"
+  },
+  {
+    "id": "stekolshchikova-nadezhda-aleksandrovna",
+    "name": "Полякова Надежда Александровна",
+    "title": "Дерматолог, эндокринолог",
+    "categories": [
+      "dermatology"
+    ],
+    "clinicId": "sd-kuzminki",
+    "url": "https://www.svoydoctor.ru/vladeltsam/spetsialisty/stekolshchikova-nadezhda-aleksandrovna/",
+    "image": "assets/doctor-stekolshchikova-nadezhda-aleksandrovna.jpg",
+    "imageSource": "https://www.svoydoctor.ru/upload/iblock/4e2/2atyrqafn7b3jc05bj0u4vdsorvm1kr2.jpg",
+    "verifiedAt": "2026-11-08"
+  },
+  {
+    "id": "andrievskaya-anna-aleksandrovna",
+    "name": "Воронина Анна Александровна",
+    "title": "Ветеринарный врач-терапевт",
+    "categories": [
+      "therapy"
+    ],
+    "clinicId": "sd-kuzminki",
+    "url": "https://www.svoydoctor.ru/vladeltsam/spetsialisty/andrievskaya-anna-aleksandrovna/",
+    "image": "assets/doctor-andrievskaya-anna-aleksandrovna.jpg",
+    "imageSource": "https://www.svoydoctor.ru/upload/iblock/104/jol7ylv0fya3y63ybfudvseusf2gykzf.jpg",
+    "verifiedAt": "2026-11-08"
+  },
+  {
+    "id": "koptelova-irina-valerevna",
+    "name": "Коптелова Ирина Валерьевна",
+    "title": "Ветеринарный врач-кардиолог",
+    "categories": [
+      "cardiology"
+    ],
+    "clinicId": "sd-kuzminki",
+    "url": "https://www.svoydoctor.ru/vladeltsam/spetsialisty/koptelova-irina-valerevna/",
+    "image": "assets/doctor-koptelova-irina-valerevna.jpg",
+    "imageSource": "https://www.svoydoctor.ru/upload/iblock/ae4/bdb4rr0s2668g1g4bys15tej9hdjy6fd.jpg",
+    "verifiedAt": "2026-11-08"
+  }
+]

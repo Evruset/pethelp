@@ -1,0 +1,939 @@
+[
+  {
+    "id": "bk-mitino",
+    "network": "Белый Клык",
+    "name": "Белый Клык — Митино",
+    "address": "Москва, Митинская улица, 55, корпус 1",
+    "url": "https://www.bkvet.ru/contacts/mitino/",
+    "imgToken": "__VETORA_ASSET_16__",
+    "imgId": 16,
+    "imgCredit": "Фото: Белый Клык — Митино",
+    "priceUrl": "https://bkvet.ru/prices/",
+    "sourceScope": "Филиалы в официальном прайсе",
+    "services": [
+      {
+        "id": "therapy",
+        "title": "Первичный приём терапевта",
+        "category": "therapy",
+        "price": 6700,
+        "detail": "Консультация ветеринарного терапевта. Дополнительные исследования оплачиваются отдельно.",
+        "scope": "consultation",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "therapy-gp",
+        "title": "Приём терапевта общей практики",
+        "category": "therapy",
+        "price": 7700,
+        "detail": "Отдельный тариф врача общей практики, не совпадает с базовым приёмом терапевта.",
+        "scope": "general_practice",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "diagnostic-abdomen",
+        "title": "УЗИ органов брюшной полости",
+        "category": "diagnostic",
+        "price": 7500,
+        "detail": "УЗИ брюшной полости по прейскуранту; дополнительные исследования — отдельно.",
+        "scope": "abdomen",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "diagnostic-organ",
+        "title": "УЗИ одного органа / системы",
+        "category": "diagnostic",
+        "price": 3200,
+        "detail": "Исследование до 20 минут; предусмотрены исключения для ряда органов.",
+        "scope": "single_organ",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "vaccine-cat",
+        "title": "Вакцинация кошки: Биофел PCHR",
+        "category": "vaccination",
+        "price": 4150,
+        "detail": "Поливалентная вакцина с бешенством. Дополнительные услуги уточняются по показаниям.",
+        "scope": "cat_biophel",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "vaccine-dog",
+        "title": "Вакцинация собаки: Биокан DHPPi-RL",
+        "category": "vaccination",
+        "price": 4500,
+        "detail": "Поливалентная вакцина с бешенством.",
+        "scope": "dog_biokan",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "microchip",
+        "title": "Чипирование животного",
+        "category": "vaccination",
+        "price": 4500,
+        "detail": "Включает стоимость чипа и расходных материалов.",
+        "scope": "chip",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "surgery-consult",
+        "title": "Приём хирурга",
+        "category": "surgery",
+        "price": 7300,
+        "detail": "Консультация хирурга; не является стоимостью операции.",
+        "scope": "surgery_consult",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "dental-consult",
+        "title": "Приём стоматолога",
+        "category": "dental",
+        "price": 7300,
+        "detail": "Первичный приём стоматолога; лечение и анестезия оплачиваются отдельно.",
+        "scope": "dental_consult",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "dental-cat",
+        "title": "Санация полости рта кошки",
+        "category": "dental",
+        "price": 6300,
+        "detail": "УЗ-скейлинг, полировка, антисептическая обработка. Анестезия не включена.",
+        "scope": "dental_cleaning_cat",
+        "additional": "Анестезия отдельно",
+        "applies": ""
+      }
+    ],
+    "city": "Москва",
+    "coordinates": null,
+    "hours": "09:00–21:00",
+    "location": "Митино",
+    "area": "nw",
+    "phone": "+7 (967) 255-32-90",
+    "image": "assets/original-16.jpg",
+    "verifiedAt": "2026-11-08",
+    "priceVerifiedAt": "2026-11-05",
+    "priceScope": "branch"
+  },
+  {
+    "id": "bk-presnya",
+    "network": "Белый Клык",
+    "name": "Белый Клык — Пресня",
+    "address": "Москва, Красная Пресня, 6/2",
+    "url": "https://www.bkvet.ru/contacts/presnya/",
+    "imgToken": "__VETORA_ASSET_14__",
+    "imgId": 14,
+    "imgCredit": "Фото: Белый Клык — Пресня",
+    "priceUrl": "https://bkvet.ru/prices/",
+    "sourceScope": "Филиалы в официальном прайсе",
+    "services": [
+      {
+        "id": "therapy",
+        "title": "Первичный приём терапевта",
+        "category": "therapy",
+        "price": 6700,
+        "detail": "Консультация ветеринарного терапевта. Дополнительные исследования оплачиваются отдельно.",
+        "scope": "consultation",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "therapy-gp",
+        "title": "Приём терапевта общей практики",
+        "category": "therapy",
+        "price": 7700,
+        "detail": "Отдельный тариф врача общей практики, не совпадает с базовым приёмом терапевта.",
+        "scope": "general_practice",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "diagnostic-abdomen",
+        "title": "УЗИ органов брюшной полости",
+        "category": "diagnostic",
+        "price": 7500,
+        "detail": "УЗИ брюшной полости по прейскуранту; дополнительные исследования — отдельно.",
+        "scope": "abdomen",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "diagnostic-organ",
+        "title": "УЗИ одного органа / системы",
+        "category": "diagnostic",
+        "price": 3200,
+        "detail": "Исследование до 20 минут; предусмотрены исключения для ряда органов.",
+        "scope": "single_organ",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "vaccine-cat",
+        "title": "Вакцинация кошки: Биофел PCHR",
+        "category": "vaccination",
+        "price": 4150,
+        "detail": "Поливалентная вакцина с бешенством. Дополнительные услуги уточняются по показаниям.",
+        "scope": "cat_biophel",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "vaccine-dog",
+        "title": "Вакцинация собаки: Биокан DHPPi-RL",
+        "category": "vaccination",
+        "price": 4500,
+        "detail": "Поливалентная вакцина с бешенством.",
+        "scope": "dog_biokan",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "microchip",
+        "title": "Чипирование животного",
+        "category": "vaccination",
+        "price": 4500,
+        "detail": "Включает стоимость чипа и расходных материалов.",
+        "scope": "chip",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "surgery-consult",
+        "title": "Приём хирурга",
+        "category": "surgery",
+        "price": 7300,
+        "detail": "Консультация хирурга; не является стоимостью операции.",
+        "scope": "surgery_consult",
+        "additional": "",
+        "applies": ""
+      }
+    ],
+    "city": "Москва",
+    "coordinates": null,
+    "hours": "09:00–21:00",
+    "location": "Краснопресненская",
+    "area": "center",
+    "phone": "+7 (967) 255-32-90",
+    "image": "assets/original-14.jpg",
+    "verifiedAt": "2026-11-08",
+    "priceVerifiedAt": "2026-11-05",
+    "priceScope": "branch"
+  },
+  {
+    "id": "bk-krylatskoe",
+    "network": "Белый Клык",
+    "name": "Белый Клык — Крылатское",
+    "address": "Москва, Крылатская улица, 5",
+    "url": "https://www.bkvet.ru/contacts/krylatskoe/",
+    "imgToken": "__VETORA_ASSET_15__",
+    "imgId": 15,
+    "imgCredit": "Фото: Белый Клык — Крылатское",
+    "priceUrl": "https://bkvet.ru/prices/",
+    "sourceScope": "Филиалы в официальном прайсе",
+    "services": [
+      {
+        "id": "therapy",
+        "title": "Первичный приём терапевта",
+        "category": "therapy",
+        "price": 6700,
+        "detail": "Консультация ветеринарного терапевта. Дополнительные исследования оплачиваются отдельно.",
+        "scope": "consultation",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "therapy-gp",
+        "title": "Приём терапевта общей практики",
+        "category": "therapy",
+        "price": 7700,
+        "detail": "Отдельный тариф врача общей практики, не совпадает с базовым приёмом терапевта.",
+        "scope": "general_practice",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "diagnostic-abdomen",
+        "title": "УЗИ органов брюшной полости",
+        "category": "diagnostic",
+        "price": 7500,
+        "detail": "УЗИ брюшной полости по прейскуранту; дополнительные исследования — отдельно.",
+        "scope": "abdomen",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "diagnostic-organ",
+        "title": "УЗИ одного органа / системы",
+        "category": "diagnostic",
+        "price": 3200,
+        "detail": "Исследование до 20 минут; предусмотрены исключения для ряда органов.",
+        "scope": "single_organ",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "vaccine-cat",
+        "title": "Вакцинация кошки: Биофел PCHR",
+        "category": "vaccination",
+        "price": 4150,
+        "detail": "Поливалентная вакцина с бешенством. Дополнительные услуги уточняются по показаниям.",
+        "scope": "cat_biophel",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "vaccine-dog",
+        "title": "Вакцинация собаки: Биокан DHPPi-RL",
+        "category": "vaccination",
+        "price": 4500,
+        "detail": "Поливалентная вакцина с бешенством.",
+        "scope": "dog_biokan",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "microchip",
+        "title": "Чипирование животного",
+        "category": "vaccination",
+        "price": 4500,
+        "detail": "Включает стоимость чипа и расходных материалов.",
+        "scope": "chip",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "surgery-consult",
+        "title": "Приём хирурга",
+        "category": "surgery",
+        "price": 7300,
+        "detail": "Консультация хирурга; не является стоимостью операции.",
+        "scope": "surgery_consult",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "dental-consult",
+        "title": "Приём стоматолога",
+        "category": "dental",
+        "price": 7300,
+        "detail": "Первичный приём стоматолога; лечение и анестезия оплачиваются отдельно.",
+        "scope": "dental_consult",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "dental-cat",
+        "title": "Санация полости рта кошки",
+        "category": "dental",
+        "price": 6300,
+        "detail": "УЗ-скейлинг, полировка, антисептическая обработка. Анестезия не включена.",
+        "scope": "dental_cleaning_cat",
+        "additional": "Анестезия отдельно",
+        "applies": ""
+      }
+    ],
+    "city": "Москва",
+    "coordinates": null,
+    "hours": "Круглосуточно",
+    "location": "Крылатское",
+    "area": "west",
+    "phone": "+7 (967) 255-32-90",
+    "image": "assets/original-15.jpg",
+    "verifiedAt": "2026-11-08",
+    "priceVerifiedAt": "2026-11-05",
+    "priceScope": "branch"
+  },
+  {
+    "id": "sd-kuzminki",
+    "network": "Свой Доктор",
+    "name": "Свой Доктор — Кузьминки",
+    "address": "Москва, Жигулёвская улица, 6, корпус 2",
+    "url": "https://www.svoydoctor.ru/vladeltsam/filialy/filial-kuzminki/",
+    "imgToken": "__VETORA_ASSET_18__",
+    "imgId": 18,
+    "imgCredit": "Фото: Свой Доктор — Кузьминки",
+    "priceUrl": "https://www.svoydoctor.ru/vladeltsam/tseny/price-list/",
+    "sourceScope": "Общесетевой прайс: стоимость уточняйте в филиале",
+    "services": [
+      {
+        "id": "therapy",
+        "title": "Первичный приём терапевта",
+        "category": "therapy",
+        "price": 2100,
+        "detail": "Клинический осмотр, сбор анамнеза и рекомендации. Стоимость по общесетевому прайсу; уточните в филиале.",
+        "scope": "consultation",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "therapy-repeat",
+        "title": "Повторный приём терапевта",
+        "category": "therapy",
+        "price": 1800,
+        "detail": "Приём по ранее выявленному заболеванию в течение месяца.",
+        "scope": "repeat_consultation",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "checkup-standard",
+        "title": "Чек-ап «Стандартный»",
+        "category": "diagnostic",
+        "price": 3900,
+        "detail": "Приём терапевта, забор крови, ОАК (23 показателя), биохимия (12 показателей), заключение.",
+        "scope": "checkup_standard",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "checkup-extended",
+        "title": "Чек-ап «Расширенный»",
+        "category": "diagnostic",
+        "price": 6900,
+        "detail": "Приём терапевта, забор крови, ОАК (28 показателей), биохимия (18 показателей), детализированное УЗИ брюшной полости, заключение.",
+        "scope": "checkup_extended",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "diagnostic-abdomen",
+        "title": "УЗИ детализированное брюшной полости",
+        "category": "diagnostic",
+        "price": 4350,
+        "detail": "Исследование органов брюшной полости, включая сложные для визуализации органы.",
+        "scope": "abdomen_detailed",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "vaccine-rabies",
+        "title": "Вакцинация отечественной вакциной от бешенства",
+        "category": "vaccination",
+        "price": 700,
+        "detail": "Включает клинический осмотр, термометрию, запись в ветпаспорт и введение вакцины.",
+        "scope": "rabies_domestic",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "vaccine-cat",
+        "title": "Вакцинация отечественной поливалентной вакциной без бешенства",
+        "category": "vaccination",
+        "price": 2500,
+        "detail": "Включает клинический осмотр, термометрию, запись в ветпаспорт и введение вакцины.",
+        "scope": "polyvalent_no_rabies",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "vaccine-import",
+        "title": "Вакцинация импортной вакциной с бешенством",
+        "category": "vaccination",
+        "price": 4000,
+        "detail": "Включает клинический осмотр, термометрию, запись в ветпаспорт и введение вакцины.",
+        "scope": "import_with_rabies",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "microchip",
+        "title": "Электронное чипирование",
+        "category": "vaccination",
+        "price": 2000,
+        "detail": "Включены чип, расходные материалы, введение и регистрация в AnimalID.",
+        "scope": "chip",
+        "additional": "",
+        "applies": ""
+      }
+    ],
+    "city": "Москва",
+    "coordinates": [
+      55.710702,
+      37.76177
+    ],
+    "hours": "09:00–22:00",
+    "location": "Кузьминки",
+    "area": "se",
+    "phone": "+7 (495) 661-55-12",
+    "image": "assets/original-18.jpg",
+    "verifiedAt": "2026-11-08",
+    "priceVerifiedAt": "2026-11-05",
+    "priceScope": "network"
+  },
+  {
+    "id": "sd-biryulevo",
+    "network": "Свой Доктор",
+    "name": "Свой Доктор — Бирюлёво",
+    "address": "Москва, Медынская улица, 5А, корпус 1",
+    "url": "https://www.svoydoctor.ru/vladeltsam/filialy/filial-biryulevo/",
+    "imgToken": "__VETORA_ASSET_22__",
+    "imgId": 22,
+    "imgCredit": "Фото: Свой Доктор — Бирюлёво",
+    "priceUrl": "https://www.svoydoctor.ru/vladeltsam/tseny/price-list/",
+    "sourceScope": "Общесетевой прайс: стоимость уточняйте в филиале",
+    "services": [
+      {
+        "id": "therapy",
+        "title": "Первичный приём терапевта",
+        "category": "therapy",
+        "price": 2100,
+        "detail": "Клинический осмотр, сбор анамнеза и рекомендации. Стоимость по общесетевому прайсу; уточните в филиале.",
+        "scope": "consultation",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "therapy-repeat",
+        "title": "Повторный приём терапевта",
+        "category": "therapy",
+        "price": 1800,
+        "detail": "Приём по ранее выявленному заболеванию в течение месяца.",
+        "scope": "repeat_consultation",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "checkup-standard",
+        "title": "Чек-ап «Стандартный»",
+        "category": "diagnostic",
+        "price": 3900,
+        "detail": "Приём терапевта, забор крови, ОАК (23 показателя), биохимия (12 показателей), заключение.",
+        "scope": "checkup_standard",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "checkup-extended",
+        "title": "Чек-ап «Расширенный»",
+        "category": "diagnostic",
+        "price": 6900,
+        "detail": "Приём терапевта, забор крови, ОАК (28 показателей), биохимия (18 показателей), детализированное УЗИ брюшной полости, заключение.",
+        "scope": "checkup_extended",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "diagnostic-abdomen",
+        "title": "УЗИ детализированное брюшной полости",
+        "category": "diagnostic",
+        "price": 4350,
+        "detail": "Исследование органов брюшной полости, включая сложные для визуализации органы.",
+        "scope": "abdomen_detailed",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "vaccine-rabies",
+        "title": "Вакцинация отечественной вакциной от бешенства",
+        "category": "vaccination",
+        "price": 700,
+        "detail": "Включает клинический осмотр, термометрию, запись в ветпаспорт и введение вакцины.",
+        "scope": "rabies_domestic",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "vaccine-cat",
+        "title": "Вакцинация отечественной поливалентной вакциной без бешенства",
+        "category": "vaccination",
+        "price": 2500,
+        "detail": "Включает клинический осмотр, термометрию, запись в ветпаспорт и введение вакцины.",
+        "scope": "polyvalent_no_rabies",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "vaccine-import",
+        "title": "Вакцинация импортной вакциной с бешенством",
+        "category": "vaccination",
+        "price": 4000,
+        "detail": "Включает клинический осмотр, термометрию, запись в ветпаспорт и введение вакцины.",
+        "scope": "import_with_rabies",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "microchip",
+        "title": "Электронное чипирование",
+        "category": "vaccination",
+        "price": 2000,
+        "detail": "Включены чип, расходные материалы, введение и регистрация в AnimalID.",
+        "scope": "chip",
+        "additional": "",
+        "applies": ""
+      }
+    ],
+    "city": "Москва",
+    "coordinates": [
+      55.590597,
+      37.647316
+    ],
+    "hours": "Уточнить в клинике",
+    "location": "Бирюлёво",
+    "area": "south",
+    "phone": "+7 (495) 661-55-12",
+    "image": "assets/original-22.jpg",
+    "verifiedAt": "2026-11-08",
+    "priceVerifiedAt": "2026-11-05",
+    "priceScope": "network"
+  },
+  {
+    "id": "sd-chertanovo",
+    "network": "Свой Доктор",
+    "name": "Свой Доктор — Чертаново",
+    "address": "Москва, Россошанская улица, 4, корпус 1",
+    "url": "https://www.svoydoctor.ru/vladeltsam/filialy/filial-chertanovo/",
+    "imgToken": "__VETORA_ASSET_19__",
+    "imgId": 19,
+    "imgCredit": "Фото: Свой Доктор — Чертаново",
+    "priceUrl": "https://www.svoydoctor.ru/vladeltsam/tseny/price-list/",
+    "sourceScope": "Общесетевой прайс: стоимость уточняйте в филиале",
+    "services": [
+      {
+        "id": "therapy",
+        "title": "Первичный приём терапевта",
+        "category": "therapy",
+        "price": 2100,
+        "detail": "Клинический осмотр, сбор анамнеза и рекомендации. Стоимость по общесетевому прайсу; уточните в филиале.",
+        "scope": "consultation",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "therapy-repeat",
+        "title": "Повторный приём терапевта",
+        "category": "therapy",
+        "price": 1800,
+        "detail": "Приём по ранее выявленному заболеванию в течение месяца.",
+        "scope": "repeat_consultation",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "checkup-standard",
+        "title": "Чек-ап «Стандартный»",
+        "category": "diagnostic",
+        "price": 3900,
+        "detail": "Приём терапевта, забор крови, ОАК (23 показателя), биохимия (12 показателей), заключение.",
+        "scope": "checkup_standard",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "checkup-extended",
+        "title": "Чек-ап «Расширенный»",
+        "category": "diagnostic",
+        "price": 6900,
+        "detail": "Приём терапевта, забор крови, ОАК (28 показателей), биохимия (18 показателей), детализированное УЗИ брюшной полости, заключение.",
+        "scope": "checkup_extended",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "diagnostic-abdomen",
+        "title": "УЗИ детализированное брюшной полости",
+        "category": "diagnostic",
+        "price": 4350,
+        "detail": "Исследование органов брюшной полости, включая сложные для визуализации органы.",
+        "scope": "abdomen_detailed",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "vaccine-rabies",
+        "title": "Вакцинация отечественной вакциной от бешенства",
+        "category": "vaccination",
+        "price": 700,
+        "detail": "Включает клинический осмотр, термометрию, запись в ветпаспорт и введение вакцины.",
+        "scope": "rabies_domestic",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "vaccine-cat",
+        "title": "Вакцинация отечественной поливалентной вакциной без бешенства",
+        "category": "vaccination",
+        "price": 2500,
+        "detail": "Включает клинический осмотр, термометрию, запись в ветпаспорт и введение вакцины.",
+        "scope": "polyvalent_no_rabies",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "vaccine-import",
+        "title": "Вакцинация импортной вакциной с бешенством",
+        "category": "vaccination",
+        "price": 4000,
+        "detail": "Включает клинический осмотр, термометрию, запись в ветпаспорт и введение вакцины.",
+        "scope": "import_with_rabies",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "microchip",
+        "title": "Электронное чипирование",
+        "category": "vaccination",
+        "price": 2000,
+        "detail": "Включены чип, расходные материалы, введение и регистрация в AnimalID.",
+        "scope": "chip",
+        "additional": "",
+        "applies": ""
+      }
+    ],
+    "city": "Москва",
+    "coordinates": [
+      55.593181,
+      37.611113
+    ],
+    "hours": "Уточнить в клинике",
+    "location": "Улица Академика Янгеля",
+    "area": "south",
+    "phone": "+7 (495) 661-55-12",
+    "image": "assets/original-19.jpg",
+    "verifiedAt": "2026-11-08",
+    "priceVerifiedAt": "2026-11-05",
+    "priceScope": "network"
+  },
+  {
+    "id": "sd-krasnogorsk",
+    "network": "Свой Доктор",
+    "name": "Свой Доктор — Красногорск",
+    "address": "Московская область, Красногорск, улица Карбышева, 20",
+    "url": "https://www.svoydoctor.ru/vladeltsam/filialy/filial-krasnogorsk/",
+    "imgToken": "__VETORA_ASSET_20__",
+    "imgId": 20,
+    "imgCredit": "Фото: Свой Доктор — Красногорск",
+    "priceUrl": "https://www.svoydoctor.ru/vladeltsam/tseny/price-list/",
+    "sourceScope": "Общесетевой прайс: стоимость уточняйте в филиале",
+    "services": [
+      {
+        "id": "therapy",
+        "title": "Первичный приём терапевта",
+        "category": "therapy",
+        "price": 2100,
+        "detail": "Клинический осмотр, сбор анамнеза и рекомендации. Стоимость по общесетевому прайсу; уточните в филиале.",
+        "scope": "consultation",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "therapy-repeat",
+        "title": "Повторный приём терапевта",
+        "category": "therapy",
+        "price": 1800,
+        "detail": "Приём по ранее выявленному заболеванию в течение месяца.",
+        "scope": "repeat_consultation",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "checkup-standard",
+        "title": "Чек-ап «Стандартный»",
+        "category": "diagnostic",
+        "price": 3900,
+        "detail": "Приём терапевта, забор крови, ОАК (23 показателя), биохимия (12 показателей), заключение.",
+        "scope": "checkup_standard",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "checkup-extended",
+        "title": "Чек-ап «Расширенный»",
+        "category": "diagnostic",
+        "price": 6900,
+        "detail": "Приём терапевта, забор крови, ОАК (28 показателей), биохимия (18 показателей), детализированное УЗИ брюшной полости, заключение.",
+        "scope": "checkup_extended",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "diagnostic-abdomen",
+        "title": "УЗИ детализированное брюшной полости",
+        "category": "diagnostic",
+        "price": 4350,
+        "detail": "Исследование органов брюшной полости, включая сложные для визуализации органы.",
+        "scope": "abdomen_detailed",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "vaccine-rabies",
+        "title": "Вакцинация отечественной вакциной от бешенства",
+        "category": "vaccination",
+        "price": 700,
+        "detail": "Включает клинический осмотр, термометрию, запись в ветпаспорт и введение вакцины.",
+        "scope": "rabies_domestic",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "vaccine-cat",
+        "title": "Вакцинация отечественной поливалентной вакциной без бешенства",
+        "category": "vaccination",
+        "price": 2500,
+        "detail": "Включает клинический осмотр, термометрию, запись в ветпаспорт и введение вакцины.",
+        "scope": "polyvalent_no_rabies",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "vaccine-import",
+        "title": "Вакцинация импортной вакциной с бешенством",
+        "category": "vaccination",
+        "price": 4000,
+        "detail": "Включает клинический осмотр, термометрию, запись в ветпаспорт и введение вакцины.",
+        "scope": "import_with_rabies",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "microchip",
+        "title": "Электронное чипирование",
+        "category": "vaccination",
+        "price": 2000,
+        "detail": "Включены чип, расходные материалы, введение и регистрация в AnimalID.",
+        "scope": "chip",
+        "additional": "",
+        "applies": ""
+      }
+    ],
+    "city": "Московская область",
+    "coordinates": [
+      55.840139,
+      37.297871
+    ],
+    "hours": "Уточнить в клинике",
+    "location": "Красногорск",
+    "area": "mo",
+    "phone": "+7 (495) 661-55-12",
+    "image": "assets/original-20.jpg",
+    "verifiedAt": "2026-11-08",
+    "priceVerifiedAt": "2026-11-05",
+    "priceScope": "network"
+  },
+  {
+    "id": "sd-mytishchi",
+    "network": "Свой Доктор",
+    "name": "Свой Доктор — Мытищи",
+    "address": "Московская область, Мытищи, Новомытищинский проспект, 76А",
+    "url": "https://www.svoydoctor.ru/vladeltsam/filialy/filial-mytishchi/",
+    "imgToken": "__VETORA_ASSET_21__",
+    "imgId": 21,
+    "imgCredit": "Фото: Свой Доктор — Мытищи",
+    "priceUrl": "https://www.svoydoctor.ru/vladeltsam/tseny/price-list/",
+    "sourceScope": "Общесетевой прайс: стоимость уточняйте в филиале",
+    "services": [
+      {
+        "id": "therapy",
+        "title": "Первичный приём терапевта",
+        "category": "therapy",
+        "price": 2100,
+        "detail": "Клинический осмотр, сбор анамнеза и рекомендации. Стоимость по общесетевому прайсу; уточните в филиале.",
+        "scope": "consultation",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "therapy-repeat",
+        "title": "Повторный приём терапевта",
+        "category": "therapy",
+        "price": 1800,
+        "detail": "Приём по ранее выявленному заболеванию в течение месяца.",
+        "scope": "repeat_consultation",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "checkup-standard",
+        "title": "Чек-ап «Стандартный»",
+        "category": "diagnostic",
+        "price": 3900,
+        "detail": "Приём терапевта, забор крови, ОАК (23 показателя), биохимия (12 показателей), заключение.",
+        "scope": "checkup_standard",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "checkup-extended",
+        "title": "Чек-ап «Расширенный»",
+        "category": "diagnostic",
+        "price": 6900,
+        "detail": "Приём терапевта, забор крови, ОАК (28 показателей), биохимия (18 показателей), детализированное УЗИ брюшной полости, заключение.",
+        "scope": "checkup_extended",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "diagnostic-abdomen",
+        "title": "УЗИ детализированное брюшной полости",
+        "category": "diagnostic",
+        "price": 4350,
+        "detail": "Исследование органов брюшной полости, включая сложные для визуализации органы.",
+        "scope": "abdomen_detailed",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "vaccine-rabies",
+        "title": "Вакцинация отечественной вакциной от бешенства",
+        "category": "vaccination",
+        "price": 700,
+        "detail": "Включает клинический осмотр, термометрию, запись в ветпаспорт и введение вакцины.",
+        "scope": "rabies_domestic",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "vaccine-cat",
+        "title": "Вакцинация отечественной поливалентной вакциной без бешенства",
+        "category": "vaccination",
+        "price": 2500,
+        "detail": "Включает клинический осмотр, термометрию, запись в ветпаспорт и введение вакцины.",
+        "scope": "polyvalent_no_rabies",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "vaccine-import",
+        "title": "Вакцинация импортной вакциной с бешенством",
+        "category": "vaccination",
+        "price": 4000,
+        "detail": "Включает клинический осмотр, термометрию, запись в ветпаспорт и введение вакцины.",
+        "scope": "import_with_rabies",
+        "additional": "",
+        "applies": ""
+      },
+      {
+        "id": "microchip",
+        "title": "Электронное чипирование",
+        "category": "vaccination",
+        "price": 2000,
+        "detail": "Включены чип, расходные материалы, введение и регистрация в AnimalID.",
+        "scope": "chip",
+        "additional": "",
+        "applies": ""
+      }
+    ],
+    "city": "Московская область",
+    "coordinates": [
+      55.90469,
+      37.725164
+    ],
+    "hours": "Уточнить в клинике",
+    "location": "Мытищи",
+    "area": "mo",
+    "phone": "+7 (495) 661-55-12",
+    "image": "assets/original-21.jpg",
+    "verifiedAt": "2026-11-08",
+    "priceVerifiedAt": "2026-11-05",
+    "priceScope": "network"
+  }
+]

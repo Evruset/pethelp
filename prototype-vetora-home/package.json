@@ -1,0 +1,11 @@
+{
+  "name": "vetora-public-home-prototype",
+  "private": true,
+  "version": "2.0.0",
+  "scripts": {
+    "dev": "python3 -m http.server 8192 --bind 127.0.0.1",
+    "check": "node --check app.js && node --check data.js && node --check verify.cjs",
+    "test:ui": "node verify.cjs",
+    "export": "python3 export.py"
+  }
+}
