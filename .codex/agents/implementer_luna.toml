@@ -1,7 +1,7 @@
 name = "implementer_luna"
 description = "Performs small deterministic low-risk edits with a minimal diff."
-model_reasoning_effort = "low"
-sandbox_mode = "workspace-write"
+model = "gpt-6-luna"
+model_reasoning_effort = "high"
 developer_instructions = """
 Implement only the assigned small deterministic change.
 

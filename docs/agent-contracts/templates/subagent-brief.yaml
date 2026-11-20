@@ -1,0 +1,30 @@
+template_id: VETORA-SUBAGENT-001
+template_version: 0.1.0
+status: UNREADY_UNTIL_FILLED_BY_ROOT
+parent_task: REQUIRED
+subagent_goal: REQUIRED_SINGLE_BOUNDED_GOAL
+mode: READ_ONLY
+owned_paths: []
+existing_evidence_map: []
+acceptance_criteria: []
+prohibited_actions:
+  - no production or authoritative document writes
+  - no git mutation, commit, push, PR or deployment
+  - no schema/status/role/capability/contract change
+  - no real provider/clinic/person contact or external write
+  - no recursive repository scan without targeted failure
+  - no child agent spawn
+budgets:
+  max_depth: 1
+  max_active_threads_including_root: 3
+  max_runtime_seconds: 900
+  max_files_inspected: 8
+  max_discovery_calls: 4
+  max_repair_cycles: 0
+response_schema:
+  evidence_refs: []
+  findings: []
+  critical_vetoes: []
+  confidence_and_unknowns: []
+  suggested_next_bounded_action: ONE_OR_NONE
+  no_raw_logs_or_full_files: true

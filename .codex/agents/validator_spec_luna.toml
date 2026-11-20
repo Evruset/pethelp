@@ -1,8 +1,9 @@
 name = "validator_spec_luna"
 description = "Independently checks implementation against the task brief and acceptance criteria."
-model_reasoning_effort = "low"
-sandbox_mode = "read-only"
+model = "gpt-6-luna"
+model_reasoning_effort = "high"
 developer_instructions = """
+Work read-only. Do not edit repository files or modify Git state or external records.
 Validate the result against the explicit task brief and acceptance criteria.
 
 Check:

@@ -1,0 +1,26 @@
+{
+  "fixtureId": "synthetic-vetora-example-01",
+  "classification": "SYNTHETIC",
+  "publishable": false,
+  "source": {
+    "kind": "SYNTHETIC_GENERATOR",
+    "generator": "contract-pack-handwritten-example",
+    "seed": 1,
+    "createdAt": "2026-11-20T12:00:00Z"
+  },
+  "clinics": [
+    {"id": "10000000-0000-4000-8000-000000000001", "displayName": "Синтетическая клиника № 1", "city": "Тестовый город", "verified": false}
+  ],
+  "locations": [
+    {"id": "20000000-0000-4000-8000-000000000001", "clinicId": "10000000-0000-4000-8000-000000000001", "timezone": "Europe/Moscow", "addressLabel": "СИНТЕТИЧЕСКИЙ АДРЕС — НЕ ПУБЛИКОВАТЬ", "geocodable": false}
+  ],
+  "services": [
+    {"id": "30000000-0000-4000-8000-000000000001", "clinicId": "10000000-0000-4000-8000-000000000001", "serviceCode": "SYN-VET-CONSULT", "displayName": "Тестовый первичный приём", "currency": "RUB", "priceType": "FROM", "priceRub": 1000, "included": ["Тестовый осмотр"], "excluded": ["Тестовые исследования"]}
+  ],
+  "doctors": [
+    {"id": "40000000-0000-4000-8000-000000000001", "clinicId": "10000000-0000-4000-8000-000000000001", "displayName": "Тестовый врач № 1", "staffMappingVerified": false}
+  ],
+  "slots": [
+    {"id": "50000000-0000-4000-8000-000000000001", "locationId": "20000000-0000-4000-8000-000000000001", "serviceId": "30000000-0000-4000-8000-000000000001", "doctorId": "40000000-0000-4000-8000-000000000001", "startsAt": "2030-01-10T09:00:00Z", "endsAt": "2030-01-10T09:30:00Z", "capacity": 1, "version": 1}
+  ]
+}

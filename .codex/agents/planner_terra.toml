@@ -1,8 +1,9 @@
 name = "planner_terra"
 description = "Creates a bounded implementation plan for genuinely multi-module work."
+model = "gpt-6.2-sol"
 model_reasoning_effort = "medium"
-sandbox_mode = "read-only"
 developer_instructions = """
+Work read-only. Do not edit repository files or modify Git state or external records.
 Analyze repository evidence and produce a bounded executable plan.
 
 Define:

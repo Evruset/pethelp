@@ -1,0 +1,89 @@
+contract_id: VETORA-STATE-001
+version: 0.1.0
+kind: existing_runtime_inventory_not_codegen
+status: PROPOSED_FOR_PO_APPROVAL
+source:
+  package_ref: main@8dc349810480d253b363a262377494caecaba3a0
+  code_checked_ref: a864e2da500018403e238b748e737217e439e365
+  hold_enum: backend/src/booking-core/booking.types.ts
+  transition_function: backend/src/booking-core/booking-state-machine.ts
+  appointment_detail_projection: backend/src/booking-core/dto/clinic-appointment-detail.dto.ts
+  clinical_result_service: backend/src/booking-core/clinical-result.service.ts
+  domain_boundary_adr: docs/v50/adr/0001-domain-source-of-truth.md
+rules:
+  server_authority: PostgreSQL
+  client_cannot_set: [ownerId, clinicId, confirmationMode, price, holdTtl, appointmentStatus, visitCompleted]
+  transaction_lock_order: [hold, appointment, sorted_slots, proposal]
+  no_network_io_inside_transaction: true
+  idempotency_required_for_commands: true
+  not_a_source_for_new_enums: true
+hold:
+  exact_existing_states:
+    - MANUAL_CONFIRM_PENDING
+    - ALTERNATIVE_PENDING
+    - CONFIRMED
+    - EXPIRED
+    - RELEASED
+    - SLA_BREACHED
+    - MIS_RESERVATION_PENDING
+    - MIS_RECONCILIATION_PENDING
+    - MIS_HELD
+    - PAYMENT_PENDING
+    - PAYMENT_IN_PROGRESS
+    - PAYMENT_RECONCILIATION_PENDING
+    - MIS_BOOKING_FAILED
+    - CANCELLATION_REQUESTED
+    - RESCHEDULE_REQUESTED
+    - COMPLETED
+  transitions_from_checked_in_code:
+    MANUAL_CONFIRM_PENDING: [ALTERNATIVE_PENDING, CONFIRMED, EXPIRED, RELEASED, SLA_BREACHED, CANCELLATION_REQUESTED, RESCHEDULE_REQUESTED]
+    ALTERNATIVE_PENDING: [MIS_HELD, EXPIRED, RELEASED, CANCELLATION_REQUESTED]
+    CONFIRMED: [CANCELLATION_REQUESTED, RESCHEDULE_REQUESTED, COMPLETED]
+    EXPIRED: []
+    RELEASED: []
+    SLA_BREACHED: []
+    MIS_RESERVATION_PENDING: [MIS_HELD, MIS_RECONCILIATION_PENDING, MIS_BOOKING_FAILED, RELEASED, CANCELLATION_REQUESTED]
+    MIS_RECONCILIATION_PENDING: [MIS_HELD, MIS_BOOKING_FAILED, RELEASED, CANCELLATION_REQUESTED]
+    MIS_HELD: [PAYMENT_PENDING, CONFIRMED, RELEASED, CANCELLATION_REQUESTED]
+    PAYMENT_PENDING: [PAYMENT_IN_PROGRESS, RELEASED, CANCELLATION_REQUESTED]
+    PAYMENT_IN_PROGRESS: [PAYMENT_RECONCILIATION_PENDING, CONFIRMED, RELEASED, CANCELLATION_REQUESTED]
+    PAYMENT_RECONCILIATION_PENDING: [CONFIRMED, RELEASED, CANCELLATION_REQUESTED]
+    MIS_BOOKING_FAILED: [RELEASED]
+    CANCELLATION_REQUESTED: [RELEASED]
+    RESCHEDULE_REQUESTED: [CONFIRMED, RELEASED]
+    COMPLETED: []
+  pilot_allowed_projection: [MANUAL_CONFIRM_PENDING, ALTERNATIVE_PENDING, CONFIRMED, EXPIRED, RELEASED, SLA_BREACHED]
+  pilot_note: ALTERNATIVE_PENDING is gated; enum membership does not imply enabled feature.
+  public_status_mapping:
+    MANUAL_CONFIRM_PENDING: PENDING_CONFIRMATION
+    ALTERNATIVE_PENDING: PENDING_CONFIRMATION
+    CONFIRMED: CONFIRMED
+    COMPLETED: CONFIRMED
+    EXPIRED: EXPIRED
+    SLA_BREACHED: EXPIRED
+    RELEASED:
+      clinicDeclined_true: REJECTED
+      clinicDeclined_false: CANCELLED
+    other: NO_PUBLIC_PROJECTION
+appointment:
+  source: backend/src/booking-core/dto/clinic-appointment-detail.dto.ts
+  detail_projection_values: [SCHEDULED, COMPLETED, NO_SHOW, CANCELLED, UNKNOWN]
+  wave2_lifecycle_authority: NOT_VERIFIED
+  proposed_wave2_terms: [CONFIRMED, CANCELLED_BY_USER, CANCELLED_BY_CLINIC, RESCHEDULE_PROPOSED, NO_SHOW]
+  exhaustive_transition_graph: false
+  proposed_invariants:
+    - Clinic can propose alternative, never silently move confirmed slot.
+    - Owner accept atomically swaps appointment and capacity; reject/expiry preserve original.
+    - Late cancellation is classification only; no penalty implied.
+    - Cancellation/no-show/unresolved proposal block normal visit completion.
+visit_result:
+  source: backend/src/booking-core/clinical-result.service.ts
+  result_states: [DRAFT, PUBLISHED]
+  amendment_is_separate_append_only_entity: true
+  owner_diary_only_published: true
+  personal_assignment_enforcement: NOT_VERIFIED
+  v50_full_visit_adr_is_not_pilot_enum: true
+cpa:
+  implementation_status: NOT_IMPLEMENTED
+  state_machine: NOT_APPROVED
+  prohibit_calendar_time_as_visited_proof: true

@@ -1,0 +1,68 @@
+template_id: VETORA-TASK-001
+template_version: 0.1.0
+status: UNREADY_UNTIL_FIELDS_FILLED
+issue:
+  key: REQUIRED_IF_JIRA_TASK
+  canonical_contract_ref: REQUIRED_APPLICABLE_SOURCE  # User request for local work without a Jira item
+  approved_revision: REQUIRED_IF_APPROVAL_APPLIES
+objective:
+  single_observable_outcome: REQUIRED
+  user_visible_result: REQUIRED
+  type: CODE  # choose one: CONTRACT, CODE, QA, DEVOPS, UX, GOVERNANCE
+scope:
+  allowed_paths: []  # explicit exact files or bounded directories before any write
+  directly_affected_contracts: []
+  non_goals: []
+  forbidden_paths: []
+  no_new_public_api: true
+  no_new_status_or_role: true
+  no_new_dependency: true
+  no_applied_migration_rewrite: true
+  no_commit_push_pr_deploy: true
+authority:
+  entity: REQUIRED_IF_DOMAIN_APPLIES
+  authoritative_writer: REQUIRED_IF_DOMAIN_APPLIES
+  source_of_truth: REQUIRED_APPLICABLE_SOURCE
+  proof_tag: UNKNOWN
+  owner_or_clinic_location_scope: REQUIRED_IF_APPLICABLE
+  business_invariants: []
+feasibility:
+  data_available_and_verified: false
+  provider_or_real_clinic_dependency: UNKNOWN
+  missing_product_decisions: []
+  feasible_smallest_slice: REQUIRED
+acceptance:
+  positive_observable: []
+  negative_forbidden: []
+  regression_invariants: []
+verification:
+  affected_tests_only: true
+  commands: []
+  required_real_postgres: false
+  full_suite_trigger: NONE
+  release_gate: false
+orchestrator:
+  skill: adaptive-orchestrator
+  classification_complexity: UNCLASSIFIED
+  classification_risk: UNCLASSIFIED
+  reasoning_effort: FROM_ROUTING
+  subagents: 0
+  max_active_threads_including_root: FROM_PROJECT_AND_RUNTIME
+  max_depth: FROM_PROJECT_AND_RUNTIME
+  discovery_commands_budget: FROM_SELECTED_ROUTE
+  preimplementation_file_budget: FROM_SELECTED_ROUTE
+  narrow_test_commands_budget: FROM_SELECTED_ROUTE
+  max_repair_cycles: FROM_SELECTED_ROUTE
+  justification_if_exceeded: REQUIRED_IF_EXCEEDED
+stop_conditions:
+  - contract conflict or non-feasible scope
+  - missing product/real-world approval
+  - scope expansion or unexpected destructive migration
+  - unresolved auth/data/transaction veto
+  - dirty-tree overlapping user changes
+output:
+  changed_files: []
+  implemented_behavior: NOT_STARTED
+  checks_and_evidence: []
+  unresolved_risks: []
+  one_next_action: NONE

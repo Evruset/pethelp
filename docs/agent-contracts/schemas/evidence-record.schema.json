@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Vetora execution evidence record structure",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["templateId", "version", "taskId", "sourceRef", "sourceDigest", "environment", "evidenceType", "proofTag", "result", "observedAt", "changedPaths", "affectedContractPaths", "command", "exitCode", "passedCount", "failedCount", "originalEvidenceRef", "reusedWithoutRelevantChange", "notes"],
+  "properties": {
+    "templateId": {"const": "VETORA-EVIDENCE-001"},
+    "version": {"const": "0.1.0"},
+    "taskId": {"type": "string", "minLength": 1},
+    "sourceRef": {"type": "string", "minLength": 1},
+    "sourceDigest": {"type": "string", "minLength": 1},
+    "environment": {"type": "string", "minLength": 1},
+    "evidenceType": {"enum": ["UNIT", "INTEGRATION", "E2E", "BUILD", "STATIC", "VISUAL", "REVIEW", "REAL_WORLD", "NOT_RUN", "REUSED"]},
+    "proofTag": {"enum": ["VERIFIED_CODE", "VERIFIED_CONTRACT", "OBSERVED_TEST", "OBSERVED_REAL", "INFERRED", "PROPOSED", "UNKNOWN"]},
+    "result": {"enum": ["PASS", "FAIL", "BLOCKED", "NOT_RUN", "REUSED_STICKY_PASS"]},
+    "observedAt": {"anyOf": [{"type": "string", "format": "date-time"}, {"type": "null"}]},
+    "changedPaths": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "affectedContractPaths": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "command": {"type": ["string", "null"]},
+    "exitCode": {"type": ["integer", "null"]},
+    "passedCount": {"type": ["integer", "null"], "minimum": 0},
+    "failedCount": {"type": ["integer", "null"], "minimum": 0},
+    "originalEvidenceRef": {"type": ["string", "null"]},
+    "reusedWithoutRelevantChange": {"type": "boolean"},
+    "notes": {"type": "string"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"result": {"const": "PASS"}}},
+      "then": {"properties": {"exitCode": {"const": 0}, "command": {"type": "string", "minLength": 1}, "observedAt": {"type": "string", "format": "date-time"}}, "required": ["command", "exitCode", "observedAt"]}
+    },
+    {
+      "if": {"properties": {"result": {"const": "REUSED_STICKY_PASS"}}},
+      "then": {"properties": {"reusedWithoutRelevantChange": {"const": true}, "originalEvidenceRef": {"type": "string", "minLength": 1}}}
+    }
+  ]
+}

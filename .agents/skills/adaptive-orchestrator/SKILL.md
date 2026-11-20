@@ -1,6 +1,6 @@
 ---
 name: adaptive-orchestrator
-description: Budget-aware software delivery orchestrator that automatically selects the smallest safe workflow. Reuses current-state and known test harnesses, prefers targeted discovery, and escalates to repo map, RAG, agents, MCP, stronger models, and validation quorum only when evidence requires it. Use for implementation, bug fixing, refactoring, architecture, tests, migrations, UI work, and code review. Do not use for a simple factual question that requires no repository work.
+description: Budget-aware software delivery orchestrator that automatically selects the smallest safe workflow. Reuses current-state and known test harnesses, prefers targeted discovery, and escalates to repo map, RAG, agents, MCP, stronger models, and independent validation only when evidence requires it. Use for implementation, bug fixing, refactoring, architecture, tests, migrations, UI work, and code review. Do not use for a simple factual question that requires no repository work.
 ---
 
 # Budget-Aware Adaptive Orchestrator
@@ -110,7 +110,7 @@ Rules:
 - C2: use planner only when multiple modules or dependencies are real.
 - C3/R3: use `architect_sol` before implementation only when boundaries or invariants are genuinely ambiguous.
 - Never start with maximum agents or strongest models.
-- Never use Sol for routine discovery, test execution, or established endpoint migrations.
+- Keep focused discovery and checks in the current root when that covers the task. Route justified specialists using the shared model policy.
 
 At 80% of any soft budget:
 
@@ -243,7 +243,6 @@ Do not:
 - reread completed families;
 - run repo map and RAG when targeted inspection is sufficient;
 - use subagents by default;
-- use Sol;
 - perform a second endpoint;
 - create a new route;
 - change POST, mutation, DTO, migration, or public contract without explicit scope;
@@ -252,7 +251,7 @@ Do not:
 Default for this fast path:
 
 - complexity: C1;
-- root model: Terra low;
+- root model and effort: use the active client settings and [shared routing policy](references/routing.md);
 - subagents: none;
 - MCP: none;
 - validation: Tier A;
@@ -319,15 +318,11 @@ Default sparse routing:
 - current external documentation: `docs_researcher_terra` with MCP;
 - browser reproduction: `browser_debugger_terra` with Playwright.
 
-For genuinely hard C3/R3 architecture, prefer Astra/high or xhigh only when
-the current runtime inventory confirms it. Otherwise use the documented
-fallback without renaming the role. Use `scripts/orchestrator-route.py` when a
-reproducible decision record is required.
-
-When launching a selected role, pass the router's returned `model` and
-`reasoning_effort` as invocation overrides. Agent profile names and defaults do
-not override the decision record. If the runtime cannot honor either override,
-resolve the documented fallback and emit a new decision before execution.
+Resolve the model and reasoning effort with [the routing policy](references/routing.md)
+and the current client inventory. Use the configured profile for a custom role.
+Report the model and effort confirmed by the client for the current root. A
+skill cannot switch the running root by instruction. Use the documented fallback
+only if the runtime supports it and the required validation remains available.
 
 Parallelize only independent work.
 
@@ -548,7 +543,7 @@ Do not invoke both unless they validate genuinely different high-value risks.
 
 ### Tier C — high risk
 
-Use one independent Sol reviewer by default for:
+Use one independent reviewer by default for:
 
 - authorization architecture changes;
 - new authority models;
@@ -626,7 +621,7 @@ For a narrow Stage 3 endpoint slice:
 
 All of the following:
 
-- Terra low;
+- the selected route stays within the active model and reasoning budget;
 - no subagents or MCP;
 - implementation completed in one turn;
 - 8 or fewer files inspected before implementation;

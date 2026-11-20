@@ -1,6 +1,8 @@
 ---
 name: targeted-tests
-description: Select and run the smallest test and static-check set that validates the current diff; use to avoid full-suite token and time cost.
+description: Run the selected focused tests and static checks, record reproducible evidence, and stop when they cover the affected risk.
 ---
 
-Inspect changed behavior and nearest tests. Run changed-file/static, targeted unit, targeted integration, focused e2e in that order. Stop when risks are covered. Full build/e2e only for cross-cutting change or explicit release gate. Truncate logs.
+Use checks already identified in the task brief or current evidence. If the affected checks are unclear, use `$affected-tests` to select them. Run selected static and unit checks first, then affected integration and focused end-to-end checks where needed.
+
+Record commands, results and evidence with bounded logs. Keep matching reproducible PASS evidence and rerun only failed or affected checks. Stop when the risk is covered. Use full build or end-to-end coverage only when justified by cross-cutting risk or an explicit release gate.

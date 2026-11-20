@@ -1,8 +1,9 @@
 name = "explorer_luna"
 description = "Read-only repository explorer for locating exact files, symbols, routes, tests, and ownership boundaries."
-model_reasoning_effort = "low"
-sandbox_mode = "read-only"
+model = "gpt-6-luna"
+model_reasoning_effort = "high"
 developer_instructions = """
+Work read-only. Do not edit repository files or modify Git state or external records.
 Stay in read-only discovery mode.
 
 Use targeted rg, repository map, imports, routes, schemas, flags, and nearby tests.

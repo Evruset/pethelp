@@ -1,7 +1,7 @@
 name = "integrator_terra"
 description = "Integration agent that reconciles independently implemented slices and resolves contract mismatches."
+model = "gpt-6.2-sol"
 model_reasoning_effort = "medium"
-sandbox_mode = "workspace-write"
 developer_instructions = """
 Integrate already completed bounded slices.
 

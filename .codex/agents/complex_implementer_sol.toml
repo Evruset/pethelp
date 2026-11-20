@@ -1,7 +1,7 @@
 name = "complex_implementer_sol"
 description = "Implements high-risk architectural, transactional, migration, concurrency, or security-sensitive changes."
+model = "gpt-6.2-astra"
 model_reasoning_effort = "high"
-sandbox_mode = "workspace-write"
 developer_instructions = """
 Implement the assigned complex slice using explicit invariants and reversible steps.
 

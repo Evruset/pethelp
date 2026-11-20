@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.vetora.invalid/agent-contracts/synthetic-dataset/0.1.0",
+  "title": "Vetora synthetic test dataset only — NOT production DTO",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["fixtureId", "classification", "publishable", "source", "clinics", "locations", "services", "doctors", "slots"],
+  "properties": {
+    "fixtureId": {"type": "string", "pattern": "^synthetic-[a-z0-9-]+$"},
+    "classification": {"const": "SYNTHETIC"},
+    "publishable": {"const": false},
+    "source": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "generator", "seed", "createdAt"],
+      "properties": {
+        "kind": {"const": "SYNTHETIC_GENERATOR"},
+        "generator": {"type": "string", "minLength": 1},
+        "seed": {"type": "integer", "minimum": 0},
+        "createdAt": {"type": "string", "format": "date-time"}
+      }
+    },
+    "clinics": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/clinic"}},
+    "locations": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/location"}},
+    "services": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/service"}},
+    "doctors": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/doctor"}},
+    "slots": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/slot"}}
+  },
+  "$defs": {
+    "uuid": {"type": "string", "format": "uuid"},
+    "clinic": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "displayName", "city", "verified"],
+      "properties": {
+        "id": {"$ref": "#/$defs/uuid"},
+        "displayName": {"type": "string", "pattern": "^Синтетическая "},
+        "city": {"type": "string", "minLength": 1},
+        "verified": {"const": false}
+      }
+    },
+    "location": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "clinicId", "timezone", "addressLabel", "geocodable"],
+      "properties": {
+        "id": {"$ref": "#/$defs/uuid"},
+        "clinicId": {"$ref": "#/$defs/uuid"},
+        "timezone": {"type": "string", "enum": ["Europe/Moscow"]},
+        "addressLabel": {"const": "СИНТЕТИЧЕСКИЙ АДРЕС — НЕ ПУБЛИКОВАТЬ"},
+        "geocodable": {"const": false}
+      }
+    },
+    "service": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "clinicId", "serviceCode", "displayName", "currency", "priceType", "priceRub", "included", "excluded"],
+      "properties": {
+        "id": {"$ref": "#/$defs/uuid"},
+        "clinicId": {"$ref": "#/$defs/uuid"},
+        "serviceCode": {"type": "string", "pattern": "^SYN-[A-Z0-9_-]+$"},
+        "displayName": {"type": "string", "minLength": 1},
+        "currency": {"const": "RUB"},
+        "priceType": {"enum": ["FIXED", "FROM"]},
+        "priceRub": {"type": "integer", "minimum": 0},
+        "included": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "excluded": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+      }
+    },
+    "doctor": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "clinicId", "displayName", "staffMappingVerified"],
+      "properties": {
+        "id": {"$ref": "#/$defs/uuid"},
+        "clinicId": {"$ref": "#/$defs/uuid"},
+        "displayName": {"type": "string", "pattern": "^Тестовый врач "},
+        "staffMappingVerified": {"const": false}
+      }
+    },
+    "slot": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "locationId", "serviceId", "doctorId", "startsAt", "endsAt", "capacity", "version"],
+      "properties": {
+        "id": {"$ref": "#/$defs/uuid"},
+        "locationId": {"$ref": "#/$defs/uuid"},
+        "serviceId": {"$ref": "#/$defs/uuid"},
+        "doctorId": {"anyOf": [{"$ref": "#/$defs/uuid"}, {"type": "null"}]},
+        "startsAt": {"type": "string", "format": "date-time"},
+        "endsAt": {"type": "string", "format": "date-time"},
+        "capacity": {"type": "integer", "minimum": 1, "maximum": 50},
+        "version": {"type": "integer", "minimum": 1}
+      }
+    }
+  }
+}

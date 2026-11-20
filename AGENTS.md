@@ -4,13 +4,11 @@ VetHelp monorepo for veterinary owner, clinic and platform workflows.
 
 ## Project authority
 
-Use this precedence: the Jira issue being executed; normative Confluence linked from Jira; repository contracts; `docs/ai/current-state.md` as the execution/evidence overlay. Stop on a Jira/Confluence product contradiction instead of choosing a side.
+Use this precedence: the Jira issue being executed, linked normative Confluence (including Scope Freeze), then approved repository contracts. Use code and reproducible evidence to establish implementation state. `docs/ai/current-state.md` is the execution/evidence overlay. Stop the affected work on a Jira/Confluence product contradiction.
 
 The first-MVP Owner App is React Native + Expo in `apps/owner-app`. `apps/owner_mobile` is legacy read-only reference; do not add Flutter functionality.
 
 Follow the normative first-MVP Scope Freeze. Do not silently reintroduce payments, mandatory MIS, telemedicine, insurance, emergency routing, Push, SMS, Telegram, a full clinical record or advanced BI. Legacy implementations may remain only when isolated from the Pilot.
-
-When a VetHelp `/goal` is active, read `docs/ai/codex-autonomous-delivery.md` and `docs/ai/current-state.md`, then advance dependency-ready Jira work without requiring a prompt per item. Only the main agent may write production or authoritative project files; subagents are read-heavy/review-only unless explicitly authorized.
 
 The current Product Owner also acts as Technical Lead and Product/Business/SA/UX decision owner for the MVP under Confluence page `2686977`. Explicit Product Owner approval counts only for the named decision classes, items and revisions. Codex/reviewer PASS is machine evidence, never human approval. Machine-only QA may close from reproducible automated evidence; never simulate real-device, signed-build, UAT, external-provider, pilot-clinic, training, restore/load execution, Pilot Candidate, Go-Live or real-booking evidence.
 
@@ -23,7 +21,7 @@ Story/Epic closure is never inferred from child completion percentage. Verify ma
 ## Scope
 
 - `backend/`: NestJS services, PostgreSQL and migrations.
-- `portal/`: clinic and platform web portal.
+- `apps/clinic-portal/`: clinic and platform web portal.
 - `docs/`: specifications, matrices and delivery notes.
 - prototype directories: static UX/UI references and states.
 
@@ -37,23 +35,25 @@ Story/Epic closure is never inferred from child completion percentage. Verify ma
 - Do not rename, reorder or edit an already applied database migration.
 - Keep role permissions and clinical state transitions explicit; do not broaden privileges incidentally.
 - Do not introduce new dependencies unless the task requires them and the impact is stated.
-- Preserve dirty user changes. Never reset, clean, commit or push unless explicitly requested.
+- Preserve dirty user changes. Never reset, clean, commit, push, create/edit a PR, deploy, or alter production data unless the active request explicitly authorizes the action. External writes remain subject to their applicable project gates.
 
 ## Verification
 
 - Inspect the relevant `package.json` scripts before choosing commands.
-- Run the narrowest unit/type/lint check that covers the change.
-- Run affected integration or Playwright tests next.
-- Run full builds/e2e only for cross-module changes or final release verification.
+- Use `$affected-tests` when affected checks need discovery and `$targeted-tests` to execute the selected checks. Start with narrow static/unit checks, then run affected integration or Playwright when the risk warrants it. Run full checks only when justified by a shared contract, schema, auth, state machine, multiple bounded contexts, or a release gate.
+- Run `git diff --check` and use existing reproducible evidence where inputs match.
 - Bound logs with `--tail`, `tail`, `rg` or a targeted test selector.
 
 ## Session discipline
 
-- One feature or defect per session.
-- Use `docs/ai/task-template.md` to define scope and acceptance criteria.
-- Update `docs/ai/current-state.md` before starting a new session.
-- For each autonomous Jira checkpoint: validate DoR, implement the smallest scope, run focused checks, obtain independent review when material, run `git diff --check`, update current-state, and select the next Ready item.
-- Never push, create/edit a PR, deploy, or commit unless the active request explicitly authorizes it.
+- In a normal session, deliver one bounded result using [the task brief guide](docs/ai/task-template.md). Read only relevant sections of `docs/ai/current-state.md`. Update it within scope when meaningful execution evidence or status changes.
+- With an active VetHelp `/goal`, follow [the autonomous delivery contract](docs/ai/codex-autonomous-delivery.md). Read the relevant current-state continuation and evidence. At each checkpoint validate DoR, implement the smallest scope, run focused checks and `git diff --check`, obtain independent review when material, update current-state and advance the next dependency-ready Jira item without prompting per item.
+
+## Codex execution
+
+- Apply the existing [adaptive-orchestrator](.agents/skills/adaptive-orchestrator/SKILL.md) for nontrivial repository tasks. Follow its C/R budgets and bounded discovery. Start with targeted search, use repo map and local RAG when needed before broad reads, and skip generated output, dependency folders, archives, logs and large binaries unless directly required.
+- Delegate only independent bounded work. Allow at most three active threads including root, subject to any lower configured limit. Only root can spawn. Root owns production and authoritative project writes unless a child receives explicit authorization.
+- Use the [proposal index](docs/agent-contracts/README.md) to find the [authority and scope proposal](docs/agent-contracts/00-authority-scope.md) and only the directly relevant domain material. These are analytical proposals pending scoped PO approval. Use live contracts for API, role, permission, status and schema decisions.
 
 ## Response
 
@@ -62,26 +62,3 @@ Return only:
 2. implemented behavior;
 3. checks and results;
 4. unresolved risks or blockers.
-
-<!-- CODEX_AGENT_STACK_START -->
-# Codex budget-aware adaptive orchestrator
-
-For every non-trivial repository task, automatically apply `$adaptive-orchestrator`.
-The user is not expected to select models, agents, reasoning levels, MCP servers, files, or test commands.
-
-The root thread must:
-1. validate task completeness and ask one grouped clarification only when blocked;
-2. use search-first discovery, repo map, and local RAG before broad file reads;
-3. classify complexity/risk and select the matching context budget;
-4. choose the cheapest suitable model per work item;
-5. delegate only independent bounded work and keep at most three agent threads open;
-6. collect concise summaries instead of raw logs;
-7. run affected tests and risk-based independent validation;
-8. return a plain-language result with evidence.
-
-Hard rules:
-- Do not recursively scan the repository before targeted search.
-- Do not read generated output, dependency folders, archives, logs, or large binaries unless directly required.
-- Do not run a full test suite unless shared contracts, schema, auth, state machine, or multiple bounded contexts are affected.
-- Do not commit, push, alter production data, or rewrite applied migrations unless explicitly requested.
-<!-- CODEX_AGENT_STACK_END -->

@@ -1,0 +1,72 @@
+contract_id: VETORA-AUTH-001
+version: 0.1.0
+kind: existing_backend_role_capability_inventory
+status: PROPOSED_FOR_PO_APPROVAL
+source:
+  package_ref: main@8dc349810480d253b363a262377494caecaba3a0
+  code_checked_ref: a864e2da500018403e238b748e737217e439e365
+  role_enum: backend/src/auth/auth.types.ts
+  static_capabilities: backend/src/auth/capability.ts
+not_a_new_grant: true
+roles_in_backend:
+  - GUEST
+  - OWNER
+  - CLINIC_ADMIN
+  - CLINIC_RECEPTIONIST
+  - CLINIC_VETERINARIAN
+  - TELEMED_VETERINARIAN
+  - SUPPORT_L1
+  - SUPPORT_L2
+  - FINANCE_OPERATOR
+  - INSURANCE_OPERATOR
+  - PLATFORM_ADMIN
+  - SECURITY_AUDITOR
+  - SYSTEM_WORKER
+static_capabilities_as_of_code_checked_ref:
+  CLINIC_ADMIN:
+    - booking.queue.read
+    - appointment.registry.read
+    - patient.admin.read
+    - patient.admin.local-profile.update
+    - quality.read
+    - schedule.read
+    - booking.replay.read
+    - booking.hold.read
+  CLINIC_RECEPTIONIST:
+    - booking.queue.read
+    - appointment.registry.read
+    - patient.admin.read
+    - patient.admin.local-profile.update
+    - quality.read
+    - schedule.read
+    - booking.replay.read
+    - booking.hold.read
+  CLINIC_VETERINARIAN:
+    - clinical.visit.complete
+    - clinical.visit.workspace.read
+  TELEMED_VETERINARIAN:
+    - telemed.vet.queue.read
+    - telemed.vet.audit-trail.read
+  PLATFORM_ADMIN: [ops.slo.snapshot.read]
+  SECURITY_AUDITOR: [ops.slo.snapshot.read]
+  OWNER: []  # owner-route ownership enforced separately; not a denial of owner endpoints
+  GUEST: []
+policy_guards_beyond_static_capability:
+  - authenticated session and server-derived actor
+  - active employee membership (clinic + location)
+  - exact resource scope and owner/pet relation
+  - state/feature flag authority and version checks
+prohibitions:
+  - client-side role switch never grants access
+  - CLINIC_ADMIN never signs/publishes clinical result
+  - no inherited medical rights from admin, support or platform roles
+  - no cross-clinic or cross-owner read from presentation navigation
+manager_persona:
+  ui_prototype_role: manager
+  backend_role_exists: false
+  status: REQUIRES_PO_AND_SECURITY_DECISION
+  do_not_auto_map_to_CLINIC_ADMIN: true
+doctor_own_calendar:
+  status: OPEN_GAP_NEEDS_SERVER_PROOF
+  reviewed_location_scoped_read: backend/src/booking-core/veterinarian-visit-read.service.ts
+  ui_filter_only_is_insufficient: true

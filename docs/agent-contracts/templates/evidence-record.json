@@ -1,0 +1,21 @@
+{
+  "templateId": "VETORA-EVIDENCE-001",
+  "version": "0.1.0",
+  "taskId": "UNSET",
+  "sourceRef": "UNSET",
+  "sourceDigest": "UNSET",
+  "environment": "UNSET",
+  "evidenceType": "NOT_RUN",
+  "proofTag": "UNKNOWN",
+  "result": "NOT_RUN",
+  "observedAt": null,
+  "changedPaths": [],
+  "affectedContractPaths": [],
+  "command": null,
+  "exitCode": null,
+  "passedCount": null,
+  "failedCount": null,
+  "originalEvidenceRef": null,
+  "reusedWithoutRelevantChange": false,
+  "notes": "Template only: do not treat this document as evidence of any executed test."
+}

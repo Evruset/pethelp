@@ -1,0 +1,83 @@
+contract_id: VETORA-DATA-001
+version: 0.1.0
+kind: governance_registry_not_production_dto
+status: PROPOSED_FOR_PO_APPROVAL
+package_ref: main@8dc349810480d253b363a262377494caecaba3a0
+storage_policy:
+  business_truth: PostgreSQL
+  events: PostgreSQL transactional outbox with business transaction
+  cache: non_authoritative_disposable
+  binary: approved private object store, no browser-local medical content
+  timestamps: server_timestamp_UTC_with_IANA_timezone_for_display
+  retention: PENDING_LEGAL_DECISION
+  data_classification: [PUBLIC_VERIFIED, INTERNAL, PERSONAL, CLINICAL_SENSITIVE, SYNTHETIC]
+datasets:
+  clinic_registry:
+    authority: clinic onboarding and registry
+    primary_store: PostgreSQL clinic schema (verify table per task)
+    consumers: [public_catalog, clinic_portal]
+    source_evidence: clinic-confirmed identity/address/contact, updated_at, sourceRef
+    sensitivity: INTERNAL
+    publication_gate: manual_verification_before_public_listing
+  staff_doctor_assignment:
+    authority: clinic identity/membership and staffing
+    primary_store: PostgreSQL (separate doctor/staff identifiers)
+    consumers: [clinic_role_policy, schedule, public_doctor_projection]
+    sensitivity: PERSONAL
+    publication_gate: consented_public_fields_only
+    known_gap: server_enforced_doctor_own_assignments
+  services_prices:
+    authority: clinic-owned service offer and its version
+    primary_store: PostgreSQL
+    consumers: [public_catalog, booking_validation, clinic_portal]
+    current_dto: backend/src/public-catalog/owner-clinic-catalog.dto.ts
+    proposed_format_constraints: [RUB, explicit_price_type, composition, exclusions, valid_from]
+    comparability: same_serviceCode_only_if_scope_is_comparable
+    sensitivity: INTERNAL
+    publication_gate: verified_clinic_price_and_inclusions
+  schedule_slots:
+    authority: server schedule and Booking Core
+    primary_store: PostgreSQL
+    consumers: [public_availability, booking, clinic_calendar]
+    current_dto: backend/src/public-catalog/owner-clinic-catalog.dto.ts
+    proposed_format_constraints: [slot_id, version, IANA_timezone, serverNow, capacity]
+    sensitivity: INTERNAL
+    publication_gate: fresh_authoritative_availability
+  owner_pet:
+    authority: server owner identity and pet service
+    primary_store: PostgreSQL
+    consumers: [owner_app, scoped_clinic_administrative_view]
+    sensitivity: PERSONAL
+    publication_gate: owner_and_appointment_scoped_minimum_data
+  booking_hold:
+    authority: Booking Core
+    primary_store: PostgreSQL
+    consumers: [booking_status, clinic_queue, audit_outbox]
+    sensitivity: PERSONAL
+    publication_gate: readback_and_scope
+  appointment:
+    authority: Appointment lifecycle after confirmation
+    primary_store: PostgreSQL
+    consumers: [owner_bookings, clinic_journal, visit]
+    sensitivity: PERSONAL
+    publication_gate: confirmed_server_authority
+  visit_clinical_result:
+    authority: vet-only Visit/Clinical Result domain
+    primary_store: PostgreSQL + approved private bytes storage
+    consumers: [scoped_vet_workplace, published_owner_diary]
+    sensitivity: CLINICAL_SENSITIVE
+    publication_gate: veterinarian_publish_and_immutable_result
+  attribution_cpa:
+    authority: booking acquisition event + future approved commercial ledger
+    primary_store: PostgreSQL (new ledger not yet approved)
+    consumers: [minimal_partner_report, future_billing]
+    sensitivity: INTERNAL
+    publication_gate: first_attended_verified_visit_and_no_duplicate
+    implementation_status: NOT_IMPLEMENTED
+  synthetic_fixture:
+    authority: approved test fixture generator
+    primary_store: isolated test workspace/db only
+    consumers: [unit_tests, E2E_tests, explicitly_labeled_demo]
+    sensitivity: SYNTHETIC
+    publication_gate: NEVER_PUBLIC_PRODUCTION
+    schema: docs/agent-contracts/schemas/synthetic-dataset.schema.json

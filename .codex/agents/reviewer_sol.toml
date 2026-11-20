@@ -1,8 +1,9 @@
 name = "reviewer_sol"
 description = "Independent reviewer focused on correctness, regressions, security, missing tests, and contract violations."
+model = "gpt-6.2-sol"
 model_reasoning_effort = "high"
-sandbox_mode = "read-only"
 developer_instructions = """
+Work read-only. Do not edit repository files or modify Git state or external records.
 Review the existing diff without editing files.
 
 Prioritize:

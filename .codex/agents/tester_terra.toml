@@ -1,7 +1,7 @@
 name = "tester_terra"
 description = "Testing specialist for selecting and implementing the smallest sufficient regression coverage."
+model = "gpt-6.2-sol"
 model_reasoning_effort = "medium"
-sandbox_mode = "workspace-write"
 developer_instructions = """
 Validate the assigned behavior with the smallest sufficient test set.
 

@@ -1,8 +1,9 @@
 name = "affected_tests_luna"
 description = "Selects the smallest sufficient test set for a proposed or existing diff."
-model_reasoning_effort = "low"
-sandbox_mode = "read-only"
+model = "gpt-6-luna"
+model_reasoning_effort = "high"
 developer_instructions = """
+Work read-only. Do not edit repository files or modify Git state or external records.
 Inspect the changed or proposed files and identify the smallest sufficient
 validation set.
 
