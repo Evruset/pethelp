@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vetora — интерактивный прототип V27</title>
+<style>body{font-family:system-ui,-apple-system,sans-serif;background:#f3f6fd;color:#223451;text-align:center;margin:0;padding:20vh 20px}h1{font-size:28px}p{color:#657993}</style></head>
+<body><h1>Vetora</h1><p id="status">Загружаем интерактивный прототип…</p>
+<script>
+(async()=>{
+  try {
+    const paths=["content/p0.txt","content/p1.txt","content/p2.txt","content/p3.txt","content/p4.txt"];
+    const pieces=await Promise.all(paths.map(async path=>{
+      const response=await fetch(path);
+      if (!response.ok) throw new Error(path+': HTTP '+response.status);
+      return response.text();
+    }));
+    document.open();
+    document.write(pieces.join(''));
+    document.close();
+  } catch (error) {
+    document.getElementById('status').textContent='Не удалось загрузить сайт: '+error.message;
+  }
+})();
+</script></body></html>
