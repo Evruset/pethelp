@@ -71,10 +71,12 @@ describe('OwnerBookingsScreen', () => {
     expect(screen.queryByText(HOLD_ACTION)).toBeNull();
     expect(screen.queryByText('Очный визит')).toBeNull();
     expect(screen.queryByText('Прошедшая запись')).toBeNull();
+    expect(screen.getAllByRole('button', { name: 'Подробнее' })).toHaveLength(2);
     await fireEvent.press(screen.getAllByText('Подробнее')[0]);
     expect(onOpenBooking).toHaveBeenCalledWith(HOLD_ACTION);
     await fireEvent.press(screen.getByText('История'));
     await screen.findByText('Приём завершён');
+    expect(screen.getAllByRole('button', { name: 'Подробнее' })).toHaveLength(1);
     expect(screen.queryByText('Нужно выбрать время')).toBeNull();
     await screen.unmount();
   });

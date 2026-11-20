@@ -7,7 +7,7 @@ import { ApiError } from '@/api/errors';
 jest.mock('@/session/SessionProvider', () => ({ useSession: () => ({ session: { opaqueCredential: 'credential', cacheScope: 'scope' } }) }));
 const id = '11111111-1111-4111-8111-111111111111';
 const item: any = { holdId:id,bucket:'ACTIVE',version:2,startsAt:'2026-09-20T09:00:00.000Z',endsAt:'2026-09-20T09:30:00.000Z',latestStatusUpdateAt:'2026-09-19T08:00:00.000Z',presentation:{label:'Запись подтверждена',description:'Клиника ждёт вас.',tone:'success'},clinic:{name:'VetHelp',address:'Москва'},location:{address:'Москва'},pet:{name:'Жучка',species:'DOG'},service:{name:'Осмотр',priceAmount:'1200.00',currency:'RUB'},timeline:[],actions:{canCancel:true},cancellation:{canCancel:true,aggregateVersion:2,safeReason:null} };
-const wrapper = ({ children }: { children: React.ReactNode }) => <QueryClientProvider client={new QueryClient({ defaultOptions:{queries:{retry:false}} })}>{children}</QueryClientProvider>;
+const wrapper = ({ children }: { children: React.ReactNode }) => <QueryClientProvider client={new QueryClient({ defaultOptions:{queries:{retry:false,gcTime:Infinity}} })}>{children}</QueryClientProvider>;
 
 beforeAll(() => Object.defineProperty(globalThis, 'crypto', { configurable: true, value: { randomUUID: () => '22222222-2222-4222-8222-222222222222' } }));
 afterEach(() => jest.restoreAllMocks());
