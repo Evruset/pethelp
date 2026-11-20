@@ -43,6 +43,7 @@ describe("AvailabilityScreen", () => {
     const screen = await render(
       <AvailabilityScreen
         context={context}
+        petName="Барсик"
         onBack={jest.fn()}
         onContinue={onContinue}
       />,
@@ -51,6 +52,10 @@ describe("AvailabilityScreen", () => {
     await waitFor(() =>
       expect(screen.getByText("Выбрано: 14.08.2026 в 11:00")).toBeTruthy(),
     );
+    expect(screen.getByLabelText("Питомец: Барсик")).toBeTruthy();
+    expect(screen.getByLabelText("Клиника: Clinic")).toBeTruthy();
+    expect(screen.getByLabelText("Услуга: Осмотр")).toBeTruthy();
+    expect(screen.getByLabelText("Дата и время: 14.08.2026 · 11:00")).toBeTruthy();
     fireEvent.press(screen.getByText("Продолжить"));
     await waitFor(() =>
       expect(onContinue).toHaveBeenCalledWith({
@@ -93,6 +98,7 @@ describe("AvailabilityScreen", () => {
       />,
     );
     expect(screen.getByText("Выбранное время больше недоступно. Выберите другое.")).toBeTruthy();
+    expect(screen.queryByLabelText("Дата и время: 14.08.2026 · 11:00")).toBeNull();
     expect(screen.getByRole("button", { name: "Продолжить" }).props.accessibilityState.disabled).toBe(true);
   });
   it("clears a slot that became unavailable", async () => {
@@ -159,6 +165,23 @@ describe("AvailabilityScreen", () => {
     );
     expect(onContinue).not.toHaveBeenCalled();
   });
+  it("offers real recovery actions when the schedule is empty", async () => {
+    const onBack = jest.fn();
+    const onContinue = jest.fn();
+    const empty = { ...data, slots: [] };
+    const refetch = jest.fn().mockResolvedValue({ isError: false, data: empty });
+    mockUseQuery.mockReturnValue({ isPending: false, isError: false, data: empty, refetch });
+    const screen = await render(<AvailabilityScreen context={context} onBack={onBack} onContinue={onContinue} />);
+    fireEvent.press(screen.getByRole("button", { name: "Обновить время" }));
+    await waitFor(() => expect(refetch).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Выбрать другую услугу" })).toBeEnabled());
+    fireEvent.press(screen.getByRole("button", { name: "Выбрать другую услугу" }));
+    expect(onBack).toHaveBeenCalledTimes(1);
+    expect(onContinue).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Продолжить" })).toBeNull();
+    expect(screen.queryByText("Свободные слоты")).toBeNull();
+  });
+
   it.each([
     [{ isPending: true, isError: false }, "Загружаем доступное время"],
     [

@@ -6,6 +6,22 @@ jest.mock('@tanstack/react-query',()=>({useQuery:(input:unknown)=>mockUseQuery(i
 jest.mock('@/session/SessionProvider',()=>({useSession:()=>({session:{cacheScope:'owner-a',opaqueCredential:'token-a'}})}));
 const data={clinicId:C,locationId:L,name:'Clinic',address:'Address',phone:null,services:[{serviceId:S,name:'Осмотр',price:{kind:'INFORMATIONAL',amount:'1250.00',currency:'RUB'}}]};
 describe('ClinicServiceScreen',()=>{
+  it('keeps the known pet and clinic while updating only the selected service summary',async()=>{
+    const secondService={...data.services[0],serviceId:'55555555-5555-4555-8555-555555555555',name:'Вакцинация'};
+    mockUseQuery.mockReturnValue({isPending:false,isError:false,data:{...data,services:[...data.services,secondService]},refetch:jest.fn()});
+    const screen=await render(<ClinicServiceScreen clinic={{clinicId:C,locationId:L}} petName="Барсик" onBack={jest.fn()} onContinue={jest.fn()}/>);
+    expect(screen.getByLabelText('Питомец: Барсик')).toBeTruthy();
+    expect(screen.getByLabelText('Клиника: Clinic')).toBeTruthy();
+    expect(screen.getByLabelText('Адрес: Address')).toBeTruthy();
+    expect(screen.queryByLabelText('Услуга: Осмотр')).toBeNull();
+    fireEvent.press(screen.getByText('Осмотр'));
+    await waitFor(()=>expect(screen.getByLabelText('Услуга: Осмотр')).toBeTruthy());
+    fireEvent.press(screen.getByText('Вакцинация'));
+    await waitFor(()=>expect(screen.getByLabelText('Услуга: Вакцинация')).toBeTruthy());
+    expect(screen.queryByLabelText('Услуга: Осмотр')).toBeNull();
+    expect(screen.getByLabelText('Питомец: Барсик')).toBeTruthy();
+    expect(screen.getByLabelText('Клиника: Clinic')).toBeTruthy();
+  });
   it('selects one service and refreshes authority before exact handoff',async()=>{const onContinue=jest.fn(),refetch=jest.fn().mockResolvedValue({data});mockUseQuery.mockReturnValue({isPending:false,isError:false,data,refetch});const screen=await render(<ClinicServiceScreen clinic={{clinicId:C,locationId:L}} onBack={jest.fn()} onContinue={onContinue}/>);fireEvent.press(screen.getByText('Осмотр'));await waitFor(()=>expect(screen.getByRole('radio').props.accessibilityState.selected).toBe(true));fireEvent.press(screen.getByText('Продолжить'));await waitFor(()=>expect(onContinue).toHaveBeenCalledWith({clinicId:C,locationId:L,serviceId:S}));expect(refetch).toHaveBeenCalledTimes(1);expect(screen.getByText('Ориентировочная стоимость: 1 250 ₽')).toBeTruthy();});
   it('restores a retained service selection after Back',async()=>{mockUseQuery.mockReturnValue({isPending:false,isError:false,data,refetch:jest.fn()});const screen=await render(<ClinicServiceScreen clinic={{clinicId:C,locationId:L}} initialServiceId={S} onBack={jest.fn()} onContinue={jest.fn()}/>);expect(screen.getByRole('radio').props.accessibilityState.selected).toBe(true);expect(screen.getByText('Ориентировочная стоимость: 1 250 ₽')).toBeTruthy();});
   it('clears stale selection and does not continue',async()=>{const onContinue=jest.fn(),refetch=jest.fn().mockResolvedValue({data:{...data,services:[]}});mockUseQuery.mockReturnValue({isPending:false,isError:false,data,refetch});const screen=await render(<ClinicServiceScreen clinic={{clinicId:C,locationId:L}} onBack={jest.fn()} onContinue={onContinue}/>);fireEvent.press(screen.getByText('Осмотр'));await waitFor(()=>expect(screen.getByRole('radio').props.accessibilityState.selected).toBe(true));fireEvent.press(screen.getByText('Продолжить'));await waitFor(()=>expect(screen.getByText('Выбранная услуга больше недоступна. Выберите другую.')).toBeTruthy());expect(onContinue).not.toHaveBeenCalled();});

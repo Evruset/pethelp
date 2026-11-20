@@ -11,6 +11,7 @@ import { Button, StateMessage } from "@/ui/primitives";
 import { uiTokens as t } from "@/ui/tokens";
 import { useSession } from "@/session/SessionProvider";
 import { BookingProgress } from "@/booking/BookingProgress";
+import { BookingSelectionSummary } from "@/booking/BookingSelectionSummary";
 import {
   availabilityApi,
   type AvailabilityHandoff,
@@ -183,14 +184,14 @@ export function AvailabilityScreen({
     <ClinicDecisionLayout
       eyebrow="Запись в клинику"
       title="Выберите время"
-      subtitle="Только свободные интервалы из актуального расписания клиники. Перед продолжением выбранный слот проверим ещё раз."
+      subtitle="Выберите удобное время. Запись подтвердит клиника после отправки заявки."
       onBack={() => {
         operation.current += 1;
         refreshInFlight.current = false;
         onBack();
       }}
     >
-      <BookingProgress current={3} facts={petName ? [`Питомец: ${petName}`] : []} />
+      <BookingProgress current={3} />
       {query.isPending ? <StateMessage kind="loading" title="Загружаем доступное время" /> : null}
       {query.isError ? (
         <StateMessage
@@ -217,13 +218,14 @@ export function AvailabilityScreen({
                 gap: 8,
               }}
             >
-              <DecisionHeading
-                kicker="Контекст записи"
-                title={query.data.clinicName}
-                detail={query.data.serviceName}
+              <BookingSelectionSummary
+                petName={petName}
+                clinicName={query.data.clinicName}
+                serviceName={query.data.serviceName}
+                time={effectiveSelected && current ? `${dateLabel(effectiveSelected.localDate)} · ${effectiveSelected.localTime}` : undefined}
               />
               <FactRow>
-                <Fact tone="positive">Свободные слоты</Fact>
+                {query.data.slots.length > 0 ? <Fact tone="positive">Свободные слоты</Fact> : null}
                 <Fact>Местное время клиники</Fact>
               </FactRow>
             </View>
@@ -232,7 +234,13 @@ export function AvailabilityScreen({
             <StateMessage
               kind="empty"
               title="На ближайшие 14 дней свободного времени нет"
-              body="Клиника не передала доступных интервалов в текущем горизонте."
+              body="Можно выбрать другую услугу или обновить расписание."
+              action={
+                <View style={{ gap: t.spacing.sm }}>
+                  <Button label="Выбрать другую услугу" disabled={refreshing} onPress={onBack} />
+                  <Button label={refreshing ? "Обновляем…" : "Обновить время"} variant="secondary" disabled={refreshing} onPress={() => { void refresh(false); }} />
+                </View>
+              }
             />
           ) : (
             <ResponsiveColumns
@@ -241,7 +249,7 @@ export function AvailabilityScreen({
                   <DecisionHeading
                     kicker="Дата и время"
                     title="Доступные интервалы"
-                    detail="Выберите дату, затем один слот."
+                    detail="Время указано по часовому поясу клиники."
                   />
                   <View
                     accessibilityRole="tablist"
@@ -358,7 +366,7 @@ export function AvailabilityScreen({
                     detail={
                       effectiveSelected && current
                         ? "Перед переходом ещё раз проверим, что слот свободен."
-                        : "Выберите доступный интервал слева."
+                        : "Выберите доступное время из списка."
                     }
                   />
                   {effectiveSelected && current ? (

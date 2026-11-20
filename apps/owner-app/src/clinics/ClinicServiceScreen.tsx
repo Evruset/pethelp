@@ -10,6 +10,7 @@ import {
 import { Button, StateMessage } from "@/ui/primitives";
 import { uiTokens as t } from "@/ui/tokens";
 import { BookingProgress } from "@/booking/BookingProgress";
+import { BookingSelectionSummary } from "@/booking/BookingSelectionSummary";
 import { formatMoney } from "@/ui/formatters";
 import { useSession } from "@/session/SessionProvider";
 import {
@@ -110,10 +111,10 @@ export function ClinicServiceScreen({
     <ClinicDecisionLayout
       eyebrow="Клиника и услуга"
       title="Что нужно питомцу?"
-      subtitle="Клиника уже выбрана. Теперь выберите услугу — затем покажем доступное время."
+      subtitle="Выберите услугу, затем перейдите к доступному времени."
       onBack={onBack}
     >
-      <BookingProgress current={2} facts={petName ? [`Питомец: ${petName}`] : []} />
+      <BookingProgress current={2} />
       {query.isPending ? <StateMessage kind="loading" title="Загружаем услуги" /> : null}
       {query.isError ? (
         <StateMessage
@@ -139,15 +140,16 @@ export function ClinicServiceScreen({
               gap: 8,
             }}
           >
-            <DecisionHeading
-              kicker="Выбранная клиника"
-              title={query.data.name}
-              detail={query.data.address}
+            <BookingSelectionSummary
+              petName={petName}
+              clinicName={query.data.name}
+              address={query.data.address}
+              serviceName={selectedService?.name}
+              price={selectedService ? formatMoney(selectedService.price.amount, selectedService.price.currency) : undefined}
             />
             <FactRow>
               <Fact tone="positive">Онлайн-запись</Fact>
               <Fact>{query.data.services.length} услуг</Fact>
-              <Fact>Время — следующим шагом</Fact>
             </FactRow>
           </View>
           {query.data.phone ? (
@@ -184,7 +186,7 @@ export function ClinicServiceScreen({
                 <DecisionHeading
                   kicker="Доступные услуги"
                   title="Выберите услугу"
-                  detail="Цена показана ровно в том виде, в котором её вернула клиника."
+                  detail="Стоимость ориентировочная. Итоговую сумму уточнит клиника."
                 />
                 {query.data.services.length === 0 ? (
                   <StateMessage kind="empty" title="В этой клинике пока нет доступных услуг" />
@@ -277,7 +279,7 @@ export function ClinicServiceScreen({
                   detail={
                     selectedService
                       ? `${formatMoney(selectedService.price.amount, selectedService.price.currency)} · ориентировочная стоимость`
-                      : "Выберите одну услугу слева."
+                      : "Выберите услугу из списка."
                   }
                 />
                 <Text
@@ -286,7 +288,7 @@ export function ClinicServiceScreen({
                     color: decisionColors.muted,
                   }}
                 >
-                  Клиника сохранится при возврате из выбора времени. После продолжения покажем только её опубликованные свободные интервалы.
+                  Далее — выбор доступного времени.
                 </Text>
                 <Button
                   label={checking ? "Проверяем…" : "Продолжить"}
